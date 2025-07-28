@@ -321,7 +321,7 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center">
+            <div className="flex gap-4 text-black flex-wrap items-center w-full">
                 {/* Role filter dropdown */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
@@ -336,13 +336,13 @@ export default function UsersDataTable<TData, TValue>({
                 </Select>
 
                 {/* Search bar */}
-                <div className="relative text-black">
+                <div className="relative text-black flex-grow max-w-sm">
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search users..."
-                        className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-56"
+                        className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
