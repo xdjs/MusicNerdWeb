@@ -56,7 +56,7 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
   },
   {
     accessorKey: "name",
-    header: "Name",
+    header: "Artist Name",
   },
   {
     accessorKey: "createdAt",
