@@ -19,6 +19,9 @@ const WalletProviders = dynamic(
 
         const config = getDefaultConfig({
             appName: 'Music Nerd',
+            appDescription: 'Music Nerd platform',
+            appUrl: 'https://www.musicnerd.xyz',
+            appIcon: 'https://www.musicnerd.xyz/icon.ico',
             projectId,
             chains: [rkMainnet],
             transports: {
