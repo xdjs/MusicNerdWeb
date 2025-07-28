@@ -21,7 +21,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, ArrowUpDown, Search as SearchIcon } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -31,7 +31,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import SearchBar from "./UserSearch";
-import { ArrowUpDown } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 
@@ -234,6 +233,7 @@ export default function UsersDataTable<TData, TValue>({
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const [roleFilter, setRoleFilter] = useState<string>("All");
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     // Reset selection when filter changes
     useEffect(() => {
@@ -242,14 +242,27 @@ export default function UsersDataTable<TData, TValue>({
 
     // Apply role filter – memoised for performance
     const filteredData = useMemo(() => {
-        if (roleFilter === "All") return data;
-        return data.filter((row: any) => {
-            if (roleFilter === "Admin") return row.isAdmin;
-            if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
-            if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
-            return true;
-        });
-    }, [roleFilter, data]);
+        let rows = data;
+        // Apply role filter first
+        if (roleFilter !== "All") {
+            rows = rows.filter((row: any) => {
+                if (roleFilter === "Admin") return row.isAdmin;
+                if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
+                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
+                return true;
+            });
+        }
+
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            rows = rows.filter((row: any) => {
+                const wallet = (row.wallet ?? "").toLowerCase();
+                const username = (row.username ?? "").toLowerCase();
+                return wallet.includes(q) || username.includes(q);
+            });
+        }
+        return rows;
+    }, [roleFilter, searchQuery, data]);
 
     const table = useReactTable({
         data: filteredData,
@@ -303,7 +316,7 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center">
+            <div className="flex gap-4 text-black flex-wrap items-center w-full">
                 {/* Role filter */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
@@ -316,6 +329,18 @@ export default function UsersDataTable<TData, TValue>({
                         <SelectItem value="User">Users</SelectItem>
                     </SelectContent>
                 </Select>
+
+                {/* Search bar */}
+                <div className="relative flex items-center flex-grow max-w-sm">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search username or wallet"
+                        className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm text-black pr-8"
+                    />
+                    <SearchIcon className="absolute right-2 h-4 w-4 text-gray-500" strokeWidth={2} />
+                </div>
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
