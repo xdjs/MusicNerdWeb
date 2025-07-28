@@ -4,6 +4,21 @@ import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper to check if the user has newly approved UGC
+async function hasNewApprovedUGC(userId: string): Promise<boolean> {
+  try {
+    const resp = await fetch("/api/approvedUGCCount");
+    if (!resp.ok) return false;
+    const data = await resp.json();
+
+    const storageKey = `approvedUGCCount_${userId}`;
+    const storedCount = Number(localStorage.getItem(storageKey) || "0");
+    return data.count > storedCount;
+  } catch {
+    return false;
+  }
+}
+
 export default function AuthToast() {
   const { data: session, status } = useSession();
   const { toast } = useToast();
@@ -26,11 +41,40 @@ export default function AuthToast() {
     // Show a welcome toast only when transitioning into "authenticated" from any
     // other state (after the initial mount), with a valid user object.
     if (prevStatus !== "authenticated" && status === "authenticated" && session?.user) {
-      toast({
-        title: "Welcome!",
-        description: session.user.name ? "Welcome back!" : "You are now signed in",
-        duration: 3000,
-      });
+      (async () => {
+        const storageKey = `approvedUGCCount_${session.user.id}`;
+        // Check if approvedUGC count increased
+        try {
+          const resp = await fetch("/api/approvedUGCCount");
+          if (resp.ok) {
+            const data = await resp.json();
+            const stored = Number(localStorage.getItem(storageKey) || "0");
+            const hasNew = data.count > stored;
+
+            toast({
+              title: "Welcome!",
+              description: hasNew
+                ? <span className="text-green-600">Your recently added artist data has been approved.</span>
+                : (session.user.name ? "Welcome back!" : "You are now signed in"),
+              duration: 3000,
+            });
+
+            // Persist the new count so we don't repeat the message until more approvals happen
+            localStorage.setItem(storageKey, String(data.count));
+            if (hasNew) {
+              // Let other tabs know approvals were seen
+              window.dispatchEvent(new Event('approvedUGCUpdated'));
+            }
+          }
+        } catch (e) {
+          // Fail silently, fallback to default message
+          toast({
+            title: "Welcome!",
+            description: session.user.name ? "Welcome back!" : "You are now signed in",
+            duration: 3000,
+          });
+        }
+      })();
     }
 
     // Show a sign-out toast only when transitioning from "authenticated" to
