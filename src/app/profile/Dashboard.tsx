@@ -87,6 +87,29 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const { openConnectModal } = useConnectModal();
     const { status } = useSession();
 
+    // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
+    useEffect(() => {
+        async function markApprovedUGCSeen() {
+            try {
+                const resp = await fetch('/api/approvedUGCCount');
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                const storageKey = `approvedUGCCount_${user.id}`;
+                localStorage.setItem(storageKey, String(data.count));
+                // Notify other tabs/components
+                window.dispatchEvent(new Event('approvedUGCUpdated'));
+            } catch (e) {
+                console.error('[Profile] Error marking approved UGC as seen', e);
+            }
+        }
+
+        // Skip for guest users
+        if (user.id && user.id !== '00000000-0000-0000-0000-000000000000') {
+            markApprovedUGCSeen();
+        }
+    }, [user.id]);
+
     // ---------- Simplified view for guest (not logged-in) users ----------
     // Refresh once when auth state changes (login/logout), with sessionStorage flag to avoid loops
     useEffect(() => {

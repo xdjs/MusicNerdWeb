@@ -33,6 +33,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { data: session, status } = useSession();
     const [currentStatus, setCurrentStatus] = useState(status);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
+    // Count of approved UGC for the user
+    const [approvedUGCCount, setApprovedUGCCount] = useState<number>(0);
+    // Whether there are newly approved UGC entries that the user hasn't viewed yet
+    const [hasNewApprovedUGC, setHasNewApprovedUGC] = useState(false);
     const shouldPromptRef = useRef(false);
 
     const { isConnected, address } = useAccount();
@@ -127,10 +131,47 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         }
     }, [session]);
 
+    // Reusable fetcher for approved UGC count for the current user
+    const fetchApprovedUGC = useCallback(async () => {
+        if (!session) return;
+
+        try {
+            const res = await fetch('/api/approvedUGCCount');
+            if (res.ok) {
+                const data = await res.json();
+                setApprovedUGCCount(data.count);
+
+                // Compare with the last seen count stored in localStorage (per user)
+                const storageKey = `approvedUGCCount_${session.user.id}`;
+                const storedCount = Number(localStorage.getItem(storageKey) || '0');
+                setHasNewApprovedUGC(data.count > storedCount);
+            }
+        } catch (e) {
+            console.error('[Login] Error fetching approved UGC count', e);
+        }
+    }, [session]);
+
     // Fetch pending UGC count for admin users
     useEffect(() => {
         fetchPendingUGC();
     }, [fetchPendingUGC]);
+
+    // Fetch approved UGC count for regular users
+    useEffect(() => {
+        if (session) {
+            // Reset last-seen approved count at the beginning of every authenticated session
+            const storageKey = `approvedUGCCount_${session.user.id}`;
+            localStorage.removeItem(storageKey);
+            window.dispatchEvent(new Event('approvedUGCUpdated'));
+        }
+        fetchApprovedUGC();
+    }, [fetchApprovedUGC, session]);
+
+    // Listen for "approvedUGCUpdated" events to update the badge immediately
+    useEffect(() => {
+        window.addEventListener('approvedUGCUpdated', fetchApprovedUGC);
+        return () => window.removeEventListener('approvedUGCUpdated', fetchApprovedUGC);
+    }, [fetchApprovedUGC]);
 
     // Listen for "pendingUGCUpdated" events to update the red dot immediately
     useEffect(() => {
@@ -318,7 +359,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         <Button 
                             ref={ref}
                             id="login-btn" 
-                            title="View leaderboard" 
                             size="lg" 
                                     type="button"
                                     className={`hover:bg-gray-200 transition-colors duration-300 text-black px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
@@ -358,7 +398,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         <DropdownMenuTrigger asChild>
                         <Button 
                             ref={ref}
-                            title="View leaderboard" 
                             type="button" 
                                 size="lg"
                             className="relative bg-pastypink hover:bg-pastypink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center" 
@@ -375,7 +414,26 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => router.push('/profile')}>User Profile</DropdownMenuItem>
+                            <DropdownMenuItem
+                                onSelect={() => {
+                                    router.push('/profile');
+
+                                    // Mark approved UGC as seen for this user
+                                    if (session) {
+                                        const storageKey = `approvedUGCCount_${session.user.id}`;
+                                        localStorage.setItem(storageKey, String(approvedUGCCount));
+                                        setHasNewApprovedUGC(false);
+                                        // Notify other listeners (e.g., other tabs/components)
+                                        window.dispatchEvent(new Event('approvedUGCUpdated'));
+                                    }
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <span>User Profile</span>
+                                {hasNewApprovedUGC && (
+                                    <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
+                                )}
+                            </DropdownMenuItem>
                             {session?.user?.isAdmin && (
                                 <DropdownMenuItem onSelect={() => router.push('/admin')} className="flex items-center gap-2">
                                     <span>Admin Panel</span>
