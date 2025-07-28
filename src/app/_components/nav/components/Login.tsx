@@ -175,7 +175,15 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     // Listen for "pendingUGCUpdated" events to update the red dot immediately
     useEffect(() => {
         window.addEventListener('pendingUGCUpdated', fetchPendingUGC);
-        return () => window.removeEventListener('pendingUGCUpdated', fetchPendingUGC);
+
+        // Run immediately and then poll every 30 s (admin only)
+        fetchPendingUGC();
+        const interval = setInterval(fetchPendingUGC, 30000);
+
+        return () => {
+            window.removeEventListener('pendingUGCUpdated', fetchPendingUGC);
+            clearInterval(interval);
+        };
     }, [fetchPendingUGC]);
 
     // Handle disconnection and cleanup
