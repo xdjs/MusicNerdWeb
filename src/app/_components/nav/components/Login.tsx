@@ -33,10 +33,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { data: session, status } = useSession();
     const [currentStatus, setCurrentStatus] = useState(status);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
-    // Count of approved UGC for the user
-    const [approvedUGCCount, setApprovedUGCCount] = useState<number>(0);
-    // Whether there are newly approved UGC entries that the user hasn't viewed yet
-    const [hasNewApprovedUGC, setHasNewApprovedUGC] = useState(false);
+    // Count of total UGC entries (approved + pending)
+    const [ugcCount, setUgcCount] = useState<number>(0);
+    const [hasNewUGC, setHasNewUGC] = useState(false);
     const shouldPromptRef = useRef(false);
 
     const { isConnected, address } = useAccount();
@@ -132,22 +131,21 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     }, [session]);
 
     // Reusable fetcher for approved UGC count for the current user
-    const fetchApprovedUGC = useCallback(async () => {
+    const fetchUGCCount = useCallback(async () => {
         if (!session) return;
 
         try {
-            const res = await fetch('/api/approvedUGCCount');
+            const res = await fetch('/api/ugcCount');
             if (res.ok) {
                 const data = await res.json();
-                setApprovedUGCCount(data.count);
+                setUgcCount(data.count);
 
-                // Compare with the last seen count stored in localStorage (per user)
-                const storageKey = `approvedUGCCount_${session.user.id}`;
-                const storedCount = Number(localStorage.getItem(storageKey) || '0');
-                setHasNewApprovedUGC(data.count > storedCount);
+                const storageKey = `ugcCount_${session.user.id}`;
+                const stored = Number(localStorage.getItem(storageKey) || '0');
+                setHasNewUGC(data.count > stored);
             }
         } catch (e) {
-            console.error('[Login] Error fetching approved UGC count', e);
+            console.error('[Login] Error fetching UGC count', e);
         }
     }, [session]);
 
@@ -159,19 +157,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     // Fetch approved UGC count for regular users
     useEffect(() => {
         if (session) {
-            // Reset last-seen approved count at the beginning of every authenticated session
-            const storageKey = `approvedUGCCount_${session.user.id}`;
+            const storageKey = `ugcCount_${session.user.id}`;
             localStorage.removeItem(storageKey);
-            window.dispatchEvent(new Event('approvedUGCUpdated'));
+            window.dispatchEvent(new Event('ugcCountUpdated'));
         }
-        fetchApprovedUGC();
-    }, [fetchApprovedUGC, session]);
+        fetchUGCCount();
+    }, [fetchUGCCount, session]);
 
-    // Listen for "approvedUGCUpdated" events to update the badge immediately
     useEffect(() => {
-        window.addEventListener('approvedUGCUpdated', fetchApprovedUGC);
-        return () => window.removeEventListener('approvedUGCUpdated', fetchApprovedUGC);
-    }, [fetchApprovedUGC]);
+        window.addEventListener('ugcCountUpdated', fetchUGCCount);
+        return () => window.removeEventListener('ugcCountUpdated', fetchUGCCount);
+    }, [fetchUGCCount]);
 
     // Listen for "pendingUGCUpdated" events to update the red dot immediately
     useEffect(() => {
@@ -407,7 +403,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : (
                                 <span className="text-xl">🥳</span>
                             )}
-                            {(hasPendingUGC || hasNewApprovedUGC) && (
+                            {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
                             )}
                         </Button>
@@ -420,17 +416,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
 
                                     // Mark approved UGC as seen for this user
                                     if (session) {
-                                        const storageKey = `approvedUGCCount_${session.user.id}`;
-                                        localStorage.setItem(storageKey, String(approvedUGCCount));
-                                        setHasNewApprovedUGC(false);
+                                        const storageKey = `ugcCount_${session.user.id}`;
+                                        localStorage.setItem(storageKey, String(ugcCount));
+                                        setHasNewUGC(false);
                                         // Notify other listeners (e.g., other tabs/components)
-                                        window.dispatchEvent(new Event('approvedUGCUpdated'));
+                                        window.dispatchEvent(new Event('ugcCountUpdated'));
                                     }
                                 }}
                                 className="flex items-center gap-2"
                             >
                                 <span>User Profile</span>
-                                {hasNewApprovedUGC && (
+                                {hasNewUGC && (
                                     <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
                                 )}
                             </DropdownMenuItem>
