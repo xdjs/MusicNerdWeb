@@ -149,18 +149,21 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         }
     }, [session]);
 
-    // Fetch pending UGC count for admin users
-    useEffect(() => {
-        fetchPendingUGC();
-    }, [fetchPendingUGC]);
+    // Track which user/session we've already reset for
+    const clearedRef = useRef<string | null>(null);
 
-    // Fetch approved UGC count for regular users
     useEffect(() => {
         if (session) {
             const storageKey = `ugcCount_${session.user.id}`;
-            localStorage.removeItem(storageKey);
-            window.dispatchEvent(new Event('ugcCountUpdated'));
+
+            // Only clear once per authenticated session (first mount)
+            if (clearedRef.current !== session.user.id) {
+                clearedRef.current = session.user.id;
+                localStorage.removeItem(storageKey);
+                window.dispatchEvent(new Event('ugcCountUpdated'));
+            }
         }
+
         fetchUGCCount();
     }, [fetchUGCCount, session]);
 

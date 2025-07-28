@@ -42,21 +42,38 @@ export default function AuthToast() {
     // other state (after the initial mount), with a valid user object.
     if (prevStatus !== "authenticated" && status === "authenticated" && session?.user) {
       (async () => {
-        // Reset last-seen counter at the start of every authenticated session
         const storageKey = `approvedUGCCount_${session.user.id}`;
-        localStorage.removeItem(storageKey);
-        // Notify other listeners that the counter reset so they recalc badges
-        window.dispatchEvent(new Event('approvedUGCUpdated'));
+        // Check if approvedUGC count increased
+        try {
+          const resp = await fetch("/api/approvedUGCCount");
+          if (resp.ok) {
+            const data = await resp.json();
+            const stored = Number(localStorage.getItem(storageKey) || "0");
+            const hasNew = data.count > stored;
 
-        const newApproved = await hasNewApprovedUGC(session.user.id);
+            toast({
+              title: "Welcome!",
+              description: hasNew
+                ? <span className="text-green-600">Your recently added artist data has been approved.</span>
+                : (session.user.name ? "Welcome back!" : "You are now signed in"),
+              duration: 3000,
+            });
 
-        toast({
-          title: "Welcome!",
-          description: newApproved ? (
-            <span className="text-green-600">Your recently added artist data has been approved.</span>
-          ) : (session.user.name ? "Welcome back!" : "You are now signed in"),
-          duration: 3000,
-        });
+            // Persist the new count so we don't repeat the message until more approvals happen
+            localStorage.setItem(storageKey, String(data.count));
+            if (hasNew) {
+              // Let other tabs know approvals were seen
+              window.dispatchEvent(new Event('approvedUGCUpdated'));
+            }
+          }
+        } catch (e) {
+          // Fail silently, fallback to default message
+          toast({
+            title: "Welcome!",
+            description: session.user.name ? "Welcome back!" : "You are now signed in",
+            duration: 3000,
+          });
+        }
       })();
     }
 
