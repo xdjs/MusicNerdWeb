@@ -83,23 +83,6 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     header: "Site Name",
   },
   {
-    accessorKey: "accepted",
-    header: "Status",
-    cell: ({ getValue }) => {
-      const accepted = getValue() as boolean | null | undefined;
-      return (
-        <span className={`font-semibold ${accepted ? "text-green-600" : "text-yellow-600"}`}>
-          {accepted ? "Approved" : "Pending"}
-        </span>
-      );
-    },
-    sortingFn: (rowA, rowB, columnId) => {
-      const a = rowA.getValue(columnId) ? 0 : 1; // approved first
-      const b = rowB.getValue(columnId) ? 0 : 1;
-      return a - b;
-    },
-  },
-  {
     accessorKey: "ugcUrl",
     header: "UGC URL",
   },
