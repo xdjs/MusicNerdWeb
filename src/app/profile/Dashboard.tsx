@@ -89,24 +89,24 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
     useEffect(() => {
-        async function markApprovedUGCSeen() {
+        async function markUGCSeen() {
             try {
-                const resp = await fetch('/api/approvedUGCCount');
+                const resp = await fetch('/api/ugcCount');
                 if (!resp.ok) return;
                 const data = await resp.json();
 
-                const storageKey = `approvedUGCCount_${user.id}`;
+                const storageKey = `ugcCount_${user.id}`;
                 localStorage.setItem(storageKey, String(data.count));
                 // Notify other tabs/components
-                window.dispatchEvent(new Event('approvedUGCUpdated'));
+                window.dispatchEvent(new Event('ugcCountUpdated'));
             } catch (e) {
-                console.error('[Profile] Error marking approved UGC as seen', e);
+                console.error('[Profile] Error marking UGC as seen', e);
             }
         }
 
         // Skip for guest users
         if (user.id && user.id !== '00000000-0000-0000-0000-000000000000') {
-            markApprovedUGCSeen();
+            markUGCSeen();
         }
     }, [user.id]);
 
