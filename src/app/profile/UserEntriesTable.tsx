@@ -173,7 +173,7 @@ export default function UserEntriesTable() {
         <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
+            <TableRow className="bg-gray-50 hover:bg-gray-50">
               <TableHead
                 className="text-center cursor-pointer select-none py-2 px-3"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -245,7 +245,7 @@ export default function UserEntriesTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
+              <TableRow className="bg-white hover:bg-white">
                 <TableCell colSpan={6} className="text-center py-4">
                   Loading...
                 </TableCell>
@@ -259,7 +259,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                    <TableRow key={entry.id} className="bg-white">
+                    <TableRow key={entry.id} className="bg-white hover:bg-white">
                       <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
                       <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
                       <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
@@ -288,7 +288,7 @@ export default function UserEntriesTable() {
                 });
               })()
             ) : (
-              <TableRow>
+              <TableRow className="bg-white hover:bg-white">
                 <TableCell colSpan={6} className="text-center py-4">
                   No entries
                 </TableCell>
