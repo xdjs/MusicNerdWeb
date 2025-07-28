@@ -21,7 +21,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useEffect, useMemo, useState } from "react";
-import { X, ArrowUpDown, Search as SearchIcon } from "lucide-react";
+import { X, Search as SearchIcon, ArrowUpDown } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import {
     Dialog,
     DialogContent,
@@ -232,37 +238,36 @@ export default function UsersDataTable<TData, TValue>({
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
+    // Search query is handled by `query` state below. No additional role checkboxes needed.
     const [roleFilter, setRoleFilter] = useState<string>("All");
-    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [query, setQuery] = useState<string>("");
 
-    // Reset selection when filter changes
+    // Reset selection when role filter changes or search query changes (for safety)
     useEffect(() => {
         setRowSelection({});
     }, [roleFilter]);
 
     // Apply role filter – memoised for performance
     const filteredData = useMemo(() => {
-        let rows = data;
-        // Apply role filter first
+        let arr: any[] = data;
         if (roleFilter !== "All") {
-            rows = rows.filter((row: any) => {
+            arr = arr.filter((row: any) => {
                 if (roleFilter === "Admin") return row.isAdmin;
                 if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
                 if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
                 return true;
             });
         }
-
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            rows = rows.filter((row: any) => {
+        if (query.trim()) {
+            const q = query.toLowerCase();
+            arr = arr.filter((row: any) => {
                 const wallet = (row.wallet ?? "").toLowerCase();
                 const username = (row.username ?? "").toLowerCase();
                 return wallet.includes(q) || username.includes(q);
             });
         }
-        return rows;
-    }, [roleFilter, searchQuery, data]);
+        return arr;
+    }, [roleFilter, data, query]);
 
     const table = useReactTable({
         data: filteredData,
@@ -316,8 +321,8 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center w-full">
-                {/* Role filter */}
+            <div className="flex gap-4 text-black flex-wrap items-center">
+                {/* Role filter dropdown */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
                         <SelectValue placeholder="Filter Role" />
@@ -331,15 +336,15 @@ export default function UsersDataTable<TData, TValue>({
                 </Select>
 
                 {/* Search bar */}
-                <div className="relative flex items-center flex-grow max-w-sm">
+                <div className="relative text-black">
                     <input
                         type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search username or wallet"
-                        className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm text-black pr-8"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search users..."
+                        className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-56"
                     />
-                    <SearchIcon className="absolute right-2 h-4 w-4 text-gray-500" strokeWidth={2} />
+                    <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
