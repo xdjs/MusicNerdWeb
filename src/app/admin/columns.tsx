@@ -73,11 +73,7 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     },
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
-  {
-    accessorKey: "updatedAt",
-    header: "Updated At",
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
+  // Updated At column intentionally omitted from UI
   {
     accessorKey: "siteName",
     header: "Site Name",
@@ -94,12 +90,7 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     accessorKey: "artistId",
     header: "Artist ID",
   },
-  {
-    accessorKey: "dateProcessed",
-    header: "Date Processed",
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  
+  // Date Processed column intentionally omitted from UI
 ];
 
 export const whitelistedColumns: ColumnDef<User>[] = [
