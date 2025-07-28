@@ -407,7 +407,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : (
                                 <span className="text-xl">🥳</span>
                             )}
-                            {hasPendingUGC && (
+                            {(hasPendingUGC || hasNewApprovedUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
                             )}
                         </Button>
