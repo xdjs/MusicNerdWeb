@@ -12,7 +12,7 @@ export default function BookmarkButton({ className }: { className?: string }) {
     setBookmarked((prev) => !prev);
   };
 
-  const baseClasses = "flex items-center gap-1 rounded-lg px-4 py-1 text-sm font-medium transition-colors duration-300";
+  const baseClasses = "flex items-center gap-1 rounded-lg px-4 py-1 text-sm font-medium transition-colors duration-300 min-w-[120px] flex-shrink-0";
 
   return (
     <Button
