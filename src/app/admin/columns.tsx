@@ -106,7 +106,7 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     cell: ({ getValue }) => {
       const id = getValue() as string | null | undefined;
       if (!id) return "";
-      const href = `https://musicnerd.xyz/${id}`;
+      const href = `https://musicnerd.xyz/artist/${id}`;
       return (
         <a
           href={href}
