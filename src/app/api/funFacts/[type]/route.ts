@@ -58,8 +58,11 @@ export async function GET(req: Request, { params }: { params: { type: string } }
       return NextResponse.json({ error: "Invalid fun fact type" }, { status: 400 });
     }
 
-    // Replace placeholder with actual artist name
-    const finalPrompt = basePrompt.replace("ARTIST_NAME", artist.name ?? "");
+    // Replace placeholders with actual artist information
+    let finalPrompt = basePrompt.replace("ARTIST_NAME", artist.name ?? "");
+    if (artist.spotify) {
+      finalPrompt = finalPrompt.replace("SPOTIFY_ID", artist.spotify);
+    }
 
     // Check if OpenAI API key is configured
     if (!process.env.OPENAI_API_KEY) {
