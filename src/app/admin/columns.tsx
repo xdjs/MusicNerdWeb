@@ -10,7 +10,21 @@ import WhitelistUserEditDialog from "./WhitelistUserEditDialog";
 // Helper to format dates in local timezone without seconds
 const formatDate = (value: string | Date | null | undefined): string => {
   if (!value) return "";
-  const dateObj = value instanceof Date ? value : new Date(value);
+
+  // Normalise to a Date object first.
+  let dateObj: Date;
+
+  if (value instanceof Date) {
+    dateObj = value;
+  } else {
+    const str = value as string;
+    // If the string does NOT include an explicit timezone ("Z" or "+/-hh:mm"),
+    // assume it is stored in UTC and append "Z" so the Date constructor parses
+    // it as UTC instead of local time.
+    const hasExplicitTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(str);
+    dateObj = new Date(hasExplicitTZ ? str : `${str}Z`);
+  }
+
   const datePart = dateObj.toLocaleDateString();
   const timePart = dateObj
     .toLocaleTimeString(undefined, {
@@ -18,8 +32,9 @@ const formatDate = (value: string | Date | null | undefined): string => {
       minute: "2-digit",
       hour12: true,
     })
-    // Replace the regular space between minutes and AM/PM with a non-breaking space
+    // Replace the space before AM/PM with a non-breaking space
     .replace(/\s([AP]M)$/i, "\u00A0$1");
+
   return `${datePart} ${timePart}`;
 };
 
