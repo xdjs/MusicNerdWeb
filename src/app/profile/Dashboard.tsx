@@ -24,6 +24,12 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
+type BookmarkItem = {
+    artistId: string;
+    artistName: string;
+    imageUrl: string | null;
+};
+
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
 }
@@ -40,6 +46,26 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
+    // ----------- Bookmarks state & pagination -----------
+    const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+    const [bookmarkPage, setBookmarkPage] = useState(0);
+    const pageSize = 3;
+
+    useEffect(() => {
+        // Load bookmarks from localStorage (placeholder until backend wiring)
+        try {
+            const raw = localStorage.getItem(`bookmarks_${user.id}`);
+            if (raw) {
+                const parsed = JSON.parse(raw) as BookmarkItem[];
+                setBookmarks(parsed);
+            }
+        } catch (e) {
+            console.debug('[Dashboard] unable to parse bookmarks from storage', e);
+        }
+    }, [user.id]);
+
+    const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
+    const currentBookmarks = bookmarks.slice(bookmarkPage * pageSize, bookmarkPage * pageSize + pageSize);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
     // Range selection (synced with Leaderboard)
@@ -459,10 +485,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         )}
                     </div>
 
-                    {/* Two-column section under username */}
-                    <div className="flex flex-col md:flex-row md:justify-between md:gap-6 max-w-3xl mx-auto text-center md:text-left">
+                    {/* Three-column section under username */}
+                    <div className="flex flex-col md:flex-row md:justify-between md:gap-6 max-w-5xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="md:w-1/2 flex flex-col">
+                        <div className="md:w-1/3 flex flex-col">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
@@ -493,8 +519,52 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
                             </div>
 
+                        {/* Middle column - Bookmarks */}
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto">
+                            <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
+                            {currentBookmarks.length ? (
+                                <ul className="space-y-3">
+                                    {currentBookmarks.map((item) => (
+                                        <li key={item.artistId}>
+                                            <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline">
+                                                <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                                                <span>{item.artistName ?? 'Unknown Artist'}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
+                            )}
+
+                            {/* Pagination controls */}
+                            {totalBookmarkPages > 1 && (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
+                                        disabled={bookmarkPage === 0}
+                                    >
+                                        Prev
+                                    </Button>
+                                    <span className="text-sm">
+                                        {bookmarkPage + 1} / {totalBookmarkPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
+                                        disabled={bookmarkPage >= totalBookmarkPages - 1}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Right column - recently edited */}
-                        <div className="md:w-1/2 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
                             <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
