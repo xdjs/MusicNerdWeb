@@ -196,12 +196,12 @@ export async function POST(req: Request) {
             return a.matchScore - b.matchScore;
           }
 
-          // If names (case-insensitive) are identical, prefer the one with more content
-          const nameA = (a.name || "").toLowerCase();
-          const nameB = (b.name || "").toLowerCase();
-          if (nameA === nameB && (a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
-            return (b.linkCount ?? 0) - (a.linkCount ?? 0); // higher linkCount first
+          // Next, prefer artists with more content (higher linkCount)
+          if ((a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
+            return (b.linkCount ?? 0) - (a.linkCount ?? 0);
           }
+
+          // If names (case-insensitive) are identical after that, no change – fall through to alpha
 
           // Fallback: alphabetical by name
           return (a.name || "").localeCompare(b.name || "");
