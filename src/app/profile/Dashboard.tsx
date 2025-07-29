@@ -429,7 +429,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                     {/* Status row */}
                     {showStatus && (
-                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
+                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start md:self-start md:text-left">
                         <span className="font-semibold">Role:</span>
                         <span className="font-normal">{statusString}</span>
                     </div>
