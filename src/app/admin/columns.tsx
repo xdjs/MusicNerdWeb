@@ -56,7 +56,7 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
   },
   {
     accessorKey: "name",
-    header: "Name",
+    header: "Artist Name",
   },
   {
     accessorKey: "createdAt",
@@ -73,30 +73,28 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     },
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
-  {
-    accessorKey: "updatedAt",
-    header: "Updated At",
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  {
-    accessorKey: "id",
-    header: "ID",
-  },
+  // Updated At column intentionally omitted from UI
   {
     accessorKey: "siteName",
     header: "Site Name",
   },
   {
-    accessorKey: "artistUri",
-    header: "Artist URI",
-  },
-  {
-    accessorKey: "accepted",
-    header: "Accepted",
-  },
-  {
     accessorKey: "ugcUrl",
     header: "UGC URL",
+    cell: ({ getValue }) => {
+      const url = getValue() as string | null | undefined;
+      if (!url) return "";
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          {url}
+        </a>
+      );
+    },
   },
   {
     accessorKey: "siteUsername",
@@ -105,13 +103,23 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
   {
     accessorKey: "artistId",
     header: "Artist ID",
+    cell: ({ getValue }) => {
+      const id = getValue() as string | null | undefined;
+      if (!id) return "";
+      const href = `https://musicnerd.xyz/${id}`;
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          {id}
+        </a>
+      );
+    },
   },
-  {
-    accessorKey: "dateProcessed",
-    header: "Date Processed",
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  
+  // Date Processed column intentionally omitted from UI
 ];
 
 export const whitelistedColumns: ColumnDef<User>[] = [

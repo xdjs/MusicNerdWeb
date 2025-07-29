@@ -5,7 +5,6 @@ import UGCDataTable from "./ugc-data-table";
 import { ugcColumns } from "./columns";
 import { whitelistedColumns } from "./columns";
 import UsersDataTable from "./whitelisted-data-table";
-import UsersSection from "./UsersSection";
 import AdminAutoRefresh from "./AdminAutoRefresh";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
 
@@ -47,7 +46,8 @@ export default async function Admin() {
                 <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
             </div>
             <div>
-                <UsersSection columns={whitelistedColumns} data={allUsers || []} />
+                <h2 className="text-xl pb-3">Users</h2>
+                <UsersDataTable columns={whitelistedColumns} data={allUsers || []} />
             </div>
         </section>
     );
