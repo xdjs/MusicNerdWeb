@@ -149,21 +149,8 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         }
     }, [session]);
 
-    // Track which user/session we've already reset for
-    const clearedRef = useRef<string | null>(null);
-
+    // Fetch count on mount without clearing stored value – keeps red-dot stable across reloads
     useEffect(() => {
-        if (session) {
-            const storageKey = `ugcCount_${session.user.id}`;
-
-            // Only clear once per authenticated session (first mount)
-            if (clearedRef.current !== session.user.id) {
-                clearedRef.current = session.user.id;
-                localStorage.removeItem(storageKey);
-                window.dispatchEvent(new Event('ugcCountUpdated'));
-            }
-        }
-
         fetchUGCCount();
     }, [fetchUGCCount, session]);
 
