@@ -461,7 +461,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Button
                                         size="icon"
                                         variant="ghost"
-                                        className="w-8 h-8"
+                                        className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-md"
                                         onClick={() => setIsEditingUsername(true)}
                                     >
                                         <Pencil size={16} />
@@ -503,7 +503,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Three-column section under username */}
                     <div className="flex flex-col md:grid md:grid-cols-3 md:gap-4 w-full text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="flex flex-col md:flex-none md:items-end md:text-right">
+                        <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
