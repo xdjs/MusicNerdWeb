@@ -501,9 +501,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:flex-row md:justify-center md:gap-4 w-full text-center">
+                    <div className="flex flex-col md:flex-row md:justify-center md:gap-4 w-full text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="md:w-1/3 flex flex-col items-center">
+                        <div className="md:w-1/3 flex flex-col">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
@@ -535,53 +535,55 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        {!isGuestUser && (
-                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center mx-auto">
-                            <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
-                            {currentBookmarks.length ? (
-                                <ul className="space-y-3">
-                                    {currentBookmarks.map((item) => (
-                                        <li key={item.artistId}>
-                                            <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline">
-                                                <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
-                                                <span>{item.artistName ?? 'Unknown Artist'}</span>
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
-                            )}
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto">
+                            {!isGuestUser && (
+                                <>
+                                    <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
+                                    {currentBookmarks.length ? (
+                                        <ul className="space-y-3">
+                                            {currentBookmarks.map((item) => (
+                                                <li key={item.artistId}>
+                                                    <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline">
+                                                        <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                                                        <span>{item.artistName ?? 'Unknown Artist'}</span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
+                                    )}
 
-                            {/* Pagination controls */}
-                            {totalBookmarkPages > 1 && (
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
-                                        disabled={bookmarkPage === 0}
-                                    >
-                                        Prev
-                                    </Button>
-                                    <span className="text-sm">
-                                        {bookmarkPage + 1} / {totalBookmarkPages}
-                                    </span>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
-                                        disabled={bookmarkPage >= totalBookmarkPages - 1}
-                                    >
-                                        Next
-                                    </Button>
-                                </div>
+                                    {/* Pagination controls */}
+                                    {totalBookmarkPages > 1 && (
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
+                                                disabled={bookmarkPage === 0}
+                                            >
+                                                Prev
+                                            </Button>
+                                            <span className="text-sm">
+                                                {bookmarkPage + 1} / {totalBookmarkPages}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
+                                                disabled={bookmarkPage >= totalBookmarkPages - 1}
+                                            >
+                                                Next
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
-                        )}
 
                         {/* Right column - recently edited */}
-                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center mx-auto md:ml-auto">
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
                             <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
