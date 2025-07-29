@@ -66,7 +66,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                                     {artist.name}
                                 </strong>
                                 <div className="flex items-center gap-2">
-                                    <BookmarkButton />
+                                    {session && (
+                                        <BookmarkButton
+                                            artistId={artist.id}
+                                            artistName={artist.name ?? ''}
+                                            imageUrl={spotifyImg.artistImage ?? ''}
+                                            userId={session.user.id}
+                                        />
+                                    )}
                                     {canEdit && <EditModeToggle />}
                                 </div>
                             </div>

@@ -1,18 +1,67 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function BookmarkButton({ className }: { className?: string }) {
+interface BookmarkButtonProps {
+  className?: string;
+  artistId: string;
+  artistName: string;
+  imageUrl?: string;
+  userId: string;
+}
+
+export default function BookmarkButton({ className, artistId, artistName, imageUrl, userId }: BookmarkButtonProps) {
   const [bookmarked, setBookmarked] = useState(false);
 
+  // Load initial bookmark state
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const raw = localStorage.getItem(`bookmarks_${userId}`);
+      if (raw) {
+        const arr = JSON.parse(raw) as { artistId: string }[];
+        setBookmarked(arr.some((b) => b.artistId === artistId));
+      }
+    } catch (e) {
+      console.debug('[BookmarkButton] error parsing bookmarks', e);
+    }
+  }, [userId, artistId]);
+
   const handleClick = () => {
-    setBookmarked((prev) => !prev);
+    if (!userId) return; // safety
+
+    setBookmarked((prev) => {
+      const newState = !prev;
+      try {
+        const key = `bookmarks_${userId}`;
+        const raw = localStorage.getItem(key);
+        let arr: { artistId: string; artistName: string; imageUrl?: string }[] = raw ? JSON.parse(raw) : [];
+
+        if (newState) {
+          // add if not present
+          if (!arr.some((b) => b.artistId === artistId)) {
+            arr.push({ artistId, artistName, imageUrl });
+          }
+        } else {
+          // remove
+          arr = arr.filter((b) => b.artistId !== artistId);
+        }
+
+        localStorage.setItem(key, JSON.stringify(arr));
+        // Notify others
+        window.dispatchEvent(new Event('bookmarksUpdated'));
+      } catch (e) {
+        console.error('[BookmarkButton] error updating bookmarks', e);
+      }
+
+      return newState;
+    });
   };
 
-  const baseClasses = "flex items-center gap-1 rounded-lg px-4 py-1 text-sm font-medium transition-colors duration-300 min-w-[120px] flex-shrink-0";
+  const baseClasses = "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition-colors duration-300 w-[120px] flex-shrink-0";
 
   return (
     <Button

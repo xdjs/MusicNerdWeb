@@ -53,15 +53,30 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     useEffect(() => {
         // Load bookmarks from localStorage (placeholder until backend wiring)
-        try {
-            const raw = localStorage.getItem(`bookmarks_${user.id}`);
-            if (raw) {
-                const parsed = JSON.parse(raw) as BookmarkItem[];
-                setBookmarks(parsed);
+        const load = () => {
+            try {
+                const raw = localStorage.getItem(`bookmarks_${user.id}`);
+                if (raw) {
+                    const parsed = JSON.parse(raw) as BookmarkItem[];
+                    setBookmarks(parsed);
+                } else {
+                    setBookmarks([]);
+                }
+            } catch (e) {
+                console.debug('[Dashboard] unable to parse bookmarks from storage', e);
             }
-        } catch (e) {
-            console.debug('[Dashboard] unable to parse bookmarks from storage', e);
-        }
+        };
+
+        load();
+
+        const handleUpdate = () => load();
+        window.addEventListener('bookmarksUpdated', handleUpdate);
+        window.addEventListener('storage', handleUpdate);
+
+        return () => {
+            window.removeEventListener('bookmarksUpdated', handleUpdate);
+            window.removeEventListener('storage', handleUpdate);
+        };
     }, [user.id]);
 
     const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
@@ -486,7 +501,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:flex-row md:justify-between md:gap-6 max-w-5xl mx-auto text-center md:text-left">
+                    <div className="flex flex-col md:flex-row md:justify-between md:gap-6 w-full text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="md:w-1/3 flex flex-col">
                             {/* Top area: admin controls and status */}
@@ -520,6 +535,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
+                        {!isGuestUser && (
                         <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto">
                             <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                             {currentBookmarks.length ? (
@@ -562,6 +578,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
                             )}
                         </div>
+                        )}
 
                         {/* Right column - recently edited */}
                         <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
