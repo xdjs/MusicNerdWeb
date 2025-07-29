@@ -40,6 +40,44 @@ interface SpotifySearchResponse {
   };
 }
 
+// ----------------------------------
+// Helper to calculate how much content an artist has
+// ----------------------------------
+const LINK_FIELDS = [
+  "bandcamp",
+  "youtube",
+  "youtubechannel",
+  "instagram",
+  "x",
+  "facebook",
+  "tiktok",
+  "soundcloud",
+  "patreon",
+  "twitter", // alias for x (legacy)
+  "linktree",
+  "spotifyusername",
+  "bandsintown",
+  "audius",
+  "zora",
+  "catalog",
+  "opensea",
+  "foundation",
+  "mirror",
+  "soundxyz",
+  "twitch",
+  "wikidata",
+  "wikipedia"
+] as const;
+
+type LinkField = (typeof LINK_FIELDS)[number];
+
+function getLinkCount(artist: Record<string, any>): number {
+  return LINK_FIELDS.reduce((count, field) => {
+    const val = artist[field as LinkField];
+    return count + (val !== null && val !== undefined && val !== "" ? 1 : 0);
+  }, 0);
+}
+
 // Helper function to calculate match score for sorting
 function getMatchScore(name: string, query: string) {
   const nameLower = name.toLowerCase();
@@ -114,7 +152,8 @@ export async function POST(req: Request) {
             spotify: artist.id,
             images: artist.images,
             isSpotifyOnly: true,
-            matchScore: getMatchScore(artist.name, query)
+            matchScore: getMatchScore(artist.name, query),
+            linkCount: 0
           }));
       } catch (error) {
         console.error('Spotify search failed:', error);
@@ -124,6 +163,12 @@ export async function POST(req: Request) {
       // Fetch Spotify data for database artists (with concurrency limit)
       const dbArtistsWithImages = await Promise.all(
         dbResults.map(async (artist) => {
+          const baseArtist = {
+            ...artist,
+            isSpotifyOnly: false,
+            matchScore: getMatchScore(artist.name || "", query),
+            linkCount: getLinkCount(artist)
+          };
           if (artist.spotify) {
             try {
               const spotifyData = await axios.get<SpotifyArtist>(
@@ -131,25 +176,15 @@ export async function POST(req: Request) {
                 { ...spotifyHeaders, timeout: 3000 } // 3 second timeout per request
               );
               return {
-                ...artist,
+                ...baseArtist,
                 images: spotifyData.data.images,
-                isSpotifyOnly: false,
-                matchScore: getMatchScore(artist.name || "", query)
               };
             } catch (error) {
               console.error(`Failed to fetch Spotify data for artist ${artist.spotify}:`, error);
-              return {
-                ...artist,
-                isSpotifyOnly: false,
-                matchScore: getMatchScore(artist.name || "", query)
-              };
+              return baseArtist;
             }
           }
-          return {
-            ...artist,
-            isSpotifyOnly: false,
-            matchScore: getMatchScore(artist.name || "", query)
-          };
+          return baseArtist;
         })
       );
 
@@ -161,8 +196,15 @@ export async function POST(req: Request) {
             return a.matchScore - b.matchScore;
           }
 
-          // For same match score, sort by name
-          return (a.name || '').localeCompare(b.name || '');
+          // If names (case-insensitive) are identical, prefer the one with more content
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          if (nameA === nameB && (a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
+            return (b.linkCount ?? 0) - (a.linkCount ?? 0); // higher linkCount first
+          }
+
+          // Fallback: alphabetical by name
+          return (a.name || "").localeCompare(b.name || "");
         });
 
       // Cache the results
