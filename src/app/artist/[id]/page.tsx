@@ -57,8 +57,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                             <AspectRatio ratio={1 / 1} className="flex items-center place-content-center bg-muted rounded-md overflow-hidden w-full mb-4">
                                 <img src={spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
                             </AspectRatio>
-                            <BookmarkButton className="mt-1" />
-                            {/* Add links button moved below to the "Check out" section */}
+                            {/* Add links button removed; bookmark now beside name */}
                         </div>
                         {/* Right Column: Name and Description */}
                         <div className="flex flex-col justify-start md:col-span-2 pl-0 md:pl-4">
@@ -66,7 +65,10 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                                 <strong className="text-black text-2xl mr-2">
                                     {artist.name}
                                 </strong>
-                                {canEdit && <EditModeToggle className="ml-4" />}
+                                <div className="flex items-center gap-2">
+                                    <BookmarkButton />
+                                    {canEdit && <EditModeToggle />}
+                                </div>
                             </div>
                             <div className="text-black pt-0 mb-4">
                                 {(artist) && getArtistDetailsText(artist, numReleases)}

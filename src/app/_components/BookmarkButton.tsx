@@ -22,8 +22,8 @@ export default function BookmarkButton({ className }: { className?: string }) {
       className={cn(
         baseClasses,
         bookmarked
-          ? "bg-pastypink text-white hover:bg-pastypink/90"
-          : "bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100",
+          ? "bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
+          : "bg-white text-pastypink border-2 border-gray-300 hover:bg-gray-100 hover:text-pastypink",
         className
       )}
     >
