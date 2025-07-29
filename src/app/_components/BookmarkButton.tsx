@@ -61,7 +61,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
     });
   };
 
-  const baseClasses = "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition-colors duration-300 w-[120px] flex-shrink-0";
+  const baseClasses = "flex items-center gap-1.5 rounded-lg p-1.5 text-sm font-bold transition-colors duration-300 w-[120px] flex-shrink-0";
 
   return (
     <Button
@@ -77,7 +77,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
       )}
     >
       <Bookmark
-        size={16}
+        size={18}
         className={bookmarked ? "text-white" : "text-pastypink"}
         strokeWidth={2}
       />
