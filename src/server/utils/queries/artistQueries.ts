@@ -530,7 +530,7 @@ export async function getPendingUGC() {
         const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { ugcUser: true } });
         return result.map((obj) => {
             const { ugcUser, ...rest } = obj;
-            return { ...rest, wallet: ugcUser?.wallet ?? null };
+            return { ...rest, wallet: ugcUser?.wallet ?? null, username: ugcUser?.username ?? null };
         });
     } catch (e) {
         console.error("error getting pending ugc", e);
