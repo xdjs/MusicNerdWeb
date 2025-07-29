@@ -3,6 +3,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
+import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistDetailsText } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { notFound } from "next/navigation";
@@ -56,6 +57,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                             <AspectRatio ratio={1 / 1} className="flex items-center place-content-center bg-muted rounded-md overflow-hidden w-full mb-4">
                                 <img src={spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
                             </AspectRatio>
+                            <BookmarkButton className="mt-1" />
                             {/* Add links button moved below to the "Check out" section */}
                         </div>
                         {/* Right Column: Name and Description */}
