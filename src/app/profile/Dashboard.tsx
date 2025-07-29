@@ -501,7 +501,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:flex-row md:justify-center md:gap-4 w-full text-center md:text-left">
+                    <div className="flex flex-col md:flex-row md:justify-center md:gap-0 w-full text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="md:w-1/3 flex flex-col">
                             {/* Top area: admin controls and status */}
@@ -535,7 +535,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto">
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start">
                             {!isGuestUser && (
                                 <>
                                     <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
@@ -583,7 +583,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         </div>
 
                         {/* Right column - recently edited */}
-                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
+                        <div className="md:w-1/3 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start">
                             <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
