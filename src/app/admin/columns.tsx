@@ -55,8 +55,8 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     header: "Wallet Address",
   },
   {
-    accessorKey: "name",
-    header: "Artist Name",
+    accessorKey: "username",
+    header: "Username",
   },
   {
     accessorKey: "createdAt",
@@ -72,6 +72,10 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
       )
     },
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
+  },
+  {
+    accessorKey: "name",
+    header: "Artist Name",
   },
   // Updated At column intentionally omitted from UI
   {
