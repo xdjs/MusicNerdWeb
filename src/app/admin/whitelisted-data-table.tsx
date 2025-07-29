@@ -259,11 +259,12 @@ export default function UsersDataTable<TData, TValue>({
             });
         }
         if (query.trim()) {
-            const q = query.toLowerCase();
+            const normalize = (str: string) => str.toLowerCase().replace(/^0x/, "");
+            const qNorm = normalize(query.trim());
             arr = arr.filter((row: any) => {
-                const wallet = (row.wallet ?? "").toLowerCase();
+                const walletNorm = normalize(row.wallet ?? "");
                 const username = (row.username ?? "").toLowerCase();
-                return wallet.includes(q) || username.includes(q);
+                return walletNorm.includes(qNorm) || username.includes(qNorm);
             });
         }
         return arr;
@@ -341,7 +342,7 @@ export default function UsersDataTable<TData, TValue>({
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search users..."
+                        placeholder="Search users by wallet or username..."
                         className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
