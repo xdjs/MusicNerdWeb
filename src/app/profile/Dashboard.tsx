@@ -429,7 +429,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                     {/* Status row */}
                     {showStatus && (
-                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start md:self-start md:text-left">
+                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-center md:self-center md:text-center">
                         <span className="font-semibold">Role:</span>
                         <span className="font-normal">{statusString}</span>
                     </div>
@@ -501,9 +501,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:grid-cols-[auto_auto_1fr] md:gap-0 w-full text-center md:text-center">
+                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-28 md:max-w-3xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="flex flex-col md:flex-none md:items-center md:text-center">
+                        <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
@@ -522,9 +522,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-center border-gray-300 hover:bg-gray-100 h-auto self-center w-64"
+                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-center md:self-end w-64"
                             >
-                                <Link href="/leaderboard" className="inline-flex flex-col items-center justify-center space-y-2">
+                                <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
@@ -538,7 +538,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-center md:text-center md:flex-none">
                             {!isGuestUser && (
                                 <>
-                                    <h3 className="text-lg font-semibold text-center md:text-center">Bookmarks</h3>
+                                    <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                     {currentBookmarks.length ? (
                                         <ul className="space-y-3">
                                             {currentBookmarks.map((item) => (
@@ -551,7 +551,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p className="text-sm text-gray-500 text-center md:text-center">No bookmarks yet</p>
+                                        <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
                                     )}
 
                                     {/* Pagination controls */}
@@ -583,8 +583,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         </div>
 
                         {/* Right column - recently edited */}
-                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-center md:text-center md:flex-none">
-                            <h3 className="text-lg font-semibold text-center md:text-center">Recently Edited Artists</h3>
+                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                            <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
@@ -597,7 +597,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-gray-500 text-center md:text-center">No recent edits</p>
+                                <p className="text-sm text-gray-500 text-center md:text-left">No recent edits</p>
                             )}
                         </div>
                     </div>
