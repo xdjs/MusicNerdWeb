@@ -358,13 +358,13 @@ export default function UsersDataTable<TData, TValue>({
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
-                        <Button variant="outline" onClick={() => commitToggleSelectedWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Whitelisted"}
+                        <Button variant="outline" onClick={() => commitToggleSelectedAdmin()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Admin"}
                         </Button>
                         <Button variant="outline" onClick={() => commitToggleSelectedArtist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Artist"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitToggleSelectedAdmin()}>
+                        <Button variant="outline" onClick={() => commitToggleSelectedWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Admin"}
                         </Button>
 </>
