@@ -253,8 +253,9 @@ export default function UsersDataTable<TData, TValue>({
         if (roleFilter !== "All") {
             arr = arr.filter((row: any) => {
                 if (roleFilter === "Admin") return row.isAdmin;
-                if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
-                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
+                if (roleFilter === "Artist") return !row.isAdmin && row.isArtist;
+                if (roleFilter === "Whitelisted") return !row.isAdmin && !row.isArtist && row.isWhiteListed;
+                if (roleFilter === "User") return !row.isAdmin && !row.isArtist && !row.isWhiteListed;
                 return true;
             });
         }
@@ -332,6 +333,7 @@ export default function UsersDataTable<TData, TValue>({
                         <SelectItem value="All">All Users</SelectItem>
                         <SelectItem value="Admin">Admins</SelectItem>
                         <SelectItem value="Whitelisted">Whitelisted Users</SelectItem>
+                        <SelectItem value="Artist">Artists</SelectItem>
                         <SelectItem value="User">Users</SelectItem>
                     </SelectContent>
                 </Select>

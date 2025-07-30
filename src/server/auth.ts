@@ -22,6 +22,7 @@ declare module "next-auth" {
       walletAddress?: string;
       isWhiteListed?: boolean;
       isAdmin?: boolean;
+      isArtist?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -37,6 +38,7 @@ declare module "next-auth" {
     isSignupComplete: boolean;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+      isArtist?: boolean;
   }
 }
 
@@ -45,6 +47,7 @@ declare module "next-auth/jwt" {
     walletAddress?: string;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+      isArtist?: boolean;
   }
 }
 
@@ -63,6 +66,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name || user.username;
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
+        token.isArtist = user.isArtist;
       }
       return token;
     },
@@ -77,6 +81,7 @@ export const authOptions: NextAuthOptions = {
           name: token.name,
           isWhiteListed: token.isWhiteListed,
           isAdmin: token.isAdmin,
+          isArtist: token.isArtist,
         },
       }
     },

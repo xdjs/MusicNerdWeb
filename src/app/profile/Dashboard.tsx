@@ -123,7 +123,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
     // Determine user status string for display
-    const statusString = user.isAdmin ? 'Admin' : (user.isWhiteListed ? 'Whitelisted' : 'User');
+    const statusString = user.isAdmin ? 'Admin' : (user.isArtist ? 'Artist' : (user.isWhiteListed ? 'Whitelisted' : 'User'));
 
     const { openConnectModal } = useConnectModal();
     const { status } = useSession();
@@ -501,7 +501,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-28 md:max-w-3xl mx-auto text-center md:text-left">
+                    <div className="flex flex-col md:grid md:w-full md:grid-cols-[auto_auto_1fr] md:justify-items-center md:gap-28 md:max-w-3xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}

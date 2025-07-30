@@ -8,6 +8,13 @@
       "when": 1727931768371,
       "tag": "0000_shocking_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1753911333966,
+      "tag": "0001_sticky_spyke",
+      "breakpoints": true
     }
   ]
 }
