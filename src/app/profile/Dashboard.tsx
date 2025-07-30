@@ -501,7 +501,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:grid-cols-3 md:gap-0 w-full text-center md:text-center">
+                    <div className="flex flex-col md:grid md:grid-cols-[auto_auto_1fr] md:gap-0 w-full text-center md:text-center">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-center md:text-center">
                             {/* Top area: admin controls and status */}
