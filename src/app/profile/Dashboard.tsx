@@ -24,6 +24,12 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
+type BookmarkItem = {
+    artistId: string;
+    artistName: string;
+    imageUrl: string | null;
+};
+
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
 }
@@ -40,6 +46,41 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
+    // ----------- Bookmarks state & pagination -----------
+    const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+    const [bookmarkPage, setBookmarkPage] = useState(0);
+    const pageSize = 3;
+
+    useEffect(() => {
+        // Load bookmarks from localStorage (placeholder until backend wiring)
+        const load = () => {
+            try {
+                const raw = localStorage.getItem(`bookmarks_${user.id}`);
+                if (raw) {
+                    const parsed = JSON.parse(raw) as BookmarkItem[];
+                    setBookmarks(parsed);
+                } else {
+                    setBookmarks([]);
+                }
+            } catch (e) {
+                console.debug('[Dashboard] unable to parse bookmarks from storage', e);
+            }
+        };
+
+        load();
+
+        const handleUpdate = () => load();
+        window.addEventListener('bookmarksUpdated', handleUpdate);
+        window.addEventListener('storage', handleUpdate);
+
+        return () => {
+            window.removeEventListener('bookmarksUpdated', handleUpdate);
+            window.removeEventListener('storage', handleUpdate);
+        };
+    }, [user.id]);
+
+    const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
+    const currentBookmarks = bookmarks.slice(bookmarkPage * pageSize, bookmarkPage * pageSize + pageSize);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
     // Range selection (synced with Leaderboard)
@@ -388,7 +429,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                     {/* Status row */}
                     {showStatus && (
-                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
+                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start md:self-start md:text-left">
                         <span className="font-semibold">Role:</span>
                         <span className="font-normal">{statusString}</span>
                     </div>
@@ -420,7 +461,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Button
                                         size="icon"
                                         variant="ghost"
-                                        className="w-8 h-8"
+                                        className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-md"
                                         onClick={() => setIsEditingUsername(true)}
                                     >
                                         <Pencil size={16} />
@@ -459,17 +500,17 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         )}
                     </div>
 
-                    {/* Two-column section under username */}
-                    <div className="flex flex-col md:flex-row md:justify-between md:gap-6 max-w-3xl mx-auto text-center md:text-left">
+                    {/* Three-column section under username */}
+                    <div className="flex flex-col md:grid md:grid-cols-[auto_auto_1fr] md:gap-0 w-full text-center md:text-center">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="md:w-1/2 flex flex-col">
+                        <div className="flex flex-col md:flex-none md:items-center md:text-center">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
 
                                 {/* Status row */}
                                 {showStatus && (
-                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
+                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-center md:text-center">
                                     <span className="font-semibold">Role:</span>
                                     <span className="font-normal">{statusString}</span>
                                 </div>
@@ -481,9 +522,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-start w-64"
+                                className="py-4 space-y-2 text-center border-gray-300 hover:bg-gray-100 h-auto self-center w-64"
                             >
-                                <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
+                                <Link href="/leaderboard" className="inline-flex flex-col items-center justify-center space-y-2">
                                     {/* User Rank */}
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
@@ -493,9 +534,57 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
                             </div>
 
+                        {/* Middle column - Bookmarks */}
+                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-center md:text-center md:flex-none">
+                            {!isGuestUser && (
+                                <>
+                                    <h3 className="text-lg font-semibold text-center md:text-center">Bookmarks</h3>
+                                    {currentBookmarks.length ? (
+                                        <ul className="space-y-3">
+                                            {currentBookmarks.map((item) => (
+                                                <li key={item.artistId}>
+                                                    <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline">
+                                                        <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                                                        <span>{item.artistName ?? 'Unknown Artist'}</span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 text-center md:text-center">No bookmarks yet</p>
+                                    )}
+
+                                    {/* Pagination controls */}
+                                    {totalBookmarkPages > 1 && (
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
+                                                disabled={bookmarkPage === 0}
+                                            >
+                                                Prev
+                                            </Button>
+                                            <span className="text-sm">
+                                                {bookmarkPage + 1} / {totalBookmarkPages}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
+                                                disabled={bookmarkPage >= totalBookmarkPages - 1}
+                                            >
+                                                Next
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
                         {/* Right column - recently edited */}
-                        <div className="md:w-1/2 space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start mx-auto md:ml-auto">
-                            <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
+                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-center md:text-center md:flex-none">
+                            <h3 className="text-lg font-semibold text-center md:text-center">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
@@ -508,7 +597,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-gray-500 text-center md:text-left">No recent edits</p>
+                                <p className="text-sm text-gray-500 text-center md:text-center">No recent edits</p>
                             )}
                         </div>
                     </div>
