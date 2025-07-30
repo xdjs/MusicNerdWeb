@@ -510,7 +510,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                                 {/* Status row */}
                                 {showStatus && (
-                                <div className="flex items-center gap-2 text-lg w-full justify-center md:w-64 md:justify-end md:self-end md:text-right">
+                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-end md:self-end md:text-left">
                                     <span className="font-semibold">Role:</span>
                                     <span className="font-normal">{statusString}</span>
                                 </div>
@@ -522,7 +522,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto w-64"
+                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-start w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
