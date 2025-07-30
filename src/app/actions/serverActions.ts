@@ -16,6 +16,9 @@ import {
   removeFromWhitelist as removeFromWhitelistQuery,
   addUsersToAdmin as addUsersToAdminQuery,
   removeFromAdmin as removeFromAdminQuery,
+  addUsersToArtist as addUsersToArtistQuery,
+  removeFromArtist as removeFromArtistQuery,
+  toggleUsersWhitelist as toggleUsersWhitelistQuery,
 } from "@/server/utils/queries/userQueries";
 
 import {
@@ -47,12 +50,24 @@ export async function removeFromWhitelistAction(userIds: string[]) {
   return removeFromWhitelistQuery(userIds);
 }
 
+export async function toggleWhitelistAction(identifiers: string[]) {
+  return toggleUsersWhitelistQuery(identifiers);
+}
+
 export async function addUsersToAdminAction(wallets: string[]) {
   return addUsersToAdminQuery(wallets);
 }
 
 export async function removeFromAdminAction(userIds: string[]) {
   return removeFromAdminQuery(userIds);
+}
+
+export async function addUsersToArtistAction(wallets: string[]) {
+  return addUsersToArtistQuery(wallets);
+}
+
+export async function removeFromArtistAction(userIds: string[]) {
+  return removeFromArtistQuery(userIds);
 }
 
 export async function getUgcStatsInRangeAction(

@@ -155,6 +155,34 @@ export async function removeFromAdmin(userIds: string[]) {
     }
 }
 
+export type AddUsersToArtistResp = {
+    status: "success" | "error";
+    message: string;
+};
+
+export async function addUsersToArtist(walletAddresses: string[]): Promise<AddUsersToArtistResp> {
+    try {
+        if (walletAddresses.length) {
+            const now = new Date().toISOString();
+            await db.update(users).set({ isArtist: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
+            await db.update(users).set({ isArtist: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
+        }
+        return { status: "success", message: "Users granted artist role" };
+    } catch (e) {
+        console.error("error adding users to artist", e);
+        return { status: "error", message: "Error adding users to artist" };
+    }
+}
+
+export async function removeFromArtist(userIds: string[]) {
+    try {
+        const now = new Date().toISOString();
+        await db.update(users).set({ isArtist: false, updatedAt: now }).where(inArray(users.id, userIds));
+    } catch (e) {
+        console.error("error removing artist role", e);
+    }
+}
+
 export async function getAllUsers() {
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const session = await getServerAuthSession();
@@ -166,4 +194,74 @@ export async function getAllUsers() {
         console.error("error getting all users", e);
         throw new Error("Error getting all users");
     }
-} 
+}
+
+// --------------------------
+// Toggle whitelist helpers
+// --------------------------
+
+export type ToggleWhitelistResp = {
+    status: "success" | "error";
+    added: string[]; // wallets/usernames added to whitelist
+    removed: string[]; // userIds removed from whitelist
+    message: string;
+};
+
+export async function toggleUsersWhitelist(identifiers: string[]): Promise<ToggleWhitelistResp> {
+    try {
+        if (identifiers.length === 0) {
+            return { status: "success", added: [], removed: [], message: "No users provided" };
+        }
+        const now = new Date().toISOString();
+
+        // Fetch users whose wallet OR username match provided identifiers
+        const usersByWallet = await db.query.users.findMany({
+            where: inArray(users.wallet, identifiers),
+        });
+        const usersByUsername = await db.query.users.findMany({
+            where: inArray(users.username, identifiers),
+        });
+        const allUsers = [...usersByWallet, ...usersByUsername];
+
+        const idsToRemove: string[] = [];
+        for (const u of allUsers) {
+            if (u.isWhiteListed) {
+                idsToRemove.push(u.id);
+            }
+        }
+
+        // Wallets/usernames that are either not found OR found but not yet whitelisted
+        const walletsToAdd = identifiers.filter((id) => {
+            const existing = allUsers.find((u) => u.wallet === id || u.username === id);
+            return !existing || !existing.isWhiteListed;
+        });
+
+        if (idsToRemove.length) {
+            await db
+                .update(users)
+                .set({ isWhiteListed: false, updatedAt: now })
+                .where(inArray(users.id, idsToRemove));
+        }
+
+        if (walletsToAdd.length) {
+            await db
+                .update(users)
+                .set({ isWhiteListed: true, updatedAt: now })
+                .where(inArray(users.wallet, walletsToAdd));
+            await db
+                .update(users)
+                .set({ isWhiteListed: true, updatedAt: now })
+                .where(inArray(users.username, walletsToAdd));
+        }
+
+        return {
+            status: "success",
+            added: walletsToAdd,
+            removed: idsToRemove,
+            message: "Whitelist updated",
+        };
+    } catch (e) {
+        console.error("error toggling whitelist", e);
+        return { status: "error", added: [], removed: [], message: "Error toggling whitelist" };
+    }
+}

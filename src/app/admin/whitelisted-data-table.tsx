@@ -8,10 +8,10 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin } from "@/app/actions/serverActions";
+import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin, addUsersToArtistAction as addUsersToArtist } from "@/app/actions/serverActions";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin } from "@/app/actions/serverActions";
+import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin, removeFromArtistAction as removeFromArtist } from "@/app/actions/serverActions";
 import {
     Table,
     TableBody,
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import SearchBar from "./UserSearch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { AddRemoveWhitelistDialog } from "./AddRemoveWhitelistDialog";
 
 
 // -----------------------------
@@ -321,6 +322,22 @@ export default function UsersDataTable<TData, TValue>({
         router.refresh();
     }
 
+    async function commitAddSelectedToArtist() {
+        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        await addUsersToArtist(wallets);
+        setUploadStatus({ status: "success", message: "", isLoading: false });
+        router.refresh();
+    }
+
+    async function commitRemoveFromArtist() {
+        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        await removeFromArtist(selectedUsers);
+        setUploadStatus({ status: "success", message: "", isLoading: false });
+        router.refresh();
+    }
+
     return (
         <div className="space-y-4">
             <div className="flex gap-4 text-black flex-wrap items-center w-full">
@@ -359,7 +376,14 @@ export default function UsersDataTable<TData, TValue>({
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Whitelist"}
                         </Button>
 
-                        {/* Admin selected buttons */}
+                        <Button variant="outline" onClick={() => commitAddSelectedToArtist()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Artist"}
+                        </Button>
+                        <Button variant="outline" onClick={() => commitRemoveFromArtist()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Artist"}
+                        </Button>
+
+                        {/* Artist selected buttons */}
                         <Button variant="outline" onClick={() => commitAddSelectedToAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Admin"}
                         </Button>
@@ -370,8 +394,8 @@ export default function UsersDataTable<TData, TValue>({
                 ) : (
                     <>
                         {/* Default state buttons */}
-                        <AddWhitelistDialog />
-                        <RemoveWhitelistDialog />
+                        <AddRemoveWhitelistDialog />
+                        
                         <AddAdminDialog />
                         <RemoveAdminDialog />
                     </>
