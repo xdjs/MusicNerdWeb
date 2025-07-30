@@ -85,6 +85,7 @@ describe('UGC Stats Page', () => {
             username: 'Test User',
             isAdmin: false,
             isWhiteListed: false,
+            isArtist: false,
             createdAt: '2023-01-01T00:00:00Z',
             updatedAt: '2023-01-01T00:00:00Z',
             legacyId: null

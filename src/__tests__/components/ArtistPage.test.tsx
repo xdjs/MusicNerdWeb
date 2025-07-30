@@ -48,7 +48,7 @@ jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     getArtistLinks: jest.fn(),
     getAllLinks: jest.fn(),
-    getUserById: jest.fn().mockResolvedValue({ isWhiteListed: false, isAdmin: false }),
+    getUserById: jest.fn().mockResolvedValue({ isWhiteListed: false, isAdmin: false, isArtist: false }),
 }));
 
 // Mock external API queries

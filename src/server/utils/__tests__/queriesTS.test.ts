@@ -723,7 +723,7 @@ describe('Artist Management Functions', () => {
 
     describe('addArtistData', () => {
         const mockSession = { user: { id: 'user123' } };
-        const mockUser = { id: 'user123', wallet: '0x123', isWhiteListed: false, isAdmin: false, bio: null };
+        const mockUser = { id: 'user123', wallet: '0x123', isWhiteListed: false, isAdmin: false, isArtist: false, bio: null };
         const mockArtist: Artist = { ...baseArtist, id: 'artist123', name: 'Test Artist', bio: null };
         let valuesMock: jest.Mock;
 
