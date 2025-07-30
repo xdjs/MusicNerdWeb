@@ -19,6 +19,7 @@ import {
   addUsersToArtist as addUsersToArtistQuery,
   removeFromArtist as removeFromArtistQuery,
   toggleUsersWhitelist as toggleUsersWhitelistQuery,
+  toggleUsersAdmin as toggleUsersAdminQuery,
 } from "@/server/utils/queries/userQueries";
 
 import {
@@ -52,6 +53,10 @@ export async function removeFromWhitelistAction(userIds: string[]) {
 
 export async function toggleWhitelistAction(identifiers: string[]) {
   return toggleUsersWhitelistQuery(identifiers);
+}
+
+export async function toggleAdminAction(identifiers: string[]) {
+  return toggleUsersAdminQuery(identifiers);
 }
 
 export async function addUsersToAdminAction(wallets: string[]) {

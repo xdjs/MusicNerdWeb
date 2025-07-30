@@ -39,6 +39,7 @@ import {
 import SearchBar from "./UserSearch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { AddRemoveWhitelistDialog } from "./AddRemoveWhitelistDialog";
+import { AddRemoveAdminDialog } from "./AddRemoveAdminDialog";
 
 
 // -----------------------------
@@ -396,8 +397,8 @@ export default function UsersDataTable<TData, TValue>({
                         {/* Default state buttons */}
                         <AddRemoveWhitelistDialog />
                         
-                        <AddAdminDialog />
-                        <RemoveAdminDialog />
+                        
+                        <AddRemoveAdminDialog />
                     </>
                 )}
             </div>

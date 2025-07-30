@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { toggleWhitelistAction as toggleWhitelist } from "@/app/actions/serverActions";
+import { toggleAdminAction as toggleAdmin } from "@/app/actions/serverActions";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
 import { X } from "lucide-react";
 import SearchBar from "./UserSearch";
 
-export function AddRemoveWhitelistDialog() {
+export function AddRemoveAdminDialog() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [users, setUsers] = useState<string[]>([]);
@@ -28,12 +28,8 @@ export function AddRemoveWhitelistDialog() {
   async function handleAction() {
     if (!users.length) return;
     setUploadStatus({ status: "success", message: "", isLoading: true });
-    const resp = await toggleWhitelist(users);
-    setUploadStatus({
-      status: resp.status,
-      message: resp.message,
-      isLoading: false,
-    });
+    const resp = await toggleAdmin(users);
+    setUploadStatus({ status: resp.status, message: resp.message, isLoading: false });
     if (resp.status === "success") {
       router.refresh();
       setIsDialogOpen(false);
@@ -52,11 +48,11 @@ export function AddRemoveWhitelistDialog() {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Add/Remove Whitelisted</Button>
+        <Button variant="outline">Add/Remove Admin</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] text-black">
         <DialogHeader>
-          <DialogTitle>Update Whitelisted Users</DialogTitle>
+          <DialogTitle>Update Admin Users</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-gray-500">Insert wallet address or username</p>

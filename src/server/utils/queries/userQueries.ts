@@ -68,11 +68,9 @@ export type AddUsersToWhitelistResp = {
 
 export async function addUsersToWhitelist(walletAddresses: string[]): Promise<AddUsersToWhitelistResp> {
     try {
-        // Update by wallet addresses
         if (walletAddresses.length) {
             const now = new Date().toISOString();
             await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
-            // Also update by username matches
             await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
         }
         return { status: "success", message: "Users added to whitelist" };
@@ -84,14 +82,9 @@ export async function addUsersToWhitelist(walletAddresses: string[]): Promise<Ad
 
 export async function searchForUsersByWallet(wallet: string) {
     try {
-        const result = await db.query.users.findMany({
-            where: ilike(users.wallet, `%${wallet}%`) ,
-        });
-        const resultUsername = await db.query.users.findMany({
-            where: ilike(users.username, `%${wallet}%`),
-        });
-        const values = [...result.map((u)=>u.wallet), ...resultUsername.map((u)=>u.username??"")].filter(Boolean);
-        // deduplicate
+        const result = await db.query.users.findMany({ where: ilike(users.wallet, `%${wallet}%`) });
+        const resultUsername = await db.query.users.findMany({ where: ilike(users.username, `%${wallet}%`) });
+        const values = [...result.map((u) => u.wallet), ...resultUsername.map((u) => u.username ?? "")].filter(Boolean);
         return Array.from(new Set(values));
     } catch (e) {
         console.error("searching for users", e);
@@ -103,7 +96,6 @@ export type UpdateWhitelistedUserResp = {
     message: string;
 };
 
-// Updates a whitelisted user's editable fields (wallet, email, username)
 export async function updateWhitelistedUser(
     userId: string,
     data: { wallet?: string; email?: string; username?: string }
@@ -202,8 +194,8 @@ export async function getAllUsers() {
 
 export type ToggleWhitelistResp = {
     status: "success" | "error";
-    added: string[]; // wallets/usernames added to whitelist
-    removed: string[]; // userIds removed from whitelist
+    added: string[];
+    removed: string[];
     message: string;
 };
 
@@ -214,54 +206,71 @@ export async function toggleUsersWhitelist(identifiers: string[]): Promise<Toggl
         }
         const now = new Date().toISOString();
 
-        // Fetch users whose wallet OR username match provided identifiers
-        const usersByWallet = await db.query.users.findMany({
-            where: inArray(users.wallet, identifiers),
-        });
-        const usersByUsername = await db.query.users.findMany({
-            where: inArray(users.username, identifiers),
-        });
+        const usersByWallet = await db.query.users.findMany({ where: inArray(users.wallet, identifiers) });
+        const usersByUsername = await db.query.users.findMany({ where: inArray(users.username, identifiers) });
         const allUsers = [...usersByWallet, ...usersByUsername];
 
-        const idsToRemove: string[] = [];
-        for (const u of allUsers) {
-            if (u.isWhiteListed) {
-                idsToRemove.push(u.id);
-            }
-        }
-
-        // Wallets/usernames that are either not found OR found but not yet whitelisted
+        const idsToRemove = allUsers.filter((u) => u.isWhiteListed).map((u) => u.id);
         const walletsToAdd = identifiers.filter((id) => {
             const existing = allUsers.find((u) => u.wallet === id || u.username === id);
             return !existing || !existing.isWhiteListed;
         });
 
         if (idsToRemove.length) {
-            await db
-                .update(users)
-                .set({ isWhiteListed: false, updatedAt: now })
-                .where(inArray(users.id, idsToRemove));
+            await db.update(users).set({ isWhiteListed: false, updatedAt: now }).where(inArray(users.id, idsToRemove));
         }
 
         if (walletsToAdd.length) {
-            await db
-                .update(users)
-                .set({ isWhiteListed: true, updatedAt: now })
-                .where(inArray(users.wallet, walletsToAdd));
-            await db
-                .update(users)
-                .set({ isWhiteListed: true, updatedAt: now })
-                .where(inArray(users.username, walletsToAdd));
+            await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletsToAdd));
+            await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletsToAdd));
         }
 
-        return {
-            status: "success",
-            added: walletsToAdd,
-            removed: idsToRemove,
-            message: "Whitelist updated",
-        };
+        return { status: "success", added: walletsToAdd, removed: idsToRemove, message: "Whitelist updated" };
     } catch (e) {
         console.error("error toggling whitelist", e);
         return { status: "error", added: [], removed: [], message: "Error toggling whitelist" };
+    }
+}
+
+// --------------------------
+// Toggle admin helpers
+// --------------------------
+export type ToggleAdminResp = {
+    status: "success" | "error";
+    added: string[];
+    removed: string[];
+    message: string;
+};
+
+export async function toggleUsersAdmin(identifiers: string[]): Promise<ToggleAdminResp> {
+    try {
+        if (identifiers.length === 0) {
+            return { status: "success", added: [], removed: [], message: "No users provided" };
+        }
+        const now = new Date().toISOString();
+
+        const usersByWallet = await db.query.users.findMany({ where: inArray(users.wallet, identifiers) });
+        const usersByUsername = await db.query.users.findMany({ where: inArray(users.username, identifiers) });
+        const allUsers = [...usersByWallet, ...usersByUsername];
+
+        const idsToRemove = allUsers.filter((u) => u.isAdmin).map((u) => u.id);
+        const walletsToAdd = identifiers.filter((id) => {
+            const existing = allUsers.find((u) => u.wallet === id || u.username === id);
+            return !existing || !existing.isAdmin;
+        });
+
+        if (idsToRemove.length) {
+            await db.update(users).set({ isAdmin: false, updatedAt: now }).where(inArray(users.id, idsToRemove));
+        }
+
+        if (walletsToAdd.length) {
+            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.wallet, walletsToAdd));
+            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.username, walletsToAdd));
+        }
+
+        return { status: "success", added: walletsToAdd, removed: idsToRemove, message: "Admin roles updated" };
+    } catch (e) {
+        console.error("error toggling admin roles", e);
+        return { status: "error", added: [], removed: [], message: "Error toggling admin roles" };
     }
 }
