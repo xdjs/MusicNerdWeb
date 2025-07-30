@@ -292,49 +292,11 @@ export default function UsersDataTable<TData, TValue>({
 
     type TDataWithId = TData & { id: string };
 
-    async function commitToggleSelectedWhitelist() {
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromWhitelist(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
 
-    async function commitToggleSelectedAdmin() {
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromAdmin(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
 
-    async function commitToggleSelectedWhitelist() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToWhitelist(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
 
-    async function commitToggleSelectedAdmin() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToAdmin(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
 
-    async function commitToggleSelectedArtist() {
-        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await addUsersToArtist(wallets);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
 
-    async function commitToggleSelectedArtist() {
-        // existing
-    }
 
     async function commitToggleSelectedWhitelist() {
         const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
@@ -363,14 +325,7 @@ export default function UsersDataTable<TData, TValue>({
         router.refresh();
     }
 
-    // placeholder to satisfy earlier reference
-    
-        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
-        setUploadStatus({ status: "success", message: "", isLoading: true });
-        await removeFromArtist(selectedUsers);
-        setUploadStatus({ status: "success", message: "", isLoading: false });
-        router.refresh();
-    }
+
 
     return (
         <div className="space-y-4">
@@ -406,25 +361,13 @@ export default function UsersDataTable<TData, TValue>({
                         <Button variant="outline" onClick={() => commitToggleSelectedWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Whitelisted"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitToggleSelectedWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Whitelisted"}
-                        </Button>
-
                         <Button variant="outline" onClick={() => commitToggleSelectedArtist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Artist"}
-                        </Button>
-                        <Button variant="outline" onClick={() => commitToggleSelectedArtist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Artist"}
-                        </Button>
-
-                        {/* Artist selected buttons */}
-                        <Button variant="outline" onClick={() => commitToggleSelectedAdmin()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Admin"}
                         </Button>
                         <Button variant="outline" onClick={() => commitToggleSelectedAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add/Remove Admin"}
                         </Button>
-                    </>
+</>
                 ) : (
                     <>
                         {/* Default state buttons */}
