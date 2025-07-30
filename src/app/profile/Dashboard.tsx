@@ -503,14 +503,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Three-column section under username */}
                     <div className="flex flex-col md:grid md:grid-cols-3 md:gap-0 w-full text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
-                        <div className="flex flex-col md:flex-none md:items-center md:text-center">
+                        <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
 
                                 {/* Status row */}
                                 {showStatus && (
-                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-center md:text-center">
+                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start md:text-left">
                                     <span className="font-semibold">Role:</span>
                                     <span className="font-normal">{statusString}</span>
                                 </div>
@@ -522,7 +522,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-center w-64"
+                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-start w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
@@ -583,8 +583,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         </div>
 
                         {/* Right column - recently edited */}
-                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
-                            <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
+                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-end md:text-right md:flex-none">
+                            <h3 className="text-lg font-semibold text-center md:text-right">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
