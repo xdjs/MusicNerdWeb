@@ -522,7 +522,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-center border-gray-300 hover:bg-gray-100 h-auto self-center w-64"
+                                className="py-4 space-y-2 text-center border-gray-300 hover:bg-gray-100 h-auto self-center md:self-end w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-center justify-center space-y-2">
                                     {/* User Rank */}
@@ -583,8 +583,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         </div>
 
                         {/* Right column - recently edited */}
-                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-center md:text-center md:flex-none">
-                            <h3 className="text-lg font-semibold text-center md:text-center">Recently Edited Artists</h3>
+                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                            <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited Artists</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
@@ -597,7 +597,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-sm text-gray-500 text-center md:text-center">No recent edits</p>
+                                <p className="text-sm text-gray-500 text-center md:text-left">No recent edits</p>
                             )}
                         </div>
                     </div>
