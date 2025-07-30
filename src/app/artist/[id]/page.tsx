@@ -164,10 +164,31 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
         getAllLinks(),
     ]);
 
+    // Get bio for crawler summary section
+    const artistBioForCrawlers = await getArtistBioForMetadata(params.id);
+
 
 
     return (
         <>
+            {/* Hidden crawler summary section - accessible to automated tools but hidden from users */}
+            <div className="sr-only" aria-hidden="true">
+                <h1>{artist.name}</h1>
+                <p>
+                    {artistBioForCrawlers || `${artist.name} is a music artist featured on Music Nerd.`}
+                </p>
+                <h2>Social Media Links</h2>
+                <ul>
+                    {artist.spotify && <li>Spotify: {artist.spotify}</li>}
+                    {artist.instagram && <li>Instagram: {artist.instagram}</li>}
+                    {artist.x && <li>X (Twitter): {artist.x}</li>}
+                    {artist.tiktok && <li>TikTok: {artist.tiktok}</li>}
+                    {artist.youtubechannel && <li>YouTube: {artist.youtubechannel}</li>}
+                    {artist.soundcloud && <li>SoundCloud: {artist.soundcloud}</li>}
+                    {artist.bandcamp && <li>Bandcamp: {artist.bandcamp}</li>}
+                    {artist.facebook && <li>Facebook: {artist.facebook}</li>}
+                </ul>
+            </div>
             <EditModeProvider canEdit={canEdit}>
             <ArtistAutoRefresh />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">

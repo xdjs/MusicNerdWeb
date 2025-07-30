@@ -455,7 +455,7 @@ describe('generateMetadata', () => {
 
             const metadata = await generateMetadata({ params: { id: 'test-id' } });
 
-            expect(metadata.openGraph?.images?.[0]).toEqual({
+            expect((metadata.openGraph?.images as any)?.[0]).toEqual({
                 url: 'https://test.musicnerd.org/default_pfp_pink.png',
                 width: 300,
                 height: 300,
@@ -478,7 +478,7 @@ describe('generateMetadata', () => {
             const metadata = await generateMetadata({ params: { id: 'test-id' } });
 
             expect(metadata.openGraph?.url).toBe('https://musicnerd.org/artist/test-id');
-            expect(metadata.openGraph?.images?.[0]?.url).toBe('test-image-url');
+            expect((metadata.openGraph?.images as any)?.[0]?.url).toBe('test-image-url');
         });
 
         it('handles special characters in artist names for Open Graph alt text', async () => {
@@ -498,7 +498,7 @@ describe('generateMetadata', () => {
 
             const metadata = await generateMetadata({ params: { id: 'test-id' } });
 
-            expect(metadata.openGraph?.images?.[0]?.alt).toBe('Artist & The Band\'s "Greatest" Hits! profile image');
+            expect((metadata.openGraph?.images as any)?.[0]?.alt).toBe('Artist & The Band\'s "Greatest" Hits! profile image');
         });
 
         it('includes Open Graph metadata when bio generation fails', async () => {
@@ -513,7 +513,7 @@ describe('generateMetadata', () => {
 
             expect(metadata.openGraph?.title).toBe('Test Artist - Music Nerd');
             expect(metadata.openGraph?.description).toBe('Discover Test Artist on Music Nerd - social media links, music, and more.');
-            expect(metadata.openGraph?.type).toBe('profile');
+            expect((metadata.openGraph as any)?.type).toBe('profile');
             expect(metadata.openGraph?.url).toBe('https://test.musicnerd.org/artist/test-id');
         });
 
@@ -549,7 +549,9 @@ describe('ArtistPage', () => {
 
     it('renders artist data when available', async () => {
         // Set up mock responses
-        (getArtistById as jest.Mock).mockResolvedValue(mockArtist);
+        (getArtistById as jest.Mock)
+            .mockResolvedValue(mockArtist)
+            .mockResolvedValue(mockArtist);
         (getAllLinks as jest.Mock).mockResolvedValue([]);
         (getArtistLinks as jest.Mock).mockResolvedValue(mockLinks);
         (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
@@ -558,13 +560,19 @@ describe('ArtistPage', () => {
         (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
         (getArtistTopTrack as jest.Mock).mockResolvedValue('test-track-id');
         (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+        (getOpenAIBio as jest.Mock).mockResolvedValue({
+            json: () => Promise.resolve({ bio: 'Test bio content.' })
+        });
 
         // Render the component
         const Component = await ArtistProfile(defaultProps);
         render(Component);
 
-        // Verify the rendered content
-        expect(screen.getByText('Test Artist')).toBeInTheDocument();
+        // Verify the rendered content (there will be two "Test Artist" texts - one hidden, one visible)
+        const artistNames = screen.getAllByText('Test Artist');
+        expect(artistNames).toHaveLength(2); // One in hidden summary, one in main content
+        expect(artistNames[0]).toBeInTheDocument(); // Hidden summary version
+        expect(artistNames[1]).toBeInTheDocument(); // Main content version
         expect(screen.getByTestId('artist-links-social')).toBeInTheDocument();
         expect(screen.getByTestId('artist-links-monetized')).toBeInTheDocument();
         expect(screen.getByText('Loading summary...')).toBeInTheDocument();
@@ -581,7 +589,9 @@ describe('ArtistPage', () => {
 
     it('handles missing spotify data', async () => {
         const artistWithoutSpotify = { ...mockArtist, spotify: null };
-        (getArtistById as jest.Mock).mockResolvedValue(artistWithoutSpotify);
+        (getArtistById as jest.Mock)
+            .mockResolvedValue(artistWithoutSpotify)
+            .mockResolvedValue(artistWithoutSpotify);
         (getAllLinks as jest.Mock).mockResolvedValue([]);
         (getArtistLinks as jest.Mock).mockResolvedValue(mockLinks);
         (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: null });
@@ -590,11 +600,15 @@ describe('ArtistPage', () => {
         (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(0);
         (getArtistTopTrack as jest.Mock).mockResolvedValue(null);
         (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+        (getOpenAIBio as jest.Mock).mockResolvedValue({
+            json: () => Promise.resolve({ bio: 'Test bio content.' })
+        });
 
         const Component = await ArtistProfile(defaultProps);
         render(Component);
 
-        expect(screen.getByText('Test Artist')).toBeInTheDocument();
+        const artistNames = screen.getAllByText('Test Artist');
+        expect(artistNames).toHaveLength(2);
         // Spotify widget removed; ensure no embed is rendered
         expect(screen.queryByTestId('spotify-embed')).not.toBeInTheDocument();
         const img = screen.getByAltText('Artist Image');
@@ -607,7 +621,9 @@ describe('ArtistPage', () => {
             searchParams: { opADM: '1' }
         };
 
-        (getArtistById as jest.Mock).mockResolvedValue(mockArtist);
+        (getArtistById as jest.Mock)
+            .mockResolvedValue(mockArtist)
+            .mockResolvedValue(mockArtist);
         (getAllLinks as jest.Mock).mockResolvedValue([]);
         (getArtistLinks as jest.Mock).mockResolvedValue(mockLinks);
         (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
@@ -616,6 +632,9 @@ describe('ArtistPage', () => {
         (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
         (getArtistTopTrack as jest.Mock).mockResolvedValue('test-track-id');
         (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+        (getOpenAIBio as jest.Mock).mockResolvedValue({
+            json: () => Promise.resolve({ bio: 'Test bio content.' })
+        });
 
         const Component = await ArtistProfile(propsWithOpADM);
         render(Component);
@@ -624,6 +643,118 @@ describe('ArtistPage', () => {
         // Check that all AddArtistData components are closed
         addArtistDataElements.forEach(element => {
             expect(element).toHaveAttribute('data-open', 'false');
+        });
+    });
+
+    describe('Crawler Summary Section', () => {
+        it('renders hidden summary section with artist name and bio', async () => {
+            (getArtistById as jest.Mock)
+                .mockResolvedValue(mockArtistWithVitalInfo)
+                .mockResolvedValue(mockArtistWithVitalInfo);
+            (getAllLinks as jest.Mock).mockResolvedValue([]);
+            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
+            (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio content.' })
+            });
+
+            const Component = await ArtistProfile(defaultProps);
+            render(Component);
+
+            // Check that hidden summary section exists
+            const summarySection = document.querySelector('.sr-only[aria-hidden="true"]');
+            expect(summarySection).toBeInTheDocument();
+            
+            // Check for h1 with artist name
+            const h1Element = summarySection?.querySelector('h1');
+            expect(h1Element).toHaveTextContent('Test Artist');
+            
+            // Check for bio paragraph
+            const bioP = summarySection?.querySelector('p');
+            expect(bioP).toHaveTextContent('Test artist bio content.');
+        });
+
+        it('renders social media links in hidden summary', async () => {
+            const artistWithSocialLinks = {
+                ...mockArtist,
+                spotify: 'test-spotify-id',
+                instagram: '@testartist',
+                x: '@testartist',
+                tiktok: '@testartist',
+                youtubechannel: 'testchannel',
+                soundcloud: 'testartist',
+                bandcamp: 'testartist.bandcamp.com',
+                facebook: 'testartist'
+            };
+
+            (getArtistById as jest.Mock)
+                .mockResolvedValue(artistWithSocialLinks)
+                .mockResolvedValue(artistWithSocialLinks);
+            (getAllLinks as jest.Mock).mockResolvedValue([]);
+            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
+            (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio.' })
+            });
+
+            const Component = await ArtistProfile(defaultProps);
+            render(Component);
+
+            const summarySection = document.querySelector('.sr-only[aria-hidden="true"]');
+            const socialLinks = summarySection?.querySelectorAll('li');
+            
+            expect(socialLinks).toHaveLength(8); // All 8 social links should be present
+            
+            // Check specific social links
+            const linkTexts = Array.from(socialLinks || []).map(li => li.textContent);
+            expect(linkTexts).toContain('Spotify: test-spotify-id');
+            expect(linkTexts).toContain('Instagram: @testartist');
+            expect(linkTexts).toContain('X (Twitter): @testartist');
+        });
+
+        it('uses fallback description when bio generation fails', async () => {
+            (getArtistById as jest.Mock)
+                .mockResolvedValue(mockArtistWithVitalInfo)
+                .mockResolvedValue(mockArtistWithVitalInfo);
+            (getAllLinks as jest.Mock).mockResolvedValue([]);
+            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
+            (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+            (getOpenAIBio as jest.Mock).mockRejectedValue(new Error('Bio generation failed'));
+
+            const Component = await ArtistProfile(defaultProps);
+            render(Component);
+
+            const summarySection = document.querySelector('.sr-only[aria-hidden="true"]');
+            const bioP = summarySection?.querySelector('p');
+            expect(bioP).toHaveTextContent('Test Artist is a music artist featured on Music Nerd.');
+        });
+
+        it('is hidden from users but accessible to screen readers/crawlers', async () => {
+            (getArtistById as jest.Mock)
+                .mockResolvedValue(mockArtist)
+                .mockResolvedValue(mockArtist);
+            (getAllLinks as jest.Mock).mockResolvedValue([]);
+            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImage);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(10);
+            (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: 'test-user-id' } });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test bio.' })
+            });
+
+            const Component = await ArtistProfile(defaultProps);
+            render(Component);
+
+            const summarySection = document.querySelector('.sr-only[aria-hidden="true"]');
+            expect(summarySection).toBeInTheDocument();
+            expect(summarySection).toHaveClass('sr-only');
+            expect(summarySection).toHaveAttribute('aria-hidden', 'true');
         });
     });
 }); 
