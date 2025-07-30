@@ -525,6 +525,102 @@ describe('generateMetadata', () => {
             expect(metadata.openGraph).toBeUndefined();
         });
     });
+
+    describe('Twitter Card metadata', () => {
+        it('includes Twitter Card metadata with Spotify image', async () => {
+            (getArtistById as jest.Mock)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: 'test-image-url' });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio.' })
+            });
+
+            const metadata = await generateMetadata({ params: { id: 'test-id' } });
+
+            expect((metadata.twitter as any)?.card).toBe('summary_large_image');
+            expect(metadata.twitter?.title).toBe('Test Artist - Music Nerd');
+            expect(metadata.twitter?.description).toBe('Test artist bio.');
+            expect(metadata.twitter?.images).toEqual(['test-image-url']);
+        });
+
+        it('falls back to default image when Spotify image is not available', async () => {
+            process.env.NEXT_PUBLIC_BASE_URL = 'https://test.musicnerd.org';
+            (getArtistById as jest.Mock)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: null });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio.' })
+            });
+
+            const metadata = await generateMetadata({ params: { id: 'test-id' } });
+
+            expect(metadata.twitter?.images).toEqual(['https://test.musicnerd.org/default_pfp_pink.png']);
+        });
+
+        it('uses production URL when NEXT_PUBLIC_BASE_URL is not set', async () => {
+            delete process.env.NEXT_PUBLIC_BASE_URL;
+            (getArtistById as jest.Mock)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: null });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio.' })
+            });
+
+            const metadata = await generateMetadata({ params: { id: 'test-id' } });
+
+            expect(metadata.twitter?.images).toEqual(['https://musicnerd.org/default_pfp_pink.png']);
+        });
+
+        it('handles special characters in artist names for Twitter title', async () => {
+            const mockArtistSpecialChars = {
+                ...mockArtistWithVitalInfo,
+                name: 'Artist & The Band\'s "Greatest" Hits!',
+            };
+
+            (getArtistById as jest.Mock)
+                .mockResolvedValueOnce(mockArtistSpecialChars)
+                .mockResolvedValueOnce(mockArtistSpecialChars);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: 'test-image-url' });
+            (getOpenAIBio as jest.Mock).mockResolvedValue({
+                json: () => Promise.resolve({ bio: 'Test artist bio.' })
+            });
+
+            const metadata = await generateMetadata({ params: { id: 'test-id' } });
+
+            expect(metadata.twitter?.title).toBe('Artist & The Band\'s "Greatest" Hits! - Music Nerd');
+        });
+
+        it('includes Twitter Card metadata when bio generation fails', async () => {
+            (getArtistById as jest.Mock)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo)
+                .mockResolvedValueOnce(mockArtistWithVitalInfo);
+            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: {} });
+            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: 'test-image-url' });
+            (getOpenAIBio as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+            const metadata = await generateMetadata({ params: { id: 'test-id' } });
+
+            expect((metadata.twitter as any)?.card).toBe('summary_large_image');
+            expect(metadata.twitter?.title).toBe('Test Artist - Music Nerd');
+            expect(metadata.twitter?.description).toBe('Discover Test Artist on Music Nerd - social media links, music, and more.');
+            expect(metadata.twitter?.images).toEqual(['test-image-url']);
+        });
+
+        it('does not include Twitter Card metadata when artist is not found', async () => {
+            (getArtistById as jest.Mock).mockResolvedValue(null);
+
+            const metadata = await generateMetadata({ params: { id: 'non-existent-id' } });
+
+            expect(metadata.twitter).toBeUndefined();
+        });
+    });
 });
 
 describe('ArtistPage', () => {
