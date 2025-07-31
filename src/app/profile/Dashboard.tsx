@@ -58,7 +58,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const raw = localStorage.getItem(`bookmarks_${user.id}`);
                 if (raw) {
                     const parsed = JSON.parse(raw) as BookmarkItem[];
-                    setBookmarks(parsed);
+                    setBookmarks(parsed.slice().reverse());
                 } else {
                     setBookmarks([]);
                 }
@@ -451,7 +451,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             ) : (
                 <>
                     {/* Username row no edit button inline */}
-                    <div className="flex flex-col items-center gap-2 pb-4 w-full text-center">
+                    <div className="flex items-center justify-between gap-2 pb-4 w-full">
                         {!isEditingUsername && (
                             <div className="flex items-center gap-2">
                                 <p className="text-lg font-semibold">
@@ -459,12 +459,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </p>
                                 {allowEditUsername && !isGuestUser && (
                                     <Button
-                                        size="icon"
+                                        size="sm"
                                         variant="ghost"
-                                        className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-md"
+                                        className="bg-gray-200 text-black hover:bg-gray-300"
                                         onClick={() => setIsEditingUsername(true)}
                                     >
-                                        <Pencil size={16} />
+                                        <div className="flex items-center gap-1">
+                                            <Pencil size={14} /> Edit
+                                        </div>
                                     </Button>
                                 )}
                             </div>
