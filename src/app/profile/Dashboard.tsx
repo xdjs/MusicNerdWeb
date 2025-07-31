@@ -578,6 +578,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         </div>
                                     )}
                                 </>
+                                    )}
                         </div>
 
                         {/* Right column - recently edited */}
