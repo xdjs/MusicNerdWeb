@@ -673,14 +673,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <div className="flex items-center gap-2">
                                             {bookmarks.length > 0 && (
                                                 <>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                        className="text-gray-600 hover:text-gray-800"
-                                                    >
-                                                        {isBookmarksExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                                    </Button>
+                                                    {isEditingBookmarks && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
+                                                            className="text-gray-600 hover:text-gray-800"
+                                                        >
+                                                            {isBookmarksExpanded ? 'Collapse' : 'Expand'}
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
