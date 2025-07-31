@@ -540,7 +540,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
                                     onClick={handleLogin}
                                 >
                                     Log In
@@ -629,7 +629,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
                                     onClick={handleLogin}
                                 >
                                     Log In
@@ -683,7 +683,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
                                                     Save
                                                 </Button>
-                                                <Button size="sm" variant="ghost" onClick={() => { 
+                                                <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
                                                     setIsEditingBookmarks(false); 
                                                 }}>
                                                     Cancel
@@ -703,7 +703,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     items={isBookmarksExpanded ? bookmarks.map(item => item.artistId) : currentBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <ul className="space-y-3">
+                                                    <ul className="space-y-2">
                                                         {(isBookmarksExpanded ? bookmarks : currentBookmarks).map((item) => (
                                                             <SortableBookmarkItem
                                                                 key={item.artistId}
@@ -726,10 +726,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
+                                                className="border border-gray-300"
                                                 onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
                                                 disabled={bookmarkPage === 0}
                                             >
-                                                Prev
+                                                Previous
                                             </Button>
                                             <span className="text-sm">
                                                 {bookmarkPage + 1} / {totalBookmarkPages}
@@ -737,6 +738,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
+                                                className="border border-gray-300"
                                                 onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
@@ -746,8 +748,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
+                                                    className="text-gray-600 hover:text-gray-800 border border-gray-300"
                                                     onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                    className="text-gray-600 hover:text-gray-800"
                                                 >
                                                     {isBookmarksExpanded ? 'Collapse' : 'Expand'}
                                                 </Button>
@@ -761,8 +763,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
+                                                className="text-gray-600 hover:text-gray-800 border border-gray-300"
                                                 onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                className="text-gray-600 hover:text-gray-800"
                                             >
                                                 {isBookmarksExpanded ? 'Collapse' : 'Expand'}
                                             </Button>
