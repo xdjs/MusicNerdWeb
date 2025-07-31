@@ -614,7 +614,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         onChange={(e) => setUsernameInput(e.target.value)}
                                         className="h-8 flex-1 min-w-0 text-lg"
                                     />
-                                    <Button size="sm" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
+                                    <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
                                         {savingUsername ? 'Saving...' : 'Save'}
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => {
@@ -696,8 +696,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <>
                                             {isEditingBookmarks && (
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <Button size="sm" onClick={saveBookmarks}>
-                                                        Save Changes
+                                                    <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                                        Save
                                                     </Button>
                                                     <Button size="sm" variant="ghost" onClick={() => { 
                                                         setIsEditingBookmarks(false); 
