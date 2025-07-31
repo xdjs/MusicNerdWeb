@@ -58,7 +58,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const raw = localStorage.getItem(`bookmarks_${user.id}`);
                 if (raw) {
                     const parsed = JSON.parse(raw) as BookmarkItem[];
-                    setBookmarks(parsed.slice().reverse());
+                    // Bookmarks are stored in most-recent-first order. No additional reversing needed.
+                    setBookmarks(parsed);
                 } else {
                     setBookmarks([]);
                 }
@@ -457,6 +458,25 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 {displayName}
                             </p>
                         )}
+                        {/* Edit username button */}
+                        {allowEditUsername && !isGuestUser && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="bg-gray-200 text-black hover:bg-gray-300 absolute top-0 right-0"
+                                onClick={() => setIsEditingUsername((prev) => !prev)}
+                            >
+                                {isEditingUsername ? (
+                                    <div className="flex items-center gap-1">
+                                        <Check size={14} /> Done
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1">
+                                        <Pencil size={14} /> Edit
+                                    </div>
+                                )}
+                            </Button>
+                        )}
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
                             <div className="flex flex-col items-center gap-2 w-full">
@@ -574,24 +594,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                         {/* Right column - recently edited */}
                         <div className="relative space-y-4 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
-                            {allowEditUsername && !isGuestUser && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-8 left-0"
-                                    onClick={() => setIsEditingUsername((prev) => !prev)}
-                                >
-                                    {isEditingUsername ? (
-                                        <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    )}
-                                </Button>
-                            )}
+                            
                             <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
