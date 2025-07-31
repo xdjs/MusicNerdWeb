@@ -458,7 +458,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
     try {
         const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
         const user = session?.user?.id ? await getUserById(session.user.id) : null;
-        const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+        const isWhitelistedOrAdmin = user?.isAdmin;
 
         const existingArtistUGC = await db.query.ugcresearch.findFirst({
             where: and(eq(ugcresearch.ugcUrl, artistUrl), eq(ugcresearch.artistId, artist.id)),
@@ -571,7 +571,7 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+    const isWhitelistedOrAdmin = user?.isAdmin;
 
     if (!walletlessEnabled && !isWhitelistedOrAdmin) {
         return { status: "error", message: "Unauthorized" };
@@ -620,7 +620,7 @@ export async function updateArtistBio(artistId: string, bio: string): Promise<Re
 
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+    const isWhitelistedOrAdmin = user?.isAdmin;
 
     if (!walletlessEnabled && !isWhitelistedOrAdmin) {
         return { status: "error", message: "Unauthorized" };
