@@ -678,35 +678,22 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <>
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
-                                        <div className="flex items-center gap-2">
-                                            {bookmarks.length > 0 && isEditingBookmarks && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                    className="text-gray-600 hover:text-gray-800"
-                                                >
-                                                    {isBookmarksExpanded ? 'Collapse' : 'Expand'}
+                                        {isEditingBookmarks && bookmarks.length > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                                    Save
                                                 </Button>
-                                            )}
-                                        </div>
+                                                <Button size="sm" variant="ghost" onClick={() => { 
+                                                    setIsEditingBookmarks(false); 
+                                                }}>
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {bookmarks.length ? (
                                         <>
-                                            {isEditingBookmarks && (
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
-                                                        Save
-                                                    </Button>
-                                                    <Button size="sm" variant="ghost" onClick={() => { 
-                                                        setIsEditingBookmarks(false); 
-                                                    }}>
-                                                        Cancel
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            
                                             <DndContext
                                                 sensors={sensors}
                                                 collisionDetection={closestCenter}
@@ -754,6 +741,30 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
                                                 Next
+                                            </Button>
+                                            {bookmarks.length > 0 && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
+                                                    className="text-gray-600 hover:text-gray-800"
+                                                >
+                                                    {isBookmarksExpanded ? 'Collapse' : 'Expand'}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Expand button when expanded or single page */}
+                                    {(isBookmarksExpanded || totalBookmarkPages <= 1) && bookmarks.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
+                                                className="text-gray-600 hover:text-gray-800"
+                                            >
+                                                {isBookmarksExpanded ? 'Collapse' : 'Expand'}
                                             </Button>
                                         </div>
                                     )}
