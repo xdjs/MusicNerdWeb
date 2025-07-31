@@ -329,7 +329,7 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center w-full">
+            <div className="flex flex-wrap items-center justify-between gap-4 text-black w-full">
                 {/* Role filter dropdown */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
@@ -345,7 +345,7 @@ export default function UsersDataTable<TData, TValue>({
                 </Select>
 
                 {/* Search bar */}
-                <div className="relative text-black flex-grow max-w-sm">
+                <div className="relative text-black flex-grow">
                     <input
                         type="text"
                         value={query}
