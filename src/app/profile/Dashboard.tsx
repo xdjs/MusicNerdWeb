@@ -320,7 +320,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }
 
     async function saveUsername() {
-        if (!usernameInput || usernameInput === user.username) { setIsEditingUsername(false); return; }
+        if (!usernameInput || usernameInput === user.username) { 
+            setIsEditingUsername(false); 
+            return; 
+        }
         setSavingUsername(true);
         try {
             const resp = await fetch(`/api/admin/whitelist-user/${user.id}`, {
@@ -584,9 +587,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     size="sm"
                                     variant="ghost"
                                     className="bg-gray-200 text-black hover:bg-gray-300"
-                                    onClick={() => setIsEditingUsername((prev) => !prev)}
+                                    onClick={() => {
+                                        setIsEditingUsername((prev) => !prev);
+                                        setIsEditingBookmarks((prev) => !prev);
+                                    }}
                                 >
-                                    {isEditingUsername ? (
+                                    {isEditingUsername || isEditingBookmarks ? (
                                         <div className="flex items-center gap-1">
                                             <Check size={14} /> Done
                                         </div>
@@ -611,7 +617,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Button size="sm" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
                                         {savingUsername ? 'Saving...' : 'Save'}
                                     </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => setIsEditingUsername(false)}>Cancel</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => {
+                                        setIsEditingUsername(false);
+                                    }}>Cancel</Button>
                                 </div>
                             </div>
                         )}
@@ -671,35 +679,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         <div className="flex items-center gap-2">
-                                            {bookmarks.length > 0 && (
-                                                <>
-                                                    {isEditingBookmarks && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                            className="text-gray-600 hover:text-gray-800"
-                                                        >
-                                                            {isBookmarksExpanded ? 'Collapse' : 'Expand'}
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => setIsEditingBookmarks(!isEditingBookmarks)}
-                                                        className="bg-gray-200 text-black hover:bg-gray-300"
-                                                    >
-                                                        {isEditingBookmarks ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <Check size={14} /> Done
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1">
-                                                                <Pencil size={14} /> Edit
-                                                            </div>
-                                                        )}
-                                                    </Button>
-                                                </>
+                                            {bookmarks.length > 0 && isEditingBookmarks && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
+                                                    className="text-gray-600 hover:text-gray-800"
+                                                >
+                                                    {isBookmarksExpanded ? 'Collapse' : 'Expand'}
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
@@ -711,7 +699,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     <Button size="sm" onClick={saveBookmarks}>
                                                         Save Changes
                                                     </Button>
-                                                    <Button size="sm" variant="ghost" onClick={() => setIsEditingBookmarks(false)}>
+                                                    <Button size="sm" variant="ghost" onClick={() => { 
+                                                        setIsEditingBookmarks(false); 
+                                                    }}>
                                                         Cancel
                                                     </Button>
                                                 </div>
@@ -780,9 +770,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     size="sm"
                                     variant="ghost"
                                     className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-16 left-0 hidden md:block"
-                                    onClick={() => setIsEditingUsername((prev) => !prev)}
+                                    onClick={() => {
+                                        setIsEditingUsername((prev) => !prev);
+                                        setIsEditingBookmarks((prev) => !prev);
+                                    }}
                                 >
-                                    {isEditingUsername ? (
+                                    {isEditingUsername || isEditingBookmarks ? (
                                         <div className="flex items-center gap-1">
                                             <Check size={14} /> Done
                                         </div>
