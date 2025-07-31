@@ -42,9 +42,10 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
 
         if (newState) {
           // add if not present
-          if (!arr.some((b) => b.artistId === artistId)) {
-            arr.push({ artistId, artistName, imageUrl });
-          }
+                      if (!arr.some((b) => b.artistId === artistId)) {
+                // Add new bookmark at the *front* so bookmarks are stored in most-recent-first order.
+                arr.unshift({ artistId, artistName, imageUrl });
+            }
         } else {
           // remove
           arr = arr.filter((b) => b.artistId !== artistId);
