@@ -580,7 +580,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-6 left-0"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-14 left-0"
                                     onClick={() => setIsEditingUsername((prev) => !prev)}
                                 >
                                     {isEditingUsername ? (
