@@ -609,6 +609,33 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 }
 
 // ----------------------------------
+// Bio update helper
+// ----------------------------------
+export async function updateArtistBio(artistId: string, bio: string): Promise<RemoveArtistDataResp> {
+    const session = await getServerAuthSession();
+    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
+    if (isWalletRequired && !session) {
+        throw new Error("Not authenticated");
+    }
+
+    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
+    const user = session?.user?.id ? await getUserById(session.user.id) : null;
+    const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+
+    if (!walletlessEnabled && !isWhitelistedOrAdmin) {
+        return { status: "error", message: "Unauthorized" };
+    }
+
+    try {
+        await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+        return { status: "success", message: "Bio updated" };
+    } catch (e) {
+        console.error("Error updating bio", e);
+        return { status: "error", message: "Error updating bio" };
+    }
+}
+
+// ----------------------------------
 // Prompt helpers
 // ----------------------------------
 
