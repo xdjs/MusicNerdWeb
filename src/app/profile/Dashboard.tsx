@@ -9,12 +9,31 @@ import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/se
 import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
-import { Pencil, Check, ArrowDownCircle } from "lucide-react";
+import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type RecentItem = {
     ugcId: string;
@@ -29,6 +48,58 @@ type BookmarkItem = {
     artistName: string;
     imageUrl: string | null;
 };
+
+// Sortable bookmark item component
+function SortableBookmarkItem({ item, isEditing, onDelete }: { 
+    item: BookmarkItem; 
+    isEditing: boolean;
+    onDelete: (artistId: string) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: item.artistId });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <li ref={setNodeRef} style={style} className="relative">
+            <div className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md">
+                {isEditing && (
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600"
+                        title="Drag to reorder"
+                    >
+                        <GripVertical size={16} />
+                    </button>
+                )}
+                <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline flex-1">
+                    <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                    <span>{item.artistName ?? 'Unknown Artist'}</span>
+                </Link>
+                {isEditing && (
+                    <button
+                        onClick={() => onDelete(item.artistId)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete bookmark"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
+        </li>
+    );
+}
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
@@ -49,7 +120,55 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
     const [bookmarkPage, setBookmarkPage] = useState(0);
+    const [isEditingBookmarks, setIsEditingBookmarks] = useState(false);
+    const [isBookmarksExpanded, setIsBookmarksExpanded] = useState(false);
     const pageSize = 3;
+
+    // Drag and drop sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // Handle drag end for reordering bookmarks
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            setBookmarks((items) => {
+                const oldIndex = items.findIndex((item) => item.artistId === active.id);
+                const newIndex = items.findIndex((item) => item.artistId === over?.id);
+
+                const newItems = arrayMove(items, oldIndex, newIndex);
+                
+                // Save to localStorage
+                localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
+                
+                return newItems;
+            });
+        }
+    }
+
+    // Delete bookmark function
+    function deleteBookmark(artistId: string) {
+        if (!window.confirm('Remove this bookmark?')) return;
+        
+        const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
+        setBookmarks(newBookmarks);
+        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
+        
+        // Notify other tabs/components
+        window.dispatchEvent(new Event('bookmarksUpdated'));
+    }
+
+    // Save bookmarks function
+    function saveBookmarks() {
+        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
+        window.dispatchEvent(new Event('bookmarksUpdated'));
+        setIsEditingBookmarks(false);
+    }
 
     useEffect(() => {
         // Load bookmarks from localStorage (placeholder until backend wiring)
@@ -549,24 +668,81 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
-                                    <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
-                                    {currentBookmarks.length ? (
-                                        <ul className="space-y-3">
-                                            {currentBookmarks.map((item) => (
-                                                <li key={item.artistId}>
-                                                    <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline">
-                                                        <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
-                                                        <span>{item.artistName ?? 'Unknown Artist'}</span>
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                    <div className="flex items-center justify-between w-full">
+                                        <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
+                                        <div className="flex items-center gap-2">
+                                            {bookmarks.length > 0 && (
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
+                                                        className="text-gray-600 hover:text-gray-800"
+                                                    >
+                                                        {isBookmarksExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => setIsEditingBookmarks(!isEditingBookmarks)}
+                                                        className="bg-gray-200 text-black hover:bg-gray-300"
+                                                    >
+                                                        {isEditingBookmarks ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <Check size={14} /> Done
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1">
+                                                                <Pencil size={14} /> Edit
+                                                            </div>
+                                                        )}
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {bookmarks.length ? (
+                                        <>
+                                            {isEditingBookmarks && (
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Button size="sm" onClick={saveBookmarks}>
+                                                        Save Changes
+                                                    </Button>
+                                                    <Button size="sm" variant="ghost" onClick={() => setIsEditingBookmarks(false)}>
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            
+                                            <DndContext
+                                                sensors={sensors}
+                                                collisionDetection={closestCenter}
+                                                onDragEnd={handleDragEnd}
+                                            >
+                                                <SortableContext
+                                                    items={isBookmarksExpanded ? bookmarks.map(item => item.artistId) : currentBookmarks.map(item => item.artistId)}
+                                                    strategy={verticalListSortingStrategy}
+                                                >
+                                                    <ul className="space-y-3">
+                                                        {(isBookmarksExpanded ? bookmarks : currentBookmarks).map((item) => (
+                                                            <SortableBookmarkItem
+                                                                key={item.artistId}
+                                                                item={item}
+                                                                isEditing={isEditingBookmarks}
+                                                                onDelete={deleteBookmark}
+                                                            />
+                                                        ))}
+                                                    </ul>
+                                                </SortableContext>
+                                            </DndContext>
+                                        </>
                                     ) : (
                                         <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
                                     )}
 
-                                    {/* Pagination controls */}
-                                    {totalBookmarkPages > 1 && (
+                                    {/* Pagination controls - only show when not expanded and multiple pages */}
+                                    {!isBookmarksExpanded && totalBookmarkPages > 1 && (
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 variant="outline"
@@ -590,7 +766,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         </div>
                                     )}
                                 </>
-                                    )}
+                            )}
                         </div>
 
 
