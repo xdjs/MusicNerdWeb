@@ -121,7 +121,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
     const [bookmarkPage, setBookmarkPage] = useState(0);
     const [isEditingBookmarks, setIsEditingBookmarks] = useState(false);
-    const [isBookmarksExpanded, setIsBookmarksExpanded] = useState(false);
     const pageSize = 3;
 
     // Drag and drop sensors
@@ -617,7 +616,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
                                         {savingUsername ? 'Saving...' : 'Save'}
                                     </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => {
+                                    <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => {
                                         setIsEditingUsername(false);
                                     }}>Cancel</Button>
                                 </div>
@@ -700,11 +699,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 onDragEnd={handleDragEnd}
                                             >
                                                 <SortableContext
-                                                    items={isBookmarksExpanded ? bookmarks.map(item => item.artistId) : currentBookmarks.map(item => item.artistId)}
+                                                    items={currentBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
                                                     <ul className="space-y-2">
-                                                        {(isBookmarksExpanded ? bookmarks : currentBookmarks).map((item) => (
+                                                        {currentBookmarks.map((item) => (
                                                             <SortableBookmarkItem
                                                                 key={item.artistId}
                                                                 item={item}
@@ -721,7 +720,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     )}
 
                                     {/* Pagination controls - only show when not expanded and multiple pages */}
-                                    {!isBookmarksExpanded && totalBookmarkPages > 1 && (
+                                    {totalBookmarkPages > 1 && (
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 variant="outline"
@@ -743,30 +742,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
                                                 Next
-                                            </Button>
-                                            {bookmarks.length > 0 && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-gray-600 hover:text-gray-800 border border-gray-300"
-                                                    onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                                >
-                                                    {isBookmarksExpanded ? 'Collapse' : 'Expand'}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
-                                    
-                                    {/* Expand button when expanded or single page */}
-                                    {(isBookmarksExpanded || totalBookmarkPages <= 1) && bookmarks.length > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-gray-600 hover:text-gray-800 border border-gray-300"
-                                                onClick={() => setIsBookmarksExpanded(!isBookmarksExpanded)}
-                                            >
-                                                {isBookmarksExpanded ? 'Collapse' : 'Expand'}
                                             </Button>
                                         </div>
                                     )}
