@@ -458,7 +458,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
     try {
         const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
         const user = session?.user?.id ? await getUserById(session.user.id) : null;
-        const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+        const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
 
         const existingArtistUGC = await db.query.ugcresearch.findFirst({
             where: and(eq(ugcresearch.ugcUrl, artistUrl), eq(ugcresearch.artistId, artist.id)),
@@ -571,7 +571,7 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isWhiteListed || user?.isAdmin;
+    const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
 
     if (!walletlessEnabled && !isWhitelistedOrAdmin) {
         return { status: "error", message: "Unauthorized" };
@@ -605,6 +605,38 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
     } catch (e) {
         console.error("Error removing artist data", e);
         return { status: "error", message: "Error removing artist data" };
+    }
+}
+
+// ----------------------------------
+// Bio update helper
+// ----------------------------------
+export async function updateArtistBio(artistId: string, bio: string): Promise<RemoveArtistDataResp> {
+    const session = await getServerAuthSession();
+    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
+    if (isWalletRequired && !session) {
+        throw new Error("Not authenticated");
+    }
+
+    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
+    const user = session?.user?.id ? await getUserById(session.user.id) : null;
+    const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
+
+    // Only admins can edit bios
+    if (!walletlessEnabled && !user?.isAdmin) {
+        return { status: "error", message: "Unauthorized" };
+    }
+
+    if (!walletlessEnabled && !isWhitelistedOrAdmin) {
+        return { status: "error", message: "Unauthorized" };
+    }
+
+    try {
+        await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+        return { status: "success", message: "Bio updated" };
+    } catch (e) {
+        console.error("Error updating bio", e);
+        return { status: "error", message: "Error updating bio" };
     }
 }
 

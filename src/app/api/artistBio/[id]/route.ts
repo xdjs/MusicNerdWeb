@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getOpenAIBio } from "@/server/utils/queries/openAIQuery";
 
-export async function GET(_: Request, { params }: { params: { id: string, prompt: string } }) {
+export async function GET(_: Request, { params }: { params: { id: string } }) {
   // Set a timeout for the entire operation to prevent Vercel timeouts
   const timeoutPromise = new Promise<NextResponse>((_, reject) => 
     setTimeout(() => reject(new Error('Bio generation timeout')), 25000) // 25 second timeout
@@ -53,5 +53,32 @@ export async function GET(_: Request, { params }: { params: { id: string, prompt
       { error: "Internal server error", bio: "Unable to generate bio at this time. Please try again later." },
       { status: 500 }
     );
+  }
+}
+
+// ----------------------------------
+// PUT /api/artistBio/[id]
+// ----------------------------------
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const body = await request.json();
+    const bio: string = body?.bio;
+
+    if (!bio || typeof bio !== "string" || bio.trim().length === 0) {
+      return NextResponse.json({ message: "Invalid bio" }, { status: 400 });
+    }
+
+    const { updateArtistBio } = await import("@/server/utils/queries/artistQueries");
+
+    const result = await updateArtistBio(params.id, bio);
+
+    if (result.status === "success") {
+      return NextResponse.json({ message: result.message });
+    }
+
+    return NextResponse.json({ message: result.message }, { status: 403 });
+  } catch (e) {
+    console.error("[artistBio] PUT error", e);
+    return NextResponse.json({ message: "Error updating bio" }, { status: 500 });
   }
 }
