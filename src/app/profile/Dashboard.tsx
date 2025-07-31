@@ -616,7 +616,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </Button>
                             )}
                             
-                            <h3 className="text-lg font-semibold text-center md:text-left">Recently Edited</h3>
+                            <h3 className="text-lg font-semibold text-center md:text-left md:-mt-4">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
