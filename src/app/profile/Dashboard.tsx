@@ -512,7 +512,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_2fr] md:gap-20 md:max-w-4xl mx-auto text-center md:text-left">
+                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-20 md:max-w-3xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
@@ -616,7 +616,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </Button>
                             )}
                             
-                            <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap">Recently Edited</h3>
+                            <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px]">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
