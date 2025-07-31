@@ -9,7 +9,7 @@ import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/se
 import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
-import { Pencil, ArrowDownCircle } from "lucide-react";
+import { Pencil, Check, ArrowDownCircle } from "lucide-react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -457,18 +457,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 {displayName}
                             </p>
                         )}
-                        {allowEditUsername && !isGuestUser && !isEditingUsername && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="bg-gray-200 text-black hover:bg-gray-300 absolute right-0 top-0"
-                                onClick={() => setIsEditingUsername(true)}
-                            >
-                                <div className="flex items-center gap-1">
-                                    <Pencil size={14} /> Edit
-                                </div>
-                            </Button>
-                        )}
+                        
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
                             <div className="flex flex-col items-center gap-2 w-full">
                                 <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
@@ -580,6 +569,26 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </>
                                     )}
                         </div>
+
+                        {/* Edit / Done button */}
+                        {allowEditUsername && !isGuestUser && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="bg-gray-200 text-black hover:bg-gray-300 mb-2 self-start"
+                                onClick={() => setIsEditingUsername((prev) => !prev)}
+                            >
+                                {isEditingUsername ? (
+                                    <div className="flex items-center gap-1">
+                                        <Check size={14} /> Done
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1">
+                                        <Pencil size={14} /> Edit
+                                    </div>
+                                )}
+                            </Button>
+                        )}
 
                         {/* Right column - recently edited */}
                         <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
