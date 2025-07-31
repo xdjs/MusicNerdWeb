@@ -451,25 +451,25 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             ) : (
                 <>
                     {/* Username row no edit button inline */}
-                    <div className="flex items-center justify-between gap-2 pb-4 w-full">
+                    <div className="relative pb-4 w-full">
                         {!isEditingUsername && (
-                            <div className="flex items-center gap-2">
-                                <p className="text-lg font-semibold">
-                                    {displayName}
-                                </p>
-                                {allowEditUsername && !isGuestUser && (
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="bg-gray-200 text-black hover:bg-gray-300"
-                                        onClick={() => setIsEditingUsername(true)}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    </Button>
-                                )}
-                            </div>
+                            <>
+                            <p className="text-lg font-semibold text-center w-full">
+                                {displayName}
+                            </p>
+                            {allowEditUsername && !isGuestUser && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute right-0 top-0"
+                                    onClick={() => setIsEditingUsername(true)}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        <Pencil size={14} /> Edit
+                                    </div>
+                                </Button>
+                            </>
+                            )}
                         )}
 
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
