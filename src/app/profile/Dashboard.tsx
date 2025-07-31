@@ -453,25 +453,22 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username row no edit button inline */}
                     <div className="relative pb-4 w-full">
                         {!isEditingUsername && (
-                            <>
                             <p className="text-lg font-semibold text-center w-full">
                                 {displayName}
                             </p>
-                            {allowEditUsername && !isGuestUser && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute right-0 top-0"
-                                    onClick={() => setIsEditingUsername(true)}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        <Pencil size={14} /> Edit
-                                    </div>
-                                </Button>
-                            </>
-                            )}
                         )}
-
+                        {allowEditUsername && !isGuestUser && !isEditingUsername && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="bg-gray-200 text-black hover:bg-gray-300 absolute right-0 top-0"
+                                onClick={() => setIsEditingUsername(true)}
+                            >
+                                <div className="flex items-center gap-1">
+                                    <Pencil size={14} /> Edit
+                                </div>
+                            </Button>
+                        )}
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
                             <div className="flex flex-col items-center gap-2 w-full">
                                 <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
@@ -581,7 +578,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         </div>
                                     )}
                                 </>
-                            )}
                         </div>
 
                         {/* Right column - recently edited */}
