@@ -458,6 +458,27 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 {displayName}
                             </p>
                         )}
+                        {/* Mobile Edit button under username */}
+                        {allowEditUsername && !isGuestUser && (
+                            <div className="md:hidden pt-2 flex justify-center">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="bg-gray-200 text-black hover:bg-gray-300"
+                                    onClick={() => setIsEditingUsername((prev) => !prev)}
+                                >
+                                    {isEditingUsername ? (
+                                        <div className="flex items-center gap-1">
+                                            <Check size={14} /> Done
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <Pencil size={14} /> Edit
+                                        </div>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
 
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
@@ -580,7 +601,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-14 left-0"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-20 left-0 hidden md:block"
                                     onClick={() => setIsEditingUsername((prev) => !prev)}
                                 >
                                     {isEditingUsername ? (
