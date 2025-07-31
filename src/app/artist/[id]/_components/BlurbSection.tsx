@@ -45,6 +45,11 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   }, [isEditing, aiBlurb]);
 
   async function handleSave() {
+    // Prevent saving empty bios – restore original text instead
+    if (editText.trim() === "") {
+      setEditText(aiBlurb ?? "");
+      return;
+    }
     if (isSaving) return;
     setIsSaving(true);
     try {

@@ -64,7 +64,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const body = await request.json();
     const bio: string = body?.bio;
 
-    if (!bio || typeof bio !== "string") {
+    if (!bio || typeof bio !== "string" || bio.trim().length === 0) {
       return NextResponse.json({ message: "Invalid bio" }, { status: 400 });
     }
 
