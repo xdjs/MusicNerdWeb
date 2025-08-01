@@ -53,7 +53,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] text-black">
         <DialogHeader>
-          <DialogTitle>Edit Whitelisted User</DialogTitle>
+          <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>Update username, email, or wallet address.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

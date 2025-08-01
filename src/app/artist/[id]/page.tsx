@@ -3,6 +3,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
+import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistDetailsText } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { notFound } from "next/navigation";
@@ -25,8 +26,10 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     let canEdit = walletlessEnabled;
     if (session?.user?.id) {
         const user = await getUserById(session.user.id);
-        if (user?.isWhiteListed || user?.isAdmin) {
+        if (user?.isAdmin) {
             canEdit = true;
+        } else {
+            canEdit = false;
         }
     }
     const artist = await getArtistById(params.id);
@@ -56,7 +59,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                             <AspectRatio ratio={1 / 1} className="flex items-center place-content-center bg-muted rounded-md overflow-hidden w-full mb-4">
                                 <img src={spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
                             </AspectRatio>
-                            {/* Add links button moved below to the "Check out" section */}
+                            {/* Add links button removed; bookmark now beside name */}
                         </div>
                         {/* Right Column: Name and Description */}
                         <div className="flex flex-col justify-start md:col-span-2 pl-0 md:pl-4">
@@ -64,7 +67,17 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                                 <strong className="text-black text-2xl mr-2">
                                     {artist.name}
                                 </strong>
-                                {canEdit && <EditModeToggle className="ml-4" />}
+                                <div className="flex items-center gap-2">
+                                    {session && (
+                                        <BookmarkButton
+                                            artistId={artist.id}
+                                            artistName={artist.name ?? ''}
+                                            imageUrl={spotifyImg.artistImage ?? ''}
+                                            userId={session.user.id}
+                                        />
+                                    )}
+                                    {canEdit && <EditModeToggle />}
+                                </div>
                             </div>
                             <div className="text-black pt-0 mb-4">
                                 {(artist) && getArtistDetailsText(artist, numReleases)}
