@@ -675,7 +675,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
-                                    <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center justify-between w-full -mx-16">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         <div className="flex items-center gap-2">
                                             {/* Pagination controls - always show when multiple pages */}
