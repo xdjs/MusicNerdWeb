@@ -719,7 +719,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
                                     )}
 
-                                    {/* Pagination controls - only show when multiple pages */}
+                                    {/* Pagination controls - moved to bottom */}
                                     {totalBookmarkPages > 1 && (
                                         <div className="flex items-center gap-2">
                                             <Button
