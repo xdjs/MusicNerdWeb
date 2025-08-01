@@ -702,7 +702,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     items={currentBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <ul className="space-y-1">
+                                                    <ul className="space-y-3">
                                                         {currentBookmarks.map((item) => (
                                                             <SortableBookmarkItem
                                                                 key={item.artistId}
