@@ -677,18 +677,34 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <>
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
-                                        {isEditingBookmarks && bookmarks.length > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
-                                                    Save
-                                                </Button>
-                                                <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
-                                                    setIsEditingBookmarks(false); 
-                                                }}>
-                                                    Cancel
-                                                </Button>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {/* Pagination controls - always show when multiple pages */}
+                                            {totalBookmarkPages > 1 && (
+                                                <>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="border border-gray-300"
+                                                        onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
+                                                        disabled={bookmarkPage === 0}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                    <span className="text-sm">
+                                                        {bookmarkPage + 1} / {totalBookmarkPages}
+                                                    </span>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="border border-gray-300"
+                                                        onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
+                                                        disabled={bookmarkPage >= totalBookmarkPages - 1}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                     
                                     {bookmarks.length ? (
@@ -719,29 +735,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
                                     )}
 
-                                    {/* Pagination controls - only show when multiple pages */}
-                                    {totalBookmarkPages > 1 && (
+                                    {/* Save/Cancel buttons - only show in edit mode */}
+                                    {isEditingBookmarks && bookmarks.length > 0 && (
                                         <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
-                                                disabled={bookmarkPage === 0}
-                                            >
-                                                Previous
+                                            <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                                Save
                                             </Button>
-                                            <span className="text-sm">
-                                                {bookmarkPage + 1} / {totalBookmarkPages}
-                                            </span>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
-                                                disabled={bookmarkPage >= totalBookmarkPages - 1}
-                                            >
-                                                Next
+                                            <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
+                                                setIsEditingBookmarks(false); 
+                                            }}>
+                                                Cancel
                                             </Button>
                                         </div>
                                     )}
