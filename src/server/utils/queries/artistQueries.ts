@@ -260,6 +260,15 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
+                } else if (platform.siteName === "facebookID") {
+                    // Handle Facebook internal ID format - use profile.php?id= for reliable access
+                    const facebookId = artist.facebookId?.toString()?.trim() ?? "";
+                    if (facebookId) {
+                        // Use profile.php?id= format instead of placeholder people/name/ format
+                        artistUrl = `https://www.facebook.com/profile.php?id=${facebookId}`;
+                    } else {
+                        continue;
+                    }
                 } else {
                     artistUrl = platform.appStringFormat.replace("%@", artist[platform.siteName]?.toString() ?? "");
                 }
