@@ -13,8 +13,8 @@ Currently, the system mis-parses these URLs, leading to incorrect data storage a
 ## Current System Analysis
 
 ### Database Schema
-  - **`facebook`** column: Stores usernames
-  - **`facebookID`** column: Stores internal Facebook IDs
+  - **`facebook`** column: Stores Facebook usernames OR full Facebook URLs
+  - **`facebookID`** column: Stores full Facebook URLs (NOT just IDs)
 
 ### Current URL Map Platforms
   1. **facebook** platform: Handles username-based URLs
@@ -169,6 +169,29 @@ The Facebook URL parsing was working correctly (Tasks 1-6), but there was a **cr
 1. ✅ **Database Migrations Applied**: Both `0006_update_facebook_regex_patterns.sql` and `0007_fix_facebook_display_names.sql` have been manually applied to the database
 2. **Test on Live Artist Page**: Verify Facebook ID entries now display as "Facebook" links
 3. **Commit All Changes**: Tasks 4-8 are ready for single commit
+
+### ✅ Task 9 - Fix Data Storage (CRITICAL FIX)
+  **Files**: 
+  - `src/server/utils/queries/artistQueries.ts`
+  - `src/server/utils/__tests__/facebook-e2e-flow.test.ts`
+  **Objective**: Fix fundamental issue where only extracted IDs were stored instead of full URLs
+  **Status**: ✅ COMPLETED
+
+  **Root Cause Discovered**: 
+  - `addArtistData` was storing `artistIdFromUrl.id` (extracted ID) instead of `artistUrl` (full URL)
+  - This caused `facebookID` column to contain only IDs like `100044180243805` instead of full URLs
+  - Result: `getArtistLinks` couldn't generate proper display links
+
+  **Implementation**:
+  - Modified `addArtistData` to pass full `artistUrl` to `approveUGC` instead of extracted ID
+  - Updated `approveUGC` parameter name for clarity (`artistIdFromUrl` → `artistUrlOrId`)
+  - Updated `getArtistLinks` to handle full URLs in `facebookID` column (direct URL usage)
+  - Updated tests to reflect new behavior: full URLs stored in database columns
+  
+  **Impact**: 
+  - ✅ Both `facebook` and `facebookID` columns now store complete, working Facebook URLs
+  - ✅ No more URL reconstruction needed - direct URL usage
+  - ✅ Eliminates display issues where Facebook ID links weren't appearing
 
 ## Technical Implementation Details
 

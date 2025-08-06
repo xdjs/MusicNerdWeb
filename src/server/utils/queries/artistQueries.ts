@@ -270,11 +270,11 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
                 } else if (platform.siteName === "facebookID" as string) {
-                    // Handle Facebook internal ID format - use profile.php?id= for reliable access
-                    const facebookId = artist.facebookId?.toString()?.trim() ?? "";
-                    if (facebookId) {
-                        // Use profile.php?id= format instead of placeholder people/name/ format
-                        artistUrl = `https://www.facebook.com/profile.php?id=${facebookId}`;
+                    // Handle Facebook ID format - facebookID column now stores full URLs
+                    const facebookUrl = artist.facebookId?.toString()?.trim() ?? "";
+                    if (facebookUrl) {
+                        // Use the stored URL directly (it's already a complete Facebook URL)
+                        artistUrl = facebookUrl;
                     } else {
                         continue;
                     }
@@ -422,7 +422,7 @@ export async function approveUGC(
     ugcId: string,
     artistId: string,
     siteName: string,
-    artistIdFromUrl: string
+    artistUrlOrId: string
 ) {
     // Sanitize siteName to match column naming convention (remove dots and other non-alphanumerics)
     const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
@@ -430,19 +430,19 @@ export async function approveUGC(
         if (siteName === "wallets" || siteName === "wallet") {
             await db.execute(sql`
                 UPDATE artists
-                SET wallets = array_append(wallets, ${artistIdFromUrl})
-                WHERE id = ${artistId} AND NOT wallets @> ARRAY[${artistIdFromUrl}]
+                SET wallets = array_append(wallets, ${artistUrlOrId})
+                WHERE id = ${artistId} AND NOT wallets @> ARRAY[${artistUrlOrId}]
             `);
         } else if (siteName === "ens") {
             await db.execute(sql`
                 UPDATE artists
-                SET ens = ${artistIdFromUrl}
+                SET ens = ${artistUrlOrId}
                 WHERE id = ${artistId}
             `);
         } else {
             await db.execute(sql`
                 UPDATE artists
-                SET ${sql.identifier(columnName)} = ${artistIdFromUrl}
+                SET ${sql.identifier(columnName)} = ${artistUrlOrId}
                 WHERE id = ${artistId}`);
         }
 
@@ -514,7 +514,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
             .returning();
 
         if (isWhitelistedOrAdmin && newUGC?.id) {
-            await approveUGC(newUGC.id, artist.id, artistIdFromUrl.siteName, artistIdFromUrl.id);
+            await approveUGC(newUGC.id, artist.id, artistIdFromUrl.siteName, artistUrl);
         } else {
             // Pending submission by regular user – trigger (throttled) Discord ping
             await maybePingDiscordForPendingUGC();

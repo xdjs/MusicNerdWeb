@@ -85,33 +85,35 @@ describe('Facebook URL End-to-End Flow', () => {
       });
     });
 
-    it('should store internal ID in facebookId column for people format (simulated)', async () => {
+    it('should store full URL in facebookId column for people format (simulated)', async () => {
       const url = 'https://www.facebook.com/people/Angela-Bofill/100044180243805/';
       const parsed = await extractArtistId(url);
       
+      // Simulate new behavior: store full URL instead of extracted ID
       const mockArtistData = {
-        facebook: parsed?.siteName === 'facebook' ? parsed.id : null,
-        facebookId: parsed?.siteName === 'facebookID' ? parsed.id : null,
+        facebook: parsed?.siteName === 'facebook' ? url : null,
+        facebookId: parsed?.siteName === 'facebookID' ? url : null,
       };
       
       expect(mockArtistData).toEqual({
         facebook: null,
-        facebookId: '100044180243805'
+        facebookId: 'https://www.facebook.com/people/Angela-Bofill/100044180243805/'
       });
     });
 
-    it('should store internal ID in facebookId column for profile.php format (simulated)', async () => {
+    it('should store full URL in facebookId column for profile.php format (simulated)', async () => {
       const url = 'https://www.facebook.com/profile.php?id=100044180243805';
       const parsed = await extractArtistId(url);
       
+      // Simulate new behavior: store full URL instead of extracted ID  
       const mockArtistData = {
-        facebook: parsed?.siteName === 'facebook' ? parsed.id : null,
-        facebookId: parsed?.siteName === 'facebookID' ? parsed.id : null,
+        facebook: parsed?.siteName === 'facebook' ? url : null,
+        facebookId: parsed?.siteName === 'facebookID' ? url : null,
       };
       
       expect(mockArtistData).toEqual({
         facebook: null,
-        facebookId: '100044180243805'
+        facebookId: 'https://www.facebook.com/profile.php?id=100044180243805'
       });
     });
   });
