@@ -217,15 +217,15 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
             }
             
             if (
-                isObjKey(platform.siteName, artist) &&
-                artist[platform.siteName] !== null &&
-                artist[platform.siteName] !== undefined &&
-                artist[platform.siteName] !== ""
+                isObjKey(platform.siteName as keyof Artist, artist) &&
+                artist[platform.siteName as keyof Artist] !== null &&
+                artist[platform.siteName as keyof Artist] !== undefined &&
+                artist[platform.siteName as keyof Artist] !== ""
             ) {
                 let artistUrl = platform.appStringFormat;
                 if (platform.siteName === "youtubechannel") {
                     // Handle YouTube channel URL construction - only use youtubechannel column
-                    const youtubeChannelValue = artist[platform.siteName]?.toString()?.trim() ?? "";
+                    const youtubeChannelValue = artist[platform.siteName as keyof Artist]?.toString()?.trim() ?? "";
                     
                     if (youtubeChannelValue) {
                         // Check if youtubechannel column contains username data (starts with @) or channel ID
@@ -261,7 +261,7 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
-                } else if (platform.siteName === "facebookID") {
+                } else if ((platform.siteName as string) === "facebookID") {
                     // Handle Facebook internal ID format
                     const facebookId = artist.facebookId?.toString()?.trim() ?? "";
                     if (facebookId) {
