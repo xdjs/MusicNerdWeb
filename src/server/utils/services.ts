@@ -152,6 +152,37 @@ export async function extractArtistId(artistUrl: string) {
                     };
                 }
             }
+            
+            // Handle Facebook URL parsing with support for all three formats
+            if (siteName === 'facebook') {
+                // Facebook regex groups:
+                // Group 1: Internal ID from /people/name/ID format
+                // Group 2: ID from profile.php?id=ID format
+                // Group 3: Username from /username format
+                
+                const peopleId = match[1]; // From people/name/ID pattern
+                const profileId = match[2]; // From profile.php?id=ID pattern
+                const username = match[3]; // From /username pattern
+                
+                // Handle ID formats (both people and profile.php)
+                if (peopleId || profileId) {
+                    return {
+                        siteName: 'facebookID',
+                        cardPlatformName,
+                        id: peopleId || profileId
+                    };
+                }
+                
+                // Handle username format
+                if (username) {
+                    return {
+                        siteName: 'facebook',
+                        cardPlatformName,
+                        id: username
+                    };
+                }
+            }
+            
             let extractedId = match[1] || match[2] || match[3];
 
             // Decode any percent-encoded characters in the captured ID as well
