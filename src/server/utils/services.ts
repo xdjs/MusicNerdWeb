@@ -175,6 +175,11 @@ export async function extractArtistId(artistUrl: string) {
                 
                 // Handle username format
                 if (username) {
+                    // Reject invalid usernames like "profile.php" without an ID
+                    if (username === 'profile.php' || username.startsWith('profile.php')) {
+                        return null;
+                    }
+                    
                     return {
                         siteName: 'facebook',
                         cardPlatformName,
