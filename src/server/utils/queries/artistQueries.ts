@@ -149,6 +149,7 @@ export async function searchForArtistByName(name: string) {
                 instagram,
                 x,
                 facebook,
+                facebookID,
                 tiktok,
                 CASE 
                     WHEN lcname LIKE '%' || ${normalisedQuery || ''} || '%' THEN 0  -- Contains match (0 ranks first)
@@ -260,6 +261,17 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
+                } else if (platform.siteName === "facebookID") {
+                    // Handle Facebook internal ID format
+                    const facebookId = artist[platform.siteName]?.toString()?.trim() ?? "";
+                    if (facebookId) {
+                        // For Facebook internal IDs, we need to construct the URL differently
+                        // The appStringFormat is: https://www.facebook.com/people/name/%@
+                        // But we only have the ID, so we'll use a placeholder for the name
+                        artistUrl = `https://www.facebook.com/people/name/${facebookId}/`;
+                    } else {
+                        continue;
+                    }
                 } else {
                     artistUrl = platform.appStringFormat.replace("%@", artist[platform.siteName]?.toString() ?? "");
                 }

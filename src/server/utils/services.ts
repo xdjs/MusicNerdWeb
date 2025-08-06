@@ -152,6 +152,34 @@ export async function extractArtistId(artistUrl: string) {
                     };
                 }
             }
+            
+            // Handle Facebook internal ID format
+            if (siteName === 'facebook') {
+                // Facebook regex: ^https:\/\/[^/]*facebook\.[^/]+\/(?:people\/[^/]+\/([0-9]+)|([^/]+))(?:\/.*)?$
+                // Group 1: internal ID from /people/name/ID format
+                // Group 2: username from /username format
+                
+                const internalId = match[1]; // From people/name/ID pattern
+                const username = match[2]; // From /username pattern
+                
+                // If it's an internal ID format, return facebookID platform
+                if (internalId) {
+                    return {
+                        siteName: 'facebookID',
+                        cardPlatformName,
+                        id: internalId
+                    };
+                }
+                
+                // If it's a username format, return facebook platform
+                if (username) {
+                    return {
+                        siteName: 'facebook',
+                        cardPlatformName,
+                        id: username
+                    };
+                }
+            }
             let extractedId = match[1] || match[2] || match[3];
 
             // Decode any percent-encoded characters in the captured ID as well

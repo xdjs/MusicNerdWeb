@@ -2,7 +2,7 @@ describe('URL Pattern Tests', () => {
   const urlPatterns = [
     { regex: /^https:\/\/x\.com\/([^/]+)$/, sitename: "x" },
     { regex: /^https:\/\/www\.instagram\.com\/([^/]+)(\/.*)?$/, sitename: "instagram" },
-    { regex: /^https:\/\/www\.facebook\.com\/([^/]+)$/, sitename: "facebook" },
+    { regex: /^https:\/\/[^/]*facebook\.[^/]+\/(?:people\/[^/]+\/([0-9]+)\/?|([^/]+))$/, sitename: "facebook" },
     { regex: /^https:\/\/release\.supercollector\.xyz\/artist\/([^/]+)(?:\/.*)?$/, sitename: "supercollector" },
     { regex: /^https:\/\/www\.bandsintown\.com\/a\/([^/]+)$/, sitename: "bandsintown" },
     { regex: /^https:\/\/hey\.xyz\/u\/([^/]+)$/, sitename: "hey" },
@@ -33,6 +33,8 @@ describe('URL Pattern Tests', () => {
     ['instagram', 'https://www.instagram.com/zuck/'],
     ['instagram', 'https://www.instagram.com/zuck/posts'],
     ['facebook', 'https://www.facebook.com/mark'],
+    ['facebook', 'https://www.facebook.com/people/Angela-Bofill/100044180243805/'],
+    ['facebook', 'https://facebook.com/people/John-Doe/123456789/'],
     ['supercollector', 'https://release.supercollector.xyz/artist/collector123'],
     ['bandsintown', 'https://www.bandsintown.com/a/artist123'],
     ['hey', 'https://hey.xyz/u/user123'],
