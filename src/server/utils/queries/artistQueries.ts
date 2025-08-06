@@ -263,7 +263,7 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                     artistUrl = platform.appStringFormat.replace("%@", value);
                 } else if (platform.siteName === "facebookID") {
                     // Handle Facebook internal ID format
-                    const facebookId = artist[platform.siteName]?.toString()?.trim() ?? "";
+                    const facebookId = artist.facebookId?.toString()?.trim() ?? "";
                     if (facebookId) {
                         // For Facebook internal IDs, we need to construct the URL differently
                         // The appStringFormat is: https://www.facebook.com/people/name/%@
