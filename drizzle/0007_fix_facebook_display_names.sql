@@ -3,9 +3,12 @@
 
 BEGIN;
 
--- Update facebookID platform to have correct cardPlatformName for UI display
+-- Update facebookID platform to have complete visual configuration matching facebook platform
 UPDATE urlmap 
-SET card_platform_name = 'Facebook'
+SET card_platform_name = 'Facebook',
+    site_image = (SELECT site_image FROM urlmap WHERE site_name = 'facebook' LIMIT 1),
+    color_hex = (SELECT color_hex FROM urlmap WHERE site_name = 'facebook' LIMIT 1),
+    platform_type_list = (SELECT platform_type_list FROM urlmap WHERE site_name = 'facebook' LIMIT 1)
 WHERE site_name = 'facebookID';
 
 -- Verify both Facebook platforms have consistent configuration for UI display
