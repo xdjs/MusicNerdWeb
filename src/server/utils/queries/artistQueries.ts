@@ -269,7 +269,7 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
-                } else if (platform.siteName === "facebookID") {
+                } else if (platform.siteName === "facebookID" as string) {
                     // Handle Facebook internal ID format - use profile.php?id= for reliable access
                     const facebookId = artist.facebookId?.toString()?.trim() ?? "";
                     if (facebookId) {
