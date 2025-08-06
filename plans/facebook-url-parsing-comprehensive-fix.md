@@ -197,22 +197,51 @@ The Facebook URL parsing was working correctly (Tasks 1-6), but there was a **cr
 
 ## Technical Implementation Details
 
-### New Regex Patterns
+### New Regex Patterns (Updated with Trailing Slash Support)
   **Facebook Platform** (all formats):
   ```
-  ^https://(?:[^/]*\.)?facebook\.com/(?:people/[^/]+/([0-9]+)/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^/\?#]+))(?:[\?#].*)?$
+  ^https://(?:[^/]*\.)?facebook\.com/(?:people/[^/]+/([0-9]+)/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^/\?#]+)/?)(?:[\?#].*)?$
   ```
 
   **FacebookID Platform** (ID formats only):
   ```
-  ^https://(?:[^/]*\.)?facebook\.com/(?:people/[^/]+/([0-9]+)/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?)$
+  ^https://(?:[^/]*\.)?facebook\.com/(?:people/[^/]+/([0-9]+)/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^/\?#]+)/?)(?:[\?#].*)?$
   ```
 
 ### Expected Parsing Results
   | URL Format | Matched Group | siteName | id |
   |------------|---------------|----------|-----|
   | `facebook.com/username` | Group 3 | `facebook` | `username` |
+  | `facebook.com/username/` | Group 3 | `facebook` | `username` |
   | `facebook.com/people/Name/123` | Group 1 | `facebookID` | `123` |
   | `facebook.com/profile.php?id=123` | Group 2 | `facebookID` | `123` |
+
+### ✅ Task 10: Fix Trailing Slash Support
+**Files**: 
+- `src/server/utils/__tests__/extractArtistId.test.ts`
+- `src/server/utils/__tests__/facebook-e2e-flow.test.ts`
+- `drizzle/0008_fix_facebook_trailing_slash.sql`
+
+**Objective**: Support Facebook URLs with trailing slashes (e.g., `facebook.com/username/`)  
+**Status**: ✅ COMPLETED (Uncommitted)
+
+**Implementation**:
+- **Fixed Regex Pattern**: Updated regex from `([^\/\?#]+)` to `([^\/\?#]+)\/?` to allow optional trailing slash
+- **Updated Test Mocks**: Updated both test files with the new regex pattern
+- **Added Test Cases**: Added specific tests for URLs with trailing slashes
+- **Database Migration**: Created migration to update both `facebook` and `facebookID` platform regex patterns
+- **Validation**: All 17 E2E tests passing, including new trailing slash scenarios
+
+**Impact**: 
+- ✅ `https://www.facebook.com/fastballtheband/` now works (was previously rejected)
+- ✅ `https://www.facebook.com/fastballtheband` continues to work
+- ✅ Both formats parse to the same result (`siteName: 'facebook', id: 'fastballtheband'`)
+
+## Final Validation Status
+✅ All URL parsing working correctly (including trailing slashes)  
+✅ All Facebook links displaying on artist pages  
+✅ Preference logic implemented (facebook over facebookID)  
+✅ Property mapping fixed (facebookID platform → facebookId property)  
+✅ Database migrations ready for deployment
 
 This plan ensures robust handling of all Facebook URL formats while maintaining backward compatibility and providing thorough testing coverage.

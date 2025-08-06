@@ -17,7 +17,7 @@ jest.mock('../queries/queriesTS', () => ({
     },
     {
       // Facebook regex pattern that handles all three URL formats
-      regex: /^https:\/\/(?:[^\/]*\.)?facebook\.com\/(?:people\/[^\/]+\/([0-9]+)\/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^\/\?#]+))(?:[\?#].*)?$/,
+      regex: /^https:\/\/(?:[^\/]*\.)?facebook\.com\/(?:people\/[^\/]+\/([0-9]+)\/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^\/\?#]+)\/??)(?:[\?#].*)?$/,
       siteName: 'facebook',
       cardPlatformName: 'Facebook',
     },
@@ -59,6 +59,15 @@ describe('extractArtistId – Facebook links', () => {
       expect(result?.siteName).toBe('facebook');
       expect(result?.cardPlatformName).toBe('Facebook');
       expect(result?.id).toBe('tylerthecreator');
+    });
+
+    it('extracts username from facebook.com URL with trailing slash', async () => {
+      const url = 'https://www.facebook.com/fastballtheband/';
+      const result = await extractArtistId(url);
+      expect(result).not.toBeNull();
+      expect(result?.siteName).toBe('facebook');
+      expect(result?.cardPlatformName).toBe('Facebook');
+      expect(result?.id).toBe('fastballtheband');
     });
 
     it('extracts username from facebook.com URL without www', async () => {

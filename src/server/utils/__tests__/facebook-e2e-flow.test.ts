@@ -14,7 +14,7 @@ import { extractArtistId } from '../services';
 jest.mock('../queries/queriesTS', () => ({
   getAllLinks: jest.fn().mockResolvedValue([
     {
-      regex: /^https:\/\/(?:[^\/]*\.)?facebook\.com\/(?:people\/[^\/]+\/([0-9]+)\/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^\/\?#]+))(?:[\?#].*)?$/,
+      regex: /^https:\/\/(?:[^\/]*\.)?facebook\.com\/(?:people\/[^\/]+\/([0-9]+)\/?|profile\.php\?id=([0-9]+)(?:&[^#]*)?|([^\/\?#]+)\/??)(?:[\?#].*)?$/,
       siteName: 'facebook',
       cardPlatformName: 'Facebook',
     },
@@ -31,6 +31,17 @@ describe('Facebook URL End-to-End Flow', () => {
         siteName: 'facebook',
         cardPlatformName: 'Facebook',
         id: 'tylerthecreator'
+      });
+    });
+
+    it('should parse username format with trailing slash and route to facebook platform', async () => {
+      const url = 'https://www.facebook.com/fastballtheband/';
+      const result = await extractArtistId(url);
+      
+      expect(result).toEqual({
+        siteName: 'facebook',
+        cardPlatformName: 'Facebook',
+        id: 'fastballtheband'
       });
     });
 
