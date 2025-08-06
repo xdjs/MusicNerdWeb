@@ -206,12 +206,21 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
         // Check if both YouTube columns have data to implement preference logic
         const hasYoutubeUsername = artist.youtube?.toString()?.trim();
         const hasYoutubeChannel = artist.youtubechannel?.toString()?.trim();
+        
+        // Check if both Facebook columns have data to implement preference logic
+        const hasFacebookUsername = artist.facebook?.toString()?.trim();
+        const hasFacebookId = artist.facebookId?.toString()?.trim();
 
         for (const platform of allLinkObjects) {
             if (platform.siteName === "ens" || platform.siteName === "wallets") continue;
             
             // Skip youtubechannel platform if both youtube and youtubechannel have data (prefer username)
             if (platform.siteName === "youtubechannel" && hasYoutubeUsername && hasYoutubeChannel) {
+                continue;
+            }
+            
+            // Skip facebookID platform if both facebook and facebookID have data (prefer username)
+            if (platform.siteName === "facebookID" && hasFacebookUsername && hasFacebookId) {
                 continue;
             }
             
@@ -260,7 +269,7 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                     artistUrl = platform.appStringFormat.replace("%@", value);
-                } else if (platform.siteName === "facebookId") {
+                } else if (platform.siteName === "facebookID") {
                     // Handle Facebook internal ID format - use profile.php?id= for reliable access
                     const facebookId = artist.facebookId?.toString()?.trim() ?? "";
                     if (facebookId) {
