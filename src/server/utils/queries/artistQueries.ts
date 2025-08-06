@@ -224,11 +224,14 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                 continue;
             }
             
+            // Handle the special case where platform.siteName is "facebookID" but artist property is "facebookId"
+            const artistPropertyName = platform.siteName === "facebookID" ? "facebookId" : platform.siteName;
+            
             if (
-                isObjKey(platform.siteName, artist) &&
-                artist[platform.siteName] !== null &&
-                artist[platform.siteName] !== undefined &&
-                artist[platform.siteName] !== ""
+                isObjKey(artistPropertyName, artist) &&
+                artist[artistPropertyName] !== null &&
+                artist[artistPropertyName] !== undefined &&
+                artist[artistPropertyName] !== ""
             ) {
                 let artistUrl = platform.appStringFormat;
                 if (platform.siteName === "youtubechannel") {
