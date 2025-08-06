@@ -282,7 +282,7 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
                         continue;
                     }
                 } else {
-                    artistUrl = platform.appStringFormat.replace("%@", artist[platform.siteName]?.toString() ?? "");
+                    artistUrl = platform.appStringFormat.replace("%@", artist[artistPropertyName]?.toString() ?? "");
                 }
                 artistLinksSiteNames.push({ ...platform, artistUrl });
             }

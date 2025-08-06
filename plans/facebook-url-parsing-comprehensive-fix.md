@@ -126,7 +126,9 @@ The Facebook URL parsing was working correctly (Tasks 1-6), but there was a **cr
   **Status**: ✅ COMPLETED (Uncommitted)
 
   **Critical Fixes Applied**:
-  - Fixed platform name check: `"facebookId"` → `"facebookID"` 
+  - **Fixed Property Mapping**: Added `artistPropertyName` mapping to handle `facebookID` platform → `facebookId` artist property mismatch
+  - **Fixed Database Column Access**: Changed `artist[platform.siteName]` to `artist[artistPropertyName]`
+  - **Fixed Compilation Error**: Updated line 285 to use mapped property name
   - Added Facebook preference logic (prefer username over ID when both exist)
   - Implemented YouTube-style dual-platform handling
 
