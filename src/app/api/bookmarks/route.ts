@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
-import { bookmarks, artists } from "@/server/db/schema";
+import { bookmarks } from "@/server/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";

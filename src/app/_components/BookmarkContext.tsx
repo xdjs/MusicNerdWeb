@@ -41,7 +41,7 @@ export function BookmarkProvider({ children, userId }: BookmarkProviderProps) {
       const response = await fetch('/api/bookmarks');
       if (response.ok) {
         const data = await response.json();
-        const bookmarkIds = new Set(data.bookmarks?.map((b: any) => b.artistId) || []);
+        const bookmarkIds = new Set<string>(data.bookmarks?.map((b: any) => b.artistId) || []);
         setBookmarks(bookmarkIds);
       }
     } catch (error) {
