@@ -127,7 +127,8 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
               <SelectContent>
                 <div 
                   className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     setIsAdmin(false);
                     setIsWhiteListed(false);
                   }}
@@ -139,23 +140,31 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                 </div>
                 
                 <div 
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isWhiteListed && !isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
-                  onClick={() => {
-                    setIsAdmin(false);
-                    setIsWhiteListed(true);
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsWhiteListed(!isWhiteListed);
+                    // If unchecking whitelisted and admin is checked, uncheck admin too
+                    if (isWhiteListed && isAdmin) {
+                      setIsAdmin(false);
+                    }
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {isWhiteListed && !isAdmin && <Check className="h-4 w-4" />}
+                    {isWhiteListed && <Check className="h-4 w-4" />}
                   </span>
                   Whitelisted
                 </div>
                 
                 <div 
                   className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
-                  onClick={() => {
-                    setIsAdmin(true);
-                    setIsWhiteListed(true);
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsAdmin(!isAdmin);
+                    // Auto-whitelist when enabling admin
+                    if (!isAdmin) {
+                      setIsWhiteListed(true);
+                    }
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
