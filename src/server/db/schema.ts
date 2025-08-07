@@ -232,3 +232,34 @@ export const funFacts = pgTable("funfacts", {
      surpriseMe: text("surprise_me").notNull(),  
 	isActive: boolean("is_active").default(false),
 });
+
+export const bookmarks = pgTable("bookmarks", {
+	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	artistId: uuid("artist_id").notNull(),
+	artistName: text("artist_name").notNull(),
+	imageUrl: text("image_url"),
+	orderIndex: integer("order_index").notNull().default(0),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+},
+	(table) => {
+		return {
+			bookmarksUserIdFkey: foreignKey({
+				columns: [table.userId],
+				foreignColumns: [users.id],
+				name: "bookmarks_user_id_fkey"
+			}).onDelete("cascade"),
+			bookmarksArtistIdFkey: foreignKey({
+				columns: [table.artistId],
+				foreignColumns: [artists.id],
+				name: "bookmarks_artist_id_fkey"
+			}).onDelete("cascade"),
+			bookmarksUserArtistUnique: unique("bookmarks_user_artist_unique").on(table.userId, table.artistId),
+		}
+	});
+
+export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
+	user: one(users, { fields: [bookmarks.userId], references: [users.id], relationName: "bookmarkUser" }),
+	artist: one(artists, { fields: [bookmarks.artistId], references: [artists.id], relationName: "bookmarkArtist" }),
+}));

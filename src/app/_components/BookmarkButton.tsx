@@ -15,51 +15,79 @@ interface BookmarkButtonProps {
 
 export default function BookmarkButton({ className, artistId, artistName, imageUrl, userId }: BookmarkButtonProps) {
   const [bookmarked, setBookmarked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Load initial bookmark state
+  // Load initial bookmark state from API (lightweight check)
   useEffect(() => {
     if (!userId) return;
-    try {
-      const raw = localStorage.getItem(`bookmarks_${userId}`);
-      if (raw) {
-        const arr = JSON.parse(raw) as { artistId: string }[];
-        setBookmarked(arr.some((b) => b.artistId === artistId));
+    
+    const checkBookmarkStatus = async () => {
+      try {
+        // Use ?all=true to get lightweight bookmark check (just artist IDs)
+        const response = await fetch('/api/bookmarks?all=true');
+        if (response.ok) {
+          const data = await response.json();
+          const isBookmarked = data.bookmarks?.some((b: any) => b.artistId === artistId);
+          setBookmarked(isBookmarked);
+        }
+      } catch (error) {
+        console.debug('[BookmarkButton] error checking bookmark status', error);
       }
-    } catch (e) {
-      console.debug('[BookmarkButton] error parsing bookmarks', e);
-    }
+    };
+
+    checkBookmarkStatus();
   }, [userId, artistId]);
 
-  const handleClick = () => {
-    if (!userId) return; // safety
+  const handleClick = async () => {
+    if (!userId || loading) return;
 
-    setBookmarked((prev) => {
-      const newState = !prev;
-      try {
-        const key = `bookmarks_${userId}`;
-        const raw = localStorage.getItem(key);
-        let arr: { artistId: string; artistName: string; imageUrl?: string }[] = raw ? JSON.parse(raw) : [];
+    setLoading(true);
+    const newState = !bookmarked;
 
-        if (newState) {
-          // add if not present
-                      if (!arr.some((b) => b.artistId === artistId)) {
-                // Add new bookmark at the *front* so bookmarks are stored in most-recent-first order.
-                arr.unshift({ artistId, artistName, imageUrl });
-            }
+    try {
+      if (newState) {
+        // Add bookmark
+        const response = await fetch('/api/bookmarks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            artistId,
+            artistName,
+            imageUrl,
+          }),
+        });
+
+        if (response.ok) {
+          setBookmarked(true);
+          // Notify other components that bookmarks were updated
+          window.dispatchEvent(new Event('bookmarksUpdated'));
+        } else if (response.status === 409) {
+          // Bookmark already exists
+          setBookmarked(true);
         } else {
-          // remove
-          arr = arr.filter((b) => b.artistId !== artistId);
+          console.error('[BookmarkButton] Failed to add bookmark');
         }
+      } else {
+        // Remove bookmark
+        const response = await fetch(`/api/bookmarks?artistId=${artistId}`, {
+          method: 'DELETE',
+        });
 
-        localStorage.setItem(key, JSON.stringify(arr));
-        // Notify others
-        window.dispatchEvent(new Event('bookmarksUpdated'));
-      } catch (e) {
-        console.error('[BookmarkButton] error updating bookmarks', e);
+        if (response.ok) {
+          setBookmarked(false);
+          // Notify other components that bookmarks were updated
+          window.dispatchEvent(new Event('bookmarksUpdated'));
+        } else {
+          console.error('[BookmarkButton] Failed to remove bookmark');
+        }
       }
-
-      return newState;
-    });
+    } catch (error) {
+      console.error('[BookmarkButton] error updating bookmark', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const baseClasses = "flex items-center gap-1.5 rounded-lg p-1.5 text-sm font-bold transition-colors duration-300 w-[120px] flex-shrink-0";
@@ -69,11 +97,13 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
       variant="outline"
       size="sm"
       onClick={handleClick}
+      disabled={loading}
       className={cn(
         baseClasses,
         bookmarked
           ? "bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
           : "bg-white text-pastypink border-2 border-gray-300 hover:bg-gray-100 hover:text-pastypink",
+        loading && "opacity-50 cursor-not-allowed",
         className
       )}
     >
@@ -82,7 +112,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
         className={bookmarked ? "text-white" : "text-pastypink"}
         strokeWidth={2}
       />
-      {bookmarked ? "Bookmarked" : "Bookmark"}
+      {loading ? "..." : (bookmarked ? "Bookmarked" : "Bookmark")}
     </Button>
   );
 } 
