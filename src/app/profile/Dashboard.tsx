@@ -638,14 +638,27 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     size="sm"
                                     variant="ghost"
                                     className="bg-gray-200 text-black hover:bg-gray-300"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
+                                    onClick={async () => {
+                                        if (isEditingUsername || isEditingBookmarks) {
+                                            // Handle "Done" action
+                                            if (isEditingUsername) {
+                                                await saveUsername();
+                                            }
+                                            if (isEditingBookmarks) {
+                                                await saveBookmarks();
+                                            }
+                                            // Both states should already be set to false by their respective save functions
+                                        } else {
+                                            // Handle "Edit" action - enter edit mode
+                                            setIsEditingUsername(true);
+                                            setIsEditingBookmarks(true);
+                                        }
                                     }}
+                                    disabled={savingUsername}
                                 >
                                     {isEditingUsername || isEditingBookmarks ? (
                                         <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
+                                            <Check size={14} /> {savingUsername ? "Saving..." : "Done"}
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-1">
@@ -810,14 +823,27 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     size="sm"
                                     variant="ghost"
                                     className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-16 left-0 hidden md:block"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
+                                    onClick={async () => {
+                                        if (isEditingUsername || isEditingBookmarks) {
+                                            // Handle "Done" action
+                                            if (isEditingUsername) {
+                                                await saveUsername();
+                                            }
+                                            if (isEditingBookmarks) {
+                                                await saveBookmarks();
+                                            }
+                                            // Both states should already be set to false by their respective save functions
+                                        } else {
+                                            // Handle "Edit" action - enter edit mode
+                                            setIsEditingUsername(true);
+                                            setIsEditingBookmarks(true);
+                                        }
                                     }}
+                                    disabled={savingUsername}
                                 >
                                     {isEditingUsername || isEditingBookmarks ? (
                                         <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
+                                            <Check size={14} /> {savingUsername ? "Saving..." : "Done"}
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-1">
