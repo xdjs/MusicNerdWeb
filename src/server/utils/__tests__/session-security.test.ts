@@ -81,7 +81,8 @@ describe('Session Security', () => {
         username: 'test-user',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        legacyId: null
+        legacyId: null,
+        isHidden: false
     };
 
     beforeEach(() => {
@@ -273,7 +274,8 @@ describe('Session Security', () => {
                 wallet: '0x1234567890abcdef',
                 legacyId: null,
                 isAdmin: false,
-                isWhiteListed: true
+                isWhiteListed: true,
+                isHidden: false
             };
 
             const mockGetServerAuthSession = getServerAuthSession as jest.MockedFunction<typeof getServerAuthSession>;
@@ -297,7 +299,8 @@ describe('Session Security', () => {
                 wallet: '0x1234567890abcdef',
                 legacyId: null,
                 isAdmin: false,
-                isWhiteListed: true
+                isWhiteListed: true,
+                isHidden: false
             };
 
             const mockSession = {

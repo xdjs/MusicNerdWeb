@@ -106,7 +106,7 @@ export type UpdateWhitelistedUserResp = {
 // Updates a whitelisted user's editable fields (wallet, email, username, roles)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean }
+    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean; isHidden?: boolean }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
@@ -127,6 +127,11 @@ export async function updateWhitelistedUser(
         if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
             // Only update whitelist if not overridden by admin logic above
             updateData.isWhiteListed = data.isWhiteListed;
+        }
+
+        // Handle hidden flag changes
+        if (data.isHidden !== undefined) {
+            updateData.isHidden = data.isHidden;
         }
 
         if (Object.keys(updateData).length === 0) {

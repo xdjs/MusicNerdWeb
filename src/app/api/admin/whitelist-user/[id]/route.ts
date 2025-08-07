@@ -7,10 +7,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const { id } = params;
     const body = await request.json();
-    const { wallet, email, username, isAdmin, isWhiteListed } = body ?? {};
+    const { wallet, email, username, isAdmin, isWhiteListed, isHidden } = body ?? {};
 
     // Check if roles are being updated and validate admin permissions
-    if (isAdmin !== undefined || isWhiteListed !== undefined) {
+    if (isAdmin !== undefined || isWhiteListed !== undefined || isHidden !== undefined) {
       const session = await getServerAuthSession();
       if (!session?.user?.id) {
         return NextResponse.json({ status: "error", message: "Not authenticated" }, { status: 401 });
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
-    const resp = await updateWhitelistedUser(id, { wallet, email, username, isAdmin, isWhiteListed });
+    const resp = await updateWhitelistedUser(id, { wallet, email, username, isAdmin, isWhiteListed, isHidden });
     const statusCode = resp.status === "success" ? 200 : 400;
     return NextResponse.json(resp, { status: statusCode });
   } catch (e) {
