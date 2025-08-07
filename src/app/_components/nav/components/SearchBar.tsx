@@ -259,10 +259,9 @@ const WalletSearchBar = forwardRef(
     };
 
     // Fetches combined search results from both database and Spotify
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, refetch } = useQuery({
         queryKey: ['combinedSearchResults', debouncedQuery],
         queryFn: async () => {
-            if (!debouncedQuery) return null;
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
                 headers: {
@@ -307,6 +306,8 @@ const WalletSearchBar = forwardRef(
         }
         updateDropDirection();
         setShowResults(true);
+        // Refetch data to ensure we get fresh bookmarks for empty search
+        refetch();
     };
 
     // Add hidden Login component for search flow
@@ -613,10 +614,9 @@ const NoWalletSearchBar = forwardRef(
     };
 
     // Fetches combined search results from both database and Spotify
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, refetch } = useQuery({
         queryKey: ['combinedSearchResults', debouncedQuery],
         queryFn: async () => {
-            if (!debouncedQuery) return null;
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
                 headers: {
@@ -661,6 +661,8 @@ const NoWalletSearchBar = forwardRef(
         }
         updateDropDirection();
         setShowResults(true);
+        // Refetch data to ensure we get fresh bookmarks for empty search
+        refetch();
     };
 
     const handleLogout = async () => {
