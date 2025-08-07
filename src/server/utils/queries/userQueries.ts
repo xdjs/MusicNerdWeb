@@ -103,27 +103,41 @@ export type UpdateWhitelistedUserResp = {
     message: string;
 };
 
-// Updates a whitelisted user's editable fields (wallet, email, username)
+// Updates a whitelisted user's editable fields (wallet, email, username, roles)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string }
+    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
-        const updateData: Record<string, string> = {};
+        const updateData: Record<string, string | boolean> = {};
         if (data.wallet !== undefined) updateData.wallet = data.wallet;
         if (data.email !== undefined) updateData.email = data.email;
         if (data.username !== undefined) updateData.username = data.username;
+
+        // Handle role flag changes
+        if (data.isAdmin !== undefined) {
+            updateData.isAdmin = data.isAdmin;
+            // Auto-whitelist admins
+            if (data.isAdmin) {
+                updateData.isWhiteListed = true;
+            }
+        }
+        
+        if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
+            // Only update whitelist if not overridden by admin logic above
+            updateData.isWhiteListed = data.isWhiteListed;
+        }
 
         if (Object.keys(updateData).length === 0) {
             return { status: "error", message: "No fields to update" };
         }
 
         await db.update(users).set(updateData).where(eq(users.id, userId));
-        return { status: "success", message: "Whitelist user updated" };
+        return { status: "success", message: "User updated successfully" };
     } catch (e) {
         console.error("error updating whitelisted user", e);
-        return { status: "error", message: "Error updating whitelisted user" };
+        return { status: "error", message: "Error updating user" };
     }
 }
 
