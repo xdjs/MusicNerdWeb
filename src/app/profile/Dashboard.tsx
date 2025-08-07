@@ -151,50 +151,85 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }
 
     // Delete bookmark function
-    function deleteBookmark(artistId: string) {
+    async function deleteBookmark(artistId: string) {
         if (!window.confirm('Remove this bookmark?')) return;
         
-        const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
-        setBookmarks(newBookmarks);
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
-        
-        // Notify other tabs/components
-        window.dispatchEvent(new Event('bookmarksUpdated'));
+        try {
+            const response = await fetch(`/api/bookmarks?artistId=${artistId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
+                setBookmarks(newBookmarks);
+                
+                // Notify other tabs/components
+                window.dispatchEvent(new Event('bookmarksUpdated'));
+            } else {
+                console.error('Failed to delete bookmark');
+            }
+        } catch (error) {
+            console.error('Error deleting bookmark:', error);
+        }
     }
 
-    // Save bookmarks function
-    function saveBookmarks() {
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
-        window.dispatchEvent(new Event('bookmarksUpdated'));
-        setIsEditingBookmarks(false);
+    // Save bookmarks function (for reordering)
+    async function saveBookmarks() {
+        try {
+            const bookmarkOrders = bookmarks.map((bookmark, index) => ({
+                artistId: bookmark.artistId,
+                orderIndex: index,
+            }));
+
+            const response = await fetch('/api/bookmarks/reorder', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ bookmarkOrders }),
+            });
+
+            if (response.ok) {
+                window.dispatchEvent(new Event('bookmarksUpdated'));
+                setIsEditingBookmarks(false);
+            } else {
+                console.error('Failed to save bookmark order');
+            }
+        } catch (error) {
+            console.error('Error saving bookmark order:', error);
+        }
     }
 
     useEffect(() => {
-        // Load bookmarks from localStorage (placeholder until backend wiring)
-        const load = () => {
+        // Load bookmarks from API
+        const loadBookmarks = async () => {
             try {
-                const raw = localStorage.getItem(`bookmarks_${user.id}`);
-                if (raw) {
-                    const parsed = JSON.parse(raw) as BookmarkItem[];
-                    // Bookmarks are stored in most-recent-first order. No additional reversing needed.
-                    setBookmarks(parsed);
+                const response = await fetch('/api/bookmarks');
+                if (response.ok) {
+                    const data = await response.json();
+                    // Convert API response to BookmarkItem format
+                    const bookmarkItems: BookmarkItem[] = data.bookmarks.map((b: any) => ({
+                        artistId: b.artistId,
+                        artistName: b.artistName,
+                        imageUrl: b.imageUrl,
+                    }));
+                    setBookmarks(bookmarkItems);
                 } else {
                     setBookmarks([]);
                 }
             } catch (e) {
-                console.debug('[Dashboard] unable to parse bookmarks from storage', e);
+                console.debug('[Dashboard] unable to fetch bookmarks from API', e);
+                setBookmarks([]);
             }
         };
 
-        load();
+        loadBookmarks();
 
-        const handleUpdate = () => load();
+        const handleUpdate = () => loadBookmarks();
         window.addEventListener('bookmarksUpdated', handleUpdate);
-        window.addEventListener('storage', handleUpdate);
 
         return () => {
             window.removeEventListener('bookmarksUpdated', handleUpdate);
-            window.removeEventListener('storage', handleUpdate);
         };
     }, [user.id]);
 
