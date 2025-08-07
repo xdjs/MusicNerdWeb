@@ -85,7 +85,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       <DialogContent className="sm:max-w-[425px] text-black">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
-          <DialogDescription>Update username, email, or wallet address.</DialogDescription>
+
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
@@ -138,7 +138,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
                   </span>
-                  User (clear all roles)
+                  User
                 </div>
                 
                 <div 
@@ -171,7 +171,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {isAdmin && <Check className="h-4 w-4" />}
                   </span>
-                  Admin (auto-whitelists)
+                  Admin
                 </div>
                 
                 <div 
@@ -184,7 +184,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {isHidden && <Check className="h-4 w-4" />}
                   </span>
-                  Hidden (excluded from leaderboards)
+                  Hidden
                 </div>
               </SelectContent>
             </Select>
