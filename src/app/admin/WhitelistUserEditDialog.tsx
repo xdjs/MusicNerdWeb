@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { User } from "@/server/db/DbTypes";
 import { useRouter } from "next/navigation";
@@ -18,11 +18,8 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
   const [wallet, setWallet] = useState(user.wallet || "");
   const [email, setEmail] = useState(user.email || "");
   const [username, setUsername] = useState(user.username || "");
-  const [role, setRole] = useState(() => {
-    if (user.isAdmin) return "admin";
-    if (user.isWhiteListed) return "whitelisted";
-    return "user";
-  });
+  const [isAdmin, setIsAdmin] = useState(user.isAdmin || false);
+  const [isWhiteListed, setIsWhiteListed] = useState(user.isWhiteListed || false);
   const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error"; message: string; isLoading: boolean }>({ status: "success", message: "", isLoading: false });
   const router = useRouter();
   const { data: session } = useSession();
@@ -33,13 +30,17 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       setWallet(user.wallet || "");
       setEmail(user.email || "");
       setUsername(user.username || "");
-      setRole(() => {
-        if (user.isAdmin) return "admin";
-        if (user.isWhiteListed) return "whitelisted";
-        return "user";
-      });
+      setIsAdmin(user.isAdmin || false);
+      setIsWhiteListed(user.isWhiteListed || false);
     }
   }, [user, open]);
+
+  // Auto-whitelist when admin is selected
+  useEffect(() => {
+    if (isAdmin && !isWhiteListed) {
+      setIsWhiteListed(true);
+    }
+  }, [isAdmin, isWhiteListed]);
 
   async function handleSave() {
     setUploadStatus({ status: "success", message: "", isLoading: true });
@@ -48,7 +49,13 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ wallet, email, username, role }),
+      body: JSON.stringify({ 
+        wallet, 
+        email, 
+        username, 
+        isAdmin, 
+        isWhiteListed 
+      }),
       credentials: "same-origin",
     });
     const data = await resp.json();
@@ -96,21 +103,68 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Role</label>
-            <Select 
-              value={role} 
-              onValueChange={setRole}
-              disabled={!session?.user?.isAdmin}
-            >
-              <SelectTrigger className="border border-gray-300 focus:border-black focus:outline-none">
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="whitelisted">Whitelisted</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
+            <label className="text-sm font-medium">Roles</label>
+            <div className="border border-gray-300 rounded-md p-3 space-y-3 bg-gray-50">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="admin"
+                  checked={isAdmin}
+                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                  disabled={!session?.user?.isAdmin}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label 
+                    htmlFor="admin" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Admin
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Full administrative privileges (auto-includes Whitelisted)
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="whitelisted"
+                  checked={isWhiteListed}
+                  onCheckedChange={(checked) => {
+                    // Prevent unchecking if admin is selected
+                    if (!checked && isAdmin) return;
+                    setIsWhiteListed(checked as boolean);
+                  }}
+                  disabled={!session?.user?.isAdmin || isAdmin}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label 
+                    htmlFor="whitelisted" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Whitelisted
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Can contribute content and submit artist data
+                  </p>
+                </div>
+              </div>
+              
+              {!isAdmin && !isWhiteListed && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 rounded border border-gray-300 bg-white flex items-center justify-center">
+                    <div className="w-2 h-2 bg-gray-400 rounded-sm"></div>
+                  </div>
+                  <div className="grid gap-1.5 leading-none">
+                    <label className="text-sm font-medium leading-none text-gray-600">
+                      User
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Basic user with read-only access
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
             {!session?.user?.isAdmin && (
               <p className="text-xs text-gray-500">Only admins can edit user roles</p>
             )}

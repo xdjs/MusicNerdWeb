@@ -103,10 +103,10 @@ export type UpdateWhitelistedUserResp = {
     message: string;
 };
 
-// Updates a whitelisted user's editable fields (wallet, email, username, role)
+// Updates a whitelisted user's editable fields (wallet, email, username, roles)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string; role?: string }
+    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
@@ -115,23 +115,18 @@ export async function updateWhitelistedUser(
         if (data.email !== undefined) updateData.email = data.email;
         if (data.username !== undefined) updateData.username = data.username;
 
-        // Handle role changes
-        if (data.role !== undefined) {
-            switch (data.role) {
-                case "admin":
-                    updateData.isAdmin = true;
-                    updateData.isWhiteListed = true; // Admins are automatically whitelisted
-                    break;
-                case "whitelisted":
-                    updateData.isAdmin = false;
-                    updateData.isWhiteListed = true;
-                    break;
-                case "user":
-                default:
-                    updateData.isAdmin = false;
-                    updateData.isWhiteListed = false;
-                    break;
+        // Handle role flag changes
+        if (data.isAdmin !== undefined) {
+            updateData.isAdmin = data.isAdmin;
+            // Auto-whitelist admins
+            if (data.isAdmin) {
+                updateData.isWhiteListed = true;
             }
+        }
+        
+        if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
+            // Only update whitelist if not overridden by admin logic above
+            updateData.isWhiteListed = data.isWhiteListed;
         }
 
         if (Object.keys(updateData).length === 0) {
