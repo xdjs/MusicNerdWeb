@@ -136,17 +136,31 @@ export async function POST(req: Request) {
         
         userBookmarkIds = new Set(bookmarkResults.map(b => b.artistId));
         
-        // Convert bookmarks to search result format
-        userBookmarkedArtists = bookmarkResults.map(bookmark => ({
-          id: bookmark.artistId,
-          name: bookmark.artistName,
-          imageUrl: bookmark.imageUrl,
-          isSpotifyOnly: false,
-          isBookmarked: true,
-          matchScore: 0, // Bookmarks get highest priority
-          linkCount: 0, // Will be populated if we fetch full artist data
-          orderIndex: bookmark.orderIndex
-        }));
+        // Convert bookmarks to search result format and filter by search query
+        userBookmarkedArtists = bookmarkResults
+          .filter(bookmark => {
+            // Only include bookmarks that match the search query
+            const name = bookmark.artistName?.toLowerCase() || '';
+            const queryLower = query.toLowerCase();
+            return name.includes(queryLower);
+          })
+          .map(bookmark => ({
+            id: bookmark.artistId,
+            name: bookmark.artistName,
+            imageUrl: bookmark.imageUrl,
+            isSpotifyOnly: false,
+            isBookmarked: true,
+            matchScore: getMatchScore(bookmark.artistName || "", query), // Calculate match score for proper ordering
+            linkCount: 0, // Will be populated if we fetch full artist data
+            orderIndex: bookmark.orderIndex
+          }))
+          .sort((a, b) => {
+            // Sort filtered bookmarks by match score first, then by original order
+            if (a.matchScore !== b.matchScore) {
+              return a.matchScore - b.matchScore;
+            }
+            return (a.orderIndex ?? 0) - (b.orderIndex ?? 0);
+          });
         
       } catch (error) {
         console.error('Failed to fetch user bookmarks:', error);
@@ -234,7 +248,9 @@ export async function POST(req: Request) {
       );
 
       // Filter out bookmarked artists from regular search results to avoid duplicates
-      const nonBookmarkedDbResults = dbArtistsWithImages.filter(artist => !userBookmarkIds.has(artist.id));
+      // Only filter out bookmarks that actually matched the search query
+      const matchingBookmarkIds = new Set(userBookmarkedArtists.map(bookmark => bookmark.id));
+      const nonBookmarkedDbResults = dbArtistsWithImages.filter(artist => !matchingBookmarkIds.has(artist.id));
       const nonBookmarkedSpotifyResults = spotifyArtists; // Spotify-only artists can't be bookmarked
       
       // Sort regular search results by match score and relevance
