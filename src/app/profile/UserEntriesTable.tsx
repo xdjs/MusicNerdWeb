@@ -169,7 +169,7 @@ export default function UserEntriesTable() {
 
   // Memoize site names to prevent dropdown from rebuilding unnecessarily
   const availableSites = useMemo(() => {
-    return Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).sort();
+    return Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean) as string[])).sort();
   }, [entries]);
 
   const processed = useMemo(() => {
