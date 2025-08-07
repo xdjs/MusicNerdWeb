@@ -1,5 +1,9 @@
 import { searchForArtistByName, getAllSpotifyIds } from "@/server/utils/queries/artistQueries";
 import { getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { getServerAuthSession } from "@/server/auth";
+import { db } from "@/server/db";
+import { bookmarks } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
 import axios from "axios";
 
 // Simple in-memory cache for search results (5 minute TTL)
@@ -112,8 +116,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check cache first
-    const cachedResult = searchCache.get(query);
+    // Get user session and bookmarks for prioritization
+    const session = await getServerAuthSession();
+    let userBookmarks: Set<string> = new Set();
+    
+    if (session?.user?.id) {
+      try {
+        const bookmarkResults = await db
+          .select({ artistId: bookmarks.artistId })
+          .from(bookmarks)
+          .where(eq(bookmarks.userId, session.user.id));
+        
+        userBookmarks = new Set(bookmarkResults.map(b => b.artistId));
+      } catch (error) {
+        console.error('Failed to fetch user bookmarks:', error);
+        // Continue without bookmark prioritization
+      }
+    }
+
+    // Check cache first (use user-specific cache key for authenticated users)
+    const cacheKey = session?.user?.id ? `${query}_${session.user.id}` : query;
+    const cachedResult = searchCache.get(cacheKey);
     if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
       return Response.json({ results: cachedResult.results });
     }
@@ -153,7 +176,8 @@ export async function POST(req: Request) {
             images: artist.images,
             isSpotifyOnly: true,
             matchScore: getMatchScore(artist.name, query),
-            linkCount: 0
+            linkCount: 0,
+            isBookmarked: false // Spotify-only artists can't be bookmarked yet
           }));
       } catch (error) {
         console.error('Spotify search failed:', error);
@@ -167,7 +191,8 @@ export async function POST(req: Request) {
             ...artist,
             isSpotifyOnly: false,
             matchScore: getMatchScore(artist.name || "", query),
-            linkCount: getLinkCount(artist)
+            linkCount: getLinkCount(artist),
+            isBookmarked: userBookmarks.has(artist.id)
           };
           if (artist.spotify) {
             try {
@@ -188,27 +213,30 @@ export async function POST(req: Request) {
         })
       );
 
-      // Combine all results and sort them by match score and name
+      // Combine all results and sort them by bookmark status, then match score and name
       const combinedResults = [...dbArtistsWithImages, ...spotifyArtists]
         .sort((a, b) => {
-          // First sort by match score
+          // First priority: bookmarked artists come first
+          if (a.isBookmarked !== b.isBookmarked) {
+            return a.isBookmarked ? -1 : 1; // true (bookmarked) comes before false
+          }
+
+          // Second priority: sort by match score
           if (a.matchScore !== b.matchScore) {
             return a.matchScore - b.matchScore;
           }
 
-          // Next, prefer artists with more content (higher linkCount)
+          // Third priority: prefer artists with more content (higher linkCount)
           if ((a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
             return (b.linkCount ?? 0) - (a.linkCount ?? 0);
           }
-
-          // If names (case-insensitive) are identical after that, no change – fall through to alpha
 
           // Fallback: alphabetical by name
           return (a.name || "").localeCompare(b.name || "");
         });
 
       // Cache the results
-      searchCache.set(query, { results: combinedResults, timestamp: Date.now() });
+      searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
 
       return Response.json({ results: combinedResults });
     };
