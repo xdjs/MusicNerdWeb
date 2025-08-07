@@ -74,13 +74,6 @@ const WalletSearchBar = forwardRef(
     const { data: session, status } = useSession();
     const { toast } = useToast();
     
-    // Get bookmark status for search results (only for authenticated users)
-    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
-    const { isBookmarked } = useBookmarkStatus({ 
-      artistIds, 
-      userId: session?.user?.id // Hook will return false for all if no userId
-    });
-    
     const loginRef = useRef<HTMLButtonElement>(null);
     const shouldPromptRef = useRef(false);
     // Used to delay opening RainbowKit until next-auth status is settled
@@ -285,6 +278,13 @@ const WalletSearchBar = forwardRef(
         },
         enabled: debouncedQuery.length > 0,
         retry: 2,
+    });
+
+    // Get bookmark status for search results (only for authenticated users)
+    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
+    const { isBookmarked } = useBookmarkStatus({ 
+      artistIds, 
+      userId: session?.user?.id // Hook will return false for all if no userId
     });
 
     // Updates the search query and triggers the search
@@ -639,6 +639,13 @@ const NoWalletSearchBar = forwardRef(
         },
         enabled: debouncedQuery.length > 0,
         retry: 2,
+    });
+
+    // Get bookmark status for search results (only for authenticated users)
+    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
+    const { isBookmarked } = useBookmarkStatus({ 
+      artistIds, 
+      userId: session?.user?.id // Hook will return false for all if no userId
     });
 
     // Updates the search query and triggers the search
