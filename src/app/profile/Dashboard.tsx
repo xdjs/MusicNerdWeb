@@ -248,7 +248,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }, [selectedRange, user.wallet, isCompactLayout, user.isHidden]);
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
-    // Determine user status string for display
+
+    // Determine user status string for display (support multiple roles)
     const statusString = (() => {
         const roles: string[] = [];
         if (user.isAdmin) roles.push("Admin");
