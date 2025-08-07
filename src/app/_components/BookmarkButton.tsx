@@ -17,13 +17,14 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Load initial bookmark state from API
+  // Load initial bookmark state from API (lightweight check)
   useEffect(() => {
     if (!userId) return;
     
     const checkBookmarkStatus = async () => {
       try {
-        const response = await fetch('/api/bookmarks');
+        // Use ?all=true to get lightweight bookmark check (just artist IDs)
+        const response = await fetch('/api/bookmarks?all=true');
         if (response.ok) {
           const data = await response.json();
           const isBookmarked = data.bookmarks?.some((b: any) => b.artistId === artistId);

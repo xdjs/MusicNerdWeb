@@ -2,7 +2,7 @@
 
 import DatePicker from "./DatePicker";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
@@ -119,8 +119,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [rank, setRank] = useState<number | null>(null);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
-    const [bookmarkPage, setBookmarkPage] = useState(0);
+    const fetchedBookmarkPages = useRef<Set<number>>(new Set());
+    const [bookmarkPage, setBookmarkPage] = useState(1);
+    const [totalBookmarkPages, setTotalBookmarkPages] = useState(1);
+    const [totalBookmarks, setTotalBookmarks] = useState(0);
     const [isEditingBookmarks, setIsEditingBookmarks] = useState(false);
+    const [loadingBookmarks, setLoadingBookmarks] = useState(false);
     const pageSize = 3;
 
     // Drag and drop sensors
@@ -200,32 +204,57 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
     }
 
-    useEffect(() => {
-        // Load bookmarks from API
-        const loadBookmarks = async () => {
-            try {
-                const response = await fetch('/api/bookmarks');
-                if (response.ok) {
-                    const data = await response.json();
-                    // Convert API response to BookmarkItem format
-                    const bookmarkItems: BookmarkItem[] = data.bookmarks.map((b: any) => ({
+    /**
+     * Fetches a page of bookmarks from the server and merges them into the existing list.
+     * If the page has already been fetched, this function does nothing.
+     */
+    const fetchBookmarkPage = async (pageToFetch: number) => {
+        // Skip if we've already fetched this page
+        if (fetchedBookmarkPages.current.has(pageToFetch)) return;
+        
+        try {
+            setLoadingBookmarks(true);
+            const response = await fetch(`/api/bookmarks?page=${pageToFetch}`);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            fetchedBookmarkPages.current.add(pageToFetch);
+            
+            // Merge new bookmarks, avoiding duplicates
+            setBookmarks((prev) => {
+                const existingIds = new Set(prev.map((b) => b.artistId));
+                const newBookmarks = data.bookmarks
+                    .filter((b: any) => !existingIds.has(b.artistId))
+                    .map((b: any) => ({
                         artistId: b.artistId,
                         artistName: b.artistName,
                         imageUrl: b.imageUrl,
                     }));
-                    setBookmarks(bookmarkItems);
-                } else {
-                    setBookmarks([]);
-                }
-            } catch (e) {
-                console.debug('[Dashboard] unable to fetch bookmarks from API', e);
-                setBookmarks([]);
-            }
+                return [...prev, ...newBookmarks];
+            });
+            
+            setTotalBookmarks(data.total);
+            setTotalBookmarkPages(data.pageCount);
+        } catch (e) {
+            console.debug('[Dashboard] unable to fetch bookmarks from API', e);
+        } finally {
+            setLoadingBookmarks(false);
+        }
+    };
+
+    // Load bookmarks when component mounts or when bookmarks are updated
+    useEffect(() => {
+        // Reset pagination state and fetch first page
+        const resetAndLoad = () => {
+            fetchedBookmarkPages.current.clear();
+            setBookmarks([]);
+            setBookmarkPage(1);
+            fetchBookmarkPage(1);
         };
 
-        loadBookmarks();
+        resetAndLoad();
 
-        const handleUpdate = () => loadBookmarks();
+        const handleUpdate = () => resetAndLoad();
         window.addEventListener('bookmarksUpdated', handleUpdate);
 
         return () => {
@@ -233,8 +262,17 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         };
     }, [user.id]);
 
-    const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
-    const currentBookmarks = bookmarks.slice(bookmarkPage * pageSize, bookmarkPage * pageSize + pageSize);
+    // Fetch new pages when bookmarkPage changes
+    useEffect(() => {
+        if (bookmarkPage > 1) {
+            fetchBookmarkPage(bookmarkPage);
+        }
+    }, [bookmarkPage]);
+
+    // For display: show current page of bookmarks (3 per page)
+    const startIndex = (bookmarkPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const currentBookmarks = bookmarks.slice(startIndex, endIndex);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
     // Range selection (synced with Leaderboard)
@@ -784,30 +822,33 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
                                     )}
 
-                                    {/* Pagination controls - moved to bottom */}
+                                    {/* Pagination controls - load more pages on demand */}
                                     {totalBookmarkPages > 1 && (
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
-                                                disabled={bookmarkPage === 0}
+                                                onClick={() => setBookmarkPage((p) => Math.max(1, p - 1))}
+                                                disabled={bookmarkPage === 1}
                                             >
                                                 Previous
                                             </Button>
                                             <span className="text-sm">
-                                                {bookmarkPage + 1} / {totalBookmarkPages}
+                                                {bookmarkPage} / {totalBookmarkPages}
                                             </span>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
-                                                disabled={bookmarkPage >= totalBookmarkPages - 1}
+                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages, p + 1))}
+                                                disabled={bookmarkPage >= totalBookmarkPages}
                                             >
                                                 Next
                                             </Button>
+                                            {loadingBookmarks && (
+                                                <span className="text-sm text-gray-500">Loading...</span>
+                                            )}
                                         </div>
                                     )}
                                 </>

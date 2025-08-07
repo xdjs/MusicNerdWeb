@@ -6,9 +6,16 @@ import { eq, and, desc, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-// GET - Fetch user's bookmarks
+const PER_PAGE = 3; // Load 3 bookmarks at a time for dashboard display
+
+// GET - Fetch user's bookmarks with pagination
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    const all = searchParams.get("all") === "true"; // For BookmarkButton to check all bookmarks
+
     const session = await getServerAuthSession();
     const walletlessEnabled =
       process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" &&
@@ -23,27 +30,67 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json({ bookmarks: [] }, { status: 200 });
+      return NextResponse.json({ 
+        bookmarks: [], 
+        total: 0, 
+        pageCount: 0,
+        page: 1 
+      }, { status: 200 });
     }
 
-    // Fetch bookmarks ordered by order_index, then by created_at desc for new items
-    const userBookmarks = await db
-      .select({
-        id: bookmarks.id,
-        artistId: bookmarks.artistId,
-        artistName: bookmarks.artistName,
-        imageUrl: bookmarks.imageUrl,
-        orderIndex: bookmarks.orderIndex,
-        createdAt: bookmarks.createdAt,
-      })
+    // Get total count first
+    const totalBookmarks = await db
+      .select({ count: sql`count(*)`.mapWith(Number) })
       .from(bookmarks)
-      .where(eq(bookmarks.userId, userId))
-      .orderBy(bookmarks.orderIndex, desc(bookmarks.createdAt));
+      .where(eq(bookmarks.userId, userId));
 
-    return NextResponse.json({ bookmarks: userBookmarks }, { status: 200 });
+    const total = totalBookmarks[0]?.count || 0;
+    const pageCount = Math.ceil(total / PER_PAGE);
+
+    let userBookmarks;
+    
+    if (all) {
+      // Return all bookmarks for BookmarkButton checking (lightweight)
+      userBookmarks = await db
+        .select({
+          artistId: bookmarks.artistId,
+        })
+        .from(bookmarks)
+        .where(eq(bookmarks.userId, userId));
+    } else {
+      // Paginated results for dashboard display
+      const offset = (page - 1) * PER_PAGE;
+      
+      userBookmarks = await db
+        .select({
+          id: bookmarks.id,
+          artistId: bookmarks.artistId,
+          artistName: bookmarks.artistName,
+          imageUrl: bookmarks.imageUrl,
+          orderIndex: bookmarks.orderIndex,
+          createdAt: bookmarks.createdAt,
+        })
+        .from(bookmarks)
+        .where(eq(bookmarks.userId, userId))
+        .orderBy(bookmarks.orderIndex, desc(bookmarks.createdAt))
+        .limit(PER_PAGE)
+        .offset(offset);
+    }
+
+    return NextResponse.json({ 
+      bookmarks: userBookmarks,
+      total,
+      pageCount,
+      page
+    }, { status: 200 });
   } catch (error) {
     console.error("[bookmarks GET] error", error);
-    return NextResponse.json({ bookmarks: [] }, { status: 500 });
+    return NextResponse.json({ 
+      bookmarks: [], 
+      total: 0, 
+      pageCount: 0,
+      page: 1 
+    }, { status: 500 });
   }
 }
 
