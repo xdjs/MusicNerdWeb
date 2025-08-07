@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { User } from "@/server/db/DbTypes";
 import { useRouter } from "next/navigation";
@@ -42,6 +43,15 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       setIsWhiteListed(true);
     }
   }, [isAdmin, isWhiteListed]);
+
+  // Get display text for roles (matches the column display format)
+  const getRoleDisplayText = () => {
+    const roles: string[] = [];
+    if (isAdmin) roles.push("Admin");
+    if (isWhiteListed) roles.push("Whitelisted");
+    if (roles.length === 0) roles.push("User");
+    return roles.join(", ");
+  };
 
   async function handleSave() {
     setUploadStatus({ status: "success", message: "", isLoading: true });
@@ -105,65 +115,53 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Role</label>
-            <Select disabled={!session?.user?.isAdmin}>
+            <Select 
+              value=""
+              disabled={!session?.user?.isAdmin}
+            >
               <SelectTrigger className="border border-gray-300 focus:border-black focus:outline-none">
-                <SelectValue>
-                  {(() => {
-                    const roles = [];
-                    if (isAdmin) roles.push("Admin");
-                    if (isWhiteListed) roles.push("Whitelisted");
-                    if (roles.length === 0) roles.push("User");
-                    return roles.join(", ");
-                  })()}
+                <SelectValue asChild>
+                  <span>{getRoleDisplayText()}</span>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <div className="p-1 space-y-1">
-                  <div 
-                    className="flex items-center space-x-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent"
-                    onClick={() => {
-                      if (!session?.user?.isAdmin) return;
-                      setIsAdmin(!isAdmin);
-                    }}
-                  >
-                    <Checkbox
-                      checked={isAdmin}
-                      onCheckedChange={(checked) => {
-                        if (!session?.user?.isAdmin) return;
-                        setIsAdmin(checked as boolean);
-                      }}
-                      disabled={!session?.user?.isAdmin}
-                    />
-                    <label className="text-sm font-medium cursor-pointer">Admin</label>
-                  </div>
-                  
-                  <div 
-                    className="flex items-center space-x-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent"
-                    onClick={() => {
-                      if (!session?.user?.isAdmin || isAdmin) return;
-                      setIsWhiteListed(!isWhiteListed);
-                    }}
-                  >
-                    <Checkbox
-                      checked={isWhiteListed}
-                      onCheckedChange={(checked) => {
-                        if (!session?.user?.isAdmin) return;
-                        // Prevent unchecking if admin is selected
-                        if (!checked && isAdmin) return;
-                        setIsWhiteListed(checked as boolean);
-                      }}
-                      disabled={!session?.user?.isAdmin || isAdmin}
-                    />
-                    <label className="text-sm font-medium cursor-pointer">Whitelisted</label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 rounded-sm px-2 py-1.5">
-                    <Checkbox
-                      checked={!isAdmin && !isWhiteListed}
-                      disabled={true}
-                    />
-                    <label className="text-sm font-medium text-muted-foreground">User</label>
-                  </div>
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={() => {
+                    setIsAdmin(false);
+                    setIsWhiteListed(false);
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {!isAdmin && !isWhiteListed && <Check className="h-4 w-4" />}
+                  </span>
+                  User
+                </div>
+                
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isWhiteListed && !isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={() => {
+                    setIsAdmin(false);
+                    setIsWhiteListed(true);
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {isWhiteListed && !isAdmin && <Check className="h-4 w-4" />}
+                  </span>
+                  Whitelisted
+                </div>
+                
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={() => {
+                    setIsAdmin(true);
+                    setIsWhiteListed(true);
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {isAdmin && <Check className="h-4 w-4" />}
+                  </span>
+                  Admin
                 </div>
               </SelectContent>
             </Select>
