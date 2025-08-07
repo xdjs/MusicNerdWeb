@@ -109,12 +109,14 @@ export async function POST(req: Request) {
   try {
     const { query } = await req.json();
     
-    if (!query || typeof query !== 'string') {
+    if (typeof query !== 'string') {
       return Response.json(
         { error: "Invalid query parameter" },
         { status: 400 }
       );
     }
+    
+    // Allow empty queries to show bookmarks
 
     // Get user session and bookmarks for prioritization
     const session = await getServerAuthSession();
@@ -158,10 +160,13 @@ export async function POST(req: Request) {
     }
 
     // Check cache first (use user-specific cache key for authenticated users)
+    // Skip cache for empty queries to ensure fresh bookmark data
     const cacheKey = session?.user?.id ? `${query}_${session.user.id}` : query;
-    const cachedResult = searchCache.get(cacheKey);
-    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
-      return Response.json({ results: cachedResult.results });
+    if (query && query.trim()) {
+      const cachedResult = searchCache.get(cacheKey);
+      if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
+        return Response.json({ results: cachedResult.results });
+      }
     }
 
     // Set a timeout for the entire operation to prevent Vercel timeouts
@@ -170,11 +175,11 @@ export async function POST(req: Request) {
     );
 
     const searchOperation = async (): Promise<Response> => {
-      // Parallel execution of database search and Spotify headers
-      const [dbResults, spotifyHeaders] = await Promise.all([
-        searchForArtistByName(query),
-        getSpotifyHeaders()
-      ]);
+      // Get Spotify headers first
+      const spotifyHeaders = await getSpotifyHeaders();
+      
+      // Only search database if there's a query, otherwise use empty results
+      const dbResults = query && query.trim() ? await searchForArtistByName(query) : [];
 
       // Process bookmarks with Spotify data if user is authenticated
       if (session?.user?.id && filteredBookmarks.length > 0) {
@@ -247,13 +252,14 @@ export async function POST(req: Request) {
           });
       }
 
-      // Search Spotify's API for matching artists first (faster than fetching individual artists)
+      // Search Spotify's API for matching artists (only if there's a query)
       let spotifyArtists: any[] = [];
-      try {
-        const spotifyResponse = await axios.get<SpotifySearchResponse>(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=10`,
-          spotifyHeaders
-        );
+      if (query && query.trim()) {
+        try {
+          const spotifyResponse = await axios.get<SpotifySearchResponse>(
+            `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=10`,
+            spotifyHeaders
+          );
         
         // Create a Set of existing Spotify IDs from DB results for fast filtering
         const existingSpotifyIds = new Set(
@@ -273,9 +279,10 @@ export async function POST(req: Request) {
             linkCount: 0,
             isBookmarked: false // Spotify-only artists can't be bookmarked yet
           }));
-      } catch (error) {
-        console.error('Spotify search failed:', error);
-        // Continue without Spotify results rather than failing entirely
+        } catch (error) {
+          console.error('Spotify search failed:', error);
+          // Continue without Spotify results rather than failing entirely
+        }
       }
 
       // Fetch Spotify data for database artists (with concurrency limit)
@@ -333,8 +340,10 @@ export async function POST(req: Request) {
       // Combine bookmarks first (in user's order), then regular search results
       const combinedResults = [...userBookmarkedArtists, ...regularSearchResults];
 
-      // Cache the results
-      searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
+      // Cache the results (only for non-empty queries)
+      if (query && query.trim()) {
+        searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
+      }
 
       return Response.json({ results: combinedResults });
     };
