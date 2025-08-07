@@ -449,8 +449,24 @@ export async function approveUGC(
                 WHERE id = ${artistId}`);
         }
 
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
+        const promptRelevantColumns = [
+            // Music/Streaming Platforms
+            "spotify", "soundcloud", "bandcamp", "audius", "mixcloud", "lastfm", "soundxyz",
+            // Monetization Platforms  
+            "patreon", "cameo", "onlyfans",
+            // Social Media Platforms
+            "instagram", "x", "facebook", "tiktok", "linkedin", "farcaster", "lens",
+            // Video Platforms
+            "youtube", "youtubechannel", "twitch",
+            // Web3/NFT Platforms
+            "zora", "catalog", "opensea", "foundation", "mirror", "ens", "glassnode", "supercollector",
+            // Reference/Database Sites
+            "wikipedia", "discogs", "musicbrainz", "wikidata", "imdb", "jaxsta", "famousbirthdays",
+            "songexploder", "colorsxstudios", "bandsintown", "linktree", "tellie", "bandcampfan", "spotifyusername",
+            // Additional Data Fields
+            "notes"
+        ];
+        if (promptRelevantColumns.includes(columnName) || columnName === "wallets" || columnName === "collectsNfTs") {
             await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
             await generateArtistBio(artistId);
         }
@@ -609,8 +625,24 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
             await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);
         }
 
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
+        const promptRelevantColumns = [
+            // Music/Streaming Platforms
+            "spotify", "soundcloud", "bandcamp", "audius", "mixcloud", "lastfm", "soundxyz",
+            // Monetization Platforms  
+            "patreon", "cameo", "onlyfans",
+            // Social Media Platforms
+            "instagram", "x", "facebook", "tiktok", "linkedin", "farcaster", "lens",
+            // Video Platforms
+            "youtube", "youtubechannel", "twitch",
+            // Web3/NFT Platforms
+            "zora", "catalog", "opensea", "foundation", "mirror", "ens", "glassnode", "supercollector",
+            // Reference/Database Sites
+            "wikipedia", "discogs", "musicbrainz", "wikidata", "imdb", "jaxsta", "famousbirthdays",
+            "songexploder", "colorsxstudios", "bandsintown", "linktree", "tellie", "bandcampfan", "spotifyusername",
+            // Additional Data Fields
+            "notes"
+        ];
+        if (promptRelevantColumns.includes(columnName) || columnName === "wallets" || columnName === "collectsNfTs") {
             await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
             await generateArtistBio(artistId);
         }
@@ -683,12 +715,66 @@ export async function generateArtistBio(artistId: string): Promise<string | null
         if (!promptRow) return null;
 
         const promptParts: string[] = [promptRow.promptBeforeName, artist.name ?? "", promptRow.promptAfterName];
+        
+        // Music/Streaming Platforms
         if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
+        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+        if (artist.bandcamp) promptParts.push(`Bandcamp: ${artist.bandcamp}`);
+        if (artist.audius) promptParts.push(`Audius: ${artist.audius}`);
+        if (artist.mixcloud) promptParts.push(`Mixcloud: ${artist.mixcloud}`);
+        if (artist.lastfm) promptParts.push(`Last.fm: ${artist.lastfm}`);
+        if (artist.soundxyz) promptParts.push(`Sound.xyz: ${artist.soundxyz}`);
+        
+        // Social Media Platforms
         if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
         if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
-        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+        if (artist.facebook) promptParts.push(`Facebook: ${artist.facebook}`);
+        if (artist.tiktok) promptParts.push(`TikTok: ${artist.tiktok}`);
+        if (artist.linkedin) promptParts.push(`LinkedIn: ${artist.linkedin}`);
+        if (artist.farcaster) promptParts.push(`Farcaster: ${artist.farcaster}`);
+        if (artist.lens) promptParts.push(`Lens Protocol: ${artist.lens}`);
+        
+        // Video Platforms
         if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
         if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
+        if (artist.twitch) promptParts.push(`Twitch: ${artist.twitch}`);
+        
+        // Web3/NFT Platforms
+        if (artist.zora) promptParts.push(`Zora: ${artist.zora}`);
+        if (artist.catalog) promptParts.push(`Catalog: ${artist.catalog}`);
+        if (artist.opensea) promptParts.push(`OpenSea: ${artist.opensea}`);
+        if (artist.foundation) promptParts.push(`Foundation: ${artist.foundation}`);
+        if (artist.mirror) promptParts.push(`Mirror: ${artist.mirror}`);
+        if (artist.ens) promptParts.push(`ENS: ${artist.ens}`);
+        if (artist.glassnode) promptParts.push(`Glassnode: ${artist.glassnode}`);
+        if (artist.supercollector) promptParts.push(`SuperCollector: ${artist.supercollector}`);
+        if (artist.wallets && artist.wallets.length > 0) promptParts.push(`Crypto Wallets: ${artist.wallets.join(', ')}`);
+        
+        // Reference/Database Sites
+        if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
+        if (artist.discogs) promptParts.push(`Discogs: ${artist.discogs}`);
+        if (artist.musicbrainz) promptParts.push(`MusicBrainz: ${artist.musicbrainz}`);
+        if (artist.wikidata) promptParts.push(`Wikidata: ${artist.wikidata}`);
+        if (artist.imdb) promptParts.push(`IMDB: ${artist.imdb}`);
+        if (artist.jaxsta) promptParts.push(`Jaxsta: ${artist.jaxsta}`);
+        if (artist.famousbirthdays) promptParts.push(`Famous Birthdays: ${artist.famousbirthdays}`);
+        if (artist.songexploder) promptParts.push(`Song Exploder: ${artist.songexploder}`);
+        if (artist.colorsxstudios) promptParts.push(`Colors x Studios: ${artist.colorsxstudios}`);
+        if (artist.bandsintown) promptParts.push(`Bandsintown: ${artist.bandsintown}`);
+        if (artist.linktree) promptParts.push(`Linktree: ${artist.linktree}`);
+        if (artist.tellie) promptParts.push(`Tellie: ${artist.tellie}`);
+        if (artist.bandcampfan) promptParts.push(`Bandcamp Fan: ${artist.bandcampfan}`);
+        if (artist.spotifyusername) promptParts.push(`Spotify Username: ${artist.spotifyusername}`);
+        
+        // Monetization Platforms
+        if (artist.patreon) promptParts.push(`Patreon: ${artist.patreon}`);
+        if (artist.cameo) promptParts.push(`Cameo: ${artist.cameo}`);
+        if (artist.onlyfans) promptParts.push(`OnlyFans: ${artist.onlyfans}`);
+        
+        // Additional Data Fields
+        if (artist.notes) promptParts.push(`Additional Notes: ${artist.notes}`);
+        if (artist.collectsNfTs) promptParts.push(`Collects NFTs: Yes`);
+        
         promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
 
         const completion = await openai.chat.completions.create({
