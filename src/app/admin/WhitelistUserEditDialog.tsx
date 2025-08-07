@@ -142,10 +142,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   onClick={(e) => {
                     e.preventDefault();
                     setIsWhiteListed(!isWhiteListed);
-                    // If unchecking whitelisted and admin is checked, uncheck admin too
-                    if (isWhiteListed && isAdmin) {
-                      setIsAdmin(false);
-                    }
+                    // No forced admin unchecking - allow independent selection
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
@@ -158,11 +155,13 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsAdmin(!isAdmin);
-                    // Auto-whitelist when enabling admin
-                    if (!isAdmin) {
+                    const newAdminState = !isAdmin;
+                    setIsAdmin(newAdminState);
+                    // Auto-whitelist only when initially enabling admin
+                    if (newAdminState && !isWhiteListed) {
                       setIsWhiteListed(true);
                     }
+                    // Allow admin to be unchecked without affecting whitelist
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
