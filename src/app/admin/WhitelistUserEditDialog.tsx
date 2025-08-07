@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { User } from "@/server/db/DbTypes";
 import { useRouter } from "next/navigation";
@@ -103,68 +104,69 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Roles</label>
-            <div className="border border-gray-300 rounded-md p-3 space-y-3 bg-gray-50">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="admin"
-                  checked={isAdmin}
-                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
-                  disabled={!session?.user?.isAdmin}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label 
-                    htmlFor="admin" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            <label className="text-sm font-medium">Role</label>
+            <Select disabled={!session?.user?.isAdmin}>
+              <SelectTrigger className="border border-gray-300 focus:border-black focus:outline-none">
+                <SelectValue>
+                  {(() => {
+                    const roles = [];
+                    if (isAdmin) roles.push("Admin");
+                    if (isWhiteListed) roles.push("Whitelisted");
+                    if (roles.length === 0) roles.push("User");
+                    return roles.join(", ");
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <div className="p-1 space-y-1">
+                  <div 
+                    className="flex items-center space-x-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent"
+                    onClick={() => {
+                      if (!session?.user?.isAdmin) return;
+                      setIsAdmin(!isAdmin);
+                    }}
                   >
-                    Admin
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Full administrative privileges (auto-includes Whitelisted)
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="whitelisted"
-                  checked={isWhiteListed}
-                  onCheckedChange={(checked) => {
-                    // Prevent unchecking if admin is selected
-                    if (!checked && isAdmin) return;
-                    setIsWhiteListed(checked as boolean);
-                  }}
-                  disabled={!session?.user?.isAdmin || isAdmin}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label 
-                    htmlFor="whitelisted" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    <Checkbox
+                      checked={isAdmin}
+                      onCheckedChange={(checked) => {
+                        if (!session?.user?.isAdmin) return;
+                        setIsAdmin(checked as boolean);
+                      }}
+                      disabled={!session?.user?.isAdmin}
+                    />
+                    <label className="text-sm font-medium cursor-pointer">Admin</label>
+                  </div>
+                  
+                  <div 
+                    className="flex items-center space-x-2 rounded-sm px-2 py-1.5 cursor-pointer hover:bg-accent"
+                    onClick={() => {
+                      if (!session?.user?.isAdmin || isAdmin) return;
+                      setIsWhiteListed(!isWhiteListed);
+                    }}
                   >
-                    Whitelisted
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Can contribute content and submit artist data
-                  </p>
-                </div>
-              </div>
-              
-              {!isAdmin && !isWhiteListed && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded border border-gray-300 bg-white flex items-center justify-center">
-                    <div className="w-2 h-2 bg-gray-400 rounded-sm"></div>
+                    <Checkbox
+                      checked={isWhiteListed}
+                      onCheckedChange={(checked) => {
+                        if (!session?.user?.isAdmin) return;
+                        // Prevent unchecking if admin is selected
+                        if (!checked && isAdmin) return;
+                        setIsWhiteListed(checked as boolean);
+                      }}
+                      disabled={!session?.user?.isAdmin || isAdmin}
+                    />
+                    <label className="text-sm font-medium cursor-pointer">Whitelisted</label>
                   </div>
-                  <div className="grid gap-1.5 leading-none">
-                    <label className="text-sm font-medium leading-none text-gray-600">
-                      User
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      Basic user with read-only access
-                    </p>
+                  
+                  <div className="flex items-center space-x-2 rounded-sm px-2 py-1.5">
+                    <Checkbox
+                      checked={!isAdmin && !isWhiteListed}
+                      disabled={true}
+                    />
+                    <label className="text-sm font-medium text-muted-foreground">User</label>
                   </div>
                 </div>
-              )}
-            </div>
+              </SelectContent>
+            </Select>
             {!session?.user?.isAdmin && (
               <p className="text-xs text-gray-500">Only admins can edit user roles</p>
             )}
