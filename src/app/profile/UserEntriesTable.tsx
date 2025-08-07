@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search as SearchIcon, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 interface UserEntry {
@@ -79,8 +86,18 @@ export default function UserEntriesTable() {
     if (fetchedPages.current.has(pageToFetch)) return;
     try {
       setLoading(true);
-      const res = await fetch(`/api/userEntries?page=${pageToFetch}`);
-      if (!res.ok) return;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const res = await fetch(`/api/userEntries?page=${pageToFetch}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        console.error("[UserEntriesTable] HTTP error:", res.status, res.statusText);
+        return;
+      }
       const data: ApiResponse = await res.json();
       fetchedPages.current.add(pageToFetch);
       // Merge new entries, avoiding duplicates
@@ -92,7 +109,11 @@ export default function UserEntriesTable() {
       setTotal(data.total);
       setPageCount(data.pageCount);
     } catch (e) {
-      console.error("[UserEntriesTable] failed to fetch entries", e);
+      if (e instanceof Error && e.name === 'AbortError') {
+        console.error("[UserEntriesTable] request timeout");
+      } else {
+        console.error("[UserEntriesTable] failed to fetch entries", e);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,21 +137,40 @@ export default function UserEntriesTable() {
       if (filter === "all") return;
       setLoading(true);
       try {
-        const res = await fetch(`/api/userEntries?siteName=${encodeURIComponent(filter)}`);
-        if (!res.ok) return;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const res = await fetch(`/api/userEntries?siteName=${encodeURIComponent(filter)}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          console.error("[UserEntriesTable] HTTP error:", res.status, res.statusText);
+          return;
+        }
         const data: ApiResponse = await res.json();
         // Replace existing entries with filtered result
         setEntries(data.entries);
         setPage(1);
         setPageCount(1);
       } catch (e) {
-        console.error("[UserEntriesTable] failed to fetch filtered entries", e);
+        if (e instanceof Error && e.name === 'AbortError') {
+          console.error("[UserEntriesTable] filter request timeout");
+        } else {
+          console.error("[UserEntriesTable] failed to fetch filtered entries", e);
+        }
       } finally {
         setLoading(false);
       }
     }
     fetchFiltered();
   }, [filter]);
+
+  // Memoize site names to prevent dropdown from rebuilding unnecessarily
+  const availableSites = useMemo(() => {
+    return Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).sort();
+  }, [entries]);
 
   const processed = useMemo(() => {
     let arr = [...entries];
@@ -207,18 +247,19 @@ export default function UserEntriesTable() {
               <TableHead className="text-center py-2 px-3">
                 <div className="flex items-center justify-center gap-2">
                   <span className="whitespace-nowrap">Entry Type</span>
-                  <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-md p-1 text-xs"
-                  >
-                    <option value="all">All</option>
-                    {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
-                      <option key={site as string} value={site as string}>
-                        {site as string}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={filter} onValueChange={setFilter}>
+                    <SelectTrigger className="w-24 h-6 text-xs" disabled={loading}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {availableSites.map((site) => (
+                        <SelectItem key={site} value={site}>
+                          {site}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </TableHead>
               <TableHead className="text-center py-2 px-3 whitespace-nowrap">Site Link</TableHead>
