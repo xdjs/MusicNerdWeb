@@ -118,16 +118,36 @@ export async function POST(req: Request) {
 
     // Get user session and bookmarks for prioritization
     const session = await getServerAuthSession();
-    let userBookmarks: Set<string> = new Set();
+    let userBookmarkedArtists: any[] = [];
+    let userBookmarkIds: Set<string> = new Set();
     
     if (session?.user?.id) {
       try {
         const bookmarkResults = await db
-          .select({ artistId: bookmarks.artistId })
+          .select({
+            artistId: bookmarks.artistId,
+            artistName: bookmarks.artistName,
+            imageUrl: bookmarks.imageUrl,
+            orderIndex: bookmarks.orderIndex
+          })
           .from(bookmarks)
-          .where(eq(bookmarks.userId, session.user.id));
+          .where(eq(bookmarks.userId, session.user.id))
+          .orderBy(bookmarks.orderIndex);
         
-        userBookmarks = new Set(bookmarkResults.map(b => b.artistId));
+        userBookmarkIds = new Set(bookmarkResults.map(b => b.artistId));
+        
+        // Convert bookmarks to search result format
+        userBookmarkedArtists = bookmarkResults.map(bookmark => ({
+          id: bookmark.artistId,
+          name: bookmark.artistName,
+          imageUrl: bookmark.imageUrl,
+          isSpotifyOnly: false,
+          isBookmarked: true,
+          matchScore: 0, // Bookmarks get highest priority
+          linkCount: 0, // Will be populated if we fetch full artist data
+          orderIndex: bookmark.orderIndex
+        }));
+        
       } catch (error) {
         console.error('Failed to fetch user bookmarks:', error);
         // Continue without bookmark prioritization
@@ -192,7 +212,7 @@ export async function POST(req: Request) {
             isSpotifyOnly: false,
             matchScore: getMatchScore(artist.name || "", query),
             linkCount: getLinkCount(artist),
-            isBookmarked: userBookmarks.has(artist.id)
+            isBookmarked: userBookmarkIds.has(artist.id)
           };
           if (artist.spotify) {
             try {
@@ -213,20 +233,19 @@ export async function POST(req: Request) {
         })
       );
 
-      // Combine all results and sort them by bookmark status, then match score and name
-      const combinedResults = [...dbArtistsWithImages, ...spotifyArtists]
+      // Filter out bookmarked artists from regular search results to avoid duplicates
+      const nonBookmarkedDbResults = dbArtistsWithImages.filter(artist => !userBookmarkIds.has(artist.id));
+      const nonBookmarkedSpotifyResults = spotifyArtists; // Spotify-only artists can't be bookmarked
+      
+      // Sort regular search results by match score and relevance
+      const regularSearchResults = [...nonBookmarkedDbResults, ...nonBookmarkedSpotifyResults]
         .sort((a, b) => {
-          // First priority: bookmarked artists come first
-          if (a.isBookmarked !== b.isBookmarked) {
-            return a.isBookmarked ? -1 : 1; // true (bookmarked) comes before false
-          }
-
-          // Second priority: sort by match score
+          // Sort by match score
           if (a.matchScore !== b.matchScore) {
             return a.matchScore - b.matchScore;
           }
 
-          // Third priority: prefer artists with more content (higher linkCount)
+          // Prefer artists with more content (higher linkCount)
           if ((a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
             return (b.linkCount ?? 0) - (a.linkCount ?? 0);
           }
@@ -234,6 +253,9 @@ export async function POST(req: Request) {
           // Fallback: alphabetical by name
           return (a.name || "").localeCompare(b.name || "");
         });
+
+      // Combine bookmarks first (in user's order), then regular search results
+      const combinedResults = [...userBookmarkedArtists, ...regularSearchResults];
 
       // Cache the results
       searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
