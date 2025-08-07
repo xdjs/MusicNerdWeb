@@ -177,19 +177,6 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     header: "Username",
   },
   {
-    accessorKey: "updatedAt",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Updated At
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  {
     id: "role",
     accessorFn: (row) => {
       const roles: string[] = [];
@@ -220,6 +207,19 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       return a - b;
     },
     size: 150, // Expand column width to accommodate multiple roles
+  },
+  {
+    accessorKey: "updatedAt",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Updated At
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
   {
     id: "actions",
