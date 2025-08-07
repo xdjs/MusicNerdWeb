@@ -116,13 +116,11 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
           <div className="space-y-2">
             <label className="text-sm font-medium">Role</label>
             <Select 
-              value=""
+              value={getRoleDisplayText()}
               disabled={!session?.user?.isAdmin}
             >
               <SelectTrigger className="border border-gray-300 focus:border-black focus:outline-none">
-                <SelectValue asChild>
-                  <span>{getRoleDisplayText()}</span>
-                </SelectValue>
+                <span className="text-sm">{getRoleDisplayText()}</span>
               </SelectTrigger>
               <SelectContent>
                 <div 
