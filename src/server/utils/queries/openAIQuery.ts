@@ -70,12 +70,60 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
 
     // Put all informational sections of prompt together
   const promptParts: string[] = [prompt.promptBeforeName, artist.name!, prompt.promptAfterName];
+    
+    // Streaming/Music Platforms
     if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
+    if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+    if (artist.bandcamp) promptParts.push(`Bandcamp: ${artist.bandcamp}`);
+    if (artist.audius) promptParts.push(`Audius: ${artist.audius}`);
+    if (artist.mixcloud) promptParts.push(`Mixcloud: ${artist.mixcloud}`);
+    if (artist.lastfm) promptParts.push(`Last.fm: ${artist.lastfm}`);
+    if (artist.soundxyz) promptParts.push(`Sound.xyz: ${artist.soundxyz}`);
+    
+    // Social Media
     if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
     if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
-    if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+    if (artist.facebook) promptParts.push(`Facebook: ${artist.facebook}`);
+    if (artist.tiktok) promptParts.push(`TikTok: ${artist.tiktok}`);
+    if (artist.linkedin) promptParts.push(`LinkedIn: ${artist.linkedin}`);
+    
+    // Video Platforms
     if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
     if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
+    if (artist.twitch) promptParts.push(`Twitch: ${artist.twitch}`);
+    
+    // Web3/NFT Platforms
+    if (artist.zora) promptParts.push(`Zora: ${artist.zora}`);
+    if (artist.catalog) promptParts.push(`Catalog: ${artist.catalog}`);
+    if (artist.opensea) promptParts.push(`OpenSea: ${artist.opensea}`);
+    if (artist.foundation) promptParts.push(`Foundation: ${artist.foundation}`);
+    if (artist.mirror) promptParts.push(`Mirror: ${artist.mirror}`);
+    if (artist.lens) promptParts.push(`Lens Protocol: ${artist.lens}`);
+    if (artist.ens) promptParts.push(`ENS: ${artist.ens}`);
+    if (artist.farcaster) promptParts.push(`Farcaster: ${artist.farcaster}`);
+    
+    // Reference/Database Sites
+    if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
+    if (artist.discogs) promptParts.push(`Discogs: ${artist.discogs}`);
+    if (artist.musicbrainz) promptParts.push(`MusicBrainz: ${artist.musicbrainz}`);
+    if (artist.wikidata) promptParts.push(`Wikidata: ${artist.wikidata}`);
+    if (artist.imdb) promptParts.push(`IMDB: ${artist.imdb}`);
+    if (artist.jaxsta) promptParts.push(`Jaxsta: ${artist.jaxsta}`);
+    
+    // Support/Fan Platforms
+    if (artist.patreon) promptParts.push(`Patreon: ${artist.patreon}`);
+    if (artist.cameo) promptParts.push(`Cameo: ${artist.cameo}`);
+    if (artist.onlyfans) promptParts.push(`OnlyFans: ${artist.onlyfans}`);
+    
+    // Other Platforms
+    if (artist.linktree) promptParts.push(`Linktree: ${artist.linktree}`);
+    if (artist.bandsintown) promptParts.push(`Bandsintown: ${artist.bandsintown}`);
+    if (artist.famousbirthdays) promptParts.push(`Famous Birthdays: ${artist.famousbirthdays}`);
+    if (artist.songexploder) promptParts.push(`Song Exploder: ${artist.songexploder}`);
+    if (artist.colorsxstudios) promptParts.push(`Colors x Studios: ${artist.colorsxstudios}`);
+    if (artist.tellie) promptParts.push(`Tellie: ${artist.tellie}`);
+    if (artist.supercollector) promptParts.push(`SuperCollector: ${artist.supercollector}`);
+    
     if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
 
     //build prompt from parts generated and parts from the aiprompts table

@@ -15,8 +15,20 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Artist not found" }, { status: 404 });
     }
 
-    //If the artist lacks vital info (instagram, X, Youtube etc), then display a generic message from the aiprompts table
-    if (!artist.bio && !artist.youtubechannel && !artist.instagram && !artist.x && !artist.soundcloud) {
+    //If the artist lacks vital info (all social media and platform links), then display a generic message
+    const hasAnyPlatformData = !!(
+      artist.spotify || artist.instagram || artist.x || artist.facebook || artist.soundcloud || 
+      artist.youtube || artist.youtubechannel || artist.bandcamp || artist.patreon || 
+      artist.twitch || artist.tiktok || artist.mixcloud || artist.discogs || artist.wikipedia ||
+      artist.audius || artist.zora || artist.catalog || artist.opensea || artist.foundation ||
+      artist.lastfm || artist.linkedin || artist.soundxyz || artist.mirror || artist.jaxsta ||
+      artist.famousbirthdays || artist.songexploder || artist.colorsxstudios || artist.bandsintown ||
+      artist.linktree || artist.onlyfans || artist.musicbrainz || artist.wikidata || artist.imdb ||
+      artist.cameo || artist.farcaster || artist.lens || artist.ens || artist.tellie ||
+      artist.bandcampfan || artist.spotifyusername || artist.supercollector || artist.glassnode
+    );
+    
+    if (!artist.bio && !hasAnyPlatformData) {
       const testBio = "MusicNerd needs artist data to generate a summary. Try adding some to get started!";
       return NextResponse.json({ bio: testBio });
     }

@@ -224,10 +224,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     // Show/hide "back to top" button based on scroll position
     useEffect(() => {
         function handleScroll() {
-            setShowTopBtn(window.scrollY > 400);
+            if (typeof window !== 'undefined') {
+                setShowTopBtn(window.scrollY > 400);
+            }
         }
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        if (typeof window !== 'undefined') {
+            window.addEventListener("scroll", handleScroll);
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener("scroll", handleScroll);
+            }
+        };
     }, []);
 
     // Reset to page 1 whenever range changes
@@ -363,7 +371,11 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 size="icon"
                 variant="secondary"
                 className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                onClick={() => {
+                    if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                }}
                 aria-label="Back to top"
             >
                 ↑

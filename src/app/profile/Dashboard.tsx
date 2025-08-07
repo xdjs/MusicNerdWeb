@@ -146,8 +146,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                 const newItems = arrayMove(items, oldIndex, newIndex);
                 
-                // Save to localStorage
-                localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
+                // Save to localStorage (client-side only)
+                if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+                    localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
+                }
                 
                 return newItems;
             });
@@ -156,7 +158,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Delete bookmark function
     async function deleteBookmark(artistId: string) {
-        if (!window.confirm('Remove this bookmark?')) return;
+        if (typeof window !== 'undefined' && !window.confirm('Remove this bookmark?')) return;
         
         try {
             const response = await fetch(`/api/bookmarks?artistId=${artistId}`, {
@@ -168,7 +170,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 setBookmarks(newBookmarks);
                 
                 // Notify other tabs/components
-                window.dispatchEvent(new Event('bookmarksUpdated'));
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('bookmarksUpdated'));
+                }
             } else {
                 console.error('Failed to delete bookmark');
             }
@@ -194,7 +198,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             });
 
             if (response.ok) {
-                window.dispatchEvent(new Event('bookmarksUpdated'));
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('bookmarksUpdated'));
+                }
                 setIsEditingBookmarks(false);
             } else {
                 console.error('Failed to save bookmark order');
@@ -255,10 +261,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         resetAndLoad();
 
         const handleUpdate = () => resetAndLoad();
-        window.addEventListener('bookmarksUpdated', handleUpdate);
+        if (typeof window !== 'undefined') {
+            window.addEventListener('bookmarksUpdated', handleUpdate);
+        }
 
         return () => {
-            window.removeEventListener('bookmarksUpdated', handleUpdate);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('bookmarksUpdated', handleUpdate);
+            }
         };
     }, [user.id]);
 
@@ -344,9 +354,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const data = await resp.json();
 
                 const storageKey = `ugcCount_${user.id}`;
-                localStorage.setItem(storageKey, String(data.count));
-                // Notify other tabs/components
-                window.dispatchEvent(new Event('ugcCountUpdated'));
+                if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+                    localStorage.setItem(storageKey, String(data.count));
+                    // Notify other tabs/components
+                    window.dispatchEvent(new Event('ugcCountUpdated'));
+                }
             } catch (e) {
                 console.error('[Profile] Error marking UGC as seen', e);
             }
@@ -361,7 +373,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // ---------- Simplified view for guest (not logged-in) users ----------
     // Refresh once when auth state changes (login/logout), with sessionStorage flag to avoid loops
     useEffect(() => {
-        const skipReload = sessionStorage.getItem('skipReload') === 'true';
+        const skipReload = typeof window !== 'undefined' && typeof sessionStorage !== 'undefined' 
+            ? sessionStorage.getItem('skipReload') === 'true' 
+            : false;
 
         const loggedIn = !isGuestUser && status === 'authenticated';
         const loggedOut = isGuestUser && status === 'unauthenticated';
@@ -373,13 +387,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             (!isGuestUser && status === 'unauthenticated')
         );
 
-        if (shouldReload) {
-            sessionStorage.setItem('skipReload', 'true');
+        if (shouldReload && typeof window !== 'undefined') {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('skipReload', 'true');
+            }
             window.location.reload();
         }
 
         // After page stabilizes, clear skipReload so future auth changes trigger refresh again
-        if (skipReload && (loggedIn || loggedOut)) {
+        if (skipReload && (loggedIn || loggedOut) && typeof sessionStorage !== 'undefined') {
             sessionStorage.removeItem('skipReload');
         }
     }, [isGuestUser, status]);
@@ -420,7 +436,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             });
             const data = await resp.json();
             if (data.status === "success") {
-                window.location.reload();
+                if (typeof window !== 'undefined') {
+                    window.location.reload();
+                }
             } else {
                 alert(data.message || "Failed to update username");
             }
@@ -781,8 +799,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         {isEditingBookmarks && bookmarks.length > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                            <div className="flex items-center gap-4 ml-auto">
+                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300 ml-4" onClick={saveBookmarks}>
                                                     Save
                                                 </Button>
                                                 <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
