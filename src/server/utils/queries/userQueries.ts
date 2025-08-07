@@ -103,27 +103,46 @@ export type UpdateWhitelistedUserResp = {
     message: string;
 };
 
-// Updates a whitelisted user's editable fields (wallet, email, username)
+// Updates a whitelisted user's editable fields (wallet, email, username, role)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string }
+    data: { wallet?: string; email?: string; username?: string; role?: string }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
-        const updateData: Record<string, string> = {};
+        const updateData: Record<string, string | boolean> = {};
         if (data.wallet !== undefined) updateData.wallet = data.wallet;
         if (data.email !== undefined) updateData.email = data.email;
         if (data.username !== undefined) updateData.username = data.username;
+
+        // Handle role changes
+        if (data.role !== undefined) {
+            switch (data.role) {
+                case "admin":
+                    updateData.isAdmin = true;
+                    updateData.isWhiteListed = true; // Admins are automatically whitelisted
+                    break;
+                case "whitelisted":
+                    updateData.isAdmin = false;
+                    updateData.isWhiteListed = true;
+                    break;
+                case "user":
+                default:
+                    updateData.isAdmin = false;
+                    updateData.isWhiteListed = false;
+                    break;
+            }
+        }
 
         if (Object.keys(updateData).length === 0) {
             return { status: "error", message: "No fields to update" };
         }
 
         await db.update(users).set(updateData).where(eq(users.id, userId));
-        return { status: "success", message: "Whitelist user updated" };
+        return { status: "success", message: "User updated successfully" };
     } catch (e) {
         console.error("error updating whitelisted user", e);
-        return { status: "error", message: "Error updating whitelisted user" };
+        return { status: "error", message: "Error updating user" };
     }
 }
 
