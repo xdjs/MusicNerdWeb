@@ -9,7 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
 import { Input } from '@/components/ui/input';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, Bookmark } from 'lucide-react';
 import Image from 'next/image';
 import { addArtist } from "@/app/actions/addArtist";
 import { useSession, signOut } from "next-auth/react";
@@ -22,6 +22,7 @@ import { Wallet } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
 import type { Session } from "next-auth";
+import { useBookmarkStatus } from "@/hooks/useBookmarkStatus";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -72,6 +73,14 @@ const WalletSearchBar = forwardRef(
     const [isAddingNew, setIsAddingNew] = useState(false);
     const { data: session, status } = useSession();
     const { toast } = useToast();
+    
+    // Get bookmark status for search results (only for authenticated users)
+    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
+    const { isBookmarked } = useBookmarkStatus({ 
+      artistIds, 
+      userId: session?.user?.id // Hook will return false for all if no userId
+    });
+    
     const loginRef = useRef<HTMLButtonElement>(null);
     const shouldPromptRef = useRef(false);
     // Used to delay opening RainbowKit until next-auth status is settled
@@ -350,7 +359,15 @@ const WalletSearchBar = forwardRef(
                                                         !(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) 
                                                         ? 'flex items-center h-full' : '-mb-0.5'
                                                     }`}>
-                                                        {result.name}
+                                                        <div className="flex items-center gap-2">
+                                                            {result.name}
+                                                            {session && result.id && isBookmarked(result.id) && (
+                                                                <Bookmark 
+                                                                    size={14} 
+                                                                    className="text-pastypink fill-pastypink"
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     {result.isSpotifyOnly ? (
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -434,6 +451,13 @@ const NoWalletSearchBar = forwardRef(
     const [isAddingNew, setIsAddingNew] = useState(false);
     const { data: session, status } = useSession();
     const { toast } = useToast();
+    
+    // Get bookmark status for search results (only for authenticated users)  
+    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
+    const { isBookmarked } = useBookmarkStatus({ 
+      artistIds, 
+      userId: session?.user?.id // Hook will return false for all if no userId
+    });
     
     // Wagmi hooks are safe to use here
     const { openConnectModal: connectModal } = useConnectModal() ?? {};
@@ -785,7 +809,15 @@ const NoWalletSearchBar = forwardRef(
                                                         !(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) 
                                                         ? 'flex items-center h-full' : '-mb-0.5'
                                                     }`}>
-                                                        {result.name}
+                                                        <div className="flex items-center gap-2">
+                                                            {result.name}
+                                                            {session && result.id && isBookmarked(result.id) && (
+                                                                <Bookmark 
+                                                                    size={14} 
+                                                                    className="text-pastypink fill-pastypink"
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     {result.isSpotifyOnly ? (
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
