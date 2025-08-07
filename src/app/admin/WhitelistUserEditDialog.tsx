@@ -37,12 +37,8 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
     }
   }, [user, open]);
 
-  // Auto-whitelist when admin is selected
-  useEffect(() => {
-    if (isAdmin && !isWhiteListed) {
-      setIsWhiteListed(true);
-    }
-  }, [isAdmin, isWhiteListed]);
+  // Auto-whitelist logic is now handled in click handlers only
+  // Removed useEffect to allow independent unchecking
 
   // Get display text for roles (matches the column display format)
   const getRoleDisplayText = () => {
