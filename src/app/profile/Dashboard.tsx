@@ -781,8 +781,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         {isEditingBookmarks && bookmarks.length > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                            <div className="flex items-center gap-4 ml-auto">
+                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300 ml-4" onClick={saveBookmarks}>
                                                     Save
                                                 </Button>
                                                 <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
