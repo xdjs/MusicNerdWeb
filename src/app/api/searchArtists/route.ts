@@ -1,5 +1,9 @@
 import { searchForArtistByName, getAllSpotifyIds } from "@/server/utils/queries/artistQueries";
 import { getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { getServerAuthSession } from "@/server/auth";
+import { db } from "@/server/db/drizzle";
+import { bookmarks, artists } from "@/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import axios from "axios";
 
 // Simple in-memory cache for search results (5 minute TTL)
@@ -105,17 +109,64 @@ export async function POST(req: Request) {
   try {
     const { query } = await req.json();
     
-    if (!query || typeof query !== 'string') {
+    if (typeof query !== 'string') {
       return Response.json(
         { error: "Invalid query parameter" },
         { status: 400 }
       );
     }
+    
+    // Allow empty queries to show bookmarks
 
-    // Check cache first
-    const cachedResult = searchCache.get(query);
-    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
-      return Response.json({ results: cachedResult.results });
+    // Get user session and bookmarks for prioritization
+    const session = await getServerAuthSession();
+    let userBookmarkedArtists: any[] = [];
+    let userBookmarkIds: Set<string> = new Set();
+    let filteredBookmarks: any[] = [];
+    
+    if (session?.user?.id) {
+      try {
+        const bookmarkResults = await db
+          .select({
+            artistId: bookmarks.artistId,
+            artistName: bookmarks.artistName,
+            imageUrl: bookmarks.imageUrl,
+            orderIndex: bookmarks.orderIndex
+          })
+          .from(bookmarks)
+          .where(eq(bookmarks.userId, session.user.id))
+          .orderBy(bookmarks.orderIndex);
+        
+        userBookmarkIds = new Set(bookmarkResults.map(b => b.artistId));
+        
+        // Filter bookmarks by search query
+        filteredBookmarks = bookmarkResults.filter(bookmark => {
+          // If no query (empty search), show all bookmarks
+          if (!query || query.trim() === '') {
+            return true;
+          }
+          // Only include bookmarks that match the search query
+          const name = bookmark.artistName?.toLowerCase() || '';
+          const queryLower = query.toLowerCase();
+          return name.includes(queryLower);
+        });
+
+
+        
+      } catch (error) {
+        console.error('Failed to fetch user bookmarks:', error);
+        // Continue without bookmark prioritization
+      }
+    }
+
+    // Check cache first (use user-specific cache key for authenticated users)
+    // Skip cache for empty queries to ensure fresh bookmark data
+    const cacheKey = session?.user?.id ? `${query}_${session.user.id}` : query;
+    if (query && query.trim()) {
+      const cachedResult = searchCache.get(cacheKey);
+      if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
+        return Response.json({ results: cachedResult.results });
+      }
     }
 
     // Set a timeout for the entire operation to prevent Vercel timeouts
@@ -124,19 +175,91 @@ export async function POST(req: Request) {
     );
 
     const searchOperation = async (): Promise<Response> => {
-      // Parallel execution of database search and Spotify headers
-      const [dbResults, spotifyHeaders] = await Promise.all([
-        searchForArtistByName(query),
-        getSpotifyHeaders()
-      ]);
+      // Get Spotify headers first
+      const spotifyHeaders = await getSpotifyHeaders();
+      
+      // Only search database if there's a query, otherwise use empty results
+      const dbResults = query && query.trim() ? await searchForArtistByName(query) : [];
 
-      // Search Spotify's API for matching artists first (faster than fetching individual artists)
-      let spotifyArtists: any[] = [];
-      try {
-        const spotifyResponse = await axios.get<SpotifySearchResponse>(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=10`,
-          spotifyHeaders
+      // Process bookmarks with Spotify data if user is authenticated
+      if (session?.user?.id && filteredBookmarks.length > 0) {
+        const bookmarkArtistIds = filteredBookmarks.map(b => b.artistId);
+        
+        // Query full artist data by IDs
+        const fullBookmarkData = await db
+          .select()
+          .from(artists)
+          .where(inArray(artists.id, bookmarkArtistIds));
+        
+        // Fetch Spotify images for bookmarked artists
+        const bookmarkedArtistsWithImages = await Promise.all(
+          filteredBookmarks.map(async (bookmark) => {
+            const fullArtist = fullBookmarkData.find(artist => artist.id === bookmark.artistId);
+            if (fullArtist) {
+              const baseArtist = {
+                ...fullArtist,
+                isSpotifyOnly: false,
+                isBookmarked: true,
+                matchScore: getMatchScore(bookmark.artistName || "", query),
+                linkCount: getLinkCount(fullArtist),
+                orderIndex: bookmark.orderIndex
+              };
+              
+              // Fetch Spotify image if available
+              if (fullArtist.spotify) {
+                try {
+                  const spotifyData = await axios.get<SpotifyArtist>(
+                    `https://api.spotify.com/v1/artists/${fullArtist.spotify}`,
+                    { ...spotifyHeaders, timeout: 3000 }
+                  );
+                  return {
+                    ...baseArtist,
+                    images: spotifyData.data.images,
+                  };
+                } catch (error) {
+                  console.error(`Failed to fetch Spotify data for bookmarked artist ${fullArtist.spotify}:`, error);
+                  return baseArtist;
+                }
+              }
+              return baseArtist;
+            } else {
+              // Fallback to bookmark data if full artist not found
+              return {
+                id: bookmark.artistId,
+                name: bookmark.artistName,
+                imageUrl: bookmark.imageUrl,
+                isSpotifyOnly: false,
+                isBookmarked: true,
+                matchScore: getMatchScore(bookmark.artistName || "", query),
+                linkCount: 0,
+                orderIndex: bookmark.orderIndex
+              };
+            }
+          })
         );
+
+        userBookmarkedArtists = bookmarkedArtistsWithImages
+          .sort((a, b) => {
+            // For empty search, maintain original bookmark order
+            if (!query || query.trim() === '') {
+              return (a.orderIndex ?? 0) - (b.orderIndex ?? 0);
+            }
+            // For search with query, sort by match score first, then by original order
+            if (a.matchScore !== b.matchScore) {
+              return a.matchScore - b.matchScore;
+            }
+            return (a.orderIndex ?? 0) - (b.orderIndex ?? 0);
+          });
+      }
+
+      // Search Spotify's API for matching artists (only if there's a query)
+      let spotifyArtists: any[] = [];
+      if (query && query.trim()) {
+        try {
+          const spotifyResponse = await axios.get<SpotifySearchResponse>(
+            `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=10`,
+            spotifyHeaders
+          );
         
         // Create a Set of existing Spotify IDs from DB results for fast filtering
         const existingSpotifyIds = new Set(
@@ -153,11 +276,13 @@ export async function POST(req: Request) {
             images: artist.images,
             isSpotifyOnly: true,
             matchScore: getMatchScore(artist.name, query),
-            linkCount: 0
+            linkCount: 0,
+            isBookmarked: false // Spotify-only artists can't be bookmarked yet
           }));
-      } catch (error) {
-        console.error('Spotify search failed:', error);
-        // Continue without Spotify results rather than failing entirely
+        } catch (error) {
+          console.error('Spotify search failed:', error);
+          // Continue without Spotify results rather than failing entirely
+        }
       }
 
       // Fetch Spotify data for database artists (with concurrency limit)
@@ -167,7 +292,8 @@ export async function POST(req: Request) {
             ...artist,
             isSpotifyOnly: false,
             matchScore: getMatchScore(artist.name || "", query),
-            linkCount: getLinkCount(artist)
+            linkCount: getLinkCount(artist),
+            isBookmarked: userBookmarkIds.has(artist.id)
           };
           if (artist.spotify) {
             try {
@@ -188,27 +314,36 @@ export async function POST(req: Request) {
         })
       );
 
-      // Combine all results and sort them by match score and name
-      const combinedResults = [...dbArtistsWithImages, ...spotifyArtists]
+      // Filter out bookmarked artists from regular search results to avoid duplicates
+      // Only filter out bookmarks that actually matched the search query
+      const matchingBookmarkIds = new Set(userBookmarkedArtists.map(bookmark => bookmark.id));
+      const nonBookmarkedDbResults = dbArtistsWithImages.filter(artist => !matchingBookmarkIds.has(artist.id));
+      const nonBookmarkedSpotifyResults = spotifyArtists; // Spotify-only artists can't be bookmarked
+      
+      // Sort regular search results by match score and relevance
+      const regularSearchResults = [...nonBookmarkedDbResults, ...nonBookmarkedSpotifyResults]
         .sort((a, b) => {
-          // First sort by match score
+          // Sort by match score
           if (a.matchScore !== b.matchScore) {
             return a.matchScore - b.matchScore;
           }
 
-          // Next, prefer artists with more content (higher linkCount)
+          // Prefer artists with more content (higher linkCount)
           if ((a.linkCount ?? 0) !== (b.linkCount ?? 0)) {
             return (b.linkCount ?? 0) - (a.linkCount ?? 0);
           }
-
-          // If names (case-insensitive) are identical after that, no change – fall through to alpha
 
           // Fallback: alphabetical by name
           return (a.name || "").localeCompare(b.name || "");
         });
 
-      // Cache the results
-      searchCache.set(query, { results: combinedResults, timestamp: Date.now() });
+      // Combine bookmarks first (in user's order), then regular search results
+      const combinedResults = [...userBookmarkedArtists, ...regularSearchResults];
+
+      // Cache the results (only for non-empty queries)
+      if (query && query.trim()) {
+        searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
+      }
 
       return Response.json({ results: combinedResults });
     };

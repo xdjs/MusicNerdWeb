@@ -276,7 +276,7 @@ const WalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: debouncedQuery.length > 0,
+        enabled: true, // Always enabled to show bookmarks on empty search
         retry: 2,
     });
 
@@ -630,7 +630,7 @@ const NoWalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: debouncedQuery.length > 0,
+        enabled: true, // Always enabled to show bookmarks on empty search
         retry: 2,
     });
 
