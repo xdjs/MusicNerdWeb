@@ -241,8 +241,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }, [selectedRange, user.wallet, isCompactLayout]);
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
-    // Determine user status string for display
-    const statusString = user.isAdmin ? 'Admin' : (user.isWhiteListed ? 'Whitelisted' : 'User');
+    // Determine user status string for display (support multiple roles)
+    const statusString = (() => {
+        const roles: string[] = [];
+        if (user.isAdmin) roles.push("Admin");
+        if (user.isWhiteListed) roles.push("Whitelisted");
+        if (roles.length === 0) roles.push("User");
+        return roles.join(", ");
+    })();
 
     const { openConnectModal } = useConnectModal();
     const { status } = useSession();
