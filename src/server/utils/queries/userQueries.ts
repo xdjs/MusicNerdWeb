@@ -136,8 +136,9 @@ export async function addUsersToAdmin(walletAddresses: string[]): Promise<AddUse
     try {
         if (walletAddresses.length) {
             const now = new Date().toISOString();
-            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
-            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
+            // Admin users should automatically be whitelisted as well
+            await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
+            await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
         }
         return { status: "success", message: "Users granted admin access" };
     } catch (e) {

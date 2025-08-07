@@ -191,7 +191,13 @@ export const whitelistedColumns: ColumnDef<User>[] = [
   },
   {
     id: "role",
-    accessorFn: (row) => (row.isAdmin ? "Admin" : row.isWhiteListed ? "Whitelisted" : "User"),
+    accessorFn: (row) => {
+      const roles: string[] = [];
+      if (row.isAdmin) roles.push("Admin");
+      if (row.isWhiteListed) roles.push("Whitelisted");
+      if (roles.length === 0) roles.push("User");
+      return roles.join(", ");
+    },
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -202,15 +208,18 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       </Button>
     ),
     sortingFn: (rowA, rowB, columnId) => {
-      const order: Record<string, number> = {
-        "Admin": 0,
-        "Whitelisted": 1,
-        "User": 2,
+      // Priority: Admin (0) > Whitelisted (1) > User (2)
+      // If both have admin, they're equal. If neither have admin, compare whitelist status.
+      const getUserPriority = (row: any) => {
+        if (row.original.isAdmin) return 0;
+        if (row.original.isWhiteListed) return 1;
+        return 2;
       };
-      const a = order[rowA.getValue(columnId) as string] ?? 99;
-      const b = order[rowB.getValue(columnId) as string] ?? 99;
+      const a = getUserPriority(rowA);
+      const b = getUserPriority(rowB);
       return a - b;
     },
+    size: 150, // Expand column width to accommodate multiple roles
   },
   {
     id: "actions",
