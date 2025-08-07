@@ -1,7 +1,7 @@
 import { searchForArtistByName, getAllSpotifyIds } from "@/server/utils/queries/artistQueries";
 import { getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
 import { getServerAuthSession } from "@/server/auth";
-import { db } from "@/server/db";
+import { db } from "@/server/db/drizzle";
 import { bookmarks } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import axios from "axios";
