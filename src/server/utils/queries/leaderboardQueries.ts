@@ -30,6 +30,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                     SELECT COUNT(*)::int FROM ugcresearch ug WHERE ug.user_id = u.id
                 ) AS "ugcCount"
             FROM users u
+            WHERE u.is_hidden = FALSE
             ORDER BY "ugcCount" DESC, "artistsCount" DESC
         `);
         return result;
@@ -59,6 +60,7 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                       AND ug.created_at BETWEEN ${fromIso} AND ${toIso}
                 ) AS "ugcCount"
             FROM users u
+            WHERE u.is_hidden = FALSE
             ORDER BY "ugcCount" DESC, "artistsCount" DESC
         `);
         return result;

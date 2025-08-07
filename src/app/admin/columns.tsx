@@ -182,6 +182,7 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       const roles: string[] = [];
       if (row.isAdmin) roles.push("Admin");
       if (row.isWhiteListed) roles.push("Whitelisted");
+      if (row.isHidden) roles.push("Hidden");
       if (roles.length === 0) roles.push("User");
       return roles.join(", ");
     },
@@ -195,12 +196,13 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       </Button>
     ),
     sortingFn: (rowA, rowB, columnId) => {
-      // Priority: Admin (0) > Whitelisted (1) > User (2)
-      // If both have admin, they're equal. If neither have admin, compare whitelist status.
+      // Priority: Admin (0) > Whitelisted (1) > Hidden (2) > User (3)
+      // Multiple roles can be combined (e.g., Hidden Admin)
       const getUserPriority = (row: any) => {
         if (row.original.isAdmin) return 0;
         if (row.original.isWhiteListed) return 1;
-        return 2;
+        if (row.original.isHidden) return 2;
+        return 3;
       };
       const a = getUserPriority(rowA);
       const b = getUserPriority(rowB);
