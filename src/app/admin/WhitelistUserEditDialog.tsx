@@ -114,7 +114,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Role</label>
+            <label className="text-sm font-medium">Roles</label>
             <Select 
               value={getRoleDisplayText()}
               disabled={!session?.user?.isAdmin}
@@ -123,18 +123,22 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                 <span className="text-sm">{getRoleDisplayText()}</span>
               </SelectTrigger>
               <SelectContent>
+                <div className="px-2 py-1 text-xs text-gray-500 border-b border-gray-200 mb-1">
+                  Multiple roles can be combined
+                </div>
                 <div 
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed && !isHidden ? 'bg-accent text-accent-foreground' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
                     setIsAdmin(false);
                     setIsWhiteListed(false);
+                    setIsHidden(false);
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {!isAdmin && !isWhiteListed && <Check className="h-4 w-4" />}
+                    {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
                   </span>
-                  User
+                  User (clear all roles)
                 </div>
                 
                 <div 
@@ -167,7 +171,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {isAdmin && <Check className="h-4 w-4" />}
                   </span>
-                  Admin
+                  Admin (auto-whitelists)
                 </div>
                 
                 <div 
@@ -180,7 +184,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {isHidden && <Check className="h-4 w-4" />}
                   </span>
-                  Hidden
+                  Hidden (excluded from leaderboards)
                 </div>
               </SelectContent>
             </Select>

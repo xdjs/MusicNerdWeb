@@ -499,9 +499,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {rank ?? '—'}
+                                        {user.isHidden ? 'N/A' : (rank ?? '—')}
                                     </Badge>
-                                    {totalEntries && (
+                                    {totalEntries && !user.isHidden && (
                                         <>
                                             <span className="text-xs sm:text-base">of</span>
                                             <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
@@ -530,19 +530,21 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                             {/* Link under stats bar to jump to leaderboard */}
-                            <a
-                                href="#leaderboard-current-user"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    const el = document.getElementById('leaderboard-current-user');
-                                    if (el) {
-                                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    }
-                                }}
-                                className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
-                            >
-                                View leaderboard position
-                            </a>
+                            {!user.isHidden && (
+                                <a
+                                    href="#leaderboard-current-user"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        const el = document.getElementById('leaderboard-current-user');
+                                        if (el) {
+                                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }
+                                    }}
+                                    className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
+                                >
+                                    View leaderboard position
+                                </a>
+                            )}
                             </>
                           )}
 
