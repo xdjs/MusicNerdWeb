@@ -123,6 +123,17 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     if (artist.colorsxstudios) promptParts.push(`Colors x Studios: ${artist.colorsxstudios}`);
     if (artist.tellie) promptParts.push(`Tellie: ${artist.tellie}`);
     if (artist.supercollector) promptParts.push(`SuperCollector: ${artist.supercollector}`);
+    if (artist.bandcampfan) promptParts.push(`Bandcamp Fan: ${artist.bandcampfan}`);
+    if (artist.spotifyusername) promptParts.push(`Spotify Username: ${artist.spotifyusername}`);
+    if (artist.glassnode) promptParts.push(`Glassnode: ${artist.glassnode}`);
+    
+    // Additional Data Fields
+    if (artist.notes) promptParts.push(`Additional Notes: ${artist.notes}`);
+    if (artist.collectsNfTs) promptParts.push(`Collects NFTs: Yes`);
+    if (artist.soundcloudId) promptParts.push(`SoundCloud ID: ${artist.soundcloudId}`);
+    if (artist.facebookId) promptParts.push(`Facebook ID: ${artist.facebookId}`);
+    if (artist.tiktokId) promptParts.push(`TikTok ID: ${artist.tiktokId}`);
+    if (artist.wallets && artist.wallets.length > 0) promptParts.push(`Crypto Wallets: ${artist.wallets.join(', ')}`);
     
     if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
 

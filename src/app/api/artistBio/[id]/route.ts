@@ -15,17 +15,34 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Artist not found" }, { status: 404 });
     }
 
-    //If the artist lacks vital info (all social media and platform links), then display a generic message
+    //If the artist lacks vital info (all social media, platform links, and any other data), then display a generic message
     const hasAnyPlatformData = !!(
-      artist.spotify || artist.instagram || artist.x || artist.facebook || artist.soundcloud || 
-      artist.youtube || artist.youtubechannel || artist.bandcamp || artist.patreon || 
-      artist.twitch || artist.tiktok || artist.mixcloud || artist.discogs || artist.wikipedia ||
-      artist.audius || artist.zora || artist.catalog || artist.opensea || artist.foundation ||
-      artist.lastfm || artist.linkedin || artist.soundxyz || artist.mirror || artist.jaxsta ||
-      artist.famousbirthdays || artist.songexploder || artist.colorsxstudios || artist.bandsintown ||
-      artist.linktree || artist.onlyfans || artist.musicbrainz || artist.wikidata || artist.imdb ||
-      artist.cameo || artist.farcaster || artist.lens || artist.ens || artist.tellie ||
-      artist.bandcampfan || artist.spotifyusername || artist.supercollector || artist.glassnode
+      // Music/Streaming Platforms (including Support the Artist)
+      artist.spotify || artist.soundcloud || artist.bandcamp || artist.audius || artist.mixcloud ||
+      artist.lastfm || artist.soundxyz || artist.patreon || artist.cameo || artist.onlyfans ||
+      
+      // Social Media Platforms
+      artist.instagram || artist.x || artist.facebook || artist.tiktok || artist.linkedin ||
+      artist.farcaster || artist.lens ||
+      
+      // Video Platforms
+      artist.youtube || artist.youtubechannel || artist.twitch ||
+      
+      // Web3/NFT Platforms
+      artist.zora || artist.catalog || artist.opensea || artist.foundation || artist.mirror ||
+      artist.ens || artist.glassnode || artist.supercollector || (artist.wallets && artist.wallets.length > 0) ||
+      
+      // Reference/Database Sites
+      artist.wikipedia || artist.discogs || artist.musicbrainz || artist.wikidata || artist.imdb ||
+      artist.jaxsta || artist.famousbirthdays || artist.songexploder || artist.colorsxstudios ||
+      
+      // Other Platforms/Services
+      artist.bandsintown || artist.linktree || artist.tellie || artist.bandcampfan || 
+      artist.spotifyusername ||
+      
+      // Additional Data Fields
+      artist.notes || artist.soundcloudId || artist.facebookId || artist.tiktokId ||
+      artist.collectsNfTs
     );
     
     if (!artist.bio && !hasAnyPlatformData) {
