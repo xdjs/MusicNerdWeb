@@ -452,13 +452,6 @@ const NoWalletSearchBar = forwardRef(
     const { data: session, status } = useSession();
     const { toast } = useToast();
     
-    // Get bookmark status for search results (only for authenticated users)  
-    const artistIds = data?.map(result => result.id).filter(Boolean) || [];
-    const { isBookmarked } = useBookmarkStatus({ 
-      artistIds, 
-      userId: session?.user?.id // Hook will return false for all if no userId
-    });
-    
     // Wagmi hooks are safe to use here
     const { openConnectModal: connectModal } = useConnectModal() ?? {};
     const { isConnected: walletConnected } = useAccount() ?? { isConnected: false };
