@@ -471,7 +471,10 @@ export async function approveUGC(
             await generateArtistBio(artistId);
         }
 
-        await db.update(ugcresearch).set({ accepted: true }).where(eq(ugcresearch.id, ugcId));
+        await db.update(ugcresearch).set({ 
+            accepted: true, 
+            dateProcessed: new Date().toISOString() 
+        }).where(eq(ugcresearch.id, ugcId));
     } catch (e) {
         console.error(`Error approving ugc`, e);
         throw new Error("Error approving UGC");
