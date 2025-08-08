@@ -45,6 +45,7 @@ export default async function Page() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       legacyId: null,
+      acceptedUgcCount: null,
     } as const;
     return (
         <main className="px-5 sm:px-10 py-10">
