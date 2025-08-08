@@ -8,6 +8,7 @@ import { NEXTAUTH_URL } from "@/env";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SiweMessage } from "siwe";
 import { getUserByWallet, createUser } from "@/server/utils/queries/userQueries";
+import { normalizeAddress } from "@/lib/addressUtils";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -22,6 +23,7 @@ declare module "next-auth" {
       walletAddress?: string;
       isWhiteListed?: boolean;
       isAdmin?: boolean;
+      isSuperAdmin?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -37,6 +39,7 @@ declare module "next-auth" {
     isSignupComplete: boolean;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+    isSuperAdmin?: boolean;
   }
 }
 
@@ -45,6 +48,8 @@ declare module "next-auth/jwt" {
     walletAddress?: string;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+    isSuperAdmin?: boolean;
+    lastRefresh?: number;
   }
 }
 
@@ -55,14 +60,58 @@ declare module "next-auth/jwt" {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
-        // Copy all user properties to the token
+        // Copy all user properties to the token during initial login
         token.walletAddress = user.walletAddress;
         token.email = user.email;
         token.name = user.name || user.username;
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
+        token.isSuperAdmin = user.isSuperAdmin;
+        token.lastRefresh = Date.now();
+      } else {
+        // Refresh user data from database in these cases:
+        // 1. Explicit session update trigger
+        // 2. Token is older than 5 minutes (for role changes)
+        // 3. Missing critical properties
+        const shouldRefresh = 
+          trigger === "update" || 
+          !token.lastRefresh || 
+          (Date.now() - (token.lastRefresh as number)) > 5 * 60 * 1000 || // 5 minutes
+          token.isAdmin === undefined || 
+          token.isWhiteListed === undefined ||
+          token.isSuperAdmin === undefined;
+
+        if (shouldRefresh && token.walletAddress) {
+          try {
+            console.debug('[Auth] Refreshing user data from database', { 
+              trigger, 
+              lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
+              wallet: token.walletAddress 
+            });
+            
+            const refreshedUser = await getUserByWallet(token.walletAddress);
+            if (refreshedUser) {
+              // Update all user properties from database
+              token.isWhiteListed = refreshedUser.isWhiteListed;
+              token.isAdmin = refreshedUser.isAdmin;
+              token.isSuperAdmin = refreshedUser.isSuperAdmin;
+              token.email = refreshedUser.email;
+              token.name = refreshedUser.username;
+              token.lastRefresh = Date.now();
+              
+              console.debug('[Auth] User data refreshed', {
+                isAdmin: refreshedUser.isAdmin,
+                isWhiteListed: refreshedUser.isWhiteListed,
+                isSuperAdmin: refreshedUser.isSuperAdmin,
+                userId: refreshedUser.id
+              });
+            }
+          } catch (error) {
+            console.error('[Auth] Error refreshing user data in JWT callback:', error);
+          }
+        }
       }
       return token;
     },
@@ -77,6 +126,7 @@ export const authOptions: NextAuthOptions = {
           name: token.name,
           isWhiteListed: token.isWhiteListed,
           isAdmin: token.isAdmin,
+          isSuperAdmin: token.isSuperAdmin,
         },
       }
     },
@@ -166,10 +216,17 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          let user = await getUserByWallet(siwe.address);
+          // Normalize the address to ensure consistent lookups and storage
+          const normalizedAddress = normalizeAddress(siwe.address);
+          if (!normalizedAddress) {
+            console.error("[Auth] Invalid wallet address format:", siwe.address);
+            return null;
+          }
+
+          let user = await getUserByWallet(normalizedAddress);
           if (!user) {
             console.debug("[Auth] Creating new user for wallet");
-            user = await createUser(siwe.address);
+            user = await createUser(normalizedAddress);
           }
 
           console.debug("[Auth] Returning user", { id: user.id });
@@ -184,6 +241,7 @@ export const authOptions: NextAuthOptions = {
             isSignupComplete: true,
             isWhiteListed: user.isWhiteListed, // Include whitelist status from database
             isAdmin: user.isAdmin,
+            isSuperAdmin: user.isSuperAdmin,
           };
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);
