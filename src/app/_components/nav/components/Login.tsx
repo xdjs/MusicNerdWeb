@@ -43,7 +43,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { disconnect } = useDisconnect();
     const config = useConfig();
     const { openConnectModal } = useConnectModal();
-    const { avatar: ensAvatar, loading: ensLoading } = useEnsAvatar();
+    const { ensAvatar, jazziconComponent, loading: ensLoading } = useEnsAvatar();
     const [avatarError, setAvatarError] = useState(false);
 
     // Reset avatar error when ENS avatar changes
@@ -415,6 +415,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     className="w-8 h-8 rounded-full object-cover"
                                     onError={() => setAvatarError(true)}
                                 />
+                            ) : jazziconComponent ? (
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    {jazziconComponent}
+                                </div>
                             ) : (
                                 <span className="text-xl">🥳</span>
                             )}

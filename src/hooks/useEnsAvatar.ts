@@ -1,9 +1,10 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { mainnet } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem';
 import { getEnsAvatar, getEnsName } from 'viem/ens';
+import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -12,13 +13,14 @@ const publicClient = createPublicClient({
 
 export function useEnsAvatar() {
   const { address } = useAccount();
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const jazziconRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchAvatar() {
       if (!address) {
-        setAvatar(null);
+        setEnsAvatar(null);
         return;
       }
 
@@ -31,17 +33,17 @@ export function useEnsAvatar() {
 
         if (ensName) {
           // Then get the avatar for the ENS name
-          const ensAvatar = await getEnsAvatar(publicClient, {
+          const avatar = await getEnsAvatar(publicClient, {
             name: ensName,
           });
           
-          setAvatar(ensAvatar);
+          setEnsAvatar(avatar);
         } else {
-          setAvatar(null);
+          setEnsAvatar(null);
         }
       } catch (error) {
         console.error('Error fetching ENS avatar:', error);
-        setAvatar(null);
+        setEnsAvatar(null);
       } finally {
         setLoading(false);
       }
@@ -50,5 +52,15 @@ export function useEnsAvatar() {
     fetchAvatar();
   }, [address]);
 
-  return { avatar, loading };
+  // Generate Jazzicon component for the current address
+  const jazziconComponent = address ? (
+    <Jazzicon diameter={32} seed={jsNumberForAddress(address)} />
+  ) : null;
+
+  return { 
+    ensAvatar, 
+    jazziconComponent,
+    address,
+    loading 
+  };
 }
