@@ -72,7 +72,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
     return (
         <li ref={setNodeRef} style={style} className="relative">
-            <div className="flex items-center gap-3 hover:bg-gray-50 rounded-md">
+            <div className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md">
                 {isEditing && (
                     <button
                         {...attributes}

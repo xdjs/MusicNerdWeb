@@ -39,6 +39,7 @@ describe('addArtist Server Action', () => {
     legacyId: null,
     isAdmin: false,
     isHidden: false
+
   };
   const mockSpotifyHeaders = {
     headers: {
