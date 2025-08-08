@@ -276,6 +276,8 @@ describe('Session Security', () => {
                 isAdmin: false,
                 isWhiteListed: true,
                 isHidden: false
+                isSuperAdmin: false,
+                acceptedUgcCount: null
             };
 
             const mockGetServerAuthSession = getServerAuthSession as jest.MockedFunction<typeof getServerAuthSession>;
@@ -301,6 +303,8 @@ describe('Session Security', () => {
                 isAdmin: false,
                 isWhiteListed: true,
                 isHidden: false
+                isSuperAdmin: false,
+                acceptedUgcCount: null
             };
 
             const mockSession = {
