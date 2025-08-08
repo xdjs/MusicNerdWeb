@@ -140,7 +140,7 @@ describe('Web3 Authentication', () => {
   describe('authorize', () => {
     it('should authenticate with valid SIWE message and signature', async () => {
       // Mock user exists
-      (getUserByWallet as jest.Mock).mockResolvedValue({ id: 'test-id', wallet: '0x1234567890abcdef', username: 'test-user' } as any);
+      (getUserByWallet as jest.Mock).mockResolvedValue({ id: 'test-id', wallet: '0x1234567890abcdef', username: 'test-user', acceptedUgcCount: null } as any);
 
       const provider = authOptions.providers[0] as unknown as CredentialsConfig<{
         message: { label: string; type: string; placeholder: string };

@@ -18,7 +18,8 @@ describe('Role Management and Whitelist', () => {
   const mockUser = {
     id: 'test-user-id',
     wallet: '0x1234567890abcdef',
-    isAdmin: true
+    isAdmin: true,
+    acceptedUgcCount: null
   };
 
   const mockWhitelistedUsers = [

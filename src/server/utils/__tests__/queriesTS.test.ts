@@ -556,7 +556,7 @@ describe('User Functions', () => {
 
     describe('getUserById', () => {
         it('should return user when found', async () => {
-            const mockUser = { id: '123', wallet: '0x123', bio: null };
+            const mockUser = { id: '123', wallet: '0x123', bio: null, acceptedUgcCount: null };
             (db.query.users.findFirst as jest.Mock).mockResolvedValue(mockUser);
 
             const result = await getUserById('123');
@@ -575,7 +575,7 @@ describe('User Functions', () => {
 
     describe('getUserByWallet', () => {
         it('should return user when found by wallet', async () => {
-            const mockUser = { id: '123', wallet: '0x123', bio: null };
+            const mockUser = { id: '123', wallet: '0x123', bio: null, acceptedUgcCount: null };
             (db.query.users.findFirst as jest.Mock).mockResolvedValue(mockUser);
 
             const result = await getUserByWallet('0x123');
@@ -612,7 +612,7 @@ describe('User Functions', () => {
 
     describe('createUser', () => {
         it('should create user successfully', async () => {
-            const mockUser = { id: 'user123', wallet: '0x123', bio: null };
+            const mockUser = { id: 'user123', wallet: '0x123', bio: null, acceptedUgcCount: null };
             (db.insert as jest.Mock).mockReturnValue({
                 values: jest.fn().mockReturnValue({
                     returning: jest.fn().mockResolvedValue([mockUser])
@@ -644,7 +644,7 @@ describe('Artist Management Functions', () => {
 
     describe('addArtist', () => {
         const mockSession = { user: { id: 'user123' } };
-        const mockUser = { id: 'user123', wallet: '0x123', bio: null };
+        const mockUser = { id: 'user123', wallet: '0x123', bio: null, acceptedUgcCount: null };
         const mockSpotifyArtist = {
             data: { name: 'Test Artist', id: 'spotify123' },
             error: null

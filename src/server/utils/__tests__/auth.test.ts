@@ -150,7 +150,8 @@ describe('Authentication System', () => {
         email: 'test@example.com',
         name: 'Test User',
         username: 'testuser',
-        isSignupComplete: true
+        isSignupComplete: true,
+        acceptedUgcCount: null
       };
 
       const mockToken = {
@@ -177,7 +178,8 @@ describe('Authentication System', () => {
         walletAddress: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
         email: 'test@example.com',
         username: 'testuser',
-        isSignupComplete: true
+        isSignupComplete: true,
+        acceptedUgcCount: null
         // name is undefined
       };
 
@@ -203,7 +205,8 @@ describe('Authentication System', () => {
       const mockUser = {
         id: 'user-123',
         walletAddress: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
-        isSignupComplete: true
+        isSignupComplete: true,
+        acceptedUgcCount: null
         // email, name, username are undefined
       };
 

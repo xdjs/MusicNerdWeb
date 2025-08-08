@@ -22,7 +22,8 @@ export default async function Page() {
             isHidden: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            legacyId: null
+            legacyId: null,
+            acceptedUgcCount: null
         } as const;
         return <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
     }
@@ -40,7 +41,8 @@ export default async function Page() {
             isHidden: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            legacyId: null
+            legacyId: null,
+            acceptedUgcCount: null
         } as const;
         return <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
     }

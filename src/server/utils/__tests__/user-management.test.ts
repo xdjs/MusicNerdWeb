@@ -18,7 +18,8 @@ describe('User Management', () => {
   const mockUser = {
     id: 'test-user-id',
     wallet: '0x1234567890abcdef',
-    username: 'test-user'
+    username: 'test-user',
+    acceptedUgcCount: null
   };
 
   const mockSession: Session = {
