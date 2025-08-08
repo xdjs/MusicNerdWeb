@@ -1,4 +1,4 @@
-import { pgTable, foreignKey, uuid, timestamp, unique, text, integer, boolean, pgEnum, serial, varchar, jsonb, decimal } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, uuid, timestamp, unique, text, integer, boolean, pgEnum, serial, varchar, jsonb, decimal, bigint } from "drizzle-orm/pg-core"
 import { is, relations, sql } from "drizzle-orm"
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
 
@@ -87,6 +87,7 @@ export const users = pgTable("users", {
 	isAdmin: boolean("is_admin").default(false).notNull(),
 	isWhiteListed: boolean("is_white_listed").default(false).notNull(),
 	isHidden: boolean("is_hidden").default(false).notNull(),
+	acceptedUgcCount: bigint("accepted_ugc_count", { mode: "number" }),
 },
 	(table) => {
 		return {

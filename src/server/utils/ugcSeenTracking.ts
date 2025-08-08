@@ -1,6 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { ugcresearch } from "@/server/db/schema";
-import { eq, and, sql, gt } from "drizzle-orm";
+import { eq, and, gt, isNotNull } from "drizzle-orm";
 
 // Special marker used in ugcresearch.site_name to store user's last seen timestamp
 // Following the same pattern as the Discord notifier sentinel rows
