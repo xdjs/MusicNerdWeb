@@ -408,7 +408,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensLoading ? (
-                                <span className="text-xl animate-pulse">🥳</span>
+                                <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensAvatar && !avatarError ? (
                                 <img 
                                     src={ensAvatar} 
@@ -421,7 +421,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     <Jazzicon diameter={32} seed={jazziconSeed} />
                                 </div>
                             ) : (
-                                <span className="text-xl">🥳</span>
+                                <img 
+                                    src="/default_pfp_pink.png" 
+                                    alt="Default Profile" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
