@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name || user.username;
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
-        token.acceptedUgcCount = user.acceptedUgcCount;
+        token.acceptedUgcCount = user.acceptedUgcCount ?? undefined;
       }
 
       // Refresh token data periodically or when explicitly triggered
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
             token.name = refreshedUser.username;
             token.isWhiteListed = refreshedUser.isWhiteListed;
             token.isAdmin = refreshedUser.isAdmin;
-            token.acceptedUgcCount = refreshedUser.acceptedUgcCount;
+            token.acceptedUgcCount = refreshedUser.acceptedUgcCount ?? undefined;
           }
         } catch (error) {
           console.error("[Auth] Error refreshing user data:", error);
@@ -152,7 +152,7 @@ export const authOptions: NextAuthOptions = {
               isSignupComplete: true,
               isWhiteListed: true, // Make temporary user whitelisted
               isAdmin: false,
-              acceptedUgcCount: 0,
+              acceptedUgcCount: undefined,
             };
           }
 
@@ -216,7 +216,7 @@ export const authOptions: NextAuthOptions = {
             isSignupComplete: true,
             isWhiteListed: user.isWhiteListed, // Include whitelist status from database
             isAdmin: user.isAdmin,
-            acceptedUgcCount: user.acceptedUgcCount, // Include UGC count from database
+            acceptedUgcCount: user.acceptedUgcCount ?? undefined, // Include UGC count from database
           };
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);
