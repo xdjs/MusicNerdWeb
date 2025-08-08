@@ -6,7 +6,7 @@ import { getAllLinks } from "./queries/queriesTS"; // Wrapper maintains compatib
 export const artistWeb3Platforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'supercollector', 'wallets', 'ens'];
 export const artistPlatforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'x', 'audius', 'bandisintown', 'ens', 'wallets', 'facebook', 'instagram', 'lastfm', 'soundcloud', 'tiktok', 'youtube', 'youtubechannel', 'supercollector'];
 
-
+//pluh
 export const getArtistSplitPlatforms = (artist: Artist) => {
     let web3Platforms: string[] = [];
     let socialPlatforms: string[] = [];
