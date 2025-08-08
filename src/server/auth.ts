@@ -8,6 +8,7 @@ import { NEXTAUTH_URL } from "@/env";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SiweMessage } from "siwe";
 import { getUserByWallet, createUser } from "@/server/utils/queries/userQueries";
+import { normalizeAddress } from "@/lib/addressUtils";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -166,10 +167,17 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          let user = await getUserByWallet(siwe.address);
+          // Normalize the address to ensure consistent lookups and storage
+          const normalizedAddress = normalizeAddress(siwe.address);
+          if (!normalizedAddress) {
+            console.error("[Auth] Invalid wallet address format:", siwe.address);
+            return null;
+          }
+
+          let user = await getUserByWallet(normalizedAddress);
           if (!user) {
             console.debug("[Auth] Creating new user for wallet");
-            user = await createUser(siwe.address);
+            user = await createUser(normalizedAddress);
           }
 
           console.debug("[Auth] Returning user", { id: user.id });

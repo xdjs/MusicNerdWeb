@@ -2,10 +2,16 @@ import { db } from "@/server/db/drizzle";
 import { eq, ilike, inArray } from "drizzle-orm";
 import { users } from "@/server/db/schema";
 import { getServerAuthSession } from "@/server/auth";
+import { normalizeAddress } from "@/lib/addressUtils";
 
 export async function getUserByWallet(wallet: string) {
     try {
-        const result = await db.query.users.findFirst({ where: eq(users.wallet, wallet) });
+        // Normalize the wallet address to ensure consistent lookups regardless of casing
+        const normalizedWallet = normalizeAddress(wallet);
+        if (!normalizedWallet) {
+            return null;
+        }
+        const result = await db.query.users.findFirst({ where: eq(users.wallet, normalizedWallet) });
         return result;
     } catch (error) {
         console.error("error getting user by wallet", error);
@@ -31,7 +37,12 @@ export async function getUserById(id: string) {
 
 export async function createUser(wallet: string) {
     try {
-        const [newUser] = await db.insert(users).values({ wallet }).returning();
+        // Normalize the wallet address before storing to ensure consistent casing
+        const normalizedWallet = normalizeAddress(wallet);
+        if (!normalizedWallet) {
+            throw new Error("Invalid wallet address");
+        }
+        const [newUser] = await db.insert(users).values({ wallet: normalizedWallet }).returning();
         return newUser;
     } catch (e) {
         console.error("error creating user", e);
@@ -71,8 +82,15 @@ export async function addUsersToWhitelist(walletAddresses: string[]): Promise<Ad
         // Update by wallet addresses
         if (walletAddresses.length) {
             const now = new Date().toISOString();
-            await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
-            // Also update by username matches
+            // Normalize wallet addresses for consistent matching
+            const normalizedAddresses = walletAddresses
+                .map(addr => normalizeAddress(addr))
+                .filter((addr): addr is string => addr !== null);
+            
+            if (normalizedAddresses.length > 0) {
+                await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, normalizedAddresses));
+            }
+            // Also update by username matches (don't normalize usernames)
             await db.update(users).set({ isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
         }
         return { status: "success", message: "Users added to whitelist" };
@@ -156,7 +174,14 @@ export async function addUsersToAdmin(walletAddresses: string[]): Promise<AddUse
         if (walletAddresses.length) {
             const now = new Date().toISOString();
             // Admin users should automatically be whitelisted as well
-            await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
+            // Normalize wallet addresses for consistent matching
+            const normalizedAddresses = walletAddresses
+                .map(addr => normalizeAddress(addr))
+                .filter((addr): addr is string => addr !== null);
+            
+            if (normalizedAddresses.length > 0) {
+                await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, normalizedAddresses));
+            }
             await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
         }
         return { status: "success", message: "Users granted admin access" };
