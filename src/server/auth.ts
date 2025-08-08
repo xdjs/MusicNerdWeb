@@ -23,6 +23,7 @@ declare module "next-auth" {
       walletAddress?: string;
       isWhiteListed?: boolean;
       isAdmin?: boolean;
+      acceptedUgcCount?: number;
     } & DefaultSession["user"];
   }
 
@@ -38,6 +39,7 @@ declare module "next-auth" {
     isSignupComplete: boolean;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+    acceptedUgcCount?: number;
   }
 }
 
@@ -46,6 +48,7 @@ declare module "next-auth/jwt" {
     walletAddress?: string;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
+    acceptedUgcCount?: number;
   }
 }
 
@@ -56,7 +59,7 @@ declare module "next-auth/jwt" {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         // Copy all user properties to the token
         token.walletAddress = user.walletAddress;
@@ -64,7 +67,26 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name || user.username;
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
+        token.acceptedUgcCount = user.acceptedUgcCount;
       }
+
+      // Refresh token data periodically or when explicitly triggered
+      if (trigger === "update" && token.walletAddress) {
+        try {
+          const refreshedUser = await getUserByWallet(token.walletAddress);
+          if (refreshedUser) {
+            token.email = refreshedUser.email;
+            token.name = refreshedUser.username;
+            token.isWhiteListed = refreshedUser.isWhiteListed;
+            token.isAdmin = refreshedUser.isAdmin;
+            token.acceptedUgcCount = refreshedUser.acceptedUgcCount;
+          }
+        } catch (error) {
+          console.error("[Auth] Error refreshing user data:", error);
+          // Keep existing token data if refresh fails
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -78,6 +100,7 @@ export const authOptions: NextAuthOptions = {
           name: token.name,
           isWhiteListed: token.isWhiteListed,
           isAdmin: token.isAdmin,
+          acceptedUgcCount: token.acceptedUgcCount,
         },
       }
     },
@@ -129,6 +152,7 @@ export const authOptions: NextAuthOptions = {
               isSignupComplete: true,
               isWhiteListed: true, // Make temporary user whitelisted
               isAdmin: false,
+              acceptedUgcCount: 0,
             };
           }
 
@@ -192,6 +216,7 @@ export const authOptions: NextAuthOptions = {
             isSignupComplete: true,
             isWhiteListed: user.isWhiteListed, // Include whitelist status from database
             isAdmin: user.isAdmin,
+            acceptedUgcCount: user.acceptedUgcCount, // Include UGC count from database
           };
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);

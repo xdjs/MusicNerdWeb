@@ -124,11 +124,11 @@ export type UpdateWhitelistedUserResp = {
 // Updates a whitelisted user's editable fields (wallet, email, username, roles)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean; isHidden?: boolean }
+    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean; isHidden?: boolean; acceptedUgcCount?: number }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
-        const updateData: Record<string, string | boolean> = {};
+        const updateData: Record<string, string | boolean | number> = {};
         if (data.wallet !== undefined) updateData.wallet = data.wallet;
         if (data.email !== undefined) updateData.email = data.email;
         if (data.username !== undefined) updateData.username = data.username;
@@ -150,6 +150,11 @@ export async function updateWhitelistedUser(
         // Handle hidden flag changes
         if (data.isHidden !== undefined) {
             updateData.isHidden = data.isHidden;
+        }
+
+        // Handle UGC count updates
+        if (data.acceptedUgcCount !== undefined) {
+            updateData.acceptedUgcCount = data.acceptedUgcCount;
         }
 
         if (Object.keys(updateData).length === 0) {
@@ -199,6 +204,8 @@ export async function removeFromAdmin(userIds: string[]) {
         console.error("error removing admin privileges", e);
     }
 }
+
+
 
 export async function getAllUsers() {
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
