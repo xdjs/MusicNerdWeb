@@ -13,6 +13,7 @@ import { useConnectModal, useAccountModal, useChainModal } from '@rainbow-me/rai
 import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
+import Jazzicon from 'react-jazzicon';
 
 // Add type for the SearchBar ref
 interface SearchBarRef {
@@ -43,7 +44,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { disconnect } = useDisconnect();
     const config = useConfig();
     const { openConnectModal } = useConnectModal();
-    const { ensAvatar, jazziconComponent, loading: ensLoading } = useEnsAvatar();
+    const { ensAvatar, jazziconSeed, loading: ensLoading } = useEnsAvatar();
     const [avatarError, setAvatarError] = useState(false);
 
     // Reset avatar error when ENS avatar changes
@@ -415,9 +416,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     className="w-8 h-8 rounded-full object-cover"
                                     onError={() => setAvatarError(true)}
                                 />
-                            ) : jazziconComponent ? (
+                            ) : jazziconSeed ? (
                                 <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-                                    {jazziconComponent}
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
                                 </div>
                             ) : (
                                 <span className="text-xl">🥳</span>

@@ -1,10 +1,10 @@
 "use client"
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { mainnet } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem';
 import { getEnsAvatar, getEnsName } from 'viem/ens';
-import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
+import { jsNumberForAddress } from 'react-jazzicon';
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -15,7 +15,6 @@ export function useEnsAvatar() {
   const { address } = useAccount();
   const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const jazziconRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchAvatar() {
@@ -52,14 +51,12 @@ export function useEnsAvatar() {
     fetchAvatar();
   }, [address]);
 
-  // Generate Jazzicon component for the current address
-  const jazziconComponent = address ? (
-    <Jazzicon diameter={32} seed={jsNumberForAddress(address)} />
-  ) : null;
+  // Generate Jazzicon seed for the current address
+  const jazziconSeed = address ? jsNumberForAddress(address) : null;
 
   return { 
     ensAvatar, 
-    jazziconComponent,
+    jazziconSeed,
     address,
     loading 
   };
