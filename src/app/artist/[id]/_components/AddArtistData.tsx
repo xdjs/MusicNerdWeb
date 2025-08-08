@@ -252,11 +252,9 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                     )}
                                 />
                             </div>
-                            {(!session?.user?.isWhiteListed && !session?.user?.isAdmin) && (
-                                <p>
-                                    Once you submit the link we&apos;ll look it over to make sure it all checks out!
-                                </p>
-                            )}
+                            <p>
+                                Once you submit the link we&apos;ll look it over to make sure it all checks out!
+                            </p>
                             <DialogFooter className="flex sm:flex-col gap-4">
                                 {addArtistResp && addArtistResp.status === "error" ?
                                     <Label className="text-red-600">{addArtistResp.message}</Label> : null
