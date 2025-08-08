@@ -5,17 +5,28 @@ import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 
 // Helper to check if the user has newly approved UGC
-async function hasNewApprovedUGC(userId: string): Promise<boolean> {
+// Now uses database-driven approach instead of localStorage
+async function hasNewApprovedUGC(): Promise<boolean> {
   try {
     const resp = await fetch("/api/approvedUGCCount");
     if (!resp.ok) return false;
     const data = await resp.json();
 
-    const storageKey = `approvedUGCCount_${userId}`;
-    const storedCount = Number(localStorage.getItem(storageKey) || "0");
-    return data.count > storedCount;
+    // The API now returns only newly approved count (database-driven)
+    return data.count > 0;
   } catch {
     return false;
+  }
+}
+
+// Helper to mark approved UGC as seen using database
+async function markApprovedUGCAsSeen(): Promise<void> {
+  try {
+    await fetch("/api/markApprovedUGCSeen", {
+      method: "POST",
+    });
+  } catch (e) {
+    console.error("Failed to mark approved UGC as seen:", e);
   }
 }
 
@@ -42,29 +53,24 @@ export default function AuthToast() {
     // other state (after the initial mount), with a valid user object.
     if (prevStatus !== "authenticated" && status === "authenticated" && session?.user) {
       (async () => {
-        const storageKey = `approvedUGCCount_${session.user.id}`;
-        // Check if approvedUGC count increased
+        // Check if user has newly approved UGC using database-driven approach
         try {
-          const resp = await fetch("/api/approvedUGCCount");
-          if (resp.ok) {
-            const data = await resp.json();
-            const stored = Number(localStorage.getItem(storageKey) || "0");
-            const hasNew = data.count > stored;
+          const hasNew = await hasNewApprovedUGC();
 
-            toast({
-              title: "Welcome!",
-              description: hasNew
-                ? <span className="text-green-600">Your recently added artist data has been approved.</span>
-                : (session.user.name ? "Welcome back!" : "You are now signed in"),
-              duration: 3000,
-            });
+          toast({
+            title: "Welcome!",
+            description: hasNew
+              ? <span className="text-green-600">Your recently added artist data has been approved.</span>
+              : (session.user.name ? "Welcome back!" : "You are now signed in"),
+            duration: 3000,
+          });
 
-            // Persist the new count so we don't repeat the message until more approvals happen
-            localStorage.setItem(storageKey, String(data.count));
-            if (hasNew) {
-              // Let other tabs know approvals were seen
-              window.dispatchEvent(new Event('approvedUGCUpdated'));
-            }
+          if (hasNew) {
+            // Mark the approved UGC as seen in the database
+            await markApprovedUGCAsSeen();
+            
+            // Let other tabs know approvals were seen
+            window.dispatchEvent(new Event('approvedUGCUpdated'));
           }
         } catch (e) {
           // Fail silently, fallback to default message

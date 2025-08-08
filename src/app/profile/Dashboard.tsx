@@ -345,18 +345,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const { openConnectModal } = useConnectModal();
     const { status } = useSession();
 
-    // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
+    // When the profile page mounts, mark approved UGC as seen using database approach
     useEffect(() => {
         async function markUGCSeen() {
             try {
-                const resp = await fetch('/api/ugcCount');
-                if (!resp.ok) return;
-                const data = await resp.json();
-
-                const storageKey = `ugcCount_${user.id}`;
-                if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-                    localStorage.setItem(storageKey, String(data.count));
-                    // Notify other tabs/components
+                // Use database API to mark approved UGC as seen
+                const resp = await fetch('/api/markApprovedUGCSeen', { method: 'POST' });
+                if (resp.ok) {
+                    // Notify other tabs/components that UGC was marked as seen
                     window.dispatchEvent(new Event('ugcCountUpdated'));
                 }
             } catch (e) {

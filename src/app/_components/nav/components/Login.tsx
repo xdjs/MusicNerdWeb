@@ -144,14 +144,18 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         if (!session) return;
 
         try {
-            const res = await fetch('/api/ugcCount');
-            if (res.ok) {
-                const data = await res.json();
-                setUgcCount(data.count);
+            // Get total UGC count for display
+            const totalRes = await fetch('/api/ugcCount');
+            if (totalRes.ok) {
+                const totalData = await totalRes.json();
+                setUgcCount(totalData.count);
+            }
 
-                const storageKey = `ugcCount_${session.user.id}`;
-                const stored = Number(localStorage.getItem(storageKey) || '0');
-                setHasNewUGC(data.count > stored);
+            // Get newly approved count for red badge (database-driven)
+            const newRes = await fetch('/api/approvedUGCCount');
+            if (newRes.ok) {
+                const newData = await newRes.json();
+                setHasNewUGC(newData.count > 0);
             }
         } catch (e) {
             console.error('[Login] Error fetching UGC count', e);
@@ -435,16 +439,19 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
                             <DropdownMenuItem
-                                onSelect={() => {
+                                onSelect={async () => {
                                     router.push('/profile');
 
-                                    // Mark approved UGC as seen for this user
+                                    // Mark approved UGC as seen using database
                                     if (session) {
-                                        const storageKey = `ugcCount_${session.user.id}`;
-                                        localStorage.setItem(storageKey, String(ugcCount));
-                                        setHasNewUGC(false);
-                                        // Notify other listeners (e.g., other tabs/components)
-                                        window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        try {
+                                            await fetch('/api/markApprovedUGCSeen', { method: 'POST' });
+                                            setHasNewUGC(false);
+                                            // Notify other listeners (e.g., other tabs/components)
+                                            window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        } catch (e) {
+                                            console.error('[Login] Error marking UGC as seen', e);
+                                        }
                                     }
                                 }}
                                 className="flex items-center gap-2"
