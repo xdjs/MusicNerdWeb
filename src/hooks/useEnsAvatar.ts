@@ -52,10 +52,9 @@ export function useEnsAvatar() {
     fetchAvatar();
   }, [address]);
 
-  // Generate Jazzicon seed from normalized address when no ENS avatar is available
-  // This ensures consistent profile pictures regardless of address casing from different wallet connections
-  const normalizedAddressForJazzicon = normalizeAddress(address);
-  const jazziconSeed = normalizedAddressForJazzicon && !ensAvatar ? jsNumberForAddress(normalizedAddressForJazzicon) : null;
+  // Generate Jazzicon seed from original address when no ENS avatar is available
+  // Use the original address casing to maintain proper Jazzicon generation
+  const jazziconSeed = address && !ensAvatar ? jsNumberForAddress(address) : null;
   
   return { 
     ensAvatar, 
