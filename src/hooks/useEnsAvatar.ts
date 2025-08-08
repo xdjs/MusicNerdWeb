@@ -11,7 +11,7 @@ const publicClient = createPublicClient({
   transport: http()
 });
 
-export function useEnsAvatar(existingJazziconSeed?: number | null) {
+export function useEnsAvatar() {
   const { address, connector } = useAccount();
   const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,10 +51,12 @@ export function useEnsAvatar(existingJazziconSeed?: number | null) {
     fetchAvatar();
   }, [address]);
 
-  // Use existing Jazzicon seed if provided, but don't generate new ones
+  // Generate Jazzicon seed from address when no ENS avatar is available
+  const jazziconSeed = address && !ensAvatar ? jsNumberForAddress(address) : null;
+  
   return { 
     ensAvatar, 
-    jazziconSeed: existingJazziconSeed || null,
+    jazziconSeed,
     address,
     loading
   };
