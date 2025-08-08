@@ -52,7 +52,8 @@ export function useEnsAvatar() {
   }, [address]);
 
   // Generate Jazzicon seed from address when no ENS avatar is available
-  const jazziconSeed = address && !ensAvatar ? jsNumberForAddress(address) : null;
+  // Normalize address to lowercase to ensure consistent Jazzicon generation across different wallet connections
+  const jazziconSeed = address && !ensAvatar ? jsNumberForAddress(address.toLowerCase()) : null;
   
   return { 
     ensAvatar, 
