@@ -8,6 +8,10 @@ import './src/test/setup/testEnv';
 // Make React available globally for tests
 global.React = React;
 
+// Add TextEncoder/TextDecoder polyfills for Node.js environment
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 // Add clearImmediate polyfill
 if (!global.clearImmediate) {
     global.clearImmediate = function(immediateId: any) {

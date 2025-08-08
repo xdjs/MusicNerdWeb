@@ -25,13 +25,18 @@ const customJestConfig: Config = {
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
+        // Mock wagmi and viem to avoid ES module issues
+        '^wagmi$': '<rootDir>/src/__mocks__/wagmi.ts',
+        '^wagmi/(.*)$': '<rootDir>/src/__mocks__/wagmi-$1.ts',
+        '^viem$': '<rootDir>/src/__mocks__/viem.ts',
+        '^viem/(.*)$': '<rootDir>/src/__mocks__/viem-$1.ts',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports
         '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': '<rootDir>/__mocks__/fileMock.js',
     },
     transformIgnorePatterns: [
-        'node_modules/(?!(jose|@rainbow-me|@radix-ui|next-auth|openid-client|@auth/core|@panva|@tanstack|wagmi|viem|@wagmi|@viem|@tanstack/react-query|@tanstack/query-core)/)'
+        'node_modules/(?!(jose|@rainbow-me|@radix-ui|next-auth|openid-client|@auth/core|@panva|@tanstack|@tanstack/react-query|@tanstack/query-core|use-sync-external-store)/)'
     ],
     testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
     moduleDirectories: ['node_modules', '<rootDir>/'],
@@ -40,10 +45,35 @@ const customJestConfig: Config = {
         '**/?(*.)+(spec|test).[jt]s?(x)'
     ],
     testTimeout: 20000,
-    globals: {
-        'ts-jest': {
-            tsconfig: '<rootDir>/tsconfig.json'
-        }
+    transform: {
+        '^.+\\.(ts|tsx)$': ['@swc/jest', {
+            jsc: {
+                parser: {
+                    syntax: 'typescript',
+                    tsx: true,
+                },
+                target: 'es2019',
+                transform: {
+                    react: {
+                        runtime: 'automatic',
+                    },
+                },
+            },
+        }],
+        '^.+\\.(js|jsx)$': ['@swc/jest', {
+            jsc: {
+                parser: {
+                    syntax: 'ecmascript',
+                    jsx: true,
+                },
+                target: 'es2019',
+                transform: {
+                    react: {
+                        runtime: 'automatic',
+                    },
+                },
+            },
+        }],
     },
     // Coverage configuration
     collectCoverage: false, // Enable via CLI flag

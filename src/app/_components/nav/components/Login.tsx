@@ -12,6 +12,8 @@ import { useAccount, useDisconnect, useConfig } from 'wagmi';
 import { useConnectModal, useAccountModal, useChainModal } from '@rainbow-me/rainbowkit';
 import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
+import { useEnsAvatar } from '@/hooks/useEnsAvatar';
+import Jazzicon from 'react-jazzicon';
 
 // Add type for the SearchBar ref
 interface SearchBarRef {
@@ -42,6 +44,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { disconnect } = useDisconnect();
     const config = useConfig();
     const { openConnectModal } = useConnectModal();
+    const { ensAvatar, jazziconSeed, loading: ensLoading } = useEnsAvatar();
+    const [avatarError, setAvatarError] = useState(false);
+
+    // Reset avatar error when ENS avatar changes
+    useEffect(() => {
+        setAvatarError(false);
+    }, [ensAvatar]);
 
     useEffect(() => {
         console.debug("[Login] State changed:", {
@@ -398,8 +407,25 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         >
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
+                            ) : ensLoading ? (
+                                <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
+                            ) : ensAvatar && !avatarError ? (
+                                <img 
+                                    src={ensAvatar} 
+                                    alt="ENS Avatar" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                    onError={() => setAvatarError(true)}
+                                />
+                            ) : jazziconSeed ? (
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                </div>
                             ) : (
-                                <span className="text-xl">🥳</span>
+                                <img 
+                                    src="/default_pfp_pink.png" 
+                                    alt="Default Profile" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
