@@ -8,6 +8,13 @@
       "when": 1727931768371,
       "tag": "0000_shocking_sunspot",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1734962785000,
+      "tag": "0011_add_accepted_ugc_count",
+      "breakpoints": false
     }
   ]
 }
