@@ -273,7 +273,9 @@ describe('Session Security', () => {
                 wallet: '0x1234567890abcdef',
                 legacyId: null,
                 isAdmin: false,
-                isWhiteListed: true
+                isWhiteListed: true,
+                isSuperAdmin: false,
+                acceptedUgcCount: null
             };
 
             const mockGetServerAuthSession = getServerAuthSession as jest.MockedFunction<typeof getServerAuthSession>;
@@ -297,7 +299,9 @@ describe('Session Security', () => {
                 wallet: '0x1234567890abcdef',
                 legacyId: null,
                 isAdmin: false,
-                isWhiteListed: true
+                isWhiteListed: true,
+                isSuperAdmin: false,
+                acceptedUgcCount: null
             };
 
             const mockSession = {
