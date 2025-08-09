@@ -1157,7 +1157,7 @@ describe('Whitelist Functions', () => {
             const updateData = { wallet: '0x123', email: 'test@example.com' };
             const result = await updateWhitelistedUser('user123', updateData);
             expect(result.status).toBe('success');
-            expect(result.message).toBe('Whitelist user updated');
+            expect(result.message).toBe('User updated successfully');
         });
 
         it('should handle validation errors', async () => {
