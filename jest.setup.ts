@@ -5,6 +5,10 @@ import { configure } from '@testing-library/react';
 import React from 'react';
 import './src/test/setup/testEnv';
 
+// Polyfill TextEncoder/TextDecoder for viem and web3 libraries
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 // Make React available globally for tests
 global.React = React;
 
@@ -66,12 +70,22 @@ window.ResizeObserver = jest.fn().mockImplementation(() => ({
 // Mock window.fetch
 global.fetch = jest.fn(() =>
     Promise.resolve({
-        json: () => Promise.resolve({}),
+        json: () => Promise.resolve([]), // Return empty array by default for leaderboard APIs
         ok: true,
         status: 200,
         statusText: 'OK',
     })
 ) as jest.Mock;
+
+// Mock window.location.reload to prevent JSDOM errors
+const mockLocation = {
+    ...window.location,
+    reload: jest.fn(),
+};
+Object.defineProperty(window, 'location', {
+    value: mockLocation,
+    writable: true,
+});
 
 // Mock next/router
 jest.mock('next/router', () => ({
@@ -194,4 +208,16 @@ jest.mock('openai', () => {
             }
         }
     };
-}); 
+});
+
+// Mock server actions to prevent function not found errors
+jest.mock('@/app/actions/serverActions', () => ({
+    getUgcStatsInRangeAction: jest.fn().mockResolvedValue({ ugcCount: 0, artistsCount: 0 }),
+    addArtistDataAction: jest.fn(),
+    approveUgcAdminAction: jest.fn(),
+    searchForUsersByWalletAction: jest.fn(),
+    addUsersToWhitelistAction: jest.fn(),
+    removeFromWhitelistAction: jest.fn(),
+    addUsersToAdminAction: jest.fn(),
+    removeFromAdminAction: jest.fn(),
+})); 
