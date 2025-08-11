@@ -73,7 +73,7 @@ export function AddWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add User to Whitelist</Button>
+                <Button variant="outline">Add Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -124,7 +124,7 @@ export function AddAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add User to Admin</Button>
+                <Button variant="outline">Add Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -175,7 +175,7 @@ export function AddHiddenDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Hide Users</Button>
+                <Button variant="outline">Hide</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -224,7 +224,7 @@ export function RemoveHiddenDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Unhide Users</Button>
+                <Button variant="outline">Unhide</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -268,7 +268,7 @@ export function RemoveWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove User from Whitelist</Button>
+                <Button variant="outline">Remove Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Whitelist</DialogTitle></DialogHeader>
@@ -307,7 +307,7 @@ export function RemoveAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove User from Admin</Button>
+                <Button variant="outline">Remove Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Admin</DialogTitle></DialogHeader>

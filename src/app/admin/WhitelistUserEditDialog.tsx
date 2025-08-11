@@ -124,18 +124,22 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
               </SelectTrigger>
               <SelectContent>
                 <div 
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed && !isHidden ? 'bg-accent text-accent-foreground' : ''}`}
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    setIsAdmin(false);
-                    setIsWhiteListed(false);
-                    setIsHidden(false);
+                    const newAdminState = !isAdmin;
+                    setIsAdmin(newAdminState);
+                    // Auto-whitelist only when initially enabling admin
+                    if (newAdminState && !isWhiteListed) {
+                      setIsWhiteListed(true);
+                    }
+                    // Allow admin to be unchecked without affecting whitelist
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
+                    {isAdmin && <Check className="h-4 w-4" />}
                   </span>
-                  User
+                  Admin
                 </div>
                 
                 <div 
@@ -153,22 +157,18 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                 </div>
                 
                 <div 
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed && !isHidden ? 'bg-accent text-accent-foreground' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    const newAdminState = !isAdmin;
-                    setIsAdmin(newAdminState);
-                    // Auto-whitelist only when initially enabling admin
-                    if (newAdminState && !isWhiteListed) {
-                      setIsWhiteListed(true);
-                    }
-                    // Allow admin to be unchecked without affecting whitelist
+                    setIsAdmin(false);
+                    setIsWhiteListed(false);
+                    setIsHidden(false);
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {isAdmin && <Check className="h-4 w-4" />}
+                    {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
                   </span>
-                  Admin
+                  User
                 </div>
                 
                 <div 
