@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
@@ -407,18 +406,28 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => {
+                                try {
+                                    router.push('/leaderboard');
+                                } catch (error) {
+                                    console.error('Navigation error to leaderboard:', error);
+                                }
+                            }}>Leaderboard</DropdownMenuItem>
                             <DropdownMenuItem
                                 onSelect={() => {
-                                    router.push('/profile');
+                                    try {
+                                        router.push('/profile');
 
-                                    // Mark approved UGC as seen for this user
-                                    if (session) {
-                                        const storageKey = `ugcCount_${session.user.id}`;
-                                        localStorage.setItem(storageKey, String(ugcCount));
-                                        setHasNewUGC(false);
-                                        // Notify other listeners (e.g., other tabs/components)
-                                        window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        // Mark approved UGC as seen for this user
+                                        if (session) {
+                                            const storageKey = `ugcCount_${session.user.id}`;
+                                            localStorage.setItem(storageKey, String(ugcCount));
+                                            setHasNewUGC(false);
+                                            // Notify other listeners (e.g., other tabs/components)
+                                            window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        }
+                                    } catch (error) {
+                                        console.error('Navigation error to profile:', error);
                                     }
                                 }}
                                 className="flex items-center gap-2"
@@ -429,7 +438,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 )}
                             </DropdownMenuItem>
                             {session?.user?.isAdmin && (
-                                <DropdownMenuItem onSelect={() => router.push('/admin')} className="flex items-center gap-2">
+                                <DropdownMenuItem onSelect={() => {
+                                    try {
+                                        router.push('/admin');
+                                    } catch (error) {
+                                        console.error('Navigation error to admin:', error);
+                                    }
+                                }} className="flex items-center gap-2">
                                     <span>Admin Panel</span>
                                     {hasPendingUGC && (
                                         <span className="inline-block h-2 w-2 rounded-full bg-red-600" />

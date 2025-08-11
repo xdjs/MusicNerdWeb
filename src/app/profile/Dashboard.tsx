@@ -229,9 +229,24 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const resp = await fetch(url);
                 if (!resp.ok) return;
                 const data = await resp.json();
-                setTotalEntries(data.length);
+                // Exclude hidden users from total count
+                const nonHiddenUsers = data.filter((entry: any) => !entry.isHidden);
+                setTotalEntries(nonHiddenUsers.length);
+                
                 const idx = data.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
-                if (idx !== -1) setRank(idx + 1);
+                if (idx !== -1) {
+                    // Check if the current user is hidden
+                    const userEntry = data[idx];
+                    if (userEntry?.isHidden) {
+                        setRank(-1); // Use -1 to indicate hidden user
+                    } else {
+                        // Calculate rank among non-hidden users only
+                        const nonHiddenIdx = nonHiddenUsers.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
+                        if (nonHiddenIdx !== -1) {
+                            setRank(nonHiddenIdx + 1);
+                        }
+                    }
+                }
             } catch (e) {
                 console.error('Error fetching rank', e);
             }
@@ -669,7 +684,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">Artists Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
                                 </Link>

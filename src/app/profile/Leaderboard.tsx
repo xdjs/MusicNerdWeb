@@ -20,7 +20,7 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
-function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: LeaderboardEntry; index: number; highlightIdentifier?: string }) {
+function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
 
@@ -63,8 +63,8 @@ function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: Leaderbo
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${index < 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             <p className="font-medium truncate max-w-[200px] text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
@@ -92,8 +92,8 @@ function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: Leaderbo
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${index < 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             <div className="truncate">
                                 <p className="font-medium truncate max-w-[200px] text-lg">
@@ -326,9 +326,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
 
                 <div className="space-y-2">
-                    {leaderboard.map((entry, index) => (
-                        <LeaderboardRow key={entry.userId} entry={entry} index={(page - 1) * PER_PAGE + index} highlightIdentifier={highlightIdentifier} />
-                    ))}
+                    {leaderboard.map((entry, index) => {
+                        // Calculate rank for non-hidden users only
+                        let calculatedRank: number | null = null;
+                        if (!entry.isHidden) {
+                            // Count non-hidden users before this entry
+                            const nonHiddenBefore = leaderboard.slice(0, index).filter(e => !e.isHidden).length;
+                            calculatedRank = (page - 1) * PER_PAGE + nonHiddenBefore + 1;
+                        }
+                        return (
+                            <LeaderboardRow key={entry.userId} entry={entry} rank={calculatedRank} highlightIdentifier={highlightIdentifier} />
+                        );
+                    })}
                     {leaderboard.length === 0 && (
                         <p className="text-center text-muted-foreground py-8">
                             No users have added artists yet. Be the first!
