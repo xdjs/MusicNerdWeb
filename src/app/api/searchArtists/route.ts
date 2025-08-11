@@ -103,7 +103,7 @@ function getMatchScore(name: string, query: string) {
 //      Response with combined and sorted search results or error message
 export async function POST(req: Request) {
   try {
-    const { query } = await req.json();
+    const { query, bookmarkedArtistIds = [] } = await req.json();
     
     if (!query || typeof query !== 'string') {
       return Response.json(
@@ -112,8 +112,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check cache first
-    const cachedResult = searchCache.get(query);
+    // Validate bookmarkedArtistIds if provided
+    const bookmarkedIds = Array.isArray(bookmarkedArtistIds) ? bookmarkedArtistIds : [];
+
+    // Create cache key including bookmarked IDs for personalized results
+    const cacheKey = `${query}|${bookmarkedIds.sort().join(',')}`;
+    const cachedResult = searchCache.get(cacheKey);
     if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
       return Response.json({ results: cachedResult.results });
     }
@@ -188,12 +192,19 @@ export async function POST(req: Request) {
         })
       );
 
-      // Combine all results and sort them by match score and name
+      // Combine all results and sort them by match score, bookmark status, link count, and name
       const combinedResults = [...dbArtistsWithImages, ...spotifyArtists]
         .sort((a, b) => {
-          // First sort by match score
+          // First sort by match score (most important for relevance)
           if (a.matchScore !== b.matchScore) {
             return a.matchScore - b.matchScore;
+          }
+
+          // Within the same match score tier, prioritize bookmarked artists
+          const aIsBookmarked = bookmarkedIds.includes(a.id || '');
+          const bIsBookmarked = bookmarkedIds.includes(b.id || '');
+          if (aIsBookmarked !== bIsBookmarked) {
+            return bIsBookmarked ? 1 : -1; // Bookmarked artists come first
           }
 
           // Next, prefer artists with more content (higher linkCount)
@@ -201,14 +212,12 @@ export async function POST(req: Request) {
             return (b.linkCount ?? 0) - (a.linkCount ?? 0);
           }
 
-          // If names (case-insensitive) are identical after that, no change – fall through to alpha
-
           // Fallback: alphabetical by name
           return (a.name || "").localeCompare(b.name || "");
         });
 
       // Cache the results
-      searchCache.set(query, { results: combinedResults, timestamp: Date.now() });
+      searchCache.set(cacheKey, { results: combinedResults, timestamp: Date.now() });
 
       return Response.json({ results: combinedResults });
     };
