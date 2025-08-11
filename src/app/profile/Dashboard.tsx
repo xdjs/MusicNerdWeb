@@ -218,6 +218,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         async function fetchRank() {
             try {
+                // Check if user is hidden first - if so, set rank to -1 and skip API call
+                if (user.isHidden) {
+                    console.debug('[Dashboard] User is hidden, setting rank to N/A');
+                    setRank(-1);
+                    setTotalEntries(null); // Don't show total for hidden users
+                    return;
+                }
+
                 let url = '/api/leaderboard';
                 if (isCompactLayout) {
                     const dates = getRangeDates(selectedRange);
