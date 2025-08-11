@@ -398,7 +398,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : (
-                                <span className="text-xl">🥳</span>
+                                <img 
+                                    src="/default_pfp.png" 
+                                    alt="Profile" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
