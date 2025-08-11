@@ -416,9 +416,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             <DropdownMenuItem
                                 onSelect={() => {
                                     try {
-                                        router.push('/profile');
-
-                                        // Mark approved UGC as seen for this user
+                                        console.debug('[Login] Navigating to profile page');
+                                        
+                                        // Mark approved UGC as seen for this user BEFORE navigation
                                         if (session) {
                                             const storageKey = `ugcCount_${session.user.id}`;
                                             localStorage.setItem(storageKey, String(ugcCount));
@@ -426,8 +426,28 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                             // Notify other listeners (e.g., other tabs/components)
                                             window.dispatchEvent(new Event('ugcCountUpdated'));
                                         }
+                                        
+                                        // Navigate after updating state
+                                        console.debug('[Login] About to call router.push');
+                                        
+                                        // Try router navigation first
+                                        try {
+                                            router.push('/profile');
+                                            console.debug('[Login] router.push called successfully');
+                                        } catch (routerError) {
+                                            console.error('[Login] Router navigation failed, trying window.location:', routerError);
+                                            // Fallback to window.location
+                                            window.location.href = '/profile';
+                                        }
                                     } catch (error) {
                                         console.error('Navigation error to profile:', error);
+                                        console.error('Error details:', {
+                                            message: error instanceof Error ? error.message : 'Unknown error',
+                                            stack: error instanceof Error ? error.stack : 'No stack trace',
+                                            session: !!session,
+                                            ugcCount,
+                                            hasNewUGC
+                                        });
                                     }
                                 }}
                                 className="flex items-center gap-2"

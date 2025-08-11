@@ -261,6 +261,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         const roles: string[] = [];
         if (user.isAdmin) roles.push("Admin");
         if (user.isWhiteListed) roles.push("Whitelisted");
+        if (user.isHidden) roles.push("Hidden");
         if (roles.length === 0) roles.push("User");
         return roles.join(", ");
     })();
