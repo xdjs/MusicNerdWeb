@@ -11,6 +11,7 @@ import { useAccount, useDisconnect, useConfig } from 'wagmi';
 import { useConnectModal, useAccountModal, useChainModal } from '@rainbow-me/rainbowkit';
 import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
+import ProfilePicture from "@/components/ui/ProfilePicture";
 
 
 // Add type for the SearchBar ref
@@ -399,17 +400,12 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : (
-                                <img 
-                                    src={account?.ensAvatar || account?.avatar || '/default_pfp.png'}
+                                <ProfilePicture
+                                    address={account?.address}
+                                    ensAvatar={account?.ensAvatar}
+                                    size={32}
+                                    className="w-8 h-8"
                                     alt="Profile"
-                                    className="w-8 h-8 rounded-full object-cover"
-                                    onError={(e) => {
-                                        // Fallback to default if the image fails to load
-                                        const target = e.target as HTMLImageElement;
-                                        if (target.src !== '/default_pfp.png') {
-                                            target.src = '/default_pfp.png';
-                                        }
-                                    }}
                                 />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
