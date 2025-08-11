@@ -11,6 +11,7 @@ import { useAccount, useDisconnect, useConfig } from 'wagmi';
 import { useConnectModal, useAccountModal, useChainModal } from '@rainbow-me/rainbowkit';
 import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
+import { Avatar } from "@/components/ui/avatar";
 
 // Add type for the SearchBar ref
 interface SearchBarRef {
@@ -398,10 +399,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : (
-                                <img 
-                                    src="/default_pfp.png" 
-                                    alt="Profile" 
-                                    className="w-8 h-8 rounded-full object-cover"
+                                <Avatar 
+                                    address={address || ''}
+                                    size={32}
+                                    className="w-8 h-8"
                                 />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
