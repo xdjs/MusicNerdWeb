@@ -344,7 +344,7 @@ const WalletSearchBar = forwardRef(
                             </div>
                         ) : (!debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
                             <div className="flex justify-center items-center p-3 font-medium text-gray-500">
-                                <p>No bookmarks yet! Start bookmarking your favorite artists.</p>
+                                <p>No bookmarks yet!</p>
                             </div>
                         ) : (data && Array.isArray(data)) ? (
                             <div>
@@ -810,7 +810,7 @@ const NoWalletSearchBar = forwardRef(
                             </div>
                         ) : (!debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
                             <div className="flex justify-center items-center p-3 font-medium text-gray-500">
-                                <p>No bookmarks yet! Start bookmarking your favorite artists.</p>
+                                <p>No bookmarks yet!</p>
                             </div>
                         ) : (data && Array.isArray(data)) ? (
                             <div>
