@@ -455,12 +455,12 @@ export default function UsersDataTable<TData, TValue>({
                 </Select>
 
                 {/* Search bar */}
-                <div className="relative text-black flex-grow max-w-sm">
+                <div className="relative text-black max-w-xs">
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search users by wallet or username..."
+                        placeholder="Search users..."
                         className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
@@ -469,26 +469,26 @@ export default function UsersDataTable<TData, TValue>({
                     <>
                         {/* Selected state buttons */}
                         <Button variant="outline" onClick={() => commitAddSelectedToWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Whitelist"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Whitelist"}
                         </Button>
                         <Button variant="outline" onClick={() => commitRemoveFromWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Whitelist"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Whitelist"}
                         </Button>
 
                         {/* Admin selected buttons */}
                         <Button variant="outline" onClick={() => commitAddSelectedToAdmin()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Admin"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Admin"}
                         </Button>
                         <Button variant="outline" onClick={() => commitRemoveFromAdmin()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Admin"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Admin"}
                         </Button>
 
                         {/* Hidden selected buttons */}
                         <Button variant="outline" onClick={() => commitAddSelectedToHidden()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected Users"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected"}
                         </Button>
                         <Button variant="outline" onClick={() => commitRemoveFromHidden()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected Users"}
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected"}
                         </Button>
                     </>
                 ) : (

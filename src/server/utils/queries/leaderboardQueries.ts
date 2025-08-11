@@ -13,6 +13,7 @@ export type LeaderboardEntry = {
     email: string | null;
     artistsCount: number;
     ugcCount: number;
+    isHidden: boolean;
 };
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
@@ -23,6 +24,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                 u.wallet,
                 u.username,
                 u.email,
+                u.is_hidden AS "isHidden",
                 (
                     SELECT COUNT(*)::int FROM artists a WHERE a.added_by = u.id
                 ) AS "artistsCount",
@@ -30,8 +32,10 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                     SELECT COUNT(*)::int FROM ugcresearch ug WHERE ug.user_id = u.id
                 ) AS "ugcCount"
             FROM users u
-            WHERE u.is_hidden = false
-            ORDER BY "ugcCount" DESC, "artistsCount" DESC
+            ORDER BY 
+                CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
+                "ugcCount" DESC, 
+                "artistsCount" DESC
         `);
         return result;
     } catch (e) {
@@ -49,6 +53,7 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                 u.wallet,
                 u.username,
                 u.email,
+                u.is_hidden AS "isHidden",
                 (
                     SELECT COUNT(*)::int FROM artists a 
                     WHERE a.added_by = u.id 
@@ -60,8 +65,10 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                       AND ug.created_at BETWEEN ${fromIso} AND ${toIso}
                 ) AS "ugcCount"
             FROM users u
-            WHERE u.is_hidden = false
-            ORDER BY "ugcCount" DESC, "artistsCount" DESC
+            ORDER BY 
+                CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
+                "ugcCount" DESC, 
+                "artistsCount" DESC
         `);
         return result;
     } catch (e) {
