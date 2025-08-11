@@ -16,6 +16,8 @@ import {
   removeFromWhitelist as removeFromWhitelistQuery,
   addUsersToAdmin as addUsersToAdminQuery,
   removeFromAdmin as removeFromAdminQuery,
+  addUsersToHidden as addUsersToHiddenQuery,
+  removeFromHidden as removeFromHiddenQuery,
 } from "@/server/utils/queries/userQueries";
 
 import {
@@ -60,4 +62,12 @@ export async function getUgcStatsInRangeAction(
   wallet: string | null = null,
 ) {
   return getUgcStatsInRangeQuery(date, wallet);
+}
+
+export async function addUsersToHiddenAction(wallets: string[]) {
+  return addUsersToHiddenQuery(wallets);
+}
+
+export async function removeFromHiddenAction(userIds: string[]) {
+  return removeFromHiddenQuery(userIds);
 } 
