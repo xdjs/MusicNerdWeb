@@ -49,11 +49,22 @@ export async function getEnsAvatar(address: string): Promise<string | null> {
 }
 
 /**
- * Generate a Jazzicon for a given address
+ * Generate a Jazzicon for a given address using MetaMask's existing seed
  */
 export function generateJazzicon(address: string, size: number = 32): HTMLElement {
   try {
-    // Convert address to a number for Jazzicon seed
+    // Try to get the existing MetaMask Jazzicon seed first
+    const existingSeed = getExistingJazziconSeed(address);
+    
+    if (existingSeed !== null) {
+      // Use the existing seed from MetaMask
+      const element = jazzicon(size, existingSeed);
+      element.style.width = `${size}px`;
+      element.style.height = `${size}px`;
+      return element;
+    }
+    
+    // Fallback to generating seed from address (same as MetaMask does)
     const addr = address.slice(2, 10);
     const seed = parseInt(addr, 16);
     
@@ -112,6 +123,45 @@ export async function getUserAvatar(address: string): Promise<AvatarData> {
       type: 'default',
       src: '/default_pfp.png',
     };
+  }
+}
+
+/**
+ * Get the existing MetaMask Jazzicon seed for an address
+ */
+export function getExistingJazziconSeed(address: string): number | null {
+  try {
+    // Check if there's a stored Jazzicon seed
+    const jazziconSeed = localStorage.getItem(`jazzicon_${address.toLowerCase()}`);
+    if (jazziconSeed) {
+      const seed = parseInt(jazziconSeed, 10);
+      if (!isNaN(seed)) return seed;
+    }
+
+    // Check MetaMask's internal storage for Jazzicon seeds
+    const metamaskData = localStorage.getItem(`metamask_${address.toLowerCase()}`);
+    if (metamaskData) {
+      try {
+        const data = JSON.parse(metamaskData);
+        if (data.jazziconSeed && typeof data.jazziconSeed === 'number') {
+          return data.jazziconSeed;
+        }
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+    }
+
+    // Check if there's a cached seed in our own storage
+    const cachedSeed = localStorage.getItem(`cached_jazzicon_seed_${address.toLowerCase()}`);
+    if (cachedSeed) {
+      const seed = parseInt(cachedSeed, 10);
+      if (!isNaN(seed)) return seed;
+    }
+
+    return null;
+  } catch (error) {
+    console.debug('[AvatarUtils] Error getting existing Jazzicon seed:', error);
+    return null;
   }
 }
 

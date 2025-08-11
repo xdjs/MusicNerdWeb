@@ -1,4 +1,4 @@
-import { generateJazzicon, hasExistingJazzicon } from '../avatarUtils';
+import { generateJazzicon, hasExistingJazzicon, getExistingJazziconSeed } from '../avatarUtils';
 
 // Mock the ENS client and Jazzicon
 jest.mock('@metamask/jazzicon', () => {
@@ -91,6 +91,50 @@ describe('avatarUtils', () => {
       expect(hasExistingJazzicon(address)).toBe(false);
 
       // Restore original function
+      localStorage.getItem = originalGetItem;
+    });
+  });
+
+  describe('getExistingJazziconSeed', () => {
+    it('should return null when no seed exists', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      expect(getExistingJazziconSeed(address)).toBeNull();
+    });
+
+    it('should return seed when jazzicon seed exists in localStorage', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      localStorage.setItem(`jazzicon_${address.toLowerCase()}`, '12345');
+      expect(getExistingJazziconSeed(address)).toBe(12345);
+    });
+
+    it('should return seed when MetaMask data contains jazziconSeed', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      const metamaskData = { jazziconSeed: 67890 };
+      localStorage.setItem(`metamask_${address.toLowerCase()}`, JSON.stringify(metamaskData));
+      expect(getExistingJazziconSeed(address)).toBe(67890);
+    });
+
+    it('should return seed when cached seed exists', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      localStorage.setItem(`cached_jazzicon_seed_${address.toLowerCase()}`, '54321');
+      expect(getExistingJazziconSeed(address)).toBe(54321);
+    });
+
+    it('should handle invalid seed values gracefully', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      localStorage.setItem(`jazzicon_${address.toLowerCase()}`, 'invalid-seed');
+      expect(getExistingJazziconSeed(address)).toBeNull();
+    });
+
+    it('should handle localStorage errors gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => {
+        throw new Error('localStorage error');
+      });
+
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      expect(getExistingJazziconSeed(address)).toBeNull();
+
       localStorage.getItem = originalGetItem;
     });
   });
