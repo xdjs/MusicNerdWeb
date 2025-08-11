@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Music Nerd ID</title>
+    <link href="https://fonts.googleapis.com/css2?family=KoHo:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "KoHo", sans-serif;
+            line-height: 1.6;
+            color: #422B46;
+            margin: 0;
+            padding: 0;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(66, 43, 70, 0.1);
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logo {
+            width: 60px;
+            height: auto;
+        }
+        .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: #FF9CE3;
+            letter-spacing: -1px;
+        }
+        .back-link {
+            color: #2ad4fc;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 16px;
+            transition: color 0.2s ease;
+        }
+        .back-link:hover {
+            color: #ef95ff;
+        }
+        .container {
+            flex: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: #422B46;
+            font-size: clamp(28px, 4vw, 48px);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h2 {
+            color: #422B46;
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2ad4fc;
+            padding-left: 20px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+        ul {
+            margin: 20px 0;
+            padding-left: 0;
+        }
+        li {
+            list-style: none;
+            margin-bottom: 12px;
+            padding-left: 30px;
+            position: relative;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        li::before {
+            content: "•";
+            color: #ef95ff;
+            font-weight: bold;
+            position: absolute;
+            left: 10px;
+            font-size: 18px;
+        }
+        li strong {
+            color: #422B46;
+            font-weight: 600;
+        }
+        .effective-date {
+            background: linear-gradient(135deg, #2ad4fc20, #ef95ff20);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .contact-info {
+            background: linear-gradient(135deg, #19ffb820, #2ad4fc20);
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 40px;
+            text-align: center;
+        }
+        .contact-info p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .footer {
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid rgba(66, 43, 70, 0.1);
+            margin-top: auto;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #422B46;
+            font-weight: 500;
+        }
+        .footer-text a {
+            color: #2ad4fc;
+            text-decoration: none;
+        }
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+        
+        @media screen and (max-width: 768px) {
+            .header {
+                padding: 15px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            .logo-container {
+                gap: 10px;
+            }
+            .logo {
+                width: 50px;
+            }
+            .logo-text {
+                font-size: 24px;
+            }
+            .container {
+                padding: 30px 15px;
+            }
+            h2 {
+                font-size: 20px;
+                padding-left: 15px;
+            }
+            li {
+                padding-left: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/icon.ico" alt="Music Nerd Logo" class="logo">
+            <div class="logo-text">Music Nerd</div>
+        </div>
+        <a href="/" class="back-link">← Back to Music Nerd</a>
+    </div>
+    
+    <div class="container">
+        
+        <h1>Privacy Policy for Music Nerd ID</h1>
+        
+        <p class="effective-date"><strong>Effective Date:</strong> August 2025</p>
+        
+        <p>Music Nerd ID respects your privacy. This policy outlines what information we collect, how we use it, and your rights.</p>
+        
+        <h2>1. Information We Collect</h2>
+        <p>We do not collect personal information. However, the app may access the following solely for functionality:</p>
+        <ul>
+            <li><strong>Microphone Access:</strong> Used only to recognize audio with ShazamKit. No audio is recorded, stored, or transmitted to our servers.</li>
+            <li><strong>Internet Access:</strong> Required to query Shazam's catalog via Apple's services.</li>
+        </ul>
+        
+        <h2>2. Data Handling</h2>
+        <ul>
+            <li>All song recognition is performed locally using Apple's ShazamKit.</li>
+            <li>No user accounts are required.</li>
+            <li>We do not collect, store, or share your personal data.</li>
+        </ul>
+        
+        <h2>3. Third-Party Services</h2>
+        <ul>
+            <li>We rely on Apple ShazamKit for song identification.</li>
+            <li>We do not integrate advertising or analytics SDKs.</li>
+        </ul>
+        
+        <h2>4. Your Rights</h2>
+        <p>Since we do not collect any personal data, there is nothing to modify or delete. If you have concerns, contact us.</p>
+        
+        <h2>5. Contact</h2>
+        <div class="contact-info">
+            <p>For questions, reach out to:</p>
+            <p>xDJs LLC<br>
+            info@xdjs.com</p>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div class="footer-text">
+            Made in Seattle by <a href="https://x.com/cxy" target="_blank">@cxy</a> 
+            <a href="https://x.com/clt" target="_blank">@clt</a> and friends
+        </div>
+    </div>
+</body>
+</html>

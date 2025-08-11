@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 "use client"
 import { useEffect, useState, useRef, ReactNode, Suspense, forwardRef, useImperativeHandle } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -9,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
 import { Input } from '@/components/ui/input';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, Bookmark } from 'lucide-react';
 import Image from 'next/image';
 import { addArtist } from "@/app/actions/addArtist";
 import { useSession, signOut } from "next-auth/react";
@@ -70,6 +68,7 @@ const WalletSearchBar = forwardRef(
     const blurTimeoutRef = useRef<NodeJS.Timeout>();
     const [isAddingArtist, setIsAddingArtist] = useState(false);
     const [isAddingNew, setIsAddingNew] = useState(false);
+    const [bookmarkUpdateTrigger, setBookmarkUpdateTrigger] = useState(0);
     const { data: session, status } = useSession();
     const { toast } = useToast();
     const loginRef = useRef<HTMLButtonElement>(null);
@@ -110,6 +109,16 @@ const WalletSearchBar = forwardRef(
         setIsAddingArtist(false);
         setIsAddingNew(false);
     }, [pathname]);
+
+    // Listen for bookmark updates to refresh the UI
+    useEffect(() => {
+        const handleBookmarkUpdate = () => {
+            setBookmarkUpdateTrigger(prev => prev + 1);
+        };
+
+        window.addEventListener('bookmarksUpdated', handleBookmarkUpdate);
+        return () => window.removeEventListener('bookmarksUpdated', handleBookmarkUpdate);
+    }, []);
 
     // Determine the best direction for the dropdown based on viewport space
     const updateDropDirection = () => {
@@ -349,8 +358,17 @@ const WalletSearchBar = forwardRef(
                                                         !result.isSpotifyOnly && 
                                                         !(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) 
                                                         ? 'flex items-center h-full' : '-mb-0.5'
-                                                    }`}>
+                                                    } flex items-center gap-2`}>
                                                         {result.name}
+                                                        {!result.isSpotifyOnly && session?.user?.id && isArtistBookmarked(result.id, session.user.id, bookmarkUpdateTrigger) && (
+                                                            <span title="Bookmarked">
+                                                                <Bookmark 
+                                                                    size={14} 
+                                                                    className="fill-current"
+                                                                    style={{ color: '#ef95ff' }}
+                                                                />
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {result.isSpotifyOnly ? (
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -370,14 +388,14 @@ const WalletSearchBar = forwardRef(
                                                     ) : (
                                                         <div className="flex flex-col items-start gap-1">
                                                             <div className="flex flex-col w-[140px]">
-                                                                {(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
+                                                                {(result.bandcamp || result.youtube || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
                                                                     <>
                                                                         <div className="border-0 h-[1px] my-1 bg-gradient-to-r from-gray-400 to-transparent" style={{ height: '1px' }}></div>
                                                                         <div className="flex items-center gap-2">
                                                                             {result.bandcamp && (
                                                                                 <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3.5 h-3.5 opacity-70" />
                                                                             )}
-                                                                            {result.youtubechannel && (
+                                                                            {(result.youtube || result.youtubechannel) && (
                                                                                 <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
                                                                             )}
                                                                             {result.instagram && (
@@ -805,14 +823,14 @@ const NoWalletSearchBar = forwardRef(
                                                     ) : (
                                                         <div className="flex flex-col items-start gap-1">
                                                             <div className="flex flex-col w-[140px]">
-                                                                {(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
+                                                                {(result.bandcamp || result.youtube || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
                                                                     <>
                                                                         <div className="border-0 h-[1px] my-1 bg-gradient-to-r from-gray-400 to-transparent" style={{ height: '1px' }}></div>
                                                                         <div className="flex items-center gap-2">
                                                                             {result.bandcamp && (
                                                                                 <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3.5 h-3.5 opacity-70" />
                                                                             )}
-                                                                            {result.youtubechannel && (
+                                                                            {(result.youtube || result.youtubechannel) && (
                                                                                 <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
                                                                             )}
                                                                             {result.instagram && (
@@ -911,7 +929,7 @@ function SocialIcons({ result }: { result: SearchResult }) {
         );
     }
     
-    if (result.youtubechannel) {
+    if (result.youtube || result.youtubechannel) {
         icons.push(
             <img key="youtube" src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
         );
@@ -930,6 +948,23 @@ function SocialIcons({ result }: { result: SearchResult }) {
             {icons}
         </div>
     );
+}
+
+// Helper function to check if an artist is bookmarked by the current user
+function isArtistBookmarked(artistId: string | undefined, userId: string | undefined, _trigger?: number): boolean {
+    if (!artistId || !userId) return false;
+    
+    try {
+        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        if (raw) {
+            const bookmarks = JSON.parse(raw) as { artistId: string }[];
+            return bookmarks.some((b) => b.artistId === artistId);
+        }
+    } catch (e) {
+        console.debug('[SearchResults] error parsing bookmarks', e);
+    }
+    
+    return false;
 }
 
 // Renders the search results list with proper handling for both database and Spotify results
@@ -1008,14 +1043,14 @@ function SearchResults({
                                     ) : (
                                         <div className="flex flex-col items-start gap-1">
                                             <div className="flex flex-col w-[140px]">
-                                                {(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
+                                                {(result.bandcamp || result.youtube || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) && (
                                                     <>
                                                         <div className="border-0 h-[1px] my-1 bg-gradient-to-r from-gray-400 to-transparent" style={{ height: '1px' }}></div>
                                                         <div className="flex items-center gap-2">
                                                             {result.bandcamp && (
                                                                 <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3.5 h-3.5 opacity-70" />
                                                             )}
-                                                            {result.youtubechannel && (
+                                                            {(result.youtube || result.youtubechannel) && (
                                                                 <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
                                                             )}
                                                             {result.instagram && (

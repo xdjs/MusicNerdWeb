@@ -4,7 +4,7 @@ import { Artist, UrlMap } from "../db/DbTypes";
 import { getAllLinks } from "./queries/queriesTS"; // Wrapper maintains compatibility with existing mocks
 
 export const artistWeb3Platforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'supercollector', 'wallets', 'ens'];
-export const artistPlatforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'x', 'audius', 'bandisintown', 'ens', 'wallets', 'facebook', 'instagram', 'lastfm', 'soundcloud', 'tiktok', 'youtubechannel', 'supercollector'];
+export const artistPlatforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'x', 'audius', 'bandisintown', 'ens', 'wallets', 'facebook', 'instagram', 'lastfm', 'soundcloud', 'tiktok', 'youtube', 'youtubechannel', 'supercollector'];
 
 //pluh
 export const getArtistSplitPlatforms = (artist: Artist) => {
@@ -85,23 +85,109 @@ export async function extractArtistId(artistUrl: string) {
         }
         const match = decodedUrl.match(pattern);
         if (match) {
-            // For YouTube channel URLs, keep channel IDs as is and ensure usernames have @ prefix
+            // Enhanced YouTube URL handling to distinguish between channel IDs and usernames
             if (siteName === 'youtubechannel') {
-                const channelId = match[1];
-                const username = match[2];
-                if (username) {
-                    return { 
-                        siteName, 
-                        cardPlatformName, 
-                        id: username.startsWith('@') ? username : `@${username}` 
+                // Handle multiple YouTube URL formats
+                // Pattern should match: 
+                // - https://youtube.com/channel/CHANNEL_ID or https://www.youtube.com/channel/CHANNEL_ID
+                // - https://youtube.com/@USERNAME or https://www.youtube.com/@USERNAME  
+                // - https://youtube.com/USERNAME or https://www.youtube.com/USERNAME (new format)
+                
+                const channelId = match[2]; // From /channel/ID pattern (group 2)
+                const atUsername = match[3]; // From /@username pattern (group 3)
+                const plainUsername = match[4]; // From /username pattern (group 4)
+                
+                // If it's a channel ID (starts with UC typically, or matches /channel/ pattern)
+                if (channelId) {
+                    return {
+                        siteName: 'youtubechannel',
+                        cardPlatformName,
+                        id: channelId
                     };
                 }
-                return {
-                    siteName,
-                    cardPlatformName,
-                    id: channelId
-                };
+                
+                // If it's an @username format
+                if (atUsername) {
+                    return { 
+                        siteName: 'youtube', 
+                        cardPlatformName, 
+                        id: atUsername.startsWith('@') ? atUsername : `@${atUsername}` 
+                    };
+                }
+                
+                // If it's a plain username format (new support for youtube.com/USERNAME)
+                if (plainUsername) {
+                    return { 
+                        siteName: 'youtube', 
+                        cardPlatformName, 
+                        id: plainUsername.startsWith('@') ? plainUsername : `@${plainUsername}` 
+                    };
+                }
             }
+            
+            // Handle dedicated YouTube username platform parsing
+            if (siteName === 'youtube') {
+                // YouTube username platform regex: ^https://(www\.)?youtube\.com/(?:@([^/]+)|([^/]+))$
+                // Group 1: optional www
+                // Group 2: @username capture group  
+                // Group 3: plain username capture group
+                
+                const atUsername = match[2]; // From @([^/]+) pattern
+                const plainUsername = match[3]; // From ([^/]+) pattern
+                
+                // Extract the actual username (prefer @username over plain username)
+                if (atUsername) {
+                    return {
+                        siteName: 'youtube',
+                        cardPlatformName,
+                        id: atUsername.startsWith('@') ? atUsername : `@${atUsername}`
+                    };
+                }
+                
+                if (plainUsername) {
+                    return {
+                        siteName: 'youtube', 
+                        cardPlatformName,
+                        id: plainUsername.startsWith('@') ? plainUsername : `@${plainUsername}`
+                    };
+                }
+            }
+            
+            // Handle Facebook URL parsing with support for all three formats
+            if (siteName === 'facebook') {
+                // Facebook regex groups:
+                // Group 1: Internal ID from /people/name/ID format
+                // Group 2: ID from profile.php?id=ID format
+                // Group 3: Username from /username format
+                
+                const peopleId = match[1]; // From people/name/ID pattern
+                const profileId = match[2]; // From profile.php?id=ID pattern
+                const username = match[3]; // From /username pattern
+                
+                // Handle ID formats (both people and profile.php)
+                if (peopleId || profileId) {
+                    return {
+                        siteName: 'facebookID',
+                        cardPlatformName,
+                        id: peopleId || profileId
+                    };
+                }
+                
+                // Handle username format
+                if (username) {
+                    // Reject invalid usernames like "profile.php" without an ID
+                    if (username === 'profile.php' || username.startsWith('profile.php')) {
+                        return null;
+                    }
+                    
+                    return {
+                        siteName: 'facebook',
+                        cardPlatformName,
+                        id: username
+                    };
+                }
+            }
+            
             let extractedId = match[1] || match[2] || match[3];
 
             // Decode any percent-encoded characters in the captured ID as well

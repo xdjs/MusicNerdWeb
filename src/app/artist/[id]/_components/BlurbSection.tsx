@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface BlurbSectionProps {
   artistName: string;
@@ -8,10 +11,17 @@ interface BlurbSectionProps {
 }
 
 export default function BlurbSection({ artistName, artistId }: BlurbSectionProps) {
+  const { isEditing } = useContext(EditModeContext);
+  const { toast } = useToast();
+
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [aiBlurb, setAiBlurb] = useState<string | undefined>();
   const [loadingAi, setLoadingAi] = useState(false);
 
+  const [editText, setEditText] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch bio once on mount (or when artistId changes)
   useEffect(() => {
     if (!aiBlurb && !loadingAi) {
       setLoadingAi(true);
@@ -20,21 +30,92 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           if (!res.ok) throw new Error("Failed to load summary");
           const json = await res.json();
           setAiBlurb(json.bio as string);
+          setEditText(json.bio as string);
         })
         .catch(() => setAiBlurb("Failed to load summary."))
         .finally(() => setLoadingAi(false));
     }
   }, [aiBlurb, artistId, loadingAi]);
 
+  // Reset the edit text when exiting edit mode without saving
+  useEffect(() => {
+    if (!isEditing) {
+      setEditText(aiBlurb ?? "");
+    }
+  }, [isEditing, aiBlurb]);
+
+  async function handleSave() {
+    // Prevent saving empty bios – restore original text instead
+    if (editText.trim() === "") {
+      setEditText(aiBlurb ?? "");
+      return;
+    }
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const resp = await fetch(`/api/artistBio/${artistId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bio: editText }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok) {
+        setAiBlurb(editText);
+        toast({ title: "Bio updated" });
+      } else {
+        toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error saving bio", description: "Please try again." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleDiscard() {
+    setEditText(aiBlurb ?? "");
+  }
+
+  if (loadingAi) {
+    return (
+      <div className="h-28 relative border border-gray-200 rounded-lg bg-white p-3 overflow-hidden">
+        <p className="text-gray-500 italic">Loading summary...</p>
+      </div>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <div className="mb-4">
+        <textarea
+          className="w-full border border-gray-200 rounded-lg p-3 text-black h-40"
+          value={editText}
+          onChange={(e) => setEditText(e.target.value)}
+          placeholder="Enter artist bio..."
+        />
+        <div className="flex justify-end gap-2 mt-2">
+          <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
+            Discard
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving || editText.trim() === (aiBlurb ?? "").trim()}>
+            {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-editing view
   return (
     <div className="mb-4">
       <div className="relative">
         {/* Initial text box */}
         <div className="h-28 relative border border-gray-200 rounded-lg bg-white p-3 overflow-hidden">
-          {loadingAi ? (
-            <p className="text-gray-500 italic">Loading summary...</p>
-          ) : (aiBlurb ? (
-            <>  
+          {aiBlurb ? (
+            <>
               <p className="text-black">{aiBlurb}</p>
               {aiBlurb && aiBlurb.length > 200 && (
                 <>
@@ -51,7 +132,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
             </>
           ) : (
             <p className="text-gray-500 italic">No summary is available</p>
-          ))}
+          )}
         </div>
         {/* Expanded box */}
         {openModal && (

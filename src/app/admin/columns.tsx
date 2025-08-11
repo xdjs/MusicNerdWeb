@@ -7,7 +7,36 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import WhitelistUserEditDialog from "./WhitelistUserEditDialog";
 
+// Helper to format dates in local timezone without seconds
+const formatDate = (value: string | Date | null | undefined): string => {
+  if (!value) return "";
 
+  // Normalise to a Date object first.
+  let dateObj: Date;
+
+  if (value instanceof Date) {
+    dateObj = value;
+  } else {
+    const str = value as string;
+    // If the string does NOT include an explicit timezone ("Z" or "+/-hh:mm"),
+    // assume it is stored in UTC and append "Z" so the Date constructor parses
+    // it as UTC instead of local time.
+    const hasExplicitTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(str);
+    dateObj = new Date(hasExplicitTZ ? str : `${str}Z`);
+  }
+
+  const datePart = dateObj.toLocaleDateString();
+  const timePart = dateObj
+    .toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    // Replace the space before AM/PM with a non-breaking space
+    .replace(/\s([AP]M)$/i, "\u00A0$1");
+
+  return `${datePart} ${timePart}`;
+};
 
 export const ugcColumns: ColumnDef<UgcResearch>[] = [
   {
@@ -41,8 +70,8 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     header: "Wallet Address",
   },
   {
-    accessorKey: "name",
-    header: "Name",
+    accessorKey: "username",
+    header: "Username",
   },
   {
     accessorKey: "createdAt",
@@ -57,30 +86,34 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
         </Button>
       )
     },
+    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
   {
-    accessorKey: "updatedAt",
-    header: "Updated At",
+    accessorKey: "name",
+    header: "Artist Name",
   },
-  {
-    accessorKey: "id",
-    header: "ID",
-  },
+  // Updated At column intentionally omitted from UI
   {
     accessorKey: "siteName",
     header: "Site Name",
   },
   {
-    accessorKey: "artistUri",
-    header: "Artist URI",
-  },
-  {
-    accessorKey: "accepted",
-    header: "Accepted",
-  },
-  {
     accessorKey: "ugcUrl",
     header: "UGC URL",
+    cell: ({ getValue }) => {
+      const url = getValue() as string | null | undefined;
+      if (!url) return "";
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          {url}
+        </a>
+      );
+    },
   },
   {
     accessorKey: "siteUsername",
@@ -89,12 +122,23 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
   {
     accessorKey: "artistId",
     header: "Artist ID",
+    cell: ({ getValue }) => {
+      const id = getValue() as string | null | undefined;
+      if (!id) return "";
+      const href = `https://musicnerd.xyz/${id}`;
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          {id}
+        </a>
+      );
+    },
   },
-  {
-    accessorKey: "dateProcessed",
-    header: "Date Processed",
-  },
-  
+  // Date Processed column intentionally omitted from UI
 ];
 
 export const whitelistedColumns: ColumnDef<User>[] = [
@@ -121,10 +165,6 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: "ID",
-  },
-  {
     accessorKey: "wallet",
     header: "Wallet Address",
   },
@@ -137,8 +177,50 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     header: "Username",
   },
   {
+    id: "role",
+    accessorFn: (row) => {
+      const roles: string[] = [];
+      if (row.isAdmin) roles.push("Admin");
+      if (row.isWhiteListed) roles.push("Whitelisted");
+      if (row.isHidden) roles.push("Hidden");
+      if (roles.length === 0) roles.push("User");
+      return roles.join(", ");
+    },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Role
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      // Priority: Admin (0) > Whitelisted (1) > User (2)
+      // If both have admin, they're equal. If neither have admin, compare whitelist status.
+      const getUserPriority = (row: any) => {
+        if (row.original.isAdmin) return 0;
+        if (row.original.isWhiteListed) return 1;
+        return 2;
+      };
+      const a = getUserPriority(rowA);
+      const b = getUserPriority(rowB);
+      return a - b;
+    },
+    size: 150, // Expand column width to accommodate multiple roles
+  },
+  {
     accessorKey: "updatedAt",
-    header: "Updated At",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Updated At
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
   {
     id: "actions",

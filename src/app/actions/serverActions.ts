@@ -14,6 +14,10 @@ import {
   searchForUsersByWallet as searchForUsersByWalletQuery,
   addUsersToWhitelist as addUsersToWhitelistQuery,
   removeFromWhitelist as removeFromWhitelistQuery,
+  addUsersToAdmin as addUsersToAdminQuery,
+  removeFromAdmin as removeFromAdminQuery,
+  addUsersToHidden as addUsersToHiddenQuery,
+  removeFromHidden as removeFromHiddenQuery,
 } from "@/server/utils/queries/userQueries";
 
 import {
@@ -45,9 +49,25 @@ export async function removeFromWhitelistAction(userIds: string[]) {
   return removeFromWhitelistQuery(userIds);
 }
 
+export async function addUsersToAdminAction(wallets: string[]) {
+  return addUsersToAdminQuery(wallets);
+}
+
+export async function removeFromAdminAction(userIds: string[]) {
+  return removeFromAdminQuery(userIds);
+}
+
 export async function getUgcStatsInRangeAction(
   date: Parameters<typeof getUgcStatsInRangeQuery>[0],
   wallet: string | null = null,
 ) {
   return getUgcStatsInRangeQuery(date, wallet);
+}
+
+export async function addUsersToHiddenAction(wallets: string[]) {
+  return addUsersToHiddenQuery(wallets);
+}
+
+export async function removeFromHiddenAction(userIds: string[]) {
+  return removeFromHiddenQuery(userIds);
 } 

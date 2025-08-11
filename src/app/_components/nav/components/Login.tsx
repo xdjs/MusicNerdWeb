@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { data: session, status } = useSession();
     const [currentStatus, setCurrentStatus] = useState(status);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
+    // Count of total UGC entries (approved + pending)
+    const [ugcCount, setUgcCount] = useState<number>(0);
+    const [hasNewUGC, setHasNewUGC] = useState(false);
     const shouldPromptRef = useRef(false);
 
     const { isConnected, address } = useAccount();
@@ -127,15 +129,47 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         }
     }, [session]);
 
-    // Fetch pending UGC count for admin users
+    // Reusable fetcher for approved UGC count for the current user
+    const fetchUGCCount = useCallback(async () => {
+        if (!session) return;
+
+        try {
+            const res = await fetch('/api/ugcCount');
+            if (res.ok) {
+                const data = await res.json();
+                setUgcCount(data.count);
+
+                const storageKey = `ugcCount_${session.user.id}`;
+                const stored = Number(localStorage.getItem(storageKey) || '0');
+                setHasNewUGC(data.count > stored);
+            }
+        } catch (e) {
+            console.error('[Login] Error fetching UGC count', e);
+        }
+    }, [session]);
+
+    // Fetch count on mount without clearing stored value – keeps red-dot stable across reloads
     useEffect(() => {
-        fetchPendingUGC();
-    }, [fetchPendingUGC]);
+        fetchUGCCount();
+    }, [fetchUGCCount, session]);
+
+    useEffect(() => {
+        window.addEventListener('ugcCountUpdated', fetchUGCCount);
+        return () => window.removeEventListener('ugcCountUpdated', fetchUGCCount);
+    }, [fetchUGCCount]);
 
     // Listen for "pendingUGCUpdated" events to update the red dot immediately
     useEffect(() => {
         window.addEventListener('pendingUGCUpdated', fetchPendingUGC);
-        return () => window.removeEventListener('pendingUGCUpdated', fetchPendingUGC);
+
+        // Run immediately and then poll every 30 s (admin only)
+        fetchPendingUGC();
+        const interval = setInterval(fetchPendingUGC, 30000);
+
+        return () => {
+            window.removeEventListener('pendingUGCUpdated', fetchPendingUGC);
+            clearInterval(interval);
+        };
     }, [fetchPendingUGC]);
 
     // Handle disconnection and cleanup
@@ -366,16 +400,71 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : (
                                 <span className="text-xl">🥳</span>
                             )}
-                            {hasPendingUGC && (
+                            {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
                             )}
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => router.push('/profile')}>User Profile</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => {
+                                try {
+                                    router.push('/leaderboard');
+                                } catch (error) {
+                                    console.error('Navigation error to leaderboard:', error);
+                                }
+                            }}>Leaderboard</DropdownMenuItem>
+                            <DropdownMenuItem
+                                onSelect={() => {
+                                    try {
+                                        console.debug('[Login] Navigating to profile page');
+                                        
+                                        // Mark approved UGC as seen for this user BEFORE navigation
+                                        if (session) {
+                                            const storageKey = `ugcCount_${session.user.id}`;
+                                            localStorage.setItem(storageKey, String(ugcCount));
+                                            setHasNewUGC(false);
+                                            // Notify other listeners (e.g., other tabs/components)
+                                            window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        }
+                                        
+                                        // Navigate after updating state
+                                        console.debug('[Login] About to call router.push');
+                                        
+                                        // Try router navigation first
+                                        try {
+                                            router.push('/profile');
+                                            console.debug('[Login] router.push called successfully');
+                                        } catch (routerError) {
+                                            console.error('[Login] Router navigation failed, trying window.location:', routerError);
+                                            // Fallback to window.location
+                                            window.location.href = '/profile';
+                                        }
+                                    } catch (error) {
+                                        console.error('Navigation error to profile:', error);
+                                        console.error('Error details:', {
+                                            message: error instanceof Error ? error.message : 'Unknown error',
+                                            stack: error instanceof Error ? error.stack : 'No stack trace',
+                                            session: !!session,
+                                            ugcCount,
+                                            hasNewUGC
+                                        });
+                                    }
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <span>User Profile</span>
+                                {hasNewUGC && (
+                                    <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
+                                )}
+                            </DropdownMenuItem>
                             {session?.user?.isAdmin && (
-                                <DropdownMenuItem onSelect={() => router.push('/admin')} className="flex items-center gap-2">
+                                <DropdownMenuItem onSelect={() => {
+                                    try {
+                                        router.push('/admin');
+                                    } catch (error) {
+                                        console.error('Navigation error to admin:', error);
+                                    }
+                                }} className="flex items-center gap-2">
                                     <span>Admin Panel</span>
                                     {hasPendingUGC && (
                                         <span className="inline-block h-2 w-2 rounded-full bg-red-600" />

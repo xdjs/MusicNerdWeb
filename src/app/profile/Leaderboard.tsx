@@ -20,7 +20,7 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
-function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: LeaderboardEntry; index: number; highlightIdentifier?: string }) {
+function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
 
@@ -63,8 +63,8 @@ function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: Leaderbo
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${index < 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             <p className="font-medium truncate max-w-[200px] text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
@@ -92,8 +92,8 @@ function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: Leaderbo
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${index < 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             <div className="truncate">
                                 <p className="font-medium truncate max-w-[200px] text-lg">
@@ -143,11 +143,14 @@ function LeaderboardRow({ entry, index, highlightIdentifier }: { entry: Leaderbo
 }
 
 export default function Leaderboard({ highlightIdentifier, onRangeChange }: { highlightIdentifier?: string; onRangeChange?: (range: RangeKey) => void }) {
+    const PER_PAGE = 10;
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showTopBtn, setShowTopBtn] = useState(false);
-    const [range, setRange] = useState<RangeKey>("all");
+    const [range, setRange] = useState<RangeKey>("today");
+    const [page, setPage] = useState(1);
+    const [pageCount, setPageCount] = useState(1);
 
     // Notify parent whenever the range changes (including initial mount)
     useEffect(() => {
@@ -174,13 +177,15 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     }
 
     function buildUrl() {
+        const params = new URLSearchParams();
         const dates = getRangeDates(range);
         if (dates) {
-            const from = dates.from.toISOString();
-            const to = dates.to.toISOString();
-            return `/api/leaderboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+            params.set("from", dates.from.toISOString());
+            params.set("to", dates.to.toISOString());
         }
-        return "/api/leaderboard";
+        params.set("page", page.toString());
+        params.set("perPage", PER_PAGE.toString());
+        return `/api/leaderboard?${params.toString()}`;
     }
 
     useEffect(() => {
@@ -197,7 +202,14 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     throw new Error('Failed to fetch leaderboard');
                 }
                 const data = await response.json();
-                setLeaderboard(data);
+                if (Array.isArray(data)) {
+                    // legacy response (no pagination)
+                    setLeaderboard(data);
+                    setPageCount(1);
+                } else {
+                    setLeaderboard(data.entries);
+                    setPageCount(data.pageCount ?? 1);
+                }
             } catch (err) {
                 setError("Failed to load leaderboard");
                 console.error("Error fetching leaderboard:", err);
@@ -207,7 +219,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         }
 
         fetchLeaderboard();
-    }, [range]);
+    }, [range, page]);
 
     // Show/hide "back to top" button based on scroll position
     useEffect(() => {
@@ -217,6 +229,11 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    // Reset to page 1 whenever range changes
+    useEffect(() => {
+        setPage(1);
+    }, [range]);
 
     const headingLabelMap: Record<RangeKey, string> = {
         today: "Today",
@@ -309,9 +326,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
 
                 <div className="space-y-2">
-                    {leaderboard.map((entry, index) => (
-                        <LeaderboardRow key={entry.userId} entry={entry} index={index} highlightIdentifier={highlightIdentifier} />
-                    ))}
+                    {leaderboard.map((entry, index) => {
+                        // Calculate rank for non-hidden users only
+                        let calculatedRank: number | null = null;
+                        if (!entry.isHidden) {
+                            // Count non-hidden users before this entry
+                            const nonHiddenBefore = leaderboard.slice(0, index).filter(e => !e.isHidden).length;
+                            calculatedRank = (page - 1) * PER_PAGE + nonHiddenBefore + 1;
+                        }
+                        return (
+                            <LeaderboardRow key={entry.userId} entry={entry} rank={calculatedRank} highlightIdentifier={highlightIdentifier} />
+                        );
+                    })}
                     {leaderboard.length === 0 && (
                         <p className="text-center text-muted-foreground py-8">
                             No users have added artists yet. Be the first!
@@ -319,6 +345,27 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     )}
                 </div>
             </CardContent>
+            {pageCount > 1 && (
+                <div className="bg-gray-50 border-t flex justify-end items-center gap-4 p-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                        Prev
+                    </Button>
+                    <span className="text-sm">Page {page} of {pageCount}</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= pageCount}
+                        onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
         </Card>
         {showTopBtn && (
             <Button
