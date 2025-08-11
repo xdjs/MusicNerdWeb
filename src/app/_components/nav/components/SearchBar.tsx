@@ -267,15 +267,22 @@ const WalletSearchBar = forwardRef(
 
     // Fetches combined search results from both database and Spotify
     const { data, isLoading } = useQuery({
-        queryKey: ['combinedSearchResults', debouncedQuery],
+        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
         queryFn: async () => {
-            if (!debouncedQuery) return null;
+            // If query is empty, return user's bookmarked artists
+            if (!debouncedQuery) {
+                return getBookmarkedArtists(session?.user?.id);
+            }
+            
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ query: debouncedQuery }),
+                body: JSON.stringify({ 
+                    query: debouncedQuery,
+                    bookmarkedArtistIds: getBookmarkedArtistIds(session?.user?.id)
+                }),
             });
             if (!response.ok) {
                 throw new Error('Search request failed');
@@ -283,7 +290,7 @@ const WalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: debouncedQuery.length > 0,
+        enabled: showResults && !!session?.user?.id, // Run when results should be shown and user is logged in
         retry: 2,
     });
 
@@ -331,11 +338,11 @@ const WalletSearchBar = forwardRef(
                     <div ref={resultsContainer} className={`absolute w-full ${dropDirection === 'up' ? 'bottom-full mb-2' : 'mt-2'} bg-white rounded-lg shadow-lg overflow-y-auto max-h-64`}>
                         {isLoading ? (
                             <Spinner />
-                        ) : (debouncedQuery && (!data || data.length === 0)) ? (
+                        ) : (debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
                             </div>
-                        ) : data ? (
+                        ) : (data && Array.isArray(data)) ? (
                             <div>
                                 {data.map((result: SearchResult) => {
                                     const spotifyImage = result.images?.[0]?.url;
@@ -450,6 +457,7 @@ const NoWalletSearchBar = forwardRef(
     const blurTimeoutRef = useRef<NodeJS.Timeout>();
     const [isAddingArtist, setIsAddingArtist] = useState(false);
     const [isAddingNew, setIsAddingNew] = useState(false);
+    const [bookmarkUpdateTrigger, setBookmarkUpdateTrigger] = useState(0);
     const { data: session, status } = useSession();
     const { toast } = useToast();
     
@@ -473,6 +481,16 @@ const NoWalletSearchBar = forwardRef(
             setIsAddingArtist(false);
             setIsAddingNew(false);
         };
+    }, []);
+
+    // Listen for bookmark updates to refresh the UI
+    useEffect(() => {
+        const handleBookmarkUpdate = () => {
+            setBookmarkUpdateTrigger(prev => prev + 1);
+        };
+
+        window.addEventListener('bookmarksUpdated', handleBookmarkUpdate);
+        return () => window.removeEventListener('bookmarksUpdated', handleBookmarkUpdate);
     }, []);
 
     // Add effect to handle authentication state changes
@@ -615,15 +633,22 @@ const NoWalletSearchBar = forwardRef(
 
     // Fetches combined search results from both database and Spotify
     const { data, isLoading } = useQuery({
-        queryKey: ['combinedSearchResults', debouncedQuery],
+        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
         queryFn: async () => {
-            if (!debouncedQuery) return null;
+            // If query is empty, return user's bookmarked artists
+            if (!debouncedQuery) {
+                return getBookmarkedArtists(session?.user?.id);
+            }
+            
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ query: debouncedQuery }),
+                body: JSON.stringify({ 
+                    query: debouncedQuery,
+                    bookmarkedArtistIds: getBookmarkedArtistIds(session?.user?.id)
+                }),
             });
             if (!response.ok) {
                 throw new Error('Search request failed');
@@ -631,7 +656,7 @@ const NoWalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: debouncedQuery.length > 0,
+        enabled: showResults && !!session?.user?.id, // Run when results should be shown and user is logged in
         retry: 2,
     });
 
@@ -775,11 +800,11 @@ const NoWalletSearchBar = forwardRef(
                     <div ref={resultsContainer} className={`absolute w-full ${dropDirection === 'up' ? 'bottom-full mb-2' : 'mt-2'} bg-white rounded-lg shadow-lg overflow-y-auto max-h-64`}>
                         {isLoading ? (
                             <Spinner />
-                        ) : (debouncedQuery && (!data || data.length === 0)) ? (
+                        ) : (debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
                             </div>
-                        ) : data ? (
+                        ) : (data && Array.isArray(data)) ? (
                             <div>
                                 {data.map((result: SearchResult) => {
                                     const spotifyImage = result.images?.[0]?.url;
@@ -948,6 +973,47 @@ function SocialIcons({ result }: { result: SearchResult }) {
             {icons}
         </div>
     );
+}
+
+// Helper function to get all bookmarked artist IDs for the current user
+function getBookmarkedArtistIds(userId: string | undefined): string[] {
+    if (!userId) return [];
+    
+    try {
+        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        if (raw) {
+            const bookmarks = JSON.parse(raw) as { artistId: string }[];
+            return bookmarks.map(b => b.artistId);
+        }
+    } catch (e) {
+        console.debug('[SearchResults] error parsing bookmarks', e);
+    }
+    
+    return [];
+}
+
+// Helper function to get bookmarked artists with full data in user's preferred order
+function getBookmarkedArtists(userId: string | undefined): Array<{id: string, name: string, images?: {url: string}[]}> {
+    if (!userId) return [];
+    
+    try {
+        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        if (raw) {
+            const bookmarks = JSON.parse(raw) as { artistId: string; artistName: string; imageUrl?: string }[];
+            return bookmarks.map(b => ({
+                id: b.artistId,
+                name: b.artistName,
+                images: b.imageUrl ? [{ url: b.imageUrl }] : undefined,
+                isSpotifyOnly: false,
+                matchScore: 0, // All bookmarks have same priority in empty search
+                linkCount: 1 // Ensure they don't get filtered out
+            }));
+        }
+    } catch (e) {
+        console.debug('[SearchResults] error parsing bookmarks', e);
+    }
+    
+    return [];
 }
 
 // Helper function to check if an artist is bookmarked by the current user
