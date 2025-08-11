@@ -49,11 +49,11 @@ export async function getEnsAvatar(address: string): Promise<string | null> {
 }
 
 /**
- * Generate a Jazzicon for a given address using MetaMask's existing seed
+ * Generate a Jazzicon for a given address using MetaMask's existing seed only
  */
-export function generateJazzicon(address: string, size: number = 32): HTMLElement {
+export function generateJazzicon(address: string, size: number = 32): HTMLElement | null {
   try {
-    // Try to get the existing MetaMask Jazzicon seed first
+    // Only use existing MetaMask Jazzicon seed
     const existingSeed = getExistingJazziconSeed(address);
     
     if (existingSeed !== null) {
@@ -64,27 +64,11 @@ export function generateJazzicon(address: string, size: number = 32): HTMLElemen
       return element;
     }
     
-    // Fallback to generating seed from address (same as MetaMask does)
-    const addr = address.slice(2, 10);
-    const seed = parseInt(addr, 16);
-    
-    // Generate the Jazzicon
-    const element = jazzicon(size, seed);
-    
-    // Ensure it has the right size
-    element.style.width = `${size}px`;
-    element.style.height = `${size}px`;
-    
-    return element;
+    // No existing seed found - return null to fall back to default
+    return null;
   } catch (error) {
     console.debug('[AvatarUtils] Error generating Jazzicon:', error);
-    // Return a fallback div
-    const fallback = document.createElement('div');
-    fallback.style.width = `${size}px`;
-    fallback.style.height = `${size}px`;
-    fallback.style.backgroundColor = '#f0f0f0';
-    fallback.style.borderRadius = '50%';
-    return fallback;
+    return null;
   }
 }
 
@@ -105,10 +89,13 @@ export async function getUserAvatar(address: string): Promise<AvatarData> {
 
     // Check if user has an existing Jazzicon seed
     if (hasExistingJazzicon(address)) {
-      return {
-        type: 'jazzicon',
-        element: generateJazzicon(address, 32),
-      };
+      const jazziconElement = generateJazzicon(address, 32);
+      if (jazziconElement) {
+        return {
+          type: 'jazzicon',
+          element: jazziconElement,
+        };
+      }
     }
 
     // Fallback to default

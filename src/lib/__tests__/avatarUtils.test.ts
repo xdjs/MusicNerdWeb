@@ -26,21 +26,32 @@ describe('avatarUtils', () => {
   });
 
   describe('generateJazzicon', () => {
-    it('should generate a Jazzicon element for a valid address', () => {
+    it('should generate a Jazzicon element when existing seed is found', () => {
+      const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
+      localStorage.setItem(`jazzicon_${address.toLowerCase()}`, '12345');
+      
+      const element = generateJazzicon(address, 32);
+      
+      expect(element).not.toBeNull();
+      expect(element).toBeInstanceOf(HTMLElement);
+      if (element) {
+        expect(element.style.width).toBe('32px');
+        expect(element.style.height).toBe('32px');
+      }
+    });
+
+    it('should return null when no existing seed is found', () => {
       const address = '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6';
       const element = generateJazzicon(address, 32);
       
-      expect(element).toBeInstanceOf(HTMLElement);
-      expect(element.style.width).toBe('32px');
-      expect(element.style.height).toBe('32px');
+      expect(element).toBeNull();
     });
 
-    it('should handle invalid addresses gracefully', () => {
+    it('should return null for invalid addresses', () => {
       const address = 'invalid-address';
       const element = generateJazzicon(address, 32);
       
-      expect(element).toBeInstanceOf(HTMLElement);
-      expect(element.style.backgroundColor).toBe('#f0f0f0');
+      expect(element).toBeNull();
     });
   });
 
