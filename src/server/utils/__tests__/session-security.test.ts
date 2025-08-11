@@ -275,6 +275,7 @@ describe('Session Security', () => {
                 isAdmin: false,
                 isWhiteListed: true,
                 isSuperAdmin: false,
+                isHidden: false,
                 acceptedUgcCount: null
             };
 
@@ -301,6 +302,7 @@ describe('Session Security', () => {
                 isAdmin: false,
                 isWhiteListed: true,
                 isSuperAdmin: false,
+                isHidden: false,
                 acceptedUgcCount: null
             };
 
