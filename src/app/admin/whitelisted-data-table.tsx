@@ -73,7 +73,7 @@ export function AddWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add Whitelist</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -124,7 +124,7 @@ export function AddAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add Admin</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -175,7 +175,7 @@ export function AddHiddenDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Hide</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Hide User</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -224,7 +224,7 @@ export function RemoveHiddenDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Unhide</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Unhide User</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -268,7 +268,7 @@ export function RemoveWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove Whitelist</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Whitelist</DialogTitle></DialogHeader>
@@ -307,7 +307,7 @@ export function RemoveAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove Admin</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Admin</DialogTitle></DialogHeader>
@@ -439,7 +439,9 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center w-full">
+            <div className="flex flex-col gap-4 text-black w-full">
+                {/* Top row: Filter and Search */}
+                <div className="flex gap-4 items-center">
                 {/* Role filter dropdown */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
@@ -465,29 +467,33 @@ export default function UsersDataTable<TData, TValue>({
                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
+                </div>
+                
+                {/* Button row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 w-full">
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
-                        <Button variant="outline" onClick={() => commitAddSelectedToWhitelist()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Whitelist"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitRemoveFromWhitelist()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Whitelist"}
                         </Button>
 
                         {/* Admin selected buttons */}
-                        <Button variant="outline" onClick={() => commitAddSelectedToAdmin()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Admin"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitRemoveFromAdmin()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Admin"}
                         </Button>
 
                         {/* Hidden selected buttons */}
-                        <Button variant="outline" onClick={() => commitAddSelectedToHidden()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToHidden()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitRemoveFromHidden()}>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromHidden()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected"}
                         </Button>
                     </>
@@ -502,6 +508,7 @@ export default function UsersDataTable<TData, TValue>({
                         <RemoveHiddenDialog />
                     </>
                 )}
+                </div>
             </div>
 
             {uploadStatus.status === "error" && <p className="text-red-500">{uploadStatus.message}</p>}
