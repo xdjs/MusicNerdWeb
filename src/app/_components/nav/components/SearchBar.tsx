@@ -342,10 +342,6 @@ const WalletSearchBar = forwardRef(
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
                             </div>
-                        ) : (!debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
-                            <div className="flex justify-center items-center p-3 font-medium text-gray-500">
-                                <p>No bookmarks yet!</p>
-                            </div>
                         ) : (data && Array.isArray(data)) ? (
                             <div>
                                 {data.map((result: SearchResult) => {
@@ -807,10 +803,6 @@ const NoWalletSearchBar = forwardRef(
                         ) : (debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
-                            </div>
-                        ) : (!debouncedQuery && (!data || !Array.isArray(data) || data.length === 0)) ? (
-                            <div className="flex justify-center items-center p-3 font-medium text-gray-500">
-                                <p>No bookmarks yet!</p>
                             </div>
                         ) : (data && Array.isArray(data)) ? (
                             <div>
