@@ -235,9 +235,20 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 
                 const idx = data.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
                 if (idx !== -1) {
-                    // Check if the current user is hidden
+                    // Check if the current user is hidden - check both user object and leaderboard entry
                     const userEntry = data[idx];
-                    if (userEntry?.isHidden) {
+                    const isUserHidden = user.isHidden || userEntry?.isHidden;
+                    
+                    console.debug('[Dashboard] Rank calculation:', {
+                        userIsHidden: user.isHidden,
+                        entryIsHidden: userEntry?.isHidden,
+                        finalIsHidden: isUserHidden,
+                        userWallet: user.wallet,
+                        entryWallet: userEntry?.wallet
+                    });
+                    
+                    if (isUserHidden) {
+                        console.debug('[Dashboard] Setting rank to -1 for hidden user');
                         setRank(-1); // Use -1 to indicate hidden user
                     } else {
                         // Calculate rank among non-hidden users only
@@ -507,7 +518,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {rank ?? '—'}
+                                        {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
                                     {totalEntries && (
                                         <>

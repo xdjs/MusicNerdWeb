@@ -456,15 +456,15 @@ export default function UsersDataTable<TData, TValue>({
                     </SelectContent>
                 </Select>
 
-                {/* Search bar */}
-                <div className="relative text-black max-w-xs">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search users..."
-                        className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
-                    />
+                                 {/* Search bar */}
+                 <div className="relative text-black max-w-sm">
+                     <input
+                         type="text"
+                         value={query}
+                         onChange={(e) => setQuery(e.target.value)}
+                         placeholder="Search users by wallet or username..."
+                         className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
+                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
                 </div>
