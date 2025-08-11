@@ -24,6 +24,7 @@ declare module "next-auth" {
       isWhiteListed?: boolean;
       isAdmin?: boolean;
       isSuperAdmin?: boolean;
+      isHidden?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -40,6 +41,7 @@ declare module "next-auth" {
     isWhiteListed?: boolean;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
+    isHidden?: boolean;
   }
 }
 
@@ -49,6 +51,7 @@ declare module "next-auth/jwt" {
     isWhiteListed?: boolean;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
+    isHidden?: boolean;
     lastRefresh?: number;
   }
 }
@@ -69,6 +72,7 @@ export const authOptions: NextAuthOptions = {
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
         token.isSuperAdmin = user.isSuperAdmin;
+        token.isHidden = user.isHidden;
         token.lastRefresh = Date.now();
       } else {
         // Refresh user data from database in these cases:
@@ -81,7 +85,8 @@ export const authOptions: NextAuthOptions = {
           (Date.now() - (token.lastRefresh as number)) > 5 * 60 * 1000 || // 5 minutes
           token.isAdmin === undefined || 
           token.isWhiteListed === undefined ||
-          token.isSuperAdmin === undefined;
+          token.isSuperAdmin === undefined ||
+          token.isHidden === undefined;
 
         if (shouldRefresh && token.walletAddress) {
           try {
@@ -97,6 +102,7 @@ export const authOptions: NextAuthOptions = {
               token.isWhiteListed = refreshedUser.isWhiteListed;
               token.isAdmin = refreshedUser.isAdmin;
               token.isSuperAdmin = refreshedUser.isSuperAdmin;
+              token.isHidden = refreshedUser.isHidden;
               token.email = refreshedUser.email;
               token.name = refreshedUser.username;
               token.lastRefresh = Date.now();
@@ -105,6 +111,7 @@ export const authOptions: NextAuthOptions = {
                 isAdmin: refreshedUser.isAdmin,
                 isWhiteListed: refreshedUser.isWhiteListed,
                 isSuperAdmin: refreshedUser.isSuperAdmin,
+                isHidden: refreshedUser.isHidden,
                 userId: refreshedUser.id
               });
             }
@@ -127,6 +134,7 @@ export const authOptions: NextAuthOptions = {
           isWhiteListed: token.isWhiteListed,
           isAdmin: token.isAdmin,
           isSuperAdmin: token.isSuperAdmin,
+          isHidden: token.isHidden,
         },
       }
     },
@@ -178,6 +186,8 @@ export const authOptions: NextAuthOptions = {
               isSignupComplete: true,
               isWhiteListed: true, // Make temporary user whitelisted
               isAdmin: false,
+              isSuperAdmin: false,
+              isHidden: false,
             };
           }
 
@@ -242,6 +252,7 @@ export const authOptions: NextAuthOptions = {
             isWhiteListed: user.isWhiteListed, // Include whitelist status from database
             isAdmin: user.isAdmin,
             isSuperAdmin: user.isSuperAdmin,
+            isHidden: user.isHidden,
           };
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);

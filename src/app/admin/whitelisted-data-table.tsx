@@ -8,10 +8,10 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin } from "@/app/actions/serverActions";
+import { addUsersToWhitelistAction as addUsersToWhitelist, addUsersToAdminAction as addUsersToAdmin, addUsersToHiddenAction as addUsersToHidden } from "@/app/actions/serverActions";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin } from "@/app/actions/serverActions";
+import { removeFromWhitelistAction as removeFromWhitelist, removeFromAdminAction as removeFromAdmin, removeFromHiddenAction as removeFromHidden } from "@/app/actions/serverActions";
 import {
     Table,
     TableBody,
@@ -73,7 +73,7 @@ export function AddWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add User to Whitelist</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -124,7 +124,7 @@ export function AddAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Add User to Admin</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader>
@@ -139,6 +139,106 @@ export function AddAdminDialog() {
                 </div>
                 <DialogFooter>
                     <Button type="submit" onClick={() => addToAdmin()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// Dialog for adding users to hidden role
+export function AddHiddenDialog() {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const router = useRouter();
+    const [users, setUsers] = useState<string[]>([]);
+    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
+    const [query, setQuery] = useState('');
+
+    async function addToHidden() {
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        const resp = await addUsersToHidden(users);
+        if (resp.status === "success") {
+            router.refresh();
+            setIsDialogOpen(false);
+            setUsers([]);
+        }
+        setUploadStatus({ status: resp.status as "success" | "error", message: resp.message, isLoading: false });
+    }
+
+    function removeFromUsers(user: string) {
+        setUsers(users.filter((u) => u !== user));
+    }
+
+    function setUserWithFilter(user: string) {
+        setUsers([...users.filter((u) => u !== user), user]);
+    }
+
+    return (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Hide User</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] text-black">
+                <DialogHeader>
+                    <DialogTitle>Hide Users from Leaderboards</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <div className="space-y-4">
+                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
+                    <div>
+                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="submit" onClick={() => addToHidden()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// Dialog to remove by search from hidden
+export function RemoveHiddenDialog() {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const router = useRouter();
+    const [users, setUsers] = useState<string[]>([]);
+    const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
+    const [query, setQuery] = useState('');
+
+    async function removeFromHiddenList() {
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        const resp = await removeFromHidden(users);
+        router.refresh();
+        setIsDialogOpen(false);
+        setUsers([]);
+        setUploadStatus({ status: "success", message: "", isLoading: false });
+    }
+
+    function removeFromUsers(user: string) {
+        setUsers(users.filter((u) => u !== user));
+    }
+
+    function setUserWithFilter(user: string) {
+        setUsers([...users.filter((u) => u !== user), user]);
+    }
+
+    return (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Unhide User</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] text-black">
+                <DialogHeader>
+                    <DialogTitle>Unhide Users from Leaderboards</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <div className="space-y-4">
+                    <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
+                    <div>
+                        {users.map((user) => <Button variant="outline" onClick={() => removeFromUsers(user)} key={user}>{user} <X className="w-4 h-4 ml-1" /></Button>)} 
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="submit" onClick={() => removeFromHiddenList()}>Save changes {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" /> : ""}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -168,7 +268,7 @@ export function RemoveWhitelistDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove User from Whitelist</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Whitelist</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Whitelist</DialogTitle></DialogHeader>
@@ -207,7 +307,7 @@ export function RemoveAdminDialog() {
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Remove User from Admin</Button>
+                <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Admin</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] text-black">
                 <DialogHeader><DialogTitle>Remove Users from Admin</DialogTitle></DialogHeader>
@@ -254,7 +354,8 @@ export default function UsersDataTable<TData, TValue>({
             arr = arr.filter((row: any) => {
                 if (roleFilter === "Admin") return row.isAdmin;
                 if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
-                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
+                if (roleFilter === "Hidden") return row.isHidden;
+                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed && !row.isHidden;
                 return true;
             });
         }
@@ -320,9 +421,27 @@ export default function UsersDataTable<TData, TValue>({
         router.refresh();
     }
 
+    async function commitAddSelectedToHidden() {
+        const wallets = table.getFilteredSelectedRowModel().rows.map((row)=> row.original as TDataWithId).map((row:any)=> row.wallet).filter(Boolean);
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        await addUsersToHidden(wallets);
+        setUploadStatus({ status: "success", message: "", isLoading: false });
+        router.refresh();
+    }
+
+    async function commitRemoveFromHidden() {
+        const selectedUsers = table.getFilteredSelectedRowModel().rows.map((row) => row.original as TDataWithId).map((row) => row.id);
+        setUploadStatus({ status: "success", message: "", isLoading: true });
+        await removeFromHidden(selectedUsers);
+        setUploadStatus({ status: "success", message: "", isLoading: false });
+        router.refresh();
+    }
+
     return (
         <div className="space-y-4">
-            <div className="flex gap-4 text-black flex-wrap items-center w-full">
+            <div className="flex flex-col gap-4 text-black w-full">
+                {/* Top row: Filter and Search */}
+                <div className="flex gap-4 items-center">
                 {/* Role filter dropdown */}
                 <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
                     <SelectTrigger className="w-[160px]">
@@ -332,37 +451,50 @@ export default function UsersDataTable<TData, TValue>({
                         <SelectItem value="All">All Users</SelectItem>
                         <SelectItem value="Admin">Admins</SelectItem>
                         <SelectItem value="Whitelisted">Whitelisted Users</SelectItem>
+                        <SelectItem value="Hidden">Hidden Users</SelectItem>
                         <SelectItem value="User">Users</SelectItem>
                     </SelectContent>
                 </Select>
 
-                {/* Search bar */}
-                <div className="relative text-black flex-grow max-w-sm">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search users by wallet or username..."
-                        className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
-                    />
+                                 {/* Search bar */}
+                 <div className="relative text-black max-w-sm">
+                     <input
+                         type="text"
+                         value={query}
+                         onChange={(e) => setQuery(e.target.value)}
+                         placeholder="Search users by wallet or username..."
+                         className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
+                     />
                     <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
                 </div>
+                </div>
+                
+                {/* Button row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 w-full">
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
-                        <Button variant="outline" onClick={() => commitAddSelectedToWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Whitelist"}
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToWhitelist()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Whitelist"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitRemoveFromWhitelist()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Whitelist"}
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromWhitelist()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Whitelist"}
                         </Button>
 
                         {/* Admin selected buttons */}
-                        <Button variant="outline" onClick={() => commitAddSelectedToAdmin()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected to Admin"}
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToAdmin()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Admin"}
                         </Button>
-                        <Button variant="outline" onClick={() => commitRemoveFromAdmin()}>
-                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected from Admin"}
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromAdmin()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Admin"}
+                        </Button>
+
+                        {/* Hidden selected buttons */}
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToHidden()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected"}
+                        </Button>
+                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromHidden()}>
+                            {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected"}
                         </Button>
                     </>
                 ) : (
@@ -372,8 +504,11 @@ export default function UsersDataTable<TData, TValue>({
                         <RemoveWhitelistDialog />
                         <AddAdminDialog />
                         <RemoveAdminDialog />
+                        <AddHiddenDialog />
+                        <RemoveHiddenDialog />
                     </>
                 )}
+                </div>
             </div>
 
             {uploadStatus.status === "error" && <p className="text-red-500">{uploadStatus.message}</p>}
