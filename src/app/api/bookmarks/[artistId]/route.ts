@@ -71,8 +71,14 @@ export async function DELETE(
     );
   } catch (error) {
     console.error('[Bookmarks API] DELETE error:', error);
+    console.error('[Bookmarks API] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: session?.user?.id,
+      artistId
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
