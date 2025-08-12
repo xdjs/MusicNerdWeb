@@ -38,7 +38,7 @@ export async function DELETE(
     const existingBookmark = await db
       .select({ id: bookmarks.id, position: bookmarks.position })
       .from(bookmarks)
-      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.artistId, artistId)))
+      .where(and(eq(bookmarks.userId, userId!), eq(bookmarks.artistId, artistId!)))
       .limit(1);
 
     if (existingBookmark.length === 0) {
@@ -53,7 +53,7 @@ export async function DELETE(
     // Delete the bookmark
     await db
       .delete(bookmarks)
-      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.artistId, artistId)));
+      .where(and(eq(bookmarks.userId, userId!), eq(bookmarks.artistId, artistId!)));
 
     // Reorder remaining bookmarks to fill the gap
     await db
@@ -64,7 +64,7 @@ export async function DELETE(
       })
       .where(
         and(
-          eq(bookmarks.userId, userId),
+          eq(bookmarks.userId, userId!),
           gt(bookmarks.position, deletedPosition)
         )
       );
