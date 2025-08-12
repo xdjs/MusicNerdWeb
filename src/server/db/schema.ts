@@ -165,6 +165,33 @@ export const artists = pgTable("artists", {
 		}
 	});
 
+// Stores per-user artist bookmarks with stable ordering
+export const userBookmarks = pgTable("user_bookmarks", {
+    id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    userId: uuid("user_id").notNull(),
+    artistId: uuid("artist_id").notNull(),
+    // Order index allows manual reordering in the UI; lower numbers appear first
+    orderIndex: integer("order_index").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+},
+    (table) => {
+        return {
+            // Ensure a user can only bookmark an artist once
+            userBookmarksUnique: unique("user_bookmarks_user_artist_unique").on(table.userId, table.artistId),
+            userBookmarksUserFkey: foreignKey({
+                columns: [table.userId],
+                foreignColumns: [users.id],
+                name: "user_bookmarks_user_id_fkey",
+            }),
+            userBookmarksArtistFkey: foreignKey({
+                columns: [table.artistId],
+                foreignColumns: [artists.id],
+                name: "user_bookmarks_artist_id_fkey",
+            }),
+        }
+    }
+);
+
 export const ugcresearch = pgTable("ugcresearch", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
