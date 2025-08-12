@@ -11,7 +11,6 @@ interface BookmarkButtonProps {
   artistName: string;
   className?: string;
   size?: 'sm' | 'default' | 'lg';
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
 }
 
 export function BookmarkButton({
@@ -19,7 +18,6 @@ export function BookmarkButton({
   artistName,
   className = '',
   size = 'default',
-  variant,
 }: BookmarkButtonProps) {
   const { bookmarks, addBookmark, removeBookmark, loading } = useBookmarks();
   const { toast } = useToast();

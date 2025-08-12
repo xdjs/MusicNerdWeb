@@ -84,7 +84,6 @@ export const artists = pgTable("artists", {
 	bio: text("bio"),
 	youtube: text("youtube"),
 	youtubechannel: text("youtubechannel"),
-	bio: text("bio"),
 	lcname: text("lcname"),
 	soundcloudId: integer("soundcloudID"),
 	spotify: text("spotify"),
