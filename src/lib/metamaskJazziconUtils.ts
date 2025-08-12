@@ -92,10 +92,20 @@ export function getExistingMetaMaskJazziconSeed(address: string): number | null 
  */
 export function generateMetaMaskJazzicon(address: string, size: number = 32): HTMLElement | null {
   try {
+    if (!address || address.length < 10) {
+      console.debug('[MetaMaskJazziconUtils] Invalid address:', address);
+      return null;
+    }
+
     // Use the same algorithm as MetaMask to generate the seed from the address
     // MetaMask takes the first 8 characters of the address (excluding 0x) and converts to integer
     const addr = address.slice(2, 10); // Remove 0x and take first 8 chars
     const seed = parseInt(addr, 16);
+    
+    if (isNaN(seed)) {
+      console.debug('[MetaMaskJazziconUtils] Invalid seed generated:', { address, addr, seed });
+      return null;
+    }
     
     console.debug('[MetaMaskJazziconUtils] Generated Jazzicon with seed:', { address, addr, seed });
     
@@ -103,6 +113,8 @@ export function generateMetaMaskJazzicon(address: string, size: number = 32): HT
     const element = jazzicon(size, seed);
     element.style.width = `${size}px`;
     element.style.height = `${size}px`;
+    
+    console.debug('[MetaMaskJazziconUtils] Jazzicon element created successfully');
     return element;
   } catch (error) {
     console.debug('[MetaMaskJazziconUtils] Error generating Jazzicon:', error);
@@ -116,10 +128,13 @@ export function generateMetaMaskJazzicon(address: string, size: number = 32): HT
 export function jazziconToDataURL(element: HTMLElement): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
+      console.debug('[MetaMaskJazziconUtils] Converting Jazzicon to data URL...');
+      
       // Create a canvas to convert the SVG to a data URL
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
+        console.debug('[MetaMaskJazziconUtils] Could not get canvas context');
         reject(new Error('Could not get canvas context'));
         return;
       }
@@ -131,6 +146,8 @@ export function jazziconToDataURL(element: HTMLElement): Promise<string> {
       
       // Convert SVG to string
       const svgString = element.outerHTML;
+      console.debug('[MetaMaskJazziconUtils] SVG string length:', svgString.length);
+      
       const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(svgBlob);
       
@@ -138,21 +155,26 @@ export function jazziconToDataURL(element: HTMLElement): Promise<string> {
       const img = new Image();
       img.onload = () => {
         try {
+          console.debug('[MetaMaskJazziconUtils] Image loaded, drawing to canvas...');
           ctx.drawImage(img, 0, 0, size, size);
           URL.revokeObjectURL(url);
           const dataURL = canvas.toDataURL('image/png');
+          console.debug('[MetaMaskJazziconUtils] Data URL generated successfully, length:', dataURL.length);
           resolve(dataURL);
         } catch (error) {
+          console.debug('[MetaMaskJazziconUtils] Error drawing image to canvas:', error);
           URL.revokeObjectURL(url);
           reject(error);
         }
       };
-      img.onerror = () => {
+      img.onerror = (error) => {
+        console.debug('[MetaMaskJazziconUtils] Error loading SVG image:', error);
         URL.revokeObjectURL(url);
         reject(new Error('Failed to load SVG image'));
       };
       img.src = url;
     } catch (error) {
+      console.debug('[MetaMaskJazziconUtils] Error in jazziconToDataURL:', error);
       reject(error);
     }
   });
