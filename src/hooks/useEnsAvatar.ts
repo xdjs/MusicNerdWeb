@@ -5,7 +5,6 @@ import { mainnet } from 'wagmi/chains';
 import { createPublicClient, http } from 'viem';
 import { getEnsAvatar, getEnsName } from 'viem/ens';
 import { jsNumberForAddress } from 'react-jazzicon';
-import { normalizeAddress } from '@/lib/addressUtils';
 
 const publicClient = createPublicClient({
   chain: mainnet,
@@ -52,10 +51,8 @@ export function useEnsAvatar() {
     fetchAvatar();
   }, [address]);
 
-  // Generate Jazzicon seed from normalized address when no ENS avatar is available
-  // This ensures consistent profile pictures regardless of address casing from different wallet connections
-  const normalizedAddressForJazzicon = normalizeAddress(address);
-  const jazziconSeed = normalizedAddressForJazzicon && !ensAvatar ? jsNumberForAddress(normalizedAddressForJazzicon) : null;
+  // Generate Jazzicon seed from address when no ENS avatar is available
+  const jazziconSeed = address && !ensAvatar ? jsNumberForAddress(address) : null;
   
   return { 
     ensAvatar, 
