@@ -200,6 +200,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
     const currentBookmarks = bookmarks.slice(bookmarkPage * pageSize, bookmarkPage * pageSize + pageSize);
+    // In edit mode, show the full list with a scrollbar (no pagination)
+    const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
     // Range selection (synced with Leaderboard)
@@ -716,7 +718,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
-                                    <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2 w-full justify-center md:justify-start">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         {isEditingBookmarks && bookmarks.length > 0 && (
                                             <div className="flex items-center gap-2">
@@ -740,19 +742,21 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 onDragEnd={handleDragEnd}
                                             >
                                                 <SortableContext
-                                                    items={currentBookmarks.map(item => item.artistId)}
+                                                    items={displayBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <ul className="space-y-3">
-                                                        {currentBookmarks.map((item) => (
-                                                            <SortableBookmarkItem
-                                                                key={item.artistId}
-                                                                item={item}
-                                                                isEditing={isEditingBookmarks}
-                                                                onDelete={deleteBookmark}
-                                                            />
-                                                        ))}
-                                                    </ul>
+                                                    <div className={isEditingBookmarks ? "max-h-96 overflow-y-auto pr-1 w-full" : undefined}>
+                                                        <ul className="space-y-3">
+                                                            {displayBookmarks.map((item) => (
+                                                                <SortableBookmarkItem
+                                                                    key={item.artistId}
+                                                                    item={item}
+                                                                    isEditing={isEditingBookmarks}
+                                                                    onDelete={deleteBookmark}
+                                                                />
+                                                            ))}
+                                                        </ul>
+                                                    </div>
                                                 </SortableContext>
                                             </DndContext>
                                         </>
@@ -761,7 +765,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     )}
 
                                     {/* Pagination controls - moved to bottom */}
-                                    {totalBookmarkPages > 1 && (
+                                    {!isEditingBookmarks && totalBookmarkPages > 1 && (
                                         <div className="flex items-center gap-2">
                                             <Button
                                                 variant="outline"
