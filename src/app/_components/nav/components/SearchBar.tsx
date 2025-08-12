@@ -20,6 +20,7 @@ import { Wallet } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
 import type { Session } from "next-auth";
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -71,6 +72,7 @@ const WalletSearchBar = forwardRef(
     const [bookmarkUpdateTrigger, setBookmarkUpdateTrigger] = useState(0);
     const { data: session, status } = useSession();
     const { toast } = useToast();
+    const { isBookmarked, bookmarks } = useBookmarks();
     const loginRef = useRef<HTMLButtonElement>(null);
     const shouldPromptRef = useRef(false);
     // Used to delay opening RainbowKit until next-auth status is settled
@@ -267,11 +269,18 @@ const WalletSearchBar = forwardRef(
 
     // Fetches combined search results from both database and Spotify
     const { data, isLoading } = useQuery({
-        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
+        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger, bookmarks.length],
         queryFn: async () => {
             // If query is empty, return user's bookmarked artists
             if (!debouncedQuery) {
-                return getBookmarkedArtists(session?.user?.id);
+                return bookmarks.map(bookmark => ({
+                    id: bookmark.artistId,
+                    name: bookmark.artist.name,
+                    images: bookmark.artist.imageUrl ? [{ url: bookmark.artist.imageUrl }] : undefined,
+                    isSpotifyOnly: false,
+                    matchScore: 0, // All bookmarks have same priority in empty search
+                    linkCount: 1 // Ensure they don't get filtered out
+                }));
             }
             
             const response = await fetch('/api/searchArtists', {
@@ -281,7 +290,7 @@ const WalletSearchBar = forwardRef(
                 },
                 body: JSON.stringify({ 
                     query: debouncedQuery,
-                    bookmarkedArtistIds: getBookmarkedArtistIds(session?.user?.id)
+                    bookmarkedArtistIds: bookmarks.map(b => b.artistId)
                 }),
             });
             if (!response.ok) {
@@ -366,16 +375,16 @@ const WalletSearchBar = forwardRef(
                                                         !(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) 
                                                         ? 'flex items-center h-full' : '-mb-0.5'
                                                     } flex items-center gap-2`}>
-                                                        {result.name}
-                                                        {!result.isSpotifyOnly && session?.user?.id && isArtistBookmarked(result.id, session.user.id, bookmarkUpdateTrigger) && (
-                                                            <span title="Bookmarked">
-                                                                <Bookmark 
-                                                                    size={14} 
-                                                                    className="fill-current"
-                                                                    style={{ color: '#ef95ff' }}
-                                                                />
-                                                            </span>
-                                                        )}
+                                                                                                                 {result.name}
+                                                         {!result.isSpotifyOnly && session?.user?.id && isBookmarked(result.id) && (
+                                                             <span title="Bookmarked">
+                                                                 <Bookmark 
+                                                                     size={14} 
+                                                                     className="fill-current"
+                                                                     style={{ color: '#ef95ff' }}
+                                                                 />
+                                                             </span>
+                                                         )}
                                                     </div>
                                                     {result.isSpotifyOnly ? (
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -460,6 +469,7 @@ const NoWalletSearchBar = forwardRef(
     const [bookmarkUpdateTrigger, setBookmarkUpdateTrigger] = useState(0);
     const { data: session, status } = useSession();
     const { toast } = useToast();
+    const { isBookmarked, bookmarks } = useBookmarks();
     
     // Wagmi hooks are safe to use here
     const { openConnectModal: connectModal } = useConnectModal() ?? {};
@@ -633,11 +643,18 @@ const NoWalletSearchBar = forwardRef(
 
     // Fetches combined search results from both database and Spotify
     const { data, isLoading } = useQuery({
-        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
+        queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger, bookmarks.length],
         queryFn: async () => {
             // If query is empty, return user's bookmarked artists
             if (!debouncedQuery) {
-                return getBookmarkedArtists(session?.user?.id);
+                return bookmarks.map(bookmark => ({
+                    id: bookmark.artistId,
+                    name: bookmark.artist.name,
+                    images: bookmark.artist.imageUrl ? [{ url: bookmark.artist.imageUrl }] : undefined,
+                    isSpotifyOnly: false,
+                    matchScore: 0, // All bookmarks have same priority in empty search
+                    linkCount: 1 // Ensure they don't get filtered out
+                }));
             }
             
             const response = await fetch('/api/searchArtists', {
@@ -647,7 +664,7 @@ const NoWalletSearchBar = forwardRef(
                 },
                 body: JSON.stringify({ 
                     query: debouncedQuery,
-                    bookmarkedArtistIds: getBookmarkedArtistIds(session?.user?.id)
+                    bookmarkedArtistIds: bookmarks.map(b => b.artistId)
                 }),
             });
             if (!response.ok) {
@@ -827,8 +844,17 @@ const NoWalletSearchBar = forwardRef(
                                                         !result.isSpotifyOnly && 
                                                         !(result.bandcamp || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok) 
                                                         ? 'flex items-center h-full' : '-mb-0.5'
-                                                    }`}>
+                                                    } flex items-center gap-2`}>
                                                         {result.name}
+                                                        {!result.isSpotifyOnly && session?.user?.id && isBookmarked(result.id) && (
+                                                            <span title="Bookmarked">
+                                                                <Bookmark 
+                                                                    size={14} 
+                                                                    className="fill-current"
+                                                                    style={{ color: '#ef95ff' }}
+                                                                />
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {result.isSpotifyOnly ? (
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
