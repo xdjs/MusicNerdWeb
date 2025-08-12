@@ -53,6 +53,16 @@ jest.mock('@/app/actions/addArtist', () => ({
     addArtist: jest.fn(),
 }));
 
+// Mock useEnsAvatar hook
+jest.mock('@/hooks/useEnsAvatar', () => ({
+    useEnsAvatar: () => ({
+        ensAvatar: null,
+        jazziconSeed: null,
+        address: null,
+        loading: false
+    })
+}));
+
 // Disable the loading page component side-effects
 jest.mock('@/app/_components/LoadingPage', () => ({
     __esModule: true,
