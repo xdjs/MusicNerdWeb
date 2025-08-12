@@ -1,88 +1,93 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Bookmark, BookmarkCheck } from 'lucide-react';
 
 interface BookmarkButtonProps {
-  className?: string;
   artistId: string;
   artistName: string;
-  imageUrl?: string;
-  userId: string;
+  className?: string;
+  size?: 'sm' | 'default' | 'lg';
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
 }
 
-export default function BookmarkButton({ className, artistId, artistName, imageUrl, userId }: BookmarkButtonProps) {
-  const [bookmarked, setBookmarked] = useState(false);
+export function BookmarkButton({
+  artistId,
+  artistName,
+  className = '',
+  size = 'default',
+  variant = 'outline',
+}: BookmarkButtonProps) {
+  const { bookmarks, addBookmark, removeBookmark, loading } = useBookmarks();
+  const { toast } = useToast();
+  const [localLoading, setLocalLoading] = useState(false);
 
-  // Load initial bookmark state
-  useEffect(() => {
-    if (!userId) return;
+  const isBookmarked = bookmarks.some(bookmark => bookmark.artistId === artistId);
+
+  const handleToggleBookmark = async () => {
+    setLocalLoading(true);
+    
     try {
-      const raw = localStorage.getItem(`bookmarks_${userId}`);
-      if (raw) {
-        const arr = JSON.parse(raw) as { artistId: string }[];
-        setBookmarked(arr.some((b) => b.artistId === artistId));
-      }
-    } catch (e) {
-      console.debug('[BookmarkButton] error parsing bookmarks', e);
-    }
-  }, [userId, artistId]);
-
-  const handleClick = () => {
-    if (!userId) return; // safety
-
-    setBookmarked((prev) => {
-      const newState = !prev;
-      try {
-        const key = `bookmarks_${userId}`;
-        const raw = localStorage.getItem(key);
-        let arr: { artistId: string; artistName: string; imageUrl?: string }[] = raw ? JSON.parse(raw) : [];
-
-        if (newState) {
-          // add if not present
-                      if (!arr.some((b) => b.artistId === artistId)) {
-                // Add new bookmark at the *front* so bookmarks are stored in most-recent-first order.
-                arr.unshift({ artistId, artistName, imageUrl });
-            }
-        } else {
-          // remove
-          arr = arr.filter((b) => b.artistId !== artistId);
+      let success: boolean;
+      
+      if (isBookmarked) {
+        success = await removeBookmark(artistId);
+        if (success) {
+          toast({
+            title: 'Bookmark removed',
+            description: `${artistName} removed from bookmarks`,
+          });
         }
-
-        localStorage.setItem(key, JSON.stringify(arr));
-        // Notify others
-        window.dispatchEvent(new Event('bookmarksUpdated'));
-      } catch (e) {
-        console.error('[BookmarkButton] error updating bookmarks', e);
+      } else {
+        success = await addBookmark(artistId);
+        if (success) {
+          toast({
+            title: 'Bookmark added',
+            description: `${artistName} added to bookmarks`,
+          });
+        }
       }
 
-      return newState;
-    });
+      if (!success) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update bookmark',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update bookmark',
+        variant: 'destructive',
+      });
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
-  const baseClasses = "flex items-center gap-1.5 rounded-lg p-1.5 text-sm font-bold transition-colors duration-300 w-[120px] flex-shrink-0";
+  const isLoading = loading || localLoading;
 
   return (
     <Button
-      variant="outline"
-      size="sm"
-      onClick={handleClick}
-      className={cn(
-        baseClasses,
-        bookmarked
-          ? "bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
-          : "bg-white text-pastypink border-2 border-gray-300 hover:bg-gray-100 hover:text-pastypink",
-        className
-      )}
+      onClick={handleToggleBookmark}
+      disabled={isLoading}
+      size={size}
+      variant={variant}
+      className={className}
+      title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
     >
-      <Bookmark
-        size={18}
-        className={bookmarked ? "text-white" : "text-pastypink"}
-        strokeWidth={2}
-      />
-      {bookmarked ? "Bookmarked" : "Bookmark"}
+      {isLoading ? (
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+      ) : isBookmarked ? (
+        <BookmarkCheck className="h-4 w-4" />
+      ) : (
+        <Bookmark className="h-4 w-4" />
+      )}
     </Button>
   );
 } 

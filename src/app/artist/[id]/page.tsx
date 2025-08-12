@@ -3,7 +3,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
-import BookmarkButton from "@/app/_components/BookmarkButton";
+import { BookmarkButton } from "@/app/_components/BookmarkButton";
 import { getArtistDetailsText } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { notFound } from "next/navigation";
@@ -72,8 +72,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                                         <BookmarkButton
                                             artistId={artist.id}
                                             artistName={artist.name ?? ''}
-                                            imageUrl={spotifyImg.artistImage ?? ''}
-                                            userId={session.user.id}
                                         />
                                     )}
                                     {canEdit && <EditModeToggle />}
