@@ -264,7 +264,6 @@ describe('BlurbSection', () => {
                 expect(screen.getByText('Original bio')).toBeInTheDocument();
             });
         });
-<<<<<<< HEAD
 
         it('discard restores original bio after regeneration', async () => {
             mockFetch
@@ -290,24 +289,27 @@ describe('BlurbSection', () => {
                 </EditModeWrapper>
             );
             
-            // Wait for initial bio to load
+            // Wait for initial bio to load in textarea
             await waitFor(() => {
-                expect(screen.getByText('Original bio')).toBeInTheDocument();
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('Original bio');
             });
 
             // Click regenerate
             fireEvent.click(screen.getByText('Regenerate'));
 
-            // Wait for regenerated bio to appear
+            // Wait for regenerated bio to appear in textarea
             await waitFor(() => {
-                expect(screen.getByText('Regenerated bio')).toBeInTheDocument();
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('Regenerated bio');
             });
 
             // Click discard - should restore original bio
             fireEvent.click(screen.getByText('Discard'));
 
             await waitFor(() => {
-                expect(screen.getByText('Original bio')).toBeInTheDocument();
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('Original bio');
             });
         });
 
