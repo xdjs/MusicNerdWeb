@@ -87,22 +87,23 @@ export function getExistingMetaMaskJazziconSeed(address: string): number | null 
 }
 
 /**
- * Generate a Jazzicon using existing MetaMask seed if available
+ * Generate a Jazzicon using the same algorithm as MetaMask
+ * Since we can't access MetaMask's extension localStorage, we'll use the same seed generation
  */
 export function generateMetaMaskJazzicon(address: string, size: number = 32): HTMLElement | null {
   try {
-    const existingSeed = getExistingMetaMaskJazziconSeed(address);
+    // Use the same algorithm as MetaMask to generate the seed from the address
+    // MetaMask takes the first 8 characters of the address (excluding 0x) and converts to integer
+    const addr = address.slice(2, 10); // Remove 0x and take first 8 chars
+    const seed = parseInt(addr, 16);
     
-    if (existingSeed !== null) {
-      // Use the existing MetaMask seed
-      const element = jazzicon(size, existingSeed);
-      element.style.width = `${size}px`;
-      element.style.height = `${size}px`;
-      return element;
-    }
+    console.debug('[MetaMaskJazziconUtils] Generated Jazzicon with seed:', { address, addr, seed });
     
-    // No existing seed found
-    return null;
+    // Generate the Jazzicon using the same seed algorithm as MetaMask
+    const element = jazzicon(size, seed);
+    element.style.width = `${size}px`;
+    element.style.height = `${size}px`;
+    return element;
   } catch (error) {
     console.debug('[MetaMaskJazziconUtils] Error generating Jazzicon:', error);
     return null;
