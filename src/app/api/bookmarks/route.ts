@@ -78,8 +78,12 @@ export async function GET(req: NextRequest) {
 
 // POST /api/bookmarks - Add a bookmark
 export async function POST(req: NextRequest) {
+  let session: any = null;
+  let userId: string | null = null;
+  let artistId: string | null = null;
+  
   try {
-    const session = await getServerSession(authOptions);
+    session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -88,7 +92,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { artistId } = await req.json();
+    const body = await req.json();
+    artistId = body.artistId;
     
     if (!artistId || typeof artistId !== 'string') {
       return NextResponse.json(
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    userId = session.user.id;
 
     // Check if artist exists
     const artist = await db
@@ -156,8 +161,8 @@ export async function POST(req: NextRequest) {
     console.error('[Bookmarks API] Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: session?.user?.id,
-      artistId
+      userId: userId || 'unknown',
+      artistId: artistId || 'unknown'
     });
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
