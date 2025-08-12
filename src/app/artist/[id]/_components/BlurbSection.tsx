@@ -11,7 +11,7 @@ interface BlurbSectionProps {
 }
 
 export default function BlurbSection({ artistName, artistId }: BlurbSectionProps) {
-  const { isEditing } = useContext(EditModeContext);
+  const { isEditing, canEdit } = useContext(EditModeContext);
   const { toast } = useToast();
 
   const [openModal, setOpenModal] = useState<boolean>(false);
@@ -20,6 +20,8 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
 
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [originalBio, setOriginalBio] = useState<string>("");
 
   // Fetch bio once on mount (or when artistId changes)
   useEffect(() => {
@@ -31,6 +33,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           const json = await res.json();
           setAiBlurb(json.bio as string);
           setEditText(json.bio as string);
+          setOriginalBio(json.bio as string);
         })
         .catch(() => setAiBlurb("Failed to load summary."))
         .finally(() => setLoadingAi(false));
@@ -41,6 +44,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   useEffect(() => {
     if (!isEditing) {
       setEditText(aiBlurb ?? "");
+      setOriginalBio(aiBlurb ?? "");
     }
   }, [isEditing, aiBlurb]);
 
@@ -63,6 +67,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) {
         setAiBlurb(editText);
+        setOriginalBio(editText);
         toast({ title: "Bio updated" });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
@@ -76,7 +81,34 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   }
 
   function handleDiscard() {
-    setEditText(aiBlurb ?? "");
+    setEditText(originalBio);
+  }
+
+  async function handleRegenerate() {
+    if (isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      const resp = await fetch(`/api/artistBio/${artistId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ regenerate: true }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setEditText(data.bio);
+        // Don't update aiBlurb or originalBio - keep them so Discard can restore the previous bio
+        toast({ title: "Bio regenerated" });
+      } else {
+        toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Error regenerating bio", description: "Please try again." });
+    } finally {
+      setIsRegenerating(false);
+    }
   }
 
   if (loadingAi) {
@@ -96,14 +128,34 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
         />
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
-            Discard
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving || editText.trim() === (aiBlurb ?? "").trim()}>
-            {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
-          </Button>
-        </div>
+                 <div className="flex justify-between items-center mt-2">
+           {canEdit && (
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={handleRegenerate}
+               disabled={isRegenerating || isSaving}
+               className="text-gray-700"
+             >
+               {isRegenerating ? (
+                 <>
+                   <img src="/spinner.svg" className="h-3 w-3 mr-1" alt="regenerating" />
+                   Regenerating...
+                 </>
+               ) : (
+                 "Regenerate"
+               )}
+             </Button>
+           )}
+           <div className="flex gap-2">
+             <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
+               Discard
+             </Button>
+             <Button onClick={handleSave} disabled={isSaving || editText.trim() === originalBio.trim()}>
+               {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
+             </Button>
+           </div>
+         </div>
       </div>
     );
   }
