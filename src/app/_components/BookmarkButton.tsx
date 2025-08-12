@@ -78,15 +78,21 @@ export function BookmarkButton({
       disabled={isLoading}
       size={size}
       variant={variant}
-      className={className}
+      className={`${className} ${isBookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
       title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
     >
       {isLoading ? (
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
       ) : isBookmarked ? (
-        <BookmarkCheck className="h-4 w-4" />
+        <>
+          <BookmarkCheck className="h-4 w-4 mr-2" />
+          Bookmarked
+        </>
       ) : (
-        <Bookmark className="h-4 w-4" />
+        <>
+          <Bookmark className="h-4 w-4 mr-2" />
+          Bookmark
+        </>
       )}
     </Button>
   );

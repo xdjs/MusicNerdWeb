@@ -9,6 +9,7 @@ export interface Bookmark {
                 artist: {
                 id: string;
                 name: string;
+                imageUrl: string;
               };
 }
 
