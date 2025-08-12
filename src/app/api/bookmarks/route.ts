@@ -4,7 +4,7 @@ import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
+// import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
 
 
 // GET /api/bookmarks - Get user's bookmarks
@@ -51,28 +51,14 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // Fetch Spotify images for each bookmark
-    const spotifyHeaders = await getSpotifyHeaders();
-    const bookmarksWithImages = await Promise.all(
-      userBookmarks.map(async (bookmark) => {
-        let imageUrl = null;
-        if (bookmark.artist.spotify) {
-          try {
-            imageUrl = await getSpotifyImage(bookmark.artist.spotify, bookmark.artist.id, spotifyHeaders);
-          } catch (error) {
-            console.error(`Failed to fetch Spotify image for artist ${bookmark.artist.id}:`, error);
-          }
-        }
-        
-        return {
-          ...bookmark,
-          artist: {
-            ...bookmark.artist,
-            imageUrl,
-          }
-        };
-      })
-    );
+    // Temporarily disable Spotify image fetching to debug bookmark issues
+    const bookmarksWithImages = userBookmarks.map((bookmark) => ({
+      ...bookmark,
+      artist: {
+        ...bookmark.artist,
+        imageUrl: null,
+      }
+    }));
 
     return NextResponse.json({ 
       bookmarks: bookmarksWithImages,

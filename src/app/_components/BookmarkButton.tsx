@@ -79,8 +79,7 @@ export function BookmarkButton({
       onClick={handleToggleBookmark}
       disabled={isLoading}
       size={size}
-      variant="outline"
-      className={`${className} ${bookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90 border-pastypink' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'}`}
+      className={`${className} rounded-full border-2 px-4 py-1 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors ${bookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90 border-pastypink' : 'bg-white text-pastypink hover:bg-pastypink/10 border-pastypink'}`}
       title={bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
     >
       {isLoading ? (
