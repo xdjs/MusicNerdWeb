@@ -119,10 +119,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if bookmark already exists
+    if (!userId || !artistId) {
+      return NextResponse.json(
+        { error: 'Invalid user ID or artist ID' },
+        { status: 400 }
+      );
+    }
+    
     const existingBookmark = await db
       .select({ id: bookmarks.id })
       .from(bookmarks)
-      .where(and(eq(bookmarks.userId, userId!), eq(bookmarks.artistId, artistId!)))
+      .where(and(eq(bookmarks.userId, userId), eq(bookmarks.artistId, artistId)))
       .limit(1);
 
     if (existingBookmark.length > 0) {
@@ -136,7 +143,7 @@ export async function POST(req: NextRequest) {
     const maxPositionResult = await db
       .select({ maxPosition: bookmarks.position })
       .from(bookmarks)
-      .where(eq(bookmarks.userId, userId!))
+      .where(eq(bookmarks.userId, userId))
       .orderBy(desc(bookmarks.position))
       .limit(1);
 
