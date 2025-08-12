@@ -199,7 +199,7 @@ const WalletSearchBar = forwardRef(
                     const url = `/artist/${addResult.artistId}`;
                     try {
                         router.prefetch(url);
-                        await router.push(url);
+                        router.push(url);
                     } catch (error) {
                         console.error("[SearchBar] Navigation error:", error);
                         setIsAddingArtist(false);
@@ -251,7 +251,7 @@ const WalletSearchBar = forwardRef(
             try {
                 const url = `/artist/${result.id}`;
                 router.prefetch(url);
-                await router.push(url);
+                router.push(url);
             } catch (error) {
                 console.error("[SearchBar] Error navigating to artist:", error);
                 setIsAddingArtist(false);
@@ -350,7 +350,7 @@ const WalletSearchBar = forwardRef(
                                         <div
                                             key={result.isSpotifyOnly ? result.spotify : result.id}
                                             className="p-3 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
-                                            onClick={() => handleNavigate(result)}
+                                            onMouseDown={(e) => { e.preventDefault(); handleNavigate(result); }}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`flex items-center justify-center ${result.isSpotifyOnly ? 'h-10 w-10' : ''}`}>
@@ -580,7 +580,7 @@ const NoWalletSearchBar = forwardRef(
                     const url = `/artist/${addResult.artistId}`;
                     try {
                         router.prefetch(url);
-                        await router.push(url);
+                        router.push(url);
                     } catch (error) {
                         console.error("[SearchBar] Navigation error:", error);
                         setIsAddingArtist(false);
@@ -617,7 +617,7 @@ const NoWalletSearchBar = forwardRef(
             try {
                 const url = `/artist/${result.id}`;
                 router.prefetch(url);
-                await router.push(url);
+                router.push(url);
             } catch (error) {
                 console.error("[SearchBar] Error navigating to artist:", error);
                 setIsAddingArtist(false);
@@ -812,7 +812,7 @@ const NoWalletSearchBar = forwardRef(
                                         <div
                                             key={result.isSpotifyOnly ? result.spotify : result.id}
                                             className="p-3 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
-                                            onClick={() => handleNavigate(result)}
+                                            onMouseDown={(e) => { e.preventDefault(); handleNavigate(result); }}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`flex items-center justify-center ${result.isSpotifyOnly ? 'h-10 w-10' : ''}`}>
