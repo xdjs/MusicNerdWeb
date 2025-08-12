@@ -148,4 +148,108 @@ describe('BlurbSection', () => {
             });
         });
     });
+
+    describe('Regenerate Functionality', () => {
+        beforeEach(() => {
+            // Mock the EditModeContext to provide canEdit
+            jest.doMock('@/app/_components/EditModeContext', () => ({
+                EditModeContext: {
+                    Consumer: ({ children }: { children: (value: any) => React.ReactNode }) => 
+                        children({ isEditing: false, canEdit: true })
+                }
+            }));
+        });
+
+        it('shows regenerate button for admins', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ bio: 'Test bio' })
+            });
+
+            render(<BlurbSection {...defaultProps} />);
+            
+            await waitFor(() => {
+                expect(screen.getByText('Regenerate')).toBeInTheDocument();
+            });
+        });
+
+        it('calls regenerate API when regenerate button is clicked', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Original bio' })
+                })
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Regenerated bio' })
+                });
+
+            render(<BlurbSection {...defaultProps} />);
+            
+            await waitFor(() => {
+                expect(screen.getByText('Regenerate')).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('Regenerate'));
+
+            await waitFor(() => {
+                expect(mockFetch).toHaveBeenCalledWith('/api/artistBio/test-artist-id', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ regenerate: true }),
+                });
+            });
+        });
+
+        it('updates bio content after successful regeneration', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Original bio' })
+                })
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Regenerated bio' })
+                });
+
+            render(<BlurbSection {...defaultProps} />);
+            
+            await waitFor(() => {
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('Regenerate'));
+
+            await waitFor(() => {
+                expect(screen.getByText('Regenerated bio')).toBeInTheDocument();
+            });
+        });
+
+        it('handles regenerate API error', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Original bio' })
+                })
+                .mockResolvedValueOnce({
+                    ok: false,
+                    json: async () => ({ message: 'Regeneration failed' })
+                });
+
+            render(<BlurbSection {...defaultProps} />);
+            
+            await waitFor(() => {
+                expect(screen.getByText('Regenerate')).toBeInTheDocument();
+            });
+
+            fireEvent.click(screen.getByText('Regenerate'));
+
+            // The original bio should still be displayed
+            await waitFor(() => {
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
+            });
+        });
+    });
 }); 
