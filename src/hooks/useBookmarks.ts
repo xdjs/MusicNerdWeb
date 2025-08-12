@@ -131,6 +131,7 @@ export function useBookmarks(): UseBookmarksReturn {
         let errorMessage = 'Failed to add bookmark';
         try {
           const errorData = await response.json();
+          console.error('addBookmark: server error', response.status, errorData);
           if (response.status === 409) {
             errorMessage = 'Artist is already bookmarked';
           } else if (response.status === 404) {
