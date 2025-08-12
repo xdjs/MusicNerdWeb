@@ -4,7 +4,7 @@ import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-
+import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
 
 // GET /api/bookmarks - Get user's bookmarks
 export async function GET(req: NextRequest) {
