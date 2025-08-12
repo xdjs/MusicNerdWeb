@@ -34,6 +34,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 type RecentItem = {
     ugcId: string;
@@ -43,15 +44,11 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
-type BookmarkItem = {
-    artistId: string;
-    artistName: string;
-    imageUrl: string | null;
-};
+// Remove the local BookmarkItem type since we're using the database-backed system
 
 // Sortable bookmark item component
 function SortableBookmarkItem({ item, isEditing, onDelete }: { 
-    item: BookmarkItem; 
+    item: { artistId: string; artist: { name: string; imageUrl: string | null } }; 
     isEditing: boolean;
     onDelete: (artistId: string) => void;
 }) {
@@ -84,8 +81,8 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                     </button>
                 )}
                 <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline flex-1">
-                    <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
-                    <span>{item.artistName ?? 'Unknown Artist'}</span>
+                    <img src={item.artist.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                    <span>{item.artist.name ?? 'Unknown Artist'}</span>
                 </Link>
                 {isEditing && (
                     <button
@@ -118,10 +115,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
     // ----------- Bookmarks state & pagination -----------
-    const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
-    const [bookmarkPage, setBookmarkPage] = useState(0);
     const [isEditingBookmarks, setIsEditingBookmarks] = useState(false);
-    const pageSize = 3;
+    
+    // Use the database-backed bookmarks system
+    const { 
+        bookmarks, 
+        loading: bookmarksLoading, 
+        error: bookmarksError, 
+        removeBookmark, 
+        reorderBookmarks 
+    } = useBookmarks();
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -132,74 +135,37 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     );
 
     // Handle drag end for reordering bookmarks
-    function handleDragEnd(event: DragEndEvent) {
+    async function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
 
         if (active.id !== over?.id) {
-            setBookmarks((items) => {
-                const oldIndex = items.findIndex((item) => item.artistId === active.id);
-                const newIndex = items.findIndex((item) => item.artistId === over?.id);
+            const oldIndex = bookmarks.findIndex((item) => item.artistId === active.id);
+            const newIndex = bookmarks.findIndex((item) => item.artistId === over?.id);
 
-                const newItems = arrayMove(items, oldIndex, newIndex);
+            if (oldIndex !== -1 && newIndex !== -1) {
+                const newItems = arrayMove(bookmarks, oldIndex, newIndex);
+                const artistIds = newItems.map(item => item.artistId);
                 
-                // Save to localStorage
-                localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
-                
-                return newItems;
-            });
+                // Save to database
+                await reorderBookmarks(artistIds);
+            }
         }
     }
 
     // Delete bookmark function
-    function deleteBookmark(artistId: string) {
+    async function deleteBookmark(artistId: string) {
         if (!window.confirm('Remove this bookmark?')) return;
         
-        const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
-        setBookmarks(newBookmarks);
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
-        
-        // Notify other tabs/components
-        window.dispatchEvent(new Event('bookmarksUpdated'));
+        await removeBookmark(artistId);
     }
 
-    // Save bookmarks function
+    // Save bookmarks function (no longer needed since changes are saved immediately)
     function saveBookmarks() {
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
-        window.dispatchEvent(new Event('bookmarksUpdated'));
         setIsEditingBookmarks(false);
     }
 
-    useEffect(() => {
-        // Load bookmarks from localStorage (placeholder until backend wiring)
-        const load = () => {
-            try {
-                const raw = localStorage.getItem(`bookmarks_${user.id}`);
-                if (raw) {
-                    const parsed = JSON.parse(raw) as BookmarkItem[];
-                    // Bookmarks are stored in most-recent-first order. No additional reversing needed.
-                    setBookmarks(parsed);
-                } else {
-                    setBookmarks([]);
-                }
-            } catch (e) {
-                console.debug('[Dashboard] unable to parse bookmarks from storage', e);
-            }
-        };
-
-        load();
-
-        const handleUpdate = () => load();
-        window.addEventListener('bookmarksUpdated', handleUpdate);
-        window.addEventListener('storage', handleUpdate);
-
-        return () => {
-            window.removeEventListener('bookmarksUpdated', handleUpdate);
-            window.removeEventListener('storage', handleUpdate);
-        };
-    }, [user.id]);
-
-    const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
-    const currentBookmarks = bookmarks.slice(bookmarkPage * pageSize, bookmarkPage * pageSize + pageSize);
+    // Show only first 3 bookmarks for the compact view
+    const displayedBookmarks = bookmarks.slice(0, 3);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
     // Range selection (synced with Leaderboard)
@@ -718,7 +684,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <>
                                     <div className="flex items-center justify-between w-full">
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
-                                        {isEditingBookmarks && bookmarks.length > 0 && (
+                                                                                 {isEditingBookmarks && displayedBookmarks.length > 0 && (
                                             <div className="flex items-center gap-2">
                                                 <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
                                                     Save
@@ -732,60 +698,55 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         )}
                                     </div>
                                     
-                                    {bookmarks.length ? (
-                                        <>
-                                            <DndContext
-                                                sensors={sensors}
-                                                collisionDetection={closestCenter}
-                                                onDragEnd={handleDragEnd}
-                                            >
-                                                <SortableContext
-                                                    items={currentBookmarks.map(item => item.artistId)}
-                                                    strategy={verticalListSortingStrategy}
-                                                >
-                                                    <ul className="space-y-3">
-                                                        {currentBookmarks.map((item) => (
-                                                            <SortableBookmarkItem
-                                                                key={item.artistId}
-                                                                item={item}
-                                                                isEditing={isEditingBookmarks}
-                                                                onDelete={deleteBookmark}
-                                                            />
-                                                        ))}
-                                                    </ul>
-                                                </SortableContext>
-                                            </DndContext>
-                                        </>
-                                    ) : (
-                                        <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
-                                    )}
+                                                                         {bookmarksLoading ? (
+                                         <div className="flex items-center justify-center py-4">
+                                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                                             <span className="ml-2 text-sm text-gray-500">Loading bookmarks...</span>
+                                         </div>
+                                     ) : bookmarksError ? (
+                                         <p className="text-sm text-red-500 text-center md:text-left">{bookmarksError}</p>
+                                     ) : displayedBookmarks.length ? (
+                                         <>
+                                             <DndContext
+                                                 sensors={sensors}
+                                                 collisionDetection={closestCenter}
+                                                 onDragEnd={handleDragEnd}
+                                             >
+                                                 <SortableContext
+                                                     items={displayedBookmarks.map(item => item.artistId)}
+                                                     strategy={verticalListSortingStrategy}
+                                                 >
+                                                     <ul className="space-y-3">
+                                                         {displayedBookmarks.map((item) => (
+                                                             <SortableBookmarkItem
+                                                                 key={item.artistId}
+                                                                 item={item}
+                                                                 isEditing={isEditingBookmarks}
+                                                                 onDelete={deleteBookmark}
+                                                             />
+                                                         ))}
+                                                     </ul>
+                                                 </SortableContext>
+                                             </DndContext>
+                                         </>
+                                     ) : (
+                                         <p className="text-sm text-gray-500 text-center md:text-left">No bookmarks yet</p>
+                                     )}
 
-                                    {/* Pagination controls - moved to bottom */}
-                                    {totalBookmarkPages > 1 && (
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
-                                                disabled={bookmarkPage === 0}
-                                            >
-                                                Previous
-                                            </Button>
-                                            <span className="text-sm">
-                                                {bookmarkPage + 1} / {totalBookmarkPages}
-                                            </span>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border border-gray-300"
-                                                onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
-                                                disabled={bookmarkPage >= totalBookmarkPages - 1}
-                                            >
-                                                Next
-                                            </Button>
-                                        </div>
-                                    )}
+                                                                         {/* Show total count if more than 3 bookmarks */}
+                                     {bookmarks.length > 3 && (
+                                         <div className="text-center">
+                                             <p className="text-sm text-gray-500">
+                                                 Showing 3 of {bookmarks.length} bookmarks
+                                             </p>
+                                             <Link 
+                                                 href="/bookmarks" 
+                                                 className="text-sm text-blue-600 hover:text-blue-800 underline"
+                                             >
+                                                 View all bookmarks
+                                             </Link>
+                                         </div>
+                                     )}
                                 </>
                             )}
                         </div>

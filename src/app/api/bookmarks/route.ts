@@ -4,9 +4,10 @@ import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
 
 // GET /api/bookmarks - Get user's bookmarks
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -18,6 +19,16 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '3');
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await db
+      .select({ count: bookmarks.id })
+      .from(bookmarks)
+      .where(eq(bookmarks.userId, userId));
 
     // Get user's bookmarks with artist data, ordered by position
     const userBookmarks = await db
@@ -34,9 +45,60 @@ export async function GET() {
       .from(bookmarks)
       .innerJoin(artists, eq(bookmarks.artistId, artists.id))
       .where(eq(bookmarks.userId, userId))
-      .orderBy(bookmarks.position);
+      .orderBy(bookmarks.position)
+      .limit(limit)
+      .offset(offset);
 
-    return NextResponse.json({ bookmarks: userBookmarks });
+    // Fetch Spotify images for each bookmark
+    try {
+      const headers = await getSpotifyHeaders();
+      const bookmarksWithImages = await Promise.all(
+        userBookmarks.map(async (bookmark) => {
+          try {
+            const imageUrl = await getSpotifyImage(bookmark.artist.id, headers);
+            return {
+              ...bookmark,
+              artist: {
+                ...bookmark.artist,
+                imageUrl: imageUrl || null,
+              }
+            };
+          } catch (error) {
+            console.error(`Failed to fetch image for artist ${bookmark.artist.id}:`, error);
+            return {
+              ...bookmark,
+              artist: {
+                ...bookmark.artist,
+                imageUrl: null,
+              }
+            };
+          }
+        })
+      );
+      return NextResponse.json({ 
+        bookmarks: bookmarksWithImages,
+        pagination: {
+          page,
+          limit,
+          total: totalCount.length,
+          totalPages: Math.ceil(totalCount.length / limit),
+          hasMore: page * limit < totalCount.length
+        }
+      });
+    } catch (error) {
+      console.error('Failed to fetch Spotify images:', error);
+      // Return bookmarks without images if Spotify API fails
+      return NextResponse.json({ 
+        bookmarks: userBookmarks,
+        pagination: {
+          page,
+          limit,
+          total: totalCount.length,
+          totalPages: Math.ceil(totalCount.length / limit),
+          hasMore: page * limit < totalCount.length
+        }
+      });
+    }
   } catch (error) {
     console.error('[Bookmarks API] GET error:', error);
     return NextResponse.json(

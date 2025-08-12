@@ -4,7 +4,7 @@ import { useBookmarks } from '@/hooks/useBookmarks';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { BookmarkCheck, Trash2, ExternalLink } from 'lucide-react';
+import { BookmarkCheck, Trash2, ExternalLink, RefreshCw, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -14,7 +14,15 @@ interface BookmarksListProps {
 }
 
 export function BookmarksList({ className = '', showTitle = true }: BookmarksListProps) {
-  const { bookmarks, loading, error, removeBookmark } = useBookmarks();
+  const { 
+    bookmarks, 
+    loading, 
+    error, 
+    pagination, 
+    removeBookmark, 
+    refreshBookmarks, 
+    loadMoreBookmarks 
+  } = useBookmarks();
   const { toast } = useToast();
 
   const handleRemoveBookmark = async (artistId: string, artistName: string) => {
@@ -50,8 +58,21 @@ export function BookmarksList({ className = '', showTitle = true }: BookmarksLis
     return (
       <Card className={className}>
         <CardContent className="p-6">
-          <div className="text-center text-red-600">
-            <p>{error}</p>
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button 
+              onClick={refreshBookmarks} 
+              variant="outline" 
+              size="sm"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -78,7 +99,7 @@ export function BookmarksList({ className = '', showTitle = true }: BookmarksLis
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookmarkCheck className="h-5 w-5" />
-            Bookmarks ({bookmarks.length})
+            Bookmarks ({pagination?.total || bookmarks.length})
           </CardTitle>
         </CardHeader>
       )}
@@ -97,6 +118,15 @@ export function BookmarksList({ className = '', showTitle = true }: BookmarksLis
                        alt={bookmark.artist.name}
                        fill
                        className="object-cover"
+                       onError={(e) => {
+                         // Fallback to placeholder if image fails to load
+                         const target = e.target as HTMLImageElement;
+                         target.style.display = 'none';
+                         const parent = target.parentElement;
+                         if (parent) {
+                           parent.innerHTML = '<div class="w-full h-full bg-gray-300 flex items-center justify-center"><span class="text-gray-500 text-xs">No image</span></div>';
+                         }
+                       }}
                      />
                    ) : (
                      <div className="w-full h-full bg-gray-300 flex items-center justify-center">
@@ -137,6 +167,23 @@ export function BookmarksList({ className = '', showTitle = true }: BookmarksLis
             </div>
           ))}
         </div>
+        {pagination?.hasMore && (
+          <div className="p-4 border-t border-gray-200">
+            <Button
+              onClick={loadMoreBookmarks}
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+              ) : (
+                <ChevronDown className="h-4 w-4 mr-2" />
+              )}
+              Load More ({pagination.total - bookmarks.length} remaining)
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

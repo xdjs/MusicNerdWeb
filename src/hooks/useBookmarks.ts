@@ -6,21 +6,31 @@ export interface Bookmark {
   artistId: string;
   position: number;
   createdAt: string;
-                artist: {
-                id: string;
-                name: string;
-                imageUrl: string;
-              };
+  artist: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  };
+}
+
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
 export interface UseBookmarksReturn {
   bookmarks: Bookmark[];
   loading: boolean;
   error: string | null;
+  pagination: PaginationInfo | null;
   addBookmark: (artistId: string) => Promise<boolean>;
   removeBookmark: (artistId: string) => Promise<boolean>;
   reorderBookmarks: (artistIds: string[]) => Promise<boolean>;
   refreshBookmarks: () => Promise<void>;
+  loadMoreBookmarks: () => Promise<void>;
 }
 
 export function useBookmarks(): UseBookmarksReturn {
@@ -28,10 +38,15 @@ export function useBookmarks(): UseBookmarksReturn {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchBookmarks = useCallback(async () => {
+  const fetchBookmarks = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!session?.user?.id) {
       setBookmarks([]);
+      setLoading(false);
+      setError(null);
+      setPagination(null);
       return;
     }
 
@@ -39,7 +54,19 @@ export function useBookmarks(): UseBookmarksReturn {
     setError(null);
 
     try {
-      const response = await fetch('/api/bookmarks');
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(`/api/bookmarks?page=${page}&limit=3`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -51,10 +78,22 @@ export function useBookmarks(): UseBookmarksReturn {
       }
 
       const data = await response.json();
-      setBookmarks(data.bookmarks || []);
+      
+      if (append) {
+        setBookmarks(prev => [...prev, ...(data.bookmarks || [])]);
+      } else {
+        setBookmarks(data.bookmarks || []);
+      }
+      
+      setPagination(data.pagination || null);
+      setCurrentPage(page);
     } catch (err) {
       console.error('Error fetching bookmarks:', err);
-      setError('Failed to load bookmarks');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError('Failed to load bookmarks');
+      }
     } finally {
       setLoading(false);
     }
@@ -171,22 +210,38 @@ export function useBookmarks(): UseBookmarksReturn {
   }, [session?.user?.id, fetchBookmarks]);
 
   const refreshBookmarks = useCallback(async () => {
-    await fetchBookmarks();
+    await fetchBookmarks(1, false);
   }, [fetchBookmarks]);
+
+  const loadMoreBookmarks = useCallback(async () => {
+    if (pagination?.hasMore && !loading) {
+      await fetchBookmarks(currentPage + 1, true);
+    }
+  }, [fetchBookmarks, pagination?.hasMore, loading, currentPage]);
 
   // Fetch bookmarks when session changes
   useEffect(() => {
-    fetchBookmarks();
-  }, [fetchBookmarks]);
+    if (session?.user?.id) {
+      fetchBookmarks(1, false);
+    } else {
+      setBookmarks([]);
+      setLoading(false);
+      setError(null);
+      setPagination(null);
+      setCurrentPage(1);
+    }
+  }, [session?.user?.id, fetchBookmarks]);
 
   return {
     bookmarks,
     loading,
     error,
+    pagination,
     addBookmark,
     removeBookmark,
     reorderBookmarks,
     refreshBookmarks,
+    loadMoreBookmarks,
   };
 }
 
