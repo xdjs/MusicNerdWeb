@@ -18,7 +18,7 @@ export function hasExistingMetaMaskJazzicon(address: string): boolean {
     `avatar_${normalizedAddress}`
   ];
   
-  return possibleKeys.some(key => {
+  const hasData = possibleKeys.some(key => {
     const data = localStorage.getItem(key);
     if (!data) return false;
     
@@ -32,6 +32,14 @@ export function hasExistingMetaMaskJazzicon(address: string): boolean {
       return !isNaN(seed) && seed > 0;
     }
   });
+  
+  console.debug('[MetaMaskJazziconUtils] hasExistingMetaMaskJazzicon:', {
+    address: normalizedAddress,
+    hasData,
+    checkedKeys: possibleKeys
+  });
+  
+  return hasData;
 }
 
 /**
@@ -57,20 +65,24 @@ export function getExistingMetaMaskJazziconSeed(address: string): number | null 
       // Try to parse as JSON first
       const parsed = JSON.parse(data);
       if (parsed && typeof parsed.jazziconSeed === 'number') {
+        console.debug('[MetaMaskJazziconUtils] Found Jazzicon seed in JSON:', { key, seed: parsed.jazziconSeed });
         return parsed.jazziconSeed;
       }
       if (parsed && typeof parsed.seed === 'number') {
+        console.debug('[MetaMaskJazziconUtils] Found seed in JSON:', { key, seed: parsed.seed });
         return parsed.seed;
       }
     } catch {
       // If not JSON, try to parse as direct seed number
       const seed = parseInt(data, 10);
       if (!isNaN(seed) && seed > 0) {
+        console.debug('[MetaMaskJazziconUtils] Found direct seed:', { key, seed });
         return seed;
       }
     }
   }
   
+  console.debug('[MetaMaskJazziconUtils] No Jazzicon seed found for address:', normalizedAddress);
   return null;
 }
 
@@ -100,35 +112,47 @@ export function generateMetaMaskJazzicon(address: string, size: number = 32): HT
 /**
  * Convert a Jazzicon element to a data URL for use as image src
  */
-export function jazziconToDataURL(element: HTMLElement): string {
-  try {
-    // Create a canvas to convert the SVG to a data URL
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return '';
-    
-    // Set canvas size
-    const size = parseInt(element.style.width) || 32;
-    canvas.width = size;
-    canvas.height = size;
-    
-    // Convert SVG to string
-    const svgString = element.outerHTML;
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(svgBlob);
-    
-    // Create an image to draw on canvas
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-    
-    // Convert canvas to data URL
-    return canvas.toDataURL('image/png');
-  } catch (error) {
-    console.debug('[MetaMaskJazziconUtils] Error converting Jazzicon to data URL:', error);
-    return '';
-  }
+export function jazziconToDataURL(element: HTMLElement): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a canvas to convert the SVG to a data URL
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Set canvas size
+      const size = parseInt(element.style.width) || 32;
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Convert SVG to string
+      const svgString = element.outerHTML;
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      // Create an image to draw on canvas
+      const img = new Image();
+      img.onload = () => {
+        try {
+          ctx.drawImage(img, 0, 0, size, size);
+          URL.revokeObjectURL(url);
+          const dataURL = canvas.toDataURL('image/png');
+          resolve(dataURL);
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          reject(error);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load SVG image'));
+      };
+      img.src = url;
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

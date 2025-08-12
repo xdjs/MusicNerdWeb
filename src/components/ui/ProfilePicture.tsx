@@ -21,43 +21,55 @@ export default function ProfilePicture({
   const [imageSrc, setImageSrc] = useState<string>('/default_pfp.png');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadProfilePicture = async () => {
-      if (!address) {
-        setImageSrc('/default_pfp.png');
-        setIsLoading(false);
-        return;
-      }
+     useEffect(() => {
+     const loadProfilePicture = async () => {
+       console.debug('[ProfilePicture] Loading profile picture for address:', address);
+       
+       if (!address) {
+         console.debug('[ProfilePicture] No address provided, using default');
+         setImageSrc('/default_pfp.png');
+         setIsLoading(false);
+         return;
+       }
 
-      // Priority 1: ENS Avatar from RainbowKit
-      if (ensAvatar) {
-        setImageSrc(ensAvatar);
-        setIsLoading(false);
-        return;
-      }
+       // Priority 1: ENS Avatar from RainbowKit
+       if (ensAvatar) {
+         console.debug('[ProfilePicture] Using ENS avatar:', ensAvatar);
+         setImageSrc(ensAvatar);
+         setIsLoading(false);
+         return;
+       }
 
-      // Priority 2: MetaMask existing Jazzicon seed
-      try {
-        const jazziconElement = generateMetaMaskJazzicon(address, size);
-        if (jazziconElement) {
-          const dataURL = jazziconToDataURL(jazziconElement);
-          if (dataURL) {
-            setImageSrc(dataURL);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (error) {
-        console.debug('[ProfilePicture] Error generating MetaMask Jazzicon:', error);
-      }
+       // Priority 2: MetaMask existing Jazzicon seed
+       try {
+         console.debug('[ProfilePicture] Checking for MetaMask Jazzicon...');
+         const jazziconElement = generateMetaMaskJazzicon(address, size);
+         if (jazziconElement) {
+           console.debug('[ProfilePicture] MetaMask Jazzicon element generated, converting to data URL...');
+           const dataURL = await jazziconToDataURL(jazziconElement);
+           if (dataURL) {
+             console.debug('[ProfilePicture] Using MetaMask Jazzicon data URL');
+             setImageSrc(dataURL);
+             setIsLoading(false);
+             return;
+           } else {
+             console.debug('[ProfilePicture] Failed to convert Jazzicon to data URL');
+           }
+         } else {
+           console.debug('[ProfilePicture] No MetaMask Jazzicon element generated');
+         }
+       } catch (error) {
+         console.debug('[ProfilePicture] Error generating MetaMask Jazzicon:', error);
+       }
 
-      // Priority 3: Default profile picture
-      setImageSrc('/default_pfp.png');
-      setIsLoading(false);
-    };
+       // Priority 3: Default profile picture
+       console.debug('[ProfilePicture] Using default profile picture');
+       setImageSrc('/default_pfp.png');
+       setIsLoading(false);
+     };
 
-    loadProfilePicture();
-  }, [address, ensAvatar, size]);
+     loadProfilePicture();
+   }, [address, ensAvatar, size]);
 
   const handleImageError = () => {
     // Fallback to default if any image fails to load
