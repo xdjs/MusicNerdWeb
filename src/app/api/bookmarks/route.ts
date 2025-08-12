@@ -4,7 +4,7 @@ import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
+
 
 // GET /api/bookmarks - Get user's bookmarks
 export async function GET(req: NextRequest) {
@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
         artist: {
           id: artists.id,
           name: artists.name,
+          spotify: artists.spotify,
         }
       })
       .from(bookmarks)
@@ -55,12 +56,12 @@ export async function GET(req: NextRequest) {
       const bookmarksWithImages = await Promise.all(
         userBookmarks.map(async (bookmark) => {
           try {
-            const imageUrl = await getSpotifyImage(bookmark.artist.id, headers);
+            const imageResult = await getSpotifyImage(bookmark.artist.spotify, bookmark.artist.id, headers);
             return {
               ...bookmark,
               artist: {
                 ...bookmark.artist,
-                imageUrl: imageUrl || null,
+                imageUrl: imageResult.artistImage || null,
               }
             };
           } catch (error) {
@@ -89,7 +90,13 @@ export async function GET(req: NextRequest) {
       console.error('Failed to fetch Spotify images:', error);
       // Return bookmarks without images if Spotify API fails
       return NextResponse.json({ 
-        bookmarks: userBookmarks,
+        bookmarks: userBookmarks.map(bookmark => ({
+          ...bookmark,
+          artist: {
+            ...bookmark.artist,
+            imageUrl: null,
+          }
+        })),
         pagination: {
           page,
           limit,
