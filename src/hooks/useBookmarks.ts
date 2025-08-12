@@ -118,14 +118,20 @@ export function useBookmarks(): UseBookmarksReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 409) {
-          setError('Artist is already bookmarked');
-        } else if (response.status === 404) {
-          setError('Artist not found');
-        } else {
-          setError(errorData.error || 'Failed to add bookmark');
+        let errorMessage = 'Failed to add bookmark';
+        try {
+          const errorData = await response.json();
+          if (response.status === 409) {
+            errorMessage = 'Artist is already bookmarked';
+          } else if (response.status === 404) {
+            errorMessage = 'Artist not found';
+          } else {
+            errorMessage = errorData.error || 'Failed to add bookmark';
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
         }
+        setError(errorMessage);
         return false;
       }
 
@@ -156,8 +162,14 @@ export function useBookmarks(): UseBookmarksReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to remove bookmark');
+        let errorMessage = 'Failed to remove bookmark';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Failed to remove bookmark';
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        setError(errorMessage);
         return false;
       }
 

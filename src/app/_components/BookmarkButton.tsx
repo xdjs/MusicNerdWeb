@@ -19,7 +19,7 @@ export function BookmarkButton({
   artistName,
   className = '',
   size = 'default',
-  variant = 'outline',
+  variant,
 }: BookmarkButtonProps) {
   const { bookmarks, addBookmark, removeBookmark, loading } = useBookmarks();
   const { toast } = useToast();
@@ -77,7 +77,6 @@ export function BookmarkButton({
       onClick={handleToggleBookmark}
       disabled={isLoading}
       size={size}
-      variant={variant}
       className={`${className} ${isBookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
       title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
     >
