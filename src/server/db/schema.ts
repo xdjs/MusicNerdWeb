@@ -166,7 +166,7 @@ export const artists = pgTable("artists", {
 	});
 
 // Stores per-user artist bookmarks with stable ordering
-export const userBookmarks = pgTable("user_bookmarks", {
+export const bookmarks = pgTable("bookmarks", {
     id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
     userId: uuid("user_id").notNull(),
     artistId: uuid("artist_id").notNull(),
@@ -177,16 +177,16 @@ export const userBookmarks = pgTable("user_bookmarks", {
     (table) => {
         return {
             // Ensure a user can only bookmark an artist once
-            userBookmarksUnique: unique("user_bookmarks_user_artist_unique").on(table.userId, table.artistId),
-            userBookmarksUserFkey: foreignKey({
+            bookmarksUnique: unique("bookmarks_user_artist_unique").on(table.userId, table.artistId),
+            bookmarksUserFkey: foreignKey({
                 columns: [table.userId],
                 foreignColumns: [users.id],
-                name: "user_bookmarks_user_id_fkey",
+                name: "bookmarks_user_id_fkey",
             }),
-            userBookmarksArtistFkey: foreignKey({
+            bookmarksArtistFkey: foreignKey({
                 columns: [table.artistId],
                 foreignColumns: [artists.id],
-                name: "user_bookmarks_artist_id_fkey",
+                name: "bookmarks_artist_id_fkey",
             }),
         }
     }
