@@ -34,8 +34,8 @@ export async function POST(req: Request) {
   try {
     const { query } = await req.json();
     const artists: string[] = Array.isArray(query?.artists)
-    ? query.artists
-    : typeof query?.artist === "string"
+      ? query.artists
+      : typeof query?.artist === "string"
         ? [query.artist]
         : [];
 
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       
 
       // Cache the results
-      searchCache.set(query, { results: allResults, timestamp: Date.now() });
+      searchCache.set(cacheKey, { results: allResults, timestamp: Date.now() });
 
       return Response.json({ results: allResults });
     };
