@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BlurbSection from '@/app/artist/[id]/_components/BlurbSection';
+import { EditModeContext } from '@/app/_components/EditModeContext';
 
 // Use the global fetch mock that's already set up in jest.setup.ts
 const mockFetch = global.fetch as jest.Mock;
@@ -150,15 +151,11 @@ describe('BlurbSection', () => {
     });
 
     describe('Regenerate Functionality', () => {
-        beforeEach(() => {
-            // Mock the EditModeContext to provide canEdit
-            jest.doMock('@/app/_components/EditModeContext', () => ({
-                EditModeContext: {
-                    Consumer: ({ children }: { children: (value: any) => React.ReactNode }) => 
-                        children({ isEditing: false, canEdit: true })
-                }
-            }));
-        });
+        const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+            <EditModeContext.Provider value={{ isEditing: false, canEdit: true, toggle: jest.fn() }}>
+                {children}
+            </EditModeContext.Provider>
+        );
 
         it('shows regenerate button for admins', async () => {
             mockFetch.mockResolvedValueOnce({
@@ -166,7 +163,11 @@ describe('BlurbSection', () => {
                 json: async () => ({ bio: 'Test bio' })
             });
 
-            render(<BlurbSection {...defaultProps} />);
+            render(
+                <TestWrapper>
+                    <BlurbSection {...defaultProps} />
+                </TestWrapper>
+            );
             
             await waitFor(() => {
                 expect(screen.getByText('Regenerate')).toBeInTheDocument();
@@ -184,7 +185,11 @@ describe('BlurbSection', () => {
                     json: async () => ({ bio: 'Regenerated bio' })
                 });
 
-            render(<BlurbSection {...defaultProps} />);
+            render(
+                <TestWrapper>
+                    <BlurbSection {...defaultProps} />
+                </TestWrapper>
+            );
             
             await waitFor(() => {
                 expect(screen.getByText('Regenerate')).toBeInTheDocument();
@@ -214,7 +219,11 @@ describe('BlurbSection', () => {
                     json: async () => ({ bio: 'Regenerated bio' })
                 });
 
-            render(<BlurbSection {...defaultProps} />);
+            render(
+                <TestWrapper>
+                    <BlurbSection {...defaultProps} />
+                </TestWrapper>
+            );
             
             await waitFor(() => {
                 expect(screen.getByText('Original bio')).toBeInTheDocument();
@@ -238,7 +247,11 @@ describe('BlurbSection', () => {
                     json: async () => ({ message: 'Regeneration failed' })
                 });
 
-            render(<BlurbSection {...defaultProps} />);
+            render(
+                <TestWrapper>
+                    <BlurbSection {...defaultProps} />
+                </TestWrapper>
+            );
             
             await waitFor(() => {
                 expect(screen.getByText('Regenerate')).toBeInTheDocument();

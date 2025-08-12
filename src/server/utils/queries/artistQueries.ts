@@ -44,6 +44,7 @@ export type AddArtistDataResp = {
 export type RemoveArtistDataResp = {
     status: "success" | "error";
     message: string;
+    data?: string | null;
 };
 
 // ----------------------------------
