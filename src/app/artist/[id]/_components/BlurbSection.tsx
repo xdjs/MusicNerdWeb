@@ -127,32 +127,32 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
         />
-                 <div className="flex justify-between items-center mt-2">
-                       {canEdit && (
-              <Button
-                variant="secondary"
-                onClick={handleRegenerate}
-                disabled={isRegenerating || isSaving}
-              >
-                {isRegenerating ? (
-                  <>
-                    <img src="/spinner.svg" className="h-4 w-4 mr-1" alt="regenerating" />
-                    Regenerating...
-                  </>
-                ) : (
-                  "Regenerate"
-                )}
-              </Button>
-            )}
-           <div className="flex gap-2">
-             <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
-               Discard
-             </Button>
-             <Button onClick={handleSave} disabled={isSaving || editText.trim() === (aiBlurb ?? "").trim()}>
-               {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
-             </Button>
-           </div>
-         </div>
+        <div className="flex justify-between items-center mt-2">
+          {canEdit && (
+            <Button
+              variant="secondary"
+              onClick={handleRegenerate}
+              disabled={isRegenerating || isSaving}
+            >
+              {isRegenerating ? (
+                <>
+                  <img src="/spinner.svg" className="h-4 w-4 mr-1" alt="regenerating" />
+                  Regenerating...
+                </>
+              ) : (
+                "Regenerate"
+              )}
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
+              Discard
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving || editText.trim() === (aiBlurb ?? "").trim()}>
+              {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
