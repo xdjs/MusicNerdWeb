@@ -10,8 +10,12 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { artistId: string } }
 ) {
+  let session: any = null;
+  let userId: string | null = null;
+  let artistId: string | null = null;
+  
   try {
-    const session = await getServerSession(authOptions);
+    session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -20,8 +24,8 @@ export async function DELETE(
       );
     }
 
-    const { artistId } = params;
-    const userId = session.user.id;
+    artistId = params.artistId;
+    userId = session.user.id;
 
     if (!artistId) {
       return NextResponse.json(
@@ -74,8 +78,8 @@ export async function DELETE(
     console.error('[Bookmarks API] Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: session?.user?.id,
-      artistId
+      userId: userId || 'unknown',
+      artistId: artistId || 'unknown'
     });
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
