@@ -152,18 +152,28 @@ export async function POST(req: NextRequest) {
 
     const nextPosition = (maxPositionResult[0]?.maxPosition ?? 0) + 1;
 
-    // Create the bookmark
-    const [newBookmark] = await db
+    // Create the bookmark (idempotent)
+    const inserted = await db
       .insert(bookmarks)
       .values({
         userId,
         artistId,
         position: nextPosition,
       })
+      // If a duplicate exists, do nothing to avoid a 500 from the DB
+      .onConflictDoNothing({ target: [bookmarks.userId, bookmarks.artistId] })
       .returning();
 
+    if (inserted.length === 0) {
+      // Already existed; treat as success for idempotency
+      return NextResponse.json(
+        { message: 'Bookmark already exists' },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(
-      { message: 'Bookmark added successfully', bookmark: newBookmark },
+      { message: 'Bookmark added successfully', bookmark: inserted[0] },
       { status: 201 }
     );
   } catch (error) {
