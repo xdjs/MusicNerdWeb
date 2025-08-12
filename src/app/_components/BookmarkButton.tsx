@@ -19,19 +19,21 @@ export function BookmarkButton({
   className = '',
   size = 'default',
 }: BookmarkButtonProps) {
-  const { bookmarks, addBookmark, removeBookmark, loading } = useBookmarks();
+  const { isBookmarked, addBookmark, removeBookmark, loading } = useBookmarks();
   const { toast } = useToast();
   const [localLoading, setLocalLoading] = useState(false);
 
-  const isBookmarked = bookmarks.some(bookmark => bookmark.artistId === artistId);
+  const bookmarked = isBookmarked(artistId);
 
   const handleToggleBookmark = async () => {
+    console.log('BookmarkButton: Toggling bookmark for', artistId, 'Current state:', bookmarked);
     setLocalLoading(true);
     
     try {
       let success: boolean;
       
-      if (isBookmarked) {
+      if (bookmarked) {
+        console.log('BookmarkButton: Removing bookmark');
         success = await removeBookmark(artistId);
         if (success) {
           toast({
@@ -40,6 +42,7 @@ export function BookmarkButton({
           });
         }
       } else {
+        console.log('BookmarkButton: Adding bookmark');
         success = await addBookmark(artistId);
         if (success) {
           toast({
@@ -50,6 +53,7 @@ export function BookmarkButton({
       }
 
       if (!success) {
+        console.error('BookmarkButton: Operation failed');
         toast({
           title: 'Error',
           description: 'Failed to update bookmark',
@@ -75,12 +79,13 @@ export function BookmarkButton({
       onClick={handleToggleBookmark}
       disabled={isLoading}
       size={size}
-      className={`${className} ${isBookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-      title={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+      variant="outline"
+      className={`${className} ${bookmarked ? 'bg-pastypink text-white hover:bg-pastypink/90 border-pastypink' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'}`}
+      title={bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
     >
       {isLoading ? (
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-      ) : isBookmarked ? (
+      ) : bookmarked ? (
         <>
           <BookmarkCheck className="h-4 w-4 mr-2" />
           Bookmarked

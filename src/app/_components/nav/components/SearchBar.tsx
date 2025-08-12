@@ -977,59 +977,22 @@ function SocialIcons({ result }: { result: SearchResult }) {
 
 // Helper function to get all bookmarked artist IDs for the current user
 function getBookmarkedArtistIds(userId: string | undefined): string[] {
-    if (!userId) return [];
-    
-    try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
-        if (raw) {
-            const bookmarks = JSON.parse(raw) as { artistId: string }[];
-            return bookmarks.map(b => b.artistId);
-        }
-    } catch (e) {
-        console.debug('[SearchResults] error parsing bookmarks', e);
-    }
-    
+    // This function is now handled by the useBookmarks hook
+    // For search results, we'll use a different approach
     return [];
 }
 
 // Helper function to get bookmarked artists with full data in user's preferred order
 function getBookmarkedArtists(userId: string | undefined): Array<{id: string, name: string, images?: {url: string}[]}> {
-    if (!userId) return [];
-    
-    try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
-        if (raw) {
-            const bookmarks = JSON.parse(raw) as { artistId: string; artistName: string; imageUrl?: string }[];
-            return bookmarks.map(b => ({
-                id: b.artistId,
-                name: b.artistName,
-                images: b.imageUrl ? [{ url: b.imageUrl }] : undefined,
-                isSpotifyOnly: false,
-                matchScore: 0, // All bookmarks have same priority in empty search
-                linkCount: 1 // Ensure they don't get filtered out
-            }));
-        }
-    } catch (e) {
-        console.debug('[SearchResults] error parsing bookmarks', e);
-    }
-    
+    // This function is now handled by the useBookmarks hook
+    // For search results, we'll use a different approach
     return [];
 }
 
 // Helper function to check if an artist is bookmarked by the current user
 function isArtistBookmarked(artistId: string | undefined, userId: string | undefined, _trigger?: number): boolean {
-    if (!artistId || !userId) return false;
-    
-    try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
-        if (raw) {
-            const bookmarks = JSON.parse(raw) as { artistId: string }[];
-            return bookmarks.some((b) => b.artistId === artistId);
-        }
-    } catch (e) {
-        console.debug('[SearchResults] error parsing bookmarks', e);
-    }
-    
+    // This function is now handled by the useBookmarks hook
+    // For search results, we'll use a different approach
     return false;
 }
 

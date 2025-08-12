@@ -31,6 +31,7 @@ export interface UseBookmarksReturn {
   reorderBookmarks: (artistIds: string[]) => Promise<boolean>;
   refreshBookmarks: () => Promise<void>;
   loadMoreBookmarks: () => Promise<void>;
+  isBookmarked: (artistId: string) => boolean;
 }
 
 export function useBookmarks(): UseBookmarksReturn {
@@ -40,6 +41,11 @@ export function useBookmarks(): UseBookmarksReturn {
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Helper function to check if an artist is bookmarked (like localStorage version)
+  const isBookmarked = useCallback((artistId: string): boolean => {
+    return bookmarks.some(bookmark => bookmark.artistId === artistId);
+  }, [bookmarks]);
 
   const fetchBookmarks = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!session?.user?.id) {
@@ -54,19 +60,12 @@ export function useBookmarks(): UseBookmarksReturn {
     setError(null);
 
     try {
-      // Add timeout to prevent infinite loading
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
       const response = await fetch(`/api/bookmarks?page=${page}&limit=3`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: controller.signal,
       });
-      
-      clearTimeout(timeoutId);
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -89,11 +88,7 @@ export function useBookmarks(): UseBookmarksReturn {
       setCurrentPage(page);
     } catch (err) {
       console.error('Error fetching bookmarks:', err);
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('Request timed out. Please try again.');
-      } else {
-        setError('Failed to load bookmarks');
-      }
+      setError('Failed to load bookmarks');
     } finally {
       setLoading(false);
     }
@@ -105,8 +100,20 @@ export function useBookmarks(): UseBookmarksReturn {
       return false;
     }
 
-    setLoading(true);
-    setError(null);
+    // Optimistic update - add to state immediately (like localStorage)
+    const optimisticBookmark: Bookmark = {
+      id: `temp-${Date.now()}`,
+      artistId,
+      position: bookmarks.length + 1,
+      createdAt: new Date().toISOString(),
+      artist: {
+        id: artistId,
+        name: 'Loading...',
+        imageUrl: null,
+      }
+    };
+
+    setBookmarks(prev => [...prev, optimisticBookmark]);
 
     try {
       const response = await fetch('/api/bookmarks', {
@@ -118,6 +125,9 @@ export function useBookmarks(): UseBookmarksReturn {
       });
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        setBookmarks(prev => prev.filter(b => b.id !== optimisticBookmark.id));
+        
         let errorMessage = 'Failed to add bookmark';
         try {
           const errorData = await response.json();
@@ -135,17 +145,17 @@ export function useBookmarks(): UseBookmarksReturn {
         return false;
       }
 
-      // Refresh bookmarks to get the updated list
+      // Refresh bookmarks to get the real data
       await fetchBookmarks();
       return true;
     } catch (err) {
+      // Revert optimistic update on error
+      setBookmarks(prev => prev.filter(b => b.id !== optimisticBookmark.id));
       console.error('Error adding bookmark:', err);
       setError('Failed to add bookmark');
       return false;
-    } finally {
-      setLoading(false);
     }
-  }, [session?.user?.id, fetchBookmarks]);
+  }, [session?.user?.id, bookmarks.length, fetchBookmarks]);
 
   const removeBookmark = useCallback(async (artistId: string): Promise<boolean> => {
     if (!session?.user?.id) {
@@ -153,8 +163,9 @@ export function useBookmarks(): UseBookmarksReturn {
       return false;
     }
 
-    setLoading(true);
-    setError(null);
+    // Optimistic update - remove from state immediately (like localStorage)
+    const bookmarkToRemove = bookmarks.find(b => b.artistId === artistId);
+    setBookmarks(prev => prev.filter(b => b.artistId !== artistId));
 
     try {
       const response = await fetch(`/api/bookmarks/${artistId}`, {
@@ -162,6 +173,11 @@ export function useBookmarks(): UseBookmarksReturn {
       });
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        if (bookmarkToRemove) {
+          setBookmarks(prev => [...prev, bookmarkToRemove]);
+        }
+        
         let errorMessage = 'Failed to remove bookmark';
         try {
           const errorData = await response.json();
@@ -173,17 +189,19 @@ export function useBookmarks(): UseBookmarksReturn {
         return false;
       }
 
-      // Refresh bookmarks to get the updated list
+      // Refresh bookmarks to get updated data
       await fetchBookmarks();
       return true;
     } catch (err) {
+      // Revert optimistic update on error
+      if (bookmarkToRemove) {
+        setBookmarks(prev => [...prev, bookmarkToRemove]);
+      }
       console.error('Error removing bookmark:', err);
       setError('Failed to remove bookmark');
       return false;
-    } finally {
-      setLoading(false);
     }
-  }, [session?.user?.id, fetchBookmarks]);
+  }, [session?.user?.id, bookmarks, fetchBookmarks]);
 
   const reorderBookmarks = useCallback(async (artistIds: string[]): Promise<boolean> => {
     if (!session?.user?.id) {
@@ -204,12 +222,18 @@ export function useBookmarks(): UseBookmarksReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to reorder bookmarks');
+        let errorMessage = 'Failed to reorder bookmarks';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Failed to reorder bookmarks';
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        setError(errorMessage);
         return false;
       }
 
-      // Refresh bookmarks to get the updated list
+      // Refresh bookmarks to get the updated order
       await fetchBookmarks();
       return true;
     } catch (err) {
@@ -226,12 +250,12 @@ export function useBookmarks(): UseBookmarksReturn {
   }, [fetchBookmarks]);
 
   const loadMoreBookmarks = useCallback(async () => {
-    if (pagination?.hasMore && !loading) {
+    if (pagination?.hasMore) {
       await fetchBookmarks(currentPage + 1, true);
     }
-  }, [fetchBookmarks, pagination?.hasMore, loading, currentPage]);
+  }, [fetchBookmarks, pagination?.hasMore, currentPage]);
 
-  // Fetch bookmarks when session changes
+  // Load bookmarks when session changes
   useEffect(() => {
     if (session?.user?.id) {
       fetchBookmarks(1, false);
@@ -240,7 +264,6 @@ export function useBookmarks(): UseBookmarksReturn {
       setLoading(false);
       setError(null);
       setPagination(null);
-      setCurrentPage(1);
     }
   }, [session?.user?.id, fetchBookmarks]);
 
@@ -254,6 +277,7 @@ export function useBookmarks(): UseBookmarksReturn {
     reorderBookmarks,
     refreshBookmarks,
     loadMoreBookmarks,
+    isBookmarked,
   };
 }
 
