@@ -1,27 +1,36 @@
-import { getAddress, isAddress } from 'viem';
+/**
+ * Utilities for handling Ethereum addresses
+ */
 
 /**
- * Normalizes an Ethereum address to ensure consistent formatting.
- * - Validates the address format
- * - Returns the checksummed version
- * - Returns null for invalid addresses
+ * Simple address validation without normalization
+ * 
+ * @param address - The Ethereum address to validate
+ * @returns The address as-is if valid, or null if invalid
  */
-export function normalizeAddress(address: string): string | null {
-  try {
-    // Remove any whitespace
-    const trimmed = address.trim();
-    
-    // Check if it's a valid Ethereum address
-    if (!isAddress(trimmed)) {
-      return null;
-    }
-    
-    // Return the checksummed version
-    return getAddress(trimmed);
-  } catch (error) {
-    console.error('Error normalizing address:', error);
-    return null;
+export function normalizeAddress(address: string | undefined | null): string | null {
+  if (!address) return null;
+  
+  // Check if it's a valid Ethereum address format (0x followed by 40 hex characters)
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return null; // Return null if not a valid Ethereum address
   }
+  
+  return address; // Return as-is without case modification
+}
+
+/**
+ * Gets the address for display purposes (no checksumming)
+ * 
+ * @param address - The address to process
+ * @returns The address as-is
+ */
+export function getChecksumAddress(address: string): string {
+  if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return address;
+  }
+  
+  return address; // Return as-is without modification
 }
 
 /**
@@ -35,12 +44,12 @@ export function isValidAddress(address: string): boolean {
  * Formats an address for display (e.g., 0x1234...5678)
  */
 export function formatAddressForDisplay(address: string, length: number = 6): string {
-  const normalized = normalizeAddress(address);
-  if (!normalized) return address;
+  const validated = normalizeAddress(address);
+  if (!validated) return address;
   
-  if (normalized.length <= 2 + length * 2) {
-    return normalized;
+  if (validated.length <= 2 + length * 2) {
+    return validated;
   }
   
-  return `${normalized.slice(0, 2 + length)}...${normalized.slice(-length)}`;
+  return `${validated.slice(0, 2 + length)}...${validated.slice(-length)}`;
 }
