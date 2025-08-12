@@ -235,3 +235,27 @@ export const funFacts = pgTable("funfacts", {
      surpriseMe: text("surprise_me").notNull(),  
 	isActive: boolean("is_active").default(false),
 });
+
+export const bookmarks = pgTable("bookmarks", {
+	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	artistId: uuid("artist_id").notNull(),
+	position: integer("position").notNull(), // For ordering bookmarks
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+},
+(table) => {
+	return {
+		bookmarksUserIdFkey: foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "bookmarks_user_id_fkey"
+		}),
+		bookmarksArtistIdFkey: foreignKey({
+			columns: [table.artistId],
+			foreignColumns: [artists.id],
+			name: "bookmarks_artist_id_fkey"
+		}),
+		bookmarksUserArtistUnique: unique("bookmarks_user_artist_unique").on(table.userId, table.artistId),
+	}
+});

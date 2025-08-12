@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
-import { bookmarks } from '@/drizzle/schema';
-import { eq, and } from 'drizzle-orm';
+import { bookmarks } from '@/server/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 
 // DELETE /api/bookmarks/[artistId] - Remove a bookmark
 export async function DELETE(
@@ -55,7 +55,7 @@ export async function DELETE(
     await db
       .update(bookmarks)
       .set({
-        position: bookmarks.position - 1,
+        position: sql`${bookmarks.position} - 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(

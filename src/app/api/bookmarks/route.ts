@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
-import { bookmarks, artists } from '@/drizzle/schema';
+import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 // GET /api/bookmarks - Get user's bookmarks

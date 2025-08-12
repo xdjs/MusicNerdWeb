@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
-import { bookmarks } from '@/drizzle/schema';
+import { bookmarks } from '@/server/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // PUT /api/bookmarks/reorder - Reorder bookmarks
