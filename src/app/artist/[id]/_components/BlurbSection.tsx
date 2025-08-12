@@ -97,9 +97,8 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       });
       const data = await resp.json();
       if (resp.ok) {
-        setAiBlurb(data.bio);
         setEditText(data.bio);
-        // Don't update originalBio - keep it so Discard can restore the previous bio
+        // Don't update aiBlurb or originalBio - keep them so Discard can restore the previous bio
         toast({ title: "Bio regenerated" });
       } else {
         toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });
@@ -130,24 +129,22 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           placeholder="Enter artist bio..."
         />
                  <div className="flex justify-between items-center mt-2">
-           {canEdit && (
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={handleRegenerate}
-               disabled={isRegenerating || isSaving}
-               className="text-gray-700"
-             >
-               {isRegenerating ? (
-                 <>
-                   <img src="/spinner.svg" className="h-3 w-3 mr-1" alt="regenerating" />
-                   Regenerating...
-                 </>
-               ) : (
-                 "Regenerate"
-               )}
-             </Button>
-           )}
+                       {canEdit && (
+              <Button
+                variant="secondary"
+                onClick={handleRegenerate}
+                disabled={isRegenerating || isSaving}
+              >
+                {isRegenerating ? (
+                  <>
+                    <img src="/spinner.svg" className="h-4 w-4 mr-1" alt="regenerating" />
+                    Regenerating...
+                  </>
+                ) : (
+                  "Regenerate"
+                )}
+              </Button>
+            )}
            <div className="flex gap-2">
              <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
                Discard
@@ -186,29 +183,8 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
           ) : (
             <p className="text-gray-500 italic">No summary is available</p>
           )}
-        </div>
-                 {/* Regenerate button - positioned at bottom left, only for admins */}
-         {canEdit && (
-           <div className="absolute bottom-2 left-2 z-20">
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={handleRegenerate}
-               disabled={isRegenerating}
-               className="bg-white/90 backdrop-blur-sm border-gray-300 hover:bg-white text-gray-700 hover:text-gray-900"
-             >
-               {isRegenerating ? (
-                 <>
-                   <img src="/spinner.svg" className="h-3 w-3 mr-1" alt="regenerating" />
-                   Regenerating...
-                 </>
-               ) : (
-                 "Regenerate"
-               )}
-             </Button>
-           </div>
-         )}
-        {/* Expanded box */}
+                 </div>
+         {/* Expanded box */}
         {openModal && (
           <div className="absolute top-0 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-30 p-3 max-h-96 overflow-y-auto">
             <p className="text-black mb-4">{aiBlurb}</p>
