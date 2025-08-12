@@ -337,13 +337,14 @@ describe('BlurbSection', () => {
                 </EditModeWrapper>
             );
             
-            // Wait for initial bio to load
+            // Wait for initial bio to load in textarea
             await waitFor(() => {
-                expect(screen.getByText('Original bio')).toBeInTheDocument();
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('Original bio');
             });
 
             // Edit the bio text
-            const textarea = screen.getByPlaceholderText('Enter artist bio...');
+            const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
             fireEvent.change(textarea, { target: { value: 'Edited bio content' } });
 
             // Save the changes
