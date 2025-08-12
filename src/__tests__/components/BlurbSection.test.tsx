@@ -287,6 +287,7 @@ describe('BlurbSection', () => {
                 expect(textarea.value).toBe('Original bio');
             });
         });
+<<<<<<< HEAD
 
         it('discard restores original bio after regeneration', async () => {
             mockFetch
@@ -418,5 +419,7 @@ describe('BlurbSection', () => {
                 expect(textarea.value).toBe('Edited bio content');
             });
         });
+=======
+>>>>>>> parent of 2819de6 (Enhance BlurbSection component to manage original bio state, allowing for proper discard and save functionality. Update tests to verify the new behavior of restoring original bio after regeneration and saving changes. This improves user experience and ensures data integrity during bio edits.)
     });
 }); 

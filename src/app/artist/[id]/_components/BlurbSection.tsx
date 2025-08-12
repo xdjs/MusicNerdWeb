@@ -16,7 +16,6 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
 
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [aiBlurb, setAiBlurb] = useState<string | undefined>();
-  const [originalBio, setOriginalBio] = useState<string | undefined>();
   const [loadingAi, setLoadingAi] = useState(false);
 
   const [editText, setEditText] = useState<string>("");
@@ -31,10 +30,8 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to load summary");
           const json = await res.json();
-          const bio = json.bio as string;
-          setAiBlurb(bio);
-          setOriginalBio(bio); // Store the original bio
-          setEditText(bio);
+          setAiBlurb(json.bio as string);
+          setEditText(json.bio as string);
         })
         .catch(() => setAiBlurb("Failed to load summary."))
         .finally(() => setLoadingAi(false));
@@ -67,7 +64,6 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) {
         setAiBlurb(editText);
-        setOriginalBio(editText); // Update original bio when saved
         toast({ title: "Bio updated" });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
@@ -81,7 +77,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   }
 
   function handleDiscard() {
-    setEditText(originalBio ?? "");
+    setEditText(aiBlurb ?? "");
   }
 
   async function handleRegenerate() {
@@ -98,7 +94,10 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       const data = await resp.json();
       if (resp.ok) {
         setEditText(data.bio);
+<<<<<<< HEAD
         // Don't update aiBlurb or originalBio - keep them so Discard can restore the previous bio
+=======
+>>>>>>> parent of 2819de6 (Enhance BlurbSection component to manage original bio state, allowing for proper discard and save functionality. Update tests to verify the new behavior of restoring original bio after regeneration and saving changes. This improves user experience and ensures data integrity during bio edits.)
         toast({ title: "Bio regenerated" });
       } else {
         toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });

@@ -158,7 +158,6 @@ export async function searchForArtistByName(name: string) {
             FROM artists
             WHERE 
                 (lcname LIKE '%' || ${normalisedQuery || ''} || '%' OR similarity(lcname, ${normalisedQuery}) > 0.3)
-                AND spotify IS NOT NULL
             ORDER BY 
                 match_type ASC,  -- Contains matches first (0 before 1)
                 CASE 
