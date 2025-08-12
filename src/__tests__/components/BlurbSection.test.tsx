@@ -264,5 +264,120 @@ describe('BlurbSection', () => {
                 expect(screen.getByText('Original bio')).toBeInTheDocument();
             });
         });
+
+        it('discard restores original bio after regeneration', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Original bio' })
+                })
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Regenerated bio' })
+                });
+
+            // Use edit mode wrapper to show Discard button
+            const EditModeWrapper = ({ children }: { children: React.ReactNode }) => (
+                <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+                    {children}
+                </EditModeContext.Provider>
+            );
+
+            render(
+                <EditModeWrapper>
+                    <BlurbSection {...defaultProps} />
+                </EditModeWrapper>
+            );
+            
+            // Wait for initial bio to load
+            await waitFor(() => {
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
+            });
+
+            // Click regenerate
+            fireEvent.click(screen.getByText('Regenerate'));
+
+            // Wait for regenerated bio to appear
+            await waitFor(() => {
+                expect(screen.getByText('Regenerated bio')).toBeInTheDocument();
+            });
+
+            // Click discard - should restore original bio
+            fireEvent.click(screen.getByText('Discard'));
+
+            await waitFor(() => {
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
+            });
+        });
+
+        it('save updates original bio state', async () => {
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ bio: 'Original bio' })
+                })
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ message: 'Bio updated' })
+                });
+
+            // Use edit mode wrapper to show Save button
+            const EditModeWrapper = ({ children }: { children: React.ReactNode }) => (
+                <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+                    {children}
+                </EditModeContext.Provider>
+            );
+
+            render(
+                <EditModeWrapper>
+                    <BlurbSection {...defaultProps} />
+                </EditModeWrapper>
+            );
+            
+            // Wait for initial bio to load
+            await waitFor(() => {
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
+            });
+
+            // Edit the bio text
+            const textarea = screen.getByPlaceholderText('Enter artist bio...');
+            fireEvent.change(textarea, { target: { value: 'Edited bio content' } });
+
+            // Save the changes
+            fireEvent.click(screen.getByText('Save'));
+
+            // Wait for save to complete
+            await waitFor(() => {
+                expect(mockFetch).toHaveBeenCalledWith('/api/artistBio/test-artist-id', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ bio: 'Edited bio content' }),
+                });
+            });
+
+            // Now regenerate to test that the saved bio becomes the new "original"
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ bio: 'New regenerated bio' })
+            });
+
+            fireEvent.click(screen.getByText('Regenerate'));
+
+            // Wait for regenerated bio to appear in textarea
+            await waitFor(() => {
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('New regenerated bio');
+            });
+
+            // Click discard - should restore the saved bio (now the "original")
+            fireEvent.click(screen.getByText('Discard'));
+
+            await waitFor(() => {
+                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+                expect(textarea.value).toBe('Edited bio content');
+            });
+        });
     });
 }); 

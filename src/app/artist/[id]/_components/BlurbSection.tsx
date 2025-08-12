@@ -16,6 +16,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
 
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [aiBlurb, setAiBlurb] = useState<string | undefined>();
+  const [originalBio, setOriginalBio] = useState<string | undefined>();
   const [loadingAi, setLoadingAi] = useState(false);
 
   const [editText, setEditText] = useState<string>("");
@@ -30,8 +31,10 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
         .then(async (res) => {
           if (!res.ok) throw new Error("Failed to load summary");
           const json = await res.json();
-          setAiBlurb(json.bio as string);
-          setEditText(json.bio as string);
+          const bio = json.bio as string;
+          setAiBlurb(bio);
+          setOriginalBio(bio); // Store the original bio
+          setEditText(bio);
         })
         .catch(() => setAiBlurb("Failed to load summary."))
         .finally(() => setLoadingAi(false));
@@ -64,6 +67,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) {
         setAiBlurb(editText);
+        setOriginalBio(editText); // Update original bio when saved
         toast({ title: "Bio updated" });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
@@ -77,7 +81,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   }
 
   function handleDiscard() {
-    setEditText(aiBlurb ?? "");
+    setEditText(originalBio ?? "");
   }
 
   async function handleRegenerate() {
@@ -95,6 +99,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       if (resp.ok) {
         setAiBlurb(data.bio);
         setEditText(data.bio);
+        // Don't update originalBio - keep it so Discard can restore the previous bio
         toast({ title: "Bio regenerated" });
       } else {
         toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });
