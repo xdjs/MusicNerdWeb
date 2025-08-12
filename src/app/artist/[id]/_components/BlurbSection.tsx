@@ -94,10 +94,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       const data = await resp.json();
       if (resp.ok) {
         setEditText(data.bio);
-<<<<<<< HEAD
         // Don't update aiBlurb or originalBio - keep them so Discard can restore the previous bio
-=======
->>>>>>> parent of 2819de6 (Enhance BlurbSection component to manage original bio state, allowing for proper discard and save functionality. Update tests to verify the new behavior of restoring original bio after regeneration and saving changes. This improves user experience and ensures data integrity during bio edits.)
         toast({ title: "Bio regenerated" });
       } else {
         toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });
