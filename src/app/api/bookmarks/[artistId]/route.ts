@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks } from '@/server/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, gt } from 'drizzle-orm';
 
 // DELETE /api/bookmarks/[artistId] - Remove a bookmark
 export async function DELETE(
@@ -61,7 +61,7 @@ export async function DELETE(
       .where(
         and(
           eq(bookmarks.userId, userId),
-          bookmarks.position.gt(deletedPosition)
+          gt(bookmarks.position, deletedPosition)
         )
       );
 
