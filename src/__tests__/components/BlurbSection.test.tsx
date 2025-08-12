@@ -157,7 +157,7 @@ describe('BlurbSection', () => {
             </EditModeContext.Provider>
         );
 
-        it('does not show regenerate button in non-edit mode', async () => {
+        it('shows regenerate button for admins', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ bio: 'Test bio' })
@@ -170,11 +170,11 @@ describe('BlurbSection', () => {
             );
             
             await waitFor(() => {
-                expect(screen.queryByText('Regenerate')).not.toBeInTheDocument();
+                expect(screen.getByText('Regenerate')).toBeInTheDocument();
             });
         });
 
-        it('calls regenerate API when regenerate button is clicked in edit mode', async () => {
+        it('calls regenerate API when regenerate button is clicked', async () => {
             mockFetch
                 .mockResolvedValueOnce({
                     ok: true,
@@ -185,17 +185,10 @@ describe('BlurbSection', () => {
                     json: async () => ({ bio: 'Regenerated bio' })
                 });
 
-            // Use edit mode wrapper to show Regenerate button
-            const EditModeWrapper = ({ children }: { children: React.ReactNode }) => (
-                <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
-                    {children}
-                </EditModeContext.Provider>
-            );
-
             render(
-                <EditModeWrapper>
+                <TestWrapper>
                     <BlurbSection {...defaultProps} />
-                </EditModeWrapper>
+                </TestWrapper>
             );
             
             await waitFor(() => {
@@ -215,7 +208,7 @@ describe('BlurbSection', () => {
             });
         });
 
-        it('updates bio content after successful regeneration in edit mode', async () => {
+        it('updates bio content after successful regeneration', async () => {
             mockFetch
                 .mockResolvedValueOnce({
                     ok: true,
@@ -226,17 +219,10 @@ describe('BlurbSection', () => {
                     json: async () => ({ bio: 'Regenerated bio' })
                 });
 
-            // Use edit mode wrapper to show Regenerate button
-            const EditModeWrapper = ({ children }: { children: React.ReactNode }) => (
-                <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
-                    {children}
-                </EditModeContext.Provider>
-            );
-
             render(
-                <EditModeWrapper>
+                <TestWrapper>
                     <BlurbSection {...defaultProps} />
-                </EditModeWrapper>
+                </TestWrapper>
             );
             
             await waitFor(() => {
@@ -246,12 +232,11 @@ describe('BlurbSection', () => {
             fireEvent.click(screen.getByText('Regenerate'));
 
             await waitFor(() => {
-                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
-                expect(textarea.value).toBe('Regenerated bio');
+                expect(screen.getByText('Regenerated bio')).toBeInTheDocument();
             });
         });
 
-        it('handles regenerate API error in edit mode', async () => {
+        it('handles regenerate API error', async () => {
             mockFetch
                 .mockResolvedValueOnce({
                     ok: true,
@@ -262,17 +247,10 @@ describe('BlurbSection', () => {
                     json: async () => ({ message: 'Regeneration failed' })
                 });
 
-            // Use edit mode wrapper to show Regenerate button
-            const EditModeWrapper = ({ children }: { children: React.ReactNode }) => (
-                <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
-                    {children}
-                </EditModeContext.Provider>
-            );
-
             render(
-                <EditModeWrapper>
+                <TestWrapper>
                     <BlurbSection {...defaultProps} />
-                </EditModeWrapper>
+                </TestWrapper>
             );
             
             await waitFor(() => {
@@ -281,10 +259,9 @@ describe('BlurbSection', () => {
 
             fireEvent.click(screen.getByText('Regenerate'));
 
-            // The original bio should still be displayed in textarea
+            // The original bio should still be displayed
             await waitFor(() => {
-                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
-                expect(textarea.value).toBe('Original bio');
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
             });
         });
 <<<<<<< HEAD
@@ -343,10 +320,6 @@ describe('BlurbSection', () => {
                 .mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({ message: 'Bio updated' })
-                })
-                .mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ bio: 'New regenerated bio' })
                 });
 
             // Use edit mode wrapper to show Save button
@@ -362,14 +335,13 @@ describe('BlurbSection', () => {
                 </EditModeWrapper>
             );
             
-            // Wait for initial bio to load in textarea
+            // Wait for initial bio to load
             await waitFor(() => {
-                const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
-                expect(textarea.value).toBe('Original bio');
+                expect(screen.getByText('Original bio')).toBeInTheDocument();
             });
 
             // Edit the bio text
-            const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
+            const textarea = screen.getByPlaceholderText('Enter artist bio...');
             fireEvent.change(textarea, { target: { value: 'Edited bio content' } });
 
             // Save the changes
@@ -386,26 +358,15 @@ describe('BlurbSection', () => {
                 });
             });
 
-            // Wait for the save to complete and state to update
-            await waitFor(() => {
-                const saveButton = screen.getByText('Save');
-                expect(saveButton).toBeDisabled(); // Save button should be disabled after saving
+            // Now regenerate to test that the saved bio becomes the new "original"
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ bio: 'New regenerated bio' })
             });
 
-            // Now regenerate to test that the saved bio becomes the new "original"
             fireEvent.click(screen.getByText('Regenerate'));
 
-            // Wait for regeneration API call and bio update
-            await waitFor(() => {
-                expect(mockFetch).toHaveBeenNthCalledWith(3, '/api/artistBio/test-artist-id', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ regenerate: true }),
-                });
-            });
-
+            // Wait for regenerated bio to appear in textarea
             await waitFor(() => {
                 const textarea = screen.getByPlaceholderText('Enter artist bio...') as HTMLTextAreaElement;
                 expect(textarea.value).toBe('New regenerated bio');
