@@ -4,7 +4,7 @@ import { authOptions } from '@/server/auth';
 import { db } from '@/server/db/drizzle';
 import { bookmarks, artists } from '@/server/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { getSpotifyImage, getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
+
 
 // GET /api/bookmarks - Get user's bookmarks
 export async function GET(req: NextRequest) {
@@ -50,62 +50,23 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // Fetch Spotify images for each bookmark
-    try {
-      const headers = await getSpotifyHeaders();
-      const bookmarksWithImages = await Promise.all(
-        userBookmarks.map(async (bookmark) => {
-          try {
-            const imageResult = await getSpotifyImage(bookmark.artist.spotify, bookmark.artist.id, headers);
-            return {
-              ...bookmark,
-              artist: {
-                ...bookmark.artist,
-                imageUrl: imageResult.artistImage || null,
-              }
-            };
-          } catch (error) {
-            console.error(`Failed to fetch image for artist ${bookmark.artist.id}:`, error);
-            return {
-              ...bookmark,
-              artist: {
-                ...bookmark.artist,
-                imageUrl: null,
-              }
-            };
-          }
-        })
-      );
-      return NextResponse.json({ 
-        bookmarks: bookmarksWithImages,
-        pagination: {
-          page,
-          limit,
-          total: totalCount.length,
-          totalPages: Math.ceil(totalCount.length / limit),
-          hasMore: page * limit < totalCount.length
+    // Return bookmarks without Spotify images for now (will be enabled in production)
+    return NextResponse.json({ 
+      bookmarks: userBookmarks.map(bookmark => ({
+        ...bookmark,
+        artist: {
+          ...bookmark.artist,
+          imageUrl: null,
         }
-      });
-    } catch (error) {
-      console.error('Failed to fetch Spotify images:', error);
-      // Return bookmarks without images if Spotify API fails
-      return NextResponse.json({ 
-        bookmarks: userBookmarks.map(bookmark => ({
-          ...bookmark,
-          artist: {
-            ...bookmark.artist,
-            imageUrl: null,
-          }
-        })),
-        pagination: {
-          page,
-          limit,
-          total: totalCount.length,
-          totalPages: Math.ceil(totalCount.length / limit),
-          hasMore: page * limit < totalCount.length
-        }
-      });
-    }
+      })),
+      pagination: {
+        page,
+        limit,
+        total: totalCount.length,
+        totalPages: Math.ceil(totalCount.length / limit),
+        hasMore: page * limit < totalCount.length
+      }
+    });
   } catch (error) {
     console.error('[Bookmarks API] GET error:', error);
     return NextResponse.json(
