@@ -745,7 +745,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     items={displayBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <div className={isEditingBookmarks ? "max-h-64 overflow-y-auto pr-1 w-full" : undefined}>
+                                                    <div className={isEditingBookmarks ? "max-h-40 overflow-y-scroll pr-1 w-full" : undefined}>
                                                         <ul className="space-y-3">
                                                             {displayBookmarks.map((item) => (
                                                                 <SortableBookmarkItem
