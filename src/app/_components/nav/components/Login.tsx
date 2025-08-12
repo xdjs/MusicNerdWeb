@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,9 @@ import { useAccount, useDisconnect, useConfig } from 'wagmi';
 import { useConnectModal, useAccountModal, useChainModal } from '@rainbow-me/rainbowkit';
 import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
+import { useEnsAvatar } from '@/hooks/useEnsAvatar';
+import Jazzicon from 'react-jazzicon';
+
 
 // Add type for the SearchBar ref
 interface SearchBarRef {
@@ -42,6 +44,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { disconnect } = useDisconnect();
     const config = useConfig();
     const { openConnectModal } = useConnectModal();
+    const { ensAvatar, jazziconSeed, loading: ensLoading } = useEnsAvatar();
+    const [avatarError, setAvatarError] = useState(false);
+
+    // Reset avatar error when ENS avatar changes
+    useEffect(() => {
+        setAvatarError(false);
+    }, [ensAvatar]);
 
     useEffect(() => {
         console.debug("[Login] State changed:", {
@@ -398,8 +407,25 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         >
                             {isplaceholder ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
+                            ) : ensLoading ? (
+                                <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
+                            ) : ensAvatar && !avatarError ? (
+                                <img 
+                                    src={ensAvatar} 
+                                    alt="ENS Avatar" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                    onError={() => setAvatarError(true)}
+                                />
+                            ) : jazziconSeed ? (
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                </div>
                             ) : (
-                                <span className="text-xl">🥳</span>
+                                <img 
+                                    src="/default_pfp_pink.png" 
+                                    alt="Default Profile" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
@@ -407,18 +433,48 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => {
+                                try {
+                                    router.push('/leaderboard');
+                                } catch (error) {
+                                    console.error('Navigation error to leaderboard:', error);
+                                }
+                            }}>Leaderboard</DropdownMenuItem>
                             <DropdownMenuItem
                                 onSelect={() => {
-                                    router.push('/profile');
-
-                                    // Mark approved UGC as seen for this user
-                                    if (session) {
-                                        const storageKey = `ugcCount_${session.user.id}`;
-                                        localStorage.setItem(storageKey, String(ugcCount));
-                                        setHasNewUGC(false);
-                                        // Notify other listeners (e.g., other tabs/components)
-                                        window.dispatchEvent(new Event('ugcCountUpdated'));
+                                    try {
+                                        console.debug('[Login] Navigating to profile page');
+                                        
+                                        // Mark approved UGC as seen for this user BEFORE navigation
+                                        if (session) {
+                                            const storageKey = `ugcCount_${session.user.id}`;
+                                            localStorage.setItem(storageKey, String(ugcCount));
+                                            setHasNewUGC(false);
+                                            // Notify other listeners (e.g., other tabs/components)
+                                            window.dispatchEvent(new Event('ugcCountUpdated'));
+                                        }
+                                        
+                                        // Navigate after updating state
+                                        console.debug('[Login] About to call router.push');
+                                        
+                                        // Try router navigation first
+                                        try {
+                                            router.push('/profile');
+                                            console.debug('[Login] router.push called successfully');
+                                        } catch (routerError) {
+                                            console.error('[Login] Router navigation failed, trying window.location:', routerError);
+                                            // Fallback to window.location
+                                            window.location.href = '/profile';
+                                        }
+                                    } catch (error) {
+                                        console.error('Navigation error to profile:', error);
+                                        console.error('Error details:', {
+                                            message: error instanceof Error ? error.message : 'Unknown error',
+                                            stack: error instanceof Error ? error.stack : 'No stack trace',
+                                            session: !!session,
+                                            ugcCount,
+                                            hasNewUGC
+                                        });
                                     }
                                 }}
                                 className="flex items-center gap-2"
@@ -429,7 +485,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 )}
                             </DropdownMenuItem>
                             {session?.user?.isAdmin && (
-                                <DropdownMenuItem onSelect={() => router.push('/admin')} className="flex items-center gap-2">
+                                <DropdownMenuItem onSelect={() => {
+                                    try {
+                                        router.push('/admin');
+                                    } catch (error) {
+                                        console.error('Navigation error to admin:', error);
+                                    }
+                                }} className="flex items-center gap-2">
                                     <span>Admin Panel</span>
                                     {hasPendingUGC && (
                                         <span className="inline-block h-2 w-2 rounded-full bg-red-600" />

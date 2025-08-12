@@ -3,9 +3,13 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { User } from "@/server/db/DbTypes";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface WhitelistUserEditDialogProps {
   user: User;
@@ -16,8 +20,12 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
   const [wallet, setWallet] = useState(user.wallet || "");
   const [email, setEmail] = useState(user.email || "");
   const [username, setUsername] = useState(user.username || "");
+  const [isAdmin, setIsAdmin] = useState(user.isAdmin || false);
+  const [isWhiteListed, setIsWhiteListed] = useState(user.isWhiteListed || false);
+  const [isHidden, setIsHidden] = useState(user.isHidden || false);
   const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error"; message: string; isLoading: boolean }>({ status: "success", message: "", isLoading: false });
   const router = useRouter();
+  const { data: session } = useSession();
 
   // Keep local state in sync with the latest user data each time the dialog is opened
   useEffect(() => {
@@ -25,8 +33,24 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       setWallet(user.wallet || "");
       setEmail(user.email || "");
       setUsername(user.username || "");
+      setIsAdmin(user.isAdmin || false);
+      setIsWhiteListed(user.isWhiteListed || false);
+      setIsHidden(user.isHidden || false);
     }
   }, [user, open]);
+
+  // Auto-whitelist logic is now handled in click handlers only
+  // Removed useEffect to allow independent unchecking
+
+  // Get display text for roles (matches the column display format)
+  const getRoleDisplayText = () => {
+    const roles: string[] = [];
+    if (isAdmin) roles.push("Admin");
+    if (isWhiteListed) roles.push("Whitelisted");
+    if (isHidden) roles.push("Hidden");
+    if (roles.length === 0) roles.push("User");
+    return roles.join(", ");
+  };
 
   async function handleSave() {
     setUploadStatus({ status: "success", message: "", isLoading: true });
@@ -35,7 +59,14 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ wallet, email, username }),
+      body: JSON.stringify({ 
+        wallet, 
+        email, 
+        username, 
+        isAdmin, 
+        isWhiteListed,
+        isHidden
+      }),
       credentials: "same-origin",
     });
     const data = await resp.json();
@@ -81,6 +112,82 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
               onChange={(e) => setUsername(e.target.value)}
               className="border border-gray-300 focus:border-black focus:outline-none"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Role</label>
+            <Select 
+              value={getRoleDisplayText()}
+              disabled={!session?.user?.isAdmin}
+            >
+              <SelectTrigger className="border border-gray-300 focus:border-black focus:outline-none">
+                <span className="text-sm">{getRoleDisplayText()}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isAdmin ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const newAdminState = !isAdmin;
+                    setIsAdmin(newAdminState);
+                    // Auto-whitelist only when initially enabling admin
+                    if (newAdminState && !isWhiteListed) {
+                      setIsWhiteListed(true);
+                    }
+                    // Allow admin to be unchecked without affecting whitelist
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {isAdmin && <Check className="h-4 w-4" />}
+                  </span>
+                  Admin
+                </div>
+                
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsWhiteListed(!isWhiteListed);
+                    // No forced admin unchecking - allow independent selection
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {isWhiteListed && <Check className="h-4 w-4" />}
+                  </span>
+                  Whitelisted
+                </div>
+                
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed && !isHidden ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsAdmin(false);
+                    setIsWhiteListed(false);
+                    setIsHidden(false);
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
+                  </span>
+                  User
+                </div>
+                
+                <div 
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${isHidden ? 'bg-accent text-accent-foreground' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsHidden(!isHidden);
+                  }}
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    {isHidden && <Check className="h-4 w-4" />}
+                  </span>
+                  Hidden
+                </div>
+              </SelectContent>
+            </Select>
+            {!session?.user?.isAdmin && (
+              <p className="text-xs text-gray-500">Only admins can edit user roles</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">ID</label>

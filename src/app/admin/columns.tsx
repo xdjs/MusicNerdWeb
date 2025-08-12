@@ -177,6 +177,39 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     header: "Username",
   },
   {
+    id: "role",
+    accessorFn: (row) => {
+      const roles: string[] = [];
+      if (row.isAdmin) roles.push("Admin");
+      if (row.isWhiteListed) roles.push("Whitelisted");
+      if (row.isHidden) roles.push("Hidden");
+      if (roles.length === 0) roles.push("User");
+      return roles.join(", ");
+    },
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Role
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      // Priority: Admin (0) > Whitelisted (1) > User (2)
+      // If both have admin, they're equal. If neither have admin, compare whitelist status.
+      const getUserPriority = (row: any) => {
+        if (row.original.isAdmin) return 0;
+        if (row.original.isWhiteListed) return 1;
+        return 2;
+      };
+      const a = getUserPriority(rowA);
+      const b = getUserPriority(rowB);
+      return a - b;
+    },
+    size: 150, // Expand column width to accommodate multiple roles
+  },
+  {
     accessorKey: "updatedAt",
     header: ({ column }) => (
       <Button
@@ -188,29 +221,6 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       </Button>
     ),
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  {
-    id: "role",
-    accessorFn: (row) => (row.isAdmin ? "Admin" : row.isWhiteListed ? "Whitelisted" : "User"),
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Role
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const order: Record<string, number> = {
-        "Admin": 0,
-        "Whitelisted": 1,
-        "User": 2,
-      };
-      const a = order[rowA.getValue(columnId) as string] ?? 99;
-      const b = order[rowB.getValue(columnId) as string] ?? 99;
-      return a - b;
-    },
   },
   {
     id: "actions",

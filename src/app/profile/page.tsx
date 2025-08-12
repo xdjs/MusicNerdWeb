@@ -19,6 +19,9 @@ export default async function Page() {
             username: 'Guest User',
             isAdmin: false,
             isWhiteListed: true,
+            isSuperAdmin: false,
+            isHidden: false,
+            acceptedUgcCount: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             legacyId: null
@@ -36,6 +39,9 @@ export default async function Page() {
             username: 'Guest User',
             isAdmin: false,
             isWhiteListed: false,
+            isSuperAdmin: false,
+            isHidden: false,
+            acceptedUgcCount: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             legacyId: null

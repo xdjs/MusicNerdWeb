@@ -1,4 +1,4 @@
-import { pgTable, foreignKey, uuid, timestamp, unique, text, integer, boolean, pgEnum, serial, varchar, jsonb, decimal } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, uuid, timestamp, unique, text, integer, boolean, bigint, pgEnum, serial, varchar, jsonb, decimal } from "drizzle-orm/pg-core"
 import { is, relations, sql } from "drizzle-orm"
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
 
@@ -86,6 +86,10 @@ export const users = pgTable("users", {
 	legacyId: text("legacy_id"),
 	isAdmin: boolean("is_admin").default(false).notNull(),
 	isWhiteListed: boolean("is_white_listed").default(false).notNull(),
+	isSuperAdmin: boolean("is_super_admin").default(false).notNull(),
+	isHidden: boolean("is_hidden").default(false).notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	acceptedUgcCount: bigint("accepted_ugc_count", { mode: "number" }),
 },
 	(table) => {
 		return {

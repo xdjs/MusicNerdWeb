@@ -72,7 +72,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
     return (
         <li ref={setNodeRef} style={style} className="relative">
-            <div className="flex items-center gap-3 hover:bg-gray-50 rounded-md">
+            <div className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md">
                 {isEditing && (
                     <button
                         {...attributes}
@@ -218,6 +218,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         async function fetchRank() {
             try {
+                // Check if user is hidden first - if so, set rank to -1 and skip API call
+                if (user.isHidden) {
+                    console.debug('[Dashboard] User is hidden, setting rank to N/A');
+                    setRank(-1);
+                    setTotalEntries(null); // Don't show total for hidden users
+                    return;
+                }
+
                 let url = '/api/leaderboard';
                 if (isCompactLayout) {
                     const dates = getRangeDates(selectedRange);
@@ -229,9 +237,35 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const resp = await fetch(url);
                 if (!resp.ok) return;
                 const data = await resp.json();
-                setTotalEntries(data.length);
+                // Exclude hidden users from total count
+                const nonHiddenUsers = data.filter((entry: any) => !entry.isHidden);
+                setTotalEntries(nonHiddenUsers.length);
+                
                 const idx = data.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
-                if (idx !== -1) setRank(idx + 1);
+                if (idx !== -1) {
+                    // Check if the current user is hidden - check both user object and leaderboard entry
+                    const userEntry = data[idx];
+                    const isUserHidden = user.isHidden || userEntry?.isHidden;
+                    
+                    console.debug('[Dashboard] Rank calculation:', {
+                        userIsHidden: user.isHidden,
+                        entryIsHidden: userEntry?.isHidden,
+                        finalIsHidden: isUserHidden,
+                        userWallet: user.wallet,
+                        entryWallet: userEntry?.wallet
+                    });
+                    
+                    if (isUserHidden) {
+                        console.debug('[Dashboard] Setting rank to -1 for hidden user');
+                        setRank(-1); // Use -1 to indicate hidden user
+                    } else {
+                        // Calculate rank among non-hidden users only
+                        const nonHiddenIdx = nonHiddenUsers.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
+                        if (nonHiddenIdx !== -1) {
+                            setRank(nonHiddenIdx + 1);
+                        }
+                    }
+                }
             } catch (e) {
                 console.error('Error fetching rank', e);
             }
@@ -241,8 +275,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }, [selectedRange, user.wallet, isCompactLayout]);
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
-    // Determine user status string for display
-    const statusString = user.isAdmin ? 'Admin' : (user.isWhiteListed ? 'Whitelisted' : 'User');
+    // Determine user status string for display (support multiple roles)
+    const statusString = (() => {
+        const roles: string[] = [];
+        if (user.isAdmin) roles.push("Admin");
+        if (user.isWhiteListed) roles.push("Whitelisted");
+        if (user.isHidden) roles.push("Hidden");
+        if (roles.length === 0) roles.push("User");
+        return roles.join(", ");
+    })();
 
     const { openConnectModal } = useConnectModal();
     const { status } = useSession();
@@ -485,7 +526,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {rank ?? '—'}
+                                        {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
                                     {totalEntries && (
                                         <>
@@ -663,7 +704,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold">Artists Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
                                 </Link>

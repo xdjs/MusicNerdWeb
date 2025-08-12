@@ -103,27 +103,46 @@ export type UpdateWhitelistedUserResp = {
     message: string;
 };
 
-// Updates a whitelisted user's editable fields (wallet, email, username)
+// Updates a whitelisted user's editable fields (wallet, email, username, roles)
 export async function updateWhitelistedUser(
     userId: string,
-    data: { wallet?: string; email?: string; username?: string }
+    data: { wallet?: string; email?: string; username?: string; isAdmin?: boolean; isWhiteListed?: boolean; isHidden?: boolean }
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
-        const updateData: Record<string, string> = {};
+        const updateData: Record<string, string | boolean> = {};
         if (data.wallet !== undefined) updateData.wallet = data.wallet;
         if (data.email !== undefined) updateData.email = data.email;
         if (data.username !== undefined) updateData.username = data.username;
+
+        // Handle role flag changes
+        if (data.isAdmin !== undefined) {
+            updateData.isAdmin = data.isAdmin;
+            // Auto-whitelist admins
+            if (data.isAdmin) {
+                updateData.isWhiteListed = true;
+            }
+        }
+        
+        if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
+            // Only update whitelist if not overridden by admin logic above
+            updateData.isWhiteListed = data.isWhiteListed;
+        }
+
+        // Handle hidden role flag
+        if (data.isHidden !== undefined) {
+            updateData.isHidden = data.isHidden;
+        }
 
         if (Object.keys(updateData).length === 0) {
             return { status: "error", message: "No fields to update" };
         }
 
         await db.update(users).set(updateData).where(eq(users.id, userId));
-        return { status: "success", message: "Whitelist user updated" };
+        return { status: "success", message: "User updated successfully" };
     } catch (e) {
         console.error("error updating whitelisted user", e);
-        return { status: "error", message: "Error updating whitelisted user" };
+        return { status: "error", message: "Error updating user" };
     }
 }
 
@@ -136,8 +155,9 @@ export async function addUsersToAdmin(walletAddresses: string[]): Promise<AddUse
     try {
         if (walletAddresses.length) {
             const now = new Date().toISOString();
-            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
-            await db.update(users).set({ isAdmin: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
+            // Admin users should automatically be whitelisted as well
+            await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
+            await db.update(users).set({ isAdmin: true, isWhiteListed: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
         }
         return { status: "success", message: "Users granted admin access" };
     } catch (e) {
@@ -165,5 +185,33 @@ export async function getAllUsers() {
     } catch (e) {
         console.error("error getting all users", e);
         throw new Error("Error getting all users");
+    }
+}
+
+export type AddUsersToHiddenResp = {
+    status: "success" | "error";
+    message: string;
+};
+
+export async function addUsersToHidden(walletAddresses: string[]): Promise<AddUsersToHiddenResp> {
+    try {
+        if (walletAddresses.length) {
+            const now = new Date().toISOString();
+            await db.update(users).set({ isHidden: true, updatedAt: now }).where(inArray(users.wallet, walletAddresses));
+            await db.update(users).set({ isHidden: true, updatedAt: now }).where(inArray(users.username, walletAddresses));
+        }
+        return { status: "success", message: "Users hidden from leaderboards" };
+    } catch (e) {
+        console.error("error hiding users", e);
+        return { status: "error", message: "Error hiding users" };
+    }
+}
+
+export async function removeFromHidden(userIds: string[]) {
+    try {
+        const now = new Date().toISOString();
+        await db.update(users).set({ isHidden: false, updatedAt: now }).where(inArray(users.id, userIds));
+    } catch (e) {
+        console.error("error unhiding users", e);
     }
 } 

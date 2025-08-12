@@ -37,7 +37,10 @@ describe('addArtist Server Action', () => {
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
     legacyId: null,
-    isAdmin: false
+    isAdmin: false,
+    isSuperAdmin: false,
+    isHidden: false,
+    acceptedUgcCount: null
   };
   const mockSpotifyHeaders = {
     headers: {
