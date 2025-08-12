@@ -6,11 +6,10 @@ export interface Bookmark {
   artistId: string;
   position: number;
   createdAt: string;
-  artist: {
-    id: string;
-    name: string;
-    images: string[] | null;
-  };
+                artist: {
+                id: string;
+                name: string;
+              };
 }
 
 export interface UseBookmarksReturn {

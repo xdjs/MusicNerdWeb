@@ -29,7 +29,6 @@ export async function GET() {
         artist: {
           id: artists.id,
           name: artists.name,
-          images: artists.images,
         }
       })
       .from(bookmarks)

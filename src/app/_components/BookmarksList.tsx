@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { BookmarkCheck, Trash2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface BookmarksListProps {
   className?: string;
@@ -89,21 +88,12 @@ export function BookmarksList({ className = '', showTitle = true }: BookmarksLis
               key={bookmark.id}
               className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                  {bookmark.artist.images && bookmark.artist.images.length > 0 ? (
-                    <Image
-                      src={bookmark.artist.images[0]}
-                      alt={bookmark.artist.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-gray-500 text-xs">No image</span>
-                    </div>
-                  )}
-                </div>
+                             <div className="flex items-center gap-3 flex-1 min-w-0">
+                 <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                   <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                     <span className="text-gray-500 text-xs">No image</span>
+                   </div>
+                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-gray-900 truncate">
                     {bookmark.artist.name}
