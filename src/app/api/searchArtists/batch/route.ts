@@ -5,6 +5,20 @@ import { searchForArtistByName } from "@/server/utils/queries/artistQueries";
 const searchCache = new Map<string, { results: any[], timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// CORS configuration for this route
+const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || "*";
+const CORS_HEADERS: HeadersInit = {
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+  Vary: "Origin",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 // Normalise text similar to DB-side normalisation
 function normalizeText(input: string): string {
   return input
@@ -52,13 +66,13 @@ export async function POST(req: Request) {
     
     const cleaned = [...new Set(artists.map(q => q.trim()).filter(Boolean))];
     if (cleaned.length === 0) {
-        return Response.json({ error: "No queries provided" }, { status: 400 });
+        return Response.json({ error: "No queries provided" }, { status: 400, headers: CORS_HEADERS });
     }
 
     const cacheKey = JSON.stringify(cleaned);
     const cached = searchCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-     return Response.json({ results: cached.results });
+     return Response.json({ results: cached.results }, { headers: CORS_HEADERS });
     }
 
 
@@ -92,7 +106,7 @@ export async function POST(req: Request) {
       // Cache the results
       searchCache.set(cacheKey, { results: allResults, timestamp: Date.now() });
 
-      return Response.json({ results: allResults });
+      return Response.json({ results: allResults }, { headers: CORS_HEADERS });
     };
 
     
@@ -106,13 +120,13 @@ export async function POST(req: Request) {
     if (error instanceof Error && error.message === 'Search timeout') {
       return Response.json(
         { error: "Search timed out. Please try a more specific search term." },
-        { status: 408 }
+        { status: 408, headers: CORS_HEADERS }
       );
     }
     
     return Response.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
