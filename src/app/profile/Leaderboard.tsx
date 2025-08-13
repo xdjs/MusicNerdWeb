@@ -107,7 +107,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
                         <div className="flex items-center gap-2 overflow-hidden">
-                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
@@ -157,7 +157,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
                         <div className="flex items-center gap-2 overflow-hidden">
-                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
