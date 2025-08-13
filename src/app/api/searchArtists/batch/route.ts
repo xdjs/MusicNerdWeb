@@ -5,19 +5,28 @@ import { searchForArtistByName } from "@/server/utils/queries/artistQueries";
 const searchCache = new Map<string, { results: any[], timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Helper function to calculate match score for sorting
+// Normalise text similar to DB-side normalisation
+function normalizeText(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s]+/gu, "")
+    .toLowerCase();
+}
+
+// Helper function to calculate match score for sorting (uses normalisation)
 function getMatchScore(name: string, query: string) {
-  const nameLower = name.toLowerCase();
-  const queryLower = query.toLowerCase();
+  const nameNorm = normalizeText(name);
+  const queryNorm = normalizeText(query);
 
   // Exact match gets highest priority (0)
-  if (nameLower === queryLower) return 0;
+  if (nameNorm === queryNorm) return 0;
   
   // Starts with match gets second priority (1)
-  if (nameLower.startsWith(queryLower)) return 1;
+  if (nameNorm.startsWith(queryNorm)) return 1;
   
   // Contains match gets third priority (2)
-  if (nameLower.includes(queryLower)) return 2;
+  if (nameNorm.includes(queryNorm)) return 2;
   
   // No direct match, will be sorted by similarity (3)
   return 3;
@@ -60,13 +69,21 @@ export async function POST(req: Request) {
 
     const searchOperation = async (): Promise<Response> => {
       // Query database for artists
-      const perArtist = await Promise.all (
-        cleaned.map(async q => {
-            const rows = await searchForArtistByName(q);
-            const result = rows[0];
-            return result
-                ? {...result, matchScore: getMatchScore(result.name || " ", q)}
-                : null;
+      const perArtist = await Promise.all(
+        cleaned.map(async (q) => {
+          const rows = await searchForArtistByName(q);
+          const [best] = rows
+            .map((r) => ({
+              ...r,
+              isSpotifyOnly: false,
+              matchScore: getMatchScore(r.name || "", q),
+            }))
+            .sort((a, b) =>
+              a.matchScore !== b.matchScore
+                ? a.matchScore - b.matchScore
+                : (a.name || "").localeCompare(b.name || "")
+            );
+          return best ?? null;
         })
       );
       const allResults = perArtist;
