@@ -2,7 +2,7 @@ import { getServerAuthSession } from "@/server/auth";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
 import LeaderboardAutoRefresh from "./LeaderboardAutoRefresh";
-import { notFound } from "next/navigation";
+// import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
 
 export default async function Page() {
@@ -59,7 +59,7 @@ export default async function Page() {
     ); // leaderboard for guest
   }
 
-  let user = null as Awaited<ReturnType<typeof getUserById>>;
+  let user: Awaited<ReturnType<typeof getUserById>> | null = null;
   try {
     user = await getUserById(session.user.id);
   } catch (e) {
