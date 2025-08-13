@@ -102,7 +102,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
                         "p-3 border rounded-md transition-colors scroll-mt-12",
-                        isHighlighted ? "ring-2 ring-primary bg-accent sticky top-12 z-10" : "hover:bg-accent/40"
+                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-[#f3f4f6] sticky top-12 z-10" : "hover:bg-[#f3f4f6]"
                     )}
         >
             {/* Mobile layout */}
@@ -346,7 +346,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (loading) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
@@ -356,7 +356,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 key={key}
                                 size="sm"
                                 variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
+                                    range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -374,7 +377,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (error) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -383,7 +386,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 key={key}
                                 size="sm"
                                 variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
+                                    range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -401,7 +407,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     return (
         <TooltipProvider delayDuration={200}>
-        <Card className="max-w-3xl mx-auto">
+        <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
             <CardHeader className="text-center">
                 <CardTitle className="mb-5 text-maroon">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -412,7 +418,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             variant={range === key ? "default" : "secondary"}
                             className={cn(
                                 "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
-                                range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-gray-300 hover:bg-gray-100"
+                                range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
                             )}
                             onClick={() => setRange(key)}
                         >
@@ -424,7 +430,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-maroon/70 text-center sticky top-0 z-20 bg-white py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#9b83a0] text-center sticky top-0 z-20 bg-white py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
