@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import Jazzicon from "react-jazzicon";
+import { jsNumberForAddress } from "react-jazzicon";
+import { createPublicClient, http } from "viem";
+import { getEnsAvatar, getEnsName } from "viem/ens";
+import { mainnet } from "wagmi/chains";
 
 type RangeKey = "today" | "week" | "month" | "all";
 
@@ -20,9 +25,20 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
+const publicClient = createPublicClient({
+    chain: mainnet,
+    transport: http(),
+});
+
 function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
+
+    // Avatar state for each leaderboard entry (replicates corner icon logic)
+    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+    const [ensLoading, setEnsLoading] = useState(false);
 
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
@@ -30,6 +46,34 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.username ?? '').toLowerCase() === identifierLc ||
         (entry.email ?? '').toLowerCase() === identifierLc
     );
+
+    useEffect(() => {
+        let cancelled = false;
+        async function resolveAvatar() {
+            setEnsLoading(true);
+            setAvatarError(false);
+            try {
+                const ensName = await getEnsName(publicClient, { address: entry.wallet as `0x${string}` });
+                let finalAvatar: string | null = null;
+                if (ensName) {
+                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+                }
+                if (!cancelled) {
+                    setEnsAvatarUrl(finalAvatar ?? null);
+                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(entry.wallet));
+                }
+            } catch {
+                if (!cancelled) {
+                    setEnsAvatarUrl(null);
+                    setJazziconSeed(jsNumberForAddress(entry.wallet));
+                }
+            } finally {
+                if (!cancelled) setEnsLoading(false);
+            }
+        }
+        resolveAvatar();
+        return () => { cancelled = true; };
+    }, [entry.wallet]);
 
     async function fetchRecent() {
         if (recent || loadingRec) return;
@@ -66,7 +110,28 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
-                            <p className="font-medium truncate max-w-[200px] text-lg">
+                            {/* Avatar between rank and username */}
+                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center">
+                                {ensLoading ? (
+                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                ) : ensAvatarUrl && !avatarError ? (
+                                    <img
+                                        src={ensAvatarUrl}
+                                        alt="ENS Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : jazziconSeed ? (
+                                    <Jazzicon diameter={24} seed={jazziconSeed} />
+                                ) : (
+                                    <img
+                                        src="/default_pfp_pink.png"
+                                        alt="Default Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
+                            <p className="font-medium truncate max-w-[160px] text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
@@ -95,8 +160,29 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
+                            {/* Avatar between rank and username */}
+                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center">
+                                {ensLoading ? (
+                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                ) : ensAvatarUrl && !avatarError ? (
+                                    <img
+                                        src={ensAvatarUrl}
+                                        alt="ENS Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : jazziconSeed ? (
+                                    <Jazzicon diameter={24} seed={jazziconSeed} />
+                                ) : (
+                                    <img
+                                        src="/default_pfp_pink.png"
+                                        alt="Default Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
                             <div className="truncate">
-                                <p className="font-medium truncate max-w-[200px] text-lg">
+                                <p className="font-medium truncate max-w-[180px] text-lg">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
