@@ -101,8 +101,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
-                        "p-3 border-2 border-[#9b83a0] rounded-md transition-colors scroll-mt-12",
-                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : "hover:bg-[#c6bfc7]"
+                        "p-3 border rounded-md transition-colors scroll-mt-12",
+                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : "hover:bg-[#f3f4f6]"
                     )}
         >
             {/* Mobile layout */}
@@ -413,7 +413,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#ff9ce3]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
