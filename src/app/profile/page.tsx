@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import Login from "../_components/nav/components/Login";
 import PleaseLoginPage from "../_components/PleaseLoginPage";
+import LeaderboardAutoRefresh from "@/app/leaderboard/LeaderboardAutoRefresh";
 
 export default async function Page() {
     const session = await getServerAuthSession();
@@ -26,7 +27,12 @@ export default async function Page() {
             updatedAt: new Date().toISOString(),
             legacyId: null
         } as const;
-        return <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
     }
     
     // Normal authentication flow
@@ -46,10 +52,20 @@ export default async function Page() {
             updatedAt: new Date().toISOString(),
             legacyId: null
         } as const;
-        return <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
     }
 
     const user = await getUserById(session.user.id);
     if (!user) return notFound();
-    return <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+    return (
+        <>
+            <LeaderboardAutoRefresh />
+            <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+        </>
+    );
 }

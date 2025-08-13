@@ -156,36 +156,41 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
-                        <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="flex items-center overflow-hidden w-full">
                             <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
-                            {/* Avatar between rank and username */}
-                            <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                {ensLoading ? (
-                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                                ) : ensAvatarUrl && !avatarError ? (
-                                    <img
-                                        src={ensAvatarUrl}
-                                        alt="ENS Avatar"
-                                        className="w-full h-full object-cover"
-                                        onError={() => setAvatarError(true)}
-                                    />
-                                ) : jazziconSeed ? (
-                                    <Jazzicon diameter={24} seed={jazziconSeed} />
-                                ) : (
-                                    <img
-                                        src="/default_pfp_pink.png"
-                                        alt="Default Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-lg">
+                            {/* Left spacer to preserve rank→avatar gap visually */}
+                            <div className="w-3 flex-none" />
+                            {/* Centered group: avatar + username */}
+                            <div className="mx-auto flex items-center gap-3 min-w-0">
+                                {/* Avatar between rank and username */}
+                                <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-none">
+                                    {ensLoading ? (
+                                        <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                    ) : ensAvatarUrl && !avatarError ? (
+                                        <img
+                                            src={ensAvatarUrl}
+                                            alt="ENS Avatar"
+                                            className="w-full h-full object-cover"
+                                            onError={() => setAvatarError(true)}
+                                        />
+                                    ) : jazziconSeed ? (
+                                        <Jazzicon diameter={24} seed={jazziconSeed} />
+                                    ) : (
+                                        <img
+                                            src="/default_pfp_pink.png"
+                                            alt="Default Profile"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )}
+                                </div>
+                                <p className="font-medium truncate text-lg min-w-0">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
+                            {/* Right spacer to visually match the left gap */}
+                            <div className="w-3 flex-none" />
                         </div>
 
                         {/* UGC count */}
