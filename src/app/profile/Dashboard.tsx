@@ -72,7 +72,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
     return (
         <li ref={setNodeRef} style={style} className="relative">
-            <div className="flex items-center gap-3 hover:bg-gray-50 px-2 rounded-md">
+            <div className="flex items-center gap-3">
                 {isEditing && (
                     <button
                         {...attributes}
@@ -745,8 +745,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     items={displayBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <div className={isEditingBookmarks ? "max-h-40 overflow-y-scroll pr-1 w-full" : undefined}>
-                                                        <ul className="space-y-2">
+									<div className={isEditingBookmarks ? "max-h-40 overflow-y-scroll pr-1 w-full" : undefined}>
+										<ul className="space-y-3">
                                                             {displayBookmarks.map((item) => (
                                                                 <SortableBookmarkItem
                                                                     key={item.artistId}
