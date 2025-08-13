@@ -140,7 +140,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
+                            <p className="font-medium flex-1 min-w-0 truncate text-base">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
@@ -198,7 +198,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-lg">
+                                <p className="font-medium truncate text-base">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
