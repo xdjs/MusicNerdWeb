@@ -154,7 +154,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </div>
 
                     {/* Desktop layout */}
-                    <div className="hidden sm:grid grid-cols-3 items-center">
+                    <div className="hidden sm:grid grid-cols-[1.6fr_1fr_1fr] items-center">
                         {/* User col */}
                         <div className="flex items-center justify-between w-full overflow-hidden">
                             <span className={`w-7 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
@@ -405,7 +405,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-[1.6fr_1fr_1fr] font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
