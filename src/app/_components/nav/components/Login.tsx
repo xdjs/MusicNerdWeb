@@ -377,8 +377,12 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => router.push('/leaderboard')}>Leaderboard</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => router.push('/profile')}>User Profile</DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/leaderboard" prefetch>Leaderboard</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/profile" prefetch>User Profile</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() => {
                                 if (openConnectModal) {
@@ -397,7 +401,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
 
                 // User is authenticated – show dropdown with profile and logout options.
                 return (
-                    <DropdownMenu>
+                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                         <Button 
                             ref={ref}
@@ -433,69 +437,34 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                         </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => {
-                                try {
-                                    router.push('/leaderboard');
-                                } catch (error) {
-                                    console.error('Navigation error to leaderboard:', error);
-                                }
-                            }}>Leaderboard</DropdownMenuItem>
-                            <DropdownMenuItem
-                                onSelect={() => {
+                            <DropdownMenuItem asChild>
+                                <Link href="/leaderboard" prefetch>Leaderboard</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="flex items-center gap-2" asChild>
+                                <Link href="/profile" prefetch onClick={() => {
                                     try {
-                                        console.debug('[Login] Navigating to profile page');
-                                        
-                                        // Mark approved UGC as seen for this user BEFORE navigation
                                         if (session) {
                                             const storageKey = `ugcCount_${session.user.id}`;
                                             localStorage.setItem(storageKey, String(ugcCount));
                                             setHasNewUGC(false);
-                                            // Notify other listeners (e.g., other tabs/components)
                                             window.dispatchEvent(new Event('ugcCountUpdated'));
                                         }
-                                        
-                                        // Navigate after updating state
-                                        console.debug('[Login] About to call router.push');
-                                        
-                                        // Try router navigation first
-                                        try {
-                                            router.push('/profile');
-                                            console.debug('[Login] router.push called successfully');
-                                        } catch (routerError) {
-                                            console.error('[Login] Router navigation failed, trying window.location:', routerError);
-                                            // Fallback to window.location
-                                            window.location.href = '/profile';
-                                        }
-                                    } catch (error) {
-                                        console.error('Navigation error to profile:', error);
-                                        console.error('Error details:', {
-                                            message: error instanceof Error ? error.message : 'Unknown error',
-                                            stack: error instanceof Error ? error.stack : 'No stack trace',
-                                            session: !!session,
-                                            ugcCount,
-                                            hasNewUGC
-                                        });
-                                    }
-                                }}
-                                className="flex items-center gap-2"
-                            >
-                                <span>User Profile</span>
-                                {hasNewUGC && (
-                                    <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
-                                )}
-                            </DropdownMenuItem>
-                            {session?.user?.isAdmin && (
-                                <DropdownMenuItem onSelect={() => {
-                                    try {
-                                        router.push('/admin');
-                                    } catch (error) {
-                                        console.error('Navigation error to admin:', error);
-                                    }
-                                }} className="flex items-center gap-2">
-                                    <span>Admin Panel</span>
-                                    {hasPendingUGC && (
+                                    } catch {}
+                                }}>
+                                    <span>User Profile</span>
+                                    {hasNewUGC && (
                                         <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
                                     )}
+                                </Link>
+                            </DropdownMenuItem>
+                            {session?.user?.isAdmin && (
+                                <DropdownMenuItem asChild className="flex items-center gap-2">
+                                    <Link href="/admin" prefetch>
+                                        <span>Admin Panel</span>
+                                        {hasPendingUGC && (
+                                            <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
+                                        )}
+                                    </Link>
                                 </DropdownMenuItem>
                             )}
                             <DropdownMenuItem

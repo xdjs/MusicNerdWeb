@@ -59,7 +59,34 @@ export default async function Page() {
     ); // leaderboard for guest
   }
 
-  const user = await getUserById(session.user.id);
-  if (!user) return notFound();
+  let user = null as Awaited<ReturnType<typeof getUserById>>;
+  try {
+    user = await getUserById(session.user.id);
+  } catch (e) {
+    console.error('[Leaderboard page] Failed to fetch user by id, falling back to guest view', e);
+  }
+  if (!user) {
+    const guestUser = {
+      id: '00000000-0000-0000-0000-000000000000',
+      wallet: '0x0000000000000000000000000000000000000000',
+      email: null,
+      username: 'Guest User',
+      isAdmin: false,
+      isWhiteListed: false,
+      isSuperAdmin: false,
+      isHidden: false,
+      acceptedUgcCount: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      legacyId: null,
+    } as const;
+    return (
+      <main className="px-5 sm:px-10 py-10">
+        <Dashboard user={guestUser} allowEditUsername={false} showLeaderboard={false} showDateRange={false} hideLogin={true} showStatus={false} />
+        <LeaderboardAutoRefresh />
+        <Leaderboard />
+      </main>
+    );
+  }
   return <Dashboard user={user} allowEditUsername={false} showDateRange={false} hideLogin={true} showStatus={false} />;
 } 
