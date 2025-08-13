@@ -101,26 +101,28 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
-                        "p-3 border rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
-                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : ""
+                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
+                        isHighlighted
+                            ? "border-2 border-[#ff9ce3] bg-white sticky top-12 z-10"
+                            : "border-2 border-[#9b83a0]"
                     )}
         >
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
                         <div className="flex items-center gap-6 overflow-hidden">
-                            <span className={`w-7 flex-none font-semibold text-left text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] inline-block">🥉</span>
-                                    : rank
+                                    : <span className="relative top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
-                            <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-7 h-7 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
                                     <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -146,17 +148,17 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         </div>
 
                         {/* UGC row */}
-                        <div className="flex justify-between pl-10">
+                        <div className="flex justify-between pl-10 items-center">
                             <span className="text-[#9b83a0]">UGC Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artists row */}
-                        <div className="flex justify-between pl-10">
+                        <div className="flex justify-between pl-10 items-center">
                             <span className="text-[#9b83a0]">Artists Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -166,18 +168,18 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col (left-aligned, with increased inner gap) */}
                         <div className="flex items-center gap-6 overflow-hidden">
-                            <span className={`w-7 flex-none font-semibold text-left text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] inline-block">🥉</span>
-                                    : rank
+                                    : <span className="relative top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
-                            <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-7 h-7 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
                                     <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -205,15 +207,15 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         </div>
 
                         {/* UGC count */}
-                        <div className="text-center text-lg">
-                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
+                        <div className="flex items-center justify-center">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artist count */}
-                        <div className="text-right text-lg">
-                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
+                        <div className="flex items-center justify-end">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -346,7 +348,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (loading) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
@@ -379,7 +381,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (error) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -411,7 +413,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     return (
         <TooltipProvider delayDuration={200}>
-        <Card className="max-w-3xl mx-auto">
+        <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
             <CardHeader className="text-center">
                 <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
