@@ -44,6 +44,16 @@ jest.mock('@/app/actions/addArtist', () => ({
   addArtist: jest.fn(),
 }));
 
+// Mock useEnsAvatar hook
+jest.mock('@/hooks/useEnsAvatar', () => ({
+  useEnsAvatar: () => ({
+    ensAvatar: null,
+    jazziconSeed: null,
+    address: null,
+    loading: false
+  })
+}));
+
 // -------------------- Helpers --------------------
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const renderWithProviders = (ui: React.ReactElement) =>

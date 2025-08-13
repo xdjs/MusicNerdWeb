@@ -63,17 +63,22 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     const body = await request.json();
     const bio: string = body?.bio;
+    const regenerate: boolean = body?.regenerate || false;
 
-    if (!bio || typeof bio !== "string" || bio.trim().length === 0) {
+    // For regeneration, bio can be empty
+    if (!regenerate && (!bio || typeof bio !== "string" || bio.trim().length === 0)) {
       return NextResponse.json({ message: "Invalid bio" }, { status: 400 });
     }
 
     const { updateArtistBio } = await import("@/server/utils/queries/artistQueries");
 
-    const result = await updateArtistBio(params.id, bio);
+    const result = await updateArtistBio(params.id, bio, regenerate);
 
     if (result.status === "success") {
-      return NextResponse.json({ message: result.message });
+      return NextResponse.json({ 
+        message: result.message,
+        bio: result.data // Include generated bio for regeneration
+      });
     }
 
     return NextResponse.json({ message: result.message }, { status: 403 });

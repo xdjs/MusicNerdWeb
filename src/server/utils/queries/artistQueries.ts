@@ -44,6 +44,7 @@ export type AddArtistDataResp = {
 export type RemoveArtistDataResp = {
     status: "success" | "error";
     message: string;
+    data?: string | null;
 };
 
 // ----------------------------------
@@ -157,7 +158,6 @@ export async function searchForArtistByName(name: string) {
             FROM artists
             WHERE 
                 (lcname LIKE '%' || ${normalisedQuery || ''} || '%' OR similarity(lcname, ${normalisedQuery}) > 0.3)
-                AND spotify IS NOT NULL
             ORDER BY 
                 match_type ASC,  -- Contains matches first (0 before 1)
                 CASE 
@@ -632,7 +632,7 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 // ----------------------------------
 // Bio update helper
 // ----------------------------------
-export async function updateArtistBio(artistId: string, bio: string): Promise<RemoveArtistDataResp> {
+export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
     const session = await getServerAuthSession();
     const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
     if (isWalletRequired && !session) {
@@ -652,9 +652,25 @@ export async function updateArtistBio(artistId: string, bio: string): Promise<Re
         return { status: "error", message: "Unauthorized" };
     }
 
+    // For regeneration, only admins can do it
+    if (regenerate && !walletlessEnabled && !user?.isAdmin) {
+        return { status: "error", message: "Only admins can regenerate bios" };
+    }
+
     try {
-        await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
-        return { status: "success", message: "Bio updated" };
+        if (regenerate) {
+            // Generate new bio using OpenAI
+            const generatedBio = await generateArtistBio(artistId);
+            if (generatedBio) {
+                return { status: "success", message: "Bio regenerated", data: generatedBio };
+            } else {
+                return { status: "error", message: "Failed to generate bio" };
+            }
+        } else {
+            // Update with provided bio
+            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+            return { status: "success", message: "Bio updated" };
+        }
     } catch (e) {
         console.error("Error updating bio", e);
         return { status: "error", message: "Error updating bio" };
