@@ -156,7 +156,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
-                        <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="flex items-center justify-between w-full overflow-hidden">
                             <span className={`w-7 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
@@ -182,7 +182,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-lg">
+                                <p className="font-medium truncate text-lg text-right">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>

@@ -10,6 +10,11 @@ import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
 import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import Jazzicon from "react-jazzicon";
+import { jsNumberForAddress } from "react-jazzicon";
+import { createPublicClient, http } from "viem";
+import { getEnsAvatar, getEnsName } from "viem/ens";
+import { mainnet } from "wagmi/chains";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -117,6 +122,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
+    // Avatar state for logged-in user (matches corner icon logic)
+    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+    const [ensLoading, setEnsLoading] = useState(false);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
     const [bookmarkPage, setBookmarkPage] = useState(0);
@@ -203,6 +213,45 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // In edit mode, show the full list with a scrollbar (no pagination)
     const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
+
+    // ENS avatar resolver for the current user wallet
+    const publicClient = createPublicClient({
+        chain: mainnet,
+        transport: http(),
+    });
+
+    useEffect(() => {
+        let cancelled = false;
+        async function resolveAvatar() {
+            if (!user?.wallet) {
+                setEnsAvatarUrl(null);
+                setJazziconSeed(null);
+                return;
+            }
+            setEnsLoading(true);
+            setAvatarError(false);
+            try {
+                const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
+                let finalAvatar: string | null = null;
+                if (ensName) {
+                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+                }
+                if (!cancelled) {
+                    setEnsAvatarUrl(finalAvatar ?? null);
+                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setEnsAvatarUrl(null);
+                    setJazziconSeed(jsNumberForAddress(user.wallet));
+                }
+            } finally {
+                if (!cancelled) setEnsLoading(false);
+            }
+        }
+        resolveAvatar();
+        return () => { cancelled = true; };
+    }, [user.wallet]);
 
     // Range selection (synced with Leaderboard)
     type RangeKey = "today" | "week" | "month" | "all";
@@ -516,12 +565,22 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 }}
                                 className="cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-primary"
                             >
-                                {/* User */}
-                                <div className="flex items-center space-x-2 overflow-hidden justify-center">
+                                {/* User with avatar */}
+                                <div className="flex items-center gap-2 overflow-hidden justify-center">
+                                    <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center flex-none">
+                                        {ensLoading ? (
+                                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                        ) : ensAvatarUrl && !avatarError ? (
+                                            <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+                                        ) : jazziconSeed ? (
+                                            <Jazzicon diameter={24} seed={jazziconSeed} />
+                                        ) : (
+                                            <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+                                        )}
+                                    </div>
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
-                                    {/* (arrow removed; entire bar now clickable) */}
                                 </div>
 
                                 {/* Rank */}
