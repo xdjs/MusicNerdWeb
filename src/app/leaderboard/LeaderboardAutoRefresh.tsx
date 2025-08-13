@@ -10,7 +10,13 @@ export default function LeaderboardAutoRefresh() {
   useEffect(() => {
     const skip = sessionStorage.getItem("leaderboardSkipReload") === "true";
 
-    if (!skip && prevStatus.current && prevStatus.current !== status && status !== "loading") {
+    // Detect both a transition after mount and the common case where SSR rendered
+    // unauthenticated but the client immediately has an authenticated session.
+    const transitioned = prevStatus.current && prevStatus.current !== status && status !== "loading";
+    const firstAuthenticated = prevStatus.current === null && status === "authenticated";
+    const firstUnauthenticated = prevStatus.current === null && status === "unauthenticated";
+
+    if (!skip && (transitioned || firstAuthenticated || firstUnauthenticated)) {
       sessionStorage.setItem("leaderboardSkipReload", "true");
       window.location.reload();
     }

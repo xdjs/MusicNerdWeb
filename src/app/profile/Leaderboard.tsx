@@ -109,7 +109,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
                         <div className="flex items-center gap-6 overflow-hidden">
-                            <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 flex-none font-semibold text-left text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
@@ -166,7 +166,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col (left-aligned, with increased inner gap) */}
                         <div className="flex items-center gap-6 overflow-hidden">
-                            <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 flex-none font-semibold text-left text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
