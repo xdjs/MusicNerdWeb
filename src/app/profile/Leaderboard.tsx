@@ -102,7 +102,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
                         "p-3 border rounded-md transition-colors scroll-mt-12",
-                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-[#f3f4f6] sticky top-12 z-10" : "hover:bg-[#f3f4f6]"
+                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : "hover:bg-[#f3f4f6]"
                     )}
         >
             {/* Mobile layout */}
@@ -147,16 +147,16 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC row */}
                         <div className="flex justify-between pl-10">
-                            <span className="text-muted-foreground">UGC Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                            <span className="text-[#9b83a0]">UGC Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artists row */}
                         <div className="flex justify-between pl-10">
-                            <span className="text-muted-foreground">Artists Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                            <span className="text-[#9b83a0]">Artists Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -206,14 +206,14 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC count */}
                         <div className="text-center text-lg">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artist count */}
                         <div className="text-right text-lg">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                            <Badge className="bg-[#f3f4f6] text-[#9b83a0]">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -346,7 +346,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (loading) {
         return (
-            <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
+            <Card className="max-w-3xl mx-auto">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
@@ -356,10 +356,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 key={key}
                                 size="sm"
                                 variant={range === key ? "default" : "secondary"}
-                                className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
-                                    range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
-                                )}
+                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -377,7 +374,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (error) {
         return (
-            <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
+            <Card className="max-w-3xl mx-auto">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -386,10 +383,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 key={key}
                                 size="sm"
                                 variant={range === key ? "default" : "secondary"}
-                                className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
-                                    range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
-                                )}
+                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -407,9 +401,9 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     return (
         <TooltipProvider delayDuration={200}>
-        <Card className="max-w-3xl mx-auto border border-[#c6bfc7] bg-white">
+        <Card className="max-w-3xl mx-auto">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-maroon">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
@@ -418,7 +412,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             variant={range === key ? "default" : "secondary"}
                             className={cn(
                                 "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
-                                range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-[#c6bfc7] hover:bg-[#f3f4f6]"
+                                range === key ? "bg-[#ef95ff] text-white hover:bg-[#ef95ff]" : "bg-[#e9ebef] text-[#2b2b2b] hover:bg-[#e1e3e7]"
                             )}
                             onClick={() => setRange(key)}
                         >

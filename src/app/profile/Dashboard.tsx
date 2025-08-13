@@ -559,7 +559,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-								className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
 								{/* Left-aligned avatar inside the bar */}
 								{!isGuestUser && (
