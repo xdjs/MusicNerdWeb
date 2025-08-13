@@ -172,6 +172,14 @@ export const authOptions: NextAuthOptions = {
         try {
           console.debug("[Auth] Starting authorization");
           
+          // Small helper to prevent long DB delays from blocking sign-in UX
+          async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+            return await Promise.race([
+              promise,
+              new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT_${ms}ms`)), ms)) as Promise<T>,
+            ]);
+          }
+          
           // Check if wallet requirement is disabled
           if (process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true') {
             // Create or get a temporary user without wallet, but make them whitelisted
@@ -231,26 +239,39 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          let user = await getUserByWallet(siwe.address);
+          let user = null as Awaited<ReturnType<typeof getUserByWallet>> | null;
+          try {
+            user = await withTimeout(getUserByWallet(siwe.address), 4000);
+          } catch (e) {
+            console.warn('[Auth] getUserByWallet timed out or failed, will try createUser or proceed minimally', e);
+          }
           if (!user) {
-            console.debug("[Auth] Creating new user for wallet");
-            user = await createUser(siwe.address);
+            try {
+              console.debug("[Auth] Creating new user for wallet (or will fallback if slow)");
+              user = await withTimeout(createUser(siwe.address), 4000);
+            } catch (e) {
+              console.warn('[Auth] createUser timed out or failed, proceeding with minimal session user', e);
+            }
           }
 
-          console.debug("[Auth] Returning user", { id: user.id });
+          if (user) {
+            console.debug("[Auth] Returning user", { id: user.id });
+          } else {
+            console.debug("[Auth] Proceeding with minimal user; JWT callback will refresh roles later");
+          }
           
           // Map the database user to the NextAuth user format
           return {
-            id: user.id,
-            walletAddress: user.wallet, // Map wallet to walletAddress
-            email: user.email,
-            name: user.username,
-            username: user.username,
-            isSignupComplete: true,
-            isWhiteListed: user.isWhiteListed, // Include whitelist status from database
-            isAdmin: user.isAdmin,
-            isSuperAdmin: user.isSuperAdmin,
-            isHidden: user.isHidden,
+            id: user?.id ?? `temp-${siwe.address}`,
+            walletAddress: user?.wallet ?? siwe.address,
+            email: user?.email ?? null,
+            name: user?.username ?? null,
+            username: user?.username ?? null,
+            isSignupComplete: Boolean(user),
+            isWhiteListed: user?.isWhiteListed ?? false,
+            isAdmin: user?.isAdmin ?? false,
+            isSuperAdmin: user?.isSuperAdmin ?? false,
+            isHidden: user?.isHidden ?? false,
           };
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);
