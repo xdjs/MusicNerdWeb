@@ -53,9 +53,7 @@ export default function AuthToast() {
 
             toast({
               title: "Welcome!",
-              description: hasNew
-                ? <span className="text-green-600">Your recently added artist data has been approved.</span>
-                : (session.user.name ? "Welcome back!" : "You are now signed in"),
+              description: "Welcome back!",
               duration: 3000,
             });
 
@@ -70,7 +68,7 @@ export default function AuthToast() {
           // Fail silently, fallback to default message
           toast({
             title: "Welcome!",
-            description: session.user.name ? "Welcome back!" : "You are now signed in",
+            description: "Welcome back!",
             duration: 3000,
           });
         }
