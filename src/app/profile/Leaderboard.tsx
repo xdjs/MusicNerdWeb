@@ -106,8 +106,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
@@ -131,7 +131,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <p className="font-medium flex-1 min-w-0 truncate text-lg text-right">
+                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
@@ -154,10 +154,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </div>
 
                     {/* Desktop layout */}
-                    <div className="hidden sm:grid grid-cols-[1.6fr_1fr_1fr] items-center">
+                    <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
-                        <div className="flex items-center justify-between w-full overflow-hidden">
-                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
@@ -182,7 +182,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-lg text-right">
+                                <p className="font-medium truncate text-lg">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
@@ -405,7 +405,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-[1.6fr_1fr_1fr] font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>

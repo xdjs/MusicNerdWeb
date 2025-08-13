@@ -122,11 +122,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
-    // Avatar state for logged-in user (matches corner icon logic)
-    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
-    const [avatarError, setAvatarError] = useState(false);
-    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
-    const [ensLoading, setEnsLoading] = useState(false);
+	// Avatar state for top gray bar
+	const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+	const [avatarError, setAvatarError] = useState(false);
+	const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+	const [ensLoading, setEnsLoading] = useState(false);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
     const [bookmarkPage, setBookmarkPage] = useState(0);
@@ -214,50 +214,46 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
-    // ENS avatar resolver for the current user wallet
-    const publicClient = createPublicClient({
-        chain: mainnet,
-        transport: http(),
-    });
-
-    useEffect(() => {
-        let cancelled = false;
-        async function resolveAvatar() {
-            if (!user?.wallet) {
-                setEnsAvatarUrl(null);
-                setJazziconSeed(null);
-                return;
-            }
-            setEnsLoading(true);
-            setAvatarError(false);
-            try {
-                const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
-                let finalAvatar: string | null = null;
-                if (ensName) {
-                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
-                }
-                if (!cancelled) {
-                    setEnsAvatarUrl(finalAvatar ?? null);
-                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
-                }
-            } catch (e) {
-                if (!cancelled) {
-                    setEnsAvatarUrl(null);
-                    setJazziconSeed(jsNumberForAddress(user.wallet));
-                }
-            } finally {
-                if (!cancelled) setEnsLoading(false);
-            }
-        }
-        resolveAvatar();
-        return () => { cancelled = true; };
-    }, [user.wallet]);
-
-    // Range selection (synced with Leaderboard)
+	// Range selection (synced with Leaderboard)
     type RangeKey = "today" | "week" | "month" | "all";
     const [selectedRange, setSelectedRange] = useState<RangeKey>("today");
 
     // (duplicate RangeKey and selectedRange definition removed)
+
+	// ENS avatar fetch for the logged-in user's wallet (top gray bar avatar)
+	useEffect(() => {
+		let cancelled = false;
+		async function resolveAvatar() {
+			if (!user?.wallet) {
+				setEnsAvatarUrl(null);
+				setJazziconSeed(null);
+				return;
+			}
+			setEnsLoading(true);
+			setAvatarError(false);
+			try {
+				const publicClient = createPublicClient({ chain: mainnet, transport: http() });
+				const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
+				let finalAvatar: string | null = null;
+				if (ensName) {
+					finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+				}
+				if (!cancelled) {
+					setEnsAvatarUrl(finalAvatar ?? null);
+					setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
+				}
+			} catch (e) {
+				if (!cancelled) {
+					setEnsAvatarUrl(null);
+					setJazziconSeed(user?.wallet ? jsNumberForAddress(user.wallet) : null);
+				}
+			} finally {
+				if (!cancelled) setEnsLoading(false);
+			}
+		}
+		resolveAvatar();
+		return () => { cancelled = true; };
+	}, [user?.wallet]);
 
     // Fetch leaderboard rank (only in compact layout)
     const [totalEntries, setTotalEntries] = useState<number | null>(null);
@@ -553,7 +549,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
                         ) : (
                             <>
-                            <div
+							<div
                                 role="button"
                                 tabIndex={0}
                                 title="Jump to my leaderboard position"
@@ -563,25 +559,28 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="cursor-pointer relative grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-primary"
+								className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-primary"
                             >
-                                {/* Absolute left-aligned avatar */}
-                                <div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-                                    {ensLoading ? (
-                                        <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
-                                    ) : ensAvatarUrl && !avatarError ? (
-                                        <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-                                    ) : jazziconSeed ? (
-                                        <Jazzicon diameter={32} seed={jazziconSeed} />
-                                    ) : (
-                                        <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-                                    )}
-                                </div>
-                                {/* User (username centered) */}
-                                <div className="flex items-center overflow-hidden justify-center">
+								{/* Left-aligned avatar inside the bar */}
+								{!isGuestUser && (
+									<div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+										{ensLoading ? (
+											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+										) : ensAvatarUrl && !avatarError ? (
+											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+										) : jazziconSeed ? (
+											<Jazzicon diameter={32} seed={jazziconSeed} />
+										) : (
+											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+										)}
+									</div>
+								)}
+                                {/* User */}
+								<div className="flex items-center space-x-2 overflow-hidden justify-center">
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
+                                    {/* (arrow removed; entire bar now clickable) */}
                                 </div>
 
                                 {/* Rank */}
