@@ -72,12 +72,12 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
     return (
         <li ref={setNodeRef} style={style} className="relative">
-            <div className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md">
+            <div className="flex items-center gap-3">
                 {isEditing && (
                     <button
                         {...attributes}
                         {...listeners}
-                        className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600"
+                        className="cursor-grab active:cursor-grabbing px-1 text-gray-400 hover:text-gray-600"
                         title="Drag to reorder"
                     >
                         <GripVertical size={16} />
@@ -90,7 +90,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                 {isEditing && (
                     <button
                         onClick={() => onDelete(item.artistId)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        className="text-red-600 hover:text-red-800 px-1"
                         title="Delete bookmark"
                     >
                         <Trash2 size={16} />
@@ -745,8 +745,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                     items={displayBookmarks.map(item => item.artistId)}
                                                     strategy={verticalListSortingStrategy}
                                                 >
-                                                    <div className={isEditingBookmarks ? "max-h-64 overflow-y-auto pr-1 w-full" : undefined}>
-                                                        <ul className="space-y-3">
+									<div className={isEditingBookmarks ? "max-h-40 overflow-y-scroll pr-1 w-full" : undefined}>
+										<ul className="space-y-3">
                                                             {displayBookmarks.map((item) => (
                                                                 <SortableBookmarkItem
                                                                     key={item.artistId}
