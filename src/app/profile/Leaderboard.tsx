@@ -46,6 +46,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.username ?? '').toLowerCase() === identifierLc ||
         (entry.email ?? '').toLowerCase() === identifierLc
     );
+    const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
         let cancelled = false;
@@ -95,6 +96,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
     return (
         <div
+            data-podium={isPodium ? "true" : "false"}
             id={isHighlighted ? "leaderboard-current-user" : undefined}
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
@@ -106,10 +108,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center gap-4 overflow-hidden">
+                        <div className={cn("flex items-center overflow-hidden", isPodium ? "gap-4" : "gap-6")}>
                             <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
+                            {/* Additional left padding before avatar to push name right */}
+                            <div className="w-4 flex-none" />
                             {/* Avatar between rank and username */}
                             <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
@@ -156,10 +160,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col (left-aligned, with increased inner gap) */}
-                        <div className="flex items-center gap-4 overflow-hidden">
+                        <div className={cn("flex items-center overflow-hidden", isPodium ? "gap-4" : "gap-6")}>
                             <span className={`w-7 flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
+                            {/* Additional left padding before avatar to push name right */}
+                            <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
                             <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
