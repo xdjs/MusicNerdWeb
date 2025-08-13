@@ -269,10 +269,8 @@ const WalletSearchBar = forwardRef(
     const { data, isLoading } = useQuery({
         queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
         queryFn: async () => {
-            // If query is empty, return user's bookmarked artists
-            if (!debouncedQuery) {
-                return getBookmarkedArtists(session?.user?.id);
-            }
+            // Only search when there is a query
+            if (!debouncedQuery) return [];
             
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
@@ -290,9 +288,8 @@ const WalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        // Enable when results should be shown AND either the user typed a query
-        // or the user is logged in (to show bookmarks on empty query)
-        enabled: showResults && (!!debouncedQuery || !!session?.user?.id),
+        // Enable only when results should be shown and there is a query
+        enabled: showResults && !!debouncedQuery,
         retry: 2,
     });
 
@@ -344,7 +341,7 @@ const WalletSearchBar = forwardRef(
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
                             </div>
-                        ) : (data && Array.isArray(data)) ? (
+                        ) : (debouncedQuery && data && Array.isArray(data)) ? (
                             <div>
                                 {data.map((result: SearchResult) => {
                                     const spotifyImage = result.images?.[0]?.url;
@@ -637,10 +634,8 @@ const NoWalletSearchBar = forwardRef(
     const { data, isLoading } = useQuery({
         queryKey: ['combinedSearchResults', debouncedQuery, bookmarkUpdateTrigger],
         queryFn: async () => {
-            // If query is empty, return user's bookmarked artists
-            if (!debouncedQuery) {
-                return getBookmarkedArtists(session?.user?.id);
-            }
+            // Only search when there is a query
+            if (!debouncedQuery) return [];
             
             const response = await fetch('/api/searchArtists', {
                 method: 'POST',
@@ -658,9 +653,8 @@ const NoWalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        // Enable when results should be shown AND either the user typed a query
-        // or the user is logged in (to show bookmarks on empty query)
-        enabled: showResults && (!!debouncedQuery || !!session?.user?.id),
+        // Enable only when results should be shown and there is a query
+        enabled: showResults && !!debouncedQuery,
         retry: 2,
     });
 
@@ -808,7 +802,7 @@ const NoWalletSearchBar = forwardRef(
                             <div className="flex justify-center items-center p-3 font-medium">
                                 <p>Artist not found!</p>
                             </div>
-                        ) : (data && Array.isArray(data)) ? (
+                        ) : (debouncedQuery && data && Array.isArray(data)) ? (
                             <div>
                                 {data.map((result: SearchResult) => {
                                     const spotifyImage = result.images?.[0]?.url;
