@@ -290,7 +290,9 @@ const WalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: showResults && !!session?.user?.id, // Run when results should be shown and user is logged in
+        // Enable when results should be shown AND either the user typed a query
+        // or the user is logged in (to show bookmarks on empty query)
+        enabled: showResults && (!!debouncedQuery || !!session?.user?.id),
         retry: 2,
     });
 
@@ -656,7 +658,9 @@ const NoWalletSearchBar = forwardRef(
             const data = await response.json();
             return data.results;
         },
-        enabled: showResults && !!session?.user?.id, // Run when results should be shown and user is logged in
+        // Enable when results should be shown AND either the user typed a query
+        // or the user is logged in (to show bookmarks on empty query)
+        enabled: showResults && (!!debouncedQuery || !!session?.user?.id),
         retry: 2,
     });
 
