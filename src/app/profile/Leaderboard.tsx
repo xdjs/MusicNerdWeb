@@ -351,26 +351,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
-                        {(["today", "week", "month", "all"] as RangeKey[]).map((key) => {
-                            const isActive = range === key;
-                            return (
-                                <Button
-                                    key={key}
-                                    size="sm"
-                                    variant="outline"
-                                    className={cn(
-                                        "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm rounded-lg border-2",
-                                        isActive
-                                            ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90 hover:text-white"
-                                            : "bg-white text-pastypink border-pastypink hover:bg-gray-100 hover:text-pastypink"
-                                    )}
-                                    onClick={() => setRange(key)}
-                                >
-                                    {isActive && <Check className="inline h-4 w-4 mr-1" />}
-                                    {headingLabelMap[key]}
-                                </Button>
-                            );
-                        })}
+                        {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
+                            <Button
+                                key={key}
+                                size="sm"
+                                variant={range === key ? "default" : "secondary"}
+                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                onClick={() => setRange(key)}
+                            >
+                                {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                                {headingLabelMap[key]}
+                            </Button>
+                        ))}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -386,26 +378,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
-                        {(["today", "week", "month", "all"] as RangeKey[]).map((key) => {
-                            const isActive = range === key;
-                            return (
-                                <Button
-                                    key={key}
-                                    size="sm"
-                                    variant="outline"
-                                    className={cn(
-                                        "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm rounded-lg border-2",
-                                        isActive
-                                            ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90 hover:text-white"
-                                            : "bg-white text-pastypink border-pastypink hover:bg-gray-100 hover:text-pastypink"
-                                    )}
-                                    onClick={() => setRange(key)}
-                                >
-                                    {isActive && <Check className="inline h-4 w-4 mr-1" />}
-                                    {headingLabelMap[key]}
-                                </Button>
-                            );
-                        })}
+                        {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
+                            <Button
+                                key={key}
+                                size="sm"
+                                variant={range === key ? "default" : "secondary"}
+                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                onClick={() => setRange(key)}
+                            >
+                                {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                                {headingLabelMap[key]}
+                            </Button>
+                        ))}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -419,33 +403,28 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-maroon">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
-                    {(["today", "week", "month", "all"] as RangeKey[]).map((key) => {
-                        const isActive = range === key;
-                        return (
-                            <Button
-                                key={key}
-                                size="sm"
-                                variant="outline"
-                                className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm rounded-lg border-2",
-                                    isActive
-                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90 hover:text-white"
-                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100 hover:text-pastypink"
-                                )}
-                                onClick={() => setRange(key)}
-                            >
-                                {isActive && <Check className="inline h-4 w-4 mr-1" />}
-                                {headingLabelMap[key]}
-                            </Button>
-                        );
-                    })}
+                    {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
+                        <Button
+                            key={key}
+                            size="sm"
+                            variant={range === key ? "default" : "secondary"}
+                            className={cn(
+                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
+                                range === key ? "bg-pastypink text-white hover:bg-pastypink/90" : "bg-white text-maroon border border-gray-300 hover:bg-gray-100"
+                            )}
+                            onClick={() => setRange(key)}
+                        >
+                            {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                            {headingLabelMap[key]}
+                        </Button>
+                    ))}
                 </div>
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-maroon/70 text-center sticky top-0 z-20 bg-white py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
@@ -472,7 +451,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
             </CardContent>
             {pageCount > 1 && (
-                <div className="bg-gray-50 border-t flex justify-end items-center gap-4 p-3">
+                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
                     <Button
                         variant="outline"
                         size="sm"
