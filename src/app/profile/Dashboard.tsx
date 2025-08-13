@@ -559,7 +559,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-2 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
 								{/* Left-aligned avatar inside the bar */}
 								{!isGuestUser && (
@@ -627,7 +627,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
+                                className="mt-2 text-sm underline text-[#2ad4fc] hover:text-[#2ad4fc]"
                             >
                                 View leaderboard position
                             </a>

@@ -348,15 +348,20 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#ff9ce3]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
                                 key={key}
                                 size="sm"
-                                variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                variant="outline"
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -376,14 +381,19 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#ff9ce3]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
                                 key={key}
                                 size="sm"
-                                variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                variant="outline"
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -403,16 +413,18 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#ff9ce3]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
                             key={key}
                             size="sm"
-                            variant={range === key ? "default" : "secondary"}
+                            variant="outline"
                             className={cn(
-                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm",
-                                range === key ? "bg-[#ef95ff] text-white hover:bg-[#ef95ff]" : "bg-[#e9ebef] text-[#2b2b2b] hover:bg-[#e1e3e7]"
+                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                range === key
+                                    ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                    : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
                             )}
                             onClick={() => setRange(key)}
                         >
