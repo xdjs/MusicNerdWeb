@@ -106,12 +106,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
-                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
                                     <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -131,7 +131,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <p className="font-medium truncate max-w-[160px] text-lg">
+                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
@@ -156,12 +156,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col */}
-                        <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <span className={`w-8 flex-none font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
                             </span>
                             {/* Avatar between rank and username */}
-                            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-6 h-6 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
                                     <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -181,8 +181,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <div className="truncate">
-                                <p className="font-medium truncate max-w-[180px] text-lg">
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-lg">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
