@@ -13,7 +13,7 @@ const CORS_HEADERS: HeadersInit = {
 };
 
 export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
 
@@ -44,13 +44,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     //generate a bio and return it
     try {
-      const aiResponse = await getOpenAIBio(params.id);
-      aiResponse.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-      aiResponse.headers.set("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
-      aiResponse.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      aiResponse.headers.set("Access-Control-Max-Age", "86400");
-      aiResponse.headers.set("Vary", "Origin");
-      return aiResponse;
+      const response = await getOpenAIBio(params.id);
+      Object.entries(CORS_HEADERS).forEach(([key, value]) => response.headers.set(key, String(value)));
+      return response;
     //Error Handling
     } catch (err) {
       console.error("Error generating bio", err);
