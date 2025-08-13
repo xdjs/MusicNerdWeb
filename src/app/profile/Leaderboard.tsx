@@ -101,8 +101,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
-                        "p-3 border rounded-md transition-colors scroll-mt-12",
-                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : "hover:bg-[#f3f4f6]"
+                        "p-3 border rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
+                        isHighlighted ? "ring-2 ring-[#ff9ce3] bg-white sticky top-12 z-10" : ""
                     )}
         >
             {/* Mobile layout */}

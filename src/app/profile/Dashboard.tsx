@@ -712,7 +712,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username row no edit button inline */}
                     <div className="relative pb-4 w-full">
                         {!isEditingUsername && (
-                            <div className="flex items-center justify-center gap-3 w-full">
+                            <div className="flex items-center justify-start gap-3 w-full">
                                 {/* Avatar left of username using ENS/Jazzicon logic */}
                                 <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
                                     {ensLoading ? (
@@ -725,7 +725,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
                                     )}
                                 </div>
-                                <p className="text-lg font-semibold text-center">
+                                <p className="text-lg font-semibold">
                                     {displayName}
                                 </p>
                             </div>
