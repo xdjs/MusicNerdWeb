@@ -15,11 +15,6 @@ import { jsNumberForAddress } from 'react-jazzicon';
 import { createPublicClient, http } from 'viem';
 import { getEnsAvatar, getEnsName } from 'viem/ens';
 import { mainnet } from 'wagmi/chains';
-import Jazzicon from "react-jazzicon";
-import { jsNumberForAddress } from "react-jazzicon";
-import { createPublicClient, http } from "viem";
-import { getEnsAvatar, getEnsName } from "viem/ens";
-import { mainnet } from "wagmi/chains";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -167,11 +162,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         return () => { cancelled = true; };
     }, [user?.wallet]);
     const [rank, setRank] = useState<number | null>(null);
-	// Avatar state for top gray bar
-	const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
-	const [avatarError, setAvatarError] = useState(false);
-	const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
-	const [ensLoading, setEnsLoading] = useState(false);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
     const [bookmarkPage, setBookmarkPage] = useState(0);
@@ -724,7 +714,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         {!isEditingUsername && (
                             <div className="flex items-center justify-center gap-3 w-full">
                                 {/* Avatar left of username using ENS/Jazzicon logic */}
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
                                     {ensLoading ? (
                                         <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                     ) : ensAvatarUrl && !avatarError ? (
