@@ -10,6 +10,11 @@ import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
 import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import Jazzicon from 'react-jazzicon';
+import { jsNumberForAddress } from 'react-jazzicon';
+import { createPublicClient, http } from 'viem';
+import { getEnsAvatar, getEnsName } from 'viem/ens';
+import { mainnet } from 'wagmi/chains';
 import Jazzicon from "react-jazzicon";
 import { jsNumberForAddress } from "react-jazzicon";
 import { createPublicClient, http } from "viem";
@@ -121,6 +126,46 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [usernameInput, setUsernameInput] = useState(user.username ?? "");
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
+    // Avatar state (ENS/Jazzicon) for profile header
+    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+    const [ensLoading, setEnsLoading] = useState(false);
+
+    const publicClient = createPublicClient({ chain: mainnet, transport: http() });
+
+    useEffect(() => {
+        let cancelled = false;
+        async function resolveAvatar() {
+            if (!user?.wallet) {
+                setEnsAvatarUrl(null);
+                setJazziconSeed(null);
+                return;
+            }
+            setEnsLoading(true);
+            setAvatarError(false);
+            try {
+                const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
+                let finalAvatar: string | null = null;
+                if (ensName) {
+                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+                }
+                if (!cancelled) {
+                    setEnsAvatarUrl(finalAvatar ?? null);
+                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
+                }
+            } catch {
+                if (!cancelled) {
+                    setEnsAvatarUrl(null);
+                    setJazziconSeed(user.wallet ? jsNumberForAddress(user.wallet) : null);
+                }
+            } finally {
+                if (!cancelled) setEnsLoading(false);
+            }
+        }
+        resolveAvatar();
+        return () => { cancelled = true; };
+    }, [user?.wallet]);
     const [rank, setRank] = useState<number | null>(null);
 	// Avatar state for top gray bar
 	const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
@@ -677,9 +722,23 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username row no edit button inline */}
                     <div className="relative pb-4 w-full">
                         {!isEditingUsername && (
-                            <p className="text-lg font-semibold text-center w-full">
-                                {displayName}
-                            </p>
+                            <div className="flex items-center justify-center gap-3 w-full">
+                                {/* Avatar left of username using ENS/Jazzicon logic */}
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    {ensLoading ? (
+                                        <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                    ) : ensAvatarUrl && !avatarError ? (
+                                        <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+                                    ) : jazziconSeed ? (
+                                        <Jazzicon diameter={32} seed={jazziconSeed} />
+                                    ) : (
+                                        <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+                                    )}
+                                </div>
+                                <p className="text-lg font-semibold text-center">
+                                    {displayName}
+                                </p>
+                            </div>
                         )}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
