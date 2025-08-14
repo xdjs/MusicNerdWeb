@@ -17,9 +17,10 @@ export type LeaderboardEntry = {
 };
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const start = performance.now();
     try {
         const result = await db.execute<LeaderboardEntry>(sql`
-            SELECT 
+            SELECT
                 u.id   AS "userId",
                 u.wallet,
                 u.username,
@@ -41,14 +42,18 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     } catch (e) {
         console.error("error getting leaderboard", e);
         throw new Error("Error getting leaderboard");
+    } finally {
+        const end = performance.now();
+        console.debug(`[getLeaderboard] took ${end - start}ms`);
     }
 }
 
 // Get leaderboard stats within a date range (inclusive)
 export async function getLeaderboardInRange(fromIso: string, toIso: string): Promise<LeaderboardEntry[]> {
+    const start = performance.now();
     try {
         const result = await db.execute<LeaderboardEntry>(sql`
-            SELECT 
+            SELECT
                 u.id   AS "userId",
                 u.wallet,
                 u.username,
@@ -74,8 +79,11 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
     } catch (e) {
         console.error("error getting leaderboard in range", e);
         throw new Error("Error getting leaderboard in range");
+    } finally {
+        const end = performance.now();
+        console.debug(`[getLeaderboardInRange] took ${end - start}ms`);
     }
-} 
+}
 
 export async function getUgcStats() {
     const user = await getServerAuthSession();

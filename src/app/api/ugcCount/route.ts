@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const start = performance.now();
   try {
     const session = await getServerAuthSession();
     if (!session || !session.user?.id) {
@@ -23,5 +24,8 @@ export async function GET() {
   } catch (e) {
     console.error("[ugcCount] error", e);
     return NextResponse.json({ count: 0 }, { status: 500 });
+  } finally {
+    const end = performance.now();
+    console.debug(`[ugcCount] GET took ${end - start}ms`);
   }
-} 
+}
