@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
+import LoadingPage from "../_components/LoadingPage";
 import {
     DndContext,
     closestCenter,
@@ -107,6 +108,26 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 }
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate loading time for better UX
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                <img className="h-8 w-8" src="/spinner.svg" alt="Loading..." />
+                <p className="text-black">Loading...</p>
+            </div>
+        );
+    }
+
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
 }
 
@@ -792,50 +813,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
-                            {/* Username/avatar positioned above Role column */}
-                            {!isEditingUsername && (
-                                <div className="flex items-center gap-3 w-full justify-center md:justify-start mb-4">
-                                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
-                                        {ensLoading ? (
-                                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                                        ) : ensAvatarUrl && !avatarError ? (
-                                            <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-                                        ) : jazziconSeed ? (
-                                            <Jazzicon diameter={32} seed={jazziconSeed} />
-                                        ) : (
-                                            <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-                                        )}
-                                    </div>
-                                    <p className="text-lg font-semibold leading-none">
-                                        {displayName}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Username edit input */}
-                            {allowEditUsername && !isGuestUser && isEditingUsername && (
-                                <div className="flex items-center gap-2 w-full justify-center md:justify-start mb-4">
-                                    <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
-                                        <Input
-                                            value={usernameInput}
-                                            onChange={(e) => setUsernameInput(e.target.value)}
-                                            className="h-8 flex-1 min-w-0 text-lg"
-                                        />
-                                        <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
-                                            {savingUsername ? 'Saving...' : 'Save'}
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => {
-                                            setIsEditingUsername(false);
-                                        }}>Cancel</Button>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
 
-                                {/* Role on one line */}
+                                {/* Role heading aligned with other column headings */}
                                 {showStatus && (
                                     <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
                                         <span className="font-semibold">Role:</span>

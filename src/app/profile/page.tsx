@@ -5,6 +5,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import Login from "../_components/nav/components/Login";
 import PleaseLoginPage from "../_components/PleaseLoginPage";
 import LeaderboardAutoRefresh from "@/app/leaderboard/LeaderboardAutoRefresh";
+import LoadingPage from "../_components/LoadingPage";
 
 export default async function Page() {
     const session = await getServerAuthSession();
