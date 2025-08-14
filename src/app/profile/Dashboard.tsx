@@ -899,7 +899,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
+                                                className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
                                                 disabled={bookmarkPage === 0}
                                             >
@@ -911,7 +911,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
+                                                className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
