@@ -47,8 +47,8 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
     const roles: string[] = [];
     if (isAdmin) roles.push("Admin");
     if (isWhiteListed) roles.push("Whitelisted");
-    if (isHidden) roles.push("Hidden");
     if (roles.length === 0) roles.push("User");
+    if (isHidden) roles.push("Hidden");
     return roles.join(", ");
   };
 
@@ -157,7 +157,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                 </div>
                 
                 <div 
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed && !isHidden ? 'bg-accent text-accent-foreground' : ''}`}
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${!isAdmin && !isWhiteListed ? 'bg-accent text-accent-foreground' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
                     setIsAdmin(false);
@@ -166,7 +166,7 @@ export default function WhitelistUserEditDialog({ user }: WhitelistUserEditDialo
                   }}
                 >
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                    {!isAdmin && !isWhiteListed && !isHidden && <Check className="h-4 w-4" />}
+                    {!isAdmin && !isWhiteListed && <Check className="h-4 w-4" />}
                   </span>
                   User
                 </div>

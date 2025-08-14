@@ -383,8 +383,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         const roles: string[] = [];
         if (user.isAdmin) roles.push("Admin");
         if (user.isWhiteListed) roles.push("Whitelisted");
-        if (user.isHidden) roles.push("Hidden");
         if (roles.length === 0) roles.push("User");
+        if (user.isHidden) roles.push("Hidden");
         return roles.join(", ");
     })();
 
@@ -899,7 +899,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="border border-gray-300"
+                                                className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
                                                 disabled={bookmarkPage === 0}
                                             >
@@ -911,7 +911,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="border border-gray-300"
+                                                className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
