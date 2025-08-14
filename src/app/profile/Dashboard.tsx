@@ -793,8 +793,24 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
-                            <div className="space-y-4">
+							<div className="space-y-4">
                                 {/* Admin user search removed */}
+
+								{/* Avatar + Username (desktop, positioned above Role) */}
+								<div className="hidden md:flex items-center gap-3 w-full justify-center md:justify-start">
+									<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+										{ensLoading ? (
+											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+										) : ensAvatarUrl && !avatarError ? (
+											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+										) : jazziconSeed ? (
+											<Jazzicon diameter={32} seed={jazziconSeed} />
+										) : (
+											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+										)}
+									</div>
+									<p className="text-lg font-semibold leading-none">{displayName}</p>
+								</div>
 
                                 {/* Status row */}
                                 {showStatus && (

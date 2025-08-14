@@ -60,8 +60,34 @@ export default async function Page() {
         );
     }
 
-    const user = await getUserById(session.user.id);
-    if (!user) return notFound();
+    let user = null as Awaited<ReturnType<typeof getUserById>> | null;
+    try {
+        user = await getUserById(session.user.id);
+    } catch (e) {
+        console.error('[profile/page] Failed to fetch user by id, falling back to guest view', e);
+    }
+    if (!user) {
+        const guestUser = {
+            id: '00000000-0000-0000-0000-000000000000',
+            wallet: '0x0000000000000000000000000000000000000000',
+            email: null,
+            username: 'Guest User',
+            isAdmin: false,
+            isWhiteListed: false,
+            isSuperAdmin: false,
+            isHidden: false,
+            acceptedUgcCount: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            legacyId: null
+        } as const;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
+    }
     return (
         <>
             <LeaderboardAutoRefresh />
