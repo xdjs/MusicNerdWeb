@@ -792,15 +792,54 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
+                            {/* Username/avatar positioned above Role column */}
+                            {!isEditingUsername && (
+                                <div className="flex items-center gap-3 w-full justify-center md:justify-start mb-4">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
+                                        {ensLoading ? (
+                                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                        ) : ensAvatarUrl && !avatarError ? (
+                                            <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+                                        ) : jazziconSeed ? (
+                                            <Jazzicon diameter={32} seed={jazziconSeed} />
+                                        ) : (
+                                            <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+                                        )}
+                                    </div>
+                                    <p className="text-lg font-semibold leading-none">
+                                        {displayName}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Username edit input */}
+                            {allowEditUsername && !isGuestUser && isEditingUsername && (
+                                <div className="flex items-center gap-2 w-full justify-center md:justify-start mb-4">
+                                    <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
+                                        <Input
+                                            value={usernameInput}
+                                            onChange={(e) => setUsernameInput(e.target.value)}
+                                            className="h-8 flex-1 min-w-0 text-lg"
+                                        />
+                                        <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
+                                            {savingUsername ? 'Saving...' : 'Save'}
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => {
+                                            setIsEditingUsername(false);
+                                        }}>Cancel</Button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Top area: admin controls and status */}
-							<div className="space-y-4">
+                            <div className="space-y-4">
                                 {/* Admin user search removed */}
 
-                                {/* Role heading aligned with other column headings */}
+                                {/* Role on one line */}
                                 {showStatus && (
-                                    <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                                        <h3 className="text-lg font-semibold text-center md:text-left">Role</h3>
-                                        <p className="text-lg">{statusString}</p>
+                                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
+                                        <span className="font-semibold">Role:</span>
+                                        <span className="font-normal">{statusString}</span>
                                     </div>
                                 )}
                                     </div>
