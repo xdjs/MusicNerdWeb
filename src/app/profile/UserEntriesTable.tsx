@@ -165,7 +165,7 @@ export default function UserEntriesTable() {
   }, [entries, filter, sortOrder, artistQuery, statusSort]);
 
   return (
-    <Card className="max-w-3xl mx-auto mt-10">
+    <Card className="max-w-3xl mx-auto mt-10 border-2 border-[#dbc8de]">
       <CardHeader className="text-center pb-2">
         <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
       </CardHeader>
@@ -175,7 +175,7 @@ export default function UserEntriesTable() {
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50">
               <TableHead
-                className="text-center cursor-pointer select-none py-2 px-3"
+                className="text-center cursor-pointer select-none py-2 px-3 text-[#6f4b75]"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -185,8 +185,8 @@ export default function UserEntriesTable() {
                   />
                 </div>
               </TableHead>
-              <TableHead className="text-center py-2 px-3">Time</TableHead>
-              <TableHead className="text-center py-2 px-3">
+              <TableHead className="text-center py-2 px-3 text-[#6f4b75]">Time</TableHead>
+              <TableHead className="text-center py-2 px-3 text-[#6f4b75]">
                 <div className="flex items-center justify-center gap-2">
                   <span>Artist</span>
                   <div
@@ -204,7 +204,7 @@ export default function UserEntriesTable() {
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="text-center py-2 px-3">
+              <TableHead className="text-center py-2 px-3 text-[#6f4b75]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="whitespace-nowrap">Entry Type</span>
                   <select
@@ -221,9 +221,9 @@ export default function UserEntriesTable() {
                   </select>
                 </div>
               </TableHead>
-              <TableHead className="text-center py-2 px-3 whitespace-nowrap">Site Link</TableHead>
+              <TableHead className="text-center py-2 px-3 whitespace-nowrap text-[#6f4b75]">Site Link</TableHead>
               <TableHead
-                className="text-center py-2 px-3 cursor-pointer select-none"
+                className="text-center py-2 px-3 cursor-pointer select-none text-[#6f4b75]"
                 onClick={() =>
                   setStatusSort((prev) =>
                     prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"

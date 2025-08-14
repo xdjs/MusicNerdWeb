@@ -833,21 +833,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 variant="outline"
                                 className="py-4 space-y-2 text-left border-2 border-[#dbc8de] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
                             >
-                                {showLeaderboard ? (
-                                    <div className="inline-flex flex-col items-start justify-start space-y-2">
-                                        {/* User Rank */}
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">Artists Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
-                                    </div>
-                                ) : (
-                                    <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
-                                        {/* User Rank */}
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
-                                        <div className="flex justify-between text-lg w-full"><span className="font-semibold">Artists Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
-                                    </Link>
-                                )}
+                                <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
+                                    {/* User Rank */}
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">User Rank:</span><span className="font-normal text-right flex-1 truncate">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">UGC Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold">Artists Total:</span><span className="font-normal text-right flex-1 truncate">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
+                                </Link>
                             </Button>
                             </div>
                             </div>
