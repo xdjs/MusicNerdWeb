@@ -709,27 +709,27 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 </div>
             ) : (
                 <>
-                    {/* Username row no edit button inline */}
-                    <div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
-                        {!isEditingUsername && (
-                            <div className="flex items-center justify-center gap-3 w-full">
-                                {/* Avatar left of username using ENS/Jazzicon logic */}
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
-                                    {ensLoading ? (
-                                        <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                                    ) : ensAvatarUrl && !avatarError ? (
-                                        <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-                                    ) : jazziconSeed ? (
-                                        <Jazzicon diameter={32} seed={jazziconSeed} />
-                                    ) : (
-                                        <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-                                    )}
-                                </div>
-                                <p className="text-lg font-semibold leading-none">
-                                    {displayName}
-                                </p>
-                            </div>
-                        )}
+					{/* Username row (mobile only); desktop version moved into left column above Role */}
+					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
+						{!isEditingUsername && (
+							<div className="md:hidden flex items-center justify-center gap-3 w-full">
+								{/* Avatar left of username using ENS/Jazzicon logic */}
+								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
+									{ensLoading ? (
+										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+									) : ensAvatarUrl && !avatarError ? (
+										<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+									) : jazziconSeed ? (
+										<Jazzicon diameter={32} seed={jazziconSeed} />
+									) : (
+										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+									)}
+								</div>
+								<p className="text-lg font-semibold leading-none">
+									{displayName}
+								</p>
+							</div>
+						)}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
                             <div className="md:hidden pt-2 flex justify-center">

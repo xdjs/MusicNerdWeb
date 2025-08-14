@@ -116,7 +116,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
-                                    : <span className="relative left-[-4px] top-[1px] inline-block">{rank}</span>
+                                    : <span className="relative left-[-6px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
@@ -173,7 +173,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
-                                    : <span className="relative left-[-4px] top-[1px] inline-block">{rank}</span>
+                                    : <span className="relative left-[-6px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
@@ -308,10 +308,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 const data = await response.json();
                 if (Array.isArray(data)) {
                     // legacy response (no pagination)
-                    setLeaderboard(prev => page === 1 ? data : [...prev, ...data]);
+                    setLeaderboard(data);
                     setPageCount(1);
                 } else {
-                    setLeaderboard(prev => page === 1 ? data.entries : [...prev, ...data.entries]);
+                    setLeaderboard(data.entries);
                     setPageCount(data.pageCount ?? 1);
                 }
             } catch (err) {
@@ -334,10 +334,9 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Reset to page 1 whenever range changes and clear existing entries
+    // Reset to page 1 whenever range changes
     useEffect(() => {
         setPage(1);
-        setLeaderboard([]);
     }, [range]);
 
     const headingLabelMap: Record<RangeKey, string> = {
@@ -347,8 +346,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         all: "All Time",
     };
 
-    const isInitialLoading = loading && page === 1;
-    if (isInitialLoading) {
+    if (loading) {
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
                 <CardHeader className="text-center">
@@ -466,15 +464,24 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     )}
                 </div>
             </CardContent>
-            {page < pageCount && (
-                <div className="bg-white border-t flex justify-center items-center p-3">
+            {pageCount > 1 && (
+                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={loading}
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                        Prev
+                    </Button>
+                    <span className="text-sm">Page {page} of {pageCount}</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                     >
-                        {loading ? 'Loading…' : 'Load more'}
+                        Next
                     </Button>
                 </div>
             )}
