@@ -104,7 +104,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
                         isHighlighted
                             ? "border-2 border-[#ff9ce3] bg-white sticky top-12 z-10"
-                            : "border-2 border-[#9b83a0]"
+                            : "border-2 border-[#c6bfc7]"
                     )}
         >
             {/* Mobile layout */}
@@ -113,18 +113,18 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         <div className="flex items-center gap-6 overflow-hidden">
                             <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
-                                    rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
-                                    : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
-                                    : rank === 3 ? <span className="relative left-[2px] inline-block">🥉</span>
+                                    rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
+                                    : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
+                                    : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
                                     : <span className="relative top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
-                            <div className="w-7 h-7 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
-                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
                                     <img
                                         src={ensAvatarUrl}
@@ -133,7 +133,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                         onError={() => setAvatarError(true)}
                                     />
                                 ) : jazziconSeed ? (
-                                    <Jazzicon diameter={24} seed={jazziconSeed} />
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
                                 ) : (
                                     <img
                                         src="/default_pfp_pink.png"
@@ -142,7 +142,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <p className="font-medium flex-1 min-w-0 truncate text-base">
+                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
                                 {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
@@ -170,18 +170,18 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         <div className="flex items-center gap-6 overflow-hidden">
                             <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
-                                    rank === 1 ? <span className="relative left-[2px] inline-block">🥇</span>
-                                    : rank === 2 ? <span className="relative left-[2px] inline-block">🥈</span>
-                                    : rank === 3 ? <span className="relative left-[2px] inline-block">🥉</span>
+                                    rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
+                                    : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
+                                    : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
                                     : <span className="relative top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
-                            <div className="w-7 h-7 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
-                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
                                     <img
                                         src={ensAvatarUrl}
@@ -190,7 +190,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                         onError={() => setAvatarError(true)}
                                     />
                                 ) : jazziconSeed ? (
-                                    <Jazzicon diameter={24} seed={jazziconSeed} />
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
                                 ) : (
                                     <img
                                         src="/default_pfp_pink.png"
@@ -200,7 +200,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-base">
+                                <p className="font-medium truncate text-lg">
                                     {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
