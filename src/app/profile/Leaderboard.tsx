@@ -104,7 +104,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
                         isHighlighted
                             ? "border-2 border-[#ff9ce3] bg-white sticky top-12 z-10"
-                            : "border-2 border-[#c6bfc7]"
+                            : "border-2 border-[#dbc8de]"
                     )}
         >
             {/* Mobile layout */}
