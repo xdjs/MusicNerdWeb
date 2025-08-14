@@ -349,7 +349,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     if (loading) {
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
-                <CardHeader className="text-center">
+                <CardHeader className="text-center bg-[#f8f4f9] border-b border-[#dbc8de]">
                     <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -385,7 +385,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     if (error) {
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
-                <CardHeader className="text-center">
+                <CardHeader className="text-center bg-[#f8f4f9] border-b border-[#dbc8de]">
                     <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
@@ -417,7 +417,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     return (
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
-            <CardHeader className="text-center">
+            <CardHeader className="text-center bg-[#f8f4f9] border-b border-[#dbc8de]">
                 <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
@@ -468,7 +468,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
             </CardContent>
             {pageCount > 1 && (
-                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
+                <div className="bg-[#f8f4f9] border-t border-[#dbc8de] flex justify-end items-center gap-4 p-3">
                     <Button
                         variant="outline"
                         size="sm"
