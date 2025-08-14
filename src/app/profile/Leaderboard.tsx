@@ -116,7 +116,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
-                                    : <span className="relative left-[-8px] top-[1px] inline-block">{rank}</span>
+                                    : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
@@ -173,7 +173,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
                                     : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
-                                    : <span className="relative left-[-8px] top-[1px] inline-block">{rank}</span>
+                                    : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
                             {/* Consistent left padding before avatar to push name right */}

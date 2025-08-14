@@ -709,10 +709,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 </div>
             ) : (
                 <>
-					{/* Username row (mobile only); desktop version moved into left column above Role */}
+                    {/* Username row displayed above the three columns on all breakpoints */}
 					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
 						{!isEditingUsername && (
-							<div className="md:hidden flex items-center justify-center gap-3 w-full">
+                            <div className="flex items-center justify-center gap-3 w-full">
 								{/* Avatar left of username using ENS/Jazzicon logic */}
 								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
 									{ensLoading ? (
@@ -796,28 +796,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="space-y-4">
                                 {/* Admin user search removed */}
 
-								{/* Avatar + Username (desktop, positioned above Role) */}
-								<div className="hidden md:flex items-center gap-3 w-full justify-center md:justify-start">
-									<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-										{ensLoading ? (
-											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-										) : ensAvatarUrl && !avatarError ? (
-											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-										) : jazziconSeed ? (
-											<Jazzicon diameter={32} seed={jazziconSeed} />
-										) : (
-											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-										)}
-									</div>
-									<p className="text-lg font-semibold leading-none">{displayName}</p>
-								</div>
-
-                                {/* Status row */}
+                                {/* Role heading aligned with other column headings */}
                                 {showStatus && (
-                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-center md:text-center">
-                                    <span className="font-semibold">Role:</span>
-                                    <span className="font-normal">{statusString}</span>
-                                </div>
+                                    <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                                        <h3 className="text-lg font-semibold text-center md:text-left">Role</h3>
+                                        <p className="text-lg">{statusString}</p>
+                                    </div>
                                 )}
                                     </div>
 
