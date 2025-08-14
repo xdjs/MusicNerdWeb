@@ -101,7 +101,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
-                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white shadow-2xl",
+                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
                         isHighlighted
                             ? "border-2 border-[#ff9ce3] sticky top-12 z-10"
                             : ""
@@ -348,7 +348,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (loading) {
         return (
-            <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
+            <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
@@ -384,7 +384,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (error) {
         return (
-            <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
+            <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
                     <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
@@ -416,7 +416,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     return (
         <TooltipProvider delayDuration={200}>
-        <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
+        <Card className="max-w-3xl mx-auto shadow-2xl">
             <CardHeader className="text-center">
                 <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
