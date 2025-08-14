@@ -308,10 +308,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 const data = await response.json();
                 if (Array.isArray(data)) {
                     // legacy response (no pagination)
-                    setLeaderboard(data);
+                    setLeaderboard(prev => page === 1 ? data : [...prev, ...data]);
                     setPageCount(1);
                 } else {
-                    setLeaderboard(data.entries);
+                    setLeaderboard(prev => page === 1 ? data.entries : [...prev, ...data.entries]);
                     setPageCount(data.pageCount ?? 1);
                 }
             } catch (err) {
@@ -334,9 +334,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Reset to page 1 whenever range changes
+    // Reset to page 1 whenever range changes and clear existing entries
     useEffect(() => {
         setPage(1);
+        setLeaderboard([]);
     }, [range]);
 
     const headingLabelMap: Record<RangeKey, string> = {
@@ -346,7 +347,8 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         all: "All Time",
     };
 
-    if (loading) {
+    const isInitialLoading = loading && page === 1;
+    if (isInitialLoading) {
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#dbc8de]">
                 <CardHeader className="text-center">
@@ -464,24 +466,15 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     )}
                 </div>
             </CardContent>
-            {pageCount > 1 && (
-                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
+            {page < pageCount && (
+                <div className="bg-white border-t flex justify-center items-center p-3">
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={page === 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                        Prev
-                    </Button>
-                    <span className="text-sm">Page {page} of {pageCount}</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= pageCount}
+                        disabled={loading}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                     >
-                        Next
+                        {loading ? 'Loading…' : 'Load more'}
                     </Button>
                 </div>
             )}
