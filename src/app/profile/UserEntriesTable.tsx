@@ -170,7 +170,7 @@ export default function UserEntriesTable() {
         <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="rounded-md overflow-x-auto">
+        <div className="rounded-md overflow-x-auto border-2 border-[#6f4b75]">
         <Table>
           <TableHeader>
             <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6] border-b-2 border-[#dbc8de]">
