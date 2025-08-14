@@ -173,7 +173,7 @@ export default function UserEntriesTable() {
         <div className="rounded-md overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6]">
+            <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6] border-b-2 border-[#dbc8de]">
               <TableHead
                 className="text-center cursor-pointer select-none py-2 px-3 text-[#6f4b75]"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -245,7 +245,7 @@ export default function UserEntriesTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow className="bg-white hover:bg-white border-b-2 border-[#6f4b75]">
+              <TableRow className="bg-white hover:bg-white border-b-2 border-[#dbc8de]">
                 <TableCell colSpan={6} className="text-center py-4">
                   Loading...
                 </TableCell>
@@ -259,7 +259,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                    <TableRow key={entry.id} className="bg-white hover:bg-white border-b-2 border-[#6f4b75]">
+                    <TableRow key={entry.id} className="bg-white hover:bg-white border-b-2 border-[#dbc8de]">
                       <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
                       <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
                       <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
@@ -288,7 +288,7 @@ export default function UserEntriesTable() {
                 });
               })()
             ) : (
-              <TableRow className="bg-white hover:bg-white border-b-2 border-[#6f4b75]">
+              <TableRow className="bg-white hover:bg-white border-b-2 border-[#dbc8de]">
                 <TableCell colSpan={6} className="text-center py-4">
                   No entries
                 </TableCell>
@@ -299,7 +299,7 @@ export default function UserEntriesTable() {
         </div>
       </CardContent>
       {pageCount > 1 && (
-        <CardFooter className="bg-[#f3f4f6] border-t flex justify-end items-center gap-4 p-3">
+        <CardFooter className="bg-[#f3f4f6] border-t-2 border-[#dbc8de] flex justify-end items-center gap-4 p-3">
           <Button
             variant="outline"
             size="sm"

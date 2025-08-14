@@ -373,7 +373,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-center">Loading...</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <img className="w-4 h-4" src="/spinner.svg" alt="loading" />
+                        <p className="text-center">Loading...</p>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -405,7 +408,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-red-500">{error}</p>
+                    <p className="text-red-500 text-center">{error}</p>
                 </CardContent>
             </Card>
         );
