@@ -474,7 +474,6 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                         size="sm"
                         disabled={page === 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                     >
                         Prev
                     </Button>
@@ -484,7 +483,6 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                         size="sm"
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                        className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                     >
                         Next
                     </Button>
