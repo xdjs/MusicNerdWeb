@@ -173,7 +173,7 @@ export default function UserEntriesTable() {
         <div className="rounded-md overflow-x-auto">
         <Table className="rounded-md">
           <TableHeader>
-            <TableRow className="bg-[#c6bfc7] hover:bg-[#c6bfc7] border border-[#9b83a0] rounded-t-md">
+            <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6] border border-[#9b83a0] rounded-t-md">
               <TableHead
                 className="text-center cursor-pointer select-none py-2 px-3 text-[#6f4b75]"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -299,7 +299,7 @@ export default function UserEntriesTable() {
         </div>
       </CardContent>
       {pageCount > 1 && (
-        <CardFooter className="bg-[#c6bfc7] border border-[#9b83a0] rounded-b-md flex justify-end items-center gap-4 p-3">
+        <CardFooter className="bg-[#f3f4f6] border border-[#9b83a0] rounded-b-md flex justify-end items-center gap-4 p-3">
           <Button
             variant="outline"
             size="sm"
