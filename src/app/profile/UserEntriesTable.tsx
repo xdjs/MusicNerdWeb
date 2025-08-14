@@ -173,7 +173,7 @@ export default function UserEntriesTable() {
         <div className="rounded-md overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6]">
+            <TableRow className="bg-white hover:bg-white">
               <TableHead
                 className="text-center cursor-pointer select-none py-2 px-3 text-[#6f4b75]"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -305,7 +305,7 @@ export default function UserEntriesTable() {
             size="sm"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="border border-gray-300"
+            className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
           >
             Prev
           </Button>
@@ -315,7 +315,7 @@ export default function UserEntriesTable() {
             size="sm"
             disabled={page >= pageCount}
             onClick={() => setPage((p) => p + 1)}
-            className="border border-gray-300"
+            className="bg-white text-pastypink border-2 border-pastypink hover:bg-gray-100 hover:text-pastypink"
           >
             Next
           </Button>
