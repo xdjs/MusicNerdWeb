@@ -170,10 +170,10 @@ export default function UserEntriesTable() {
         <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="rounded-md border overflow-x-auto">
+        <div className="rounded-md border border-[#6f4b75] overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50 hover:bg-gray-50">
+            <TableRow className="bg-[#f3f4f6] hover:bg-[#f3f4f6]">
               <TableHead
                 className="text-center cursor-pointer select-none py-2 px-3 text-[#6f4b75]"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -299,12 +299,13 @@ export default function UserEntriesTable() {
         </div>
       </CardContent>
       {pageCount > 1 && (
-        <CardFooter className="bg-gray-50 border-t flex justify-end items-center gap-4 p-3">
+        <CardFooter className="bg-[#f3f4f6] border-t flex justify-end items-center gap-4 p-3">
           <Button
             variant="outline"
             size="sm"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
+            className="bg-white text-pastypink border-pastypink hover:bg-gray-100"
           >
             Prev
           </Button>
@@ -314,6 +315,7 @@ export default function UserEntriesTable() {
             size="sm"
             disabled={page >= pageCount}
             onClick={() => setPage((p) => p + 1)}
+            className="bg-white text-pastypink border-pastypink hover:bg-gray-100"
           >
             Next
           </Button>
