@@ -101,10 +101,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
-                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6]",
+                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white shadow-2xl",
                         isHighlighted
-                            ? "border-2 border-[#ff9ce3] bg-white sticky top-12 z-10"
-                            : "border-2 border-[#dbc8de]"
+                            ? "border-2 border-[#ff9ce3] sticky top-12 z-10"
+                            : ""
                     )}
         >
             {/* Mobile layout */}

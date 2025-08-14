@@ -165,7 +165,7 @@ export default function UserEntriesTable() {
   }, [entries, filter, sortOrder, artistQuery, statusSort]);
 
   return (
-    <Card className="max-w-3xl mx-auto mt-10 border-2 border-[#c6bfc7]">
+    <Card className="max-w-3xl mx-auto mt-10 shadow-2xl">
       <CardHeader className="text-center pb-2 bg-white border border-[#9b83a0]">
         <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
       </CardHeader>
