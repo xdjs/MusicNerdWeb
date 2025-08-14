@@ -124,6 +124,7 @@ const platforms = [
 ];
 
 export async function POST(req: NextRequest) {
+  const start = performance.now();
   const { url } = await req.json();
   if (!url || typeof url !== 'string') {
     return new Response(JSON.stringify({ valid: false, reason: 'No URL provided' }), {
@@ -205,5 +206,8 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  } finally {
+    const end = performance.now();
+    console.debug(`[validateLink] POST took ${end - start}ms`);
   }
-} 
+}
