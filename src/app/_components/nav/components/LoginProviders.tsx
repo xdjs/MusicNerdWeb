@@ -7,6 +7,9 @@ import { mainnet } from 'wagmi/chains';
 
 const queryClient = new QueryClient();
 
+// Prevent multiple WalletConnect initializations
+let walletProvidersInitialized = false;
+
 // Dynamically import wallet-related components
 const WalletProviders = dynamic(
     async () => {
@@ -31,6 +34,15 @@ const WalletProviders = dynamic(
         });
 
         return function Providers({ children }: { children: ReactNode }) {
+            // Prevent multiple initializations
+            if (walletProvidersInitialized) {
+                console.warn('[WalletProviders] Already initialized, skipping duplicate initialization');
+                return <>{children}</>;
+            }
+            
+            walletProvidersInitialized = true;
+            console.debug('[WalletProviders] Initializing WalletConnect providers');
+            
             return (
                 <WagmiProviderBase config={config}>
                     <QueryClientProvider client={queryClient}>
