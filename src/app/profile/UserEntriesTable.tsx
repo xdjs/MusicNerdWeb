@@ -165,7 +165,7 @@ export default function UserEntriesTable() {
   }, [entries, filter, sortOrder, artistQuery, statusSort]);
 
   return (
-    <Card className="max-w-3xl mx-auto mt-10 border-2 border-[#dbc8de]">
+    <Card className="max-w-3xl mx-auto mt-10 border-2 border-[#6f4b75]">
       <CardHeader className="text-center pb-2">
         <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
       </CardHeader>
@@ -305,7 +305,7 @@ export default function UserEntriesTable() {
             size="sm"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="bg-white text-pastypink border-pastypink hover:bg-gray-100"
+            className="border border-gray-300"
           >
             Prev
           </Button>
@@ -315,7 +315,7 @@ export default function UserEntriesTable() {
             size="sm"
             disabled={page >= pageCount}
             onClick={() => setPage((p) => p + 1)}
-            className="bg-white text-pastypink border-pastypink hover:bg-gray-100"
+            className="border border-gray-300"
           >
             Next
           </Button>
