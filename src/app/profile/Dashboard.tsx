@@ -578,7 +578,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 role="button"
                                 tabIndex={0}
                                 onClick={handleLogin}
-                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#dbc8de] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#dbc8de] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#dbc8de]"
                             >
                                 <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
                             </div>
