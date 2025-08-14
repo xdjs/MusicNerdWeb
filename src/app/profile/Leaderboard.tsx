@@ -103,7 +103,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             className={cn(
                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
                         isHighlighted
-                            ? "border-2 border-[#ff9ce3] sticky top-12 z-10"
+                            ? "border-2 border-[#ff9ce3] sticky top-12 z-10 shadow-2xl"
                             : ""
                     )}
         >
@@ -143,7 +143,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </div>
                             <p className="font-medium flex-1 min-w-0 truncate text-lg">
-                                {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
+                                {entry.username || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
 
@@ -201,7 +201,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate text-lg">
-                                    {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
+                                    {entry.username || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
                         </div>
