@@ -139,34 +139,25 @@ export async function searchForArtistByName(name: string) {
         // Normalise the incoming query (lower-case, accents & punctuation removed)
         const normalisedQuery = normaliseText(name);
 
+        db.execute(sql`SET LOCAL pg_trgm.similarity_threshold = 0.3;`);
         const result = await db.execute<Artist>(sql`
-            SELECT 
-                id, 
-                name, 
-                spotify,
-                bandcamp,
-                youtube,
-                youtubechannel,
-                instagram,
-                x,
-                facebook,
-                tiktok,
-                CASE 
-                    WHEN lcname LIKE '%' || ${normalisedQuery || ''} || '%' THEN 0  -- Contains match (0 ranks first)
-                    ELSE 1  -- Similarity match
-                END as match_type
+            SELECT
+            id, name, spotify, bandcamp, youtube, youtubechannel,
+            instagram, x, facebook, tiktok,
+            CASE WHEN lcname LIKE '%' || ${normalisedQuery} || '%' THEN 0 ELSE 1 END AS match_type
             FROM artists
-            WHERE 
-                (lcname LIKE '%' || ${normalisedQuery || ''} || '%' OR similarity(lcname, ${normalisedQuery}) > 0.3)
-            ORDER BY 
-                match_type ASC,  -- Contains matches first (0 before 1)
-                CASE 
-                    WHEN lcname LIKE '%' || ${normalisedQuery || ''} || '%' 
-                    THEN -POSITION(${normalisedQuery} IN lcname)  -- Negative position to reverse order
-                    ELSE -999999  -- Keep non-contains matches at the end
-                END DESC,  -- DESC on negative numbers puts smallest positions first
-                similarity(lcname, ${normalisedQuery}) DESC  -- Higher similarity first
-            LIMIT 10
+            WHERE
+            lcname LIKE '%' || ${normalisedQuery} || '%'
+            OR lcname % ${normalisedQuery}          -- ← indexable equivalent to similarity(...) >= 0.3
+            ORDER BY
+            match_type ASC,
+            CASE
+                WHEN lcname LIKE '%' || ${normalisedQuery} || '%'
+                THEN -POSITION(${normalisedQuery} IN lcname)
+                ELSE -999999
+            END DESC,
+            similarity(lcname, ${normalisedQuery}) DESC   -- keep for ranking
+            LIMIT 10;
         `);
 
         const endTime = performance.now();

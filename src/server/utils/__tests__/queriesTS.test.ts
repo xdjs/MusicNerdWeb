@@ -521,7 +521,12 @@ describe('Artist Data Functions', () => {
         });
 
         it('should handle errors', async () => {
-            (db.execute as jest.Mock).mockRejectedValue(new Error('DB Error'));
+            // Mock the first db.execute call (SET LOCAL pg_trgm.similarity_threshold) to succeed
+            // and the second db.execute call (the main query) to fail
+            (db.execute as jest.Mock)
+                .mockResolvedValueOnce(undefined) // First call succeeds
+                .mockRejectedValueOnce(new Error('DB Error')); // Second call fails
+            
             await expect(searchForArtistByName('Test')).rejects.toThrow('Error searching for artist by name');
         });
     });
