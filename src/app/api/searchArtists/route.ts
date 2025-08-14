@@ -102,6 +102,7 @@ function getMatchScore(name: string, query: string) {
 // Returns:
 //      Response with combined and sorted search results or error message
 export async function POST(req: Request) {
+  const start = performance.now();
   try {
     const { query, bookmarkedArtistIds = [] } = await req.json();
     
@@ -224,7 +225,7 @@ export async function POST(req: Request) {
 
     // Race between the search operation and timeout
     return await Promise.race([searchOperation(), timeoutPromise]);
-    
+
   } catch (error) {
     console.error('Error in search artists:', error);
     
@@ -239,5 +240,8 @@ export async function POST(req: Request) {
       { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    const end = performance.now();
+    console.debug(`[searchArtists] POST took ${end - start}ms`);
   }
 }

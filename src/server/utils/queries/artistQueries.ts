@@ -195,7 +195,13 @@ export async function getArtistById(id: string) {
 // ----------------------------------
 
 export async function getAllLinks() {
-    return await db.query.urlmap.findMany();
+    const start = performance.now();
+    try {
+        return await db.query.urlmap.findMany();
+    } finally {
+        const end = performance.now();
+        console.debug(`[getAllLinks] took ${end - start}ms`);
+    }
 }
 
 export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
@@ -547,6 +553,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 // ----------------------------------
 
 export async function getPendingUGC() {
+    const start = performance.now();
     try {
         const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { ugcUser: true } });
         return result.map((obj) => {
@@ -556,6 +563,9 @@ export async function getPendingUGC() {
     } catch (e) {
         console.error("error getting pending ugc", e);
         throw new Error("Error finding pending UGC");
+    } finally {
+        const end = performance.now();
+        console.debug(`[getPendingUGC] took ${end - start}ms`);
     }
 }
 
