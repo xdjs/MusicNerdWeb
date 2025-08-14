@@ -122,8 +122,8 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <img className="h-8 w-8" src="/spinner.svg" alt="Loading..." />
-                <p className="text-black">Loading...</p>
+                <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
+                <p className="text-black text-xl">Loading...</p>
             </div>
         );
     }
