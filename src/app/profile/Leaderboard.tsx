@@ -350,7 +350,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
@@ -383,7 +383,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
@@ -415,7 +415,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto border-2 border-[#9b83a0]">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-black">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
