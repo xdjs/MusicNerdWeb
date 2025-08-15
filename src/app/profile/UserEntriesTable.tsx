@@ -190,7 +190,7 @@ export default function UserEntriesTable() {
               <span className="whitespace-nowrap">Time</span>
             </div>
             <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex flex-col items-center justify-center gap-1">
                 <span className="whitespace-nowrap">Artist</span>
                 <div
                   className="relative flex items-center cursor-text"
@@ -208,7 +208,7 @@ export default function UserEntriesTable() {
               </div>
             </div>
             <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex flex-col items-center justify-center gap-1">
                 <span className="whitespace-nowrap">Entry Type</span>
                 <select
                   value={filter}
