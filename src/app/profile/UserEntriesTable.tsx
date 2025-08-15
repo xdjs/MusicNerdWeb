@@ -174,7 +174,7 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#e6e6fa] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
-          <div className="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr_1fr] text-white min-w-[800px]">
+          <div className="grid grid-cols-6 text-white min-w-[800px]">
             <div
               className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -247,7 +247,7 @@ export default function UserEntriesTable() {
         
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-          <Table className="table-fixed w-full">
+          <Table>
             <TableBody>
               {loading ? (
                 <TableRow className="bg-white hover:bg-white border-b border-[#e6e6fa]">
@@ -268,11 +268,11 @@ export default function UserEntriesTable() {
                     if (entry.artistName) lastArtist = entry.artistName;
                     return (
                       <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#e6e6fa]">
-                        <TableCell className="text-center px-3 py-2 w-[16.67%]">{formatDate(entry.createdAt)}</TableCell>
-                        <TableCell className="text-center px-3 py-2 w-[16.67%]">{formatTime(entry.createdAt)}</TableCell>
-                        <TableCell className="text-center px-3 py-2 w-[33.33%]">{displayArtist}</TableCell>
-                        <TableCell className="text-center px-3 py-2 w-[25%]">{entry.siteName ?? "—"}</TableCell>
-                        <TableCell className="text-center px-3 py-2 w-[16.67%]">
+                        <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{entry.siteName ?? "—"}</TableCell>
+                        <TableCell className="text-center px-3 py-2">
                           {entry.ugcUrl ? (
                             <Link
                               className="text-blue-600 underline"
@@ -287,7 +287,7 @@ export default function UserEntriesTable() {
                           )}
                         </TableCell>
                         <TableCell
-                          className={`text-center px-3 py-2 w-[16.67%] font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
+                          className={`text-center px-3 py-2 font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
                         >
                           {entry.accepted ? "Approved" : "Pending"}
                         </TableCell>
