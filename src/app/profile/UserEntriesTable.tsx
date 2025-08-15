@@ -174,7 +174,7 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#e6e6fa] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
-          <div className="grid grid-cols-6 text-white">
+          <div className="grid grid-cols-6 text-white min-w-[800px]">
             <div
               className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
