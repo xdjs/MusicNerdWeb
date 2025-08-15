@@ -186,8 +186,8 @@ export default function UserEntriesTable() {
                 />
               </div>
             </div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">Time</div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
+            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">Time</div>
+            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-2">
                 <span>Artist</span>
                 <div
@@ -205,7 +205,7 @@ export default function UserEntriesTable() {
                 </div>
               </div>
             </div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
+            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
                                  <select
@@ -222,7 +222,7 @@ export default function UserEntriesTable() {
                 </select>
               </div>
             </div>
-            <div className="text-center py-2 px-3 whitespace-nowrap border-t border-[#9b83a0]">Site Link</div>
+            <div className="text-center py-2 px-4 whitespace-nowrap border-t border-[#9b83a0]">Site Link</div>
             <div
               className="text-center py-2 px-3 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
               onClick={() =>
@@ -250,7 +250,7 @@ export default function UserEntriesTable() {
           <Table>
             <TableBody>
               {loading ? (
-                <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                <TableRow className="bg-white hover:bg-white border-b border-[#e6e6fa]">
                   <TableCell colSpan={6} className="text-center py-4">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#9b83a0] border-t-transparent"></div>
@@ -267,7 +267,7 @@ export default function UserEntriesTable() {
                     const displayArtist = entry.artistName ?? lastArtist ?? "—";
                     if (entry.artistName) lastArtist = entry.artistName;
                     return (
-                      <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                      <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#e6e6fa]">
                         <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
                         <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
                         <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
@@ -296,7 +296,7 @@ export default function UserEntriesTable() {
                   });
                 })()
               ) : (
-                <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                <TableRow className="bg-white hover:bg-white border-b border-[#e6e6fa]">
                   <TableCell colSpan={6} className="text-center py-4">
                     No entries
                   </TableCell>
