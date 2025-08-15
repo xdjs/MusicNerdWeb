@@ -166,86 +166,88 @@ export default function UserEntriesTable() {
 
   return (
     <div className="max-w-3xl mx-auto mt-10">
-      {/* Floating title above the table */}
+      {/* Title above the table */}
       <div className="text-center mb-4">
         <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entries</h2>
       </div>
       
       <Card className="border-2 border-[#e6e6fa] shadow-none">
+        {/* Table Header as CardHeader */}
+        <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
+          <div className="grid grid-cols-6 text-white">
+            <div
+              className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
+              onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span>Date</span>
+                <ArrowUpDown
+                  className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                />
+              </div>
+            </div>
+            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">Time</div>
+            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
+              <div className="flex items-center justify-center gap-2">
+                <span>Artist</span>
+                <div
+                  className="relative flex items-center cursor-text"
+                  onClick={() => artistInputRef.current?.focus()}
+                >
+                  <Input
+                    value={artistQuery}
+                    onChange={(e) => setArtistQuery(e.target.value)}
+                    placeholder="Search"
+                    ref={artistInputRef}
+                    className="h-6 pr-6 pl-2 py-1 text-xs w-24 bg-white border border-gray-300"
+                  />
+                  <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
+                </div>
+              </div>
+            </div>
+            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
+              <div className="flex items-center justify-center gap-2">
+                <span className="whitespace-nowrap">Entry Type</span>
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="border border-gray-300 rounded-md p-1 text-xs"
+                >
+                  <option value="all">All</option>
+                  {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
+                    <option key={site as string} value={site as string}>
+                      {site as string}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="text-center py-2 px-3 whitespace-nowrap border-t border-[#9b83a0]">Site Link</div>
+            <div
+              className="text-center py-2 px-3 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
+              onClick={() =>
+                setStatusSort((prev) =>
+                  prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
+                )
+              }
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span>Status</span>
+                {statusSort === "approved" ? (
+                  <ArrowUp className="w-3 h-3" />
+                ) : statusSort === "pending" ? (
+                  <ArrowDown className="w-3 h-3" />
+                ) : (
+                  <ArrowUpDown className="w-3 h-3" />
+                )}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        
         <CardContent className="p-0">
           <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-[#9b83a0] hover:bg-[#9b83a0]">
-                <TableHead
-                  className="text-center cursor-pointer select-none py-2 px-3 text-white rounded-tl-md border-l border-t border-[#9b83a0]"
-                  onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Date</span>
-                    <ArrowUpDown
-                      className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="text-center py-2 px-3 text-white">Time</TableHead>
-                <TableHead className="text-center py-2 px-3 text-white">
-                  <div className="flex items-center justify-center gap-2">
-                    <span>Artist</span>
-                    <div
-                      className="relative flex items-center cursor-text"
-                      onClick={() => artistInputRef.current?.focus()}
-                    >
-                      <Input
-                        value={artistQuery}
-                        onChange={(e) => setArtistQuery(e.target.value)}
-                        placeholder="Search"
-                        ref={artistInputRef}
-                        className="h-6 pr-6 pl-2 py-1 text-xs w-24 bg-white border border-gray-300"
-                      />
-                      <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
-                    </div>
-                  </div>
-                </TableHead>
-                <TableHead className="text-center py-2 px-3 text-white">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="whitespace-nowrap">Entry Type</span>
-                    <select
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                      className="border border-gray-300 rounded-md p-1 text-xs"
-                    >
-                      <option value="all">All</option>
-                      {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
-                        <option key={site as string} value={site as string}>
-                          {site as string}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </TableHead>
-                <TableHead className="text-center py-2 px-3 whitespace-nowrap text-white">Site Link</TableHead>
-                <TableHead
-                  className="text-center py-2 px-3 cursor-pointer select-none text-white rounded-tr-md border-t border-r border-[#9b83a0]"
-                  onClick={() =>
-                    setStatusSort((prev) =>
-                      prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
-                    )
-                  }
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>Status</span>
-                    {statusSort === "approved" ? (
-                      <ArrowUp className="w-3 h-3" />
-                    ) : statusSort === "pending" ? (
-                      <ArrowDown className="w-3 h-3" />
-                    ) : (
-                      <ArrowUpDown className="w-3 h-3" />
-                    )}
-                  </div>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
