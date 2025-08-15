@@ -102,9 +102,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseLeave={() => setShowRecent(false)}
             className={cn(
                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
-                        isHighlighted
-                            ? "border-2 border-[#ff9ce3] sticky top-12 z-10 shadow-2xl"
-                            : ""
+                                                 isHighlighted
+                             ? "border-2 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.6)]"
+                             : ""
                     )}
         >
             {/* Mobile layout */}
@@ -359,7 +359,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -394,7 +394,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
