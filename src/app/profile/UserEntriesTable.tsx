@@ -205,13 +205,13 @@ export default function UserEntriesTable() {
                 </div>
               </div>
             </div>
-            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">
+            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
                                  <select
                    value={filter}
                    onChange={(e) => setFilter(e.target.value)}
-                   className="border border-gray-300 rounded-md p-1 text-xs h-6 w-20 ml-2"
+                   className="border border-gray-300 rounded-md p-1 text-xs h-6"
                  >
                   <option value="all">All</option>
                   {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
