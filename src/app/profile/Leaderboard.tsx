@@ -103,7 +103,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             className={cn(
                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
                         isHighlighted
-                            ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.3),0_8px_25px_-5px_rgba(0,0,0,0.3)]"
+                            ? "border-2 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.3),0_8px_25px_-5px_rgba(0,0,0,0.3)]"
                             : ""
                     )}
         >
@@ -432,7 +432,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             size="sm"
                             variant="outline"
                             className={cn(
-                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
                                 range === key
                                     ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                     : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
