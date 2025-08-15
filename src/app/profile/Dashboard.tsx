@@ -414,31 +414,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
     }, [user.id]);
 
-    // ---------- Simplified view for guest (not logged-in) users ----------
-    // Refresh once when auth state changes (login/logout), with sessionStorage flag to avoid loops
-    useEffect(() => {
-        const skipReload = sessionStorage.getItem('skipReload') === 'true';
 
-        const loggedIn = !isGuestUser && status === 'authenticated';
-        const loggedOut = isGuestUser && status === 'unauthenticated';
-
-        const shouldReload = !skipReload && (
-            // Guest just logged in (was guest, now authenticated)
-            (isGuestUser && status === 'authenticated') ||
-            // Authenticated user just logged out (was authenticated, now unauthenticated)
-            (!isGuestUser && status === 'unauthenticated')
-        );
-
-        if (shouldReload) {
-            sessionStorage.setItem('skipReload', 'true');
-            window.location.reload();
-        }
-
-        // After page stabilizes, clear skipReload so future auth changes trigger refresh again
-        if (skipReload && (loggedIn || loggedOut)) {
-            sessionStorage.removeItem('skipReload');
-        }
-    }, [isGuestUser, status]);
 
     function handleLogin() {
         if (openConnectModal) {

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import Login from "../_components/nav/components/Login";
 import PleaseLoginPage from "../_components/PleaseLoginPage";
-import LeaderboardAutoRefresh from "@/app/leaderboard/LeaderboardAutoRefresh";
+
 import LoadingPage from "../_components/LoadingPage";
 
 export default async function Page() {
@@ -30,7 +30,6 @@ export default async function Page() {
         } as const;
         return (
             <>
-                <LeaderboardAutoRefresh />
                 <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
             </>
         );
@@ -55,7 +54,6 @@ export default async function Page() {
         } as const;
         return (
             <>
-                <LeaderboardAutoRefresh />
                 <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
             </>
         );
@@ -84,14 +82,12 @@ export default async function Page() {
         } as const;
         return (
             <>
-                <LeaderboardAutoRefresh />
                 <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
             </>
         );
     }
     return (
         <>
-            <LeaderboardAutoRefresh />
             <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
         </>
     );

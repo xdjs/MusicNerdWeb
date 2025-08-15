@@ -1,7 +1,7 @@
 import { getServerAuthSession } from "@/server/auth";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
-import LeaderboardAutoRefresh from "./LeaderboardAutoRefresh";
+
 // import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
 
