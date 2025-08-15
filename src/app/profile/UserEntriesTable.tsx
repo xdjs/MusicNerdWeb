@@ -176,20 +176,22 @@ export default function UserEntriesTable() {
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
           <div className="grid grid-cols-6 text-white">
             <div
-              className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
+              className="text-center cursor-pointer select-none py-3 px-2 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
             >
               <div className="flex items-center justify-center gap-1">
-                <span>Date</span>
+                <span className="whitespace-nowrap">Date</span>
                 <ArrowUpDown
                   className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
                 />
               </div>
             </div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">Time</div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-2">
-                <span>Artist</span>
+            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+              <span className="whitespace-nowrap">Time</span>
+            </div>
+            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <span className="whitespace-nowrap">Artist</span>
                 <div
                   className="relative flex items-center cursor-text"
                   onClick={() => artistInputRef.current?.focus()}
@@ -199,20 +201,20 @@ export default function UserEntriesTable() {
                     onChange={(e) => setArtistQuery(e.target.value)}
                     placeholder="Search"
                     ref={artistInputRef}
-                    className="h-6 pr-6 pl-2 py-1 text-xs w-24 bg-white border border-gray-300"
+                    className="h-6 pr-6 pl-2 py-1 text-xs w-20 bg-white border border-gray-300"
                   />
                   <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
                 </div>
               </div>
             </div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-2">
+            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex flex-col items-center justify-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
-                                 <select
-                   value={filter}
-                   onChange={(e) => setFilter(e.target.value)}
-                   className="border border-gray-300 rounded-md p-1 text-xs h-6 w-20 ml-2"
-                 >
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="border border-gray-300 rounded-md p-1 text-xs h-6 w-16 text-[#6f4b75]"
+                >
                   <option value="all">All</option>
                   {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
                     <option key={site as string} value={site as string}>
@@ -222,9 +224,11 @@ export default function UserEntriesTable() {
                 </select>
               </div>
             </div>
-            <div className="text-center py-2 px-3 whitespace-nowrap border-t border-[#9b83a0]">Site Link</div>
+            <div className="text-center py-3 px-2 whitespace-nowrap border-t border-[#9b83a0]">
+              <span className="whitespace-nowrap">Site Link</span>
+            </div>
             <div
-              className="text-center py-2 px-3 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
+              className="text-center py-3 px-2 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
               onClick={() =>
                 setStatusSort((prev) =>
                   prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
@@ -232,7 +236,7 @@ export default function UserEntriesTable() {
               }
             >
               <div className="flex items-center justify-center gap-1">
-                <span>Status</span>
+                <span className="whitespace-nowrap">Status</span>
                 {statusSort === "approved" ? (
                   <ArrowUp className="w-3 h-3" />
                 ) : statusSort === "pending" ? (
