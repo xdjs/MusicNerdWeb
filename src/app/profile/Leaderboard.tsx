@@ -122,7 +122,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             {/* Avatar between rank and username */}
                             <div className={cn(
                                 "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
-                                isHighlighted ? "outline-4 outline-[#ef95ff] outline" : "outline-2 outline-[#ef95ff] outline"
+                                isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#dbc8de]"
                             )}>
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
@@ -182,7 +182,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             {/* Avatar between rank and username */}
                             <div className={cn(
                                 "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
-                                isHighlighted ? "outline-4 outline-[#ef95ff] outline" : "outline-2 outline-[#ef95ff] outline"
+                                isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#dbc8de]"
                             )}>
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
@@ -235,9 +235,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     {recent.map(r => (
                                         <li key={r.artistId ?? r.ugcId} className="w-full flex flex-col items-center">
                                             <Link href={`/artist/${r.artistId ?? ''}`} className="flex flex-col items-center gap-1 hover:underline w-full">
-                                                <div className="h-10 w-10 rounded-full overflow-hidden outline-2 outline-[#ef95ff] outline">
-                                                    <img src={r.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-full w-full object-cover" />
-                                                </div>
+                                                <img src={r.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-10 w-10 rounded-full object-cover" />
                                                 <span className="text-xs truncate max-w-[80px] text-center">{r.artistName ?? 'Unknown Artist'}</span>
                                             </Link>
                                         </li>
