@@ -549,13 +549,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             <section className="px-10 py-20 space-y-8 flex items-center justify-center flex-col text-center">
                 <h1 className="text-3xl font-bold">User Profile</h1>
                 {!hideLogin && (
-                    <Button
-                        size="lg"
-                        className="bg-pastypink hover:bg-gray-200 text-white px-8 py-4 text-xl"
-                        onClick={handleLogin}
-                    >
-                        Log In
-                    </Button>
+                                         <Button
+                         size="lg"
+                         className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300 px-8 py-4 text-xl"
+                         onClick={handleLogin}
+                     >
+                         Log In
+                     </Button>
                 )}
             </section>
         );
@@ -591,7 +591,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-2 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-start sm:justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-start sm:justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
                                 {/* User with inline avatar on mobile */}
 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
@@ -615,7 +615,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                <div className="flex flex-row items-center justify-end sm:justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
@@ -785,7 +785,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left space-y-8 md:space-y-0">
+                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
@@ -901,7 +901,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
                         {/* Right column - recently edited */}
-                        <div className="relative space-y-4 md:-mt-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                        <div className="relative space-y-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
                             {allowEditUsername && !isGuestUser && (
                                 <Button
                                     size="sm"
