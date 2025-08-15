@@ -753,7 +753,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
-                            <div className="md:hidden pt-2 flex justify-center">
+                            <div className="md:hidden pt-4 flex justify-center">
                                 <Button
                                     size="sm"
                                     variant="ghost"

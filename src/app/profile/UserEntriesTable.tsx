@@ -176,9 +176,9 @@ export default function UserEntriesTable() {
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#9b83a0] hover:bg-[#9b83a0] border border-[#9b83a0] rounded-t-md">
+              <TableRow className="bg-[#9b83a0] hover:bg-[#9b83a0]">
                 <TableHead
-                  className="text-center cursor-pointer select-none py-2 px-3 text-white rounded-tl-md"
+                  className="text-center cursor-pointer select-none py-2 px-3 text-white rounded-tl-md border-l border-t border-[#9b83a0]"
                   onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -226,7 +226,7 @@ export default function UserEntriesTable() {
                 </TableHead>
                 <TableHead className="text-center py-2 px-3 whitespace-nowrap text-white">Site Link</TableHead>
                 <TableHead
-                  className="text-center py-2 px-3 cursor-pointer select-none text-white rounded-tr-md"
+                  className="text-center py-2 px-3 cursor-pointer select-none text-white rounded-tr-md border-t border-r border-[#9b83a0]"
                   onClick={() =>
                     setStatusSort((prev) =>
                       prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
