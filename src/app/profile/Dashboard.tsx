@@ -596,7 +596,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 {/* User with inline avatar on mobile */}
 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
                                     {!isGuestUser && (
-                                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 outline-2 outline-[#ef95ff] outline">
                                             {ensLoading ? (
                                                 <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                             ) : ensAvatarUrl && !avatarError ? (
@@ -710,7 +710,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						{!isEditingUsername && (
                             <div className="flex items-center justify-center gap-3 w-full">
 								{/* Avatar left of username using ENS/Jazzicon logic */}
-								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
+								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite] outline-2 outline-[#ef95ff] outline">
 									{ensLoading ? (
 										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
 									) : ensAvatarUrl && !avatarError ? (
