@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60; // cache for 1 minute
 
 export async function GET(request: NextRequest | Request) {
+    const start = performance.now();
     try {
         // Check if walletless mode is enabled
         const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
@@ -49,5 +50,8 @@ export async function GET(request: NextRequest | Request) {
             { error: "Failed to fetch leaderboard", details: error instanceof Error ? error.message : "Unknown error" },
             { status: 500 }
         );
+    } finally {
+        const end = performance.now();
+        console.debug(`[leaderboard] GET took ${end - start}ms`);
     }
-} 
+}

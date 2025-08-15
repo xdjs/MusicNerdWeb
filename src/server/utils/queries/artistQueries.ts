@@ -139,34 +139,25 @@ export async function searchForArtistByName(name: string) {
         // Normalise the incoming query (lower-case, accents & punctuation removed)
         const normalisedQuery = normaliseText(name);
 
+        db.execute(sql`SET LOCAL pg_trgm.similarity_threshold = 0.3;`);
         const result = await db.execute<Artist>(sql`
-            SELECT 
-                id, 
-                name, 
-                spotify,
-                bandcamp,
-                youtube,
-                youtubechannel,
-                instagram,
-                x,
-                facebook,
-                tiktok,
-                CASE 
-                    WHEN lcname LIKE '%' || ${normalisedQuery || ''} || '%' THEN 0  -- Contains match (0 ranks first)
-                    ELSE 1  -- Similarity match
-                END as match_type
+            SELECT
+            id, name, spotify, bandcamp, youtube, youtubechannel,
+            instagram, x, facebook, tiktok,
+            CASE WHEN lcname LIKE '%' || ${normalisedQuery} || '%' THEN 0 ELSE 1 END AS match_type
             FROM artists
-            WHERE 
-                (lcname LIKE '%' || ${normalisedQuery || ''} || '%' OR similarity(lcname, ${normalisedQuery}) > 0.3)
-            ORDER BY 
-                match_type ASC,  -- Contains matches first (0 before 1)
-                CASE 
-                    WHEN lcname LIKE '%' || ${normalisedQuery || ''} || '%' 
-                    THEN -POSITION(${normalisedQuery} IN lcname)  -- Negative position to reverse order
-                    ELSE -999999  -- Keep non-contains matches at the end
-                END DESC,  -- DESC on negative numbers puts smallest positions first
-                similarity(lcname, ${normalisedQuery}) DESC  -- Higher similarity first
-            LIMIT 10
+            WHERE
+            lcname LIKE '%' || ${normalisedQuery} || '%'
+            OR lcname % ${normalisedQuery}          -- ← indexable equivalent to similarity(...) >= 0.3
+            ORDER BY
+            match_type ASC,
+            CASE
+                WHEN lcname LIKE '%' || ${normalisedQuery} || '%'
+                THEN -POSITION(${normalisedQuery} IN lcname)
+                ELSE -999999
+            END DESC,
+            similarity(lcname, ${normalisedQuery}) DESC   -- keep for ranking
+            LIMIT 10;
         `);
 
         const endTime = performance.now();
@@ -195,7 +186,13 @@ export async function getArtistById(id: string) {
 // ----------------------------------
 
 export async function getAllLinks() {
-    return await db.query.urlmap.findMany();
+    const start = performance.now();
+    try {
+        return await db.query.urlmap.findMany();
+    } finally {
+        const end = performance.now();
+        console.debug(`[getAllLinks] took ${end - start}ms`);
+    }
 }
 
 export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
@@ -547,6 +544,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 // ----------------------------------
 
 export async function getPendingUGC() {
+    const start = performance.now();
     try {
         const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { ugcUser: true } });
         return result.map((obj) => {
@@ -556,6 +554,9 @@ export async function getPendingUGC() {
     } catch (e) {
         console.error("error getting pending ugc", e);
         throw new Error("Error finding pending UGC");
+    } finally {
+        const end = performance.now();
+        console.debug(`[getPendingUGC] took ${end - start}ms`);
     }
 }
 

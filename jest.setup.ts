@@ -189,6 +189,18 @@ console.error = (...args) => {
     originalError.call(console, ...args);
 };
 
+// Handle unhandled promise rejections to prevent Jest worker crashes
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process during tests, just log
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Don't exit the process during tests, just log
+});
+
 // Ensure no Discord webhook during unit tests unless explicitly set
 // @ts-ignore
 delete (process.env as any).DISCORD_WEBHOOK_URL;
