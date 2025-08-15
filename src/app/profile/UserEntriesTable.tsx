@@ -187,8 +187,8 @@ export default function UserEntriesTable() {
               </div>
             </div>
             <div className="text-center py-2 px-2 sm:px-4 border-t border-[#9b83a0]">Time</div>
-            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-2">
+            <div className="text-center py-2 px-2 sm:px-4 border-t border-[#9b83a0]">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <span>Artist</span>
                 <div
                   className="relative flex items-center cursor-text"
