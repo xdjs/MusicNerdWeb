@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const PER_PAGE = 10;
 
 export async function GET(request: Request) {
+  const start = performance.now();
   try {
     const { searchParams } = new URL(request.url);
     const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
@@ -69,5 +70,8 @@ export async function GET(request: Request) {
   } catch (e) {
     console.error("[userEntries] error", e);
     return NextResponse.json({ entries: [], total: 0, pageCount: 0 }, { status: 500 });
+  } finally {
+    const end = performance.now();
+    console.debug(`[userEntries] GET took ${end - start}ms`);
   }
-} 
+}

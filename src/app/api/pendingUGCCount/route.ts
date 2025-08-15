@@ -6,6 +6,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const start = performance.now();
   try {
     const session = await getServerAuthSession();
     if (!session || !session.user?.id) {
@@ -24,5 +25,8 @@ export async function GET() {
   } catch (e) {
     console.error("[pendingUGCCount] error", e);
     return NextResponse.json({ count: 0 }, { status: 500 });
+  } finally {
+    const end = performance.now();
+    console.debug(`[pendingUGCCount] GET took ${end - start}ms`);
   }
-} 
+}
