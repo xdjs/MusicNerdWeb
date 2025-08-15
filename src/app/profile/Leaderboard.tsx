@@ -120,7 +120,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 )}
                             </span>
                             {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className={cn(
+                                "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
+                                isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#dbc8de]"
+                            )}>
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -177,7 +180,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                            <div className={cn(
+                                "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
+                                isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#dbc8de]"
+                            )}>
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
@@ -439,7 +445,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-white py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
