@@ -596,7 +596,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 {/* User with inline avatar on mobile */}
 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
                                     {!isGuestUser && (
-                                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 outline-2 outline-[#ef95ff] outline">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 outline-3 outline-[#ef95ff] outline">
                                             {ensLoading ? (
                                                 <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                             ) : ensAvatarUrl && !avatarError ? (
@@ -710,7 +710,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						{!isEditingUsername && (
                             <div className="flex items-center justify-center gap-3 w-full">
 								{/* Avatar left of username using ENS/Jazzicon logic */}
-								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite] outline-2 outline-[#ef95ff] outline">
+								<div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite] outline-3 outline-[#ef95ff] outline">
 									{ensLoading ? (
 										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
 									) : ensAvatarUrl && !avatarError ? (
@@ -728,7 +728,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
-                            <div className="md:hidden pt-4 flex justify-center">
+                            <div className="md:hidden pt-2 flex justify-center">
                                 <Button
                                     size="sm"
                                     variant="ghost"
@@ -906,7 +906,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-16 left-0 hidden md:block"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-8 left-0 hidden md:block"
                                     onClick={() => {
                                         setIsEditingUsername((prev) => !prev);
                                         setIsEditingBookmarks((prev) => !prev);
