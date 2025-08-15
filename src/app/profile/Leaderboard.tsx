@@ -100,12 +100,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             id={isHighlighted ? "leaderboard-current-user" : undefined}
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
-            className={cn(
-                        "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
-                                                 isHighlighted
-                             ? "border-2 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.6)]"
-                             : ""
-                    )}
+                         className={cn(
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-4 border-[#dbc8de]",
+                                                  isHighlighted
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
+                              : ""
+                     )}
         >
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
