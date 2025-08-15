@@ -90,7 +90,9 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                     </button>
                 )}
                 <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline flex-1">
-                    <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                    <div className="h-8 w-8 rounded-full overflow-hidden outline-2 outline-[#ef95ff] outline">
+                        <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-full w-full object-cover" />
+                    </div>
                     <span>{item.artistName ?? 'Unknown Artist'}</span>
                 </Link>
                 {isEditing && (
@@ -930,7 +932,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     {recentUGC.map((item) => (
                                         <li key={item.ugcId}>
                                             <Link href={`/artist/${item.artistId ?? ''}`} className="flex items-center gap-3 hover:underline">
-                                                <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
+                                                <div className="h-8 w-8 rounded-full overflow-hidden outline-2 outline-[#ef95ff] outline">
+                                                    <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-full w-full object-cover" />
+                                                </div>
                                                 <span>{item.artistName ?? 'Unknown Artist'}</span>
                                             </Link>
                                         </li>
