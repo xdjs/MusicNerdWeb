@@ -31,7 +31,7 @@ const customJestConfig: Config = {
         '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': '<rootDir>/__mocks__/fileMock.js',
     },
     transformIgnorePatterns: [
-        'node_modules/(?!(jose|@rainbow-me|@radix-ui|next-auth|openid-client|@auth/core|@panva|@tanstack|wagmi|viem|@wagmi|@viem|@tanstack/react-query|@tanstack/query-core|@ensdomains|@wagmi/core|@wagmi/connectors|@wagmi/chains|@viem/chains|@viem/accounts|@viem/actions|@viem/blockchain|@viem/contract|@viem/ens|@viem/errors|@viem/experimental|@viem/logger|@viem/properties|@viem/public-client|@viem/simulate|@viem/test|@viem/transport|@viem/utils|@viem/wallet-client|@viem/window-object|@viem/ws|@viem/zod|@viem/abitype|@viem/actions|@viem/blockchain|@viem/contract|@viem/ens|@viem/errors|@viem/experimental|@viem/logger|@viem/properties|@viem/public-client|@viem/simulate|@viem/test|@viem/transport|@viem/utils|@viem/wallet-client|@viem/window-object|@viem/ws|@viem/zod|@viem/abitype)/)'
+        'node_modules/(?!(jose|@rainbow-me|@radix-ui|next-auth|openid-client|@auth/core|@panva|@tanstack|wagmi|viem|@wagmi|@viem|@tanstack/react-query|@tanstack/query-core|@ensdomains|@rainbow-me/rainbowkit)/)'
     ],
     testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
     moduleDirectories: ['node_modules', '<rootDir>/'],
