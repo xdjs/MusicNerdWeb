@@ -174,7 +174,7 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#e6e6fa] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
-          <div className="grid grid-cols-[1fr_1fr_2fr_2fr_1fr_1fr] text-white min-w-[800px]">
+          <div className="grid grid-cols-[1fr_1fr_2fr_1.5fr_1fr_1fr] text-white min-w-[800px]">
             <div
               className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -271,7 +271,7 @@ export default function UserEntriesTable() {
                         <TableCell className="text-center px-3 py-2 w-[16.67%]">{formatDate(entry.createdAt)}</TableCell>
                         <TableCell className="text-center px-3 py-2 w-[16.67%]">{formatTime(entry.createdAt)}</TableCell>
                         <TableCell className="text-center px-3 py-2 w-[33.33%]">{displayArtist}</TableCell>
-                        <TableCell className="text-center px-3 py-2 w-[33.33%]">{entry.siteName ?? "—"}</TableCell>
+                        <TableCell className="text-center px-3 py-2 w-[25%]">{entry.siteName ?? "—"}</TableCell>
                         <TableCell className="text-center px-3 py-2 w-[16.67%]">
                           {entry.ugcUrl ? (
                             <Link
