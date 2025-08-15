@@ -1,6 +1,7 @@
 import { getServerAuthSession } from "@/server/auth";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
+import LeaderboardAutoRefresh from "./LeaderboardAutoRefresh";
 
 // import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
@@ -25,11 +26,14 @@ export default async function Page() {
       legacyId: null,
     } as const;
     return (
-        <main className="px-5 sm:px-10 py-10">
-            {/* Compact dashboard bar prompting guest users to log in */}
-            <Dashboard user={mockUser} allowEditUsername={false} showLeaderboard={false} showDateRange={false} hideLogin={true} showStatus={false} />
-            <Leaderboard />
-        </main>
+        <>
+            <LeaderboardAutoRefresh />
+            <main className="px-5 sm:px-10 py-10">
+                {/* Compact dashboard bar prompting guest users to log in */}
+                <Dashboard user={mockUser} allowEditUsername={false} showLeaderboard={false} showDateRange={false} hideLogin={true} showStatus={false} />
+                <Leaderboard />
+            </main>
+        </>
     ); // show leaderboard only for guest
   }
 

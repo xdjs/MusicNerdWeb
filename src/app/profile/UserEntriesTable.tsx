@@ -186,7 +186,7 @@ export default function UserEntriesTable() {
                 />
               </div>
             </div>
-            <div className="text-center py-2 px-3 border-t border-[#9b83a0]">Time</div>
+            <div className="text-center py-2 pl-0 pr-3 border-t border-[#9b83a0]">Time</div>
             <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <span>Artist</span>
@@ -224,7 +224,7 @@ export default function UserEntriesTable() {
             </div>
             <div className="text-center py-2 px-3 whitespace-nowrap border-t border-[#9b83a0]">Site Link</div>
             <div
-              className="text-center py-2 pl-3 pr-0 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
+              className="text-center py-2 px-3 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
               onClick={() =>
                 setStatusSort((prev) =>
                   prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
