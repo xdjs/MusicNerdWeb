@@ -171,14 +171,14 @@ export default function UserEntriesTable() {
         <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entries</h2>
       </div>
       
-      <Card className="border-0 shadow-none">
+      <Card className="border-2 border-[#e6e6fa] shadow-none">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-[#9b83a0] hover:bg-[#9b83a0] border border-[#9b83a0] rounded-t-md">
                 <TableHead
-                  className="text-center cursor-pointer select-none py-2 px-3 text-white"
+                  className="text-center cursor-pointer select-none py-2 px-3 text-white rounded-tl-md"
                   onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -226,7 +226,7 @@ export default function UserEntriesTable() {
                 </TableHead>
                 <TableHead className="text-center py-2 px-3 whitespace-nowrap text-white">Site Link</TableHead>
                 <TableHead
-                  className="text-center py-2 px-3 cursor-pointer select-none text-white"
+                  className="text-center py-2 px-3 cursor-pointer select-none text-white rounded-tr-md"
                   onClick={() =>
                     setStatusSort((prev) =>
                       prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
