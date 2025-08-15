@@ -151,7 +151,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         {/* UGC row */}
                         <div className="flex justify-between pl-10 items-center">
                             <span className="text-[#6f4b75]">UGC Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary px-3 py-1.5 text-base">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full border-2 border-[#e6e6fa]">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
@@ -159,7 +159,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         {/* Artists row */}
                         <div className="flex justify-between pl-10 items-center">
                             <span className="text-[#6f4b75]">Artists Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary px-3 py-1.5 text-base">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full border-2 border-[#e6e6fa]">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -212,14 +212,14 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC count */}
                         <div className="flex items-center justify-center">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary px-3 py-1.5 text-base">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full border-2 border-[#e6e6fa]">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artist count */}
                         <div className="flex items-center justify-end">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary px-3 py-1.5 text-base">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full border-2 border-[#e6e6fa]">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
