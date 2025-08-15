@@ -906,7 +906,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-8 left-0 hidden md:block"
+                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-8 left-0 hidden md:block pb-8"
                                     onClick={() => {
                                         setIsEditingUsername((prev) => !prev);
                                         setIsEditingBookmarks((prev) => !prev);
