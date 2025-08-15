@@ -753,7 +753,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
-                            <div className="md:hidden pt-4 flex justify-center">
+                            <div className="md:hidden pt-6 flex justify-center">
                                 <Button
                                     size="sm"
                                     variant="ghost"
@@ -778,7 +778,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
-                            <div className="flex flex-col items-center gap-2 w-full">
+                            <div className="flex flex-col items-center gap-2 w-full pt-2">
                                 <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
                                     <Input
                                         value={usernameInput}

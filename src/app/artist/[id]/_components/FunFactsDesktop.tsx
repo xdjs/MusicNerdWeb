@@ -88,10 +88,10 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
 
         {/* Overlay Fact Box */}
         {(fact || loading === true) && (
-          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-gray-300 shadow-lg overflow-y-auto overflow-x-hidden pt-2 pb-2 pr-1 pl-4">
+          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-[#e6e6fa] shadow-lg overflow-y-auto overflow-x-hidden pt-2 pb-2 pr-1 pl-4">
             {/* Close button */}
             <button
-              className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-gray-300 rounded-md bg-gray-300 hover:bg-gray-400 focus:outline-none leading-none z-10"
+              className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-[#e6e6fa] rounded-md bg-[#e6e6fa] hover:bg-[#d4d4f7] focus:outline-none leading-none z-10"
               aria-label="Close fun fact"
               onClick={() => {
                 setFact(null);

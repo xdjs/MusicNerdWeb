@@ -119,8 +119,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
-                            {/* Consistent left padding before avatar to push name right */}
-                            <div className="w-5 flex-none" />
+                            {/* Reduced left padding before avatar to align with UGC/Artists rows */}
+                            <div className="w-3 flex-none" />
                             {/* Avatar between rank and username */}
                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
@@ -148,7 +148,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         </div>
 
                         {/* UGC row */}
-                        <div className="flex justify-between pl-10 items-center">
+                        <div className="flex justify-between pl-6 items-center">
                             <span className="text-[#6f4b75]">UGC Added</span>
                             <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
@@ -156,7 +156,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         </div>
 
                         {/* Artists row */}
-                        <div className="flex justify-between pl-10 items-center">
+                        <div className="flex justify-between pl-6 items-center">
                             <span className="text-[#6f4b75]">Artists Added</span>
                             <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
