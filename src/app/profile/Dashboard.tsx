@@ -615,7 +615,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-2 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-start sm:justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-start sm:justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
                                 {/* User with inline avatar on mobile */}
 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
@@ -925,7 +925,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
                         {/* Right column - recently edited */}
-                        <div className="relative space-y-4 md:-mt-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                        <div className="relative space-y-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
                             {allowEditUsername && !isGuestUser && (
                                 <Button
                                     size="sm"
