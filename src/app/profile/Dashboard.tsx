@@ -809,7 +809,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
+                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left space-y-8 md:space-y-0">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
@@ -843,7 +843,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
+                        <div className="space-y-4 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
                                     <div className="flex items-center gap-2 w-full justify-center md:justify-start">

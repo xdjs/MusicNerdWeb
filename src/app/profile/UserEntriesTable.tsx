@@ -174,7 +174,7 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#e6e6fa] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
-          <div className="grid grid-cols-6 text-white">
+          <div className="grid grid-cols-6 text-white min-w-[800px]">
             <div
               className="text-center cursor-pointer select-none py-2 px-3 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -186,7 +186,7 @@ export default function UserEntriesTable() {
                 />
               </div>
             </div>
-            <div className="text-center py-2 px-4 border-t border-[#9b83a0]">Time</div>
+            <div className="text-center py-2 px-2 sm:px-4 border-t border-[#9b83a0]">Time</div>
             <div className="text-center py-2 px-4 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-2">
                 <span>Artist</span>
@@ -199,7 +199,7 @@ export default function UserEntriesTable() {
                     onChange={(e) => setArtistQuery(e.target.value)}
                     placeholder="Search"
                     ref={artistInputRef}
-                    className="h-6 pr-6 pl-2 py-1 text-xs w-24 bg-white border border-gray-300"
+                    className="h-6 pr-6 pl-2 py-1 text-xs w-16 sm:w-24 bg-white border border-gray-300"
                   />
                   <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
                 </div>
@@ -211,7 +211,7 @@ export default function UserEntriesTable() {
                                  <select
                    value={filter}
                    onChange={(e) => setFilter(e.target.value)}
-                   className="border border-gray-300 rounded-md p-1 text-xs h-6"
+                   className="border border-gray-300 rounded-md p-1 text-xs h-6 w-16 sm:w-auto"
                  >
                   <option value="all">All</option>
                   {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
