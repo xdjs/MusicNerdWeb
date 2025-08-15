@@ -25,6 +25,10 @@ const customJestConfig: Config = {
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
+        // Handle wagmi and viem ESM modules
+        '^wagmi$': '<rootDir>/__mocks__/wagmi.js',
+        '^wagmi/(.*)$': '<rootDir>/__mocks__/wagmi.js',
+        '^viem/(.*)$': '<rootDir>/__mocks__/viem.js',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports
