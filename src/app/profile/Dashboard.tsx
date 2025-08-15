@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
-import LoadingPage from "../_components/LoadingPage";
+
 import {
     DndContext,
     closestCenter,
