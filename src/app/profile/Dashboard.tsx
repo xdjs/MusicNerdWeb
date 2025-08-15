@@ -615,24 +615,23 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-2 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-2 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] hover:ring-2 hover:ring-[#ff9ce3] w-full gap-x-4 gap-y-3 justify-items-start sm:justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
-								{/* Left-aligned avatar inside the bar */}
-								{!isGuestUser && (
-									<div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-										{ensLoading ? (
-											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-										) : ensAvatarUrl && !avatarError ? (
-											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-										) : jazziconSeed ? (
-											<Jazzicon diameter={32} seed={jazziconSeed} />
-										) : (
-											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-										)}
-									</div>
-								)}
-                                {/* User */}
-								<div className="flex items-center space-x-2 overflow-hidden justify-center">
+                                {/* User with inline avatar on mobile */}
+								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
+                                    {!isGuestUser && (
+                                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
+                                            {ensLoading ? (
+                                                <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                            ) : ensAvatarUrl && !avatarError ? (
+                                                <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+                                            ) : jazziconSeed ? (
+                                                <Jazzicon diameter={32} seed={jazziconSeed} />
+                                            ) : (
+                                                <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+                                            )}
+                                        </div>
+                                    )}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
@@ -640,7 +639,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                <div className="flex flex-row items-center justify-end sm:justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
@@ -657,7 +656,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-start sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
@@ -665,7 +664,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-end sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}

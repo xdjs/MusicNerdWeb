@@ -110,7 +110,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center gap-6 overflow-hidden">
+                        <div className="flex items-center gap-2 overflow-hidden">
                             <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
@@ -119,8 +119,6 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
-                            {/* Consistent left padding before avatar to push name right */}
-                            <div className="w-5 flex-none" />
                             {/* Avatar between rank and username */}
                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
