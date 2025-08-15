@@ -208,11 +208,11 @@ export default function UserEntriesTable() {
             <div className="text-center py-2 px-3 border-t border-[#9b83a0]">
               <div className="flex items-center justify-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
-                                 <select
-                   value={filter}
-                   onChange={(e) => setFilter(e.target.value)}
-                   className="border border-gray-300 rounded-md p-1 text-xs h-6 w-8 sm:w-12"
-                 >
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="border border-gray-300 rounded-md p-1 text-xs h-6"
+                >
                   <option value="all">All</option>
                   {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
                     <option key={site as string} value={site as string}>
@@ -252,10 +252,7 @@ export default function UserEntriesTable() {
               {loading ? (
                 <TableRow className="bg-white hover:bg-white border-b border-[#e6e6fa]">
                   <TableCell colSpan={6} className="text-center py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#9b83a0] border-t-transparent"></div>
-                      <span>Loading...</span>
-                    </div>
+                    Loading...
                   </TableCell>
                 </TableRow>
               ) : processed.length ? (
