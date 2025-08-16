@@ -619,20 +619,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-center">
- 									{/* Avatar inline with username */}
-								{!isGuestUser && (
- 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-										{ensLoading ? (
-											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-										) : ensAvatarUrl && !avatarError ? (
-											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-										) : jazziconSeed ? (
-											<Jazzicon diameter={32} seed={jazziconSeed} />
-										) : (
-											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-										)}
-									</div>
-								)}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
