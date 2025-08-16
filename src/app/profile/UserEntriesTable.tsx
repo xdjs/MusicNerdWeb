@@ -189,8 +189,8 @@ export default function UserEntriesTable() {
             <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
               <span className="whitespace-nowrap">Time</span>
             </div>
-            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-1">
+            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex items-center gap-2">
                 <span className="whitespace-nowrap">Artist</span>
                 <div
                   className="relative flex items-center cursor-text"
@@ -201,19 +201,19 @@ export default function UserEntriesTable() {
                     onChange={(e) => setArtistQuery(e.target.value)}
                     placeholder="Search"
                     ref={artistInputRef}
-                    className="h-4 pr-4 pl-1 py-0 text-xs w-12 bg-white border border-gray-300"
+                    className="h-6 pr-6 pl-2 py-1 text-xs w-20 bg-white border border-gray-300"
                   />
-                  <SearchIcon className="absolute right-0.5 h-2.5 w-2.5 text-gray-500" strokeWidth={2} />
+                  <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
                 </div>
               </div>
             </div>
-            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
-              <div className="flex items-center justify-center gap-1">
+            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex items-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="border border-gray-300 rounded-md p-0 text-xs h-4 w-10 text-[#6f4b75]"
+                  className="border border-gray-300 rounded-md p-1 text-xs h-6 w-16 text-[#6f4b75]"
                 >
                   <option value="all">All</option>
                   {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
