@@ -108,7 +108,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                      )}
         >
             {/* Mobile layout */}
-            <div className="flex flex-col sm:hidden space-y-3 p-4">
+            <div className="flex flex-col sm:hidden space-y-2 px-3">
                 {/* Top row: Rank, Profile Picture, Username */}
                 <div className="flex items-center gap-4">
                     {/* Rank */}
@@ -151,7 +151,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                 {/* UGC row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold text-base">UGC Added</span>
+                    <span className="text-[#6f4b75] font-semibold">UGC Added</span>
                     <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
                         {entry.ugcCount}
                     </Badge>
@@ -159,7 +159,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                 {/* Artists row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold text-base">Artists Added</span>
+                    <span className="text-[#6f4b75] font-semibold">Artists Added</span>
                     <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
                         {entry.artistsCount}
                     </Badge>
