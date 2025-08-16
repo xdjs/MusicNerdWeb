@@ -427,6 +427,38 @@ export async function approveUGC(
     // Sanitize siteName to match column naming convention (remove dots and other non-alphanumerics)
     const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
     try {
+        // Normalise values for certain platforms before storing on the artist record
+        let valueToStore = artistUrlOrId;
+        if (siteName === "youtubechannel") {
+            // Expect channel ID, not a full URL
+            // Accept both full URLs and raw IDs and convert to ID only
+            try {
+                const url = new URL(artistUrlOrId.startsWith("http") ? artistUrlOrId : `https://${artistUrlOrId}`);
+                const parts = url.pathname.split("/").filter(Boolean);
+                const channelIdx = parts.findIndex((p) => p.toLowerCase() === "channel");
+                if (channelIdx !== -1 && parts[channelIdx + 1]) {
+                    valueToStore = parts[channelIdx + 1];
+                }
+            } catch {
+                const m = artistUrlOrId.match(/youtube\.com\/channel\/([^/?#]+)/i);
+                if (m) valueToStore = m[1];
+            }
+        } else if (siteName === "youtube") {
+            // Store plain username without leading @ if a URL was provided
+            try {
+                if (artistUrlOrId.includes("youtube.com")) {
+                    const url = new URL(artistUrlOrId.startsWith("http") ? artistUrlOrId : `https://${artistUrlOrId}`);
+                    const atMatch = url.pathname.match(/@([^/?#]+)/);
+                    if (atMatch && atMatch[1]) {
+                        valueToStore = atMatch[1];
+                    }
+                } else if (artistUrlOrId.startsWith("@")) {
+                    valueToStore = artistUrlOrId.slice(1);
+                }
+            } catch {
+                /* ignore */
+            }
+        }
         if (siteName === "wallets" || siteName === "wallet") {
             await db.execute(sql`
                 UPDATE artists
@@ -442,7 +474,7 @@ export async function approveUGC(
         } else {
             await db.execute(sql`
                 UPDATE artists
-                SET ${sql.identifier(columnName)} = ${artistUrlOrId}
+                SET ${sql.identifier(columnName)} = ${valueToStore}
                 WHERE id = ${artistId}`);
         }
 

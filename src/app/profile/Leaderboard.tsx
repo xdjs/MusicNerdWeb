@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import Jazzicon from "react-jazzicon";
+import { jsNumberForAddress } from "react-jazzicon";
+import { createPublicClient, http } from "viem";
+import { getEnsAvatar, getEnsName } from "viem/ens";
+import { mainnet } from "wagmi/chains";
 
 type RangeKey = "today" | "week" | "month" | "all";
 
@@ -20,9 +25,20 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
+const publicClient = createPublicClient({
+    chain: mainnet,
+    transport: http(),
+});
+
 function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
+
+    // Avatar state for each leaderboard entry (replicates corner icon logic)
+    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+    const [ensLoading, setEnsLoading] = useState(false);
 
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
@@ -30,6 +46,35 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.username ?? '').toLowerCase() === identifierLc ||
         (entry.email ?? '').toLowerCase() === identifierLc
     );
+    const isPodium = !!rank && rank <= 3 && !entry.isHidden;
+
+    useEffect(() => {
+        let cancelled = false;
+        async function resolveAvatar() {
+            setEnsLoading(true);
+            setAvatarError(false);
+            try {
+                const ensName = await getEnsName(publicClient, { address: entry.wallet as `0x${string}` });
+                let finalAvatar: string | null = null;
+                if (ensName) {
+                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+                }
+                if (!cancelled) {
+                    setEnsAvatarUrl(finalAvatar ?? null);
+                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(entry.wallet));
+                }
+            } catch {
+                if (!cancelled) {
+                    setEnsAvatarUrl(null);
+                    setJazziconSeed(jsNumberForAddress(entry.wallet));
+                }
+            } finally {
+                if (!cancelled) setEnsLoading(false);
+            }
+        }
+        resolveAvatar();
+        return () => { cancelled = true; };
+    }, [entry.wallet]);
 
     async function fetchRecent() {
         if (recent || loadingRec) return;
@@ -51,38 +96,69 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
     return (
         <div
+            data-podium={isPodium ? "true" : "false"}
             id={isHighlighted ? "leaderboard-current-user" : undefined}
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
-            className={cn(
-                        "p-3 border rounded-md transition-colors scroll-mt-12",
-                        isHighlighted ? "ring-2 ring-primary bg-accent sticky top-12 z-10" : "hover:bg-accent/40"
-                    )}
+                         className={cn(
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
+                                                  isHighlighted
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
+                              : ""
+                     )}
         >
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
+                        <div className="flex items-center gap-6 overflow-hidden">
+                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (
+                                    rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
+                                    : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
+                                    : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
+                                    : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
+                                )}
                             </span>
-                            <p className="font-medium truncate max-w-[200px] text-lg">
-                                {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
+                            {/* Reduced left padding before avatar to align with UGC/Artists rows */}
+                            <div className="w-3 flex-none" />
+                            {/* Avatar between rank and username */}
+                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                {ensLoading ? (
+                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                ) : ensAvatarUrl && !avatarError ? (
+                                    <img
+                                        src={ensAvatarUrl}
+                                        alt="ENS Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : jazziconSeed ? (
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                ) : (
+                                    <img
+                                        src="/default_pfp_pink.png"
+                                        alt="Default Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
+                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
+                                {entry.username || entry.wallet.slice(0, 8) + "..."}
                             </p>
                         </div>
 
                         {/* UGC row */}
-                        <div className="flex justify-between pl-10">
-                            <span className="text-muted-foreground">UGC Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                        <div className="flex justify-between pl-6 items-center">
+                            <span className="text-[#6f4b75]">UGC Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artists row */}
-                        <div className="flex justify-between pl-10">
-                            <span className="text-muted-foreground">Artists Added</span>
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                        <div className="flex justify-between pl-6 items-center">
+                            <span className="text-[#6f4b75]">Artists Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -90,28 +166,56 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
-                        {/* User col */}
-                        <div className="flex items-center space-x-2 overflow-hidden">
-                            <span className={`w-8 font-semibold text-center text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {entry.isHidden ? 'N/A' : (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank)}
+                        {/* User col (left-aligned, with increased inner gap) */}
+                        <div className="flex items-center gap-6 overflow-hidden">
+                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                                {entry.isHidden ? 'N/A' : (
+                                    rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
+                                    : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
+                                    : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
+                                    : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
+                                )}
                             </span>
-                            <div className="truncate">
-                                <p className="font-medium truncate max-w-[200px] text-lg">
-                                    {entry.username || entry.email || entry.wallet.slice(0, 8) + "..."}
+                            {/* Consistent left padding before avatar to push name right */}
+                            <div className="w-5 flex-none" />
+                            {/* Avatar between rank and username */}
+                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                {ensLoading ? (
+                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                ) : ensAvatarUrl && !avatarError ? (
+                                    <img
+                                        src={ensAvatarUrl}
+                                        alt="ENS Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : jazziconSeed ? (
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                ) : (
+                                    <img
+                                        src="/default_pfp_pink.png"
+                                        alt="Default Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-lg">
+                                    {entry.username || entry.wallet.slice(0, 8) + "..."}
                                 </p>
                             </div>
                         </div>
 
                         {/* UGC count */}
-                        <div className="text-center text-lg">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                        <div className="flex items-center justify-center">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
                             </Badge>
                         </div>
 
                         {/* Artist count */}
-                        <div className="text-right text-lg">
-                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                        <div className="flex items-center justify-end">
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
                             </Badge>
                         </div>
@@ -244,17 +348,22 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (loading) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
                                 key={key}
                                 size="sm"
-                                variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                variant="outline"
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -264,7 +373,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-center">Loading...</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <img className="w-4 h-4" src="/spinner.svg" alt="loading" />
+                        <p className="text-center">Loading...</p>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -272,16 +384,21 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     if (error) {
         return (
-            <Card className="max-w-3xl mx-auto">
+            <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
                                 key={key}
                                 size="sm"
-                                variant={range === key ? "default" : "secondary"}
-                                className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                                variant="outline"
+                                className={cn(
+                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                )}
                                 onClick={() => setRange(key)}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -291,7 +408,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-red-500">{error}</p>
+                    <p className="text-red-500 text-center">{error}</p>
                 </CardContent>
             </Card>
         );
@@ -299,16 +416,21 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
 
     return (
         <TooltipProvider delayDuration={200}>
-        <Card className="max-w-3xl mx-auto">
+        <Card className="max-w-3xl mx-auto shadow-2xl">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
                             key={key}
                             size="sm"
-                            variant={range === key ? "default" : "secondary"}
-                            className={cn("w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm", range === key ? "bg-primary text-white" : "bg-gray-200 text-black hover:bg-gray-300")}
+                            variant="outline"
+                            className={cn(
+                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                range === key
+                                    ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                    : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                            )}
                             onClick={() => setRange(key)}
                         >
                             {range === key && <Check className="inline h-4 w-4 mr-1" />}
@@ -319,7 +441,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-muted-foreground text-center sticky top-0 z-20 bg-card py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-white py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
@@ -346,7 +468,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
             </CardContent>
             {pageCount > 1 && (
-                <div className="bg-gray-50 border-t flex justify-end items-center gap-4 p-3">
+                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
                     <Button
                         variant="outline"
                         size="sm"

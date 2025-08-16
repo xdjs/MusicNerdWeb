@@ -165,160 +165,175 @@ export default function UserEntriesTable() {
   }, [entries, filter, sortOrder, artistQuery, statusSort]);
 
   return (
-    <Card className="max-w-3xl mx-auto mt-10">
-      <CardHeader className="text-center pb-2">
-        <CardTitle className="mb-2">Your Artist Data Entries</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 hover:bg-gray-50">
-              <TableHead
-                className="text-center cursor-pointer select-none py-2 px-3"
-                onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Date</span>
-                  <ArrowUpDown
-                    className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+    <div className="max-w-3xl mx-auto mt-10">
+      {/* Title above the table */}
+      <div className="text-center mb-4">
+        <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entries</h2>
+      </div>
+      
+      <Card className="border-2 border-[#e6e6fa] shadow-none">
+        {/* Table Header as CardHeader */}
+        <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
+          <div className="grid grid-cols-6 text-white">
+            <div
+              className="text-center cursor-pointer select-none py-3 px-2 border-l border-t border-[#9b83a0] rounded-tl-md"
+              onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span className="whitespace-nowrap">Date</span>
+                <ArrowUpDown
+                  className={`w-3 h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+                />
+              </div>
+            </div>
+            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+              <span className="whitespace-nowrap">Time</span>
+            </div>
+            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex items-center gap-2">
+                <span className="whitespace-nowrap">Artist</span>
+                <div
+                  className="relative flex items-center cursor-text"
+                  onClick={() => artistInputRef.current?.focus()}
+                >
+                  <Input
+                    value={artistQuery}
+                    onChange={(e) => setArtistQuery(e.target.value)}
+                    placeholder="Search"
+                    ref={artistInputRef}
+                    className="h-6 pr-6 pl-2 py-1 text-xs w-20 bg-white border border-gray-300"
                   />
+                  <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
                 </div>
-              </TableHead>
-              <TableHead className="text-center py-2 px-3">Time</TableHead>
-              <TableHead className="text-center py-2 px-3">
-                <div className="flex items-center justify-center gap-2">
-                  <span>Artist</span>
-                  <div
-                    className="relative flex items-center cursor-text"
-                    onClick={() => artistInputRef.current?.focus()}
-                  >
-                    <Input
-                      value={artistQuery}
-                      onChange={(e) => setArtistQuery(e.target.value)}
-                      placeholder="Search"
-                      ref={artistInputRef}
-                      className="h-6 pr-6 pl-2 py-1 text-xs w-24 bg-white border border-gray-300"
-                    />
-                    <SearchIcon className="absolute right-1.5 h-3.5 w-3.5 text-gray-500" strokeWidth={2} />
-                  </div>
-                </div>
-              </TableHead>
-              <TableHead className="text-center py-2 px-3">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="whitespace-nowrap">Entry Type</span>
-                  <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-md p-1 text-xs"
-                  >
-                    <option value="all">All</option>
-                    {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
-                      <option key={site as string} value={site as string}>
-                        {site as string}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </TableHead>
-              <TableHead className="text-center py-2 px-3 whitespace-nowrap">Site Link</TableHead>
-              <TableHead
-                className="text-center py-2 px-3 cursor-pointer select-none"
-                onClick={() =>
-                  setStatusSort((prev) =>
-                    prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
-                  )
-                }
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Status</span>
-                  {statusSort === "approved" ? (
-                    <ArrowUp className="w-3 h-3" />
-                  ) : statusSort === "pending" ? (
-                    <ArrowDown className="w-3 h-3" />
-                  ) : (
-                    <ArrowUpDown className="w-3 h-3" />
-                  )}
-                </div>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow className="bg-white hover:bg-white">
-                <TableCell colSpan={6} className="text-center py-4">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : processed.length ? (
-              (() => {
-                let lastArtist: string | null = null;
-                const pageStart = (page - 1) * PER_PAGE;
-                const pageEnd = pageStart + PER_PAGE;
-                return processed.slice(pageStart, pageEnd).map((entry) => {
-                  const displayArtist = entry.artistName ?? lastArtist ?? "—";
-                  if (entry.artistName) lastArtist = entry.artistName;
-                  return (
-                    <TableRow key={entry.id} className="bg-white hover:bg-white">
-                      <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
-                      <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
-                      <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
-                      <TableCell className="text-center px-3 py-2">{entry.siteName ?? "—"}</TableCell>
-                      <TableCell className="text-center px-3 py-2">
-                        {entry.ugcUrl ? (
-                          <Link
-                            className="text-blue-600 underline"
-                            href={entry.ugcUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell
-                        className={`text-center px-3 py-2 font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
-                      >
-                        {entry.accepted ? "Approved" : "Pending"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                });
-              })()
-            ) : (
-              <TableRow className="bg-white hover:bg-white">
-                <TableCell colSpan={6} className="text-center py-4">
-                  No entries
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        </div>
-      </CardContent>
-      {pageCount > 1 && (
-        <CardFooter className="bg-gray-50 border-t flex justify-end items-center gap-4 p-3">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Prev
-          </Button>
-          <span className="text-sm">Page {page} of {pageCount}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= pageCount}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
+              </div>
+            </div>
+            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+              <div className="flex items-center gap-2">
+                <span className="whitespace-nowrap">Entry Type</span>
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="border border-gray-300 rounded-md p-1 text-xs h-6 w-16 text-[#6f4b75]"
+                >
+                  <option value="all">All</option>
+                  {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
+                    <option key={site as string} value={site as string}>
+                      {site as string}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+              <span className="whitespace-nowrap">Site Link</span>
+            </div>
+            <div
+              className="text-center py-3 px-2 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
+              onClick={() =>
+                setStatusSort((prev) =>
+                  prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
+                )
+              }
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span className="whitespace-nowrap">Status</span>
+                {statusSort === "approved" ? (
+                  <ArrowUp className="w-3 h-3" />
+                ) : statusSort === "pending" ? (
+                  <ArrowDown className="w-3 h-3" />
+                ) : (
+                  <ArrowUpDown className="w-3 h-3" />
+                )}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+          <Table>
+            <TableBody>
+              {loading ? (
+                <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                  <TableCell colSpan={6} className="text-center py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#9b83a0] border-t-transparent"></div>
+                      <span>Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : processed.length ? (
+                (() => {
+                  let lastArtist: string | null = null;
+                  const pageStart = (page - 1) * PER_PAGE;
+                  const pageEnd = pageStart + PER_PAGE;
+                  return processed.slice(pageStart, pageEnd).map((entry) => {
+                    const displayArtist = entry.artistName ?? lastArtist ?? "—";
+                    if (entry.artistName) lastArtist = entry.artistName;
+                    return (
+                      <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                        <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
+                        <TableCell className="text-center px-3 py-2">{entry.siteName ?? "—"}</TableCell>
+                        <TableCell className="text-center px-3 py-2">
+                          {entry.ugcUrl ? (
+                            <Link
+                              className="text-blue-600 underline"
+                              href={entry.ugcUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell
+                          className={`text-center px-3 py-2 font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
+                        >
+                          {entry.accepted ? "Approved" : "Pending"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+                })()
+              ) : (
+                <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                  <TableCell colSpan={6} className="text-center py-4">
+                    No entries
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+        </CardContent>
+        {pageCount > 1 && (
+          <CardFooter className="bg-[#9b83a0] border border-[#9b83a0] rounded-b-md flex justify-end items-center gap-4 p-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="bg-white text-[#9b83a0] border-white hover:bg-gray-100 hover:text-[#9b83a0]"
+            >
+              Prev
+            </Button>
+            <span className="text-sm text-white">Page {page} of {pageCount}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pageCount}
+              onClick={() => setPage((p) => p + 1)}
+              className="bg-white text-[#9b83a0] border-white hover:bg-gray-100 hover:text-[#9b83a0]"
+            >
+              Next
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+    </div>
   );
 } 

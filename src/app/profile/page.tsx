@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import Login from "../_components/nav/components/Login";
 import PleaseLoginPage from "../_components/PleaseLoginPage";
+import LeaderboardAutoRefresh from "@/app/leaderboard/LeaderboardAutoRefresh";
+import LoadingPage from "../_components/LoadingPage";
 
 export default async function Page() {
     const session = await getServerAuthSession();
@@ -26,7 +28,12 @@ export default async function Page() {
             updatedAt: new Date().toISOString(),
             legacyId: null
         } as const;
-        return <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={mockUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
     }
     
     // Normal authentication flow
@@ -46,10 +53,46 @@ export default async function Page() {
             updatedAt: new Date().toISOString(),
             legacyId: null
         } as const;
-        return <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
     }
 
-    const user = await getUserById(session.user.id);
-    if (!user) return notFound();
-    return <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />;
+    let user = null as Awaited<ReturnType<typeof getUserById>> | null;
+    try {
+        user = await getUserById(session.user.id);
+    } catch (e) {
+        console.error('[profile/page] Failed to fetch user by id, falling back to guest view', e);
+    }
+    if (!user) {
+        const guestUser = {
+            id: '00000000-0000-0000-0000-000000000000',
+            wallet: '0x0000000000000000000000000000000000000000',
+            email: null,
+            username: 'Guest User',
+            isAdmin: false,
+            isWhiteListed: false,
+            isSuperAdmin: false,
+            isHidden: false,
+            acceptedUgcCount: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            legacyId: null
+        } as const;
+        return (
+            <>
+                <LeaderboardAutoRefresh />
+                <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+            </>
+        );
+    }
+    return (
+        <>
+            <LeaderboardAutoRefresh />
+            <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
+        </>
+    );
 }

@@ -51,6 +51,8 @@ describe('UGC Stats Page', () => {
         const page = await Page();
         render(page);
 
+        // Wait for loading to complete and then check for User Profile text
+        await screen.findByText('User Profile');
         expect(screen.getByText('User Profile')).toBeInTheDocument();
         // Removed 'User Profile' heading assertion
     });
@@ -64,7 +66,8 @@ describe('UGC Stats Page', () => {
         const page = await Page();
         render(page);
 
-        // Should show the dashboard with user profile layout
+        // Wait for loading to complete and then check for User Profile text
+        await screen.findByText('User Profile');
         expect(screen.getByText('User Profile')).toBeInTheDocument();
     });
 

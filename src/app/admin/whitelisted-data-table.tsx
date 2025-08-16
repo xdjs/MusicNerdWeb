@@ -355,7 +355,7 @@ export default function UsersDataTable<TData, TValue>({
                 if (roleFilter === "Admin") return row.isAdmin;
                 if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
                 if (roleFilter === "Hidden") return row.isHidden;
-                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed && !row.isHidden;
+                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
                 return true;
             });
         }

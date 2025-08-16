@@ -5,7 +5,8 @@ import { getAllLinks } from '@/server/utils/queries/artistQueries';
 const platforms = [
   {
     name: 'youtube',
-    regex: /^https?:\/\/(www\.)?youtube\.com\/(?:@([^/]+)|([^/]+))$/,
+    // Allow optional trailing segments/query/fragments and support both @username and plain path
+    regex: /^https?:\/\/(www\.)?youtube\.com\/(?:@([^\/?#]+)|([^\/?#]+))(?:[\/?#].*)?$/,
     errorPhrases: [
       "This page isn't available",
       "404 Not Found",
@@ -15,13 +16,13 @@ const platforms = [
       "This account has been terminated",
       "The page you are looking for does not exist",
       "<title>Not Found</title>",
-      "<title>404 Not Found</title>",
-      "<title>YouTube</title>"
+      "<title>404 Not Found</title>"
     ]
   },
   {
     name: 'youtubechannel',
-    regex: /^https?:\/\/(www\.)?youtube\.com\/channel\/([^/]+)$/,
+    // Accept channel IDs with optional trailing segments/query/fragments
+    regex: /^https?:\/\/(www\.)?youtube\.com\/channel\/([^\/?#]+)(?:[\/?#].*)?$/,
     errorPhrases: [
       "This page isn't available",
       "404 Not Found",
@@ -31,8 +32,7 @@ const platforms = [
       "This account has been terminated",
       "The page you are looking for does not exist",
       "<title>Not Found</title>",
-      "<title>404 Not Found</title>",
-      "<title>YouTube</title>"
+      "<title>404 Not Found</title>"
     ]
   },
   {
