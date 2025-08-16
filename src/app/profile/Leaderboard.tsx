@@ -139,24 +139,23 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     />
                                 )}
                             </div>
-                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
-                                {entry.username || entry.wallet.slice(0, 8) + "..."}
-                            </p>
+                            <span className="font-semibold text-black truncate flex-1">{entry.username || entry.wallet.slice(0, 8) + "..."}</span>
                         </div>
-                        {/* Stats row */}
-                        <div className="flex items-center justify-between pl-6">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[#6f4b75]">UGC Added</span>
-                                <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                    {entry.ugcCount}
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[#6f4b75]">Artists Added</span>
-                                <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                    {entry.artistsCount}
-                                </Badge>
-                            </div>
+
+                        {/* UGC row */}
+                        <div className="flex justify-between pl-6 items-center">
+                            <span className="text-[#6f4b75]">UGC Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
+                                {entry.ugcCount}
+                            </Badge>
+                        </div>
+
+                        {/* Artists row */}
+                        <div className="flex justify-between pl-6 items-center">
+                            <span className="text-[#6f4b75]">Artists Added</span>
+                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
+                                {entry.artistsCount}
+                            </Badge>
                         </div>
                     </div>
 
