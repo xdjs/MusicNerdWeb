@@ -23,13 +23,9 @@ export default function LeaderboardAutoRefresh() {
 
     const isStable = status !== "loading";
 
-    // Detect session state mismatch between SSR and client
-    const hasPreviousStatus = prevStatus.current !== null;
-    const statusChanged = hasPreviousStatus && prevStatus.current !== status;
-
-    // Show loading state and reload if we have a clear mismatch
-    if (!skip && hasPreviousStatus && statusChanged && isStable) {
-      console.debug('[AutoRefresh] Session state mismatch detected, showing loading state');
+    // Initial hard auto-refresh: reload on first stable status
+    if (!skip && isStable && prevStatus.current === null) {
+      console.debug('[AutoRefresh] Initial stable status detected, showing loading state');
       setIsLoading(true);
       hasReloaded.current = true;
       sessionStorage.setItem("autoRefreshSkip", "true");
