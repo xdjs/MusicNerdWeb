@@ -174,9 +174,9 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#e6e6fa] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
-          <div className="grid grid-cols-6 text-white">
+          <div className="grid grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] text-white">
             <div
-              className="text-center cursor-pointer select-none py-3 px-2 border-l border-t border-[#9b83a0] rounded-tl-md"
+              className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
             >
               <div className="flex items-center justify-center gap-1">
@@ -186,10 +186,10 @@ export default function UserEntriesTable() {
                 />
               </div>
             </div>
-            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+            <div className="text-center py-3 px-1 border-t border-[#9b83a0]">
               <span className="whitespace-nowrap">Time</span>
             </div>
-            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+            <div className="text-left py-3 px-4 border-t border-[#9b83a0]">
               <div className="flex items-center gap-2">
                 <span className="whitespace-nowrap">Artist</span>
                 <div
@@ -207,7 +207,7 @@ export default function UserEntriesTable() {
                 </div>
               </div>
             </div>
-            <div className="text-left py-3 px-2 border-t border-[#9b83a0]">
+            <div className="text-left py-3 px-4 border-t border-[#9b83a0]">
               <div className="flex items-center gap-2">
                 <span className="whitespace-nowrap">Entry Type</span>
                 <select
@@ -224,7 +224,7 @@ export default function UserEntriesTable() {
                 </select>
               </div>
             </div>
-            <div className="text-center py-3 px-2 border-t border-[#9b83a0]">
+            <div className="text-center py-3 px-1 border-t border-[#9b83a0]">
               <span className="whitespace-nowrap">Site Link</span>
             </div>
             <div
