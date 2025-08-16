@@ -110,7 +110,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-2 px-3">
                 {/* Top row: Rank, Profile Picture, Username */}
-                <div className="flex items-center gap-8 -ml-0.5">
+                <div className="flex items-center gap-8 -ml-2.5">
                     {/* Rank */}
                     <span className={`w-8 h-7 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                         {entry.isHidden ? 'N/A' : (
