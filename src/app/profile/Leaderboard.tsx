@@ -110,7 +110,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-2 px-3">
                 {/* Top row: Rank, Profile Picture, Username */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-8">
                     {/* Rank */}
                     <span className={`w-8 h-7 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                         {entry.isHidden ? 'N/A' : (
@@ -121,9 +121,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         )}
                     </span>
                     {/* Profile Picture */}
-                    <div className="w-10 h-10 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                         {ensLoading ? (
-                            <img className="w-6 h-6" src="/spinner.svg" alt="Loading..." />
+                            <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
                             <img
                                 src={ensAvatarUrl}
@@ -132,7 +132,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 onError={() => setAvatarError(true)}
                             />
                         ) : jazziconSeed ? (
-                            <Jazzicon diameter={40} seed={jazziconSeed} />
+                            <Jazzicon diameter={32} seed={jazziconSeed} />
                         ) : (
                             <img
                                 src="/default_pfp_pink.png"
