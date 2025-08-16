@@ -595,7 +595,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
                                  {/* User */}
- 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-start">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
  										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
