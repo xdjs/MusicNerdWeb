@@ -163,7 +163,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     <div className="hidden sm:grid grid-cols-3 items-center">
                         {/* User col (left-aligned, with increased inner gap) */}
                         <div className="flex items-center gap-6 overflow-hidden pr-4">
-                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground mr-4 ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
