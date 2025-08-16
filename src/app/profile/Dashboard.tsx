@@ -730,27 +730,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 </div>
             ) : (
                 <>
-                    {/* Username row displayed above the three columns on all breakpoints */}
-					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
-						{!isEditingUsername && (
-                            <div className="flex items-center justify-center gap-3 w-full">
-								{/* Avatar left of username using ENS/Jazzicon logic */}
-								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
-									{ensLoading ? (
-										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-									) : ensAvatarUrl && !avatarError ? (
-										<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-									) : jazziconSeed ? (
-										<Jazzicon diameter={32} seed={jazziconSeed} />
-									) : (
-										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-									)}
-								</div>
-								<p className="text-lg font-semibold leading-none">
-									{displayName}
-								</p>
-							</div>
-						)}
+                    {/* Username row removed - moved to align with Role column */}
                         {/* Mobile Edit button under username */}
                         {allowEditUsername && !isGuestUser && (
                             <div className="md:hidden pt-6 flex justify-center">
@@ -816,6 +796,27 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
+
+                                {/* Profile picture and username aligned with Role */}
+                                {!isEditingUsername && (
+                                    <div className="flex items-center gap-3 w-full justify-center md:justify-start mb-4">
+                                        {/* Avatar using ENS/Jazzicon logic */}
+                                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
+                                            {ensLoading ? (
+                                                <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+                                            ) : ensAvatarUrl && !avatarError ? (
+                                                <img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+                                            ) : jazziconSeed ? (
+                                                <Jazzicon diameter={32} seed={jazziconSeed} />
+                                            ) : (
+                                                <img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+                                            )}
+                                        </div>
+                                        <p className="text-lg font-semibold leading-none">
+                                            {displayName}
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Role heading aligned with other column headings */}
                                 {showStatus && (
