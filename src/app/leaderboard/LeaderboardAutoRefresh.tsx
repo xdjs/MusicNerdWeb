@@ -23,6 +23,22 @@ export default function LeaderboardAutoRefresh() {
 
     const isStable = status !== "loading";
 
+    // Handle initial page load mismatch - only for leaderboard/profile pages
+    if (!skip && isStable && prevStatus.current === null) {
+      // Check if we're on a leaderboard or profile page that needs SSR/client consistency
+      const isLeaderboardPage = window.location.pathname.includes('/leaderboard') || 
+                               window.location.pathname.includes('/profile');
+      
+      // Only reload on initial load for leaderboard/profile pages
+      if (isLeaderboardPage) {
+        console.debug('[AutoRefresh] Initial leaderboard page load detected, reloading to ensure SSR/client consistency');
+        hasReloaded.current = true;
+        sessionStorage.setItem("autoRefreshSkip", "true");
+        window.location.reload();
+        return;
+      }
+    }
+
     // Detect session state mismatch between SSR and client
     const hasPreviousStatus = prevStatus.current !== null;
     const statusChanged = hasPreviousStatus && prevStatus.current !== status;
