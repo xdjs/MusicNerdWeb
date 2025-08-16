@@ -414,22 +414,26 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : ensLoading ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensAvatar && !avatarError ? (
-                                <img 
-                                    src={ensAvatar} 
-                                    alt="ENS Avatar" 
-                                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                    onError={() => setAvatarError(true)}
-                                />
+                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
+                                    <img 
+                                        src={ensAvatar} 
+                                        alt="ENS Avatar" 
+                                        className="w-full h-full rounded-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                </div>
                             ) : jazziconSeed ? (
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-white">
+                                    <Jazzicon diameter={28} seed={jazziconSeed} />
                                 </div>
                             ) : (
-                                <img 
-                                    src="/default_pfp_pink.png" 
-                                    alt="Default Profile" 
-                                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                />
+                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
+                                    <img 
+                                        src="/default_pfp_pink.png" 
+                                        alt="Default Profile" 
+                                        className="w-full h-full rounded-full object-cover"
+                                    />
+                                </div>
                             )}
                             {(hasPendingUGC || hasNewUGC) && (
                                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />

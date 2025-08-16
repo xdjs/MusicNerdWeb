@@ -810,7 +810,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                                          {/* Three-column section under username */}
-                     <div className="flex flex-col space-y-8 md:space-y-0 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
+                     <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
