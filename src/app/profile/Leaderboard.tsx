@@ -108,9 +108,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                      )}
         >
             {/* Mobile layout */}
-            <div className="flex flex-col sm:hidden space-y-2">
+            <div className="flex flex-col sm:hidden space-y-2 px-6">
                 {/* Top row: Rank, Profile Picture, Username */}
-                <div className="flex items-center gap-3 pl-6">
+                <div className="flex items-center gap-3">
                     {/* Rank */}
                     <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                         {entry.isHidden ? 'N/A' : (
@@ -150,7 +150,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                 </div>
 
                 {/* UGC row */}
-                <div className="flex justify-between pl-6 items-center">
+                <div className="flex justify-between items-center">
                     <span className="text-[#6f4b75] font-semibold">UGC Added</span>
                     <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                         {entry.ugcCount}
@@ -158,7 +158,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                 </div>
 
                 {/* Artists row */}
-                <div className="flex justify-between pl-6 items-center">
+                <div className="flex justify-between items-center">
                     <span className="text-[#6f4b75] font-semibold">Artists Added</span>
                     <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                         {entry.artistsCount}
