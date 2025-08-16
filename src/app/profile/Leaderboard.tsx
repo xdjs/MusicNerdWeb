@@ -470,8 +470,13 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             {pageCount > 1 && (
                 <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
                     <Button
-                        variant="outline"
                         size="sm"
+                        className={cn(
+                            "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                            page === 1
+                                ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                        )}
                         disabled={page === 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
@@ -479,8 +484,13 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </Button>
                     <span className="text-sm">Page {page} of {pageCount}</span>
                     <Button
-                        variant="outline"
                         size="sm"
+                        className={cn(
+                            "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                            page >= pageCount
+                                ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                        )}
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                     >
