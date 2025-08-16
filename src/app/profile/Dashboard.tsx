@@ -982,3 +982,5 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         </section>
     )
 }
+}
+}
