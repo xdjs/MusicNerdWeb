@@ -173,7 +173,7 @@ export default function UserEntriesTable() {
         <div className="overflow-x-auto min-w-full">
           {/* Table Header */}
           <div className="bg-[#9b83a0] p-0 rounded-t-md border-b-2 border-[#c6bfc7] min-w-full">
-            <div className="grid grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] text-white">
+            <div className="grid grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#9b83a0] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -206,7 +206,7 @@ export default function UserEntriesTable() {
                   </div>
                 </div>
               </div>
-              <div className="text-left py-3 px-4 border-t border-[#9b83a0]">
+              <div className="text-left py-3 px-4 border-t border-[#9b83a0] min-w-[140px]">
                 <div className="flex items-center gap-2">
                   <span className="whitespace-nowrap">Entry Type</span>
                   <select
