@@ -171,7 +171,7 @@ export default function UserEntriesTable() {
         <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entries</h2>
       </div>
       
-      <Card className="border-2 border-[#e6e6fa] shadow-none">
+                      <Card className="border-2 border-[#c6bfc7] shadow-none">
         {/* Table Header as CardHeader */}
         <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md">
           <div className="grid grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] text-white">
