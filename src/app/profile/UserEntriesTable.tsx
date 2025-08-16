@@ -172,9 +172,11 @@ export default function UserEntriesTable() {
       </div>
       
                       <Card className="border-2 border-[#c6bfc7] shadow-none">
-        {/* Table Header as CardHeader */}
-        <CardHeader className="bg-[#9b83a0] p-0 rounded-t-md border-b-2 border-[#c6bfc7]">
-          <div className="grid grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] text-white overflow-x-auto">
+        {/* Mobile: Single scrollable container for header and table */}
+        <div className="overflow-x-auto min-w-full">
+          {/* Table Header */}
+          <div className="bg-[#9b83a0] p-0 rounded-t-md border-b-2 border-[#c6bfc7] min-w-full">
+            <div className="grid grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2fr_0.8fr_1fr] text-white">
             <div
               className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#9b83a0] rounded-tl-md"
               onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -247,11 +249,10 @@ export default function UserEntriesTable() {
               </div>
             </div>
           </div>
-        </CardHeader>
-        
-        <CardContent className="p-0 border-b-2 border-[#c6bfc7]">
-          <div className="overflow-x-auto min-w-full">
-          <Table className="min-w-full">
+          
+          {/* Table Body */}
+          <div className="p-0 border-b-2 border-[#c6bfc7] min-w-full">
+            <Table className="min-w-full">
             <TableBody>
               {loading ? (
                 <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
@@ -309,7 +310,7 @@ export default function UserEntriesTable() {
             </TableBody>
           </Table>
           </div>
-        </CardContent>
+        </div>
         {pageCount > 1 && (
           <CardFooter className="bg-[#9b83a0] border border-[#9b83a0] rounded-b-md flex justify-end items-center gap-4 p-3">
             <Button

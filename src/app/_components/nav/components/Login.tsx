@@ -417,18 +417,18 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 <img 
                                     src={ensAvatar} 
                                     alt="ENS Avatar" 
-                                    className="w-8 h-8 rounded-full object-cover"
+                                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
                                     onError={() => setAvatarError(true)}
                                 />
                             ) : jazziconSeed ? (
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
                                     <Jazzicon diameter={32} seed={jazziconSeed} />
                                 </div>
                             ) : (
                                 <img 
                                     src="/default_pfp_pink.png" 
                                     alt="Default Profile" 
-                                    className="w-8 h-8 rounded-full object-cover"
+                                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
                                 />
                             )}
                             {(hasPendingUGC || hasNewUGC) && (

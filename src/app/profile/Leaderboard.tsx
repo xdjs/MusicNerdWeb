@@ -110,8 +110,31 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center gap-6 overflow-hidden pl-6">
-                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        <div className="flex items-center justify-between pl-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                    {ensLoading ? (
+                                        <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                    ) : ensAvatarUrl && !avatarError ? (
+                                        <img
+                                            src={ensAvatarUrl}
+                                            alt="ENS Avatar"
+                                            className="w-full h-full object-cover"
+                                            onError={() => setAvatarError(true)}
+                                        />
+                                    ) : jazziconSeed ? (
+                                        <Jazzicon diameter={32} seed={jazziconSeed} />
+                                    ) : (
+                                        <img
+                                            src="/default_pfp_pink.png"
+                                            alt="Default Profile"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )}
+                                </div>
+                                <span className="font-semibold text-black truncate">{entry.username || entry.wallet.slice(0, 8) + "..."}</span>
+                            </div>
+                            <span className={`flex items-center justify-center font-semibold text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-base'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
                                     : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
@@ -119,27 +142,6 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                {ensLoading ? (
-                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
-                                ) : ensAvatarUrl && !avatarError ? (
-                                    <img
-                                        src={ensAvatarUrl}
-                                        alt="ENS Avatar"
-                                        className="w-full h-full object-cover"
-                                        onError={() => setAvatarError(true)}
-                                    />
-                                ) : jazziconSeed ? (
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
-                                ) : (
-                                    <img
-                                        src="/default_pfp_pink.png"
-                                        alt="Default Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
-                            </div>
-                            <span className="font-semibold text-black truncate flex-1">{entry.username || entry.wallet.slice(0, 8) + "..."}</span>
                         </div>
 
                         {/* UGC row */}
@@ -354,7 +356,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -389,7 +391,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -421,7 +423,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             size="sm"
                             variant="outline"
                             className={cn(
-                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
                                 range === key
                                     ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                     : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
