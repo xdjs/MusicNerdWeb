@@ -120,8 +120,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                         )}
                     </span>
-                    {/* Profile Picture */}
-                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                    {/* Profile Picture - aligned with stats text */}
+                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center -ml-6">
                         {ensLoading ? (
                             <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
