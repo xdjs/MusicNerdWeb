@@ -640,7 +640,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-end">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
