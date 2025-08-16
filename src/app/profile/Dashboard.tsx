@@ -604,40 +604,40 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
                             </div>
                         ) : (
-                            <>
-							<div
-                                role="button"
-                                tabIndex={0}
-                                title="Jump to my leaderboard position"
-                                onClick={() => {
-                                    const el = document.getElementById('leaderboard-current-user');
-                                    if (el) {
-                                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    }
-                                }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
-                            >
-								{/* Left-aligned avatar inside the bar */}
-								{!isGuestUser && (
-									<div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-										{ensLoading ? (
-											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-										) : ensAvatarUrl && !avatarError ? (
-											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-										) : jazziconSeed ? (
-											<Jazzicon diameter={32} seed={jazziconSeed} />
-										) : (
-											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-										)}
-									</div>
-								)}
-                                {/* User */}
-								<div className="flex items-center space-x-2 overflow-hidden justify-center">
-                                    <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
-                                        {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
-                                    </span>
-                                    {/* (arrow removed; entire bar now clickable) */}
-                                </div>
+                                                         <>
+ 							<div
+                                 role="button"
+                                 tabIndex={0}
+                                 title="Jump to my leaderboard position"
+                                 onClick={() => {
+                                     const el = document.getElementById('leaderboard-current-user');
+                                     if (el) {
+                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                     }
+                                 }}
+                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                             >
+                                 {/* User */}
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-center">
+ 									{/* Avatar inline with username */}
+ 									{!isGuestUser && (
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+ 											{ensLoading ? (
+ 												<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+ 											) : ensAvatarUrl && !avatarError ? (
+ 												<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+ 											) : jazziconSeed ? (
+ 												<Jazzicon diameter={32} seed={jazziconSeed} />
+ 											) : (
+ 												<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+ 											)}
+ 										</div>
+ 									)}
+                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
+                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
+                                     </span>
+                                     {/* (arrow removed; entire bar now clickable) */}
+                                 </div>
 
                                 {/* Rank */}
                                 <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
