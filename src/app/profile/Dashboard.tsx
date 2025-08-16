@@ -902,8 +902,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
 
-                        {/* Right column - recently edited */}
-                        <div className="relative space-y-4 md:-mt-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                                                 {/* Right column - recently edited */}
+                         <div className="relative space-y-4 md:-mt-12 flex flex-col items-center md:items-start md:text-left md:flex-none">
                             {allowEditUsername && !isGuestUser && (
                                 <Button
                                     size="sm"

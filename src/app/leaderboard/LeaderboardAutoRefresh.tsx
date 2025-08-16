@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
 /**
  * Consolidated auto-refresh component that handles session state mismatches
- * between server-side and client-side rendering. This replaces the separate
- * auto-refresh logic in Dashboard.tsx and provides a single point of control.
+ * between server-side and client-side rendering. Shows loading state instead of immediate reload.
  */
 export default function LeaderboardAutoRefresh() {
   const { status } = useSession();
   const prevStatus = useRef<typeof status | null>(null);
   const hasReloaded = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const skip = sessionStorage.getItem("autoRefreshSkip") === "true";
@@ -23,32 +23,21 @@ export default function LeaderboardAutoRefresh() {
 
     const isStable = status !== "loading";
 
-    // Handle initial page load mismatch - only for leaderboard/profile pages
-    if (!skip && isStable && prevStatus.current === null) {
-      // Check if we're on a leaderboard or profile page that needs SSR/client consistency
-      const isLeaderboardPage = window.location.pathname.includes('/leaderboard') || 
-                               window.location.pathname.includes('/profile');
-      
-      // Only reload on initial load for leaderboard/profile pages
-      if (isLeaderboardPage) {
-        console.debug('[AutoRefresh] Initial leaderboard page load detected, reloading to ensure SSR/client consistency');
-        hasReloaded.current = true;
-        sessionStorage.setItem("autoRefreshSkip", "true");
-        window.location.reload();
-        return;
-      }
-    }
-
     // Detect session state mismatch between SSR and client
     const hasPreviousStatus = prevStatus.current !== null;
     const statusChanged = hasPreviousStatus && prevStatus.current !== status;
 
-    // Only reload if we have a clear mismatch and haven't already reloaded
+    // Show loading state and reload if we have a clear mismatch
     if (!skip && hasPreviousStatus && statusChanged && isStable) {
-      console.debug('[AutoRefresh] Session state mismatch detected, reloading page');
+      console.debug('[AutoRefresh] Session state mismatch detected, showing loading state');
+      setIsLoading(true);
       hasReloaded.current = true;
       sessionStorage.setItem("autoRefreshSkip", "true");
-      window.location.reload();
+      
+      // Delay reload to show loading state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
 
     // Clear skip flag after a delay to allow future auth changes
@@ -56,7 +45,7 @@ export default function LeaderboardAutoRefresh() {
       setTimeout(() => {
         sessionStorage.removeItem("autoRefreshSkip");
         hasReloaded.current = false;
-      }, 2000);
+      }, 1000);
     }
 
     // Update previous status
@@ -64,6 +53,17 @@ export default function LeaderboardAutoRefresh() {
       prevStatus.current = status;
     }
   }, [status]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+          <img className="h-12" src="/spinner.svg" alt="Loading" />
+          <div className="text-xl text-black">Syncing session...</div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 } 
