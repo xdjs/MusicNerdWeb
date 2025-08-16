@@ -1,34 +1,65 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
+/**
+ * Consolidated auto-refresh component that handles session state mismatches
+ * between server-side and client-side rendering. Shows loading state instead of immediate reload.
+ */
 export default function LeaderboardAutoRefresh() {
   const { status } = useSession();
   const prevStatus = useRef<typeof status | null>(null);
+  const hasReloaded = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const skip = sessionStorage.getItem("leaderboardSkipReload") === "true";
+    const skip = sessionStorage.getItem("autoRefreshSkip") === "true";
 
-    // Detect both a transition after mount and the common case where SSR rendered
-    // unauthenticated but the client immediately has an authenticated session.
-    const transitioned = prevStatus.current && prevStatus.current !== status && status !== "loading";
-    const firstAuthenticated = prevStatus.current === null && status === "authenticated";
-    const firstUnauthenticated = prevStatus.current === null && status === "unauthenticated";
-
-    if (!skip && (transitioned || firstAuthenticated || firstUnauthenticated)) {
-      sessionStorage.setItem("leaderboardSkipReload", "true");
-      window.location.reload();
+    // Only reload once per session to avoid infinite loops
+    if (hasReloaded.current) {
+      return;
     }
 
-    if (skip && status !== "loading") {
-      sessionStorage.removeItem("leaderboardSkipReload");
+    const isStable = status !== "loading";
+
+    // Initial hard auto-refresh: reload on first stable status
+    if (!skip && isStable && prevStatus.current === null) {
+      console.debug('[AutoRefresh] Initial stable status detected, showing loading state');
+      setIsLoading(true);
+      hasReloaded.current = true;
+      sessionStorage.setItem("autoRefreshSkip", "true");
+      
+      // Delay reload to show loading state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
 
-    if (status !== "loading") {
+    // Clear skip flag after a delay to allow future auth changes
+    if (skip && isStable) {
+      setTimeout(() => {
+        sessionStorage.removeItem("autoRefreshSkip");
+        hasReloaded.current = false;
+      }, 1000);
+    }
+
+    // Update previous status
+    if (isStable) {
       prevStatus.current = status;
     }
   }, [status]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+          <img className="h-12" src="/spinner.svg" alt="Loading" />
+          <div className="text-xl text-black">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 } 

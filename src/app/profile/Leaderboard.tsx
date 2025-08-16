@@ -101,68 +101,70 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2 border-[#dbc8de]",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2",
                                                   isHighlighted
                               ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
-                              : ""
+                              : "border-[#c6bfc7]"
                      )}
         >
             {/* Mobile layout */}
-            <div className="flex flex-col sm:hidden space-y-1">
-                        {/* Username row */}
-                        <div className="flex items-center gap-6 overflow-hidden">
-                            <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
-                                {entry.isHidden ? 'N/A' : (
-                                    rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
-                                    : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
-                                    : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
-                                    : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
-                                )}
-                            </span>
-                            {/* Reduced left padding before avatar to align with UGC/Artists rows */}
-                            <div className="w-3 flex-none" />
-                            {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                {ensLoading ? (
-                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
-                                ) : ensAvatarUrl && !avatarError ? (
-                                    <img
-                                        src={ensAvatarUrl}
-                                        alt="ENS Avatar"
-                                        className="w-full h-full object-cover"
-                                        onError={() => setAvatarError(true)}
-                                    />
-                                ) : jazziconSeed ? (
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
-                                ) : (
-                                    <img
-                                        src="/default_pfp_pink.png"
-                                        alt="Default Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
-                            </div>
-                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
-                                {entry.username || entry.wallet.slice(0, 8) + "..."}
-                            </p>
-                        </div>
-
-                        {/* UGC row */}
-                        <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">UGC Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.ugcCount}
-                            </Badge>
-                        </div>
-
-                        {/* Artists row */}
-                        <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">Artists Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.artistsCount}
-                            </Badge>
-                        </div>
+            <div className="flex flex-col sm:hidden space-y-2 px-3">
+                {/* Top row: Rank, Profile Picture, Username */}
+                <div className="flex items-center gap-4 -ml-2.5">
+                    {/* Rank */}
+                    <span className={`w-8 h-7 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
+                        {entry.isHidden ? 'N/A' : (
+                            rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
+                            : rank === 2 ? <span className="relative left-[2px] top-[1px] inline-block">🥈</span>
+                            : rank === 3 ? <span className="relative left-[2px] top-[1px] inline-block">🥉</span>
+                            : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
+                        )}
+                    </span>
+                    {/* Profile Picture - evenly spaced between rank and username */}
+                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                        {ensLoading ? (
+                            <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                        ) : ensAvatarUrl && !avatarError ? (
+                            <img
+                                src={ensAvatarUrl}
+                                alt="ENS Avatar"
+                                className="w-full h-full object-cover"
+                                onError={() => setAvatarError(true)}
+                            />
+                        ) : jazziconSeed ? (
+                            <Jazzicon diameter={32} seed={jazziconSeed} />
+                        ) : (
+                            <img
+                                src="/default_pfp_pink.png"
+                                alt="Default Profile"
+                                className="w-full h-full object-cover"
+                            />
+                        )}
                     </div>
+                    {/* Username */}
+                    <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-lg">
+                            {entry.username || entry.wallet.slice(0, 8) + "..."}
+                        </p>
+                    </div>
+                </div>
+
+                {/* UGC row */}
+                <div className="flex justify-between items-center">
+                    <span className="text-[#6f4b75] font-semibold">UGC Added</span>
+                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
+                        {entry.ugcCount}
+                    </Badge>
+                </div>
+
+                {/* Artists row */}
+                <div className="flex justify-between items-center">
+                    <span className="text-[#6f4b75] font-semibold">Artists Added</span>
+                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
+                        {entry.artistsCount}
+                    </Badge>
+                </div>
+            </div>
 
                     {/* Desktop layout */}
                     <div className="hidden sm:grid grid-cols-3 items-center">
@@ -359,7 +361,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -394,7 +396,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                 size="sm"
                                 variant="outline"
                                 className={cn(
-                                    "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2 font-bold",
+                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -426,7 +428,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             size="sm"
                             variant="outline"
                             className={cn(
-                                "w-full py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                                "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
                                 range === key
                                     ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                     : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
@@ -470,8 +472,13 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             {pageCount > 1 && (
                 <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
                     <Button
-                        variant="outline"
                         size="sm"
+                        className={cn(
+                            "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                            page === 1
+                                ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                        )}
                         disabled={page === 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
@@ -479,8 +486,13 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     </Button>
                     <span className="text-sm">Page {page} of {pageCount}</span>
                     <Button
-                        variant="outline"
                         size="sm"
+                        className={cn(
+                            "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
+                            page >= pageCount
+                                ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                        )}
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                     >

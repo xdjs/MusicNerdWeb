@@ -2,7 +2,7 @@
 
 import DatePicker from "./DatePicker";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
@@ -414,31 +414,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
     }, [user.id]);
 
-    // ---------- Simplified view for guest (not logged-in) users ----------
-    // Refresh once when auth state changes (login/logout), with sessionStorage flag to avoid loops
-    useEffect(() => {
-        const skipReload = sessionStorage.getItem('skipReload') === 'true';
-
-        const loggedIn = !isGuestUser && status === 'authenticated';
-        const loggedOut = isGuestUser && status === 'unauthenticated';
-
-        const shouldReload = !skipReload && (
-            // Guest just logged in (was guest, now authenticated)
-            (isGuestUser && status === 'authenticated') ||
-            // Authenticated user just logged out (was authenticated, now unauthenticated)
-            (!isGuestUser && status === 'unauthenticated')
-        );
-
-        if (shouldReload) {
-            sessionStorage.setItem('skipReload', 'true');
-            window.location.reload();
-        }
-
-        // After page stabilizes, clear skipReload so future auth changes trigger refresh again
-        if (skipReload && (loggedIn || loggedOut)) {
-            sessionStorage.removeItem('skipReload');
-        }
-    }, [isGuestUser, status]);
+    // Auto-refresh is now handled by LeaderboardAutoRefresh component
+    // No need for duplicate logic here
 
     function handleLogin() {
         if (openConnectModal) {
@@ -599,7 +576,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 role="button"
                                 tabIndex={0}
                                 onClick={handleLogin}
-                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#dbc8de] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#dbc8de] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#dbc8de]"
+                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#9b83a0] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#9b83a0] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#9b83a0]"
                             >
                                 <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
                             </div>
@@ -615,11 +592,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
-								{/* Left-aligned avatar inside the bar */}
+                                 {/* User */}
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-start sm:justify-center">
+ 									{/* Avatar inline with username */}
 								{!isGuestUser && (
-									<div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
 										{ensLoading ? (
 											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
 										) : ensAvatarUrl && !avatarError ? (
@@ -631,8 +610,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 										)}
 									</div>
 								)}
-                                {/* User */}
-								<div className="flex items-center space-x-2 overflow-hidden justify-center">
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
@@ -640,15 +617,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-end">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
                                     {totalEntries && (
                                         <>
                                             <span className="text-xs sm:text-base">of</span>
-                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                                 {totalEntries}
                                             </Badge>
                                         </>
@@ -657,7 +634,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-start sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
@@ -665,7 +642,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-start sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
@@ -809,8 +786,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         )}
                     </div>
 
-                    {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
+                                                              {/* Three-column section under username */}
+                      <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
@@ -831,7 +808,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-2 border-[#dbc8de] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
+                                className="py-4 space-y-2 text-left border-2 border-[#ff9ce3] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
@@ -925,8 +902,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
 
-                        {/* Right column - recently edited */}
-                        <div className="relative space-y-4 md:-mt-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                                                 {/* Right column - recently edited */}
+                         <div className="relative space-y-4 md:-mt-16 flex flex-col items-center md:items-start md:text-left md:flex-none">
                             {allowEditUsername && !isGuestUser && (
                                 <Button
                                     size="sm"
