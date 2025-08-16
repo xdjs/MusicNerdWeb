@@ -3,29 +3,47 @@
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 
+/**
+ * Consolidated auto-refresh component that handles session state mismatches
+ * between server-side and client-side rendering. This replaces the separate
+ * auto-refresh logic in Dashboard.tsx and provides a single point of control.
+ */
 export default function LeaderboardAutoRefresh() {
   const { status } = useSession();
   const prevStatus = useRef<typeof status | null>(null);
+  const hasReloaded = useRef(false);
 
   useEffect(() => {
-    const skip = sessionStorage.getItem("leaderboardSkipReload") === "true";
+    const skip = sessionStorage.getItem("autoRefreshSkip") === "true";
 
-    // Detect both a transition after mount and the common case where SSR rendered
-    // unauthenticated but the client immediately has an authenticated session.
-    const transitioned = prevStatus.current && prevStatus.current !== status && status !== "loading";
-    const firstAuthenticated = prevStatus.current === null && status === "authenticated";
-    const firstUnauthenticated = prevStatus.current === null && status === "unauthenticated";
+    // Only reload once per session to avoid infinite loops
+    if (hasReloaded.current) {
+      return;
+    }
 
-    if (!skip && (transitioned || firstAuthenticated || firstUnauthenticated)) {
-      sessionStorage.setItem("leaderboardSkipReload", "true");
+    // Detect session state mismatch between SSR and client
+    const hasPreviousStatus = prevStatus.current !== null;
+    const statusChanged = hasPreviousStatus && prevStatus.current !== status;
+    const isStable = status !== "loading";
+
+    // Only reload if we have a clear mismatch and haven't already reloaded
+    if (!skip && hasPreviousStatus && statusChanged && isStable) {
+      console.debug('[AutoRefresh] Session state mismatch detected, reloading page');
+      hasReloaded.current = true;
+      sessionStorage.setItem("autoRefreshSkip", "true");
       window.location.reload();
     }
 
-    if (skip && status !== "loading") {
-      sessionStorage.removeItem("leaderboardSkipReload");
+    // Clear skip flag after a delay to allow future auth changes
+    if (skip && isStable) {
+      setTimeout(() => {
+        sessionStorage.removeItem("autoRefreshSkip");
+        hasReloaded.current = false;
+      }, 2000);
     }
 
-    if (status !== "loading") {
+    // Update previous status
+    if (isStable) {
       prevStatus.current = status;
     }
   }, [status]);
