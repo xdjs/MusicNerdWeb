@@ -21,10 +21,20 @@ export default function LeaderboardAutoRefresh() {
       return;
     }
 
-    // Detect session state mismatch between SSR and client
+    const isStable = status !== "loading";
+
+    // Always reload on initial stable status to ensure SSR/client consistency
+    if (!skip && isStable && prevStatus.current === null) {
+      console.debug('[AutoRefresh] Initial stable status detected, reloading to ensure consistency');
+      hasReloaded.current = true;
+      sessionStorage.setItem("autoRefreshSkip", "true");
+      window.location.reload();
+      return;
+    }
+
+    // Detect session state mismatch between SSR and client (for subsequent changes)
     const hasPreviousStatus = prevStatus.current !== null;
     const statusChanged = hasPreviousStatus && prevStatus.current !== status;
-    const isStable = status !== "loading";
 
     // Only reload if we have a clear mismatch and haven't already reloaded
     if (!skip && hasPreviousStatus && statusChanged && isStable) {
