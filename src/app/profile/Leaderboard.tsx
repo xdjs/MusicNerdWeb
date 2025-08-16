@@ -110,7 +110,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             {/* Mobile layout */}
             <div className="flex flex-col sm:hidden space-y-1">
                         {/* Username row */}
-                        <div className="flex items-center gap-6 overflow-hidden pl-6 pr-6">
+                        <div className="flex items-center gap-6 overflow-hidden pl-6">
                             <span className={`w-7 h-6 flex items-center justify-end flex-none font-semibold text-right text-muted-foreground ${rank && rank <= 3 ? 'text-2xl' : 'text-sm'}`}>
                                 {entry.isHidden ? 'N/A' : (
                                     rank === 1 ? <span className="relative left-[2px] top-[1px] inline-block">🥇</span>
@@ -144,7 +144,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC row */}
                         <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">UGC Added</span>
+                            <span className="text-[#6f4b75] font-semibold">UGC Added</span>
                             <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.ugcCount}
                             </Badge>
@@ -152,7 +152,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* Artists row */}
                         <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">Artists Added</span>
+                            <span className="text-[#6f4b75] font-semibold">Artists Added</span>
                             <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
                                 {entry.artistsCount}
                             </Badge>

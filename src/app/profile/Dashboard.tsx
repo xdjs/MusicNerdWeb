@@ -615,7 +615,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-center">
@@ -809,8 +809,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         )}
                     </div>
 
-                    {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
+                                         {/* Three-column section under username */}
+                     <div className="flex flex-col space-y-8 md:space-y-0 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}

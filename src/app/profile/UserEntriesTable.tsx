@@ -168,7 +168,7 @@ export default function UserEntriesTable() {
     <div className="max-w-3xl mx-auto mt-10">
       {/* Title above the table */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entries</h2>
+                        <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entry</h2>
       </div>
       
                       <Card className="border-2 border-[#c6bfc7] shadow-none">
