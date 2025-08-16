@@ -119,47 +119,44 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                     : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                                 )}
                             </span>
-                            <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                    {ensLoading ? (
-                                        <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
-                                    ) : ensAvatarUrl && !avatarError ? (
-                                        <img
-                                            src={ensAvatarUrl}
-                                            alt="ENS Avatar"
-                                            className="w-full h-full object-cover"
-                                            onError={() => setAvatarError(true)}
-                                        />
-                                    ) : jazziconSeed ? (
-                                        <Jazzicon diameter={32} seed={jazziconSeed} />
-                                    ) : (
-                                        <img
-                                            src="/default_pfp_pink.png"
-                                            alt="Default Profile"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    )}
-                                </div>
-                                <p className="font-medium flex-1 min-w-0 truncate text-lg">
-                                    {entry.username || entry.wallet.slice(0, 8) + "..."}
-                                </p>
+                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                {ensLoading ? (
+                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                ) : ensAvatarUrl && !avatarError ? (
+                                    <img
+                                        src={ensAvatarUrl}
+                                        alt="ENS Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : jazziconSeed ? (
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                ) : (
+                                    <img
+                                        src="/default_pfp_pink.png"
+                                        alt="Default Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
                             </div>
+                            <p className="font-medium flex-1 min-w-0 truncate text-lg">
+                                {entry.username || entry.wallet.slice(0, 8) + "..."}
+                            </p>
                         </div>
-
-                        {/* UGC row */}
-                        <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">UGC Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.ugcCount}
-                            </Badge>
-                        </div>
-
-                        {/* Artists row */}
-                        <div className="flex justify-between pl-6 items-center">
-                            <span className="text-[#6f4b75]">Artists Added</span>
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.artistsCount}
-                            </Badge>
+                        {/* Stats row */}
+                        <div className="flex items-center justify-between pl-6">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#6f4b75]">UGC Added</span>
+                                <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
+                                    {entry.ugcCount}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#6f4b75]">Artists Added</span>
+                                <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
+                                    {entry.artistsCount}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
 

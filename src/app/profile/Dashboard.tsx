@@ -617,8 +617,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 }}
                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3]"
                             >
-                                 {/* User + UGC Count (mobile: same row) */}
- 								<div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 overflow-hidden justify-center">
+                                 {/* User */}
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-center">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
  										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
@@ -638,51 +638,34 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     </span>
                                     {/* (arrow removed; entire bar now clickable) */}
                                 </div>
-                                
-                                {/* UGC Count - mobile: below username, desktop: separate column */}
-                                <div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap sm:hidden">
+
+                                {/* Rank */}
+                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                    <span className="font-semibold text-xs sm:text-base">Rank:</span>
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                        {rank === -1 ? 'N/A' : rank ?? '—'}
+                                    </Badge>
+                                    {totalEntries && (
+                                        <>
+                                            <span className="text-xs sm:text-base">of</span>
+                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                                {totalEntries}
+                                            </Badge>
+                                        </>
+                                    )}
+                                    {/* (arrow moved next to name) */}
+                                </div>
+
+							{/* UGC Count */}
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
                                     </Badge>
                                 </div>
 
-                                {/* Rank + Artists Count (mobile: same row) */}
-                                <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 text-xs sm:text-lg whitespace-nowrap justify-center">
-                                    <div className="flex flex-row items-center justify-center gap-2">
-                                        <span className="font-semibold text-xs sm:text-base">Rank:</span>
-                                        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                            {rank === -1 ? 'N/A' : rank ?? '—'}
-                                        </Badge>
-                                        {totalEntries && (
-                                            <>
-                                                <span className="text-xs sm:text-base">of</span>
-                                                <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                                    {totalEntries}
-                                                </Badge>
-                                            </>
-                                        )}
-                                    </div>
-                                    
-                                    {/* Artists Count - mobile: below rank, desktop: separate column */}
-                                    <div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap sm:hidden">
-                                        <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
-                                        <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                            {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
-                                        </Badge>
-                                    </div>
-                                </div>
-
-							{/* UGC Count - desktop only */}
-							<div className="hidden sm:flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
-                                    <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
-                                    </Badge>
-                                </div>
-
-							{/* Artists Count - desktop only */}
-							<div className="hidden sm:flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							{/* Artists Count */}
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
