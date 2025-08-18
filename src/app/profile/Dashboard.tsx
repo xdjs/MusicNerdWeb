@@ -595,7 +595,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
                                  {/* User */}
- 								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0">
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
  										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
@@ -617,7 +617,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-end">
+                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-end ml-4 sm:ml-0">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
