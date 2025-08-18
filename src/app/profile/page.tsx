@@ -55,7 +55,6 @@ export default async function Page() {
         } as const;
         return (
             <>
-                <LeaderboardAutoRefresh />
                 <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
             </>
         );
@@ -84,14 +83,12 @@ export default async function Page() {
         } as const;
         return (
             <>
-                <LeaderboardAutoRefresh />
                 <Dashboard user={guestUser} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
             </>
         );
     }
     return (
         <>
-            <LeaderboardAutoRefresh />
             <Dashboard user={user} showLeaderboard={false} showDateRange={false} allowEditUsername={true} />
         </>
     );

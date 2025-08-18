@@ -23,9 +23,9 @@ export default function LeaderboardAutoRefresh() {
 
     const isStable = status !== "loading";
 
-    // Initial hard auto-refresh: reload on first stable status
-    if (!skip && isStable && prevStatus.current === null) {
-      console.debug('[AutoRefresh] Initial stable status detected, showing loading state');
+    // Only reload if there's a clear auth state transition, not on initial load
+    if (!skip && isStable && prevStatus.current !== null && prevStatus.current !== status) {
+      console.debug('[AutoRefresh] Auth state transition detected, showing loading state');
       setIsLoading(true);
       hasReloaded.current = true;
       sessionStorage.setItem("autoRefreshSkip", "true");
@@ -33,7 +33,7 @@ export default function LeaderboardAutoRefresh() {
       // Delay reload to show loading state
       setTimeout(() => {
         window.location.reload();
-      }, 1500);
+      }, 1000);
     }
 
     // Clear skip flag after a delay to allow future auth changes
@@ -41,7 +41,7 @@ export default function LeaderboardAutoRefresh() {
       setTimeout(() => {
         sessionStorage.removeItem("autoRefreshSkip");
         hasReloaded.current = false;
-      }, 1000);
+      }, 2000);
     }
 
     // Update previous status
