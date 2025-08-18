@@ -47,9 +47,11 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
                 CASE 
-                    WHEN COALESCE(u.username, u.wallet) ~ '^[0-9]' THEN 0 
-                    ELSE 1 
-                END,
+                    WHEN u.username IS NOT NULL THEN 
+                        CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
+                    ELSE 
+                        CASE WHEN SUBSTRING(u.wallet FROM 3) ~ '^[0-9]' THEN 0 ELSE 1 END
+                    END,
                 CASE 
                     WHEN u.username IS NOT NULL THEN u.username
                     ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
@@ -92,9 +94,11 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
                 CASE 
-                    WHEN COALESCE(u.username, u.wallet) ~ '^[0-9]' THEN 0 
-                    ELSE 1 
-                END,
+                    WHEN u.username IS NOT NULL THEN 
+                        CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
+                    ELSE 
+                        CASE WHEN SUBSTRING(u.wallet FROM 3) ~ '^[0-9]' THEN 0 ELSE 1 END
+                    END,
                 CASE 
                     WHEN u.username IS NOT NULL THEN u.username
                     ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
