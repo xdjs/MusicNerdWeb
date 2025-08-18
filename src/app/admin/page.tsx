@@ -36,11 +36,11 @@ export default async function Admin() {
         getAllUsers(),
     ]);
 
-    return (
-        <section className="px-10 py-5 space-y-6">
-            {/* Silent client-side helper to refresh page after login */}
-            <AdminAutoRefresh />
-            <h1 className="text-2xl">Site Management</h1>
+            return (
+            <section className="px-10 py-5 space-y-6">
+                {/* Silent client-side helper to refresh page after login */}
+                <AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} />
+                <h1 className="text-2xl">Site Management</h1>
             <div>
                 <h2 className="text-xl pb-3">Pending UGC</h2>
                 <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
