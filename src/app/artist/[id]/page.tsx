@@ -14,7 +14,7 @@ import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
-import ArtistAutoRefresh from "./ArtistAutoRefresh";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type ArtistProfileProps = {
     params: { id: string };
@@ -50,7 +50,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
-            <ArtistAutoRefresh />
+            <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
                 <div className="bg-white rounded-lg md:w-2/3 gap-y-4 shadow-2xl px-5 py-5 md:py-10 md:px-10 space-y-8">

@@ -4,42 +4,55 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 
 /**
- * Auto-refresh component that triggers a page reload when the user signs in
+ * Universal auto-refresh component that triggers a page reload when the user signs in
  * to ensure server components pick up the new session data immediately.
  * Uses sessionStorage to prevent multiple refreshes.
+ * 
+ * @param sessionStorageKey - Optional custom key for sessionStorage (defaults to "autoRefreshSkipReload")
+ * @param showLoading - Whether to show loading state (defaults to true)
  */
-export default function AutoRefresh() {
+export default function AutoRefresh({ 
+  sessionStorageKey = "autoRefreshSkipReload", 
+  showLoading = true 
+}: { 
+  sessionStorageKey?: string; 
+  showLoading?: boolean; 
+} = {}) {
   const { status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
 
   useEffect(() => {
-    // Show loading for a brief moment to ensure session is stable
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
+    if (showLoading) {
+      // Show loading for a brief moment to ensure session is stable
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
 
-    return () => clearTimeout(timer);
-  }, [status]);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [status, showLoading]);
 
   useEffect(() => {
-    const skip = sessionStorage.getItem("autoRefreshSkipReload") === "true";
+    const skip = sessionStorage.getItem(sessionStorageKey) === "true";
 
     if (!skip && prevStatus.current && prevStatus.current !== status && status !== "loading") {
-      sessionStorage.setItem("autoRefreshSkipReload", "true");
+      sessionStorage.setItem(sessionStorageKey, "true");
       // Full reload so server components pick up the new session instantly
       window.location.reload();
     }
 
     if (skip && status !== "loading") {
       // Clear flag once the page has stabilized
-      sessionStorage.removeItem("autoRefreshSkipReload");
+      sessionStorage.removeItem(sessionStorageKey);
     }
 
     if (status !== "loading") {
       prevStatus.current = status;
     }
-  }, [status]);
+  }, [status, sessionStorageKey]);
 
   if (isLoading || status === "loading") {
     return (
