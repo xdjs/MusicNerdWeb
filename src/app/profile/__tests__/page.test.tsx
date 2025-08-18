@@ -6,7 +6,7 @@ import Page from '../page';
 // Mock next-auth
 jest.mock('next-auth/react', () => ({
     useSession: jest.fn(),
-    SessionProvider: ({ children }) => children,
+    SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock fetch for API calls
