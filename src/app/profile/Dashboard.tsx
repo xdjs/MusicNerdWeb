@@ -592,7 +592,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
+                                                                 className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0">
