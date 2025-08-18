@@ -139,7 +139,12 @@ export async function searchForArtistByName(name: string) {
         // Normalise the incoming query (lower-case, accents & punctuation removed)
         const normalisedQuery = normaliseText(name);
 
-        db.execute(sql`SET LOCAL pg_trgm.similarity_threshold = 0.3;`);
+        try {
+            await db.execute(sql`SET LOCAL pg_trgm.similarity_threshold = 0.3;`);
+        } catch (err) {
+            console.error("Error setting pg_trgm similarity threshold", err);
+            throw err;
+        }
         const result = await db.execute<Artist>(sql`
             SELECT
             id, name, spotify, bandcamp, youtube, youtubechannel,
