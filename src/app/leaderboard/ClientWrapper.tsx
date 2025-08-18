@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -84,6 +85,7 @@ export default function ClientWrapper() {
 
   return (
     <main className="px-5 sm:px-10 py-10">
+      <AutoRefresh />
       <Dashboard 
         user={currentUser} 
         allowEditUsername={false} 

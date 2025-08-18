@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 /**
  * Simple loading component that shows while session is being determined
  */
-export default function LeaderboardAutoRefresh() {
+export default function AutoRefresh() {
   const { status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,4 +31,4 @@ export default function LeaderboardAutoRefresh() {
   }
 
   return null;
-} 
+}
