@@ -1,6 +1,7 @@
 "use client"
 
 import HomePageSplash from "./_components/HomePageSplash";
+import AutoRefresh from "./_components/AutoRefresh";
 import {
   Select,
   SelectContent,
