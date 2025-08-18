@@ -21,6 +21,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
 import LoadingPage from "../_components/LoadingPage";
+import { formatAddressForDisplay } from "@/lib/addressUtils";
 import {
     DndContext,
     closestCenter,
@@ -612,7 +613,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 									</div>
 								)}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
-                                        {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
+                                        {ugcStatsUserWallet ?? (user?.username ? user.username : formatAddressForDisplay(user?.wallet || ''))}
                                     </span>
                                     {/* (arrow removed; entire bar now clickable) */}
                                 </div>
