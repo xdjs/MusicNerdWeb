@@ -5,7 +5,7 @@ import { getServerAuthSession } from "@/server/auth";
 
 export async function getUserByWallet(wallet: string) {
     try {
-        const result = await db.query.users.findFirst({ where: eq(users.wallet, wallet) });
+        const result = await withDbRetry(() => db.query.users.findFirst({ where: eq(users.wallet, wallet) }));
         return result;
     } catch (error) {
         console.error("error getting user by wallet", error);
@@ -18,7 +18,7 @@ export async function getUserByWallet(wallet: string) {
 
 export async function getUserById(id: string) {
     try {
-        const result = await db.query.users.findFirst({ where: eq(users.id, id) });
+        const result = await withDbRetry(() => db.query.users.findFirst({ where: eq(users.id, id) }));
         return result;
     } catch (error) {
         console.error("error getting user by Id", error);
@@ -26,6 +26,24 @@ export async function getUserById(id: string) {
             throw new Error(`Error finding user: ${error.message}`);
         }
         throw new Error("Error finding user: Unknown error");
+    }
+}
+
+// Lightweight retry helper for transient DB errors (timeouts, resets)
+async function withDbRetry<T>(operation: () => Promise<T>, retries: number = 2, delayMs: number = 300): Promise<T> {
+    try {
+        return await operation();
+    } catch (error: any) {
+        const message = (error && (error.message || error.toString())) as string;
+        const code = (error && (error.code || error.errno)) as string | undefined;
+        const isTransient =
+            code === 'CONNECT_TIMEOUT' ||
+            /ETIMEDOUT|ECONNRESET|EHOSTUNREACH|ENETUNREACH|Connection terminated unexpectedly/i.test(message);
+        if (retries > 0 && isTransient) {
+            await new Promise((r) => setTimeout(r, delayMs));
+            return withDbRetry(operation, retries - 1, delayMs * 2);
+        }
+        throw error;
     }
 }
 

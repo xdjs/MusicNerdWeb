@@ -63,7 +63,7 @@ export default function FunFactsMobile({ artistId }: FunFactsMobileProps) {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full flex items-center justify-center text-base font-semibold border-2"
+                    className="w-full flex items-center justify-center text-base font-semibold border-2 border-[#c6bfc7]"
                     onClick={() => fetchFact(type)}
                   >
                     <span className="flex items-baseline gap-4">
@@ -86,10 +86,10 @@ export default function FunFactsMobile({ artistId }: FunFactsMobileProps) {
 
         {/* Overlay Fact Box */}
         {fact && (
-          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-gray-300 shadow-lg overflow-y-auto overflow-x-hidden pt-0.5 pb-0.5 pr-0.5 pl-4">
+                          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-[#c6bfc7] shadow-lg overflow-y-auto overflow-x-hidden pt-0.5 pb-0.5 pr-0.5 pl-4">
             {/* Close button */}
             <button
-              className="sticky top-0.5 ml-auto mr-0.5 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-gray-300 rounded-md bg-gray-300 hover:bg-gray-400 focus:outline-none leading-none z-10"
+              className="sticky top-0.5 ml-auto mr-0.5 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-[#c6bfc7] rounded-md bg-[#c6bfc7] hover:bg-[#b8b1b9] focus:outline-none leading-none z-10"
               aria-label="Close fun fact"
               onClick={() => {
                 setFact(null);

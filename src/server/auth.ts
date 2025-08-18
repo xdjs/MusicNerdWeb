@@ -170,7 +170,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials): Promise<any> {
         try {
-          console.debug("[Auth] Starting authorization");
+          console.debug("[Auth] Starting authorization", {
+            hasMessage: !!credentials?.message,
+            hasSignature: !!credentials?.signature,
+            messageLength: credentials?.message?.length || 0
+          });
           
           // Check if wallet requirement is disabled
           if (process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true') {
@@ -203,10 +207,34 @@ export const authOptions: NextAuthOptions = {
           const normalizedMessageDomain = siwe.domain.split(':')[0];
           const normalizedAuthDomain = authUrl.hostname.split(':')[0];
 
+          // Get CSRF token with proper error handling
+          const csrfToken = cookies().get('next-auth.csrf-token')?.value;
+          console.debug("[Auth] CSRF token from cookies:", {
+            hasToken: !!csrfToken,
+            tokenLength: csrfToken?.length || 0,
+            tokenValue: csrfToken ? csrfToken.substring(0, 20) + '...' : 'none'
+          });
+          
+          if (!csrfToken) {
+            console.error("[Auth] CSRF token not found in cookies");
+            return null;
+          }
+
+          // Extract nonce from CSRF token - handle both formats
+          let nonce = csrfToken;
+          if (csrfToken.includes('|')) {
+            nonce = csrfToken.split('|')[0];
+            console.debug("[Auth] Extracted nonce from pipe-separated token");
+          } else {
+            console.debug("[Auth] Using full token as nonce");
+          }
+
+          console.debug("[Auth] Using nonce for SIWE verification:", nonce);
+
           const result = await siwe.verify({
             signature: credentials?.signature || "",
             domain: normalizedMessageDomain,
-            nonce: cookies().get('next-auth.csrf-token')?.value.split('|')[0],
+            nonce: nonce,
           });
 
           console.debug("[Auth] SIWE verification result", {

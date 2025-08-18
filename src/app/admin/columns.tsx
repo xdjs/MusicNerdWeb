@@ -182,8 +182,8 @@ export const whitelistedColumns: ColumnDef<User>[] = [
       const roles: string[] = [];
       if (row.isAdmin) roles.push("Admin");
       if (row.isWhiteListed) roles.push("Whitelisted");
-      if (row.isHidden) roles.push("Hidden");
       if (roles.length === 0) roles.push("User");
+      if (row.isHidden) roles.push("Hidden");
       return roles.join(", ");
     },
     header: ({ column }) => (

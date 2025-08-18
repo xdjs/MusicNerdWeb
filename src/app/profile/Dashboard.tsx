@@ -2,7 +2,7 @@
 
 import DatePicker from "./DatePicker";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
@@ -10,11 +10,17 @@ import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
 import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import Jazzicon from 'react-jazzicon';
+import { jsNumberForAddress } from 'react-jazzicon';
+import { createPublicClient, http } from 'viem';
+import { getEnsAvatar, getEnsName } from 'viem/ens';
+import { mainnet } from 'wagmi/chains';
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
+import LoadingPage from "../_components/LoadingPage";
 import {
     DndContext,
     closestCenter,
@@ -102,6 +108,26 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 }
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate loading time for better UX
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
+                <p className="text-black text-xl">Loading...</p>
+            </div>
+        );
+    }
+
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
 }
 
@@ -116,6 +142,46 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [usernameInput, setUsernameInput] = useState(user.username ?? "");
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
+    // Avatar state (ENS/Jazzicon) for profile header
+    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
+    const [ensLoading, setEnsLoading] = useState(false);
+
+    const publicClient = createPublicClient({ chain: mainnet, transport: http() });
+
+    useEffect(() => {
+        let cancelled = false;
+        async function resolveAvatar() {
+            if (!user?.wallet) {
+                setEnsAvatarUrl(null);
+                setJazziconSeed(null);
+                return;
+            }
+            setEnsLoading(true);
+            setAvatarError(false);
+            try {
+                const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
+                let finalAvatar: string | null = null;
+                if (ensName) {
+                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+                }
+                if (!cancelled) {
+                    setEnsAvatarUrl(finalAvatar ?? null);
+                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
+                }
+            } catch {
+                if (!cancelled) {
+                    setEnsAvatarUrl(null);
+                    setJazziconSeed(user.wallet ? jsNumberForAddress(user.wallet) : null);
+                }
+            } finally {
+                if (!cancelled) setEnsLoading(false);
+            }
+        }
+        resolveAvatar();
+        return () => { cancelled = true; };
+    }, [user?.wallet]);
     const [rank, setRank] = useState<number | null>(null);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
@@ -204,11 +270,46 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
-    // Range selection (synced with Leaderboard)
+	// Range selection (synced with Leaderboard)
     type RangeKey = "today" | "week" | "month" | "all";
     const [selectedRange, setSelectedRange] = useState<RangeKey>("today");
 
     // (duplicate RangeKey and selectedRange definition removed)
+
+	// ENS avatar fetch for the logged-in user's wallet (top gray bar avatar)
+	useEffect(() => {
+		let cancelled = false;
+		async function resolveAvatar() {
+			if (!user?.wallet) {
+				setEnsAvatarUrl(null);
+				setJazziconSeed(null);
+				return;
+			}
+			setEnsLoading(true);
+			setAvatarError(false);
+			try {
+				const publicClient = createPublicClient({ chain: mainnet, transport: http() });
+				const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
+				let finalAvatar: string | null = null;
+				if (ensName) {
+					finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
+				}
+				if (!cancelled) {
+					setEnsAvatarUrl(finalAvatar ?? null);
+					setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
+				}
+			} catch (e) {
+				if (!cancelled) {
+					setEnsAvatarUrl(null);
+					setJazziconSeed(user?.wallet ? jsNumberForAddress(user.wallet) : null);
+				}
+			} finally {
+				if (!cancelled) setEnsLoading(false);
+			}
+		}
+		resolveAvatar();
+		return () => { cancelled = true; };
+	}, [user?.wallet]);
 
     // Fetch leaderboard rank (only in compact layout)
     const [totalEntries, setTotalEntries] = useState<number | null>(null);
@@ -282,8 +383,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         const roles: string[] = [];
         if (user.isAdmin) roles.push("Admin");
         if (user.isWhiteListed) roles.push("Whitelisted");
-        if (user.isHidden) roles.push("Hidden");
         if (roles.length === 0) roles.push("User");
+        if (user.isHidden) roles.push("Hidden");
         return roles.join(", ");
     })();
 
@@ -313,31 +414,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
     }, [user.id]);
 
-    // ---------- Simplified view for guest (not logged-in) users ----------
-    // Refresh once when auth state changes (login/logout), with sessionStorage flag to avoid loops
-    useEffect(() => {
-        const skipReload = sessionStorage.getItem('skipReload') === 'true';
-
-        const loggedIn = !isGuestUser && status === 'authenticated';
-        const loggedOut = isGuestUser && status === 'unauthenticated';
-
-        const shouldReload = !skipReload && (
-            // Guest just logged in (was guest, now authenticated)
-            (isGuestUser && status === 'authenticated') ||
-            // Authenticated user just logged out (was authenticated, now unauthenticated)
-            (!isGuestUser && status === 'unauthenticated')
-        );
-
-        if (shouldReload) {
-            sessionStorage.setItem('skipReload', 'true');
-            window.location.reload();
-        }
-
-        // After page stabilizes, clear skipReload so future auth changes trigger refresh again
-        if (skipReload && (loggedIn || loggedOut)) {
-            sessionStorage.removeItem('skipReload');
-        }
-    }, [isGuestUser, status]);
+    // Auto-refresh is now handled by LeaderboardAutoRefresh component
+    // No need for duplicate logic here
 
     function handleLogin() {
         if (openConnectModal) {
@@ -464,25 +542,25 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // ------------------- RENDER -------------------
 
-    // Show simplified "please log in" screen only on the full (non-compact) profile view.
-    // In the compact leaderboard view we still want to show the stats box so we can
-    // prompt the user to log in from there.
-    if (isGuestUser && !isCompactLayout) {
-        return (
-            <section className="px-10 py-20 space-y-8 flex items-center justify-center flex-col text-center">
-                <h1 className="text-3xl font-bold">User Profile</h1>
-                {!hideLogin && (
-                    <Button
-                        size="lg"
-                        className="bg-pastypink hover:bg-gray-200 text-white px-8 py-4 text-xl"
-                        onClick={handleLogin}
-                    >
-                        Log In
-                    </Button>
-                )}
-            </section>
-        );
-    }
+         // Show simplified "please log in" screen only on the full (non-compact) profile view.
+     // In the compact leaderboard view we still want to show the stats box so we can
+     // prompt the user to log in from there.
+     if (isGuestUser && !isCompactLayout) {
+         return (
+             <section data-guest-user="true" className="px-10 py-20 space-y-8 flex items-center justify-center flex-col text-center">
+                 <h1 className="text-3xl font-bold">User Profile</h1>
+                 {!hideLogin && (
+                     <Button
+                         size="lg"
+                         className="bg-pastypink hover:bg-gray-200 text-white px-8 py-4 text-xl"
+                         onClick={handleLogin}
+                     >
+                         Log In
+                     </Button>
+                 )}
+             </section>
+         );
+     }
 
     return (
         <section className="px-5 sm:px-10 py-5 space-y-6">
@@ -492,19 +570,20 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username + other controls as before */}
                     <div className="flex flex-col items-center gap-2 pb-1 w-full">
                         {/* Horizontal stats row (User / UGC Added / Artists Added) */}
-                        {isGuestUser ? (
-                            // Guest variant – single clickable row that asks the visitor to log in
-                            <div
-                                role="button"
-                                tabIndex={0}
-                                onClick={handleLogin}
-                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                            >
-                                <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
-                            </div>
+                                                 {isGuestUser ? (
+                             // Guest variant – single clickable row that asks the visitor to log in
+                             <div
+                                 data-guest-user="true"
+                                 role="button"
+                                 tabIndex={0}
+                                 onClick={handleLogin}
+                                 className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#9b83a0] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#9b83a0] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#9b83a0]"
+                             >
+                                 <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
+                             </div>
                         ) : (
                             <>
-                            <div
+							<div
                                 role="button"
                                 tabIndex={0}
                                 title="Jump to my leaderboard position"
@@ -514,10 +593,24 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-black w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
-                                {/* User */}
-                                <div className="flex items-center space-x-2 overflow-hidden justify-center">
+                                 {/* User */}
+ 								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
+ 									{/* Avatar inline with username */}
+								{!isGuestUser && (
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+										{ensLoading ? (
+											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+										) : ensAvatarUrl && !avatarError ? (
+											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+										) : jazziconSeed ? (
+											<Jazzicon diameter={32} seed={jazziconSeed} />
+										) : (
+											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+										)}
+									</div>
+								)}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
                                         {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
@@ -525,15 +618,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-2 text-xs sm:text-lg whitespace-nowrap">
+                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-center ml-4 sm:ml-0 pr-4 sm:pr-0">
                                     <span className="font-semibold text-xs sm:text-base">Rank:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
                                     {totalEntries && (
                                         <>
                                             <span className="text-xs sm:text-base">of</span>
-                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                                 {totalEntries}
                                             </Badge>
                                         </>
@@ -541,16 +634,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     {/* (arrow moved next to name) */}
                                 </div>
 
-                                {/* UGC Count */}
-                                <div className="flex flex-row flex-wrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							{/* UGC Count */}
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
                                     </Badge>
                                 </div>
 
-                                {/* Artists Count */}
-                                <div className="flex flex-row flex-wrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							{/* Artists Count */}
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
@@ -568,7 +661,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
+                                className="mt-2 text-sm underline text-[#2ad4fc] hover:text-[#2ad4fc]"
                             >
                                 View leaderboard position
                             </a>
@@ -576,19 +669,19 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                           )}
 
                         {/* Edit username controls removed in leaderboard view */}
-                        {/* Show a standalone login button for guests only when username editing is disabled */}
-                        {!allowEditUsername && isGuestUser && !hideLogin && (
-                            <div className="pt-2">
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
-                                    onClick={handleLogin}
-                                >
-                                    Log In
-                                </Button>
-                            </div>
-                        )}
+                                                 {/* Show a standalone login button for guests only when username editing is disabled */}
+                         {!allowEditUsername && isGuestUser && !hideLogin && (
+                             <div data-guest-user="true" className="pt-2">
+                                 <Button
+                                     size="sm"
+                                     variant="secondary"
+                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     onClick={handleLogin}
+                                 >
+                                     Log In
+                                 </Button>
+                             </div>
+                         )}
                     </div>
                     {/* Admin user search removed */}
 
@@ -615,41 +708,57 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 </div>
             ) : (
                 <>
-                    {/* Username row no edit button inline */}
-                    <div className="relative pb-4 w-full">
-                        {!isEditingUsername && (
-                            <p className="text-lg font-semibold text-center w-full">
-                                {displayName}
-                            </p>
-                        )}
-                        {/* Mobile Edit button under username */}
-                        {allowEditUsername && !isGuestUser && (
-                            <div className="md:hidden pt-2 flex justify-center">
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
-                                    }}
-                                >
-                                    {isEditingUsername || isEditingBookmarks ? (
-                                        <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    )}
-                                </Button>
-                            </div>
-                        )}
+                    {/* Username row displayed above the three columns on all breakpoints */}
+					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
+						                        {!isEditingUsername && (
+                            <div className="flex items-center justify-start md:justify-center gap-3 w-full">
+								{/* Avatar left of username using ENS/Jazzicon logic */}
+								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
+									{ensLoading ? (
+										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
+									) : ensAvatarUrl && !avatarError ? (
+										<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
+									) : jazziconSeed ? (
+										<Jazzicon diameter={32} seed={jazziconSeed} />
+									) : (
+										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
+									)}
+								</div>
+								<p className="text-lg font-semibold leading-none">
+									{displayName}
+								</p>
+							</div>
+						)}
+                                                 {/* Mobile Edit button under username */}
+                         {allowEditUsername && !isGuestUser && (
+                             <div className="md:hidden pt-6 flex justify-center">
+                                 <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className="bg-gray-200 text-black hover:bg-gray-300"
+                                     onClick={() => {
+                                         setIsEditingUsername((prev) => !prev);
+                                         setIsEditingBookmarks((prev) => !prev);
+                                     }}
+                                 >
+                                     {isEditingUsername || isEditingBookmarks ? (
+                                         <div className="flex items-center gap-1">
+                                             <Check size={14} /> Done
+                                         </div>
+                                     ) : (
+                                         <div className="flex items-center gap-1">
+                                             <Pencil size={14} /> Edit
+                                         </div>
+                                     )}
+                                 </Button>
+                             </div>
+                         )}
+
+                         
 
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
-                            <div className="flex flex-col items-center gap-2 w-full">
+                            <div className="flex flex-col items-center gap-2 w-full pt-2">
                                 <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
                                     <Input
                                         value={usernameInput}
@@ -665,44 +774,68 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
                             </div>
                         )}
-                        {/* Fallback login button for views where username editing is not allowed */}
-                        {!allowEditUsername && isGuestUser && !hideLogin && (
-                            <div className="pt-2">
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
-                                    onClick={handleLogin}
-                                >
-                                    Log In
-                                </Button>
-                            </div>
-                        )}
+                                                 {/* Fallback login button for views where username editing is not allowed */}
+                         {!allowEditUsername && isGuestUser && !hideLogin && (
+                             <div data-guest-user="true" className="pt-2">
+                                 <Button
+                                     size="sm"
+                                     variant="secondary"
+                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     onClick={handleLogin}
+                                 >
+                                     Log In
+                                 </Button>
+                             </div>
+                         )}
                     </div>
 
-                    {/* Three-column section under username */}
-                    <div className="flex flex-col md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:max-w-4xl mx-auto text-center md:text-left">
+                                                                                                                             {/* Three-column section under username */}
+                       <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left relative">
+                                                   {/* Desktop Edit button positioned above Recently Edited column */}
+                          {allowEditUsername && !isGuestUser && (
+                              <div className="hidden md:block absolute -top-20 right-0">
+                                  <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="bg-gray-200 text-black hover:bg-gray-300"
+                                      onClick={() => {
+                                          setIsEditingUsername((prev) => !prev);
+                                          setIsEditingBookmarks((prev) => !prev);
+                                      }}
+                                  >
+                                      {isEditingUsername || isEditingBookmarks ? (
+                                          <div className="flex items-center gap-1">
+                                              <Check size={14} /> Done
+                                          </div>
+                                      ) : (
+                                          <div className="flex items-center gap-1">
+                                              <Pencil size={14} /> Edit
+                                          </div>
+                                      )}
+                                  </Button>
+                              </div>
+                          )}
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
                             <div className="space-y-4">
                                 {/* Admin user search removed */}
 
-                                {/* Status row */}
+                                {/* Role heading aligned with other column headings */}
                                 {showStatus && (
-                                <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-center md:text-center">
-                                    <span className="font-semibold">Role:</span>
-                                    <span className="font-normal">{statusString}</span>
-                                </div>
-                                )}
+                                    <div className="flex items-center gap-2 text-lg w-full justify-center md:justify-start">
+                                        <span className="font-semibold">Role:</span>
+                                        <span className="font-normal">{statusString}</span>
                                     </div>
+                                )}
+                            </div>
 
                             {/* Bottom area: UGC / Artists stats (vertical layout) */}
                             <div className="mt-4">
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-gray-300 hover:bg-gray-100 h-auto self-center md:self-end w-64"
+                                className="py-4 space-y-2 text-left border-2 border-[#ff9ce3] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}
@@ -770,7 +903,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="border border-gray-300"
+                                                className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.max(0, p - 1))}
                                                 disabled={bookmarkPage === 0}
                                             >
@@ -782,7 +915,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="border border-gray-300"
+                                                className="bg-pastypink text-white hover:bg-pastypink/90 hover:text-white border-2 border-pastypink"
                                                 onClick={() => setBookmarkPage((p) => Math.min(totalBookmarkPages - 1, p + 1))}
                                                 disabled={bookmarkPage >= totalBookmarkPages - 1}
                                             >
@@ -796,31 +929,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
 
-                        {/* Right column - recently edited */}
-                        <div className="relative space-y-4 md:-mt-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
-                            {allowEditUsername && !isGuestUser && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-16 left-0 hidden md:block"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
-                                    }}
-                                >
-                                    {isEditingUsername || isEditingBookmarks ? (
-                                        <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    )}
-                                </Button>
-                            )}
-                            
-                            <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px]">Recently Edited</h3>
+                                                                                                                                                                                                                                                                                                                                                                                                               {/* Right column - recently edited */}
+                            <div className="space-y-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                               <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px]">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (

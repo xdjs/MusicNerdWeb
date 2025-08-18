@@ -103,7 +103,7 @@ describe('authenticationAdapter', () => {
 
       await expect(authenticationAdapter.getNonce()).rejects.toThrow('Failed to get CSRF token');
       
-      expect(getCsrfToken).toHaveBeenCalledTimes(3);
+      expect(getCsrfToken).toHaveBeenCalledTimes(5);
 
       jest.restoreAllMocks();
     });

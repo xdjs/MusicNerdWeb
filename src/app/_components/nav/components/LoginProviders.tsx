@@ -1,11 +1,15 @@
 "use client"
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { ReactNode, Suspense } from "react";
+import { ReactNode, Suspense, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { WagmiProvider as WagmiProviderBase, http, createConfig } from 'wagmi';
 import { mainnet } from 'wagmi/chains';
 
 const queryClient = new QueryClient();
+
+// Create a singleton to prevent multiple WalletConnect initializations
+let walletConfig: any = null;
+let isInitializing = false;
 
 // Dynamically import wallet-related components
 const WalletProviders = dynamic(
@@ -17,22 +21,32 @@ const WalletProviders = dynamic(
 
         const projectId = '929ab7024658ec19d047d5df44fb0f63';
 
-        const config = getDefaultConfig({
-            appName: 'Music Nerd',
-            appDescription: 'Music Nerd platform',
-            appUrl: 'https://www.musicnerd.xyz',
-            appIcon: 'https://www.musicnerd.xyz/icon.ico',
-            projectId,
-            chains: [rkMainnet],
-            transports: {
-                [rkMainnet.id]: http()
-            },
-            ssr: true
-        });
+        // Create config only once
+        if (!walletConfig && !isInitializing) {
+            isInitializing = true;
+            console.debug('[WalletProviders] Creating WalletConnect config');
+            
+            walletConfig = getDefaultConfig({
+                appName: 'Music Nerd',
+                appDescription: 'Music Nerd platform',
+                appUrl: typeof window !== 'undefined' ? window.location.origin : 'https://www.musicnerd.xyz',
+                appIcon: 'https://www.musicnerd.xyz/icon.ico',
+                projectId,
+                chains: [rkMainnet],
+                transports: {
+                    [rkMainnet.id]: http()
+                },
+                ssr: true
+            });
+            
+            isInitializing = false;
+        }
 
         return function Providers({ children }: { children: ReactNode }) {
+            console.debug('[WalletProviders] Rendering WalletConnect providers');
+            
             return (
-                <WagmiProviderBase config={config}>
+                <WagmiProviderBase config={walletConfig}>
                     <QueryClientProvider client={queryClient}>
                         <RainbowKitSiweNextAuthProvider
                             getSiweMessageOptions={() => ({

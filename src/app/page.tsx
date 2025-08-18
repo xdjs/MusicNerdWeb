@@ -1,6 +1,7 @@
 "use client"
 
 import HomePageSplash from "./_components/HomePageSplash";
+import AutoRefresh from "./_components/AutoRefresh";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ export default function HomePage() {
   const [animation, setAnimation] = useState("static");
   return (
     <>
+      <AutoRefresh />
       {/* <div className="absolute bottom-40 left-50  ">
         <Select value={animation} onValueChange={setAnimation}>
           <SelectTrigger className="w-[180px]">

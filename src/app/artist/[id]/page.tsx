@@ -13,7 +13,8 @@ import BlurbSection from "./_components/BlurbSection";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
-import ArtistAutoRefresh from "./ArtistAutoRefresh";
+import GrapevineIframe from "./_components/GrapevineIframe";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type ArtistProfileProps = {
     params: { id: string };
@@ -49,7 +50,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
-            <ArtistAutoRefresh />
+            <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
                 <div className="bg-white rounded-lg md:w-2/3 gap-y-4 shadow-2xl px-5 py-5 md:py-10 md:px-10 space-y-8">
@@ -145,21 +146,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     {/* Empty Collaborators box */}
                     <div className="hidden md:block bg-white rounded-lg shadow-2xl p-6 space-y-4 overflow-x-hidden">
                         <h2 className="text-2xl font-bold text-black">Grapevine</h2>
-                        <div className="relative w-full h-[180px]">
-                            <iframe
-                                src={`${process.env.NEXT_PUBLIC_GRAPEVINE_URL}/${artist.id}`}
-                                className="w-full h-full border-0 rounded-md pointer-events-none"
-                                loading="lazy"
-                            />
-                            <a
-                                href={`${process.env.NEXT_PUBLIC_GRAPEVINE_URL}/${artist.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute inset-0 z-10"
-                            >
-                                <span className="sr-only">Open Grapevine</span>
-                            </a>
-                        </div>
+                        <GrapevineIframe artistId={artist.id} />
                     </div>
                 </div>
                 {/* Insert Fun Facts section for mobile only */}
@@ -168,21 +155,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 {/* Mobile-only Collaborators box displayed below Fun Facts */}
                 <div className="block md:hidden bg-white rounded-lg shadow-2xl mt-4 p-6 space-y-4 overflow-x-hidden">
                     <h2 className="text-2xl font-bold text-black">Grapevine</h2>
-                    <div className="relative w-full h-[180px]">
-                        <iframe
-                            src={`${process.env.NEXT_PUBLIC_GRAPEVINE_URL}/${artist.id}`}
-                            className="w-full h-full border-0 rounded-md pointer-events-none"
-                            loading="lazy"
-                        />
-                        <a
-                            href={`${process.env.NEXT_PUBLIC_GRAPEVINE_URL}/${artist.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="absolute inset-0 z-10"
-                        >
-                            <span className="sr-only">Open Grapevine</span>
-                        </a>
-                    </div>
+                    <GrapevineIframe artistId={artist.id} />
                 </div>
             </div>
             </EditModeProvider>

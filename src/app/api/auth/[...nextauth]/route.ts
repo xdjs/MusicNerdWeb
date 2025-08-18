@@ -8,12 +8,13 @@ const wrappedHandler = async (req: Request, context: any) => {
   try {
     console.debug("[NextAuth] Processing request:", {
       method: req.method,
-      url: req.url
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries())
     });
     
     const response = await handler(req, context);
     
-    console.debug("[NextAuth] Response status:", response.status);
+    console.debug("[NextAuth] Response status:", response.status, "headers:", Object.fromEntries(response.headers.entries()));
     
     return response;
   } catch (error) {
