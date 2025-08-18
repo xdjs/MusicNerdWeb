@@ -38,10 +38,19 @@ export default function AutoRefresh({
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
 
-    if (!skip && prevStatus.current && prevStatus.current !== status && status !== "loading") {
-      sessionStorage.setItem(sessionStorageKey, "true");
-      // Full reload so server components pick up the new session instantly
-      window.location.reload();
+    // Check if we need to refresh on initial load or status change
+    if (!skip && status !== "loading") {
+      // On initial load, prevStatus.current will be null, so we check if we're authenticated
+      // On subsequent loads, we check if status changed from unauthenticated to authenticated
+      const shouldRefresh = 
+        (prevStatus.current === null && status === "authenticated") || // Initial load with auth
+        (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
+      
+      if (shouldRefresh) {
+        sessionStorage.setItem(sessionStorageKey, "true");
+        // Full reload so server components pick up the new session instantly
+        window.location.reload();
+      }
     }
 
     if (skip && status !== "loading") {
