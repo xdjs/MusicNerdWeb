@@ -23,9 +23,17 @@ export default function LeaderboardAutoRefresh() {
 
     const isStable = status !== "loading";
 
-    // Only trigger auto-refresh after successful authentication, not on initial load
-    if (!skip && isStable && prevStatus.current === "unauthenticated" && status === "authenticated") {
-      console.debug('[AutoRefresh] Authentication detected, showing loading state');
+    // Detect state mismatch: if we're authenticated but the page shows guest/loading state
+    const shouldRefresh = !skip && isStable && (
+      // Case 1: Authentication transition
+      (prevStatus.current === "unauthenticated" && status === "authenticated") ||
+      // Case 2: State mismatch detection - if we're authenticated but page might be stale
+      (status === "authenticated" && prevStatus.current === "authenticated" && 
+       document.querySelector('[data-guest-user="true"]') !== null)
+    );
+
+    if (shouldRefresh) {
+      console.debug('[AutoRefresh] State mismatch or authentication detected, showing loading state');
       setIsLoading(true);
       hasReloaded.current = true;
       sessionStorage.setItem("autoRefreshSkip", "true");

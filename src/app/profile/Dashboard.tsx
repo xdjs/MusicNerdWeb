@@ -542,25 +542,25 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // ------------------- RENDER -------------------
 
-    // Show simplified "please log in" screen only on the full (non-compact) profile view.
-    // In the compact leaderboard view we still want to show the stats box so we can
-    // prompt the user to log in from there.
-    if (isGuestUser && !isCompactLayout) {
-        return (
-            <section className="px-10 py-20 space-y-8 flex items-center justify-center flex-col text-center">
-                <h1 className="text-3xl font-bold">User Profile</h1>
-                {!hideLogin && (
-                    <Button
-                        size="lg"
-                        className="bg-pastypink hover:bg-gray-200 text-white px-8 py-4 text-xl"
-                        onClick={handleLogin}
-                    >
-                        Log In
-                    </Button>
-                )}
-            </section>
-        );
-    }
+         // Show simplified "please log in" screen only on the full (non-compact) profile view.
+     // In the compact leaderboard view we still want to show the stats box so we can
+     // prompt the user to log in from there.
+     if (isGuestUser && !isCompactLayout) {
+         return (
+             <section data-guest-user="true" className="px-10 py-20 space-y-8 flex items-center justify-center flex-col text-center">
+                 <h1 className="text-3xl font-bold">User Profile</h1>
+                 {!hideLogin && (
+                     <Button
+                         size="lg"
+                         className="bg-pastypink hover:bg-gray-200 text-white px-8 py-4 text-xl"
+                         onClick={handleLogin}
+                     >
+                         Log In
+                     </Button>
+                 )}
+             </section>
+         );
+     }
 
     return (
         <section className="px-5 sm:px-10 py-5 space-y-6">
@@ -570,16 +570,17 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username + other controls as before */}
                     <div className="flex flex-col items-center gap-2 pb-1 w-full">
                         {/* Horizontal stats row (User / UGC Added / Artists Added) */}
-                        {isGuestUser ? (
-                            // Guest variant – single clickable row that asks the visitor to log in
-                            <div
-                                role="button"
-                                tabIndex={0}
-                                onClick={handleLogin}
-                                className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#9b83a0] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#9b83a0] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#9b83a0]"
-                            >
-                                <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
-                            </div>
+                                                 {isGuestUser ? (
+                             // Guest variant – single clickable row that asks the visitor to log in
+                             <div
+                                 data-guest-user="true"
+                                 role="button"
+                                 tabIndex={0}
+                                 onClick={handleLogin}
+                                 className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#9b83a0] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#9b83a0] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#9b83a0]"
+                             >
+                                 <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
+                             </div>
                         ) : (
                             <>
 							<div
@@ -668,19 +669,19 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                           )}
 
                         {/* Edit username controls removed in leaderboard view */}
-                        {/* Show a standalone login button for guests only when username editing is disabled */}
-                        {!allowEditUsername && isGuestUser && !hideLogin && (
-                            <div className="pt-2">
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
-                                    onClick={handleLogin}
-                                >
-                                    Log In
-                                </Button>
-                            </div>
-                        )}
+                                                 {/* Show a standalone login button for guests only when username editing is disabled */}
+                         {!allowEditUsername && isGuestUser && !hideLogin && (
+                             <div data-guest-user="true" className="pt-2">
+                                 <Button
+                                     size="sm"
+                                     variant="secondary"
+                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     onClick={handleLogin}
+                                 >
+                                     Log In
+                                 </Button>
+                             </div>
+                         )}
                     </div>
                     {/* Admin user search removed */}
 
@@ -771,19 +772,19 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
                             </div>
                         )}
-                        {/* Fallback login button for views where username editing is not allowed */}
-                        {!allowEditUsername && isGuestUser && !hideLogin && (
-                            <div className="pt-2">
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
-                                    onClick={handleLogin}
-                                >
-                                    Log In
-                                </Button>
-                            </div>
-                        )}
+                                                 {/* Fallback login button for views where username editing is not allowed */}
+                         {!allowEditUsername && isGuestUser && !hideLogin && (
+                             <div data-guest-user="true" className="pt-2">
+                                 <Button
+                                     size="sm"
+                                     variant="secondary"
+                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     onClick={handleLogin}
+                                 >
+                                     Log In
+                                 </Button>
+                             </div>
+                         )}
                     </div>
 
                                                               {/* Three-column section under username */}
