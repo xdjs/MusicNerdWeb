@@ -9,17 +9,17 @@ export const authenticationAdapter = createAuthenticationAdapter({
     // Try to get the CSRF token multiple times with a delay
     let token = null;
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5; // Increased attempts for first login
     
     while (!token && attempts < maxAttempts) {
       token = await getCsrfToken();
-      console.debug("[AuthAdapter] Attempt", attempts + 1);
+      console.debug("[AuthAdapter] Attempt", attempts + 1, "token:", token ? "found" : "not found");
       
       if (!token) {
         attempts++;
         if (attempts < maxAttempts) {
-          // Wait before trying again
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Wait longer between attempts for first login
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
     }
@@ -29,6 +29,7 @@ export const authenticationAdapter = createAuthenticationAdapter({
       throw new Error("Failed to get CSRF token");
     }
     
+    console.debug("[AuthAdapter] Successfully obtained CSRF token");
     return token;
   },
   createMessage: ({ nonce, address, chainId }) => {
@@ -88,11 +89,38 @@ export const authenticationAdapter = createAuthenticationAdapter({
         callbackUrl: window.location.origin,
       });
 
-      console.debug("[AuthAdapter] Sign in response received");
+      console.debug("[AuthAdapter] Sign in response received", {
+        error: response?.error,
+        status: response?.status,
+        url: response?.url
+      });
 
       if (response?.error) {
         console.error("[AuthAdapter] Sign in failed:", response.error);
-        return false;
+        
+        // If it's a 401 error, it might be a CSRF token issue on first login
+        if (response.error.includes('401') || response.error.includes('Unauthorized')) {
+          console.debug("[AuthAdapter] 401 error detected, might be first login CSRF issue");
+          // Wait a bit longer and try again
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Try one more time
+          const retryResponse = await signIn("credentials", {
+            message: JSON.stringify(message),
+            signature,
+            redirect: false,
+            callbackUrl: window.location.origin,
+          });
+          
+          if (retryResponse?.error) {
+            console.error("[AuthAdapter] Retry also failed:", retryResponse.error);
+            return false;
+          }
+          
+          console.debug("[AuthAdapter] Retry successful");
+        } else {
+          return false;
+        }
       }
 
       // Wait a moment for the session to be established
