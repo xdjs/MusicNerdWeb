@@ -634,7 +634,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-start sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
@@ -642,7 +642,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-start sm:justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
                                         {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
