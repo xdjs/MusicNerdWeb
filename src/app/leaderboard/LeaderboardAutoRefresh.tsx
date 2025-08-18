@@ -27,9 +27,10 @@ export default function LeaderboardAutoRefresh() {
     const shouldRefresh = !skip && isStable && (
       // Case 1: Authentication transition
       (prevStatus.current === "unauthenticated" && status === "authenticated") ||
-      // Case 2: State mismatch detection - if we're authenticated but page might be stale
-      (status === "authenticated" && prevStatus.current === "authenticated" && 
-       document.querySelector('[data-guest-user="true"]') !== null)
+      // Case 2: State mismatch detection - if we're authenticated but page shows guest elements
+      (status === "authenticated" && document.querySelector('[data-guest-user="true"]') !== null) ||
+      // Case 3: Navigation after login - if we're authenticated but this is a fresh page load
+      (status === "authenticated" && prevStatus.current === null)
     );
 
     if (shouldRefresh) {
