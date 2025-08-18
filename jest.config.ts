@@ -33,7 +33,7 @@ const customJestConfig: Config = {
         '^@rainbow-me/rainbowkit$': '<rootDir>/__mocks__/rainbowkit.js',
         '^@rainbow-me/rainbowkit/(.*)$': '<rootDir>/__mocks__/rainbowkit.js',
         // Handle next-auth
-        '^next-auth/react$': '<rootDir>/__mocks__/next-auth.js',
+        '^next-auth/react$': '<rootDir>/src/test/__mocks__/next-auth.ts',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports
