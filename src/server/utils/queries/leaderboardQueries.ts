@@ -50,11 +50,11 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                     WHEN u.username IS NOT NULL THEN 
                         CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
                     ELSE 
-                        CASE WHEN SUBSTRING(u.wallet FROM 3) ~ '^[0-9]' THEN 0 ELSE 1 END
+                        CASE WHEN u.wallet ~ '^0x[0-9]' THEN 0 ELSE 1 END
                     END,
                 CASE 
                     WHEN u.username IS NOT NULL THEN u.username
-                    ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
+                    ELSE u.wallet
                 END ASC
         `);
         return result;
@@ -97,11 +97,11 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                     WHEN u.username IS NOT NULL THEN 
                         CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
                     ELSE 
-                        CASE WHEN SUBSTRING(u.wallet FROM 3) ~ '^[0-9]' THEN 0 ELSE 1 END
+                        CASE WHEN u.wallet ~ '^0x[0-9]' THEN 0 ELSE 1 END
                     END,
                 CASE 
                     WHEN u.username IS NOT NULL THEN u.username
-                    ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
+                    ELSE u.wallet
                 END ASC
         `);
         return result;

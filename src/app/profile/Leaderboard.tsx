@@ -101,7 +101,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-background border-2",
                                                   isHighlighted
                               ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
                               : "border-[#c6bfc7]"
@@ -364,7 +364,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                     "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
                                 onClick={() => setRange(key)}
                             >
@@ -399,7 +399,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                     "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
                                 onClick={() => setRange(key)}
                             >
@@ -429,9 +429,9 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             variant="outline"
                             className={cn(
                                 "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
-                                range === key
-                                    ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                    : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                             )}
                             onClick={() => setRange(key)}
                         >
@@ -443,7 +443,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-white py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-background py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
@@ -470,14 +470,14 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
             </CardContent>
             {pageCount > 1 && (
-                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
+                <div className="bg-background border-t flex justify-end items-center gap-4 p-3">
                     <Button
                         size="sm"
                         className={cn(
                             "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
                             page === 1
                                 ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                         )}
                         disabled={page === 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -491,7 +491,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
                             page >= pageCount
                                 ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                         )}
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
