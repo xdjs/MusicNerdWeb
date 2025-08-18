@@ -86,7 +86,8 @@ export default function UserEntriesTable() {
       // Merge new entries, avoiding duplicates
       setEntries((prev) => {
         const existingIds = new Set(prev.map((e) => e.id));
-        const merged = [...prev, ...data.entries.filter((e) => !existingIds.has(e.id))];
+        const entriesArray = Array.isArray(data.entries) ? data.entries : [];
+        const merged = [...prev, ...entriesArray.filter((e) => !existingIds.has(e.id))];
         return merged;
       });
       setTotal(data.total);
@@ -117,7 +118,8 @@ export default function UserEntriesTable() {
         if (!res.ok) return;
         const data: ApiResponse = await res.json();
         // Replace existing entries with filtered result
-        setEntries(data.entries);
+        const entriesArray = Array.isArray(data.entries) ? data.entries : [];
+        setEntries(entriesArray);
         setPage(1);
         setPageCount(1);
       } catch (e) {
