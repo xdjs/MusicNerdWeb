@@ -46,7 +46,14 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
-                COALESCE(u.username, u.wallet) ASC
+                CASE 
+                    WHEN COALESCE(u.username, u.wallet) ~ '^[0-9]' THEN 0 
+                    ELSE 1 
+                END,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username
+                    ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
+                END ASC
         `);
         return result;
     } catch (e) {
@@ -84,7 +91,14 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
-                COALESCE(u.username, u.wallet) ASC
+                CASE 
+                    WHEN COALESCE(u.username, u.wallet) ~ '^[0-9]' THEN 0 
+                    ELSE 1 
+                END,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username
+                    ELSE SUBSTRING(u.wallet FROM 3) -- Remove '0x' prefix
+                END ASC
         `);
         return result;
     } catch (e) {
