@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback, forwardRef, useRef } from 'react';
 import { useSession, signOut } from "next-auth/react";
-import { Wallet, Sun, Moon, Monitor } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAccount, useDisconnect, useConfig } from 'wagmi';
@@ -13,7 +13,7 @@ import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
 import Jazzicon from 'react-jazzicon';
-import { useTheme } from "../../ThemeProvider";
+
 
 
 // Add type for the SearchBar ref
@@ -47,7 +47,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const { openConnectModal } = useConnectModal();
     const { ensAvatar, jazziconSeed, loading: ensLoading } = useEnsAvatar();
     const [avatarError, setAvatarError] = useState(false);
-    const { setTheme } = useTheme();
 
     // Reset avatar error when ENS avatar changes
     useEffect(() => {
@@ -396,19 +395,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 >
                                     Log In
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setTheme("light")}>
-                                    <Sun className="mr-2 h-4 w-4" />
-                                    <span>Light</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                                    <Moon className="mr-2 h-4 w-4" />
-                                    <span>Dark</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("system")}>
-                                    <Monitor className="mr-2 h-4 w-4" />
-                                    <span>System</span>
-                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     );
@@ -493,19 +479,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 }}
                             >
                                 Log Out
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setTheme("light")}>
-                                <Sun className="mr-2 h-4 w-4" />
-                                <span>Light</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setTheme("dark")}>
-                                <Moon className="mr-2 h-4 w-4" />
-                                <span>Dark</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setTheme("system")}>
-                                <Monitor className="mr-2 h-4 w-4" />
-                                <span>System</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
