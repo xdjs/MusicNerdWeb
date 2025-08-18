@@ -29,6 +29,11 @@ const customJestConfig: Config = {
         '^wagmi$': '<rootDir>/__mocks__/wagmi.js',
         '^wagmi/(.*)$': '<rootDir>/__mocks__/wagmi.js',
         '^viem/(.*)$': '<rootDir>/__mocks__/viem.js',
+        // Handle RainbowKit ESM module
+        '^@rainbow-me/rainbowkit$': '<rootDir>/__mocks__/rainbowkit.js',
+        '^@rainbow-me/rainbowkit/(.*)$': '<rootDir>/__mocks__/rainbowkit.js',
+        // Handle next-auth
+        '^next-auth/react$': '<rootDir>/__mocks__/next-auth.js',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports

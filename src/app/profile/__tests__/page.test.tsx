@@ -1,74 +1,79 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Page from '../page';
-import { getServerAuthSession } from '@/server/auth';
-import { getUserById } from '@/server/utils/queries/userQueries';
-import { getLeaderboard } from '@/server/utils/queries/leaderboardQueries';
 
-// Mock the dependencies
-jest.mock('@/server/auth', () => ({
-    getServerAuthSession: jest.fn(),
+// Mock next-auth
+jest.mock('next-auth/react', () => ({
+    useSession: jest.fn(),
 }));
 
-jest.mock('@/server/utils/queries/userQueries', () => ({
-    getUserById: jest.fn(),
-}));
+// Mock fetch for API calls
+global.fetch = jest.fn();
 
-jest.mock('@/server/utils/queries/leaderboardQueries', () => ({
-    getLeaderboard: jest.fn(),
-}));
-
-// Mock RainbowKit to avoid ESM issues in this test file
-jest.mock('@rainbow-me/rainbowkit', () => {
-    const openConnectModal = jest.fn();
-    return {
-        __esModule: true,
-        useConnectModal: () => ({ openConnectModal }),
-        ConnectButton: {
-            Custom: ({ children }: { children: (props: any) => React.ReactNode }) => children({ mounted: true, openConnectModal }),
-        },
-    };
-});
-
-const mockGetServerAuthSession = getServerAuthSession as jest.MockedFunction<typeof getServerAuthSession>;
-const mockGetUserById = getUserById as jest.MockedFunction<typeof getUserById>;
-const mockGetLeaderboard = getLeaderboard as jest.MockedFunction<typeof getLeaderboard>;
+// Mock the user API endpoint
+const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
 describe('UGC Stats Page', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Reset environment variables for each test
         delete process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT;
-        
-        // Mock getLeaderboard to return empty array
-        mockGetLeaderboard.mockResolvedValue([]);
     });
 
     it('should show dashboard when not authenticated', async () => {
-        mockGetServerAuthSession.mockResolvedValue(null);
+        // Mock useSession to return unauthenticated
+        const { useSession } = require('next-auth/react');
+        useSession.mockReturnValue({
+            status: 'unauthenticated',
+            data: null,
+        });
 
-        const page = await Page();
-        render(page);
+        // Mock fetch to return empty user entries
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                entries: [],
+                total: 0,
+                pageCount: 0,
+            }),
+        } as Response);
 
-        // Wait for loading to complete and then check for User Profile text
-        await screen.findByText('User Profile');
-        expect(screen.getByText('User Profile')).toBeInTheDocument();
-        // Removed 'User Profile' heading assertion
+        render(<Page />);
+
+        // Wait for loading to complete and then check for dashboard content
+        await waitFor(() => {
+            expect(screen.getByText('Guest User')).toBeInTheDocument();
+        });
     });
 
     it('should show dashboard when walletless mode is enabled', async () => {
-        // Enable walletless mode (NODE_ENV is already "test" during Jest execution)
+        // Enable walletless mode
         process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT = 'true';
         
-        mockGetServerAuthSession.mockResolvedValue(null);
+        // Mock useSession to return unauthenticated
+        const { useSession } = require('next-auth/react');
+        useSession.mockReturnValue({
+            status: 'unauthenticated',
+            data: null,
+        });
 
-        const page = await Page();
-        render(page);
+        // Mock fetch to return empty user entries
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                entries: [],
+                total: 0,
+                pageCount: 0,
+            }),
+        } as Response);
 
-        // Wait for loading to complete and then check for User Profile text
-        await screen.findByText('User Profile');
-        expect(screen.getByText('User Profile')).toBeInTheDocument();
+        render(<Page />);
+
+        // Wait for loading to complete and then check for dashboard content
+        await waitFor(() => {
+            expect(screen.getByText('Guest User')).toBeInTheDocument();
+        });
     });
 
     it('should show dashboard when authenticated', async () => {
@@ -88,17 +93,41 @@ describe('UGC Stats Page', () => {
             username: 'Test User',
             isAdmin: false,
             isWhiteListed: false,
+            isSuperAdmin: false,
+            isHidden: false,
+            acceptedUgcCount: null,
             createdAt: '2023-01-01T00:00:00Z',
             updatedAt: '2023-01-01T00:00:00Z',
             legacyId: null
         };
 
-        mockGetServerAuthSession.mockResolvedValue(mockSession as any);
-        mockGetUserById.mockResolvedValue(mockUser as any);
+        // Mock useSession to return authenticated
+        const { useSession } = require('next-auth/react');
+        useSession.mockReturnValue({
+            status: 'authenticated',
+            data: mockSession,
+        });
 
-        const page = await Page();
-        render(page);
+        // Mock fetch to return user data and empty user entries
+        mockFetch
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => mockUser,
+            } as Response)
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    entries: [],
+                    total: 0,
+                    pageCount: 0,
+                }),
+            } as Response);
 
-        // 'User Profile' heading no longer present after update
+        render(<Page />);
+
+        // Wait for loading to complete and then check for dashboard content
+        await waitFor(() => {
+            expect(screen.getByText('Test User')).toBeInTheDocument();
+        });
     });
 }); 
