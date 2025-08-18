@@ -1,4 +1,4 @@
-import { searchForArtistByName, getAllSpotifyIds } from "@/server/utils/queries/artistQueries";
+import { searchForArtistByName } from "@/server/utils/queries/artistQueries";
 import { getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
 import axios from "axios";
 
@@ -38,6 +38,10 @@ interface SpotifySearchResponse {
   artists: {
     items: SpotifyArtist[];
   };
+}
+
+interface SpotifyArtistsResponse {
+  artists: SpotifyArtist[];
 }
 
 // ----------------------------------
@@ -165,33 +169,49 @@ export async function POST(req: Request) {
         // Continue without Spotify results rather than failing entirely
       }
 
-      // Fetch Spotify data for database artists (with concurrency limit)
-      const dbArtistsWithImages = await Promise.all(
-        dbResults.map(async (artist) => {
-          const baseArtist = {
-            ...artist,
-            isSpotifyOnly: false,
-            matchScore: getMatchScore(artist.name || "", query),
-            linkCount: getLinkCount(artist)
+      // Fetch Spotify data for database artists in batches
+      const dbSpotifyIds = dbResults.map(a => a.spotify).filter(Boolean) as string[];
+      const idChunks: string[][] = [];
+      for (let i = 0; i < dbSpotifyIds.length; i += 50) {
+        idChunks.push(dbSpotifyIds.slice(i, i + 50));
+      }
+
+      let spotifyArtistMap: Record<string, SpotifyArtist> = {};
+      try {
+        const responses = await Promise.all(
+          idChunks.map(ids =>
+            axios.get<SpotifyArtistsResponse>(
+              `https://api.spotify.com/v1/artists?ids=${ids.join(',')}`,
+              { ...spotifyHeaders, timeout: 3000 }
+            )
+          )
+        );
+        spotifyArtistMap = Object.fromEntries(
+          responses.flatMap(res =>
+            (res.data?.artists ?? [])
+              .filter(Boolean)
+              .map(artist => [artist.id, artist])
+          )
+        );
+      } catch (error) {
+        console.error('Failed to fetch Spotify artist batch:', error);
+      }
+
+      const dbArtistsWithImages = dbResults.map((artist) => {
+        const baseArtist = {
+          ...artist,
+          isSpotifyOnly: false,
+          matchScore: getMatchScore(artist.name || "", query),
+          linkCount: getLinkCount(artist)
+        };
+        if (artist.spotify && spotifyArtistMap[artist.spotify]) {
+          return {
+            ...baseArtist,
+            images: spotifyArtistMap[artist.spotify].images,
           };
-          if (artist.spotify) {
-            try {
-              const spotifyData = await axios.get<SpotifyArtist>(
-                `https://api.spotify.com/v1/artists/${artist.spotify}`,
-                { ...spotifyHeaders, timeout: 3000 } // 3 second timeout per request
-              );
-              return {
-                ...baseArtist,
-                images: spotifyData.data.images,
-              };
-            } catch (error) {
-              console.error(`Failed to fetch Spotify data for artist ${artist.spotify}:`, error);
-              return baseArtist;
-            }
-          }
-          return baseArtist;
-        })
-      );
+        }
+        return baseArtist;
+      });
 
       // Combine all results and sort them by match score, bookmark status, link count, and name
       const combinedResults = [...dbArtistsWithImages, ...spotifyArtists]
