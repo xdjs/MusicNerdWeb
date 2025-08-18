@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { formatAddressForDisplay } from "@/lib/addressUtils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -145,7 +144,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Username */}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium truncate text-lg">
-                            {entry.username || formatAddressForDisplay(entry.wallet)}
+                            {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
                         </p>
                     </div>
                 </div>
@@ -204,7 +203,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate text-lg">
-                                    {entry.username || formatAddressForDisplay(entry.wallet)}
+                                    {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
                                 </p>
                             </div>
                         </div>
@@ -227,7 +226,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Recently Added Artists inline expansion */}
                     {showRecent && (
                         <div className="mt-4">
-                            <p className="font-semibold text-center mb-2">{(entry.username || entry.email || formatAddressForDisplay(entry.wallet))}&#39;s Recently Edited</p>
+                            <p className="font-semibold text-center mb-2">{(entry.username || entry.email || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0,10)+"..." : '0x' + entry.wallet.slice(0,8)+"..."))}&#39;s Recently Edited</p>
                             {loadingRec && <p className="text-sm text-muted-foreground text-center">Loading...</p>}
                             {recent && recent.length ? (
                                 <ul className="grid grid-cols-3 gap-4 justify-items-center">

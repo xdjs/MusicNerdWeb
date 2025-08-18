@@ -21,7 +21,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
 import LoadingPage from "../_components/LoadingPage";
-import { formatAddressForDisplay } from "@/lib/addressUtils";
 import {
     DndContext,
     closestCenter,
@@ -124,7 +123,7 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                <p className="text-black text-xl">Loading...</p>
+                                    <p className="text-foreground text-xl">Loading...</p>
             </div>
         );
     }
@@ -594,7 +593,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-white hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
@@ -613,7 +612,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 									</div>
 								)}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
-                                        {ugcStatsUserWallet ?? (user?.username ? user.username : formatAddressForDisplay(user?.wallet || ''))}
+                                        {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
                                     </span>
                                     {/* (arrow removed; entire bar now clickable) */}
                                 </div>
@@ -676,7 +675,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                  <Button
                                      size="sm"
                                      variant="secondary"
-                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     className="bg-gray-200 text-foreground hover:bg-gray-300 border border-gray-300"
                                      onClick={handleLogin}
                                  >
                                      Log In
@@ -736,7 +735,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                  <Button
                                      size="sm"
                                      variant="ghost"
-                                     className="bg-gray-200 text-black hover:bg-gray-300"
+                                     className="bg-gray-200 text-foreground hover:bg-gray-300"
                                      onClick={() => {
                                          setIsEditingUsername((prev) => !prev);
                                          setIsEditingBookmarks((prev) => !prev);
@@ -760,13 +759,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
                             <div className="flex flex-col items-center gap-2 w-full pt-2">
-                                <div className="flex items-center gap-2 border-2 border-gray-300 bg-white rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
+                                <div className="flex items-center gap-2 border-2 border-gray-300 bg-background rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
                                     <Input
                                         value={usernameInput}
                                         onChange={(e) => setUsernameInput(e.target.value)}
                                         className="h-8 flex-1 min-w-0 text-lg"
                                     />
-                                    <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
+                                    <Button size="sm" className="bg-gray-200 text-foreground hover:bg-gray-300 border border-gray-300" onClick={saveUsername} disabled={savingUsername || !usernameInput}>
                                         {savingUsername ? 'Saving...' : 'Save'}
                                     </Button>
                                     <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => {
@@ -781,7 +780,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                  <Button
                                      size="sm"
                                      variant="secondary"
-                                     className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300"
+                                     className="bg-gray-200 text-foreground hover:bg-gray-300 border border-gray-300"
                                      onClick={handleLogin}
                                  >
                                      Log In
@@ -798,7 +797,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                   <Button
                                       size="sm"
                                       variant="ghost"
-                                      className="bg-gray-200 text-black hover:bg-gray-300"
+                                      className="bg-gray-200 text-foreground hover:bg-gray-300"
                                       onClick={() => {
                                           setIsEditingUsername((prev) => !prev);
                                           setIsEditingBookmarks((prev) => !prev);
@@ -856,7 +855,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         <h3 className="text-lg font-semibold text-center md:text-left">Bookmarks</h3>
                                         {isEditingBookmarks && bookmarks.length > 0 && (
                                             <div className="flex items-center gap-2">
-                                                <Button size="sm" className="bg-gray-200 text-black hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
+                                                <Button size="sm" className="bg-gray-200 text-foreground hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
                                                     Save
                                                 </Button>
                                                 <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
