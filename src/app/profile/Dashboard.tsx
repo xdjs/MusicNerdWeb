@@ -729,30 +729,32 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 								</p>
 							</div>
 						)}
-                        {/* Mobile Edit button under username */}
-                        {allowEditUsername && !isGuestUser && (
-                            <div className="md:hidden pt-6 flex justify-center">
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
-                                    }}
-                                >
-                                    {isEditingUsername || isEditingBookmarks ? (
-                                        <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    )}
-                                </Button>
-                            </div>
-                        )}
+                                                 {/* Mobile Edit button under username */}
+                         {allowEditUsername && !isGuestUser && (
+                             <div className="md:hidden pt-6 flex justify-center">
+                                 <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className="bg-gray-200 text-black hover:bg-gray-300"
+                                     onClick={() => {
+                                         setIsEditingUsername((prev) => !prev);
+                                         setIsEditingBookmarks((prev) => !prev);
+                                     }}
+                                 >
+                                     {isEditingUsername || isEditingBookmarks ? (
+                                         <div className="flex items-center gap-1">
+                                             <Check size={14} /> Done
+                                         </div>
+                                     ) : (
+                                         <div className="flex items-center gap-1">
+                                             <Pencil size={14} /> Edit
+                                         </div>
+                                     )}
+                                 </Button>
+                             </div>
+                         )}
+
+                         
 
                         
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
@@ -787,8 +789,32 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                          )}
                     </div>
 
-                                                              {/* Three-column section under username */}
-                      <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left">
+                                                                                                                             {/* Three-column section under username */}
+                       <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left relative">
+                                                   {/* Desktop Edit button positioned above Recently Edited column */}
+                          {allowEditUsername && !isGuestUser && (
+                              <div className="hidden md:block absolute -top-20 right-0">
+                                  <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="bg-gray-200 text-black hover:bg-gray-300"
+                                      onClick={() => {
+                                          setIsEditingUsername((prev) => !prev);
+                                          setIsEditingBookmarks((prev) => !prev);
+                                      }}
+                                  >
+                                      {isEditingUsername || isEditingBookmarks ? (
+                                          <div className="flex items-center gap-1">
+                                              <Check size={14} /> Done
+                                          </div>
+                                      ) : (
+                                          <div className="flex items-center gap-1">
+                                              <Pencil size={14} /> Edit
+                                          </div>
+                                      )}
+                                  </Button>
+                              </div>
+                          )}
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
@@ -903,31 +929,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
 
-                                                 {/* Right column - recently edited */}
-                         <div className="relative space-y-4 md:-mt-16 flex flex-col items-center md:items-start md:text-left md:flex-none">
-                            {allowEditUsername && !isGuestUser && (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="bg-gray-200 text-black hover:bg-gray-300 absolute -top-16 left-0 hidden md:block"
-                                    onClick={() => {
-                                        setIsEditingUsername((prev) => !prev);
-                                        setIsEditingBookmarks((prev) => !prev);
-                                    }}
-                                >
-                                    {isEditingUsername || isEditingBookmarks ? (
-                                        <div className="flex items-center gap-1">
-                                            <Check size={14} /> Done
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <Pencil size={14} /> Edit
-                                        </div>
-                                    )}
-                                </Button>
-                            )}
-                            
-                            <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px]">Recently Edited</h3>
+                                                                                                                                                                                                                                                                                                                                                                                                               {/* Right column - recently edited */}
+                            <div className="space-y-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                               <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px]">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
                                     {recentUGC.map((item) => (
