@@ -45,7 +45,8 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
-                "artistsCount" DESC
+                "artistsCount" DESC,
+                COALESCE(u.username, u.wallet) ASC
         `);
         return result;
     } catch (e) {
@@ -82,7 +83,8 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
-                "artistsCount" DESC
+                "artistsCount" DESC,
+                COALESCE(u.username, u.wallet) ASC
         `);
         return result;
     } catch (e) {
