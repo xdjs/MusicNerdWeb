@@ -137,28 +137,28 @@
 }
 
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
-.dark .home-text-h2:not([style*="#FF9CE3"]) {
+.dark .home-text-h2:not([style*="#ef95ff"]) {
   color: #a08ba8 !important;
 }
 
 /* Ensure the pink "Music Nerd" title stays pink in dark mode - more specific */
-.dark .home-text-h2[style*="#FF9CE3"], 
-.dark .home-text-h2[style*="color: #FF9CE3"] {
-  color: #FF9CE3 !important;
+.dark .home-text-h2[style*="#ef95ff"], 
+.dark .home-text-h2[style*="color: #ef95ff"] {
+  color: #ef95ff !important;
 }
 
 /* Additional override to ensure pink color is preserved */
-.dark h2[style*="#FF9CE3"] {
-  color: #FF9CE3 !important;
+.dark h2[style*="#ef95ff"] {
+  color: #ef95ff !important;
 }
 
-/* Force pink color for any element with #FF9CE3 in dark mode */
-.dark [style*="#FF9CE3"] {
-  color: #FF9CE3 !important;
+/* Force pink color for any element with #ef95ff in dark mode */
+.dark [style*="#ef95ff"] {
+  color: #ef95ff !important;
 }
 
-.dark [style*="#FF9CE3"] * {
-  color: #FF9CE3 !important;
+.dark [style*="#ef95ff"] * {
+  color: #ef95ff !important;
 }
 
 /* Dark mode overrides for FunFacts components */
@@ -192,10 +192,7 @@
   --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
 }
 
-/* Dark mode override for "Ask Music Nerd" text - white */
-.dark .text-\[#422B46\] {
-  color: white !important;
-}
+
 
 /* Dark mode override for "User Profile" heading */
 .dark h1.text-3xl.font-bold {
@@ -245,10 +242,7 @@
   color: #c6bfc7 !important;
 }
 
-/* Dark mode override for #422B46 text - consolidated */
-.dark .text-\[#422B46\] {
-  color: rgb(198, 191, 199, 0.8) !important;
-}
+
 
 /* Make footer text white in dark mode */
 .dark .text-maroon {

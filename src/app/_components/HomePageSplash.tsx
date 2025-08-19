@@ -11,7 +11,7 @@ export default function HomePage({ animation }: { animation: string }) {
     const titles = [
         {
             label: ["Music", "Nerd"],
-            color: "#FF9CE3",
+            color: "#ef95ff",
         },
         {
             label: ["Mindful", "Listener"],
@@ -36,20 +36,17 @@ export default function HomePage({ animation }: { animation: string }) {
     ]
 
     const titleNodes = titles.map((title, index) => (
-        <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-            <h2 className="w-1/2 text-right pr-[0.4rem]">
-                {title.label[0]}
-            </h2>
-            <h2 className="w-1/2 pl-[0.4rem]">
-                {title.label[1]}
+        <div key={index} style={{ color: title.color }} className="lowercase w-full flex justify-center home-text-h2">
+            <h2 className="text-center">
+                {title.label[0]} {title.label[1]}
             </h2>
         </div>
     ))
 
     const slidingNodes = titles.map((title, index) => (
         <div key={index} style={{ color: title.color }} className="lowercase w-full justify-center flex home-text-h2">
-            <h2 className="">
-                {title.label[0]} {" "} {title.label[1]}
+            <h2 className="text-center">
+                {title.label[0]} {title.label[1]}
             </h2>
         </div>
     ))
@@ -61,28 +58,14 @@ export default function HomePage({ animation }: { animation: string }) {
             const delay = 80 * (charCount + prevCharCount) + index * 100;
             prevCharCount += charCount;
             return (
-                <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-                    <h2 className="w-1/2 text-right pr-[0.4rem]">
-                        {title.label[0]}
-                    </h2>
-                    <h2 className="w-1/2 pl-[0.4rem]">
-                        <TypewriterText text={title.label[1]} startDelay={delay} />
+                <div key={index} style={{ color: title.color }} className="lowercase w-full flex justify-center home-text-h2">
+                    <h2 className="text-center">
+                        {title.label[0]} <TypewriterText text={title.label[1]} startDelay={delay} />
                     </h2>
                 </div>
             )
         })
     }
-
-    // const typeWriterNodes = titles.map((title, index) => (
-    //     <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-    //     <h2 className="w-1/2 text-right pr-[0.4rem]">
-    //         {title.label[0]}
-    //     </h2>
-    //     <h2 className="w-1/2 pl-[0.4rem]">
-    //         <TypewriterText texts={[...title.label[1]]} delay={100} />
-    //     </h2>
-    // </div>
-    // ))
 
     const animations = {
         static: titleNodes,
@@ -95,25 +78,14 @@ export default function HomePage({ animation }: { animation: string }) {
     }
 
     return (
-        <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
+        <div className="flex flex-col justify-center items-center h-full w-full min-h-screen">
             <div className="absolute top-6 right-6">
                 <Login buttonStyles="" />
             </div>
 
-            <div className="w-full">
-                <div className="flex flex-col items-center md:fixed md:left-8 md:top-8 mb-4">
-                    <img
-                        src="/icon.ico"
-                        className="w-auto"
-                        style={{
-                            width: 'clamp(68px, calc(68px + (94 - 68) * ((100vw - 360px) / (1440 - 360))), 94px)'
-                        }}
-                        alt="logo"
-                    />
-                </div>
-
-                <div className="grow mb-8">
-                    <div className="font-bold w-full"
+            <div className="flex flex-col items-center justify-center flex-grow w-full max-w-2xl px-4">
+                <div className="mb-8">
+                    <div className="font-bold text-center"
                         style={{
                             fontSize: 'clamp(28px, calc(28px + (78 - 28) * ((100vw - 360px) / (1440 - 360))), 78px)',
                             letterSpacing: 'clamp(-1px, calc(-1px + (-3 - -1) * ((100vw - 360px) / (1440 - 360))), -3px)',
@@ -123,8 +95,9 @@ export default function HomePage({ animation }: { animation: string }) {
                         {getAnimation(animation)}
                     </div>
                 </div>
-                <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-[#422B46] opacity-30 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
+                
+                <div className="flex flex-col items-center w-full">
+                    <div className="text-maroon opacity-30 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-6 text-center">
                         Ask Music Nerd about an artist
                     </div>
                     <Suspense fallback={<div>Loading...</div>}>
@@ -132,12 +105,6 @@ export default function HomePage({ animation }: { animation: string }) {
                     </Suspense>
                 </div>
             </div>
-            {/* <div className="flex flex-col items-center">
-          <p className="text-[#422B46] text-[14px] sm:text-[25px] tracking[-0.5px] font-bold">
-              Made in Seattle by <a href="https://x.com/cxy" target="blank" className='link'>@<span className='underline'>cxy</span> </a>
-              <a href="https://x.com/clt" target="blank" className='link'>@<span className='underline'>clt</span></a> and friends
-          </p>
-        </div> */}
         </div>
     );
 };
