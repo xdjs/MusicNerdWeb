@@ -13,7 +13,7 @@ import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
 import Jazzicon from 'react-jazzicon';
-import { ThemeToggle } from '../ThemeToggle';
+import { ThemeToggle } from '../../ThemeToggle';
 
 
 
