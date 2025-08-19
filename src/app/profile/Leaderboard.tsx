@@ -46,7 +46,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
         identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
         (entry.username ?? '').toLowerCase() === identifierLc ||
-        (entry.email ?? '').toLowerCase() === identifierLc
+        (entry.email ?? '').toLowerCase() === identifierLc ||
+        // Additional fallback: check if username contains the identifier (for partial matches)
+        (entry.username ?? '').toLowerCase().includes(identifierLc) ||
+        identifierLc.includes((entry.username ?? '').toLowerCase())
     );
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 

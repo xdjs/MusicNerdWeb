@@ -397,7 +397,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     Log In
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <div className="px-1 py-1.5">
+                                <div className="flex justify-center py-1.5">
                                     <ThemeToggle />
                                 </div>
                             </DropdownMenuContent>
@@ -486,7 +486,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 Log Out
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <div className="px-2 py-1.5">
+                            <div className="flex justify-center py-1.5">
                                 <ThemeToggle />
                             </div>
                         </DropdownMenuContent>
