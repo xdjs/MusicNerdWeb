@@ -22,19 +22,32 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+// Function to get system theme preference
+const getSystemTheme = (): Theme => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  }
+  return "light"
+}
+
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
+  defaultTheme,
   storageKey = "musicnerd-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage?.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
+    const stored = localStorage?.getItem(storageKey) as Theme
+    if (stored && (stored === "light" || stored === "dark")) {
+      return stored
+    }
+    // If no stored preference, use system preference
+    return defaultTheme || getSystemTheme()
+  })
 
   useEffect(() => {
     const root = window.document.documentElement
-
     root.classList.remove("light", "dark")
     root.classList.add(theme)
   }, [theme])
