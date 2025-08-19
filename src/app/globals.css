@@ -163,6 +163,24 @@
   color: #ff9ce3 !important;
 }
 
+/* Additional specific override for Music Nerd text in dark mode */
+.dark .home-text-h2[style*="color: #ff9ce3"] h2 {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="color: #ff9ce3"] h2 * {
+  color: #ff9ce3 !important;
+}
+
+/* Override any global text color changes for Music Nerd specifically */
+.dark .home-text-h2[style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"] h2 {
+  color: #ff9ce3 !important;
+}
+
 /* Dark mode overrides for FunFacts components */
 .dark .bg-\[#9b83a0\] {
   background-color: rgb(89, 48, 97, 0.6) !important;
