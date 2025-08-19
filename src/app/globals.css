@@ -102,6 +102,70 @@
   background-color: white !important;
 }
 
+/* Preserve specific brand colors in dark mode */
+.dark [style*="rgb(89, 48, 97, 0.6)"] {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark [style*="rgb(89, 48, 97, 0.6)"] * {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+/* Preserve #422B46 color in dark mode */
+.dark [style*="#422B46"] {
+  color: #422B46 !important;
+}
+
+.dark [style*="#422B46"] * {
+  color: #422B46 !important;
+}
+
+/* Preserve #422B46 color with opacity in dark mode */
+.dark .text-\[#422B46\] {
+  color: #422B46 !important;
+}
+
+/* Make footer text white in dark mode */
+.dark .text-maroon {
+  color: white !important;
+}
+
+/* Search bar dark mode styling */
+.dark .bg-gray-100 {
+  background-color: #374151 !important; /* dark gray */
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #4B5563 !important; /* darker gray on hover */
+}
+
+.dark .text-black {
+  color: white !important;
+}
+
+/* Make search icon white in dark mode */
+.dark svg[stroke-width="2.5"] {
+  color: white !important;
+}
+
+/* Make search input text white in dark mode */
+.dark input::placeholder {
+  color: #9CA3AF !important; /* light gray placeholder */
+}
+
+.dark input {
+  color: white !important;
+}
+
+/* Make search results dropdown dark in dark mode */
+.dark .bg-white {
+  background-color: #374151 !important; /* dark gray */
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #4B5563 !important; /* darker gray on hover */
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
