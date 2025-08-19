@@ -100,6 +100,11 @@
   color: #f3f4f6 !important; /* slightly off-white for better readability */
 }
 
+/* Dark mode override for "Ask Music Nerd" text */
+.dark .text-\[#422B46\] {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
 .dark .bg-black {
   background-color: #1a1a1a !important; /* consistent dark background */
 }
