@@ -15,7 +15,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="relative w-24 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center"
       style={{
-        backgroundColor: isDarkMode ? '#2ad4fc' : '#a855f7',
+        backgroundColor: isDarkMode ? '#2ad4fc' : '#ef95ff',
       }}
     >
       {/* Sliding white circle with icon */}
@@ -31,13 +31,13 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text labels */}
+      {/* Text labels - positioned opposite to the sliding button */}
       <div className="flex justify-between w-full px-2 text-xs font-medium text-white">
-        <span className={`transition-opacity duration-300 ${isDarkMode ? 'opacity-0' : 'opacity-100'}`}>
-          Light
-        </span>
         <span className={`transition-opacity duration-300 ${isDarkMode ? 'opacity-100' : 'opacity-0'}`}>
-          Dark
+          Dark Mode
+        </span>
+        <span className={`transition-opacity duration-300 ${isDarkMode ? 'opacity-0' : 'opacity-100'}`}>
+          Light Mode
         </span>
       </div>
     </button>
