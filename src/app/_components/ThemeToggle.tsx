@@ -13,7 +13,11 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-2 px-3 py-2 text-sm rounded-full bg-button-primary text-white hover:bg-bg-button-hover transition-colors"
+      className="flex items-center gap-2 px-4 py-2 text-sm rounded-full transition-all duration-200 hover:scale-105 active:scale-95"
+      style={{
+        backgroundColor: theme === "light" ? "#2ad4fc" : "#ef95ff", // Add Artist Teal for dark mode, NFT Login Pink for light mode
+        color: "white"
+      }}
     >
       {theme === "light" ? (
         <>
