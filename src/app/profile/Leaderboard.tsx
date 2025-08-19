@@ -208,15 +208,19 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                         </div>
 
-                        {/* UGC count */}
-                        <div className="flex items-center justify-center">
-                            <span className="text-[#9b83a0] font-semibold text-base">{entry.ugcCount}</span>
-                        </div>
+                                                 {/* UGC count */}
+                         <div className="flex items-center justify-center">
+                             <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
+                                 {entry.ugcCount}
+                             </Badge>
+                         </div>
 
-                        {/* Artist count */}
-                        <div className="flex items-center justify-end">
-                            <span className="text-[#9b83a0] font-semibold text-base">{entry.artistsCount}</span>
-                        </div>
+                         {/* Artist count */}
+                         <div className="flex items-center justify-end">
+                             <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
+                                 {entry.artistsCount}
+                             </Badge>
+                         </div>
                     </div>
 
                     {/* Recently Added Artists inline expansion */}
