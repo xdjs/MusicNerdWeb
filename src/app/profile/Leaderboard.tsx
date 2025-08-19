@@ -149,21 +149,21 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </div>
                 </div>
 
-                {/* UGC row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#9b83a0] font-semibold">UGC Added</span>
-                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                        {entry.ugcCount}
-                    </Badge>
-                </div>
+                                 {/* UGC row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">UGC Added</span>
+                     <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.ugcCount}
+                     </Badge>
+                 </div>
 
-                {/* Artists row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#9b83a0] font-semibold">Artists Added</span>
-                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                        {entry.artistsCount}
-                    </Badge>
-                </div>
+                 {/* Artists row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">Artists Added</span>
+                     <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.artistsCount}
+                     </Badge>
+                 </div>
             </div>
 
                     {/* Desktop layout */}
@@ -208,19 +208,19 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                         </div>
 
-                                                 {/* UGC count */}
-                         <div className="flex items-center justify-center">
-                             <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                                 {entry.ugcCount}
-                             </Badge>
-                         </div>
+                                                                                                   {/* UGC count */}
+                          <div className="flex items-center justify-center">
+                              <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.ugcCount}
+                              </Badge>
+                          </div>
 
-                         {/* Artist count */}
-                         <div className="flex items-center justify-end">
-                             <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                                 {entry.artistsCount}
-                             </Badge>
-                         </div>
+                          {/* Artist count */}
+                          <div className="flex items-center justify-end">
+                              <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.artistsCount}
+                              </Badge>
+                          </div>
                     </div>
 
                     {/* Recently Added Artists inline expansion */}
