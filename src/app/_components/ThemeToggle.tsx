@@ -15,20 +15,15 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative w-36 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center justify-between px-2"
+      className="relative w-32 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
         backgroundColor: isDark ? '#2ad4fc' : '#ef95ff',
       }}
     >
-      {/* Text */}
-      <span className="text-white text-sm font-medium z-10">
-        {isDark ? "Dark Mode" : "Light Mode"}
-      </span>
-      
-      {/* Toggle circle with icon */}
+      {/* Sliding white toggle */}
       <div 
-        className={`w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-in-out ${
-          isDark ? 'translate-x-0' : 'translate-x-0'
+        className={`absolute w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
+          isDark ? 'translate-x-[calc(100%-24px)]' : 'translate-x-1'
         }`}
       >
         {isDark ? (
@@ -36,6 +31,16 @@ export function ThemeToggle() {
         ) : (
           <Sun size={14} className="text-purple-400" />
         )}
+      </div>
+      
+      {/* Text labels - positioned with proper spacing */}
+      <div className="flex w-full text-[11px] font-medium text-white px-2">
+        <span className={`transition-opacity duration-300 whitespace-nowrap flex-1 text-center ${isDark ? 'opacity-100' : 'opacity-0'}`}>
+          Dark Mode
+        </span>
+        <span className={`transition-opacity duration-300 whitespace-nowrap flex-1 text-center ${isDark ? 'opacity-0' : 'opacity-100'}`}>
+          Light Mode
+        </span>
       </div>
     </button>
   )

@@ -378,7 +378,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     {buttonChildren ?? <Wallet color="white" />}
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-32">
                                 <DropdownMenuItem asChild>
                                     <Link href="/leaderboard" prefetch>Leaderboard</Link>
                                 </DropdownMenuItem>
@@ -397,7 +397,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     Log In
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <div className="px-2 py-1.5">
+                                <div className="px-1 py-1.5">
                                     <ThemeToggle />
                                 </div>
                             </DropdownMenuContent>
@@ -446,7 +446,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             )}
                         </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-32">
                             <DropdownMenuItem asChild>
                                 <Link href="/leaderboard" prefetch>Leaderboard</Link>
                             </DropdownMenuItem>
