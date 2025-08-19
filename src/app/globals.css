@@ -83,23 +83,23 @@
 }
 
 .dark .bg-white {
-  background-color: black !important;
+  background-color: #1a1a1a !important; /* darker background instead of pure black */
 }
 
 .dark .bg-white\/80 {
-  background-color: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(26, 26, 26, 0.8) !important;
 }
 
 .dark .border-black {
-  border-color: white !important;
+  border-color: #374151 !important; /* dark gray border instead of white */
 }
 
 .dark .text-white {
-  color: black !important;
+  color: #f3f4f6 !important; /* slightly off-white for better readability */
 }
 
 .dark .bg-black {
-  background-color: white !important;
+  background-color: #1a1a1a !important; /* consistent dark background */
 }
 
 /* Preserve specific brand colors in dark mode */
@@ -132,52 +132,52 @@
 
 /* Search bar dark mode styling */
 .dark .bg-gray-100 {
-  background-color: #374151 !important; /* dark gray */
+  background-color: #2d3748 !important; /* slightly lighter dark gray for better contrast */
 }
 
 .dark .hover\:bg-gray-200:hover {
-  background-color: #4B5563 !important; /* darker gray on hover */
+  background-color: #4a5568 !important; /* medium gray on hover */
 }
 
 .dark .text-black {
-  color: white !important;
+  color: #f7fafc !important; /* bright white for better readability */
 }
 
 /* Make search icon white in dark mode */
 .dark svg[stroke-width="2.5"] {
-  color: white !important;
+  color: #f7fafc !important; /* bright white icon */
 }
 
 /* Make search input text white in dark mode */
 .dark input::placeholder {
-  color: #9CA3AF !important; /* light gray placeholder */
+  color: #a0aec0 !important; /* medium gray placeholder */
 }
 
 .dark input {
-  color: white !important;
+  color: #f7fafc !important; /* bright white text */
 }
 
 /* Make search results dropdown dark in dark mode */
 .dark .bg-white {
-  background-color: #374151 !important; /* dark gray */
+  background-color: #2d3748 !important; /* consistent with search bar */
 }
 
 .dark .hover\:bg-gray-100:hover {
-  background-color: #4B5563 !important; /* darker gray on hover */
+  background-color: #4a5568 !important; /* consistent hover state */
 }
 
 /* Login statistics button dark mode styling */
 .dark .bg-accent\/40 {
-  background-color: #374151 !important; /* dark gray - same as search bar */
+  background-color: #2d3748 !important; /* consistent with search bar */
 }
 
 .dark .hover\:bg-accent\/60:hover {
-  background-color: #4B5563 !important; /* darker gray on hover */
+  background-color: #4a5568 !important; /* consistent hover state */
 }
 
 /* Make the login button text white in dark mode */
 .dark .bg-accent\/40 span {
-  color: white !important;
+  color: #f7fafc !important; /* bright white text */
 }
 
 .text-color-primary {
@@ -196,7 +196,7 @@ body {
 }
 
 .dark body {
-  background: black;
+  background: #1a1a1a; /* consistent dark background */
 }
 
 @layer utilities {
