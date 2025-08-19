@@ -152,6 +152,15 @@
   color: #FF9CE3 !important;
 }
 
+/* Force pink color for any element with #FF9CE3 in dark mode */
+.dark [style*="#FF9CE3"] {
+  color: #FF9CE3 !important;
+}
+
+.dark [style*="#FF9CE3"] * {
+  color: #FF9CE3 !important;
+}
+
 /* Dark mode overrides for FunFacts components */
 .dark .bg-\[#9b83a0\] {
   background-color: rgb(89, 48, 97, 0.6) !important;
@@ -183,9 +192,9 @@
   --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
 }
 
-/* Dark mode override for "Ask Music Nerd" text - light gray */
+/* Dark mode override for "Ask Music Nerd" text - white */
 .dark .text-\[#422B46\] {
-  color: rgb(198, 191, 199, 0.8) !important;
+  color: white !important;
 }
 
 /* Dark mode override for "User Profile" heading */
