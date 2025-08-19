@@ -25,18 +25,18 @@ export function ThemeToggle() {
         }`}
       >
         {theme === "dark" ? (
-          <Moon className="h-3 w-3 text-gray-800" />
+          <Moon className="h-3 w-3 text-white" />
         ) : (
           <Sun className="h-3 w-3 text-gray-800" />
         )}
       </div>
       
       {/* Text label - positioned to avoid icon overlap */}
-      <div className="flex w-full px-2 text-[10px] font-medium text-white">
-        <span className={`transition-opacity duration-300 ${theme === "dark" ? 'opacity-100 text-left' : 'opacity-0'}`}>
+      <div className="flex w-full px-2 text-[9px] font-medium text-white">
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${theme === "dark" ? 'opacity-100 text-left' : 'opacity-0'}`}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 ${theme === "dark" ? 'opacity-0' : 'opacity-100 text-right'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${theme === "dark" ? 'opacity-0' : 'opacity-100 text-right'}`}>
           Light Mode
         </span>
       </div>
