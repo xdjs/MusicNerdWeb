@@ -23,7 +23,7 @@ export function ThemeToggle() {
       {/* Sliding white toggle */}
       <div 
         className={`absolute w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-          isDark ? 'translate-x-[calc(100%-24px)]' : 'translate-x-1'
+          isDark ? 'right-1' : 'left-1'
         }`}
       >
         {isDark ? (
@@ -33,12 +33,12 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text labels - positioned with tighter spacing */}
-      <div className="flex w-full text-[11px] font-medium text-white px-1">
-        <span className={`transition-opacity duration-300 whitespace-nowrap flex-1 text-center ${isDark ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Text labels - centered with equal spacing */}
+      <div className="flex w-full text-[11px] font-medium text-white justify-center">
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-100' : 'opacity-0'}`}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 whitespace-nowrap flex-1 text-center ${isDark ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-0' : 'opacity-100'}`}>
           Light Mode
         </span>
       </div>
