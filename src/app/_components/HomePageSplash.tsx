@@ -11,37 +11,34 @@ export default function HomePage({ animation }: { animation: string }) {
     const titles = [
         {
             label: ["Music", "Nerd"],
-            color: "rgb(var(--color-title-pink))",
+            color: "#FF9CE3",
         },
         {
             label: ["Mindful", "Listener"],
-            color: "rgba(var(--color-subtitle), 0.6)",
+            color: "rgba(89, 48, 97, 0.6)",
         },
         {
             label: ["Curious", "Researcher"],
-            color: "rgba(var(--color-subtitle), 0.6)",
+            color: "rgba(89, 48, 97, 0.6)",
         },
         {
             label: ["Obsessive", "Collector"],
-            color: "rgba(var(--color-subtitle), 0.6)",
+            color: "rgba(89, 48, 97, 0.6)",
         },
         {
             label: ["Enthusiastic", "Curator"],
-            color: "rgba(var(--color-subtitle), 0.6)",
+            color: "rgba(89, 48, 97, 0.6)",
         },
         {
             label: ["Executive", "Producer"],
-            color: "rgba(var(--color-subtitle), 0.6)",
+            color: "rgba(89, 48, 97, 0.6)",
         },
     ]
 
     const titleNodes = titles.map((title, index) => (
-        <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-            <h2 className="w-1/2 text-right pr-[0.4rem]">
-                {title.label[0]}
-            </h2>
-            <h2 className="w-1/2 pl-[0.4rem]">
-                {title.label[1]}
+        <div key={index} style={{ color: title.color }} className="lowercase w-full text-center home-text-h2">
+            <h2 className="inline-block">
+                {title.label[0]} {title.label[1]}
             </h2>
         </div>
     ))
@@ -61,12 +58,9 @@ export default function HomePage({ animation }: { animation: string }) {
             const delay = 80 * (charCount + prevCharCount) + index * 100;
             prevCharCount += charCount;
             return (
-                <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-                    <h2 className="w-1/2 text-right pr-[0.4rem]">
-                        {title.label[0]}
-                    </h2>
-                    <h2 className="w-1/2 pl-[0.4rem]">
-                        <TypewriterText text={title.label[1]} startDelay={delay} />
+                <div key={index} style={{ color: title.color }} className="lowercase w-full text-center home-text-h2">
+                    <h2 className="inline-block">
+                        {title.label[0]} <TypewriterText text={title.label[1]} startDelay={delay} />
                     </h2>
                 </div>
             )
@@ -89,11 +83,11 @@ export default function HomePage({ animation }: { animation: string }) {
                 <Login buttonStyles="" />
             </div>
 
-            <div className="w-full">
-                <div className="flex flex-col items-center md:fixed md:left-8 md:top-8 mb-4">
+            <div className="w-full flex flex-col items-center">
+                <div className="flex flex-col items-center mb-8">
                     <img
                         src="/icon.ico"
-                        className="w-auto"
+                        className="w-auto mb-8"
                         style={{
                             width: 'clamp(68px, calc(68px + (94 - 68) * ((100vw - 360px) / (1440 - 360))), 94px)'
                         }}
@@ -101,13 +95,13 @@ export default function HomePage({ animation }: { animation: string }) {
                     />
                 </div>
 
-                <div className="grow mb-8">
-                    <div className="font-bold w-full home-text-h2">
+                <div className="flex flex-col items-center mb-8">
+                    <div className="font-bold text-center home-text-h2">
                         {getAnimation(animation)}
                     </div>
                 </div>
                 <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-subtitle opacity-30 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
+                    <div className="text-[#422B46] opacity-30 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3 text-center">
                         Ask Music Nerd about an artist
                     </div>
                     <Suspense fallback={<div>Loading...</div>}>

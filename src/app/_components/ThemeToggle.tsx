@@ -13,7 +13,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+      className="flex items-center gap-2 px-3 py-2 text-sm rounded-full bg-button-primary text-white hover:bg-bg-button-hover transition-colors"
     >
       {theme === "light" ? (
         <>
