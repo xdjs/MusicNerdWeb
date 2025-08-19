@@ -33,8 +33,10 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text labels - centered with equal spacing */}
-      <div className="flex w-full text-[11px] font-medium text-white justify-center">
+      {/* Text labels - positioned closer to the icon */}
+      <div className={`flex w-full text-[11px] font-medium text-white transition-all duration-300 ${
+        isDark ? 'justify-start pl-2' : 'justify-end pr-2'
+      }`}>
         <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-100' : 'opacity-0'}`}>
           Dark Mode
         </span>
