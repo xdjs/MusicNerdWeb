@@ -138,6 +138,11 @@
   color: rgb(198, 191, 220, 0.8) !important;
 }
 
+/* Dark mode override for home page subtitle text */
+.dark .home-text-h2 {
+  color: rgb(198, 191, 199, 0.8) !important;
+}
+
 /* Dark mode override for "User Profile" heading */
 .dark h1.text-3xl.font-bold {
   color: white !important;
