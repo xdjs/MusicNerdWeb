@@ -136,6 +136,11 @@
   color: #6f4b75 !important;
 }
 
+/* Dark mode override for Leaderboard title to match UGC Added color */
+.dark .max-w-3xl .text-\[#6f4b75\].mb-5 {
+  color: #9b83a0 !important;
+}
+
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
 .dark .home-text-h2:not([style*="#ef95ff"]) {
   color: #a08ba8 !important;
