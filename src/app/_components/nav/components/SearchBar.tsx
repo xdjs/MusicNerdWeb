@@ -319,9 +319,9 @@ const WalletSearchBar = forwardRef(
     return (
         <>
             {isAddingArtist && <LoadingPage message={isAddingNew ? "Adding artist..." : "Loading..."} />}
-            <div ref={wrapperRef} onWheel={handleWheelScroll} className="relative w-full max-w-[400px] z-40 text-white">
-                <div className="p-3 bg-gray-600 rounded-lg flex items-center gap-2 h-12 hover:bg-gray-700 transition-colors duration-300">
-                    <Search size={24} strokeWidth={2.5} className="text-white" />
+            <div ref={wrapperRef} onWheel={handleWheelScroll} className="relative w-full max-w-[400px] z-40 text-black">
+                <div className="p-3 bg-gray-100 rounded-lg flex items-center gap-2 h-12 hover:bg-gray-200 transition-colors duration-300">
+                    <Search size={24} strokeWidth={2.5} />
                     <Input
                         type="text"
                         placeholder="Search artists..."
@@ -329,7 +329,7 @@ const WalletSearchBar = forwardRef(
                         onChange={handleInputChange}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        className="bg-transparent border-none focus:outline-none w-full text-white placeholder:text-gray-300"
+                        className="bg-transparent border-none focus:outline-none w-full"
                     />
                 </div>
                 {/* Search results dropdown */}
@@ -780,9 +780,9 @@ const NoWalletSearchBar = forwardRef(
     return (
         <>
             {isAddingArtist && <LoadingPage message={isAddingNew ? "Adding artist..." : "Loading..."} />}
-            <div ref={wrapperRef} onWheel={handleWheelScroll} className="relative w-full max-w-[400px] z-40 text-white">
-                <div className="p-3 bg-gray-600 rounded-lg flex items-center gap-2 h-12 hover:bg-gray-700 transition-colors duration-300">
-                    <Search size={24} strokeWidth={2.5} className="text-white" />
+            <div ref={wrapperRef} onWheel={handleWheelScroll} className="relative w-full max-w-[400px] z-40 text-black">
+                <div className="p-3 bg-gray-100 rounded-lg flex items-center gap-2 h-12 hover:bg-gray-200 transition-colors duration-300">
+                    <Search size={24} strokeWidth={2.5} />
                     <Input
                         type="text"
                         placeholder="Search artists..."
@@ -790,7 +790,7 @@ const NoWalletSearchBar = forwardRef(
                         onChange={handleInputChange}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        className="bg-transparent border-none focus:outline-none w-full text-white placeholder:text-gray-300"
+                        className="bg-transparent border-none focus:outline-none w-full"
                     />
                 </div>
                 {/* Search results dropdown */}
