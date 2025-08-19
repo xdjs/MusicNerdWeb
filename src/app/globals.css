@@ -185,6 +185,31 @@
   color: #ff9ce3 !important;
 }
 
+/* Force Music Nerd text to stay pink regardless of any other CSS */
+.home-text-h2,
+.home-text-h2 div,
+.home-text-h2 span,
+.home-text-h2 h1,
+.home-text-h2 h2,
+.home-text-h2 h3,
+.home-text-h2 h4,
+.home-text-h2 h5,
+.home-text-h2 h6 {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2,
+.dark .home-text-h2 div,
+.dark .home-text-h2 span,
+.dark .home-text-h2 h1,
+.dark .home-text-h2 h2,
+.dark .home-text-h2 h3,
+.dark .home-text-h2 h4,
+.dark .home-text-h2 h5,
+.dark .home-text-h2 h6 {
+  color: #ff9ce3 !important;
+}
+
 /* Additional specific override for Music Nerd text in dark mode */
 .dark .home-text-h2[style*="color: #ff9ce3"] h2 {
   color: #ff9ce3 !important;

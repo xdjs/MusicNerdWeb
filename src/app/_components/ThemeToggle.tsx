@@ -15,7 +15,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative w-32 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
+      className="relative w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
         backgroundColor: isDark ? '#2ad4fc' : '#ef95ff',
       }}
@@ -33,8 +33,8 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text labels - positioned with proper spacing */}
-      <div className="flex w-full text-[11px] font-medium text-white px-2">
+      {/* Text labels - positioned with tighter spacing */}
+      <div className="flex w-full text-[11px] font-medium text-white px-1">
         <span className={`transition-opacity duration-300 whitespace-nowrap flex-1 text-center ${isDark ? 'opacity-100' : 'opacity-0'}`}>
           Dark Mode
         </span>
