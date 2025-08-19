@@ -166,6 +166,20 @@
   background-color: #4B5563 !important; /* darker gray on hover */
 }
 
+/* Login statistics button dark mode styling */
+.dark .bg-accent\/40 {
+  background-color: #374151 !important; /* dark gray - same as search bar */
+}
+
+.dark .hover\:bg-accent\/60:hover {
+  background-color: #4B5563 !important; /* darker gray on hover */
+}
+
+/* Make the login button text white in dark mode */
+.dark .bg-accent\/40 span {
+  color: white !important;
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
