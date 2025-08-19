@@ -15,7 +15,6 @@ import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
-
 type ArtistProfileProps = {
     params: { id: string };
     searchParams: { [key: string]: string | undefined };

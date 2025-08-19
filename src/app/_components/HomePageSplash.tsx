@@ -11,27 +11,27 @@ export default function HomePage({ animation }: { animation: string }) {
     const titles = [
         {
             label: ["Music", "Nerd"],
-            color: "#FF9CE3",
+            color: "#ff9ce3",
         },
         {
             label: ["Mindful", "Listener"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "var(--subtitle-color)",
         },
         {
             label: ["Curious", "Researcher"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "var(--subtitle-color)",
         },
         {
             label: ["Obsessive", "Collector"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "var(--subtitle-color)",
         },
         {
             label: ["Enthusiastic", "Curator"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "var(--subtitle-color)",
         },
         {
             label: ["Executive", "Producer"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "var(--subtitle-color)",
         },
     ]
 
@@ -124,7 +124,7 @@ export default function HomePage({ animation }: { animation: string }) {
                     </div>
                 </div>
                 <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-[#422B46] opacity-30 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
+                    <div className="text-gray-500 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
                         Ask Music Nerd about an artist
                     </div>
                     <Suspense fallback={<div>Loading...</div>}>
@@ -133,7 +133,7 @@ export default function HomePage({ animation }: { animation: string }) {
                 </div>
             </div>
             {/* <div className="flex flex-col items-center">
-          <p className="text-[#422B46] text-[14px] sm:text-[25px] tracking[-0.5px] font-bold">
+          <p className="text-maroon text-[14px] sm:text-[25px] tracking[-0.5px] font-bold">
               Made in Seattle by <a href="https://x.com/cxy" target="blank" className='link'>@<span className='underline'>cxy</span> </a>
               <a href="https://x.com/clt" target="blank" className='link'>@<span className='underline'>clt</span></a> and friends
           </p>

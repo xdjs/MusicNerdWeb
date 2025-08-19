@@ -101,10 +101,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-background border-2",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
                               ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
-                              : "border-[#c6bfc7]"
+                              : "border-[#9b83a0]"
                      )}
         >
             {/* Mobile layout */}
@@ -151,16 +151,16 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                 {/* UGC row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">UGC Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
+                    <span className="text-[#9b83a0] font-semibold">UGC Added</span>
+                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
                         {entry.ugcCount}
                     </Badge>
                 </div>
 
                 {/* Artists row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">Artists Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
+                    <span className="text-[#9b83a0] font-semibold">Artists Added</span>
+                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
                         {entry.artistsCount}
                     </Badge>
                 </div>
@@ -210,16 +210,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC count */}
                         <div className="flex items-center justify-center">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.ugcCount}
-                            </Badge>
+                            <span className="text-[#9b83a0] font-semibold text-base">{entry.ugcCount}</span>
                         </div>
 
                         {/* Artist count */}
                         <div className="flex items-center justify-end">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.artistsCount}
-                            </Badge>
+                            <span className="text-[#9b83a0] font-semibold text-base">{entry.artistsCount}</span>
                         </div>
                     </div>
 
@@ -352,7 +348,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
@@ -388,7 +384,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
@@ -420,7 +416,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto shadow-2xl">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
@@ -443,7 +439,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-background py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#9b83a0] text-center sticky top-0 z-20 bg-background py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>

@@ -37,7 +37,7 @@ export default async function Admin() {
     ]);
 
             return (
-            <section className="px-10 py-5 space-y-6">
+            <section className="admin-page px-10 py-5 space-y-6">
                 {/* Silent client-side helper to refresh page after login */}
                 <AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} />
                 <h1 className="text-2xl">Site Management</h1>
