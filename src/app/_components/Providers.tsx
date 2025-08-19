@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { Session } from "next-auth";
 import AuthToast from "./AuthToast";
+import { ThemeProvider } from "./ThemeProvider";
 
 export default function Providers({
   children,
@@ -12,13 +13,15 @@ export default function Providers({
   session: Session | null;
 }) {
   return (
-    <SessionProvider 
-      session={session}
-      refetchInterval={0} 
-      refetchOnWindowFocus={false}
-    >
-      <AuthToast />
-      {children}
-    </SessionProvider>
+    <ThemeProvider defaultTheme="light" storageKey="musicnerd-theme">
+      <SessionProvider 
+        session={session}
+        refetchInterval={0} 
+        refetchOnWindowFocus={false}
+      >
+        <AuthToast />
+        {children}
+      </SessionProvider>
+    </ThemeProvider>
   );
 } 

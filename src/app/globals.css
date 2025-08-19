@@ -77,6 +77,31 @@
   }
 }
 
+/* Dark mode overrides for hard-coded black/white colors */
+.dark .text-black {
+  color: white !important;
+}
+
+.dark .bg-white {
+  background-color: black !important;
+}
+
+.dark .bg-white\/80 {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.dark .border-black {
+  border-color: white !important;
+}
+
+.dark .text-white {
+  color: black !important;
+}
+
+.dark .bg-black {
+  background-color: white !important;
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
@@ -90,6 +115,10 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: white;
+}
+
+.dark body {
+  background: black;
 }
 
 @layer utilities {
