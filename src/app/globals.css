@@ -163,6 +163,28 @@
   color: #ff9ce3 !important;
 }
 
+/* Additional overrides to ensure Music Nerd text stays pink in all modes */
+.home-text-h2[style*="#ff9ce3"],
+.home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"],
+.dark .home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+/* Override any global text color changes for Music Nerd text */
+.home-text-h2[style*="#ff9ce3"] *,
+.home-text-h2[style*="color: #ff9ce3"] * {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"] *,
+.dark .home-text-h2[style*="color: #ff9ce3"] * {
+  color: #ff9ce3 !important;
+}
+
 /* Additional specific override for Music Nerd text in dark mode */
 .dark .home-text-h2[style*="color: #ff9ce3"] h2 {
   color: #ff9ce3 !important;
