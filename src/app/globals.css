@@ -104,11 +104,11 @@
 
 /* Preserve specific brand colors in dark mode */
 .dark [style*="rgb(89, 48, 97, 0.6)"] {
-  color: #9b83a0 !important;
+  color: #c6bfc7 !important;
 }
 
 .dark [style*="rgb(89, 48, 97, 0.6)"] * {
-  color: #9b83a0 !important;
+  color: #c6bfc7 !important;
 }
 
 /* Preserve #422B46 color in dark mode */
