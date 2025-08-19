@@ -100,17 +100,17 @@
   color: #f3f4f6 !important; /* slightly off-white for better readability */
 }
 
-/* Dark mode override for "Ask Music Nerd" text */
-.dark .text-\[#422B46\] {
-  color: rgb(198, 191, 199, 0.8) !important;
-}
 
-/* Dark mode overrides for Leaderboard - swap dark purple with light purple */
+
+/* Dark mode overrides for Leaderboard - consolidated */
 .dark .border-\[#9b83a0\] {
-  border-color: rgb(198, 191, 220, 0.8) !important;
+  border-color: #6f4b75 !important;
 }
 
-/* Dark mode overrides for Leaderboard text */
+.dark .border-\[#c6bfc7\] {
+  border-color: rgb(89, 48, 97, 0.6) !important;
+}
+
 .dark .text-\[#6f4b75\] {
   color: rgb(198, 191, 199, 0.8) !important;
 }
@@ -119,17 +119,6 @@
   color: white !important;
 }
 
-/* Dark mode overrides for Leaderboard - swap colors */
-.dark .border-\[#9b83a0\] {
-  border-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-/* Dark mode override for light purple borders to become dark purple */
-.dark .border-\[#c6bfc7\] {
-  border-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-/* Dark mode overrides for Leaderboard - ensure text colors are preserved */
 .dark .bg-\[#f3f4f6\] {
   background-color: #1a1a1a !important;
 }
@@ -138,14 +127,56 @@
   color: rgb(198, 191, 220, 0.8) !important;
 }
 
+/* Dark mode override for Leaderboard column headings - swap with border color */
+.dark .text-\[#6f4b75\]:not(.bg-\[#f3f4f6\]) {
+  color: #9b83a0 !important;
+}
+
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
 .dark .home-text-h2:not([style*="#FF9CE3"]) {
   color: #9b83a0 !important;
 }
 
-/* Ensure the pink "Music Nerd" title stays pink in dark mode */
-.dark .home-text-h2[style*="#FF9CE3"] {
+/* Ensure the pink "Music Nerd" title stays pink in dark mode - more specific */
+.dark .home-text-h2[style*="#FF9CE3"], 
+.dark .home-text-h2[style*="color: #FF9CE3"] {
   color: #FF9CE3 !important;
+}
+
+/* Additional override to ensure pink color is preserved */
+.dark h2[style*="#FF9CE3"] {
+  color: #FF9CE3 !important;
+}
+
+/* Dark mode overrides for FunFacts components */
+.dark .bg-\[#9b83a0\] {
+  background-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .hover\:bg-\[#b8b1b9\]:hover {
+  background-color: rgb(111, 75, 117, 0.8) !important;
+}
+
+/* Dark mode overrides for UserEntriesTable components */
+.dark .bg-\[#c6bfc7\] {
+  background-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .text-\[#c6bfc7\] {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .hover\:text-\[#c6bfc7\]:hover {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+/* Dark mode overrides for Dashboard component */
+.dark .hover\:ring-\[#c6bfc7\]:hover {
+  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .focus\:ring-\[#c6bfc7\]:focus {
+  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
 }
 
 /* Dark mode override for "Ask Music Nerd" text - light gray */
@@ -201,18 +232,9 @@
   color: #c6bfc7 !important;
 }
 
-/* Preserve #422B46 color in dark mode */
-.dark [style*="#422B46"] {
-  color: #422B46 !important;
-}
-
-.dark [style*="#422B46"] * {
-  color: #422B46 !important;
-}
-
-/* Preserve #422B46 color with opacity in dark mode */
+/* Dark mode override for #422B46 text - consolidated */
 .dark .text-\[#422B46\] {
-  color: #422B46 !important;
+  color: rgb(198, 191, 199, 0.8) !important;
 }
 
 /* Make footer text white in dark mode */
