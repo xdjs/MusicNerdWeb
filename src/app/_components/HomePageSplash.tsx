@@ -15,23 +15,23 @@ export default function HomePage({ animation }: { animation: string }) {
         },
         {
             label: ["Mindful", "Listener"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "rgb(198, 191, 199, 0.6)",
         },
         {
             label: ["Curious", "Researcher"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "rgb(198, 191, 199, 0.6)",
         },
         {
             label: ["Obsessive", "Collector"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "rgb(198, 191, 199, 0.6)",
         },
         {
             label: ["Enthusiastic", "Curator"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "rgb(198, 191, 199, 0.6)",
         },
         {
             label: ["Executive", "Producer"],
-            color: "rgb(89, 48, 97, 0.6)",
+            color: "rgb(198, 191, 199, 0.6)",
         },
     ]
 
