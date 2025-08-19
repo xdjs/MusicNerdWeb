@@ -127,9 +127,13 @@
   color: rgb(198, 191, 220, 0.8) !important;
 }
 
-/* Dark mode override for Leaderboard column headings - swap with border color */
+/* Dark mode override for Leaderboard column headings and numbers - use border color */
 .dark .text-\[#6f4b75\]:not(.bg-\[#f3f4f6\]) {
   color: #9b83a0 !important;
+}
+
+.dark .text-\[#9b83a0\] {
+  color: #6f4b75 !important;
 }
 
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */

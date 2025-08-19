@@ -151,18 +151,14 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                 {/* UGC row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">UGC Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
-                        {entry.ugcCount}
-                    </Badge>
+                    <span className="text-[#9b83a0] font-semibold">UGC Added</span>
+                    <span className="text-[#9b83a0] font-semibold">{entry.ugcCount}</span>
                 </div>
 
                 {/* Artists row */}
                 <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">Artists Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
-                        {entry.artistsCount}
-                    </Badge>
+                    <span className="text-[#9b83a0] font-semibold">Artists Added</span>
+                    <span className="text-[#9b83a0] font-semibold">{entry.artistsCount}</span>
                 </div>
             </div>
 
@@ -210,16 +206,12 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                         {/* UGC count */}
                         <div className="flex items-center justify-center">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.ugcCount}
-                            </Badge>
+                            <span className="text-[#9b83a0] font-semibold text-base">{entry.ugcCount}</span>
                         </div>
 
                         {/* Artist count */}
                         <div className="flex items-center justify-end">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.artistsCount}
-                            </Badge>
+                            <span className="text-[#9b83a0] font-semibold text-base">{entry.artistsCount}</span>
                         </div>
                     </div>
 
@@ -443,7 +435,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-background py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#9b83a0] text-center sticky top-0 z-20 bg-background py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
