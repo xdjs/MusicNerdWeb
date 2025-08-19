@@ -139,28 +139,28 @@
 
 
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
-.dark .home-text-h2:not([style*="#ef95ff"]) {
+.dark .home-text-h2:not([style*="#ff9ce3"]) {
   color: #a08ba8 !important;
 }
 
 /* Ensure the pink "Music Nerd" title stays pink in dark mode - more specific */
-.dark .home-text-h2[style*="#ef95ff"], 
-.dark .home-text-h2[style*="color: #ef95ff"] {
-  color: #ef95ff !important;
+.dark .home-text-h2[style*="#ff9ce3"], 
+.dark .home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
 }
 
 /* Additional override to ensure pink color is preserved */
-.dark h2[style*="#ef95ff"] {
-  color: #ef95ff !important;
+.dark h2[style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
 }
 
-/* Force pink color for any element with #ef95ff in dark mode */
-.dark [style*="#ef95ff"] {
-  color: #ef95ff !important;
+/* Force pink color for any element with #ff9ce3 in dark mode */
+.dark [style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
 }
 
-.dark [style*="#ef95ff"] * {
-  color: #ef95ff !important;
+.dark [style*="#ff9ce3"] * {
+  color: #ff9ce3 !important;
 }
 
 /* Dark mode overrides for FunFacts components */
