@@ -110,29 +110,57 @@
   border-color: rgb(198, 191, 220, 0.8) !important;
 }
 
+/* Dark mode overrides for Leaderboard text */
+.dark .text-\[#6f4b75\] {
+  color: rgb(198, 191, 220, 0.8) !important;
+}
+
+.dark .text-muted-foreground {
+  color: white !important;
+}
+
+/* Dark mode overrides for Leaderboard - swap dark purple with light purple */
+.dark .border-\[#9b83a0\] {
+  border-color: rgb(198, 191, 220, 0.8) !important;
+}
+
+/* Dark mode override for light purple borders to become dark purple */
+.dark .border-\[#c6bfc7\] {
+  border-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+/* Dark mode overrides for Leaderboard - ensure text colors are preserved */
+.dark .bg-\[#f3f4f6\] {
+  background-color: #1a1a1a !important;
+}
+
+.dark .text-\[#6f4b75\].bg-\[#f3f4f6\] {
+  color: rgb(198, 191, 220, 0.8) !important;
+}
+
 /* Dark mode override for "User Profile" heading */
 .dark h1.text-3xl.font-bold {
   color: white !important;
 }
 
-/* Dark mode overrides for User Profile page text */
-.dark .text-black {
+/* Dark mode overrides for User Profile page text - more specific to avoid affecting home page */
+.dark [data-guest-user="true"] .text-black {
   color: white !important;
 }
 
-.dark p {
+.dark [data-guest-user="true"] p {
   color: white !important;
 }
 
-.dark span {
+.dark [data-guest-user="true"] span {
   color: white !important;
 }
 
-.dark div {
+.dark [data-guest-user="true"] div {
   color: white !important;
 }
 
-.dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+.dark [data-guest-user="true"] h2, .dark [data-guest-user="true"] h3, .dark [data-guest-user="true"] h4, .dark [data-guest-user="true"] h5, .dark [data-guest-user="true"] h6 {
   color: white !important;
 }
 
