@@ -51,6 +51,21 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.username ?? '').toLowerCase().includes(identifierLc) ||
         identifierLc.includes((entry.username ?? '').toLowerCase())
     );
+    
+    // Debug logging for highlighting - only log for the specific user we're looking for
+    if (entry.username === 'piper' || entry.username?.toLowerCase().includes('piper')) {
+        console.log('[Leaderboard] Highlighting debug for piper:', {
+            highlightIdentifier,
+            identifierLc,
+            entryUsername: entry.username,
+            entryWallet: entry.wallet,
+            isHighlighted,
+            usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
+            walletMatch: entry.wallet?.toLowerCase() === identifierLc,
+            usernameContains: (entry.username ?? '').toLowerCase().includes(identifierLc),
+            identifierContains: identifierLc?.includes((entry.username ?? '').toLowerCase())
+        });
+    }
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
@@ -106,9 +121,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-gray-800 bg-background border-2",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.3)]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
                               : "border-[#9b83a0]"
                      )}
         >
