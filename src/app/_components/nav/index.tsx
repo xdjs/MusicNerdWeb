@@ -14,12 +14,12 @@ export default function Nav() {
     if (pathname === "/") return null;
 
     return (
-        <nav className="p-6 nav-bar flex items-center justify-between max-w-[1000px] mx-auto">
+        <nav className="p-6 flex items-center justify-between max-w-[1000px] mx-auto">
             <div className="flex gap-2">
                 <Link href={"/"}>
                     <img
                         src="/icon.ico"
-                        className="w-16 hover:animate-[spin_3s_linear_infinite]"
+                        className="w-16 hover:animate-hover-spin"
                         alt="logo"
                     />
                 </Link>

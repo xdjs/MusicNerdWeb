@@ -577,7 +577,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                  role="button"
                                  tabIndex={0}
                                  onClick={handleLogin}
-                                 className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#9b83a0] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#9b83a0] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#9b83a0]"
+                                 className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-border-interactive rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-border-interactive w-full gap-2 focus:outline-none focus:ring-2 focus:ring-border-interactive"
                              >
                                  <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
                              </div>
@@ -593,7 +593,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-border-highlight rounded-md bg-background hover:bg-bg-hover w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-border-highlight shadow-lg"
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
@@ -661,7 +661,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="mt-2 text-sm underline text-[#2ad4fc] hover:text-[#2ad4fc]"
+                                className="mt-2 text-sm underline text-link hover:text-link"
                             >
                                 View leaderboard position
                             </a>
@@ -835,7 +835,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-2 border-[#ff9ce3] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
+                                className="py-4 space-y-2 text-left border-2 border-border-highlight hover:bg-bg-hover h-auto self-center md:self-end w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2">
                                     {/* User Rank */}

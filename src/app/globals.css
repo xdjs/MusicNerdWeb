@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbar utilities */
 .scrollbar-hide {
   -ms-overflow-style: none; /* Internet Explorer 10+ */
   scrollbar-width: none; /* Firefox */
@@ -13,6 +14,47 @@
 
 @layer base {
   :root {
+    /* Core brand colors - maintaining existing colors */
+    --color-maroon: 66 43 70; /* #422B46 - Primary maroon */
+    --color-pastyblue: 42 212 252; /* #2AD4FC - Primary blue */
+    --color-pastypink: 239 149 255; /* #EF95FF - Primary pink */
+    --color-jellygreen: 25 255 184; /* #19FFB8 - Primary green */
+    --color-primary-pink: 237 173 248; /* #EDADF8 - Button pink */
+    --color-title-pink: 255 156 227; /* #FF9CE3 - Title pink */
+    --color-subtitle: 89 48 97; /* #592831 - Subtitle color */
+    
+    /* Semantic colors based on content purpose */
+    
+    /* Text colors */
+    --color-text-heading: 111 75 117; /* #6f4b75 - For headings like "Leaderboard", "Your Artist Data Entry" */
+    --color-text-subheading: 89 48 97; /* #592831 - For subtitle text */
+    
+    /* Border colors */
+    --color-border-card: 198 191 199; /* #c6bfc7 - For card borders, table borders */
+    --color-border-interactive: 155 131 160; /* #9b83a0 - For interactive elements, buttons */
+    --color-border-highlight: 255 156 227; /* #ff9ce3 - For highlighted/focused elements */
+    
+    /* Background colors */
+    --color-bg-table-header: 155 131 160; /* #9b83a0 - For table headers */
+    --color-bg-hover: 243 244 246; /* #f3f4f6 - For hover states */
+    --color-bg-button-hover: 184 177 185; /* #b8b1b9 - For button hover states */
+    
+    /* Interactive element colors */
+    --color-link: 42 212 252; /* #2ad4fc - For links and interactive text */
+    --color-button-primary: 237 173 248; /* #edadf8 - For primary buttons */
+    --color-accent-pink: 239 149 255; /* #ef95ff - For accent elements like bookmarks */
+    --color-highlight: 255 156 227; /* #ff9ce3 - For title text and highlights */
+    
+    /* Legacy color support - maintaining existing colors */
+    --color-maroon: 66 43 70; /* #422B46 - Primary maroon */
+    --color-pastyblue: 42 212 252; /* #2AD4FC - Primary blue */
+    --color-pastypink: 239 149 255; /* #EF95FF - Primary pink */
+    --color-jellygreen: 25 255 184; /* #19FFB8 - Primary green */
+    --color-primary-pink: 237 173 248; /* #EDADF8 - Button pink */
+    --color-title-pink: 255 156 227; /* #FF9CE3 - Title pink */
+    --color-subtitle: 89 48 97; /* #592831 - Subtitle color */
+    
+    /* Light theme colors */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -33,11 +75,40 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Chart colors */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    
+    /* Typography */
+    --font-family-koho: "KoHo", sans-serif;
+    --font-weight-extralight: 200;
+    --font-weight-light: 300;
+    
+    /* Spacing and layout */
+    --nav-padding: 1.5rem;
+    --nav-padding-mobile: 1.125rem;
+    --home-text-padding: 1.25rem;
+    --home-text-padding-mobile: 0.625rem;
+    --button-padding-x: 1.875rem;
+    --button-padding-y: 0.3125rem;
+    --search-bar-radius: 0.3125rem;
+    
+    /* Responsive typography */
+    --title-font-size-min: 1.75rem; /* 28px */
+    --title-font-size-max: 4.875rem; /* 78px */
+    --title-letter-spacing-min: -0.0625rem; /* -1px */
+    --title-letter-spacing-max: -0.1875rem; /* -3px */
+    --title-line-height-min: 2.25rem; /* 36px */
+    --title-line-height-max: 4.875rem; /* 78px */
+    
+    /* Animation durations */
+    --animation-slow-spin: 10s;
+    --animation-scroll: 20s;
+    --animation-hover-spin: 3s;
   }
 
   .dark {
@@ -74,59 +145,39 @@
   }
   body {
     @apply bg-background text-foreground;
+    color: rgb(var(--foreground-rgb));
+    background: white;
   }
 }
 
+/* Typography utilities */
 .text-color-primary {
-  color: #EDADF8;
-}
-
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: white;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-.search-bar {
-  border-radius: 5px;
+  color: rgb(var(--color-primary-pink));
 }
 
 .koho-extralight {
-  font-family: "KoHo", sans-serif;
-  font-weight: 200;
+  font-family: var(--font-family-koho);
+  font-weight: var(--font-weight-extralight);
   font-style: normal;
 }
 
 .koho-light {
-  font-family: "KoHo", sans-serif;
-  font-weight: 300;
+  font-family: var(--font-family-koho);
+  font-weight: var(--font-weight-light);
   font-style: normal;
 }
 
+/* Button styles */
 .pink-btn {
-  background-color: #EDADF8;
-  color: #422B46;
-  font-family: "KoHo", sans-serif;
-  border-radius: 5px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 30px;
-  padding-right: 30px;
-  font-size: 18px;
+  background-color: rgb(var(--color-primary-pink));
+  color: rgb(var(--color-maroon));
+  font-family: var(--font-family-koho);
+  border-radius: var(--search-bar-radius);
+  padding: var(--button-padding-y) var(--button-padding-x);
+  font-size: 1.125rem; /* 18px */
 }
 
-
+/* Layout utilities */
 .nav-grid {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -135,25 +186,22 @@ body {
 .link-item-grid {
   display: grid;
   grid-template-columns: auto 1fr;
-  align-items: center; /* Vertically center the items */
+  align-items: center;
 }
 
-
+/* Home page text styles */
 .home-text {
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 0px;
-  padding-bottom: 24px;
+  padding: 0 var(--home-text-padding) 1.5rem var(--home-text-padding);
 }
 
 .home-text-h2 {
-  font-size: clamp(28px, calc(28px + (78 - 28) * ((100vw - 360px) / (1440 - 360))), 70px);
-  letter-spacing: clamp(-1px, calc(-1px + (-3 - -1) * ((100vw - 360px) / (1440 - 360))), -3px);
-  line-height: clamp(36px, calc(36px + (78 - 36) * ((100vw - 360px) / (1440 - 360))), 70px);
+  font-size: clamp(var(--title-font-size-min), calc(var(--title-font-size-min) + (var(--title-font-size-max) - var(--title-font-size-min)) * ((100vw - 360px) / (1440 - 360))), var(--title-font-size-max));
+  letter-spacing: clamp(var(--title-letter-spacing-min), calc(var(--title-letter-spacing-min) + (var(--title-letter-spacing-max) - var(--title-letter-spacing-min)) * ((100vw - 360px) / (1440 - 360))), var(--title-letter-spacing-max));
+  line-height: clamp(var(--title-line-height-min), calc(var(--title-line-height-min) + (var(--title-line-height-max) - var(--title-line-height-min)) * ((100vw - 360px) / (1440 - 360))), var(--title-line-height-max));
 }
 
 .home-text-height {
-  max-height: clamp(36px, calc(36px + (78 - 36) * ((100vw - 360px) / (1440 - 360))), 70px);
+  max-height: clamp(var(--title-line-height-min), calc(var(--title-line-height-min) + (var(--title-line-height-max) - var(--title-line-height-min)) * ((100vw - 360px) / (1440 - 360))), var(--title-line-height-max));
 }
 
 .SearchBar {
@@ -161,16 +209,22 @@ body {
   flex-grow: 1;
 }
 
+/* Search bar styles */
+.search-bar {
+  border-radius: var(--search-bar-radius);
+}
+
+/* Responsive design */
 @media screen and (max-width: 768px) {
   .nav-bar {
-    padding-left: 18px;
-    padding-right: 18px;
-    column-gap: 10px;
+    padding-left: var(--nav-padding-mobile);
+    padding-right: var(--nav-padding-mobile);
+    column-gap: 0.625rem;
   }
 
   .home-text {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: var(--home-text-padding-mobile);
+    padding-right: var(--home-text-padding-mobile);
   }
 
   .nav-grid {
@@ -179,18 +233,19 @@ body {
   }
 
   .pink-btn {
-    font-size: 16px;
-    padding-left: 4px;
-    padding-right: 4px;
+    font-size: 1rem; /* 16px */
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
   }
 
   .nav-grid .SearchBar {
-    font-size: 16px;
+    font-size: 1rem; /* 16px */
     grid-column: span 2;
     grid-row-start: 2;
   }
 }
 
+/* Animation keyframes */
 @keyframes scroll-left {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -201,24 +256,31 @@ body {
   100% { transform: translateX(50%); }
 }
 
+@keyframes slow-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Animation classes */
 .animate-scroll-left {
-  animation: scroll-left 20s linear infinite;
+  animation: scroll-left var(--animation-scroll) linear infinite;
 }
 
 .animate-scroll-right {
-  animation: scroll-right 20s linear infinite;
+  animation: scroll-right var(--animation-scroll) linear infinite;
 }
 
+.animate-slow-spin {
+  animation: slow-spin var(--animation-slow-spin) linear infinite;
+}
+
+/* Legacy utility classes - maintaining compatibility */
 .navbar {
   @apply flex justify-between items-center w-full p-4 bg-gray-800;
 }
 
 .logo {
   @apply h-10;
-}
-
-.search-bar {
-  @apply p-2 border rounded;
 }
 
 .login-button {
@@ -241,15 +303,6 @@ body {
   @apply rounded-lg;
 }
 
-@keyframes slow-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-slow-spin {
-  animation: slow-spin 10s linear infinite;
-}
-
 .support-button, .sound-button, .world-button {
   @apply m-2 p-2 bg-green-500 text-white rounded;
 }
@@ -268,4 +321,10 @@ body {
 
 .scroll-text {
   @apply mt-4 text-gray-600;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

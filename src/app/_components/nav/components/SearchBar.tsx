@@ -370,8 +370,7 @@ const WalletSearchBar = forwardRef(
                                                             <span title="Bookmarked">
                                                                 <Bookmark 
                                                                     size={14} 
-                                                                    className="fill-current"
-                                                                    style={{ color: '#ef95ff' }}
+                                                                    className="fill-current text-pastypink"
                                                                 />
                                                             </span>
                                                         )}

@@ -1,10 +1,31 @@
-$primary: #2ad4fc;
-$secondary: #ef95ff;
-$tertiary: #19ffb8;
+/* SCSS color variables using CSS custom properties */
+/* Core brand colors */
+$primary: rgb(var(--color-pastyblue));
+$secondary: rgb(var(--color-pastypink));
+$tertiary: rgb(var(--color-jellygreen));
+
+/* Purple/Maroon color family */
+$purple-primary: rgb(var(--color-purple-primary));
+$purple-medium: rgb(var(--color-purple-medium));
+$purple-light: rgb(var(--color-purple-light));
+$purple-hover: rgb(var(--color-purple-hover));
+$purple-muted: rgb(var(--color-purple-muted));
+
+/* Pink color family */
+$pink-primary: rgb(var(--color-pink-primary));
+$pink-secondary: rgb(var(--color-pink-secondary));
+$pink-button: rgb(var(--color-pink-button));
+
+/* Blue color family */
+$blue-primary: rgb(var(--color-blue-primary));
+$blue-hover: rgb(var(--color-blue-hover));
+
+/* Neutral colors */
 $grey: rgb(184, 182, 182);
 $purple: rgb(25, 0, 50);
 $lightpurple: rgb(100, 0, 200);
 
+/* Legacy color classes for backward compatibility */
 .text-color-primary {
     color: $primary;
 }
@@ -19,4 +40,29 @@ $lightpurple: rgb(100, 0, 200);
 
 .text-color-white {
     color: white;
+}
+
+/* New semantic color classes */
+.text-color-purple-primary {
+    color: $purple-primary;
+}
+
+.text-color-purple-medium {
+    color: $purple-medium;
+}
+
+.text-color-purple-light {
+    color: $purple-light;
+}
+
+.text-color-pink-primary {
+    color: $pink-primary;
+}
+
+.text-color-pink-secondary {
+    color: $pink-secondary;
+}
+
+.text-color-blue-primary {
+    color: $blue-primary;
 }
