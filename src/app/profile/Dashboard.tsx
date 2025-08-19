@@ -593,7 +593,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-gray-800 w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-lg text-foreground"
+                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-gray-800 w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-[0_0_20px_rgba(255,156,227,0.3)] text-foreground"
                             >
                                  {/* User */}
  								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
@@ -957,7 +957,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {/* Leaderboard Section */}
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
-                <Leaderboard highlightIdentifier={user.wallet} onRangeChange={handleLeaderboardRangeChange} />
+                <Leaderboard highlightIdentifier={user.username || user.wallet} onRangeChange={handleLeaderboardRangeChange} />
             </div>
             )}
         </section>

@@ -34,13 +34,13 @@ export function ThemeToggle() {
       </div>
       
       {/* Text labels - positioned on opposite side from toggle */}
-      <div className={`flex w-full text-sm font-medium text-white transition-all duration-300 ${
+      <div className={`flex w-full text-sm font-medium transition-all duration-300 ${
         isDark ? 'justify-start pl-2' : 'justify-end pr-2'
       }`}>
-        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-100' : 'opacity-0'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap text-black ${isDark ? 'opacity-100' : 'opacity-0'}`}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap text-white ${isDark ? 'opacity-0' : 'opacity-100'}`}>
           Light Mode
         </span>
       </div>

@@ -43,6 +43,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
         entry.wallet?.toLowerCase() === identifierLc ||
+        entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
+        identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
         (entry.username ?? '').toLowerCase() === identifierLc ||
         (entry.email ?? '').toLowerCase() === identifierLc
     );
@@ -103,7 +105,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                          className={cn(
                          "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.3)]"
                               : "border-[#9b83a0]"
                      )}
         >
@@ -152,7 +154,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                  {/* UGC row */}
                  <div className="flex justify-between items-center">
                      <span className="text-[#9b83a0] font-semibold">UGC Added</span>
-                     <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
                          {entry.ugcCount}
                      </Badge>
                  </div>
@@ -160,7 +162,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                  {/* Artists row */}
                  <div className="flex justify-between items-center">
                      <span className="text-[#9b83a0] font-semibold">Artists Added</span>
-                     <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
                          {entry.artistsCount}
                      </Badge>
                  </div>
@@ -210,14 +212,14 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 
                                                                                                    {/* UGC count */}
                           <div className="flex items-center justify-center">
-                              <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
                                   {entry.ugcCount}
                               </Badge>
                           </div>
 
                           {/* Artist count */}
                           <div className="flex items-center justify-end">
-                              <Badge className="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold px-3 py-1 rounded-full text-base">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
                                   {entry.artistsCount}
                               </Badge>
                           </div>
