@@ -251,10 +251,9 @@
   color: white !important;
 }
 
-/* Make "Ask Music Nerd about an artist" text white in dark mode (remove opacity) */
-.dark .text-maroon.opacity-30 {
-  color: white !important;
-  opacity: 1 !important;
+/* Make "Ask Music Nerd about an artist" text match search placeholder color in dark mode */
+.dark .text-gray-500 {
+  color: #a0aec0 !important;
 }
 
 /* Search bar dark mode styling */
