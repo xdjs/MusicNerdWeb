@@ -66,7 +66,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --subtitle-color: rgb(198, 191, 220, 0.8);
+    --subtitle-color: rgb(198, 191, 199, 0.8);
   }
 }
 
@@ -102,7 +102,7 @@
 
 /* Dark mode override for "Ask Music Nerd" text */
 .dark .text-\[#422B46\] {
-  color: rgb(89, 48, 97, 0.6) !important;
+  color: rgb(198, 191, 220, 0.8) !important;
 }
 
 /* Dark mode overrides for Leaderboard - swap dark purple with light purple */
@@ -112,16 +112,16 @@
 
 /* Dark mode overrides for Leaderboard text */
 .dark .text-\[#6f4b75\] {
-  color: rgb(198, 191, 220, 0.8) !important;
+  color: rgb(198, 191, 199, 0.8) !important;
 }
 
 .dark .text-muted-foreground {
   color: white !important;
 }
 
-/* Dark mode overrides for Leaderboard - swap dark purple with light purple */
+/* Dark mode overrides for Leaderboard - swap colors */
 .dark .border-\[#9b83a0\] {
-  border-color: rgb(198, 191, 220, 0.8) !important;
+  border-color: rgb(89, 48, 97, 0.6) !important;
 }
 
 /* Dark mode override for light purple borders to become dark purple */

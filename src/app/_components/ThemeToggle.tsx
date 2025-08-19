@@ -32,7 +32,7 @@ export function ThemeToggle() {
       </div>
       
       {/* Text label - positioned to avoid icon overlap */}
-      <div className="flex w-full px-2 text-[9px] font-medium text-white">
+      <div className="flex w-full px-1 text-[11px] font-medium text-white">
         <span className={`transition-opacity duration-300 whitespace-nowrap ${theme === "dark" ? 'opacity-100 text-left' : 'opacity-0'}`}>
           Dark Mode
         </span>
