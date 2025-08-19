@@ -31,12 +31,12 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text label - positioned opposite to the sliding button */}
-      <div className="flex justify-center w-full px-2 text-xs font-medium text-white">
-        <span className={`transition-opacity duration-300 ${theme === "dark" ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Text label - right-aligned in light mode, left-aligned in dark mode */}
+      <div className="flex w-full px-2 text-xs font-medium text-white">
+        <span className={`transition-opacity duration-300 ${theme === "dark" ? 'opacity-100 text-left' : 'opacity-0'}`}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 absolute ${theme === "dark" ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={`transition-opacity duration-300 absolute ${theme === "dark" ? 'opacity-0' : 'opacity-100 text-right'}`}>
           Light Mode
         </span>
       </div>
