@@ -15,21 +15,18 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="flex items-center gap-2 px-3 py-2 text-sm rounded-full transition-colors"
       style={{
-        backgroundColor: isDarkMode ? '#00d4ff' : '#a855f7',
+        backgroundColor: isDarkMode ? '#2ad4fc' : '#a855f7',
         color: 'white'
       }}
     >
-      {isDarkMode ? (
-        <>
-          <Moon className="h-4 w-4" />
-          <span>Dark Mode</span>
-        </>
-      ) : (
-        <>
-          <Sun className="h-4 w-4" />
-          <span>Light Mode</span>
-        </>
-      )}
+      <span>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
+      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+        {isDarkMode ? (
+          <Moon className="h-3 w-3 text-gray-800" />
+        ) : (
+          <Sun className="h-3 w-3 text-gray-800" />
+        )}
+      </div>
     </button>
   )
 }
