@@ -13,6 +13,7 @@ import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
 import Jazzicon from 'react-jazzicon';
+import { ThemeToggle } from '@/app/_components/ThemeToggle';
 
 
 
@@ -395,6 +396,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 >
                                     Log In
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-2 py-1.5">
+                                    <ThemeToggle />
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     );
@@ -480,6 +485,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             >
                                 Log Out
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5">
+                                <ThemeToggle />
+                            </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
