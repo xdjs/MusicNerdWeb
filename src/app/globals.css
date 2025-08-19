@@ -105,6 +105,46 @@
   color: rgb(89, 48, 97, 0.6) !important;
 }
 
+/* Dark mode overrides for Leaderboard - swap dark purple with light purple */
+.dark .border-\[#9b83a0\] {
+  border-color: rgb(198, 191, 220, 0.8) !important;
+}
+
+/* Dark mode override for "User Profile" heading */
+.dark h1.text-3xl.font-bold {
+  color: white !important;
+}
+
+/* Dark mode overrides for User Profile page text */
+.dark .text-black {
+  color: white !important;
+}
+
+.dark p {
+  color: white !important;
+}
+
+.dark span {
+  color: white !important;
+}
+
+.dark div {
+  color: white !important;
+}
+
+.dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: white !important;
+}
+
+/* Dark mode override for edit mode button - keep text and icons black */
+.dark button.bg-gray-200.text-foreground {
+  color: black !important;
+}
+
+.dark button.bg-gray-200.text-foreground svg {
+  color: black !important;
+}
+
 .dark .bg-black {
   background-color: #1a1a1a !important; /* consistent dark background */
 }
