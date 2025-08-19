@@ -102,7 +102,7 @@
 
 /* Dark mode override for "Ask Music Nerd" text */
 .dark .text-\[#422B46\] {
-  color: rgb(198, 191, 220, 0.8) !important;
+  color: rgb(198, 191, 199, 0.8) !important;
 }
 
 /* Dark mode overrides for Leaderboard - swap dark purple with light purple */
@@ -140,7 +140,12 @@
 
 /* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
 .dark .home-text-h2:not([style*="#FF9CE3"]) {
-  color: rgb(180, 170, 240, 0.9) !important;
+  color: #9b83a0 !important;
+}
+
+/* Ensure the pink "Music Nerd" title stays pink in dark mode */
+.dark .home-text-h2[style*="#FF9CE3"] {
+  color: #FF9CE3 !important;
 }
 
 /* Dark mode override for "Ask Music Nerd" text - light gray */
