@@ -15,10 +15,57 @@ import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
+import { Metadata } from "next";
 
 type ArtistProfileProps = {
     params: { id: string };
     searchParams: { [key: string]: string | undefined };
+}
+
+// Generate metadata for artist pages
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+    const artist = await getArtistById(params.id);
+    
+    if (!artist) {
+        return {
+            title: "Artist Not Found - Music Nerd",
+            description: "Artist not found on Music Nerd",
+        };
+    }
+
+    const headers = await getSpotifyHeaders();
+    const spotifyImg = await getSpotifyImage(artist.spotify ?? "", undefined, headers);
+    
+    const artistName = artist.name || "Unknown Artist";
+    const artistImage = spotifyImg.artistImage || "https://www.musicnerd.xyz/icon.ico";
+    const artistDescription = artist.bio || `Check out ${artistName} on Music Nerd - a crowd-sourced directory of music artists`;
+    const pageUrl = `https://www.musicnerd.xyz/artist/${params.id}`;
+
+    return {
+        title: `${artistName} - Music Nerd`,
+        description: artistDescription,
+        openGraph: {
+            type: "website",
+            url: pageUrl,
+            title: `${artistName} - Music Nerd`,
+            description: artistDescription,
+            images: [
+                {
+                    url: artistImage,
+                    width: 800,
+                    height: 800,
+                    alt: `${artistName} on Music Nerd`,
+                },
+            ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            site: "@musicnerd.xyz",
+            title: `${artistName} - Music Nerd`,
+            description: artistDescription,
+            images: [artistImage],
+        },
+    };
 }
 
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
