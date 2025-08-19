@@ -21,22 +21,22 @@ export function ThemeToggle() {
       {/* Sliding white circle with icon */}
       <div 
         className={`absolute w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-          theme === "dark" ? 'translate-x-16' : 'translate-x-1'
+          theme === "dark" ? 'translate-x-18' : 'translate-x-0'
         }`}
       >
         {theme === "dark" ? (
-          <Moon className="h-3 w-3 text-gray-800" />
+          <Moon className="h-3 w-3 text-white" />
         ) : (
           <Sun className="h-3 w-3 text-gray-800" />
         )}
       </div>
       
-      {/* Text label - centered without padding */}
-      <div className="flex w-full text-[11px] font-medium text-white justify-center">
-        <span className={`transition-opacity duration-300 whitespace-nowrap ${theme === "dark" ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Text label - positioned at edges */}
+      <div className="flex w-full text-[11px] font-medium text-white">
+        <span className={`transition-opacity duration-300 whitespace-nowrap pl-2 ${theme === "dark" ? 'opacity-100' : 'opacity-0'}`}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 whitespace-nowrap ${theme === "dark" ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap pl-2 ${theme === "dark" ? 'opacity-0' : 'opacity-100'}`}>
           Light Mode
         </span>
       </div>
