@@ -196,12 +196,21 @@
   color: #ff9ce3 !important;
 }
 
-/* Ensure subtitle text keeps its original purple color */
+/* Ensure subtitle text has the correct color in light mode */
 .home-text-h2:not([style*="#ff9ce3"]) {
-  color: inherit !important;
+  color: #9b83a0 !important;
 }
 
 .dark .home-text-h2:not([style*="#ff9ce3"]) {
+  color: #a08ba8 !important;
+}
+
+/* Ensure h2 elements within subtitle containers have the correct color */
+.home-text-h2:not([style*="#ff9ce3"]) h2 {
+  color: #9b83a0 !important;
+}
+
+.dark .home-text-h2:not([style*="#ff9ce3"]) h2 {
   color: #a08ba8 !important;
 }
 
