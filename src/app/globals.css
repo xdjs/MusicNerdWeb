@@ -205,6 +205,24 @@
   color: #a08ba8 !important;
 }
 
+/* Force the first title (Music Nerd) to be pink in all modes */
+.home-text-h2:first-child {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2:first-child {
+  color: #ff9ce3 !important;
+}
+
+/* Ensure all h2 elements within the first home-text-h2 are pink */
+.home-text-h2:first-child h2 {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2:first-child h2 {
+  color: #ff9ce3 !important;
+}
+
 /* Additional specific override for Music Nerd text in dark mode */
 .dark .home-text-h2[style*="color: #ff9ce3"] h2 {
   color: #ff9ce3 !important;
