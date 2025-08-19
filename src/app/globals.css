@@ -138,14 +138,14 @@
   color: rgb(198, 191, 220, 0.8) !important;
 }
 
-/* Dark mode override for home page subtitle text */
-.dark .home-text-h2 {
-  color: rgb(198, 191, 199, 0.8) !important;
+/* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
+.dark .home-text-h2:not([style*="#FF9CE3"]) {
+  color: rgb(180, 170, 240, 0.9) !important;
 }
 
-/* Dark mode override for "Ask Music Nerd" text - darker purple */
+/* Dark mode override for "Ask Music Nerd" text - light gray */
 .dark .text-\[#422B46\] {
-  color: rgb(89, 48, 97, 0.6) !important;
+  color: rgb(198, 191, 199, 0.8) !important;
 }
 
 /* Dark mode override for "User Profile" heading */
