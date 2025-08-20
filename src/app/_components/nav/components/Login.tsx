@@ -108,39 +108,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger hard refresh after signature verification
-            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-            const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
-            
-            // Always trigger refresh on first authentication or after logout
-            if (!postLoginRefresh || wasLoggedOut) {
-                console.debug("[Login] Signature verification completed, triggering hard refresh", {
-                    wasLoggedOut: !!wasLoggedOut,
-                    postLoginRefresh: !!postLoginRefresh,
-                    sessionId: session?.user?.id
-                });
-                
-                // Set refresh flag and clear logout flag
-                sessionStorage.setItem('postLoginRefresh', 'true');
-                sessionStorage.removeItem('wasLoggedOut');
-                
-                // Force hard refresh after signature verification
-                console.debug("[Login] Executing hard refresh after signature verification");
-                setTimeout(() => {
-                    window.location.href = window.location.href;
-                }, 100); // Small delay to ensure state is set
-            }
+            // Clear logout flag when authentication is successful
+            sessionStorage.removeItem('wasLoggedOut');
             return;
         }
 
         // Handle initial login or reconnection
         if (!isConnected && !session && status === "unauthenticated") {
-            // Don't show login prompt if we're in the middle of an authentication process
+            // Only show login prompt if we're truly unauthenticated
             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-            const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
             
-            // Only show login prompt if we're truly unauthenticated (not in transition)
-            if (!wasLoggedOut && !postLoginRefresh) {
+            if (!wasLoggedOut) {
                 const loginInitiator = sessionStorage.getItem('loginInitiator');
                 const isSearchFlow = sessionStorage.getItem('searchFlow');
                 const isSearchFlowPrompted = sessionStorage.getItem('searchFlowPrompted');
@@ -177,15 +155,12 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 // Don't clear during initial loading process
                 if (currentStatus === "authenticated") {
                     console.debug("[Login] User logged out, setting wasLoggedOut flag");
-                    sessionStorage.removeItem('postLoginRefresh');
                     sessionStorage.setItem('wasLoggedOut', 'true');
                 } else if (currentStatus === "loading") {
                     // Only clear if we're going from loading to unauthenticated (failed auth)
-                    // But don't clear if we're in the middle of a login process
                     const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-                    const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
                     
-                    if (!wasLoggedOut && !postLoginRefresh) {
+                    if (!wasLoggedOut) {
                         console.debug("[Login] Authentication failed, clearing session storage");
                         sessionStorage.clear();
                         shouldPromptRef.current = false;
@@ -194,16 +169,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
         }
         
-        // Fallback refresh logic (should rarely be needed due to main logic above)
-        const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-        if (wasLoggedOut && (status as string) === "authenticated" && session?.user?.id) {
-            console.debug("[Login] Fallback: Detected authenticated state after logout, triggering hard refresh");
-            sessionStorage.removeItem('wasLoggedOut');
-            sessionStorage.setItem('postLoginRefresh', 'true');
-            setTimeout(() => {
-                window.location.href = window.location.href;
-            }, 100);
-        }
+
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
 
     // Reusable fetcher for pending UGC count
@@ -348,24 +314,18 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     // wagmi might briefly report `isConnected === false` while it is still
     // restoring the connection.  To avoid accidental log-outs we add a small
     // grace period.  If the wallet is still disconnected after the delay we
-    // sign the user out silently and trigger a hard refresh.
+    // sign the user out silently.
     useEffect(() => {
         let timeoutId: NodeJS.Timeout | null = null;
         if (!isConnected && status === "authenticated") {
             timeoutId = setTimeout(() => {
                 // Re-check to ensure we didn't reconnect during the delay
                 if (!isConnected) {
-                    console.debug("[Login] Wallet disconnected via RainbowKit, signing out and triggering hard refresh");
+                    console.debug("[Login] Wallet disconnected via RainbowKit, signing out");
                     signOut({ redirect: false });
                     
-                    // Set flag to trigger hard refresh after sign out
+                    // Set flag to indicate logout
                     sessionStorage.setItem('wasLoggedOut', 'true');
-                    
-                    // Trigger hard refresh immediately since we're already signing out
-                    console.debug("[Login] Executing hard refresh after RainbowKit disconnect");
-                    setTimeout(() => {
-                        window.location.href = window.location.href;
-                    }, 100);
                 }
             }, 1500);
         }

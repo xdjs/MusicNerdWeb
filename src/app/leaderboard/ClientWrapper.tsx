@@ -24,73 +24,29 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sessionStable, setSessionStable] = useState(false);
+  const [authTransition, setAuthTransition] = useState(false);
 
-
-  // Handle authentication state changes and hard refresh
+  // Handle authentication state changes gracefully
   useEffect(() => {
-    console.debug('[Leaderboard] Session state changed:', { status, sessionId: session?.user?.id, isAuthenticated: status === 'authenticated' });
-    
-    // Check for authentication state transitions that require hard refresh
-    const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-    const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
-    const hasRefreshed = sessionStorage.getItem('leaderboardRefreshed');
-    
-    // Only trigger refresh if we haven't already refreshed for this session and session is stable
-    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh) && !hasRefreshed && sessionStable) {
-      console.debug('[Leaderboard] Detected authentication state change, triggering hard refresh', {
-        wasLoggedOut: !!wasLoggedOut,
-        postLoginRefresh: !!postLoginRefresh,
-        hasRefreshed: !!hasRefreshed,
-        sessionId: session?.user?.id
-      });
-      
-      // Set refresh flags and clear logout flag
-      sessionStorage.setItem('postLoginRefresh', 'true');
-      sessionStorage.setItem('leaderboardRefreshed', 'true');
-      sessionStorage.removeItem('wasLoggedOut');
-      
-      // Force hard refresh with longer delay to ensure session is stable
-      console.debug('[Leaderboard] Executing hard refresh');
-      setTimeout(() => {
-        window.location.href = window.location.href;
-      }, 1000);
+    console.debug('[Leaderboard] Session state changed:', { 
+      status, 
+      sessionId: session?.user?.id, 
+      isAuthenticated: status === 'authenticated' 
+    });
+
+    // Set transition flag during auth changes
+    if ((status as string) === 'loading') {
+      setAuthTransition(true);
       return;
     }
-    
-    // Additional check for login without wasLoggedOut flag
-    if (status === "authenticated" && session?.user?.id && !postLoginRefresh && !hasRefreshed && sessionStable) {
-      console.debug('[Leaderboard] Detected fresh login, triggering hard refresh', {
-        sessionId: session?.user?.id
-      });
-      
-      // Set refresh flags
-      sessionStorage.setItem('postLoginRefresh', 'true');
-      sessionStorage.setItem('leaderboardRefreshed', 'true');
-      
-      // Force hard refresh with longer delay
-      console.debug('[Leaderboard] Executing hard refresh for fresh login');
-      setTimeout(() => {
-        window.location.href = window.location.href;
-      }, 1000);
-      return;
+
+    // Clear transition flag when auth state settles
+    if ((status as string) === 'authenticated' || (status as string) === 'unauthenticated') {
+      setAuthTransition(false);
     }
-    
-    // Handle logout - immediate refresh to clear state
-    if (status === "unauthenticated" && hasRefreshed) {
-      console.debug('[Leaderboard] Detected logout, triggering immediate refresh');
-      sessionStorage.removeItem('leaderboardRefreshed');
-      sessionStorage.removeItem('postLoginRefresh');
-      sessionStorage.setItem('wasLoggedOut', 'true');
-      
-      // Immediate refresh on logout
-      console.debug('[Leaderboard] Executing immediate refresh for logout');
-      window.location.href = window.location.href;
-      return;
-    }
-    
+
     const fetchUser = async () => {
-      if (status === "authenticated" && session?.user?.id) {
+      if ((status as string) === "authenticated" && session?.user?.id) {
         try {
           console.debug('[Leaderboard] Fetching user data for:', session.user.id);
           
@@ -110,7 +66,6 @@ export default function ClientWrapper() {
             setUser(userData);
           } else {
             console.error('[Leaderboard] User fetch failed with status:', response.status);
-            // If user fetch fails, treat as guest
             setUser(null);
           }
         } catch (error) {
@@ -121,52 +76,43 @@ export default function ClientWrapper() {
           }
           setUser(null);
         }
-      } else if (status === "unauthenticated") {
-        console.debug('[Leaderboard] User is unauthenticated, setting user to null');
+      } else if ((status as string) === "unauthenticated") {
+        console.debug('[Leaderboard] User is unauthenticated, clearing user data');
         setUser(null);
-      } else if (status === "loading") {
+      } else if ((status as string) === "loading") {
         console.debug('[Leaderboard] Session is loading, keeping current user state');
-        // Don't change user state while loading
-        return;
-      } else {
-        console.debug('[Leaderboard] Unknown session state, setting user to null. Status:', status, 'Session ID:', session?.user?.id);
-        setUser(null);
+        return; // Don't change user state while loading
       }
       setIsLoading(false);
     };
 
-    // Always fetch user when status changes, but handle loading state properly
-    fetchUser();
-  }, [status, session]); // Remove refreshKey dependency since we're using hard refresh
-
-  // Track session stability
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.id) {
-      // Wait a bit to ensure session is stable
-      const timer = setTimeout(() => {
-        setSessionStable(true);
-        console.debug('[Leaderboard] Session is now stable');
-      }, 2000);
-      return () => clearTimeout(timer);
-    } else {
-      setSessionStable(false);
+    // Only fetch user when auth state is settled
+    if ((status as string) !== "loading") {
+      fetchUser();
     }
   }, [status, session]);
 
-  // Clear page-specific refresh flag when component unmounts
-  useEffect(() => {
-    return () => {
-      sessionStorage.removeItem('leaderboardRefreshed');
-    };
-  }, []);
-
-  // Show loading while session is loading or while we're fetching user data
-  if (status === "loading" || isLoading) {
+  // Show loading during authentication transitions
+  if ((status as string) === "loading" || authTransition) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
           <img className="h-12" src="/spinner.svg" alt="Loading" />
-          <div className="text-xl text-black">Loading...</div>
+          <div className="text-xl text-black">
+            {(status as string) === "loading" ? "Checking authentication..." : "Updating..."}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while fetching user data
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+          <img className="h-12" src="/spinner.svg" alt="Loading" />
+          <div className="text-xl text-black">Loading leaderboard...</div>
         </div>
       </div>
     );
@@ -201,7 +147,8 @@ export default function ClientWrapper() {
     highlightIdentifier,
     isGuest: currentUser.id === '00000000-0000-0000-0000-000000000000',
     status,
-    sessionId: session?.user?.id
+    sessionId: session?.user?.id,
+    isAuthenticated: (status as string) === 'authenticated'
   });
 
   return (
