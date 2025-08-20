@@ -67,13 +67,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         });
 
                 // Handle successful authentication after signature verification
-        if (status === "authenticated") {
+        if (status === "authenticated" && session?.user?.id) {
             console.debug("[Login] Authentication successful after signature verification:", { 
                 status, 
                 sessionId: session?.user?.id, 
                 isConnected, 
                 address,
-                wasLoggedOut: sessionStorage.getItem('wasLoggedOut')
+                wasLoggedOut: sessionStorage.getItem('wasLoggedOut'),
+                postLoginRefresh: sessionStorage.getItem('postLoginRefresh')
             });
 
             // Reset prompt flag
@@ -109,14 +110,25 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             
             // Trigger hard refresh after signature verification
             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
             
-            if (wasLoggedOut) {
-                console.debug("[Login] Signature verification completed, triggering hard refresh");
-                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
+            // Always trigger refresh on first authentication or after logout
+            if (!postLoginRefresh || wasLoggedOut) {
+                console.debug("[Login] Signature verification completed, triggering hard refresh", {
+                    wasLoggedOut: !!wasLoggedOut,
+                    postLoginRefresh: !!postLoginRefresh,
+                    sessionId: session?.user?.id
+                });
+                
+                // Set refresh flag and clear logout flag
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                sessionStorage.removeItem('wasLoggedOut');
                 
                 // Force hard refresh after signature verification
                 console.debug("[Login] Executing hard refresh after signature verification");
-                window.location.href = window.location.href;
+                setTimeout(() => {
+                    window.location.href = window.location.href;
+                }, 100); // Small delay to ensure state is set
             }
             return;
         }
@@ -182,14 +194,15 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
         }
         
-        // Handle transition to authenticated state (fallback for page refreshes and subsequent logins)
-        // Check for wasLoggedOut flag and authenticated status separately to avoid TypeScript issues
+        // Fallback refresh logic (should rarely be needed due to main logic above)
         const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-        if (wasLoggedOut && (status as string) === "authenticated") {
-            console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
+        if (wasLoggedOut && (status as string) === "authenticated" && session?.user?.id) {
+            console.debug("[Login] Fallback: Detected authenticated state after logout, triggering hard refresh");
             sessionStorage.removeItem('wasLoggedOut');
             sessionStorage.setItem('postLoginRefresh', 'true');
-            window.location.reload();
+            setTimeout(() => {
+                window.location.href = window.location.href;
+            }, 100);
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
 
@@ -348,11 +361,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     // Set flag to trigger hard refresh after sign out
                     sessionStorage.setItem('wasLoggedOut', 'true');
                     
-                    // Trigger hard refresh after a short delay to ensure sign out completes
+                    // Trigger hard refresh immediately since we're already signing out
+                    console.debug("[Login] Executing hard refresh after RainbowKit disconnect");
                     setTimeout(() => {
-                        console.debug("[Login] Executing hard refresh after RainbowKit disconnect");
                         window.location.href = window.location.href;
-                    }, 500);
+                    }, 100);
                 }
             }, 1500);
         }
