@@ -120,22 +120,14 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return () => clearTimeout(timer);
     }, []);
 
-    // Trigger page refresh when authentication completes
-    useEffect(() => {
-        if (status === 'authenticated') {
-            // Small delay to ensure session is fully established
-            const timer = setTimeout(() => {
-                window.location.reload();
-            }, 100);
-            return () => clearTimeout(timer);
-        }
-    }, [status]);
-
-    if (isLoading) {
+    // Show loading screen during authentication transition
+    if (status === 'loading' || isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                <p className="text-foreground text-xl">Loading...</p>
+            <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+                <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+                    <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
+                    <p className="text-foreground text-xl">Loading...</p>
+                </div>
             </div>
         );
     }
