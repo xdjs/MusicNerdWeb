@@ -70,7 +70,7 @@ export default function ClientWrapper() {
     }
   }, [status, session]);
 
-  // Show loading only while session is loading, not while fetching user data
+  // Show loading while session is loading
   if (status === "loading") {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">

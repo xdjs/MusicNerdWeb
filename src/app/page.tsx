@@ -10,10 +10,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 export default function HomePage() {
   const [animation, setAnimation] = useState("static");
+  const { status } = useSession();
+
+  // Trigger page refresh when authentication completes
+  useEffect(() => {
+    if (status === 'authenticated') {
+      // Small delay to ensure session is fully established
+      const timer = setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   return (
     <>
       {/* <div className="absolute bottom-40 left-50  ">

@@ -1,3 +1,5 @@
+"use client";
+
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById, getAllUsers } from "@/server/utils/queries/userQueries";
 import { getPendingUGC } from "@/server/utils/queries/artistQueries";
@@ -6,9 +8,22 @@ import { ugcColumns } from "./columns";
 import { whitelistedColumns } from "./columns";
 import UsersDataTable from "./whitelisted-data-table";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 export default async function Admin() {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
+    const { status } = useSession();
+
+    // Trigger page refresh when authentication completes
+    useEffect(() => {
+        if (status === 'authenticated') {
+            // Small delay to ensure session is fully established
+            const timer = setTimeout(() => {
+                window.location.reload();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [status]);
 
     let isAuthorized = false;
     let userId: string | undefined;

@@ -110,7 +110,6 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     const [isLoading, setIsLoading] = useState(true);
     const { status } = useSession();
-    const [authLoading, setAuthLoading] = useState(false);
 
     useEffect(() => {
         // Simulate loading time for better UX
@@ -121,21 +120,18 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return () => clearTimeout(timer);
     }, []);
 
-    // Handle authentication state changes
+    // Trigger page refresh when authentication completes
     useEffect(() => {
-        if (status === 'loading') {
-            setAuthLoading(true);
-        } else if (status === 'authenticated' && authLoading) {
-            // User just completed authentication, trigger refresh
-            setAuthLoading(false);
-            // Reload the page to get fresh user data
-            window.location.reload();
-        } else if (status === 'unauthenticated') {
-            setAuthLoading(false);
+        if (status === 'authenticated') {
+            // Small delay to ensure session is fully established
+            const timer = setTimeout(() => {
+                window.location.reload();
+            }, 100);
+            return () => clearTimeout(timer);
         }
-    }, [status, authLoading]);
+    }, [status]);
 
-    if (isLoading || authLoading) {
+    if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
