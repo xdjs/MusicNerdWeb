@@ -109,7 +109,6 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     const [isLoading, setIsLoading] = useState(true);
-    const [authTransitioning, setAuthTransitioning] = useState(false);
     const { status } = useSession();
 
     useEffect(() => {
@@ -121,23 +120,8 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return () => clearTimeout(timer);
     }, []);
 
-    // Handle authentication transition
-    useEffect(() => {
-        if (status === 'loading') {
-            setAuthTransitioning(true);
-        } else if (status === 'authenticated' && authTransitioning) {
-            // Show loading for a bit longer to ensure smooth transition
-            const timer = setTimeout(() => {
-                window.location.reload();
-            }, 500);
-            return () => clearTimeout(timer);
-        } else if (status === 'unauthenticated') {
-            setAuthTransitioning(false);
-        }
-    }, [status, authTransitioning]);
-
-    // Show loading screen during authentication transition
-    if (status === 'loading' || isLoading || authTransitioning) {
+    // Show loading screen during initial load
+    if (status === 'loading' || isLoading) {
         return (
             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">

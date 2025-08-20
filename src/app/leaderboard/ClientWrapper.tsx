@@ -24,22 +24,6 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authTransitioning, setAuthTransitioning] = useState(false);
-
-  // Handle authentication transition
-  useEffect(() => {
-    if (status === 'loading') {
-      setAuthTransitioning(true);
-    } else if (status === 'authenticated' && authTransitioning) {
-      // Show loading for a bit longer to ensure smooth transition
-      const timer = setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      return () => clearTimeout(timer);
-    } else if (status === 'unauthenticated') {
-      setAuthTransitioning(false);
-    }
-  }, [status, authTransitioning]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -86,8 +70,8 @@ export default function ClientWrapper() {
     }
   }, [status, session]);
 
-  // Show loading while session is loading or during auth transition
-  if (status === "loading" || authTransitioning) {
+  // Show loading while session is loading
+  if (status === "loading") {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
