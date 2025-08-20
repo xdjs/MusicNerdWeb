@@ -2,7 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Dashboard from "@/app/profile/Dashboard";
+import Dashboard from "./Dashboard";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -82,16 +83,14 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   return (
-    <main className="px-5 sm:px-10 py-10">
+    <>
+      <AutoRefresh />
       <Dashboard 
-        key={`dashboard-${currentUser.id}`}
         user={currentUser} 
-        allowEditUsername={true} 
         showLeaderboard={false} 
-        showDateRange={true} 
-        hideLogin={false} 
-        showStatus={true} 
+        showDateRange={false} 
+        allowEditUsername={true} 
       />
-    </main>
+    </>
   );
 }

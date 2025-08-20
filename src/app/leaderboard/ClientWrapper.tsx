@@ -2,7 +2,9 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Leaderboard from "../profile/Leaderboard";
+import Dashboard from "@/app/profile/Dashboard";
+import Leaderboard from "@/app/profile/Leaderboard";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -19,7 +21,7 @@ type User = {
   legacyId: string | null;
 };
 
-export default function LeaderboardClientWrapper() {
+export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,21 +65,36 @@ export default function LeaderboardClientWrapper() {
     );
   }
 
+  // Guest user object
+  const guestUser: User = {
+    id: '00000000-0000-0000-0000-000000000000',
+    wallet: '0x0000000000000000000000000000000000000000',
+    email: null,
+    username: 'Guest User',
+    isAdmin: false,
+    isWhiteListed: false,
+    isSuperAdmin: false,
+    isHidden: false,
+    acceptedUgcCount: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    legacyId: null,
+  };
+
+  const currentUser = user || guestUser;
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Show login prompt if not authenticated */}
-        {!user && (
-          <div className="mb-6 p-4 border-2 border-[#9b83a0] rounded-lg text-center">
-            <a href="/" className="text-[#9b83a0] underline hover:text-[#7a6b8a]">
-              Log in to compare your statistics
-            </a>
-          </div>
-        )}
-        
-        {/* Always show the leaderboard */}
-        <Leaderboard highlightIdentifier={user?.username || user?.wallet} />
-      </div>
-    </div>
+    <main className="px-5 sm:px-10 py-10">
+      <AutoRefresh />
+      <Dashboard 
+        user={currentUser} 
+        allowEditUsername={false} 
+        showLeaderboard={false} 
+        showDateRange={false} 
+        hideLogin={true} 
+        showStatus={false} 
+      />
+      <Leaderboard highlightIdentifier={currentUser.username || currentUser.wallet} />
+    </main>
   );
 }

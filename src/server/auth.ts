@@ -89,6 +89,12 @@ export const authOptions: NextAuthOptions = {
 
         if (shouldRefresh && token.walletAddress) {
           try {
+            console.debug('[Auth] Refreshing user data from database', { 
+              trigger, 
+              lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
+              wallet: token.walletAddress 
+            });
+            
             const refreshedUser = await getUserByWallet(token.walletAddress);
             if (refreshedUser) {
               // Update all user properties from database
@@ -99,6 +105,14 @@ export const authOptions: NextAuthOptions = {
               token.email = refreshedUser.email;
               token.name = refreshedUser.username;
               token.lastRefresh = Date.now();
+              
+              console.debug('[Auth] User data refreshed', {
+                isAdmin: refreshedUser.isAdmin,
+                isWhiteListed: refreshedUser.isWhiteListed,
+                isSuperAdmin: refreshedUser.isSuperAdmin,
+                isHidden: refreshedUser.isHidden,
+                userId: refreshedUser.id
+              });
             }
           } catch (error) {
             console.error('[Auth] Error refreshing user data in JWT callback:', error);
@@ -156,6 +170,12 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials): Promise<any> {
         try {
+          console.debug("[Auth] Starting authorization", {
+            hasMessage: !!credentials?.message,
+            hasSignature: !!credentials?.signature,
+            messageLength: credentials?.message?.length || 0
+          });
+          
           // Check if wallet requirement is disabled
           if (process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true') {
             // Create or get a temporary user without wallet, but make them whitelisted
@@ -176,6 +196,12 @@ export const authOptions: NextAuthOptions = {
 
           const siwe = new SiweMessage(JSON.parse(credentials?.message || "{}"));
           const authUrl = new URL(NEXTAUTH_URL);
+          
+          console.debug("[Auth] Verifying SIWE message", {
+            address: siwe.address,
+            domain: siwe.domain,
+            expectedDomain: authUrl.hostname
+          });
 
           // Normalize domains by removing port numbers if present
           const normalizedMessageDomain = siwe.domain.split(':')[0];
@@ -183,6 +209,11 @@ export const authOptions: NextAuthOptions = {
 
           // Get CSRF token with proper error handling
           const csrfToken = cookies().get('next-auth.csrf-token')?.value;
+          console.debug("[Auth] CSRF token from cookies:", {
+            hasToken: !!csrfToken,
+            tokenLength: csrfToken?.length || 0,
+            tokenValue: csrfToken ? csrfToken.substring(0, 20) + '...' : 'none'
+          });
           
           if (!csrfToken) {
             console.error("[Auth] CSRF token not found in cookies");
@@ -193,12 +224,24 @@ export const authOptions: NextAuthOptions = {
           let nonce = csrfToken;
           if (csrfToken.includes('|')) {
             nonce = csrfToken.split('|')[0];
+            console.debug("[Auth] Extracted nonce from pipe-separated token");
+          } else {
+            console.debug("[Auth] Using full token as nonce");
           }
+
+          console.debug("[Auth] Using nonce for SIWE verification:", nonce);
 
           const result = await siwe.verify({
             signature: credentials?.signature || "",
             domain: normalizedMessageDomain,
             nonce: nonce,
+          });
+
+          console.debug("[Auth] SIWE verification result", {
+            success: result.success,
+            error: result.error,
+            normalizedMessageDomain,
+            normalizedAuthDomain
           });
 
           if (!result.success) {
@@ -218,8 +261,11 @@ export const authOptions: NextAuthOptions = {
 
           let user = await getUserByWallet(siwe.address);
           if (!user) {
+            console.debug("[Auth] Creating new user for wallet");
             user = await createUser(siwe.address);
           }
+
+          console.debug("[Auth] Returning user", { id: user.id });
           
           // Map the database user to the NextAuth user format
           return {
