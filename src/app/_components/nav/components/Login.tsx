@@ -151,7 +151,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             // This will be handled by the status change logic above
         }
         
-        // Handle status changes
+        // Handle status changes and authentication logic
         if (status !== currentStatus) {
             setCurrentStatus(status);
             
@@ -168,15 +168,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
         }
         
-        // Handle all authenticated state logic in one place
-        if (status === "authenticated") {
-            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-            if (wasLoggedOut) {
-                console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
-                sessionStorage.removeItem('wasLoggedOut');
-                sessionStorage.setItem('postLoginRefresh', 'true');
-                window.location.reload();
-            }
+        // Handle transition to authenticated state (fallback for page refreshes and subsequent logins)
+        // Check for wasLoggedOut flag and authenticated status separately to avoid TypeScript issues
+        const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+        if (wasLoggedOut && (status as string) === "authenticated") {
+            console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
+            sessionStorage.removeItem('wasLoggedOut');
+            sessionStorage.setItem('postLoginRefresh', 'true');
+            window.location.reload();
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
 

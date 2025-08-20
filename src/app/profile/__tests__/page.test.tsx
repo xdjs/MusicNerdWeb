@@ -13,11 +13,20 @@ jest.mock('next-auth/react', () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+// Helper function to create a mock response
+const createMockResponse = (data: any) => ({
+    ok: true,
+    json: async () => data,
+} as Response);
+
 describe('UGC Stats Page', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Reset environment variables for each test
         delete process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT;
+        
+        // Set up a default fetch mock that returns empty data
+        mockFetch.mockImplementation(() => Promise.resolve(createMockResponse([])));
     });
 
     it('should show dashboard when not authenticated', async () => {
@@ -30,22 +39,10 @@ describe('UGC Stats Page', () => {
 
         // Mock all API calls
         mockFetch
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/recentEdited
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ ugcCount: 0, artistsCount: 0 }),
-            } as Response) // /api/ugcCount
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/leaderboard
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ entries: [], total: 0, pageCount: 0 }),
-            } as Response); // /api/userEntries
+            .mockResolvedValueOnce(createMockResponse([])) // /api/recentEdited
+            .mockResolvedValueOnce(createMockResponse({ ugcCount: 0, artistsCount: 0 })) // /api/ugcCount
+            .mockResolvedValueOnce(createMockResponse([])) // /api/leaderboard
+            .mockResolvedValueOnce(createMockResponse({ entries: [], total: 0, pageCount: 0 })); // /api/userEntries
 
         render(<Page />);
 
@@ -68,22 +65,10 @@ describe('UGC Stats Page', () => {
 
         // Mock all API calls
         mockFetch
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/recentEdited
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ ugcCount: 0, artistsCount: 0 }),
-            } as Response) // /api/ugcCount
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/leaderboard
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ entries: [], total: 0, pageCount: 0 }),
-            } as Response); // /api/userEntries
+            .mockResolvedValueOnce(createMockResponse([])) // /api/recentEdited
+            .mockResolvedValueOnce(createMockResponse({ ugcCount: 0, artistsCount: 0 })) // /api/ugcCount
+            .mockResolvedValueOnce(createMockResponse([])) // /api/leaderboard
+            .mockResolvedValueOnce(createMockResponse({ entries: [], total: 0, pageCount: 0 })); // /api/userEntries
 
         render(<Page />);
 
@@ -125,36 +110,16 @@ describe('UGC Stats Page', () => {
             data: mockSession,
         });
 
-        // Mock all API calls
+        // Mock all API calls with more specific implementations
         mockFetch
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => mockUser,
-            } as Response) // /api/user/[id]
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/recentEdited
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ ugcCount: 0, artistsCount: 0 }),
-            } as Response) // /api/ugcCount
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => [],
-            } as Response) // /api/leaderboard
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ entries: [], total: 0, pageCount: 0 }),
-            } as Response) // /api/userEntries
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ entries: [], total: 0, pageCount: 0 }),
-            } as Response) // Additional /api/userEntries call
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ entries: [], total: 0, pageCount: 0 }),
-            } as Response); // Another /api/userEntries call
+            .mockResolvedValueOnce(createMockResponse(mockUser)) // /api/user/[id]
+            .mockResolvedValueOnce(createMockResponse({ ugcCount: 0, artistsCount: 0 })) // /api/ugcCount (markUGCSeen)
+            .mockResolvedValueOnce(createMockResponse({ ugcCount: 0, artistsCount: 0 })) // /api/ugcStats (fetchAllTimeStats)
+            .mockResolvedValueOnce(createMockResponse([])) // /api/leaderboard (fetchRank)
+            .mockResolvedValueOnce(createMockResponse([])) // /api/recentEdited
+            .mockResolvedValueOnce(createMockResponse({ entries: [], total: 0, pageCount: 0 })) // /api/userEntries
+            .mockResolvedValueOnce(createMockResponse({ entries: [], total: 0, pageCount: 0 })) // Additional /api/userEntries call
+            .mockResolvedValueOnce(createMockResponse({ entries: [], total: 0, pageCount: 0 })); // Another /api/userEntries call
 
         render(<Page />);
 
