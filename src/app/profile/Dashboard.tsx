@@ -119,11 +119,13 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return () => clearTimeout(timer);
     }, []);
 
-    if (isLoading) {
+    if (isLoading || authLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                                    <p className="text-foreground text-xl">Loading...</p>
+                <p className="text-foreground text-xl">
+                    {authLoading ? 'Authenticating...' : 'Loading...'}
+                </p>
             </div>
         );
     }
@@ -406,7 +408,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     })();
 
     const { openConnectModal } = useConnectModal();
-    const { status } = useSession();
+    const { status, data: session } = useSession();
+    const [authLoading, setAuthLoading] = useState(false);
 
     // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
     useEffect(() => {
@@ -430,6 +433,20 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             markUGCSeen();
         }
     }, [user.id]);
+
+    // Handle authentication state changes
+    useEffect(() => {
+        if (status === 'loading') {
+            setAuthLoading(true);
+        } else if (status === 'authenticated' && authLoading) {
+            // User just completed authentication, trigger refresh
+            setAuthLoading(false);
+            // Reload the page to get fresh user data
+            window.location.reload();
+        } else if (status === 'unauthenticated') {
+            setAuthLoading(false);
+        }
+    }, [status, authLoading]);
 
 
 
@@ -543,6 +560,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
         async function fetchRangeStats() {
             try {
+                // Set loading state
+                setLoading(true);
+                
                 let dateRange: DateRange;
                 const dates = getRangeDates(selectedRange);
                 if (dates) {
@@ -573,6 +593,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 }
             } catch (e) {
                 console.error('[Dashboard] Error fetching UGC stats for range', e);
+            } finally {
+                setLoading(false);
             }
         }
 
