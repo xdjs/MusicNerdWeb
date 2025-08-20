@@ -110,8 +110,10 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     const { status } = useSession();
 
-    // Show loading screen only during session loading
-    if (status === 'loading') {
+    // Don't block the UI with a loading screen - let the login component handle authentication
+    // Only show loading for very brief periods to avoid blocking login attempts
+    if (status === 'loading' && user.id === '00000000-0000-0000-0000-000000000000') {
+        // Only show loading for guest users, not for authenticated users
         return (
             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">

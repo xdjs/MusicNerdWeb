@@ -150,6 +150,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             console.debug("[Login] Wallet connected but session loading, waiting for authentication");
             // This will be handled by the status change logic above
         }
+        
+        // Additional check for subsequent logins - if we have wasLoggedOut flag and are authenticated, refresh
+        if (status === "authenticated" && sessionStorage.getItem('wasLoggedOut')) {
+            console.debug("[Login] Subsequent login detected, triggering refresh");
+            sessionStorage.removeItem('wasLoggedOut');
+            sessionStorage.setItem('postLoginRefresh', 'true');
+            window.location.reload();
+        }
 
         // Handle status changes
         if (status !== currentStatus) {
@@ -167,8 +175,8 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 }
             }
             
-            // Handle transition to authenticated state (fallback for page refreshes)
-            if (status === "authenticated" && currentStatus === "loading") {
+            // Handle transition to authenticated state (fallback for page refreshes and subsequent logins)
+            if (status === "authenticated") {
                 const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
                 if (wasLoggedOut) {
                     console.debug("[Login] Detected authenticated state after logout, triggering refresh");
