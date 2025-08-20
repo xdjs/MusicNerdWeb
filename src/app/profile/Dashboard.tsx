@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
-import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
+
 import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
@@ -435,9 +435,21 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     async function checkUgcStats() {
         if (date?.from && date?.to) {
             setLoading(true);
-            const result = await getUgcStatsInRange(date, ugcStatsUserWallet);
-            if (result) {
-                setUgcStats(result);
+            try {
+                const url = new URL('/api/ugcStats', window.location.origin);
+                url.searchParams.set('from', date.from.toISOString());
+                url.searchParams.set('to', date.to.toISOString());
+                if (ugcStatsUserWallet) {
+                    url.searchParams.set('wallet', ugcStatsUserWallet);
+                }
+
+                const response = await fetch(url.toString());
+                if (response.ok) {
+                    const result = await response.json();
+                    setUgcStats(result);
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error fetching UGC stats for date range', e);
             }
             setLoading(false);
         }
@@ -491,9 +503,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         async function fetchAllTimeStats() {
             try {
-                const dateRange: DateRange = { from: new Date(0), to: new Date() } as DateRange;
-                const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
-                if (result) setAllTimeStats(result);
+                const url = ugcStatsUserWallet 
+                    ? `/api/ugcStats?wallet=${encodeURIComponent(ugcStatsUserWallet)}`
+                    : '/api/ugcStats';
+                const response = await fetch(url);
+                if (response.ok) {
+                    const result = await response.json();
+                    setAllTimeStats(result);
+                }
             } catch (e) {
                 console.error('[Dashboard] Error fetching all-time UGC stats', e);
             }
@@ -517,8 +534,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     dateRange = { from: new Date(0), to: new Date() } as DateRange;
                 }
 
-                const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
-                if (result) {
+                const url = new URL('/api/ugcStats', window.location.origin);
+                url.searchParams.set('from', dateRange.from.toISOString());
+                url.searchParams.set('to', dateRange.to.toISOString());
+                if (ugcStatsUserWallet) {
+                    url.searchParams.set('wallet', ugcStatsUserWallet);
+                }
+
+                const response = await fetch(url.toString());
+                if (response.ok) {
+                    const result = await response.json();
                     setUgcStats(result);
                 }
             } catch (e) {
