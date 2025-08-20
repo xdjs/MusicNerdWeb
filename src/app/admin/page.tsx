@@ -7,43 +7,13 @@ import { ugcColumns } from "./columns";
 import { whitelistedColumns } from "./columns";
 import UsersDataTable from "./whitelisted-data-table";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
-
-type User = {
-    id: string;
-    wallet: string;
-    email: string | null;
-    username: string | null;
-    isAdmin: boolean;
-    isWhiteListed: boolean;
-    isSuperAdmin: boolean;
-    isHidden: boolean;
-    acceptedUgcCount: number | null;
-    createdAt: string;
-    updatedAt: string;
-    legacyId: string | null;
-};
-
-type PendingUGC = {
-    id: string;
-    userId: string;
-    artistId: string;
-    siteName: string;
-    url: string;
-    createdAt: string;
-    updatedAt: string;
-    user: User;
-    artist: {
-        id: string;
-        name: string;
-        imageUrl: string | null;
-    };
-};
+import { UgcResearch, User } from "@/server/db/DbTypes";
 
 export default function Admin() {
     const { status, data: session } = useSession();
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [pendingUGCData, setPendingUGCData] = useState<PendingUGC[]>([]);
+    const [pendingUGCData, setPendingUGCData] = useState<UgcResearch[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
 
     // Trigger page refresh when authentication completes
