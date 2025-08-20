@@ -66,7 +66,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             shouldPrompt: shouldPromptRef.current
         });
 
-        // Handle successful authentication
+                // Handle successful authentication
         if (isConnected && session) {
             // Reset prompt flag
             shouldPromptRef.current = false;
@@ -89,24 +89,22 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-                         // Trigger page refresh after initial login to ensure all components update properly
-             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-             if (!hasRefreshed) {
-                 console.debug("[Login] Initial login detected, triggering page refresh");
-                 sessionStorage.setItem('postLoginRefresh', 'true');
-                 
-                 // Use a very short delay to ensure session is established but prevent timeout
-                 setTimeout(() => {
-                     console.debug("[Login] Executing page refresh");
-                     try {
-                         window.location.reload();
-                     } catch (error) {
-                         console.error("[Login] Page refresh failed:", error);
-                         // Fallback: try to navigate to current page
-                         window.location.href = window.location.href;
-                     }
-                 }, 200);
-             }
+            // Trigger page refresh when profile picture is ready (ENS avatar loaded)
+            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+            if (!hasRefreshed && !ensLoading) {
+                console.debug("[Login] Profile picture ready, triggering page refresh");
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                
+                // Immediate refresh to avoid state mismatch
+                try {
+                    console.debug("[Login] Executing page refresh after profile picture loaded");
+                    window.location.reload();
+                } catch (error) {
+                    console.error("[Login] Page refresh failed:", error);
+                    // Fallback: try to navigate to current page
+                    window.location.href = window.location.href;
+                }
+            }
             return;
         }
 
