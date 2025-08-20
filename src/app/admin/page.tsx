@@ -6,7 +6,6 @@ import { ugcColumns } from "./columns";
 import { whitelistedColumns } from "./columns";
 import UsersDataTable from "./whitelisted-data-table";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
-import AutoRefresh from "@/app/_components/AutoRefresh";
 
 export default async function Admin() {
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
@@ -38,7 +37,6 @@ export default async function Admin() {
 
             return (
             <section className="admin-page px-10 py-5 space-y-6">
-                <AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} />
                 <h1 className="text-2xl">Site Management</h1>
             <div>
                 <h2 className="text-xl pb-3">Pending UGC</h2>

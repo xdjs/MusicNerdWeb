@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
-import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -84,7 +83,6 @@ export default function ClientWrapper() {
 
   return (
     <>
-      <AutoRefresh />
       <Dashboard 
         user={currentUser} 
         showLeaderboard={false} 

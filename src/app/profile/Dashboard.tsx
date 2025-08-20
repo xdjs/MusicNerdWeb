@@ -418,8 +418,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
     }, [user.id]);
 
-    // Auto-refresh is now handled by LeaderboardAutoRefresh component
-    // No need for duplicate logic here
+
 
     function handleLogin() {
         if (openConnectModal) {
