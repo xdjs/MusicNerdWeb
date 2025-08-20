@@ -85,11 +85,11 @@ export default function ClientWrapper() {
     <main className="px-5 sm:px-10 py-10">
       <Dashboard 
         user={currentUser} 
-        allowEditUsername={false} 
+        allowEditUsername={true} 
         showLeaderboard={false} 
-        showDateRange={false} 
-        hideLogin={true} 
-        showStatus={false} 
+        showDateRange={true} 
+        hideLogin={false} 
+        showStatus={true} 
       />
     </main>
   );
