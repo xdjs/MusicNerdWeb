@@ -17,7 +17,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="relative w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
-        backgroundColor: '#f3f4f6',
+        backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
       }}
     >
       {/* Sliding white toggle */}
@@ -37,10 +37,10 @@ export function ThemeToggle() {
       <div className={`flex w-full text-sm font-medium transition-all duration-300 ${
         isDark ? 'justify-start pl-2' : 'justify-end pr-2'
       }`}>
-        <span className={`transition-opacity duration-300 whitespace-nowrap theme-toggle-text ${isDark ? 'opacity-100' : 'opacity-0'}`} style={{ color: 'black' }}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap theme-toggle-text ${isDark ? 'opacity-100' : 'opacity-0'}`} style={{ color: isDark ? '#f7fafc' : '#1a202c' }}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-0' : 'opacity-100'}`} style={{ color: 'black' }}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-0' : 'opacity-100'}`} style={{ color: isDark ? '#f7fafc' : '#1a202c' }}>
           Light Mode
         </span>
       </div>
