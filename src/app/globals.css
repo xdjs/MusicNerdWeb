@@ -460,6 +460,50 @@
   --tw-ring-color: #4a5568 !important;
 }
 
+/* Dark mode checkbox and accent border styling */
+.dark input[type="checkbox"]:checked {
+  background-color: #2ad4fc !important;
+  border-color: #2ad4fc !important;
+}
+
+.dark input[type="checkbox"]:checked:focus {
+  box-shadow: 0 0 0 2px rgba(42, 212, 252, 0.2) !important;
+}
+
+.dark .border-accent {
+  border-color: #2ad4fc !important;
+}
+
+.dark .ring-accent {
+  --tw-ring-color: #2ad4fc !important;
+}
+
+.dark .focus:ring-accent:focus {
+  --tw-ring-color: #2ad4fc !important;
+}
+
+/* Light mode checkbox and accent border styling */
+input[type="checkbox"]:checked {
+  background-color: #ff9ce3 !important;
+  border-color: #ff9ce3 !important;
+}
+
+input[type="checkbox"]:checked:focus {
+  box-shadow: 0 0 0 2px rgba(255, 156, 227, 0.2) !important;
+}
+
+.border-accent {
+  border-color: #ff9ce3 !important;
+}
+
+.ring-accent {
+  --tw-ring-color: #ff9ce3 !important;
+}
+
+.focus:ring-accent:focus {
+  --tw-ring-color: #ff9ce3 !important;
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
