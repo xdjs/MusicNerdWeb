@@ -151,14 +151,6 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             // This will be handled by the status change logic above
         }
         
-        // Additional check for subsequent logins - if we have wasLoggedOut flag and are authenticated, refresh
-        if (status === "authenticated" && sessionStorage.getItem('wasLoggedOut')) {
-            console.debug("[Login] Subsequent login detected, triggering immediate refresh");
-            sessionStorage.removeItem('wasLoggedOut');
-            sessionStorage.setItem('postLoginRefresh', 'true');
-            window.location.reload();
-        }
-
         // Handle status changes
         if (status !== currentStatus) {
             setCurrentStatus(status);
@@ -185,6 +177,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     window.location.reload();
                 }
             }
+        }
+        
+        // Additional check for subsequent logins - if we have wasLoggedOut flag and are authenticated, refresh
+        if (status === "authenticated" && sessionStorage.getItem('wasLoggedOut')) {
+            console.debug("[Login] Subsequent login detected, triggering immediate refresh");
+            sessionStorage.removeItem('wasLoggedOut');
+            sessionStorage.setItem('postLoginRefresh', 'true');
+            window.location.reload();
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
 
