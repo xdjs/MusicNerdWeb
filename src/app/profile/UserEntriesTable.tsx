@@ -167,14 +167,14 @@ export default function UserEntriesTable() {
     <div className="max-w-3xl mx-auto mt-10">
       {/* Title above the table */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entry</h2>
+        <h2 className="text-2xl font-semibold text-[#c6bfc7] outline-none">Your Artist Data Entry</h2>
       </div>
       
       <Card className="border-2 border-[#9b83a0] shadow-none">
         {/* Mobile: Single scrollable container for header and table */}
         <div className="overflow-x-auto min-w-full max-w-full">
           {/* Table Header */}
-          <div className="bg-[#c6bfc7] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
+          <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
             <div className="grid grid-cols-[1fr_1fr_2fr_3fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#c6bfc7] rounded-tl-md"
@@ -214,7 +214,7 @@ export default function UserEntriesTable() {
                   <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-[#6f4b75] bg-white"
+                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-white bg-white"
                   >
                     <option value="all">All</option>
                     {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
@@ -312,13 +312,13 @@ export default function UserEntriesTable() {
           </div>
         </div>
         {pageCount > 1 && (
-          <CardFooter className="bg-[#c6bfc7] border border-[#c6bfc7] rounded-b-md flex justify-end items-center gap-4 p-3">
+          <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
             <Button
               variant="outline"
               size="sm"
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
-              className="bg-white text-[#c6bfc7] border-white hover:bg-gray-100 hover:text-[#c6bfc7]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Prev
             </Button>
@@ -328,7 +328,7 @@ export default function UserEntriesTable() {
               size="sm"
               disabled={page >= pageCount}
               onClick={() => setPage((p) => p + 1)}
-              className="bg-white text-[#c6bfc7] border-white hover:bg-gray-100 hover:text-[#c6bfc7]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Next
             </Button>

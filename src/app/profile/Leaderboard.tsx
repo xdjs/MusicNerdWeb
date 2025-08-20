@@ -43,9 +43,29 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
         entry.wallet?.toLowerCase() === identifierLc ||
+        entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
+        identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
         (entry.username ?? '').toLowerCase() === identifierLc ||
-        (entry.email ?? '').toLowerCase() === identifierLc
+        (entry.email ?? '').toLowerCase() === identifierLc ||
+        // Additional fallback: check if username contains the identifier (for partial matches)
+        (entry.username ?? '').toLowerCase().includes(identifierLc) ||
+        identifierLc.includes((entry.username ?? '').toLowerCase()) ||
+        // More robust matching: check if the identifier is contained within the username
+        (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
+        // Check if the username is contained within the identifier
+        (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
     );
+    
+    // Debug logging for highlighting - log for all entries to help debug
+    console.log('[Leaderboard] Highlighting debug:', {
+        highlightIdentifier,
+        identifierLc,
+        entryUsername: entry.username,
+        entryWallet: entry.wallet,
+        isHighlighted,
+        usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
+        walletMatch: entry.wallet?.toLowerCase() === identifierLc
+    });
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
@@ -101,9 +121,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-gray-800 bg-background border-2",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_30px_rgba(255,156,227,0.6)]"
                               : "border-[#9b83a0]"
                      )}
         >
@@ -120,10 +140,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                         )}
                     </span>
-                    {/* Profile Picture - evenly spaced between rank and username */}
-                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                         {/* Profile Picture - evenly spaced between rank and username */}
+                     <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                         {ensLoading ? (
-                            <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
                             <img
                                 src={ensAvatarUrl}
@@ -149,21 +169,21 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </div>
                 </div>
 
-                {/* UGC row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#9b83a0] font-semibold">UGC Added</span>
-                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                        {entry.ugcCount}
-                    </Badge>
-                </div>
+                                 {/* UGC row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">UGC Added</span>
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.ugcCount}
+                     </Badge>
+                 </div>
 
-                {/* Artists row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#9b83a0] font-semibold">Artists Added</span>
-                    <Badge className="bg-gray-700 text-white font-semibold px-3 py-1 rounded-full">
-                        {entry.artistsCount}
-                    </Badge>
-                </div>
+                 {/* Artists row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">Artists Added</span>
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.artistsCount}
+                     </Badge>
+                 </div>
             </div>
 
                     {/* Desktop layout */}
@@ -180,10 +200,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
-                            {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                                         {/* Avatar between rank and username */}
+                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
-                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
                                     <img
                                         src={ensAvatarUrl}
@@ -208,15 +228,19 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                         </div>
 
-                        {/* UGC count */}
-                        <div className="flex items-center justify-center">
-                            <span className="text-[#9b83a0] font-semibold text-base">{entry.ugcCount}</span>
-                        </div>
+                                                                                                   {/* UGC count */}
+                          <div className="flex items-center justify-center">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.ugcCount}
+                              </Badge>
+                          </div>
 
-                        {/* Artist count */}
-                        <div className="flex items-center justify-end">
-                            <span className="text-[#9b83a0] font-semibold text-base">{entry.artistsCount}</span>
-                        </div>
+                          {/* Artist count */}
+                          <div className="flex items-center justify-end">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.artistsCount}
+                              </Badge>
+                          </div>
                     </div>
 
                     {/* Recently Added Artists inline expansion */}

@@ -84,6 +84,11 @@
   color: white !important;
 }
 
+/* Exception for theme toggle - keep black text in dark mode */
+.dark .theme-toggle-text {
+  color: black !important;
+}
+
 .dark .bg-white {
   background-color: #1a1a1a !important; /* darker background instead of pure black */
 }
@@ -103,7 +108,8 @@
 
 
 /* Dark mode overrides for Leaderboard - consolidated */
-.dark .border-\[#9b83a0\] {
+/* Note: Fun Facts buttons should keep the same border color in both modes */
+.dark .border-\[#9b83a0\]:not(.fun-facts-button) {
   border-color: #6f4b75 !important;
 }
 
@@ -363,11 +369,30 @@
 
 /* Make search input text white in dark mode */
 .dark input::placeholder {
-  color: #a0aec0 !important; /* medium gray placeholder */
+  color: #ffffff !important; /* white placeholder for better visibility */
 }
 
 .dark input {
   color: #f7fafc !important; /* bright white text */
+}
+
+/* Keep red notification dots with white borders in dark mode */
+.dark .bg-red-600 {
+  border: 2px solid white !important;
+}
+
+/* Add drop shadow to leaderboard card in dark mode */
+.dark .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Ensure pink highlighting takes precedence over other styles */
+.border-\[#ff9ce3\] {
+  border-color: #ff9ce3 !important;
+}
+
+.shadow-\[0_0_20px_rgba\(255\,156\,227\,0\.3\)\] {
+  box-shadow: 0 0 20px rgba(255, 156, 227, 0.3) !important;
 }
 
 /* Make search results dropdown dark in dark mode */

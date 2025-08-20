@@ -94,7 +94,7 @@ export default function ClientWrapper() {
         hideLogin={true} 
         showStatus={false} 
       />
-      <Leaderboard />
+      <Leaderboard highlightIdentifier={currentUser.username || currentUser.wallet} />
     </main>
   );
 }

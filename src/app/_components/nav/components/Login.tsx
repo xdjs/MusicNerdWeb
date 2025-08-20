@@ -397,7 +397,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     Log In
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <div className="px-1 py-1.5">
+                                <div className="flex justify-center py-1.5">
                                     <ThemeToggle />
                                 </div>
                             </DropdownMenuContent>
@@ -420,7 +420,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : ensLoading ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensAvatar && !avatarError ? (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-background">
+                                <div className="w-8 h-8 rounded-full overflow-hidden">
                                     <img 
                                         src={ensAvatar} 
                                         alt="ENS Avatar" 
@@ -429,11 +429,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     />
                                 </div>
                             ) : jazziconSeed ? (
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-background">
-                                    <Jazzicon diameter={28} seed={jazziconSeed} />
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
                                 </div>
                             ) : (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-background">
+                                <div className="w-8 h-8 rounded-full overflow-hidden">
                                     <img 
                                         src="/default_pfp_pink.png" 
                                         alt="Default Profile" 
@@ -486,7 +486,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                 Log Out
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <div className="px-2 py-1.5">
+                            <div className="flex justify-center py-1.5">
                                 <ThemeToggle />
                             </div>
                         </DropdownMenuContent>
