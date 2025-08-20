@@ -66,8 +66,8 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             shouldPrompt: shouldPromptRef.current
         });
 
-                // Handle successful authentication
-        if (status === "authenticated" && session?.user?.id && isConnected && address) {
+                // Handle successful authentication - simplified logic
+        if (status === "authenticated" && session?.user?.id) {
             console.debug("[Login] Authentication successful:", { 
                 status, 
                 sessionId: session.user.id, 
@@ -144,6 +144,12 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('loginInitiator');
             }
         }
+        
+        // Handle case where wallet is connected but session isn't established yet
+        if (isConnected && address && status === "loading" && sessionStorage.getItem('wasLoggedOut')) {
+            console.debug("[Login] Wallet connected but session loading, waiting for authentication");
+            // This will be handled by the status change logic above
+        }
 
         // Handle status changes
         if (status !== currentStatus) {
@@ -158,6 +164,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     // User logged out, set flag to trigger refresh on re-login
                     sessionStorage.removeItem('postLoginRefresh');
                     sessionStorage.setItem('wasLoggedOut', 'true');
+                }
+            }
+            
+            // Handle transition to authenticated state (fallback for page refreshes)
+            if (status === "authenticated" && currentStatus === "loading") {
+                const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+                if (wasLoggedOut) {
+                    console.debug("[Login] Detected authenticated state after logout, triggering refresh");
+                    sessionStorage.removeItem('wasLoggedOut');
+                    sessionStorage.setItem('postLoginRefresh', 'true');
+                    window.location.reload();
                 }
             }
         }
