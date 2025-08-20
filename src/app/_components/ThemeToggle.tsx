@@ -27,7 +27,7 @@ export function ThemeToggle() {
         }`}
       >
         {isDark ? (
-          <Moon size={14} className="text-white" />
+          <Moon size={14} style={{ color: '#2ad4fc' }} />
         ) : (
           <Sun size={14} className="text-purple-400" />
         )}

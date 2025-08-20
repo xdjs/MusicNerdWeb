@@ -482,6 +482,16 @@
   color: white !important;
 }
 
+/* Theme toggle dark mode styling */
+.dark .theme-toggle-text {
+  color: white !important;
+}
+
+/* Ensure dark mode moon icon is blue */
+.dark .theme-toggle-text ~ div svg {
+  color: #2ad4fc !important;
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
