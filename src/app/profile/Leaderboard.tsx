@@ -46,14 +46,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
         identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
         (entry.username ?? '').toLowerCase() === identifierLc ||
-        (entry.email ?? '').toLowerCase() === identifierLc ||
-        // Additional fallback: check if username contains the identifier (for partial matches)
-        (entry.username ?? '').toLowerCase().includes(identifierLc) ||
-        identifierLc.includes((entry.username ?? '').toLowerCase()) ||
-        // More robust matching: check if the identifier is contained within the username
-        (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
-        // Check if the username is contained within the identifier
-        (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
+        (entry.email ?? '').toLowerCase() === identifierLc
     );
     
     // Debug logging for highlighting - log for all entries to help debug
@@ -294,6 +287,12 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         if (typeof window !== 'undefined') {
             localStorage.setItem('leaderboard-range', range);
         }
+        
+        // Trigger hard refresh when range changes to ensure fresh state
+        console.debug('[Leaderboard] Range changed, triggering hard refresh:', range);
+        setTimeout(() => {
+            window.location.href = window.location.href;
+        }, 100);
     }, [range, onRangeChange]);
 
     function getRangeDates(r: RangeKey) {

@@ -17,20 +17,42 @@ export default function Admin() {
     const [pendingUGCData, setPendingUGCData] = useState<UgcResearch[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
 
-    // Handle authentication transition
+    // Handle authentication transition and hard refresh
     useEffect(() => {
         if (status === 'loading') {
             setAuthTransitioning(true);
         } else if (status === 'authenticated' && authTransitioning) {
             // Show loading for a bit longer to ensure smooth transition
             const timer = setTimeout(() => {
-                window.location.reload();
+                window.location.href = window.location.href;
             }, 500);
             return () => clearTimeout(timer);
         } else if (status === 'unauthenticated') {
             setAuthTransitioning(false);
         }
-    }, [status, authTransitioning]);
+        
+        // Check for authentication state transitions that require hard refresh
+        const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+        const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
+        
+        if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh)) {
+            console.debug('[Admin] Detected authentication state change, triggering hard refresh', {
+                wasLoggedOut: !!wasLoggedOut,
+                postLoginRefresh: !!postLoginRefresh,
+                sessionId: session?.user?.id
+            });
+            
+            // Set refresh flag and clear logout flag
+            sessionStorage.setItem('postLoginRefresh', 'true');
+            sessionStorage.removeItem('wasLoggedOut');
+            
+            // Force hard refresh
+            console.debug('[Admin] Executing hard refresh');
+            setTimeout(() => {
+                window.location.href = window.location.href;
+            }, 100);
+        }
+    }, [status, authTransitioning, session]);
 
     // Check authorization and fetch data
     useEffect(() => {

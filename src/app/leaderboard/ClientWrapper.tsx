@@ -26,9 +26,32 @@ export default function ClientWrapper() {
   const [isLoading, setIsLoading] = useState(true);
 
 
-  // Handle user data fetching
+  // Handle authentication state changes and hard refresh
   useEffect(() => {
     console.debug('[Leaderboard] Session state changed:', { status, sessionId: session?.user?.id, isAuthenticated: status === 'authenticated' });
+    
+    // Check for authentication state transitions that require hard refresh
+    const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+    const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
+    
+    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh)) {
+      console.debug('[Leaderboard] Detected authentication state change, triggering hard refresh', {
+        wasLoggedOut: !!wasLoggedOut,
+        postLoginRefresh: !!postLoginRefresh,
+        sessionId: session?.user?.id
+      });
+      
+      // Set refresh flag and clear logout flag
+      sessionStorage.setItem('postLoginRefresh', 'true');
+      sessionStorage.removeItem('wasLoggedOut');
+      
+      // Force hard refresh
+      console.debug('[Leaderboard] Executing hard refresh');
+      setTimeout(() => {
+        window.location.href = window.location.href;
+      }, 100);
+      return;
+    }
     
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
