@@ -52,6 +52,23 @@ export default function ClientWrapper() {
       return;
     }
     
+    // Additional check for login without wasLoggedOut flag
+    if (status === "authenticated" && session?.user?.id && !postLoginRefresh) {
+      console.debug('[Profile] Detected fresh login, triggering hard refresh', {
+        sessionId: session?.user?.id
+      });
+      
+      // Set refresh flag
+      sessionStorage.setItem('postLoginRefresh', 'true');
+      
+      // Force hard refresh
+      console.debug('[Profile] Executing hard refresh for fresh login');
+      setTimeout(() => {
+        window.location.href = window.location.href;
+      }, 100);
+      return;
+    }
+    
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {

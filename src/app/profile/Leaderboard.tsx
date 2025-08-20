@@ -287,12 +287,6 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         if (typeof window !== 'undefined') {
             localStorage.setItem('leaderboard-range', range);
         }
-        
-        // Trigger hard refresh when range changes to ensure fresh state
-        console.debug('[Leaderboard] Range changed, triggering hard refresh:', range);
-        setTimeout(() => {
-            window.location.href = window.location.href;
-        }, 100);
     }, [range, onRangeChange]);
 
     function getRangeDates(r: RangeKey) {
