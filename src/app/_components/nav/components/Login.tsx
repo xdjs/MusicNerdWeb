@@ -98,37 +98,15 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                  sessionStorage.setItem('postLoginRefresh', 'true');
                  sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                  
-                 // More reliable session check - wait for either session.user.id OR just session to exist
-                 let attempts = 0;
-                 const maxAttempts = 50; // 5 seconds max wait
-                 
-                 const waitForSession = () => {
-                     attempts++;
-                     if (session && (session.user?.id || session.user)) {
-                         console.debug("[Login] Session established, executing page refresh");
-                         try {
-                             window.location.reload();
-                         } catch (error) {
-                             console.error("[Login] Page refresh failed:", error);
-                             // Fallback: try to navigate to current page
-                             window.location.href = window.location.href;
-                         }
-                     } else if (attempts >= maxAttempts) {
-                         console.debug("[Login] Session timeout reached, forcing page refresh");
-                         try {
-                             window.location.reload();
-                         } catch (error) {
-                             console.error("[Login] Page refresh failed:", error);
-                             window.location.href = window.location.href;
-                         }
-                     } else {
-                         console.debug("[Login] Session not yet established, waiting... Session:", session, "Attempt:", attempts);
-                         setTimeout(waitForSession, 100);
-                     }
-                 };
-                 
-                 // Start waiting for session with a longer initial delay
-                 setTimeout(waitForSession, 200);
+                 // Simple immediate refresh to avoid ENS glitch and ensure consistent behavior
+                 console.debug("[Login] Executing immediate page refresh");
+                 try {
+                     window.location.reload();
+                 } catch (error) {
+                     console.error("[Login] Page refresh failed:", error);
+                     // Fallback: try to navigate to current page
+                     window.location.href = window.location.href;
+                 }
              }
             return;
         }
@@ -242,8 +220,15 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             const searchArtistName = sessionStorage.getItem('pendingArtistName');
             const searchFlow = sessionStorage.getItem('searchFlow');
             
-            // First clear all session and local storage
+            // Set the wasLoggedOut flag before clearing storage
+            sessionStorage.setItem('wasLoggedOut', 'true');
+            
+            // Clear all session and local storage except wasLoggedOut
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
             sessionStorage.clear();
+            if (wasLoggedOut) {
+                sessionStorage.setItem('wasLoggedOut', wasLoggedOut);
+            }
             
             // Restore search flow data if it existed
             if (searchFlow) {
