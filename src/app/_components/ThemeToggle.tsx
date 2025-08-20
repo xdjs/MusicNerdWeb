@@ -37,7 +37,7 @@ export function ThemeToggle() {
       <div className={`flex w-full text-sm font-medium transition-all duration-300 ${
         isDark ? 'justify-start pl-2' : 'justify-end pr-2'
       }`}>
-        <span className={`transition-opacity duration-300 whitespace-nowrap text-black ${isDark ? 'opacity-100' : 'opacity-0'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-100 text-black' : 'opacity-0'}`} style={{ color: isDark ? 'black' : 'white' }}>
           Dark Mode
         </span>
         <span className={`transition-opacity duration-300 whitespace-nowrap text-white ${isDark ? 'opacity-0' : 'opacity-100'}`}>

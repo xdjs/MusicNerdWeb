@@ -420,7 +420,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : ensLoading ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensAvatar && !avatarError ? (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-background">
+                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
                                     <img 
                                         src={ensAvatar} 
                                         alt="ENS Avatar" 
@@ -429,11 +429,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     />
                                 </div>
                             ) : jazziconSeed ? (
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-background">
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-white">
                                     <Jazzicon diameter={28} seed={jazziconSeed} />
                                 </div>
                             ) : (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-background">
+                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
                                     <img 
                                         src="/default_pfp_pink.png" 
                                         alt="Default Profile" 
