@@ -60,20 +60,26 @@ export default function ClientWrapper() {
           }
           setUser(null);
         }
+      } else if (status === "unauthenticated") {
+        console.debug('[Leaderboard] User is unauthenticated, setting user to null');
+        setUser(null);
+      } else if (status === "loading") {
+        console.debug('[Leaderboard] Session is loading, keeping current user state');
+        // Don't change user state while loading
+        return;
       } else {
-        console.debug('[Leaderboard] No authenticated session, setting user to null. Status:', status, 'Session ID:', session?.user?.id);
+        console.debug('[Leaderboard] Unknown session state, setting user to null. Status:', status, 'Session ID:', session?.user?.id);
         setUser(null);
       }
       setIsLoading(false);
     };
 
-    if (status !== "loading") {
-      fetchUser();
-    }
+    // Always fetch user when status changes, but handle loading state properly
+    fetchUser();
   }, [status, session]);
 
-  // Show loading while session is loading
-  if (status === "loading") {
+  // Show loading while session is loading or while we're fetching user data
+  if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
@@ -101,6 +107,20 @@ export default function ClientWrapper() {
   };
 
   const currentUser = user || guestUser;
+  
+  // Calculate highlight identifier with debugging
+  const highlightIdentifier = currentUser.id === '00000000-0000-0000-0000-000000000000' 
+    ? undefined 
+    : (currentUser.username || currentUser.wallet);
+    
+  console.debug('[Leaderboard] Current user state:', {
+    user,
+    currentUser,
+    highlightIdentifier,
+    isGuest: currentUser.id === '00000000-0000-0000-0000-000000000000',
+    status,
+    sessionId: session?.user?.id
+  });
 
   return (
     <main className="px-5 sm:px-10 py-10">
@@ -112,7 +132,7 @@ export default function ClientWrapper() {
         hideLogin={true} 
         showStatus={false} 
       />
-      <Leaderboard highlightIdentifier={currentUser.id === '00000000-0000-0000-0000-000000000000' ? undefined : (currentUser.username || currentUser.wallet)} />
+      <Leaderboard highlightIdentifier={highlightIdentifier} />
     </main>
   );
 }
