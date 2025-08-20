@@ -5,7 +5,6 @@ import UGCDataTable from "./ugc-data-table";
 import { ugcColumns } from "./columns";
 import { whitelistedColumns } from "./columns";
 import UsersDataTable from "./whitelisted-data-table";
-import AutoRefresh from "@/app/_components/AutoRefresh";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
 
 export default async function Admin() {
@@ -20,15 +19,15 @@ export default async function Admin() {
     } else {
         const session = await getServerAuthSession();
         const user = session?.user;
-        if (!user) return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="Log in to access this page" /></>;
+        if (!user) return <PleaseLoginPage text="Log in to access this page" />;
         userId = user.id;
         const userRecord = await getUserById(userId);
-        if (!userRecord || !userRecord.isAdmin) return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="You are not authorized to access this page" /></>;
+        if (!userRecord || !userRecord.isAdmin) return <PleaseLoginPage text="You are not authorized to access this page" />;
         isAuthorized = true;
     }
 
     if (!isAuthorized) {
-        return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="You are not authorized to access this page" /></>;
+        return <PleaseLoginPage text="You are not authorized to access this page" />;
     }
 
     const [pendingUGCData, allUsers] = await Promise.all([
@@ -38,8 +37,6 @@ export default async function Admin() {
 
             return (
             <section className="admin-page px-10 py-5 space-y-6">
-                {/* Silent client-side helper to refresh page after login */}
-                <AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} />
                 <h1 className="text-2xl">Site Management</h1>
             <div>
                 <h2 className="text-xl pb-3">Pending UGC</h2>
