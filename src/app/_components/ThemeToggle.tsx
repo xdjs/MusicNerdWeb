@@ -17,30 +17,30 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="relative w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
-        backgroundColor: isDark ? '#2ad4fc' : '#ef95ff',
+        backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
       }}
     >
-      {/* Sliding white toggle */}
+      {/* Sliding toggle */}
       <div 
-        className={`absolute w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-          isDark ? 'right-1' : 'left-1'
+        className={`absolute w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
+          isDark ? 'right-1 bg-black' : 'left-1 bg-white'
         }`}
       >
         {isDark ? (
-          <Moon size={14} className="text-blue-400" />
+          <Moon size={14} style={{ color: '#2ad4fc' }} />
         ) : (
           <Sun size={14} className="text-purple-400" />
         )}
       </div>
       
       {/* Text labels - positioned on opposite side from toggle */}
-      <div className={`flex w-full text-sm font-medium transition-all duration-300 ${
+      <div className={`flex w-full text-sm transition-all duration-300 ${
         isDark ? 'justify-start pl-2' : 'justify-end pr-2'
       }`}>
-        <span className={`transition-opacity duration-300 whitespace-nowrap theme-toggle-text ${isDark ? 'opacity-100' : 'opacity-0'}`} style={{ color: isDark ? 'black' : 'white' }}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap theme-toggle-text ${isDark ? 'opacity-100' : 'opacity-0'}`} style={{ color: isDark ? 'white' : '#1a202c' }}>
           Dark Mode
         </span>
-        <span className={`transition-opacity duration-300 whitespace-nowrap text-white ${isDark ? 'opacity-0' : 'opacity-100'}`}>
+        <span className={`transition-opacity duration-300 whitespace-nowrap ${isDark ? 'opacity-0' : 'opacity-100'}`} style={{ color: isDark ? '#f7fafc' : '#1a202c' }}>
           Light Mode
         </span>
       </div>
