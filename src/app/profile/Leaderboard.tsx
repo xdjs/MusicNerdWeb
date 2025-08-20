@@ -141,7 +141,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                         )}
                     </span>
                                          {/* Profile Picture - evenly spaced between rank and username */}
-                     <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
+                     <div className={cn(
+                         "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
+                         isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#9b83a0]"
+                     )}>
                         {ensLoading ? (
                             <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
@@ -201,7 +204,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
                                                          {/* Avatar between rank and username */}
-                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
+                             <div className={cn(
+                                 "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
+                                 isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#9b83a0]"
+                             )}>
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (

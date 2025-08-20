@@ -599,7 +599,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
  								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
- 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border-2 border-[#ff9ce3]">
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border-4 border-[#ff9ce3]">
 										{ensLoading ? (
 											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
 										) : ensAvatarUrl && !avatarError ? (
