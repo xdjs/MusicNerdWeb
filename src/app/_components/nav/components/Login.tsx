@@ -88,6 +88,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('pendingArtistName');
                 sessionStorage.removeItem('searchFlowPrompted');
             }
+            
+            // Trigger page refresh after initial login to ensure all components update properly
+            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+            if (!hasRefreshed) {
+                console.debug("[Login] Initial login detected, triggering page refresh");
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                // Small delay to ensure session is fully established
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
             return;
         }
 
@@ -116,10 +127,15 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         if (status !== currentStatus) {
             setCurrentStatus(status);
             
-            // Clean up flags if authentication fails
-            if (status === "unauthenticated" && currentStatus === "loading") {
-                sessionStorage.clear();
-                shouldPromptRef.current = false;
+            // Clean up flags if authentication fails or user logs out
+            if (status === "unauthenticated") {
+                if (currentStatus === "loading") {
+                    sessionStorage.clear();
+                    shouldPromptRef.current = false;
+                } else {
+                    // User logged out, clear post-login refresh flag
+                    sessionStorage.removeItem('postLoginRefresh');
+                }
             }
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
