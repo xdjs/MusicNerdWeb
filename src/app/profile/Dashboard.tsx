@@ -437,8 +437,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             setLoading(true);
             try {
                 const url = new URL('/api/ugcStats', window.location.origin);
-                url.searchParams.set('from', date.from.toISOString());
-                url.searchParams.set('to', date.to.toISOString());
+                if (date.from) {
+                    url.searchParams.set('from', date.from.toISOString());
+                }
+                if (date.to) {
+                    url.searchParams.set('to', date.to.toISOString());
+                }
                 if (ugcStatsUserWallet) {
                     url.searchParams.set('wallet', ugcStatsUserWallet);
                 }
@@ -535,8 +539,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 }
 
                 const url = new URL('/api/ugcStats', window.location.origin);
-                url.searchParams.set('from', dateRange.from.toISOString());
-                url.searchParams.set('to', dateRange.to.toISOString());
+                if (dateRange.from) {
+                    url.searchParams.set('from', dateRange.from.toISOString());
+                }
+                if (dateRange.to) {
+                    url.searchParams.set('to', dateRange.to.toISOString());
+                }
                 if (ugcStatsUserWallet) {
                     url.searchParams.set('wallet', ugcStatsUserWallet);
                 }
