@@ -113,8 +113,8 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
 
   if (loadingAi) {
     return (
-      <div className="h-28 relative border border-gray-200 rounded-lg bg-white p-3 overflow-hidden">
-        <p className="text-gray-500 italic">Loading summary...</p>
+      <div className="h-28 relative border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-3 overflow-hidden">
+        <p className="text-gray-500 dark:text-gray-400 italic">Loading summary...</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
     return (
       <div className="mb-4">
         <textarea
-          className="w-full border border-gray-200 rounded-lg p-3 text-black h-40"
+          className="w-full border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-black dark:text-white bg-white dark:bg-gray-800 h-40"
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
@@ -165,16 +165,16 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
     <div className="mb-4">
       <div className="relative">
         {/* Initial text box */}
-        <div className="h-28 relative border border-gray-200 rounded-lg bg-white p-3 overflow-hidden">
+        <div className="h-28 relative border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-3 overflow-hidden">
           {aiBlurb ? (
             <>
-              <p className="text-black">{aiBlurb}</p>
+              <p className="text-black dark:text-white">{aiBlurb}</p>
               {aiBlurb && aiBlurb.length > 200 && (
                 <>
-                  {/* Gradient overlay */}
-                  <div className="absolute bottom-0 right-2 w-32 h-8 bg-gradient-to-l from-white via-white/100 to-transparent pointer-events-none"></div>
+                  {/* Gradient overlay - dark mode compatible */}
+                  <div className="absolute bottom-0 right-2 w-32 h-8 bg-gradient-to-l from-white via-white/100 to-transparent dark:from-gray-800 dark:via-gray-800/100 dark:to-transparent pointer-events-none"></div>
                   <button
-                    className="absolute bottom-1 right-2 bg-transparent text-blue-600 text-sm underline z-10"
+                    className="absolute bottom-1 right-2 bg-transparent text-blue-600 dark:text-blue-400 text-sm underline z-10"
                     onClick={() => setOpenModal(true)}
                   >
                     Read More
@@ -183,15 +183,15 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
               )}
             </>
           ) : (
-            <p className="text-gray-500 italic">No summary is available</p>
+            <p className="text-gray-500 dark:text-gray-400 italic">No summary is available</p>
           )}
         </div>
         {/* Expanded box */}
         {openModal && (
-          <div className="absolute top-0 left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-30 p-3 max-h-96 overflow-y-auto">
-            <p className="text-black mb-4">{aiBlurb}</p>
+          <div className="absolute top-0 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-30 p-3 max-h-96 overflow-y-auto">
+            <p className="text-black dark:text-white mb-4">{aiBlurb}</p>
             <button
-              className="absolute right-2 bg-white text-blue-600 text-sm underline"
+              className="absolute right-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 text-sm underline"
               onClick={() => setOpenModal(false)}
             >
               Show less

@@ -10,7 +10,7 @@ export default function EditModeToggle({ className = "" }: { className?: string 
     if (!canEdit) return null;
 
     return (
-        <Button onClick={toggle} className={`bg-gray-200 text-black hover:bg-gray-300 ${className}`} size="sm">
+        <Button onClick={toggle} className={`bg-gray-200 text-black hover:bg-gray-300 dark:bg-gray-200 dark:text-black dark:hover:bg-gray-300 ${className}`} size="sm">
             {isEditing ? (
                 <div className="flex items-center gap-1">
                     <Check size={14} /> Done
