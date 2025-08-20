@@ -41,13 +41,11 @@ const formSchema = z.object({
     }),
 })
 
-export default function AddArtist({ session }: { session: Session | null }) {
-    const router = useRouter();
+export default function AddArtist({ session: _session }: { session: Session | null }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [addedArtist, setAddedArtist] = useState<{ artistId: string | undefined, artistName: string | undefined } | null>(null);
     const [addArtistStatus, setAddArtistStatus] = useState<AddArtistResp | null>(null);
-    const { toast } = useToast();
     const { isAuthenticated } = useAuth();
     const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== 'true';
     
@@ -62,8 +60,6 @@ export default function AddArtist({ session }: { session: Session | null }) {
         },
     })
 
-    const artistSpotifyUrl = useWatch({ control: form.control, name: "artistSpotifyUrl" });
-
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const match = values.artistSpotifyUrl.match(spotifyArtistUrlRegex);
         if (!match) return null;
@@ -75,11 +71,7 @@ export default function AddArtist({ session }: { session: Session | null }) {
         if (resp.status === "success" || resp.status === "exists") setAddedArtist({ artistId: resp.artistId, artistName: resp.artistName });
     }
 
-    function checkAddedArtistStatus() {
-        if (addArtistStatus?.artistId) form.setValue("artistSpotifyUrl", "");
-        setAddArtistStatus(null);
-        setAddedArtist(null);
-    }
+
 
     function closeModal(isOpen: boolean) {
         setIsModalOpen(isOpen);

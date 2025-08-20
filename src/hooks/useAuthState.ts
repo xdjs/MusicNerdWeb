@@ -1,11 +1,13 @@
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 
+import { Session } from "next-auth";
+
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  session: any;
-  user: any;
+  session: Session | null;
+  user: Session["user"] | null;
   isAdmin: boolean;
   isWhiteListed: boolean;
   isSuperAdmin: boolean;

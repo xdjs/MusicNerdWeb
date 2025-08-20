@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/app/_components/AuthContext";
-import { AuthenticatedOnly, UnauthenticatedOnly } from "@/app/_components/AuthGuard";
+import { AuthenticatedOnly } from "@/app/_components/AuthGuard";
 import { ReactNode } from "react";
 
 interface ClientWrapperProps {
@@ -10,7 +10,7 @@ interface ClientWrapperProps {
 }
 
 export default function ClientWrapper({ children, unauthenticatedView }: ClientWrapperProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (

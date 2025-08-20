@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "./AuthContext";
 import { AuthenticatedOnly, UnauthenticatedOnly } from "./AuthGuard";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ export default function AuthenticatedHomeContent() {
               Welcome back!
             </h2>
             <p className="text-gray-600 text-lg">
-              You're logged in and ready to explore music artists.
+              You&apos;re logged in and ready to explore music artists.
             </p>
           </div>
           

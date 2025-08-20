@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "./AuthContext";
 import { AuthenticatedOnly, UnauthenticatedOnly } from "./AuthGuard";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

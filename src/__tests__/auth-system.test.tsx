@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
+import { Session } from 'next-auth';
 import { AuthProvider } from '@/app/_components/AuthContext';
-import { AuthenticatedOnly, UnauthenticatedOnly, AdminOnly, WhitelistedOnly } from '@/app/_components/AuthGuard';
+import { AuthenticatedOnly, UnauthenticatedOnly, AdminOnly } from '@/app/_components/AuthGuard';
 import PleaseLoginPage from '@/app/_components/PleaseLoginPage';
 import AuthenticatedHomeContent from '@/app/_components/AuthenticatedHomeContent';
 import AuthenticatedNav from '@/app/_components/AuthenticatedNav';
@@ -20,7 +21,7 @@ jest.mock('@/app/_components/nav/components/SearchBar', () => {
 });
 
 // Test wrapper component
-function TestWrapper({ children, session = null }: { children: React.ReactNode; session?: any }) {
+function TestWrapper({ children, session = null }: { children: React.ReactNode; session?: Session | null }) {
   return (
     <SessionProvider session={session}>
       <AuthProvider>

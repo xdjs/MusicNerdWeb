@@ -18,7 +18,7 @@ function StaticPlatformLink({ link, descriptor, image }: { link: string; descrip
     );
 }
 
-export default async function ArtistLinks({ isMonetized, artist, spotifyImg, session, availableLinks, isOpenOnLoad = false, canEdit = false, showAddButton = true }: { isMonetized: boolean; artist: Artist; spotifyImg: string; session: Session | null; availableLinks: UrlMap[]; isOpenOnLoad: boolean; canEdit?: boolean; showAddButton?: boolean }) {
+export default async function ArtistLinks({ isMonetized, artist, spotifyImg, session: _session, availableLinks, isOpenOnLoad = false, canEdit = false, showAddButton = true }: { isMonetized: boolean; artist: Artist; spotifyImg: string; session: Session | null; availableLinks: UrlMap[]; isOpenOnLoad: boolean; canEdit?: boolean; showAddButton?: boolean }) {
     let artistLinks = await getArtistLinks(artist);
     artistLinks = artistLinks.filter((el) => el.isMonetized === isMonetized && el.siteName !== 'spotify');
     

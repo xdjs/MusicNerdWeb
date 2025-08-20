@@ -1,19 +1,10 @@
 "use client"
 
 import HomePageSplash from "./_components/HomePageSplash";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useState } from "react";
 
 export default function HomePage() {
-  const [animation, setAnimation] = useState("static");
+  const [animation] = useState("static");
   return (
     <>
       {/* <div className="absolute bottom-40 left-50  ">
@@ -33,5 +24,5 @@ export default function HomePage() {
       <HomePageSplash animation={animation} />
     </>
   );
-};
+}
 

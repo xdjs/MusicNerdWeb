@@ -5,7 +5,6 @@ import SearchBar from "./nav/components/SearchBar";
 import SlidingText from "./SlidingText";
 import TypewriterText from "./TypeWriter";
 import Login from "./nav/components/Login";
-import { useAuth } from "./AuthContext";
 import AuthenticatedHomeContent from "./AuthenticatedHomeContent";
 
 export default function HomePage({ animation }: { animation: string }) {
@@ -147,5 +146,5 @@ export default function HomePage({ animation }: { animation: string }) {
         </div> */}
         </div>
     );
-};
+}
 

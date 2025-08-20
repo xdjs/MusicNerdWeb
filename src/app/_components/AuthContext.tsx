@@ -3,9 +3,7 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useAuthState, AuthState } from "@/hooks/useAuthState";
 
-interface AuthContextType extends AuthState {
-  // Add any additional auth-related methods here
-}
+type AuthContextType = AuthState;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
