@@ -91,7 +91,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                 )}
                 <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline flex-1">
                     <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
-                    <span>{item.artistName ?? 'Unknown Artist'}</span>
+                    <span className="text-foreground">{item.artistName ?? 'Unknown Artist'}</span>
                 </Link>
                 {isEditing && (
                     <button
@@ -561,6 +561,45 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         fetchRangeStats();
     }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
 
+    // Also fetch stats for full profile layout to keep in sync with leaderboard
+    useEffect(() => {
+        if (isCompactLayout) return; // Skip for compact layout as it's handled above
+
+        async function fetchRangeStats() {
+            try {
+                let dateRange: DateRange;
+                const dates = getRangeDates(selectedRange);
+                if (dates) {
+                    dateRange = { from: dates.from, to: dates.to } as DateRange;
+                } else {
+                    // "all" range – use epoch to now
+                    dateRange = { from: new Date(0), to: new Date() } as DateRange;
+                }
+
+                const url = new URL('/api/ugcStats', window.location.origin);
+                if (dateRange.from) {
+                    url.searchParams.set('from', dateRange.from.toISOString());
+                }
+                if (dateRange.to) {
+                    url.searchParams.set('to', dateRange.to.toISOString());
+                }
+                if (ugcStatsUserWallet) {
+                    url.searchParams.set('wallet', ugcStatsUserWallet);
+                }
+
+                const response = await fetch(url.toString());
+                if (response.ok) {
+                    const result = await response.json();
+                    setUgcStats(result);
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error fetching UGC stats for range', e);
+            }
+        }
+
+        fetchRangeStats();
+    }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
+
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
         setSelectedRange(range);
@@ -674,7 +713,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
+                                        {ugcStats?.ugcCount ?? '—'}
                                     </Badge>
                                 </div>
 
@@ -682,7 +721,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
+                                        {ugcStats?.artistsCount ?? '—'}
                                     </Badge>
                                 </div>
                             </div>
@@ -876,8 +915,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2 text-foreground">
                                     {/* User Rank */}
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">User Rank:</span><span className="font-normal text-right flex-1 truncate text-foreground">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">UGC Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">Artists Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
+                                                                         <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">UGC Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{ugcStats?.ugcCount ?? '—'}</span></div>
+                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">Artists Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{ugcStats?.artistsCount ?? '—'}</span></div>
                                 </Link>
                             </Button>
                             </div>
@@ -929,9 +968,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 </SortableContext>
                                             </DndContext>
                                         </>
-                                    ) : (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center md:text-left">No bookmarks yet</p>
-                                    )}
+                                                                         ) : (
+                                         <p className="text-sm text-foreground text-center md:text-left">No bookmarks yet</p>
+                                     )}
 
                                     {/* Pagination controls - moved to bottom */}
                                     {!isEditingBookmarks && totalBookmarkPages > 1 && (

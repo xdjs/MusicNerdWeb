@@ -114,7 +114,7 @@ export default function UserEntriesTable() {
     const fetchFiltered = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/userEntries?filter=${filter}`);
+        const res = await fetch(`/api/userEntries?siteName=${filter}`);
         if (!res.ok) return;
         const data: ApiResponse = await res.json();
         // Replace existing entries with filtered result
@@ -311,33 +311,27 @@ export default function UserEntriesTable() {
             </Table>
           </div>
         </div>
-        <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
-          {pageCount > 1 ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-              >
-                Prev
-              </Button>
-              <span className="text-sm text-white">Page {page} of {pageCount}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= pageCount}
-                onClick={() => setPage((p) => p + 1)}
-                className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-              >
-                Next
-              </Button>
-            </>
-          ) : (
-            <span className="text-sm text-white">All entries</span>
-          )}
-        </CardFooter>
+                 <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
+           <Button
+             variant="outline"
+             size="sm"
+             disabled={page === 1 || pageCount <= 1}
+             onClick={() => setPage((p) => p - 1)}
+             className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75] disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             Prev
+           </Button>
+           <span className="text-sm text-white">Page {page} of {pageCount}</span>
+           <Button
+             variant="outline"
+             size="sm"
+             disabled={page >= pageCount || pageCount <= 1}
+             onClick={() => setPage((p) => p + 1)}
+             className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75] disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             Next
+           </Button>
+         </CardFooter>
       </Card>
     </div>
   );

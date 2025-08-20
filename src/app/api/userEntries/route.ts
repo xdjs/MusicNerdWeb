@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
     const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
     const siteFilter = searchParams.get("siteName");
-    const noPaginate = searchParams.get("all") === "true" || siteFilter;
+    const noPaginate = searchParams.get("all") === "true" || (siteFilter && siteFilter !== "all");
 
     const session = await getServerAuthSession();
     const walletlessEnabled =
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     // Base where conditions – show both approved and pending entries for the user
     const uid = userId as string; // after early return above, userId is guaranteed to be set
     let conditions = eq(ugcresearch.userId, uid) as any;
-    if (siteFilter) {
+    if (siteFilter && siteFilter !== "all") {
       // narrow to specific entry type
       conditions = and(conditions, eq(ugcresearch.siteName, siteFilter));
     }
