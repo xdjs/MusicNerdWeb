@@ -17,7 +17,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="relative w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
-        backgroundColor: isDark ? '#2ad4fc' : '#ef95ff',
+        backgroundColor: '#f3f4f6',
       }}
     >
       {/* Sliding white toggle */}

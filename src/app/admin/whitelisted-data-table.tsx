@@ -75,11 +75,11 @@ export function AddWhitelistDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Whitelist</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Add Users to Whitelist</DialogTitle>
                 </DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>
@@ -126,11 +126,11 @@ export function AddAdminDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Add Admin</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Add Users to Admin</DialogTitle>
                 </DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>
@@ -177,11 +177,11 @@ export function AddHiddenDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Hide User</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Hide Users from Leaderboards</DialogTitle>
                 </DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>
@@ -226,11 +226,11 @@ export function RemoveHiddenDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Unhide User</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Unhide Users from Leaderboards</DialogTitle>
                 </DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string) => setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>
@@ -270,9 +270,9 @@ export function RemoveWhitelistDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Whitelist</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader><DialogTitle>Remove Users from Whitelist</DialogTitle></DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string)=>setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>{users.map((u)=><Button variant="outline" onClick={()=>removeFromUsers(u)} key={u}>{u} <X className="w-4 h-4 ml-1" /></Button>)}</div>
@@ -309,9 +309,9 @@ export function RemoveAdminDialog() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="text-xs px-2 py-1 h-8">Remove Admin</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] text-black">
+            <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader><DialogTitle>Remove Users from Admin</DialogTitle></DialogHeader>
-                <p className="text-sm text-gray-500">Insert wallet address or username</p>
+                <p className="text-sm text-muted-foreground">Insert wallet address or username</p>
                 <div className="space-y-4">
                     <SearchBar setUsers={(user:string)=>setUserWithFilter(user)} query={query} setQuery={setQuery} />
                     <div>{users.map((u)=> <Button variant="outline" onClick={()=>removeFromUsers(u)} key={u}>{u} <X className="w-4 h-4 ml-1" /></Button>)}</div>
@@ -439,7 +439,7 @@ export default function UsersDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col gap-4 text-black w-full">
+            <div className="flex flex-col gap-4 w-full">
                 {/* Top row: Filter and Search */}
                 <div className="flex gap-4 items-center">
                 {/* Role filter dropdown */}
@@ -457,15 +457,15 @@ export default function UsersDataTable<TData, TValue>({
                 </Select>
 
                                  {/* Search bar */}
-                 <div className="relative text-black max-w-sm">
+                 <div className="relative max-w-sm">
                      <input
                          type="text"
                          value={query}
                          onChange={(e) => setQuery(e.target.value)}
                          placeholder="Search users by wallet or username..."
-                         className="border border-gray-300 rounded-md pl-2 pr-8 h-8 text-sm w-full"
+                         className="border border-input rounded-md pl-2 pr-8 h-8 text-sm w-full bg-background text-foreground"
                      />
-                    <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" strokeWidth={2} />
+                    <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={2} />
                 </div>
                 </div>
                 
@@ -512,9 +512,9 @@ export default function UsersDataTable<TData, TValue>({
             </div>
 
             {uploadStatus.status === "error" && <p className="text-red-500">{uploadStatus.message}</p>}
-            <div className="rounded-md border border-black bg-white">
+            <div className="rounded-md border bg-card">
                 <Table >
-                    <TableHeader className="color-white">
+                    <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {

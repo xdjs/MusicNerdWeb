@@ -67,14 +67,14 @@ export default function UGCDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <Button variant="outline" onClick={() => approveSelected()} className="w-fit text-black">
+            <Button variant="outline" onClick={() => approveSelected()} className="w-fit">
                 {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" />
                     : "Approve Selected"}
             </Button>
             {uploadStatus.status === "error" && <p className="text-red-500">{uploadStatus.message}</p>}
-            <div className="rounded-md border border-black bg-white">
+            <div className="rounded-md border bg-card">
                 <Table>
-                    <TableHeader className="color-white">
+                    <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
