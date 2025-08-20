@@ -89,35 +89,47 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after successful authentication (including re-login)
-            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-            
-            if (!hasRefreshed || wasLoggedOut) {
-                console.debug("[Login] Authentication successful, triggering page refresh");
-                sessionStorage.setItem('postLoginRefresh', 'true');
-                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
-                
-                // Wait for session to be fully established before refreshing
-                const waitForSession = () => {
-                    if (session?.user?.id) {
-                        console.debug("[Login] Session established, executing page refresh");
-                        try {
-                            window.location.reload();
-                        } catch (error) {
-                            console.error("[Login] Page refresh failed:", error);
-                            // Fallback: try to navigate to current page
-                            window.location.href = window.location.href;
-                        }
-                    } else {
-                        console.debug("[Login] Session not yet established, waiting...");
-                        setTimeout(waitForSession, 100);
-                    }
-                };
-                
-                // Start waiting for session
-                setTimeout(waitForSession, 100);
-            }
+                         // Trigger page refresh after successful authentication (including re-login)
+             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+             
+             if (!hasRefreshed || wasLoggedOut) {
+                 console.debug("[Login] Authentication successful, triggering page refresh");
+                 sessionStorage.setItem('postLoginRefresh', 'true');
+                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
+                 
+                 // More reliable session check - wait for either session.user.id OR just session to exist
+                 let attempts = 0;
+                 const maxAttempts = 50; // 5 seconds max wait
+                 
+                 const waitForSession = () => {
+                     attempts++;
+                     if (session && (session.user?.id || session.user)) {
+                         console.debug("[Login] Session established, executing page refresh");
+                         try {
+                             window.location.reload();
+                         } catch (error) {
+                             console.error("[Login] Page refresh failed:", error);
+                             // Fallback: try to navigate to current page
+                             window.location.href = window.location.href;
+                         }
+                     } else if (attempts >= maxAttempts) {
+                         console.debug("[Login] Session timeout reached, forcing page refresh");
+                         try {
+                             window.location.reload();
+                         } catch (error) {
+                             console.error("[Login] Page refresh failed:", error);
+                             window.location.href = window.location.href;
+                         }
+                     } else {
+                         console.debug("[Login] Session not yet established, waiting... Session:", session, "Attempt:", attempts);
+                         setTimeout(waitForSession, 100);
+                     }
+                 };
+                 
+                 // Start waiting for session with a longer initial delay
+                 setTimeout(waitForSession, 200);
+             }
             return;
         }
 
