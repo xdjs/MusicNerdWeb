@@ -53,7 +53,7 @@ export default function ClientWrapper() {
       console.debug('[Leaderboard] Executing hard refresh');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 500);
+      }, 1000);
       return;
     }
     
@@ -71,7 +71,20 @@ export default function ClientWrapper() {
       console.debug('[Leaderboard] Executing hard refresh for fresh login');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 500);
+      }, 1000);
+      return;
+    }
+    
+    // Handle logout - immediate refresh to clear state
+    if (status === "unauthenticated" && hasRefreshed) {
+      console.debug('[Leaderboard] Detected logout, triggering immediate refresh');
+      sessionStorage.removeItem('leaderboardRefreshed');
+      sessionStorage.removeItem('postLoginRefresh');
+      sessionStorage.setItem('wasLoggedOut', 'true');
+      
+      // Immediate refresh on logout
+      console.debug('[Leaderboard] Executing immediate refresh for logout');
+      window.location.href = window.location.href;
       return;
     }
     

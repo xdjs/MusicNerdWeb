@@ -23,6 +23,7 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionStable, setSessionStable] = useState(false);
 
 
   // Handle authentication state changes and hard refresh
@@ -34,8 +35,17 @@ export default function ClientWrapper() {
     const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
     const hasRefreshed = sessionStorage.getItem('profileRefreshed');
     
-    // Only trigger refresh if we haven't already refreshed for this session
-    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh) && !hasRefreshed) {
+    console.debug('[Profile] Checking refresh conditions:', {
+      status,
+      sessionId: session?.user?.id,
+      wasLoggedOut: !!wasLoggedOut,
+      postLoginRefresh: !!postLoginRefresh,
+      hasRefreshed: !!hasRefreshed,
+      shouldRefresh: status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh) && !hasRefreshed
+    });
+    
+    // Only trigger refresh if we haven't already refreshed for this session and session is stable
+    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh) && !hasRefreshed && sessionStable) {
       console.debug('[Profile] Detected authentication state change, triggering hard refresh', {
         wasLoggedOut: !!wasLoggedOut,
         postLoginRefresh: !!postLoginRefresh,
@@ -52,12 +62,12 @@ export default function ClientWrapper() {
       console.debug('[Profile] Executing hard refresh');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 500);
+      }, 1000);
       return;
     }
     
     // Additional check for login without wasLoggedOut flag
-    if (status === "authenticated" && session?.user?.id && !postLoginRefresh && !hasRefreshed) {
+    if (status === "authenticated" && session?.user?.id && !postLoginRefresh && !hasRefreshed && sessionStable) {
       console.debug('[Profile] Detected fresh login, triggering hard refresh', {
         sessionId: session?.user?.id
       });
@@ -70,7 +80,20 @@ export default function ClientWrapper() {
       console.debug('[Profile] Executing hard refresh for fresh login');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 500);
+      }, 1000);
+      return;
+    }
+    
+    // Handle logout - immediate refresh to clear state
+    if (status === "unauthenticated" && hasRefreshed) {
+      console.debug('[Profile] Detected logout, triggering immediate refresh');
+      sessionStorage.removeItem('profileRefreshed');
+      sessionStorage.removeItem('postLoginRefresh');
+      sessionStorage.setItem('wasLoggedOut', 'true');
+      
+      // Immediate refresh on logout
+      console.debug('[Profile] Executing immediate refresh for logout');
+      window.location.href = window.location.href;
       return;
     }
     
@@ -99,6 +122,20 @@ export default function ClientWrapper() {
       fetchUser();
     }
   }, [status, session]); // Remove refreshKey dependency since we're using hard refresh
+
+  // Track session stability
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.id) {
+      // Wait a bit to ensure session is stable
+      const timer = setTimeout(() => {
+        setSessionStable(true);
+        console.debug('[Profile] Session is now stable');
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setSessionStable(false);
+    }
+  }, [status, session]);
 
   // Clear page-specific refresh flag when component unmounts
   useEffect(() => {
