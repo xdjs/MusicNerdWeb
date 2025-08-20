@@ -214,7 +214,7 @@ export default function UserEntriesTable() {
                   <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-white bg-white"
+                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
                   >
                     <option value="all">All</option>
                     {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
