@@ -318,27 +318,35 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after successful authentication (including re-login)
-            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-            
-            if (!hasRefreshed || wasLoggedOut) {
-                console.debug("[Login] Authentication successful, triggering page refresh");
-                sessionStorage.setItem('postLoginRefresh', 'true');
-                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
-                
-                // Small delay to ensure session is fully established
-                setTimeout(() => {
-                    console.debug("[Login] Executing page refresh");
-                    try {
-                        window.location.reload();
-                    } catch (error) {
-                        console.error("[Login] Page refresh failed:", error);
-                        // Fallback: try to navigate to current page
-                        window.location.href = window.location.href;
-                    }
-                }, 100);
-            }
+                         // Trigger page refresh after successful authentication (including re-login)
+             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+             
+             if (!hasRefreshed || wasLoggedOut) {
+                 console.debug("[Login] Authentication successful, triggering page refresh");
+                 sessionStorage.setItem('postLoginRefresh', 'true');
+                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
+                 
+                 // Wait for session to be fully established before refreshing
+                 const waitForSession = () => {
+                     if (session?.user?.id) {
+                         console.debug("[Login] Session established, executing page refresh");
+                         try {
+                             window.location.reload();
+                         } catch (error) {
+                             console.error("[Login] Page refresh failed:", error);
+                             // Fallback: try to navigate to current page
+                             window.location.href = window.location.href;
+                         }
+                     } else {
+                         console.debug("[Login] Session not yet established, waiting...");
+                         setTimeout(waitForSession, 100);
+                     }
+                 };
+                 
+                 // Start waiting for session
+                 setTimeout(waitForSession, 100);
+             }
         }
 
         // Only handle reconnection if explicitly triggered
