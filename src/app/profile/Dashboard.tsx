@@ -109,6 +109,8 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
     const [isLoading, setIsLoading] = useState(true);
+    const { status } = useSession();
+    const [authLoading, setAuthLoading] = useState(false);
 
     useEffect(() => {
         // Simulate loading time for better UX
@@ -119,13 +121,25 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         return () => clearTimeout(timer);
     }, []);
 
+    // Handle authentication state changes
+    useEffect(() => {
+        if (status === 'loading') {
+            setAuthLoading(true);
+        } else if (status === 'authenticated' && authLoading) {
+            // User just completed authentication, trigger refresh
+            setAuthLoading(false);
+            // Reload the page to get fresh user data
+            window.location.reload();
+        } else if (status === 'unauthenticated') {
+            setAuthLoading(false);
+        }
+    }, [status, authLoading]);
+
     if (isLoading || authLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                <p className="text-foreground text-xl">
-                    {authLoading ? 'Authenticating...' : 'Loading...'}
-                </p>
+                <p className="text-foreground text-xl">Loading...</p>
             </div>
         );
     }
@@ -408,8 +422,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     })();
 
     const { openConnectModal } = useConnectModal();
-    const { status, data: session } = useSession();
-    const [authLoading, setAuthLoading] = useState(false);
+    const { data: session } = useSession();
 
     // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
     useEffect(() => {
@@ -433,22 +446,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             markUGCSeen();
         }
     }, [user.id]);
-
-    // Handle authentication state changes
-    useEffect(() => {
-        if (status === 'loading') {
-            setAuthLoading(true);
-        } else if (status === 'authenticated' && authLoading) {
-            // User just completed authentication, trigger refresh
-            setAuthLoading(false);
-            // Reload the page to get fresh user data
-            window.location.reload();
-        } else if (status === 'unauthenticated') {
-            setAuthLoading(false);
-        }
-    }, [status, authLoading]);
-
-
 
     function handleLogin() {
         if (openConnectModal) {
