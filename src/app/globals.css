@@ -418,6 +418,80 @@
   color: #f7fafc !important; /* bright white text */
 }
 
+/* Admin page dark mode styling */
+.dark .admin-page {
+  background-color: #1a1a1a !important;
+  color: #f7fafc !important;
+}
+
+.dark .admin-page h1,
+.dark .admin-page h2 {
+  color: #f7fafc !important;
+}
+
+/* Ensure admin page text is properly visible in dark mode */
+.dark .admin-page .text-muted-foreground {
+  color: #a0aec0 !important;
+}
+
+/* Admin page table styling in dark mode */
+.dark .admin-page .bg-card {
+  background-color: #2d3748 !important;
+}
+
+.dark .admin-page .border {
+  border-color: #4a5568 !important;
+}
+
+/* Admin page button styling in dark mode */
+.dark .admin-page .bg-background {
+  background-color: #1a1a1a !important;
+}
+
+.dark .admin-page .text-foreground {
+  color: #f7fafc !important;
+}
+
+.dark .admin-page .border-input {
+  border-color: #4a5568 !important;
+}
+
+.dark .admin-page .ring-ring {
+  --tw-ring-color: #4a5568 !important;
+}
+
+/* Checkbox styling for light and dark modes */
+/* Light mode: pink checkbox when checked */
+[data-state="checked"] {
+  background-color: #ff9ce3 !important;
+  border-color: #ff9ce3 !important;
+}
+
+/* Dark mode: light blue checkbox when checked */
+.dark [data-state="checked"] {
+  background-color: #2ad4fc !important;
+  border-color: #2ad4fc !important;
+}
+
+/* Ensure checkbox text (checkmark) is white for good contrast */
+[data-state="checked"] .text-primary-foreground {
+  color: white !important;
+}
+
+.dark [data-state="checked"] .text-primary-foreground {
+  color: white !important;
+}
+
+/* Theme toggle dark mode styling */
+.dark .theme-toggle-text {
+  color: white !important;
+}
+
+/* Ensure dark mode moon icon is blue */
+.dark .theme-toggle-text ~ div svg {
+  color: #2ad4fc !important;
+}
+
 .text-color-primary {
   color: #EDADF8;
 }
