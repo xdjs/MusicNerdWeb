@@ -26,6 +26,8 @@ export default function ClientWrapper() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.debug('[Leaderboard] Session state changed:', { status, sessionId: session?.user?.id, isAuthenticated: status === 'authenticated' });
+    
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
@@ -59,7 +61,7 @@ export default function ClientWrapper() {
           setUser(null);
         }
       } else {
-        console.debug('[Leaderboard] No authenticated session, setting user to null');
+        console.debug('[Leaderboard] No authenticated session, setting user to null. Status:', status, 'Session ID:', session?.user?.id);
         setUser(null);
       }
       setIsLoading(false);

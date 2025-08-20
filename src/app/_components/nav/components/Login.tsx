@@ -98,17 +98,25 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.setItem('postLoginRefresh', 'true');
                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                 
-                // Small delay to ensure session is fully established
-                setTimeout(() => {
-                    console.debug("[Login] Executing page refresh");
-                    try {
-                        window.location.reload();
-                    } catch (error) {
-                        console.error("[Login] Page refresh failed:", error);
-                        // Fallback: try to navigate to current page
-                        window.location.href = window.location.href;
+                // Wait for session to be fully established before refreshing
+                const waitForSession = () => {
+                    if (session?.user?.id) {
+                        console.debug("[Login] Session established, executing page refresh");
+                        try {
+                            window.location.reload();
+                        } catch (error) {
+                            console.error("[Login] Page refresh failed:", error);
+                            // Fallback: try to navigate to current page
+                            window.location.href = window.location.href;
+                        }
+                    } else {
+                        console.debug("[Login] Session not yet established, waiting...");
+                        setTimeout(waitForSession, 100);
                     }
-                }, 100);
+                };
+                
+                // Start waiting for session
+                setTimeout(waitForSession, 100);
             }
             return;
         }
