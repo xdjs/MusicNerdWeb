@@ -311,29 +311,33 @@ export default function UserEntriesTable() {
             </Table>
           </div>
         </div>
-        {pageCount > 1 && (
-          <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-            >
-              Prev
-            </Button>
-            <span className="text-sm text-white">Page {page} of {pageCount}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pageCount}
-              onClick={() => setPage((p) => p + 1)}
-              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-            >
-              Next
-            </Button>
-          </CardFooter>
-        )}
+        <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
+          {pageCount > 1 ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
+              >
+                Prev
+              </Button>
+              <span className="text-sm text-white">Page {page} of {pageCount}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+                className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
+              >
+                Next
+              </Button>
+            </>
+          ) : (
+            <span className="text-sm text-white">All entries</span>
+          )}
+        </CardFooter>
       </Card>
     </div>
   );

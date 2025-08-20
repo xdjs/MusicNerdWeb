@@ -85,7 +85,7 @@ export default function ClientWrapper() {
 
   return (
     <main className="px-5 sm:px-10 py-10">
-      <AutoRefresh />
+      <AutoRefresh sessionStorageKey="leaderboardSkipReload" />
       <Dashboard 
         user={currentUser} 
         allowEditUsername={false} 
