@@ -70,7 +70,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         if (status === "authenticated") {
             console.debug("[Login] Authentication successful:", { 
                 status, 
-                sessionId: session.user.id, 
+                sessionId: session?.user?.id, 
                 isConnected, 
                 address,
                 hasRefreshed: sessionStorage.getItem('postLoginRefresh'),
@@ -126,22 +126,29 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
 
         // Handle initial login or reconnection
         if (!isConnected && !session && status === "unauthenticated") {
-            const loginInitiator = sessionStorage.getItem('loginInitiator');
-            const isSearchFlow = sessionStorage.getItem('searchFlow');
-            const isSearchFlowPrompted = sessionStorage.getItem('searchFlowPrompted');
+            // Don't show login prompt if we're in the middle of an authentication process
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
             
-            if (
-                (shouldPromptRef.current || (loginInitiator === 'searchBar' && isSearchFlow)) &&
-                !isSearchFlowPrompted
-            ) {
-                console.debug("[Login] Starting initial connection");
-                if (openConnectModal) {
-                    openConnectModal();
+            // Only show login prompt if we're truly unauthenticated (not in transition)
+            if (!wasLoggedOut && !postLoginRefresh) {
+                const loginInitiator = sessionStorage.getItem('loginInitiator');
+                const isSearchFlow = sessionStorage.getItem('searchFlow');
+                const isSearchFlowPrompted = sessionStorage.getItem('searchFlowPrompted');
+                
+                if (
+                    (shouldPromptRef.current || (loginInitiator === 'searchBar' && isSearchFlow)) &&
+                    !isSearchFlowPrompted
+                ) {
+                    console.debug("[Login] Starting initial connection");
+                    if (openConnectModal) {
+                        openConnectModal();
+                    }
+                    // Ensure we don't auto-prompt again during the same logged-out session
+                    shouldPromptRef.current = false;
+                    sessionStorage.setItem('searchFlowPrompted', 'true');
+                    sessionStorage.removeItem('loginInitiator');
                 }
-                // Ensure we don't auto-prompt again during the same logged-out session
-                shouldPromptRef.current = false;
-                sessionStorage.setItem('searchFlowPrompted', 'true');
-                sessionStorage.removeItem('loginInitiator');
             }
         }
         
@@ -157,13 +164,23 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             
             // Clean up flags if authentication fails or user logs out
             if (status === "unauthenticated") {
-                if (currentStatus === "loading") {
-                    sessionStorage.clear();
-                    shouldPromptRef.current = false;
-                } else {
-                    // User logged out, set flag to trigger refresh on re-login
+                // Only clear sessionStorage if we're transitioning from authenticated to unauthenticated
+                // Don't clear during initial loading process
+                if (currentStatus === "authenticated") {
+                    console.debug("[Login] User logged out, setting wasLoggedOut flag");
                     sessionStorage.removeItem('postLoginRefresh');
                     sessionStorage.setItem('wasLoggedOut', 'true');
+                } else if (currentStatus === "loading") {
+                    // Only clear if we're going from loading to unauthenticated (failed auth)
+                    // But don't clear if we're in the middle of a login process
+                    const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+                    const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
+                    
+                    if (!wasLoggedOut && !postLoginRefresh) {
+                        console.debug("[Login] Authentication failed, clearing session storage");
+                        sessionStorage.clear();
+                        shouldPromptRef.current = false;
+                    }
                 }
             }
         }

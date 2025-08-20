@@ -14,7 +14,7 @@ const isTestEnv = process.env.NODE_ENV === 'test';
 
 export const SPOTIFY_WEB_CLIENT_ID = validateEnv(process.env.NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID, 'NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID', isTestEnv);
 export const SPOTIFY_WEB_CLIENT_SECRET = validateEnv(process.env.NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET, 'NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET', isTestEnv);
-export const SUPABASE_DB_CONNECTION = process.env.SUPABASE_DB_CONNECTION ?? "";
+export const SUPABASE_DB_CONNECTION = validateEnv(process.env.SUPABASE_DB_CONNECTION, 'SUPABASE_DB_CONNECTION', isTestEnv);
 export const NEXTAUTH_URL = process.env.NEXTAUTH_URL ?? "";
 export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
 export const OPENAI_API_KEY = validateEnv(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY', isTestEnv);
