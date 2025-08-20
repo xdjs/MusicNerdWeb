@@ -67,7 +67,16 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         });
 
                 // Handle successful authentication
-        if (isConnected && session) {
+        if (status === "authenticated" && session?.user?.id && isConnected && address) {
+            console.debug("[Login] Authentication successful:", { 
+                status, 
+                sessionId: session.user.id, 
+                isConnected, 
+                address,
+                hasRefreshed: sessionStorage.getItem('postLoginRefresh'),
+                wasLoggedOut: sessionStorage.getItem('wasLoggedOut')
+            });
+
             // Reset prompt flag
             shouldPromptRef.current = false;
             
@@ -76,7 +85,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 searchBarRef.current.clearLoading();
             }
             
-            if (sessionStorage.getItem('searchFlow')) {
+            // Handle search flow completion
+            const pendingArtistSpotifyId = sessionStorage.getItem('pendingArtistSpotifyId');
+            const pendingArtistName = sessionStorage.getItem('pendingArtistName');
+            const searchFlow = sessionStorage.getItem('searchFlow');
+            
+            if (searchFlow && pendingArtistSpotifyId && pendingArtistName) {
+                console.debug("[Login] Completing search flow for:", pendingArtistName);
+                
+                // Navigate to add artist page with pre-filled data
+                router.push(`/add-artist?spotifyId=${encodeURIComponent(pendingArtistSpotifyId)}&artistName=${encodeURIComponent(pendingArtistName)}`);
+                
                 // Show success toast once
                 toast({
                     title: "Connected!",
@@ -89,25 +108,19 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-                         // Trigger page refresh after successful authentication (including re-login)
-             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-             
-             if (!hasRefreshed || wasLoggedOut) {
-                 console.debug("[Login] Authentication successful, triggering page refresh");
-                 sessionStorage.setItem('postLoginRefresh', 'true');
-                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
-                 
-                 // Simple immediate refresh to avoid ENS glitch and ensure consistent behavior
-                 console.debug("[Login] Executing immediate page refresh");
-                 try {
-                     window.location.reload();
-                 } catch (error) {
-                     console.error("[Login] Page refresh failed:", error);
-                     // Fallback: try to navigate to current page
-                     window.location.href = window.location.href;
-                 }
-             }
+            // Trigger page refresh after successful authentication (including re-login)
+            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            
+            if (!hasRefreshed || wasLoggedOut) {
+                console.debug("[Login] Authentication successful, triggering page refresh");
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
+                
+                // Force immediate refresh like logout does
+                console.debug("[Login] Executing immediate page refresh");
+                window.location.reload();
+            }
             return;
         }
 
