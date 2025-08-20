@@ -71,7 +71,7 @@ const WalletProviders = dynamic(
                                     learnMoreUrl: 'https://www.musicnerd.xyz',
                                     disclaimer: undefined
                                 }}
-                                theme={theme === 'dark' ? darkTheme : lightTheme}
+                                theme={theme === 'dark' ? darkTheme() : lightTheme()}
                             >
                                 {children}
                             </RainbowKitProvider>
