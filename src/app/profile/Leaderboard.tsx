@@ -315,21 +315,9 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         }
     }
 
-    function buildUrl() {
-        const params = new URLSearchParams();
-        const dates = getRangeDates(range);
-        if (dates) {
-            params.set("from", dates.from.toISOString());
-            params.set("to", dates.to.toISOString());
-        }
-        params.set("page", page.toString());
-        params.set("perPage", PER_PAGE.toString());
-        // Add cache-busting timestamp to ensure fresh data on range changes
-        params.set("_t", Date.now().toString());
-        return `/api/leaderboard?${params.toString()}`;
-    }
-
     useEffect(() => {
+        console.log('[Leaderboard] Range or page changed:', { range, page });
+        
         async function fetchLeaderboard() {
             if ((getRangeDates(range)?.from && !getRangeDates(range)?.to) || (!getRangeDates(range)?.from && getRangeDates(range)?.to)) {
                 setLeaderboard([]);
@@ -338,11 +326,29 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             try {
                 setLoading(true);
                 setError(null);
-                const response = await fetch(buildUrl());
+                
+                // Build URL with cache-busting timestamp
+                const params = new URLSearchParams();
+                const dates = getRangeDates(range);
+                if (dates) {
+                    params.set("from", dates.from.toISOString());
+                    params.set("to", dates.to.toISOString());
+                }
+                params.set("page", page.toString());
+                params.set("perPage", PER_PAGE.toString());
+                // Add cache-busting timestamp to ensure fresh data on range changes
+                params.set("_t", Date.now().toString());
+                const url = `/api/leaderboard?${params.toString()}`;
+                
+                console.log('[Leaderboard] Fetching URL:', url);
+                
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error('Failed to fetch leaderboard');
                 }
                 const data = await response.json();
+                console.log('[Leaderboard] Received data:', data);
+                
                 if (Array.isArray(data)) {
                     // legacy response (no pagination)
                     setLeaderboard(data);
@@ -401,7 +407,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
-                                onClick={() => setRange(key)}
+                                onClick={() => {
+                                    console.log('[Leaderboard] Button clicked (loading state), setting range from', range, 'to', key);
+                                    setRange(key);
+                                }}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
                                 {headingLabelMap[key]}
@@ -436,7 +445,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
-                                onClick={() => setRange(key)}
+                                onClick={() => {
+                                    console.log('[Leaderboard] Button clicked (error state), setting range from', range, 'to', key);
+                                    setRange(key);
+                                }}
                             >
                                 {range === key && <Check className="inline h-4 w-4 mr-1" />}
                                 {headingLabelMap[key]}
@@ -468,7 +480,10 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                             )}
-                            onClick={() => setRange(key)}
+                            onClick={() => {
+                                console.log('[Leaderboard] Button clicked (main state), setting range from', range, 'to', key);
+                                setRange(key);
+                            }}
                         >
                             {range === key && <Check className="inline h-4 w-4 mr-1" />}
                             {headingLabelMap[key]}
