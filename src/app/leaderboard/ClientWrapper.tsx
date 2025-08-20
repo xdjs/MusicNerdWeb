@@ -30,19 +30,37 @@ export default function ClientWrapper() {
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
-          const response = await fetch(`/api/user/${session.user.id}`);
+          console.debug('[Leaderboard] Fetching user data for:', session.user.id);
+          
+          // Add timeout to prevent hanging
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
+          const response = await fetch(`/api/user/${session.user.id}`, {
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
           if (response.ok) {
             const userData = await response.json();
+            console.debug('[Leaderboard] User data fetched successfully:', userData);
             setUser(userData);
           } else {
+            console.error('[Leaderboard] User fetch failed with status:', response.status);
             // If user fetch fails, treat as guest
             setUser(null);
           }
         } catch (error) {
-          console.error('Failed to fetch user:', error);
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.error('[Leaderboard] User fetch timed out');
+          } else {
+            console.error('[Leaderboard] Failed to fetch user:', error);
+          }
           setUser(null);
         }
       } else {
+        console.debug('[Leaderboard] No authenticated session, setting user to null');
         setUser(null);
       }
       setIsLoading(false);
@@ -53,8 +71,8 @@ export default function ClientWrapper() {
     }
   }, [status, session]);
 
-  // Show loading while determining session
-  if (status === "loading" || isLoading) {
+  // Show loading only while session is loading, not while fetching user data
+  if (status === "loading") {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
