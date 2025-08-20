@@ -166,25 +166,17 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     sessionStorage.setItem('wasLoggedOut', 'true');
                 }
             }
-            
-            // Handle transition to authenticated state (fallback for page refreshes and subsequent logins)
-            if (status === "authenticated") {
-                const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-                if (wasLoggedOut) {
-                    console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
-                    sessionStorage.removeItem('wasLoggedOut');
-                    sessionStorage.setItem('postLoginRefresh', 'true');
-                    window.location.reload();
-                }
-            }
         }
         
-        // Additional check for subsequent logins - if we have wasLoggedOut flag and are authenticated, refresh
-        if (status === "authenticated" && sessionStorage.getItem('wasLoggedOut')) {
-            console.debug("[Login] Subsequent login detected, triggering immediate refresh");
-            sessionStorage.removeItem('wasLoggedOut');
-            sessionStorage.setItem('postLoginRefresh', 'true');
-            window.location.reload();
+        // Handle all authenticated state logic in one place
+        if (status === "authenticated") {
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            if (wasLoggedOut) {
+                console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
+                sessionStorage.removeItem('wasLoggedOut');
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                window.location.reload();
+            }
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
 
