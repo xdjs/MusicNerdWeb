@@ -4,7 +4,7 @@ import {
   type NextAuthOptions,
 } from "next-auth";
 import { cookies } from 'next/headers';
-import { NEXTAUTH_URL } from "@/env";
+import { NEXTAUTH_URL, NEXTAUTH_SECRET } from "@/env";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SiweMessage } from "siwe";
 import { getUserByWallet, createUser } from "@/server/utils/queries/userQueries";
@@ -65,6 +65,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         // Copy all user properties to the token during initial login
+        token.id = user.id; // Ensure user ID is set
+        token.sub = user.id; // Also set sub for compatibility
         token.walletAddress = user.walletAddress;
         token.email = user.email;
         token.name = user.name || user.username;
@@ -73,6 +75,12 @@ export const authOptions: NextAuthOptions = {
         token.isSuperAdmin = user.isSuperAdmin;
         token.isHidden = user.isHidden;
         token.lastRefresh = Date.now();
+        
+        console.debug('[Auth] JWT token created for user', {
+          userId: user.id,
+          walletAddress: user.walletAddress,
+          isWhiteListed: user.isWhiteListed
+        });
       } else {
         // Refresh user data from database in these cases:
         // 1. Explicit session update trigger
@@ -98,6 +106,8 @@ export const authOptions: NextAuthOptions = {
             const refreshedUser = await getUserByWallet(token.walletAddress);
             if (refreshedUser) {
               // Update all user properties from database
+              token.id = refreshedUser.id; // Ensure user ID is maintained
+              token.sub = refreshedUser.id; // Also set sub for compatibility
               token.isWhiteListed = refreshedUser.isWhiteListed;
               token.isAdmin = refreshedUser.isAdmin;
               token.isSuperAdmin = refreshedUser.isSuperAdmin;
@@ -126,7 +136,7 @@ export const authOptions: NextAuthOptions = {
         ...session,
         user: {
           ...session.user,
-          id: token.sub,
+          id: token.sub || token.id, // Use token.id as fallback if token.sub is not set
           walletAddress: token.walletAddress,
           email: token.email,
           name: token.name,
@@ -268,7 +278,7 @@ export const authOptions: NextAuthOptions = {
           console.debug("[Auth] Returning user", { id: user.id });
           
           // Map the database user to the NextAuth user format
-          return {
+          const nextAuthUser = {
             id: user.id,
             walletAddress: user.wallet, // Map wallet to walletAddress
             email: user.email,
@@ -280,6 +290,15 @@ export const authOptions: NextAuthOptions = {
             isSuperAdmin: user.isSuperAdmin,
             isHidden: user.isHidden,
           };
+          
+          console.debug("[Auth] Returning NextAuth user object", {
+            id: nextAuthUser.id,
+            walletAddress: nextAuthUser.walletAddress,
+            isWhiteListed: nextAuthUser.isWhiteListed,
+            isAdmin: nextAuthUser.isAdmin
+          });
+          
+          return nextAuthUser;
         } catch (e) {
           console.error("[Auth] Error during authorization:", e);
           return null;
@@ -290,7 +309,7 @@ export const authOptions: NextAuthOptions = {
   // Enable debug mode only in development
   debug: process.env.NODE_ENV === "development",
   // Add CSRF protection
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: NEXTAUTH_SECRET,
   // Add secure cookies in production
   cookies: {
     sessionToken: {

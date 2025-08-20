@@ -18,9 +18,10 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
+  const sessionStableRef = useRef(false);
 
   useEffect(() => {
     if (showLoading) {
@@ -38,8 +39,13 @@ export default function AutoRefresh({
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
 
+    // Only proceed if we're not in loading state and have a stable session
+    if (status !== "loading" && session) {
+      sessionStableRef.current = true;
+    }
+
     // Check if we need to refresh on initial load or status change
-    if (!skip && status !== "loading") {
+    if (!skip && status !== "loading" && sessionStableRef.current) {
       // On initial load, prevStatus.current will be null, so we check if we're authenticated
       // On subsequent loads, we check if status changed from unauthenticated to authenticated
       const shouldRefresh = 
@@ -47,9 +53,15 @@ export default function AutoRefresh({
         (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
       
       if (shouldRefresh) {
-        sessionStorage.setItem(sessionStorageKey, "true");
-        // Full reload so server components pick up the new session instantly
-        window.location.reload();
+        // Add a small delay to ensure session is fully established
+        const timer = setTimeout(() => {
+          console.debug('[AutoRefresh] Triggering page reload after authentication');
+          sessionStorage.setItem(sessionStorageKey, "true");
+          // Full reload so server components pick up the new session instantly
+          window.location.reload();
+        }, 500); // 500ms delay to ensure session stability
+
+        return () => clearTimeout(timer);
       }
     }
 
@@ -61,7 +73,7 @@ export default function AutoRefresh({
     if (status !== "loading") {
       prevStatus.current = status;
     }
-  }, [status, sessionStorageKey]);
+  }, [status, session, sessionStorageKey]);
 
   if (isLoading || status === "loading") {
     return (
