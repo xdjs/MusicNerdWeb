@@ -1,9 +1,11 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/app/_components/AuthContext";
 import { useEffect, useState } from "react";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
+import { AuthenticatedOnly } from "@/app/_components/AuthGuard";
+import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
 
 type User = {
   id: string;
@@ -21,13 +23,13 @@ type User = {
 };
 
 export default function ClientWrapper() {
-  const { status, data: session } = useSession();
+  const { isAuthenticated, isLoading, session } = useAuth();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (status === "authenticated" && session?.user?.id) {
+      if (isAuthenticated && session?.user?.id) {
         try {
           console.debug('[Leaderboard] Fetching user data for:', session.user.id);
           
@@ -62,16 +64,16 @@ export default function ClientWrapper() {
         console.debug('[Leaderboard] No authenticated session, setting user to null');
         setUser(null);
       }
-      setIsLoading(false);
+      setIsUserLoading(false);
     };
 
-    if (status !== "loading") {
+    if (!isLoading) {
       fetchUser();
     }
-  }, [status, session]);
+  }, [isAuthenticated, session, isLoading]);
 
   // Show loading only while session is loading, not while fetching user data
-  if (status === "loading") {
+  if (isLoading || isUserLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
@@ -101,16 +103,18 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   return (
-    <main className="px-5 sm:px-10 py-10">
-      <Dashboard 
-        user={currentUser} 
-        allowEditUsername={false} 
-        showLeaderboard={false} 
-        showDateRange={false} 
-        hideLogin={true} 
-        showStatus={false} 
-      />
-      <Leaderboard highlightIdentifier={currentUser.id === '00000000-0000-0000-0000-000000000000' ? undefined : (currentUser.username || currentUser.wallet)} />
-    </main>
+    <AuthenticatedOnly fallback={<PleaseLoginPage />}>
+      <main className="px-5 sm:px-10 py-10">
+        <Dashboard 
+          user={currentUser} 
+          allowEditUsername={false} 
+          showLeaderboard={false} 
+          showDateRange={false} 
+          hideLogin={true} 
+          showStatus={false} 
+        />
+        <Leaderboard highlightIdentifier={currentUser.id === '00000000-0000-0000-0000-000000000000' ? undefined : (currentUser.username || currentUser.wallet)} />
+      </main>
+    </AuthenticatedOnly>
   );
 }

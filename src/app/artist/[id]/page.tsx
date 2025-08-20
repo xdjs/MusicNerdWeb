@@ -14,6 +14,8 @@ import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
+import ClientWrapper from "./ClientWrapper";
+import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
 type ArtistProfileProps = {
     params: { id: string };
     searchParams: { [key: string]: string | undefined };
@@ -46,7 +48,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
 
     return (
-        <>
+        <ClientWrapper unauthenticatedView={<PleaseLoginPage />}>
             <EditModeProvider canEdit={canEdit}>
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
@@ -156,6 +158,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </div>
             </div>
             </EditModeProvider>
-        </>
+        </ClientWrapper>
     );
 }

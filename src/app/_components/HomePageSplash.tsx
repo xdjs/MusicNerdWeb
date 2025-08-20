@@ -5,6 +5,8 @@ import SearchBar from "./nav/components/SearchBar";
 import SlidingText from "./SlidingText";
 import TypewriterText from "./TypeWriter";
 import Login from "./nav/components/Login";
+import { useAuth } from "./AuthContext";
+import AuthenticatedHomeContent from "./AuthenticatedHomeContent";
 
 export default function HomePage({ animation }: { animation: string }) {
 
@@ -130,6 +132,11 @@ export default function HomePage({ animation }: { animation: string }) {
                     <Suspense fallback={<div>Loading...</div>}>
                         <SearchBar isTopSide={true} />
                     </Suspense>
+                    
+                    {/* Show different content based on authentication state */}
+                    <div className="mt-8">
+                        <AuthenticatedHomeContent />
+                    </div>
                 </div>
             </div>
             {/* <div className="flex flex-col items-center">

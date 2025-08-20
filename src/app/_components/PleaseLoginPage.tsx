@@ -1,30 +1,39 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button";
+import Login from "./nav/components/Login";
+import { useAuth } from "./AuthContext";
 
-export default function PleaseLoginPage({text = "Log in to access this page"}: {text?: string}) {
-    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== 'true';
+export default function PleaseLoginPage() {
+  const { isAuthenticated } = useAuth();
 
-    // If wallet is not required, show a different message
-    if (!isWalletRequired) {
-        return (
-            <section className="px-10 py-5 space-y-6 flex items-center justify-center flex-col">
-                <h1 className="text-2xl text-center font-bold">This feature is currently unavailable</h1>
-            </section>
-        );
-    }
+  if (isAuthenticated) {
+    return null;
+  }
 
-    function handleLogin() {
-        const loginBtn = document.getElementById("login-btn");
-        if (loginBtn) {
-            loginBtn.click();
-        }
-    }
-    
-    return (
-        <section className="px-10 py-5 space-y-6 flex items-center justify-center flex-col">
-            <h1 className="text-2xl text-center font-bold">{text}</h1>
-            <Button className="bg-pastypink hover:bg-gray-200" onClick={handleLogin}>Log In</Button>
-        </section>
-    )
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <div className="max-w-md w-full text-center space-y-6">
+        <div className="space-y-4">
+          <img
+            src="/icon.ico"
+            className="w-20 h-20 mx-auto hover:animate-[spin_3s_linear_infinite]"
+            alt="Music Nerd Logo"
+          />
+          <h1 className="text-3xl font-bold text-gray-900">
+            Please Log In
+          </h1>
+          <p className="text-gray-600 text-lg">
+            You need to be logged in to view this content.
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          <Login buttonStyles="w-full bg-pastypink hover:bg-gray-200 text-white py-3 px-6 rounded-lg transition-colors duration-300" />
+          <p className="text-sm text-gray-500">
+            Connect your wallet to access all features
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }

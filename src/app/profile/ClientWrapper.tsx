@@ -1,8 +1,10 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/app/_components/AuthContext";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
+import { AuthenticatedOnly } from "@/app/_components/AuthGuard";
+import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
 
 type User = {
   id: string;
@@ -20,13 +22,13 @@ type User = {
 };
 
 export default function ClientWrapper() {
-  const { status, data: session } = useSession();
+  const { isAuthenticated, isLoading, session } = useAuth();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (status === "authenticated" && session?.user?.id) {
+      if (isAuthenticated && session?.user?.id) {
         try {
           const response = await fetch(`/api/user/${session.user.id}`);
           if (response.ok) {
@@ -43,16 +45,16 @@ export default function ClientWrapper() {
       } else {
         setUser(null);
       }
-      setIsLoading(false);
+      setIsUserLoading(false);
     };
 
-    if (status !== "loading") {
+    if (!isLoading) {
       fetchUser();
     }
-  }, [status, session]);
+  }, [isAuthenticated, session, isLoading]);
 
   // Show loading while determining session
-  if (status === "loading" || isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
@@ -82,13 +84,13 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   return (
-    <>
+    <AuthenticatedOnly fallback={<PleaseLoginPage />}>
       <Dashboard 
         user={currentUser} 
         showLeaderboard={false} 
         showDateRange={false} 
         allowEditUsername={true} 
       />
-    </>
+    </AuthenticatedOnly>
   );
 }

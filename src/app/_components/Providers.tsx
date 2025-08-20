@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Session } from "next-auth";
 import AuthToast from "./AuthToast";
 import { ThemeProvider } from "./ThemeProvider";
+import { AuthProvider } from "./AuthContext";
 
 export default function Providers({
   children,
@@ -19,8 +20,10 @@ export default function Providers({
         refetchInterval={0} 
         refetchOnWindowFocus={false}
       >
-        <AuthToast />
-        {children}
+        <AuthProvider>
+          <AuthToast />
+          {children}
+        </AuthProvider>
       </SessionProvider>
     </ThemeProvider>
   );

@@ -4,12 +4,13 @@ import Link from "next/link"
 import SearchBar from "./components/SearchBar"
 import AddArtist from "./components/AddArtist";
 import Login from "@/app/_components/nav/components/Login";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/app/_components/AuthContext";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import AuthenticatedNav from "@/app/_components/AuthenticatedNav";
 
 export default function Nav() {
-    const { data: session } = useSession();
+    const { session } = useAuth();
     const pathname = usePathname();
     if (pathname === "/") return null;
 
@@ -31,7 +32,8 @@ export default function Nav() {
                 </Suspense>
                 <AddArtist session={session} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-4">
+                <AuthenticatedNav />
                 <Login buttonStyles="" />
             </div>
         </nav>
