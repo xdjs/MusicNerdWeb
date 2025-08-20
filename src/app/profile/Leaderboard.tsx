@@ -142,11 +142,11 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </span>
                                          {/* Profile Picture - evenly spaced between rank and username */}
                      <div className={cn(
-                         "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
-                         isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#9b83a0]"
+                         "flex-none rounded-full overflow-hidden flex items-center justify-center",
+                         isHighlighted ? "w-12 h-12 border-4 border-[#ff9ce3]" : "w-10 h-10 border-2 border-[#9b83a0]"
                      )}>
                         {ensLoading ? (
-                            <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                            <img className="w-6 h-6" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
                             <img
                                 src={ensAvatarUrl}
@@ -155,7 +155,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                 onError={() => setAvatarError(true)}
                             />
                         ) : jazziconSeed ? (
-                            <Jazzicon diameter={32} seed={jazziconSeed} />
+                            <Jazzicon diameter={isHighlighted ? 48 : 40} seed={jazziconSeed} />
                         ) : (
                             <img
                                 src="/default_pfp_pink.png"
@@ -205,11 +205,11 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             <div className="w-5 flex-none" />
                                                          {/* Avatar between rank and username */}
                              <div className={cn(
-                                 "w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center",
-                                 isHighlighted ? "border-4 border-[#ff9ce3]" : "border-2 border-[#9b83a0]"
+                                 "flex-none rounded-full overflow-hidden flex items-center justify-center",
+                                 isHighlighted ? "w-12 h-12 border-4 border-[#ff9ce3]" : "w-10 h-10 border-2 border-[#9b83a0]"
                              )}>
                                 {ensLoading ? (
-                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                    <img className="w-6 h-6" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
                                     <img
                                         src={ensAvatarUrl}
@@ -218,7 +218,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                                         onError={() => setAvatarError(true)}
                                     />
                                 ) : jazziconSeed ? (
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
+                                    <Jazzicon diameter={isHighlighted ? 48 : 40} seed={jazziconSeed} />
                                 ) : (
                                     <img
                                         src="/default_pfp_pink.png"
