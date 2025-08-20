@@ -8,7 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/server/auth";
 import Providers from "./_components/Providers";
 import LoginProviders from "./_components/nav/components/LoginProviders";
-import AutoRefresh from "./_components/AutoRefresh";
+
 
 export const metadata: Metadata = {
   title: "Music Nerd",
@@ -55,7 +55,7 @@ export default async function RootLayout({
       <body className="min-h-screen flex flex-col">
         <Providers session={session}>
           <LoginProviders>
-            <AutoRefresh />
+
             <Nav />
             <main className="flex-grow flex flex-col min-h-0">
               {children}

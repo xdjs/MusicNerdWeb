@@ -339,7 +339,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                 const resp = await fetch(url);
                 if (!resp.ok) return;
-                const data = await resp.json();
+                const responseData = await resp.json();
+                
+                // Handle both paginated and non-paginated responses
+                const data = Array.isArray(responseData) ? responseData : responseData.entries || [];
+                
                 // Exclude hidden users from total count
                 const nonHiddenUsers = data.filter((entry: any) => !entry.isHidden);
                 setTotalEntries(nonHiddenUsers.length);

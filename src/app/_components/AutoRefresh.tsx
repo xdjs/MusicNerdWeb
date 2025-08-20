@@ -44,7 +44,8 @@ export default function AutoRefresh({
       // On subsequent loads, we check if status changed from unauthenticated to authenticated
       const shouldRefresh = 
         (prevStatus.current === null && status === "authenticated") || // Initial load with auth
-        (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
+        (prevStatus.current && prevStatus.current !== status && status === "authenticated") || // Status change to auth
+        (prevStatus.current === "unauthenticated" && status === "authenticated"); // Direct transition from unauthenticated to authenticated
       
       if (shouldRefresh) {
         sessionStorage.setItem(sessionStorageKey, "true");
