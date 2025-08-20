@@ -55,7 +55,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
 
   return (
     <div className="hidden md:block bg-white rounded-lg shadow-2xl p-6 space-y-4 overflow-x-hidden">
-      <h2 className="text-2xl font-bold text-black">Fun Facts</h2>
+      <h2 className="text-2xl font-bold text-black dark:text-white">Fun Facts</h2>
       <div className="relative">
         {/* Buttons List */}
         <div className={fact ? "invisible pointer-events-none" : "flex flex-col space-y-2"}>
@@ -74,7 +74,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
                       >
                         {icon}
                       </span>
-                      <span className="leading-none">{label}</span>
+                      <span className="leading-none text-black dark:text-white">{label}</span>
                     </span>
                   </Button>
                 </TooltipTrigger>

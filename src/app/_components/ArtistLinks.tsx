@@ -27,7 +27,7 @@ export default async function ArtistLinks({ isMonetized, artist, spotifyImg, ses
         // SUPPORT SECTION – never render the add button here
         if (artistLinks.length === 0) {
             return (
-                <p>This artist has no links in this section yet.</p>
+                <p className="text-black dark:text-white">This artist has no links in this section yet.</p>
             );
         }
         return (
@@ -76,7 +76,7 @@ export default async function ArtistLinks({ isMonetized, artist, spotifyImg, ses
             )}
 
             {artistLinks.length === 0 ? (
-                <p>This artist has no links in this section yet, help support them by adding links!</p>
+                <p className="text-black dark:text-white">This artist has no links in this section yet, help support them by adding links!</p>
             ) : null}
             {artistLinks.map((el) => (
                 canEdit ? (
