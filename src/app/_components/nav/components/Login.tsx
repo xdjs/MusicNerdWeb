@@ -89,16 +89,24 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after initial login to ensure all components update properly
-            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            if (!hasRefreshed) {
-                console.debug("[Login] Initial login detected, triggering page refresh");
-                sessionStorage.setItem('postLoginRefresh', 'true');
-                // Small delay to ensure session is fully established
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
+                         // Trigger page refresh after initial login to ensure all components update properly
+             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+             if (!hasRefreshed) {
+                 console.debug("[Login] Initial login detected, triggering page refresh");
+                 sessionStorage.setItem('postLoginRefresh', 'true');
+                 
+                 // Use a very short delay to ensure session is established but prevent timeout
+                 setTimeout(() => {
+                     console.debug("[Login] Executing page refresh");
+                     try {
+                         window.location.reload();
+                     } catch (error) {
+                         console.error("[Login] Page refresh failed:", error);
+                         // Fallback: try to navigate to current page
+                         window.location.href = window.location.href;
+                     }
+                 }, 200);
+             }
             return;
         }
 
