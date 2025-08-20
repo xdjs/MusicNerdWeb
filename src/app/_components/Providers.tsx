@@ -17,11 +17,12 @@ export default function Providers({
     <ThemeProvider defaultTheme="light" storageKey="musicnerd-theme">
       <SessionProvider 
         session={session}
-        refetchInterval={5 * 60} // Refresh session every 5 minutes
-        refetchOnWindowFocus={true} // Refresh when window gains focus
+        refetchInterval={0} // Don't auto-refresh sessions
+        refetchOnWindowFocus={false} // Don't refresh when window gains focus
         refetchWhenOffline={false} // Don't refetch when offline
       >
-        <AutoRefresh />
+        {/* Temporarily disabled AutoRefresh to test */}
+        {/* <AutoRefresh /> */}
         <AuthToast />
         {children}
       </SessionProvider>

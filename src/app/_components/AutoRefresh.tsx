@@ -19,22 +19,25 @@ export default function AutoRefresh({
   showLoading?: boolean; 
 } = {}) {
   const { status, data: session } = useSession();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const prevStatus = useRef<typeof status | null>(null);
   const sessionStableRef = useRef(false);
+  const hasInitialized = useRef(false);
 
+  // Only show loading on initial mount, not on every status change
   useEffect(() => {
-    if (showLoading) {
+    if (!hasInitialized.current && showLoading) {
+      hasInitialized.current = true;
+      setIsLoading(true);
+      
       // Show loading for a brief moment to ensure session is stable
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 100);
 
       return () => clearTimeout(timer);
-    } else {
-      setIsLoading(false);
     }
-  }, [status, showLoading]);
+  }, [showLoading]);
 
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
@@ -45,11 +48,10 @@ export default function AutoRefresh({
     }
 
     // Check if we need to refresh on initial load or status change
-    if (!skip && status !== "loading" && sessionStableRef.current) {
+    if (!skip && status !== "loading" && sessionStableRef.current && hasInitialized.current) {
       // On initial load, prevStatus.current will be null, so we check if we're authenticated
       // On subsequent loads, we check if status changed from unauthenticated to authenticated
       const shouldRefresh = 
-        (prevStatus.current === null && status === "authenticated") || // Initial load with auth
         (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
       
       if (shouldRefresh) {
@@ -75,7 +77,8 @@ export default function AutoRefresh({
     }
   }, [status, session, sessionStorageKey]);
 
-  if (isLoading || status === "loading") {
+  // Only show loading screen if we're in the initial loading state
+  if (isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
