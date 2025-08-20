@@ -324,6 +324,8 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         }
         params.set("page", page.toString());
         params.set("perPage", PER_PAGE.toString());
+        // Add cache-busting timestamp to ensure fresh data on range changes
+        params.set("_t", Date.now().toString());
         return `/api/leaderboard?${params.toString()}`;
     }
 
