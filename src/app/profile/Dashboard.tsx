@@ -272,7 +272,17 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 	// Range selection (synced with Leaderboard)
     type RangeKey = "today" | "week" | "month" | "all";
-    const [selectedRange, setSelectedRange] = useState<RangeKey>("today");
+    const [selectedRange, setSelectedRange] = useState<RangeKey>(() => {
+        // Try to get the last selected range from localStorage
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('leaderboard-range');
+            console.log('[Dashboard] Initializing selectedRange from localStorage:', saved);
+            if (saved && ['today', 'week', 'month', 'all'].includes(saved)) {
+                return saved as RangeKey;
+            }
+        }
+        return "today";
+    });
 
     // (duplicate RangeKey and selectedRange definition removed)
 
@@ -529,6 +539,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         if (!isCompactLayout) return;
 
+        console.log('[Dashboard] Fetching range stats for:', selectedRange, 'isCompactLayout:', isCompactLayout);
+
         async function fetchRangeStats() {
             try {
                 let dateRange: DateRange;
@@ -551,9 +563,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     url.searchParams.set('wallet', ugcStatsUserWallet);
                 }
 
+                console.log('[Dashboard] Fetching UGC stats from:', url.toString());
+
                 const response = await fetch(url.toString());
                 if (response.ok) {
                     const result = await response.json();
+                    console.log('[Dashboard] UGC stats result:', result);
                     setUgcStats(result);
                 }
             } catch (e) {
@@ -590,7 +605,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
+        console.log('[Dashboard] Leaderboard range changed to:', range);
         setSelectedRange(range);
+        // Also save to localStorage immediately
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('leaderboard-range', range);
+        }
     };
 
     // Fetch recent edited UGC only for the full profile layout (not the compact leaderboard layout)
@@ -640,7 +660,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                  role="button"
                                  tabIndex={0}
                                  onClick={handleLogin}
-                                 className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#c6bfc7] rounded-md bg-accent/40 hover:bg-accent/60 hover:ring-2 hover:ring-[#c6bfc7] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#c6bfc7]"
+                                                                   className="cursor-pointer flex items-center justify-center py-3 px-4 sm:px-6 border-2 border-[#c6bfc7] rounded-md bg-accent/40 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 hover:ring-2 hover:ring-[#c6bfc7] w-full gap-2 focus:outline-none focus:ring-2 focus:ring-[#c6bfc7]"
                              >
                                  <span className="text-sm sm:text-lg font-medium underline">Log in to compare your statistics</span>
                              </div>
@@ -898,7 +918,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button
                                 asChild
                                 variant="outline"
-                                className="py-4 space-y-2 text-left border-2 border-[#ff9ce3] hover:bg-[#f3f4f6] h-auto self-center md:self-end w-64"
+                                className="py-4 space-y-2 text-left border-2 border-[#ff9ce3] hover:bg-[#f3f4f6] dark:hover:bg-gray-800 h-auto self-center md:self-end w-64"
                             >
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2 text-foreground">
                                     {/* User Rank */}

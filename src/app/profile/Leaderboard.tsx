@@ -274,13 +274,26 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showTopBtn, setShowTopBtn] = useState(false);
-    const [range, setRange] = useState<RangeKey>("today");
+    const [range, setRange] = useState<RangeKey>(() => {
+        // Try to get the last selected range from localStorage
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('leaderboard-range');
+            if (saved && ['today', 'week', 'month', 'all'].includes(saved)) {
+                return saved as RangeKey;
+            }
+        }
+        return "today";
+    });
     const [page, setPage] = useState(1);
     const [pageCount, setPageCount] = useState(1);
 
     // Notify parent whenever the range changes (including initial mount)
     useEffect(() => {
         onRangeChange?.(range);
+        // Save to localStorage
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('leaderboard-range', range);
+        }
     }, [range, onRangeChange]);
 
     function getRangeDates(r: RangeKey) {
