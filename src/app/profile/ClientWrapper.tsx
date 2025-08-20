@@ -84,6 +84,7 @@ export default function ClientWrapper() {
   return (
     <main className="px-5 sm:px-10 py-10">
       <Dashboard 
+        key={`dashboard-${currentUser.id}`}
         user={currentUser} 
         allowEditUsername={true} 
         showLeaderboard={false} 

@@ -78,9 +78,6 @@ export default function LeaderboardClientWrapper() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8 text-[#9b83a0]">
-          Leaderboard
-        </h1>
         <Leaderboard highlightIdentifier={user.username || user.wallet} />
       </div>
     </div>
