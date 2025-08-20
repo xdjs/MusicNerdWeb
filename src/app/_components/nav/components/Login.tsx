@@ -303,6 +303,23 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('pendingArtistName');
                 sessionStorage.removeItem('searchFlowPrompted');
             }
+            
+            // Trigger page refresh when profile picture is ready (ENS avatar loaded)
+            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+            if (!hasRefreshed && !ensLoading) {
+                console.debug("[Login] Profile picture ready, triggering page refresh");
+                sessionStorage.setItem('postLoginRefresh', 'true');
+                
+                // Immediate refresh to avoid state mismatch
+                try {
+                    console.debug("[Login] Executing page refresh after profile picture loaded");
+                    window.location.reload();
+                } catch (error) {
+                    console.error("[Login] Page refresh failed:", error);
+                    // Fallback: try to navigate to current page
+                    window.location.href = window.location.href;
+                }
+            }
         }
 
         // Only handle reconnection if explicitly triggered
@@ -316,18 +333,23 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         if (status !== currentStatus) {
             setCurrentStatus(status);
             
-            // Clean up flags if authentication fails
-            if (status === "unauthenticated" && currentStatus === "loading") {
-                // Don't clear session storage if this was a manual disconnect
-                if (!sessionStorage.getItem('manualDisconnect')) {
-                    sessionStorage.clear();
-                    localStorage.removeItem('wagmi.wallet');
-                    localStorage.removeItem('wagmi.connected');
-                    localStorage.removeItem('wagmi.injected.connected');
-                    localStorage.removeItem('wagmi.store');
-                    localStorage.removeItem('wagmi.cache');
+            // Clean up flags if authentication fails or user logs out
+            if (status === "unauthenticated") {
+                if (currentStatus === "loading") {
+                    // Don't clear session storage if this was a manual disconnect
+                    if (!sessionStorage.getItem('manualDisconnect')) {
+                        sessionStorage.clear();
+                        localStorage.removeItem('wagmi.wallet');
+                        localStorage.removeItem('wagmi.connected');
+                        localStorage.removeItem('wagmi.injected.connected');
+                        localStorage.removeItem('wagmi.store');
+                        localStorage.removeItem('wagmi.cache');
+                    }
+                    shouldPromptRef.current = false;
+                } else {
+                    // User logged out, clear post-login refresh flag
+                    sessionStorage.removeItem('postLoginRefresh');
                 }
-                shouldPromptRef.current = false;
             }
         }
     }, [status, currentStatus, isConnected, address, session, openConnectModal, router, toast, searchBarRef]);
