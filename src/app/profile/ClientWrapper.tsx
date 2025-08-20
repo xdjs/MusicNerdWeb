@@ -3,8 +3,7 @@
 import { useAuth } from "@/app/_components/AuthContext";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
-import { AuthenticatedOnly } from "@/app/_components/AuthGuard";
-import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -84,7 +83,8 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   return (
-    <AuthenticatedOnly fallback={<PleaseLoginPage />}>
+    <>
+      <AutoRefresh />
       <Dashboard 
         user={currentUser} 
         showLeaderboard={false} 

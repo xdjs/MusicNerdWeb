@@ -4,8 +4,7 @@ import { useAuth } from "@/app/_components/AuthContext";
 import { useEffect, useState } from "react";
 import Dashboard from "@/app/profile/Dashboard";
 import Leaderboard from "@/app/profile/Leaderboard";
-import { AuthenticatedOnly } from "@/app/_components/AuthGuard";
-import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
@@ -103,18 +102,17 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   return (
-    <AuthenticatedOnly fallback={<PleaseLoginPage />}>
-      <main className="px-5 sm:px-10 py-10">
-        <Dashboard 
-          user={currentUser} 
-          allowEditUsername={false} 
-          showLeaderboard={false} 
-          showDateRange={false} 
-          hideLogin={true} 
-          showStatus={false} 
-        />
-        <Leaderboard highlightIdentifier={currentUser.id === '00000000-0000-0000-0000-000000000000' ? undefined : (currentUser.username || currentUser.wallet)} />
-      </main>
-    </AuthenticatedOnly>
+    <main className="px-5 sm:px-10 py-10">
+      <AutoRefresh />
+      <Dashboard 
+        user={currentUser} 
+        allowEditUsername={false} 
+        showLeaderboard={false} 
+        showDateRange={false} 
+        hideLogin={true} 
+        showStatus={false} 
+      />
+      <Leaderboard highlightIdentifier={currentUser.id === '00000000-0000-0000-0000-000000000000' ? undefined : (currentUser.username || currentUser.wallet)} />
+    </main>
   );
 }
