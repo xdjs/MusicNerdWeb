@@ -62,8 +62,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             isHighlighted,
             usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
             walletMatch: entry.wallet?.toLowerCase() === identifierLc,
-            usernameContains: (entry.username ?? '').toLowerCase().includes(identifierLc),
-            identifierContains: identifierLc?.includes((entry.username ?? '').toLowerCase())
+            usernameContains: identifierLc ? (entry.username ?? '').toLowerCase().includes(identifierLc) : false,
+            identifierContains: identifierLc ? identifierLc.includes((entry.username ?? '').toLowerCase()) : false
         });
     }
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
