@@ -1,10 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
-import { getServerAuthSession } from "@/server/auth";
-import { getUserByWallet } from "@/server/utils/queries/userQueries";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import Leaderboard from "../profile/Leaderboard";
-import PleaseLoginPage from "../_components/PleaseLoginPage";
 
 type User = {
   id: string;
@@ -22,31 +20,59 @@ type User = {
 };
 
 export default function LeaderboardClientWrapper() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LeaderboardPage />
-    </Suspense>
-  );
-}
+  const { status, data: session } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-async function LeaderboardPage() {
-  const session = await getServerAuthSession();
-  const user = session?.user;
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (status === "authenticated" && session?.user?.id) {
+        try {
+          const response = await fetch(`/api/user/${session.user.id}`);
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+          } else {
+            // If user fetch fails, treat as guest
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Failed to fetch user:', error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    };
 
+    if (status !== "loading") {
+      fetchUser();
+    }
+  }, [status, session]);
+
+  // Show loading while determining session
+  if (status === "loading" || isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+          <img className="h-12" src="/spinner.svg" alt="Loading" />
+          <div className="text-xl text-black">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show login message
   if (!user) {
-    return <PleaseLoginPage text="Log in to view the leaderboard" />;
-  }
-
-  // Get the user's wallet address
-  const walletAddress = user.walletAddress;
-  if (!walletAddress) {
-    return <PleaseLoginPage text="No wallet address found" />;
-  }
-
-  // Get the full user record from the database
-  const userRecord = await getUserByWallet(walletAddress);
-  if (!userRecord) {
-    return <PleaseLoginPage text="User not found" />;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-3xl font-bold mb-8 text-[#9b83a0]">Leaderboard</h1>
+          <p className="text-lg text-gray-600">Please log in to view the leaderboard.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -55,7 +81,7 @@ async function LeaderboardPage() {
         <h1 className="text-3xl font-bold text-center mb-8 text-[#9b83a0]">
           Leaderboard
         </h1>
-        <Leaderboard highlightIdentifier={userRecord.username || userRecord.wallet} />
+        <Leaderboard highlightIdentifier={user.username || user.wallet} />
       </div>
     </div>
   );
