@@ -22,13 +22,11 @@ type User = {
 export default function LeaderboardClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
-        setIsLoading(true);
         try {
           const response = await fetch(`/api/user/${session.user.id}`);
           if (response.ok) {
@@ -41,15 +39,11 @@ export default function LeaderboardClientWrapper() {
         } catch (error) {
           console.error('Failed to fetch user:', error);
           setUser(null);
-        } finally {
-          setIsLoading(false);
-          setHasInitialized(true);
         }
-      } else if (status === "unauthenticated") {
+      } else {
         setUser(null);
-        setIsLoading(false);
-        setHasInitialized(true);
       }
+      setIsLoading(false);
     };
 
     if (status !== "loading") {
@@ -57,8 +51,8 @@ export default function LeaderboardClientWrapper() {
     }
   }, [status, session]);
 
-  // Show loading only when we're actually fetching user data
-  if (isLoading) {
+  // Show loading while determining session
+  if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
