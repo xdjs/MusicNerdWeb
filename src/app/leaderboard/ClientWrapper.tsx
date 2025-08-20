@@ -63,22 +63,20 @@ export default function LeaderboardClientWrapper() {
     );
   }
 
-  // If not authenticated, show login message
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl font-bold mb-8 text-[#9b83a0]">Leaderboard</h1>
-          <p className="text-lg text-gray-600">Please log in to view the leaderboard.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <Leaderboard highlightIdentifier={user.username || user.wallet} />
+        {/* Show login prompt if not authenticated */}
+        {!user && (
+          <div className="mb-6 p-4 border-2 border-[#9b83a0] rounded-lg text-center">
+            <a href="/" className="text-[#9b83a0] underline hover:text-[#7a6b8a]">
+              Log in to compare your statistics
+            </a>
+          </div>
+        )}
+        
+        {/* Always show the leaderboard */}
+        <Leaderboard highlightIdentifier={user?.username || user?.wallet} />
       </div>
     </div>
   );
