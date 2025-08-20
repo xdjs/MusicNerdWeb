@@ -129,7 +129,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                          className={cn(
                          "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.3)]"
                               : "border-[#9b83a0]"
                      )}
         >
