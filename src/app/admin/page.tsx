@@ -13,19 +13,24 @@ export default function Admin() {
     const { status, data: session } = useSession();
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [authTransitioning, setAuthTransitioning] = useState(false);
     const [pendingUGCData, setPendingUGCData] = useState<UgcResearch[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
 
-    // Trigger page refresh when authentication completes
+    // Handle authentication transition
     useEffect(() => {
-        if (status === 'authenticated') {
-            // Small delay to ensure session is fully established
+        if (status === 'loading') {
+            setAuthTransitioning(true);
+        } else if (status === 'authenticated' && authTransitioning) {
+            // Show loading for a bit longer to ensure smooth transition
             const timer = setTimeout(() => {
                 window.location.reload();
-            }, 100);
+            }, 500);
             return () => clearTimeout(timer);
+        } else if (status === 'unauthenticated') {
+            setAuthTransitioning(false);
         }
-    }, [status]);
+    }, [status, authTransitioning]);
 
     // Check authorization and fetch data
     useEffect(() => {
@@ -83,7 +88,7 @@ export default function Admin() {
     }, [status, session]);
 
     // Show loading screen during authentication transition
-    if (status === 'loading' || isLoading) {
+    if (status === 'loading' || isLoading || authTransitioning) {
         return (
             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
                 <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
