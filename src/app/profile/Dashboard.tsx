@@ -114,14 +114,19 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
     // Only show loading for very brief periods to avoid blocking login attempts
     if (status === 'loading' && user.id === '00000000-0000-0000-0000-000000000000') {
         // Only show loading for guest users, not for authenticated users
-        return (
-            <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
-                <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
-                    <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                    <p className="text-foreground text-xl">Loading...</p>
+        // But also check if we're in a login transition to avoid state mismatch
+        const isLoginTransition = sessionStorage.getItem('wasLoggedOut') || sessionStorage.getItem('postLoginRefresh');
+        
+        if (!isLoginTransition) {
+            return (
+                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
+                    <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
+                        <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
+                        <p className="text-foreground text-xl">Loading...</p>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        }
     }
 
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
