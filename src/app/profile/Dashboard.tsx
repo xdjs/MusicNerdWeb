@@ -960,6 +960,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 <Leaderboard highlightIdentifier={user.username || user.wallet} onRangeChange={handleLeaderboardRangeChange} />
             </div>
             )}
+            
+            {/* Debug logging for user object */}
+            {console.log('[Dashboard] User object for highlighting:', {
+                username: user.username,
+                wallet: user.wallet,
+                highlightIdentifier: user.username || user.wallet
+            })}
         </section>
     )
 }

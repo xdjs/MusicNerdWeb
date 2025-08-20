@@ -363,11 +363,21 @@
 
 /* Make search input text white in dark mode */
 .dark input::placeholder {
-  color: #a0aec0 !important; /* medium gray placeholder */
+  color: #ffffff !important; /* white placeholder for better visibility */
 }
 
 .dark input {
   color: #f7fafc !important; /* bright white text */
+}
+
+/* Keep red notification dots with white borders in dark mode */
+.dark .bg-red-600 {
+  border: 2px solid white !important;
+}
+
+/* Add drop shadow to leaderboard card in dark mode */
+.dark .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* Make search results dropdown dark in dark mode */

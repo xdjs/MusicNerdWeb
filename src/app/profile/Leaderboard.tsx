@@ -49,7 +49,11 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.email ?? '').toLowerCase() === identifierLc ||
         // Additional fallback: check if username contains the identifier (for partial matches)
         (entry.username ?? '').toLowerCase().includes(identifierLc) ||
-        identifierLc.includes((entry.username ?? '').toLowerCase())
+        identifierLc.includes((entry.username ?? '').toLowerCase()) ||
+        // More robust matching: check if the identifier is contained within the username
+        (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
+        // Check if the username is contained within the identifier
+        (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
     );
     
     // Debug logging for highlighting - only log for the specific user we're looking for
@@ -63,7 +67,9 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
             walletMatch: entry.wallet?.toLowerCase() === identifierLc,
             usernameContains: identifierLc ? (entry.username ?? '').toLowerCase().includes(identifierLc) : false,
-            identifierContains: identifierLc ? identifierLc.includes((entry.username ?? '').toLowerCase()) : false
+            identifierContains: identifierLc ? identifierLc.includes((entry.username ?? '').toLowerCase()) : false,
+            indexOfMatch: entry.username && identifierLc ? entry.username.toLowerCase().indexOf(identifierLc) !== -1 : false,
+            reverseIndexOfMatch: entry.username && identifierLc ? identifierLc.indexOf(entry.username.toLowerCase()) !== -1 : false
         });
     }
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
