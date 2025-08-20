@@ -23,9 +23,8 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authTransition, setAuthTransition] = useState(false);
 
-  // Handle authentication state changes gracefully
+  // Handle user data fetching based on session state
   useEffect(() => {
     console.debug('[Profile] Session state changed:', { 
       status, 
@@ -33,19 +32,8 @@ export default function ClientWrapper() {
       isAuthenticated: status === 'authenticated' 
     });
 
-    // Set transition flag during auth changes
-    if ((status as string) === 'loading') {
-      setAuthTransition(true);
-      return;
-    }
-
-    // Clear transition flag when auth state settles
-    if ((status as string) === 'authenticated' || (status as string) === 'unauthenticated') {
-      setAuthTransition(false);
-    }
-
     const fetchUser = async () => {
-      if ((status as string) === "authenticated" && session?.user?.id) {
+      if (status === "authenticated" && session?.user?.id) {
         try {
           console.debug('[Profile] Fetching user data for:', session.user.id);
           const response = await fetch(`/api/user/${session.user.id}`);
@@ -61,43 +49,28 @@ export default function ClientWrapper() {
           console.error('[Profile] Failed to fetch user:', error);
           setUser(null);
         }
-      } else if ((status as string) === "unauthenticated") {
+      } else if (status === "unauthenticated") {
         console.debug('[Profile] User is unauthenticated, clearing user data');
         setUser(null);
-      } else if ((status as string) === "loading") {
-        console.debug('[Profile] Session is loading, keeping current user state');
-        return; // Don't change user state while loading
       }
       setIsLoading(false);
     };
 
-    // Only fetch user when auth state is settled
-    if ((status as string) !== "loading") {
+    // Fetch user data when session state is determined
+    if (status !== "loading") {
       fetchUser();
     }
   }, [status, session]);
 
-  // Show loading during authentication transitions
-  if ((status as string) === "loading" || authTransition) {
+  // Show loading while session is loading or while fetching user data
+  if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
           <img className="h-12" src="/spinner.svg" alt="Loading" />
           <div className="text-xl text-black">
-            {(status as string) === "loading" ? "Checking authentication..." : "Updating..."}
+            {status === "loading" ? "Checking authentication..." : "Loading profile..."}
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading while fetching user data
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
-          <img className="h-12" src="/spinner.svg" alt="Loading" />
-          <div className="text-xl text-black">Loading profile...</div>
         </div>
       </div>
     );

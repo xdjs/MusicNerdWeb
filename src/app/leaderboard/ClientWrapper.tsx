@@ -24,9 +24,8 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authTransition, setAuthTransition] = useState(false);
 
-  // Handle authentication state changes gracefully
+  // Handle user data fetching based on session state
   useEffect(() => {
     console.debug('[Leaderboard] Session state changed:', { 
       status, 
@@ -34,19 +33,8 @@ export default function ClientWrapper() {
       isAuthenticated: status === 'authenticated' 
     });
 
-    // Set transition flag during auth changes
-    if ((status as string) === 'loading') {
-      setAuthTransition(true);
-      return;
-    }
-
-    // Clear transition flag when auth state settles
-    if ((status as string) === 'authenticated' || (status as string) === 'unauthenticated') {
-      setAuthTransition(false);
-    }
-
     const fetchUser = async () => {
-      if ((status as string) === "authenticated" && session?.user?.id) {
+      if (status === "authenticated" && session?.user?.id) {
         try {
           console.debug('[Leaderboard] Fetching user data for:', session.user.id);
           
@@ -76,43 +64,28 @@ export default function ClientWrapper() {
           }
           setUser(null);
         }
-      } else if ((status as string) === "unauthenticated") {
+      } else if (status === "unauthenticated") {
         console.debug('[Leaderboard] User is unauthenticated, clearing user data');
         setUser(null);
-      } else if ((status as string) === "loading") {
-        console.debug('[Leaderboard] Session is loading, keeping current user state');
-        return; // Don't change user state while loading
       }
       setIsLoading(false);
     };
 
-    // Only fetch user when auth state is settled
-    if ((status as string) !== "loading") {
+    // Fetch user data when session state is determined
+    if (status !== "loading") {
       fetchUser();
     }
   }, [status, session]);
 
-  // Show loading during authentication transitions
-  if ((status as string) === "loading" || authTransition) {
+  // Show loading while session is loading or while fetching user data
+  if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
           <img className="h-12" src="/spinner.svg" alt="Loading" />
           <div className="text-xl text-black">
-            {(status as string) === "loading" ? "Checking authentication..." : "Updating..."}
+            {status === "loading" ? "Checking authentication..." : "Loading leaderboard..."}
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading while fetching user data
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
-          <img className="h-12" src="/spinner.svg" alt="Loading" />
-          <div className="text-xl text-black">Loading leaderboard...</div>
         </div>
       </div>
     );
@@ -148,7 +121,7 @@ export default function ClientWrapper() {
     isGuest: currentUser.id === '00000000-0000-0000-0000-000000000000',
     status,
     sessionId: session?.user?.id,
-    isAuthenticated: (status as string) === 'authenticated'
+    isAuthenticated: status === 'authenticated'
   });
 
   return (
