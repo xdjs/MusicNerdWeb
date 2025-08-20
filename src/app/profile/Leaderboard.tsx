@@ -123,7 +123,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                          className={cn(
                          "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_20px_rgba(255,156,227,0.3)]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_30px_rgba(255,156,227,0.6)]"
                               : "border-[#9b83a0]"
                      )}
         >
@@ -140,8 +140,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                         )}
                     </span>
-                    {/* Profile Picture - evenly spaced between rank and username */}
-                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                         {/* Profile Picture - evenly spaced between rank and username */}
+                     <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
                         {ensLoading ? (
                             <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
@@ -200,8 +200,8 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
-                            {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                                         {/* Avatar between rank and username */}
+                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center border-2 border-white">
                                 {ensLoading ? (
                                     <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
