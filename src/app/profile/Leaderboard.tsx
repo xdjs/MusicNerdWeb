@@ -56,22 +56,16 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
     );
     
-    // Debug logging for highlighting - only log for the specific user we're looking for
-    if (entry.username === 'piper' || entry.username?.toLowerCase().includes('piper')) {
-        console.log('[Leaderboard] Highlighting debug for piper:', {
-            highlightIdentifier,
-            identifierLc,
-            entryUsername: entry.username,
-            entryWallet: entry.wallet,
-            isHighlighted,
-            usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
-            walletMatch: entry.wallet?.toLowerCase() === identifierLc,
-            usernameContains: identifierLc ? (entry.username ?? '').toLowerCase().includes(identifierLc) : false,
-            identifierContains: identifierLc ? identifierLc.includes((entry.username ?? '').toLowerCase()) : false,
-            indexOfMatch: entry.username && identifierLc ? entry.username.toLowerCase().indexOf(identifierLc) !== -1 : false,
-            reverseIndexOfMatch: entry.username && identifierLc ? identifierLc.indexOf(entry.username.toLowerCase()) !== -1 : false
-        });
-    }
+    // Debug logging for highlighting - log for all entries to help debug
+    console.log('[Leaderboard] Highlighting debug:', {
+        highlightIdentifier,
+        identifierLc,
+        entryUsername: entry.username,
+        entryWallet: entry.wallet,
+        isHighlighted,
+        usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
+        walletMatch: entry.wallet?.toLowerCase() === identifierLc
+    });
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
