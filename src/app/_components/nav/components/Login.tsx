@@ -89,21 +89,23 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh when profile picture is ready (ENS avatar loaded)
+            // Trigger page refresh after successful authentication
             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            if (!hasRefreshed && !ensLoading) {
-                console.debug("[Login] Profile picture ready, triggering page refresh");
+            if (!hasRefreshed) {
+                console.debug("[Login] Authentication successful, triggering page refresh");
                 sessionStorage.setItem('postLoginRefresh', 'true');
                 
-                // Immediate refresh to avoid state mismatch
-                try {
-                    console.debug("[Login] Executing page refresh after profile picture loaded");
-                    window.location.reload();
-                } catch (error) {
-                    console.error("[Login] Page refresh failed:", error);
-                    // Fallback: try to navigate to current page
-                    window.location.href = window.location.href;
-                }
+                // Small delay to ensure session is fully established
+                setTimeout(() => {
+                    console.debug("[Login] Executing page refresh");
+                    try {
+                        window.location.reload();
+                    } catch (error) {
+                        console.error("[Login] Page refresh failed:", error);
+                        // Fallback: try to navigate to current page
+                        window.location.href = window.location.href;
+                    }
+                }, 100);
             }
             return;
         }
@@ -304,21 +306,23 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh when profile picture is ready (ENS avatar loaded)
+            // Trigger page refresh after successful authentication
             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            if (!hasRefreshed && !ensLoading) {
-                console.debug("[Login] Profile picture ready, triggering page refresh");
+            if (!hasRefreshed) {
+                console.debug("[Login] Authentication successful, triggering page refresh");
                 sessionStorage.setItem('postLoginRefresh', 'true');
                 
-                // Immediate refresh to avoid state mismatch
-                try {
-                    console.debug("[Login] Executing page refresh after profile picture loaded");
-                    window.location.reload();
-                } catch (error) {
-                    console.error("[Login] Page refresh failed:", error);
-                    // Fallback: try to navigate to current page
-                    window.location.href = window.location.href;
-                }
+                // Small delay to ensure session is fully established
+                setTimeout(() => {
+                    console.debug("[Login] Executing page refresh");
+                    try {
+                        window.location.reload();
+                    } catch (error) {
+                        console.error("[Login] Page refresh failed:", error);
+                        // Fallback: try to navigate to current page
+                        window.location.href = window.location.href;
+                    }
+                }, 100);
             }
         }
 
