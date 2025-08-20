@@ -24,6 +24,7 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionStable, setSessionStable] = useState(false);
 
 
   // Handle authentication state changes and hard refresh
