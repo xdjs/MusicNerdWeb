@@ -33,40 +33,45 @@ export default function ClientWrapper() {
     // Check for authentication state transitions that require hard refresh
     const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
     const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
+    const hasRefreshed = sessionStorage.getItem('leaderboardRefreshed');
     
-    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh)) {
+    // Only trigger refresh if we haven't already refreshed for this session
+    if (status === "authenticated" && session?.user?.id && (wasLoggedOut || !postLoginRefresh) && !hasRefreshed) {
       console.debug('[Leaderboard] Detected authentication state change, triggering hard refresh', {
         wasLoggedOut: !!wasLoggedOut,
         postLoginRefresh: !!postLoginRefresh,
+        hasRefreshed: !!hasRefreshed,
         sessionId: session?.user?.id
       });
       
-      // Set refresh flag and clear logout flag
+      // Set refresh flags and clear logout flag
       sessionStorage.setItem('postLoginRefresh', 'true');
+      sessionStorage.setItem('leaderboardRefreshed', 'true');
       sessionStorage.removeItem('wasLoggedOut');
       
-      // Force hard refresh
+      // Force hard refresh with longer delay to ensure session is stable
       console.debug('[Leaderboard] Executing hard refresh');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 100);
+      }, 500);
       return;
     }
     
     // Additional check for login without wasLoggedOut flag
-    if (status === "authenticated" && session?.user?.id && !postLoginRefresh) {
+    if (status === "authenticated" && session?.user?.id && !postLoginRefresh && !hasRefreshed) {
       console.debug('[Leaderboard] Detected fresh login, triggering hard refresh', {
         sessionId: session?.user?.id
       });
       
-      // Set refresh flag
+      // Set refresh flags
       sessionStorage.setItem('postLoginRefresh', 'true');
+      sessionStorage.setItem('leaderboardRefreshed', 'true');
       
-      // Force hard refresh
+      // Force hard refresh with longer delay
       console.debug('[Leaderboard] Executing hard refresh for fresh login');
       setTimeout(() => {
         window.location.href = window.location.href;
-      }, 100);
+      }, 500);
       return;
     }
     
@@ -119,6 +124,13 @@ export default function ClientWrapper() {
     // Always fetch user when status changes, but handle loading state properly
     fetchUser();
   }, [status, session]); // Remove refreshKey dependency since we're using hard refresh
+
+  // Clear page-specific refresh flag when component unmounts
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('leaderboardRefreshed');
+    };
+  }, []);
 
   // Show loading while session is loading or while we're fetching user data
   if (status === "loading" || isLoading) {
