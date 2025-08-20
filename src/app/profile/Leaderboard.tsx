@@ -40,32 +40,40 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
     const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
     const [ensLoading, setEnsLoading] = useState(false);
 
-    const identifierLc = highlightIdentifier?.toLowerCase();
-    const isHighlighted = identifierLc && (
-        entry.wallet?.toLowerCase() === identifierLc ||
-        entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
-        identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
-        (entry.username ?? '').toLowerCase() === identifierLc ||
-        (entry.email ?? '').toLowerCase() === identifierLc ||
-        // Additional fallback: check if username contains the identifier (for partial matches)
-        (entry.username ?? '').toLowerCase().includes(identifierLc) ||
-        identifierLc.includes((entry.username ?? '').toLowerCase()) ||
-        // More robust matching: check if the identifier is contained within the username
-        (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
-        // Check if the username is contained within the identifier
-        (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
-    );
-    
-    // Debug logging for highlighting - log for all entries to help debug
-    console.log('[Leaderboard] Highlighting debug:', {
-        highlightIdentifier,
-        identifierLc,
-        entryUsername: entry.username,
-        entryWallet: entry.wallet,
-        isHighlighted,
-        usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
-        walletMatch: entry.wallet?.toLowerCase() === identifierLc
-    });
+    // State for highlighting to ensure it updates when highlightIdentifier changes
+    const [isHighlighted, setIsHighlighted] = useState(false);
+
+    // Recalculate highlighting whenever highlightIdentifier changes
+    useEffect(() => {
+        const identifierLc = highlightIdentifier?.toLowerCase();
+        const highlighted = identifierLc && (
+            entry.wallet?.toLowerCase() === identifierLc ||
+            entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
+            identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
+            (entry.username ?? '').toLowerCase() === identifierLc ||
+            (entry.email ?? '').toLowerCase() === identifierLc ||
+            // Additional fallback: check if username contains the identifier (for partial matches)
+            (entry.username ?? '').toLowerCase().includes(identifierLc) ||
+            identifierLc.includes((entry.username ?? '').toLowerCase()) ||
+            // More robust matching: check if the identifier is contained within the username
+            (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
+            // Check if the username is contained within the identifier
+            (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
+        );
+        
+        setIsHighlighted(!!highlighted);
+        
+        // Debug logging for highlighting - log for all entries to help debug
+        console.log('[Leaderboard] Highlighting debug:', {
+            highlightIdentifier,
+            identifierLc,
+            entryUsername: entry.username,
+            entryWallet: entry.wallet,
+            isHighlighted: highlighted,
+            usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
+            walletMatch: entry.wallet?.toLowerCase() === identifierLc
+        });
+    }, [highlightIdentifier, entry.wallet, entry.username, entry.email]);
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
