@@ -67,7 +67,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         });
 
                 // Handle successful authentication - simplified logic
-        if (status === "authenticated" && session?.user?.id) {
+        if (status === "authenticated") {
             console.debug("[Login] Authentication successful:", { 
                 status, 
                 sessionId: session.user.id, 
@@ -117,12 +117,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.setItem('postLoginRefresh', 'true');
                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                 
-                // Add a small delay to ensure authentication state is fully established
-                console.debug("[Login] Waiting for authentication state to stabilize before refresh");
-                setTimeout(() => {
-                    console.debug("[Login] Executing delayed page refresh");
-                    window.location.reload();
-                }, 500); // 500ms delay to allow state synchronization
+                // Force immediate refresh like logout does
+                console.debug("[Login] Executing immediate page refresh");
+                window.location.reload();
             }
             return;
         }
@@ -156,13 +153,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         
         // Additional check for subsequent logins - if we have wasLoggedOut flag and are authenticated, refresh
         if (status === "authenticated" && sessionStorage.getItem('wasLoggedOut')) {
-            console.debug("[Login] Subsequent login detected, triggering delayed refresh");
+            console.debug("[Login] Subsequent login detected, triggering immediate refresh");
             sessionStorage.removeItem('wasLoggedOut');
             sessionStorage.setItem('postLoginRefresh', 'true');
-            setTimeout(() => {
-                console.debug("[Login] Executing delayed refresh for subsequent login");
-                window.location.reload();
-            }, 500); // 500ms delay to allow state synchronization
+            window.location.reload();
         }
 
         // Handle status changes
@@ -185,13 +179,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             if (status === "authenticated") {
                 const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
                 if (wasLoggedOut) {
-                    console.debug("[Login] Detected authenticated state after logout, triggering delayed refresh");
+                    console.debug("[Login] Detected authenticated state after logout, triggering immediate refresh");
                     sessionStorage.removeItem('wasLoggedOut');
                     sessionStorage.setItem('postLoginRefresh', 'true');
-                    setTimeout(() => {
-                        console.debug("[Login] Executing delayed refresh for status change");
-                        window.location.reload();
-                    }, 500); // 500ms delay to allow state synchronization
+                    window.location.reload();
                 }
             }
         }
