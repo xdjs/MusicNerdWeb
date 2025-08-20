@@ -335,6 +335,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     if (dates) {
                         url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                     }
+                } else {
+                    // For full profile layout, always fetch all-time rank
+                    url = '/api/leaderboard';
                 }
 
                 const resp = await fetch(url);
@@ -561,28 +564,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         fetchRangeStats();
     }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
 
-    // Also fetch stats for full profile layout to keep in sync with leaderboard
+    // Fetch all-time stats for full profile layout (not synced with leaderboard range)
     useEffect(() => {
         if (isCompactLayout) return; // Skip for compact layout as it's handled above
 
-        async function fetchRangeStats() {
+        async function fetchAllTimeStats() {
             try {
-                let dateRange: DateRange;
-                const dates = getRangeDates(selectedRange);
-                if (dates) {
-                    dateRange = { from: dates.from, to: dates.to } as DateRange;
-                } else {
-                    // "all" range – use epoch to now
-                    dateRange = { from: new Date(0), to: new Date() } as DateRange;
-                }
-
                 const url = new URL('/api/ugcStats', window.location.origin);
-                if (dateRange.from) {
-                    url.searchParams.set('from', dateRange.from.toISOString());
-                }
-                if (dateRange.to) {
-                    url.searchParams.set('to', dateRange.to.toISOString());
-                }
                 if (ugcStatsUserWallet) {
                     url.searchParams.set('wallet', ugcStatsUserWallet);
                 }
@@ -593,12 +581,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     setUgcStats(result);
                 }
             } catch (e) {
-                console.error('[Dashboard] Error fetching UGC stats for range', e);
+                console.error('[Dashboard] Error fetching all-time UGC stats', e);
             }
         }
 
-        fetchRangeStats();
-    }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
+        fetchAllTimeStats();
+    }, [ugcStatsUserWallet, isCompactLayout]);
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
