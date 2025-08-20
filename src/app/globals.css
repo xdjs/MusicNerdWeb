@@ -84,6 +84,11 @@
   color: white !important;
 }
 
+/* Exception for theme toggle - keep black text in dark mode */
+.dark .theme-toggle-text {
+  color: black !important;
+}
+
 .dark .bg-white {
   background-color: #1a1a1a !important; /* darker background instead of pure black */
 }
@@ -103,7 +108,8 @@
 
 
 /* Dark mode overrides for Leaderboard - consolidated */
-.dark .border-\[#9b83a0\] {
+/* Note: Fun Facts buttons should keep the same border color in both modes */
+.dark .border-\[#9b83a0\]:not(.fun-facts-button) {
   border-color: #6f4b75 !important;
 }
 

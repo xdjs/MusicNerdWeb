@@ -65,7 +65,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full flex items-center justify-center text-base font-semibold border-2 border-[#9b83a0]"
+                    className="w-full flex items-center justify-center text-base font-semibold border-2 border-[#9b83a0] fun-facts-button"
                     onClick={() => fetchFact(type)}
                   >
                     <span className="flex items-baseline gap-4">

@@ -312,13 +312,13 @@ export default function UserEntriesTable() {
           </div>
         </div>
         {pageCount > 1 && (
-          <CardFooter className="bg-[#c6bfc7] border border-[#c6bfc7] rounded-b-md flex justify-end items-center gap-4 p-3">
+          <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
             <Button
               variant="outline"
               size="sm"
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
-              className="bg-white text-[#c6bfc7] border-white hover:bg-gray-100 hover:text-[#c6bfc7]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Prev
             </Button>
@@ -328,7 +328,7 @@ export default function UserEntriesTable() {
               size="sm"
               disabled={page >= pageCount}
               onClick={() => setPage((p) => p + 1)}
-              className="bg-white text-[#c6bfc7] border-white hover:bg-gray-100 hover:text-[#c6bfc7]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Next
             </Button>
