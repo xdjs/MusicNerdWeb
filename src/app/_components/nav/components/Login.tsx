@@ -66,14 +66,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             shouldPrompt: shouldPromptRef.current
         });
 
-                // Handle successful authentication - simplified logic
+                // Handle successful authentication after signature verification
         if (status === "authenticated") {
-            console.debug("[Login] Authentication successful:", { 
+            console.debug("[Login] Authentication successful after signature verification:", { 
                 status, 
                 sessionId: session?.user?.id, 
                 isConnected, 
                 address,
-                hasRefreshed: sessionStorage.getItem('postLoginRefresh'),
                 wasLoggedOut: sessionStorage.getItem('wasLoggedOut')
             });
 
@@ -108,18 +107,16 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after successful authentication (including re-login)
-            const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
+            // Trigger hard refresh after signature verification
             const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
             
-            if (!hasRefreshed || wasLoggedOut) {
-                console.debug("[Login] Authentication successful, triggering page refresh");
-                sessionStorage.setItem('postLoginRefresh', 'true');
+            if (wasLoggedOut) {
+                console.debug("[Login] Signature verification completed, triggering hard refresh");
                 sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                 
-                // Force immediate refresh like logout does
-                console.debug("[Login] Executing immediate page refresh");
-                window.location.reload();
+                // Force hard refresh after signature verification
+                console.debug("[Login] Executing hard refresh after signature verification");
+                window.location.href = window.location.href;
             }
             return;
         }
@@ -309,8 +306,8 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
             await signOut({ redirect: false });
             
-            // Force a page reload to clear any lingering state
-            window.location.reload();
+            // Force a hard refresh to clear any lingering state
+            window.location.href = window.location.href;
             
             toast({
                 title: "Disconnected",
@@ -338,14 +335,24 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     // wagmi might briefly report `isConnected === false` while it is still
     // restoring the connection.  To avoid accidental log-outs we add a small
     // grace period.  If the wallet is still disconnected after the delay we
-    // sign the user out silently.
+    // sign the user out silently and trigger a hard refresh.
     useEffect(() => {
         let timeoutId: NodeJS.Timeout | null = null;
         if (!isConnected && status === "authenticated") {
             timeoutId = setTimeout(() => {
                 // Re-check to ensure we didn't reconnect during the delay
                 if (!isConnected) {
+                    console.debug("[Login] Wallet disconnected via RainbowKit, signing out and triggering hard refresh");
                     signOut({ redirect: false });
+                    
+                    // Set flag to trigger hard refresh after sign out
+                    sessionStorage.setItem('wasLoggedOut', 'true');
+                    
+                    // Trigger hard refresh after a short delay to ensure sign out completes
+                    setTimeout(() => {
+                        console.debug("[Login] Executing hard refresh after RainbowKit disconnect");
+                        window.location.href = window.location.href;
+                    }, 500);
                 }
             }, 1500);
         }

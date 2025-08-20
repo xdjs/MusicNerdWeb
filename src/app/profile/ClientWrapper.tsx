@@ -23,23 +23,11 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for forcing re-renders
 
-  // Handle authentication state changes and trigger refresh
+
+  // Handle user data fetching
   useEffect(() => {
     console.debug('[Profile] Session state changed:', { status, sessionId: session?.user?.id, isAuthenticated: status === 'authenticated' });
-    
-    // Check for authentication state transitions that require refresh
-    const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
-    const postLoginRefresh = sessionStorage.getItem('postLoginRefresh');
-    
-    if (status === "authenticated" && (wasLoggedOut || !postLoginRefresh)) {
-      console.debug('[Profile] Detected authentication state change, triggering refresh');
-      // Clear flags and trigger refresh
-      sessionStorage.removeItem('wasLoggedOut');
-      sessionStorage.setItem('postLoginRefresh', 'true');
-      setRefreshKey(prev => prev + 1);
-    }
     
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
@@ -65,7 +53,7 @@ export default function ClientWrapper() {
     if (status !== "loading") {
       fetchUser();
     }
-  }, [status, session, refreshKey]); // Add refreshKey to dependencies
+  }, [status, session]); // Remove refreshKey dependency since we're using hard refresh
 
   // Show loading while determining session
   if (status === "loading" || isLoading) {

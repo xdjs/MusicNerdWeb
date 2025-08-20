@@ -720,8 +720,8 @@ const NoWalletSearchBar = forwardRef(
             // Wait longer for session cleanup
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Force a page reload to clear any lingering state
-            window.location.reload();
+            // Force a hard refresh to clear any lingering state
+            window.location.href = window.location.href;
             
             toast({
                 title: "Signed out",
@@ -735,8 +735,8 @@ const NoWalletSearchBar = forwardRef(
                 description: "Failed to sign out properly"
             });
             
-            // Force a page reload even if there was an error
-            window.location.reload();
+            // Force a hard refresh even if there was an error
+            window.location.href = window.location.href;
         }
     };
 
