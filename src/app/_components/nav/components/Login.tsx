@@ -89,11 +89,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after successful authentication
+            // Trigger page refresh after successful authentication (including re-login)
             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            if (!hasRefreshed) {
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            
+            if (!hasRefreshed || wasLoggedOut) {
                 console.debug("[Login] Authentication successful, triggering page refresh");
                 sessionStorage.setItem('postLoginRefresh', 'true');
+                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                 
                 // Small delay to ensure session is fully established
                 setTimeout(() => {
@@ -141,8 +144,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     sessionStorage.clear();
                     shouldPromptRef.current = false;
                 } else {
-                    // User logged out, clear post-login refresh flag
+                    // User logged out, set flag to trigger refresh on re-login
                     sessionStorage.removeItem('postLoginRefresh');
+                    sessionStorage.setItem('wasLoggedOut', 'true');
                 }
             }
         }
@@ -306,11 +310,14 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 sessionStorage.removeItem('searchFlowPrompted');
             }
             
-            // Trigger page refresh after successful authentication
+            // Trigger page refresh after successful authentication (including re-login)
             const hasRefreshed = sessionStorage.getItem('postLoginRefresh');
-            if (!hasRefreshed) {
+            const wasLoggedOut = sessionStorage.getItem('wasLoggedOut');
+            
+            if (!hasRefreshed || wasLoggedOut) {
                 console.debug("[Login] Authentication successful, triggering page refresh");
                 sessionStorage.setItem('postLoginRefresh', 'true');
+                sessionStorage.removeItem('wasLoggedOut'); // Clear the logged out flag
                 
                 // Small delay to ensure session is fully established
                 setTimeout(() => {
@@ -351,8 +358,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                     }
                     shouldPromptRef.current = false;
                 } else {
-                    // User logged out, clear post-login refresh flag
+                    // User logged out, set flag to trigger refresh on re-login
                     sessionStorage.removeItem('postLoginRefresh');
+                    sessionStorage.setItem('wasLoggedOut', 'true');
                 }
             }
         }
