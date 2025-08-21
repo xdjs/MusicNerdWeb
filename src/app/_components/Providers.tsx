@@ -13,7 +13,7 @@ export default function Providers({
   session: Session | null;
 }) {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="musicnerd-theme">
+    <ThemeProvider storageKey="musicnerd-theme">
       <SessionProvider 
         session={session}
         refetchInterval={0} 
