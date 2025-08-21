@@ -29,6 +29,7 @@ export default function ClientWrapper() {
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
+          console.debug('[ProfileClient] Fetching user', { id: session.user.id, phase: 'initial' });
           const response = await fetch(`/api/user/${session.user.id}`);
           if (response.ok) {
             const userData = await response.json();
@@ -39,6 +40,7 @@ export default function ClientWrapper() {
               isAdmin: userData.isAdmin
             });
           } else {
+            console.warn('[ProfileClient] Fetch user failed', { status: response.status });
             // If user fetch fails, treat as guest
             setUser(null);
           }
@@ -47,6 +49,7 @@ export default function ClientWrapper() {
           setUser(null);
         }
       } else {
+        console.debug('[ProfileClient] Not authenticated or missing user id; using guest');
         setUser(null);
       }
       setIsLoading(false);
@@ -64,6 +67,7 @@ export default function ClientWrapper() {
       if (status === "authenticated" && session?.user?.id) {
         setIsLoading(true);
         try {
+          console.debug('[ProfileClient] Fetching user', { id: session.user.id, phase: 'sessionUpdated' });
           const response = await fetch(`/api/user/${session.user.id}`);
           if (response.ok) {
             const userData = await response.json();
@@ -73,11 +77,15 @@ export default function ClientWrapper() {
               isWhiteListed: userData.isWhiteListed,
               isAdmin: userData.isAdmin
             });
+          } else {
+            console.warn('[ProfileClient] Refetch user failed', { status: response.status });
           }
         } catch (error) {
           console.error('Failed to refetch user:', error);
         }
         setIsLoading(false);
+      } else {
+        console.debug('[ProfileClient] Session update ignored (not authenticated or no user id)');
       }
     };
 

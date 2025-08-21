@@ -41,14 +41,25 @@ export default function AutoRefresh({
         setIsLoading(false);
       }, 100);
 
+      console.debug('[AutoRefresh] Mount: showLoading enabled; temporary loading timer started');
       return () => clearTimeout(timer);
     } else {
+      console.debug('[AutoRefresh] Mount: showLoading disabled; setting isLoading=false immediately');
       setIsLoading(false);
     }
   }, [status, showLoading]);
 
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
+    console.debug('[AutoRefresh] Effect: status/session change', {
+      prevStatus: prevStatus.current,
+      currentStatus: status,
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      skip,
+      lock: !!window.__AUTO_REFRESH_LOCK__
+    });
 
     // Check if we need to refresh on status change to authenticated
     if (!skip && status !== "loading") {
@@ -74,6 +85,10 @@ export default function AutoRefresh({
         ownsGlobalLockRef.current = true;
         hasTriggeredRefresh.current = true;
         sessionStorage.setItem(sessionStorageKey, "true");
+        console.debug('[AutoRefresh] Lock acquired and skip flag set', {
+          lock: !!window.__AUTO_REFRESH_LOCK__,
+          key: sessionStorageKey
+        });
         
         // Clear any existing timeout
         if (refreshTimeoutRef.current) {
@@ -91,27 +106,50 @@ export default function AutoRefresh({
             ? { type: 'sessionUpdated', detail: { status, session: detailSession } }
             : new CustomEvent('sessionUpdated', { detail: { status, session: detailSession } });
           dispatchFn(evt);
+          console.debug('[AutoRefresh] Dispatched sessionUpdated event', {
+            isTestMock,
+            hasDetailUser: !!detailSession?.user,
+            userId: detailSession?.user?.id
+          });
           
           // Trigger router refresh to update server components
           router.refresh();
+          console.debug('[AutoRefresh] router.refresh() invoked');
           // Release global lock immediately after triggering refresh (tests are synchronous)
           if (ownsGlobalLockRef.current && window.__AUTO_REFRESH_LOCK__) {
             delete window.__AUTO_REFRESH_LOCK__;
             ownsGlobalLockRef.current = false;
+            console.debug('[AutoRefresh] Lock released immediately after refresh trigger');
           }
           
           // Clear the flag after a short delay to allow the refresh to complete
           setTimeout(() => {
             sessionStorage.removeItem(sessionStorageKey);
             hasTriggeredRefresh.current = false; // Reset for future logins
+            console.debug('[AutoRefresh] Skip flag cleared and internal flag reset', {
+              key: sessionStorageKey
+            });
           }, 1000);
         }, 500);
+      } else {
+        if (skip) {
+          console.debug('[AutoRefresh] Skipping refresh due to sessionStorage flag', { key: sessionStorageKey });
+        } else if (window.__AUTO_REFRESH_LOCK__) {
+          console.debug('[AutoRefresh] Skipping refresh due to global lock');
+        } else {
+          console.debug('[AutoRefresh] Conditions not met for refresh', {
+            prevStatus: prevStatus.current,
+            currentStatus: status,
+            hasUser: !!session?.user
+          });
+        }
       }
     }
 
     // Update previous status
     if (status !== "loading") {
       prevStatus.current = status;
+      console.debug('[AutoRefresh] prevStatus updated', { prevStatus: prevStatus.current });
     }
   }, [status, session, sessionStorageKey, router]);
 
@@ -125,6 +163,7 @@ export default function AutoRefresh({
       if (ownsGlobalLockRef.current && window.__AUTO_REFRESH_LOCK__) {
         delete window.__AUTO_REFRESH_LOCK__;
         ownsGlobalLockRef.current = false;
+        console.debug('[AutoRefresh] Cleanup: lock released by unmount');
       }
     };
   }, []);
