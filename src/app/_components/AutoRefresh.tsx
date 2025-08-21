@@ -2,23 +2,25 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /**
- * Universal auto-refresh component that triggers a page reload when the user signs in
+ * Universal auto-refresh component that triggers a soft refresh when the user signs in
  * to ensure server components pick up the new session data immediately.
  * Uses sessionStorage to prevent multiple refreshes.
  * 
  * @param sessionStorageKey - Optional custom key for sessionStorage (defaults to "autoRefreshSkipReload")
  * @param showLoading - Whether to show loading state (defaults to true)
  */
-export default function AutoRefresh({ 
-  sessionStorageKey = "autoRefreshSkipReload", 
-  showLoading = true 
-}: { 
-  sessionStorageKey?: string; 
-  showLoading?: boolean; 
+export default function AutoRefresh({
+  sessionStorageKey = "autoRefreshSkipReload",
+  showLoading = true
+}: {
+  sessionStorageKey?: string;
+  showLoading?: boolean;
 } = {}) {
   const { status } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
 
@@ -48,8 +50,10 @@ export default function AutoRefresh({
       
       if (shouldRefresh) {
         sessionStorage.setItem(sessionStorageKey, "true");
-        // Full reload so server components pick up the new session instantly
-        window.location.reload();
+        // Soft refresh so server components pick up the new session instantly
+        if (typeof router.refresh === "function") {
+          router.refresh();
+        }
       }
     }
 
