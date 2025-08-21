@@ -167,6 +167,23 @@ export const getSpotifyArtist = unstable_cache(async (artistId: string, headers:
     }
 }, ["spotify-artist"], { tags: ["spotify-artist"], revalidate: 60 * 60 * 24 });
 
+export const getSpotifyArtists = async (artistIds: string[], headers: SpotifyHeaderType) => {
+    // Spotify allows max 50 IDs per request
+    const chunks: string[][] = [];
+    for (let i = 0; i < artistIds.length; i += 50) {
+        chunks.push(artistIds.slice(i, i + 50));
+    }
+    
+    const results = await Promise.all(
+      chunks.map((chunk: string[]) => 
+        axios.get(`https://api.spotify.com/v1/artists?ids=${chunk.join(',')}`, headers)
+      )
+    );
+    // Combine and return results
+    const allArtists = results.flatMap(response => response.data.artists);
+    return allArtists;
+  };
+
 export const getSpotifyImage = unstable_cache(async (artistSpotifyId: string | null, artistId: string="", spotifyHeaders: SpotifyHeaderType): Promise<ArtistSpotifyImage> => {
     if(!artistSpotifyId) return { artistImage: "", artistId };
     try {
