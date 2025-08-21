@@ -4,6 +4,7 @@ import Link from "next/link"
 import SearchBar from "./components/SearchBar"
 import AddArtist from "./components/AddArtist";
 import Login from "@/app/_components/nav/components/Login";
+import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -31,7 +32,8 @@ export default function Nav() {
                 </Suspense>
                 <AddArtist session={session} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+                <ThemeToggle />
                 <Login buttonStyles="" />
             </div>
         </nav>
