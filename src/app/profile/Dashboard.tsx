@@ -964,7 +964,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {/* Leaderboard Section */}
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
-                <Leaderboard highlightIdentifier={user.username || user.wallet} onRangeChange={handleLeaderboardRangeChange} />
+                <Leaderboard highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet)} onRangeChange={handleLeaderboardRangeChange} />
             </div>
             )}
             
