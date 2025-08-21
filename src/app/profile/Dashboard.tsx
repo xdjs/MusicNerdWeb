@@ -333,11 +333,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 }
 
                 let url = '/api/leaderboard';
-                const dates = getRangeDates(selectedRangeToUse);
+                // In full profile layout, always fetch all-time rank
+                // In compact layout, respect the selected date range
+                const dates = isCompactLayout ? getRangeDates(selectedRangeToUse) : null;
                 if (dates) {
                     url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                 }
-                console.log('[Dashboard] Fetching rank:', { url, selectedRangeToUse, dates });
+                console.log('[Dashboard] Fetching rank:', { url, selectedRangeToUse, dates, isCompactLayout });
 
                 const resp = await fetch(url);
                 if (!resp.ok) return;
@@ -370,8 +372,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         }
                     }
                     
-                    // Set stats from leaderboard data to ensure consistency
-                    if (userEntry) {
+                    // Set stats from leaderboard data to ensure consistency (only in compact layout)
+                    if (userEntry && isCompactLayout) {
                         console.log('[Dashboard] Setting stats from userEntry:', {
                             ugcCount: userEntry.ugcCount,
                             artistsCount: userEntry.artistsCount
@@ -839,8 +841,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 <Link href="/leaderboard" className="inline-flex flex-col items-start justify-start space-y-2 text-foreground">
                                     {/* User Rank */}
                                     <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">User Rank:</span><span className="font-normal text-right flex-1 truncate text-foreground">{rank === -1 ? 'N/A' : rank ? `${rank} of ${totalEntries ?? '—'}` : '—'}</span></div>
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">UGC Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}</span></div>
-                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">Artists Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">UGC Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{allTimeStats?.ugcCount ?? '—'}</span></div>
+                                    <div className="flex justify-between text-lg w-full"><span className="font-semibold text-foreground">Artists Total:</span><span className="font-normal text-right flex-1 truncate text-foreground">{allTimeStats?.artistsCount ?? '—'}</span></div>
                                 </Link>
                             </Button>
                             </div>
