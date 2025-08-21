@@ -29,6 +29,12 @@ jest.mock("../queries/queriesTS", () => ({
       siteName: "youtube",
       cardPlatformName: "YouTube", 
     },
+    {
+      // TikTok regex for @username format (supports both www and non-www)
+      regex: /^https?:\/\/(?:www\.)?tiktok\.com\/@([^/]+)$/,
+      siteName: "tiktok",
+      cardPlatformName: "TikTok",
+    },
   ]),
 }));
 
