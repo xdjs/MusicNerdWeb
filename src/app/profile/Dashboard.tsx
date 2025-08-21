@@ -107,7 +107,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
     );
 }
 
-export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
+export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true, selectedRange }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean; selectedRange?: "today" | "week" | "month" | "all" }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -128,10 +128,10 @@ export default function Dashboard({ user, showLeaderboard = true, allowEditUsern
         );
     }
 
-    return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} /></UgcStatsWrapper>;
+    return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} selectedRange={selectedRange} /></UgcStatsWrapper>;
 }
 
-function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean }) {
+function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true, selectedRange }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean; selectedRange?: "today" | "week" | "month" | "all" }) {
     const [date, setDate] = useState<DateRange | undefined>();
     const [ugcStats, setUgcStats] = useState<{ ugcCount: number, artistsCount: number } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -270,9 +270,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
-	// Range selection (synced with Leaderboard)
+	    // Range selection (synced with Leaderboard)
     type RangeKey = "today" | "week" | "month" | "all";
-    const [selectedRange, setSelectedRange] = useState<RangeKey>("today");
+    const [internalSelectedRange, setInternalSelectedRange] = useState<RangeKey>("today");
+    const selectedRangeToUse = selectedRange || internalSelectedRange;
+    
+    // Debug logging
+    console.log('[Dashboard] Range state:', { selectedRange, internalSelectedRange, selectedRangeToUse });
 
     // (duplicate RangeKey and selectedRange definition removed)
 
@@ -329,12 +333,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 }
 
                 let url = '/api/leaderboard';
-                if (isCompactLayout) {
-                    const dates = getRangeDates(selectedRange);
-                    if (dates) {
-                        url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
-                    }
+                const dates = getRangeDates(selectedRangeToUse);
+                if (dates) {
+                    url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                 }
+                console.log('[Dashboard] Fetching rank:', { url, selectedRangeToUse, dates });
 
                 const resp = await fetch(url);
                 if (!resp.ok) return;
@@ -343,11 +346,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 // Handle both paginated and non-paginated responses
                 const entries = Array.isArray(data) ? data : data.entries;
                 
+                console.log('[Dashboard] API response:', { dataLength: entries?.length, isArray: Array.isArray(data) });
+                
                 // Exclude hidden users from total count
                 const nonHiddenUsers = entries.filter((entry: any) => !entry.isHidden);
                 setTotalEntries(nonHiddenUsers.length);
                 
                 const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
+                console.log('[Dashboard] User lookup:', { idx, userWallet: user.wallet });
+                
                 if (idx !== -1) {
                     // Check if the current user is hidden - check both user object and leaderboard entry
                     const userEntry = entries[idx];
@@ -364,7 +371,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     }
                     
                     // Set stats from leaderboard data to ensure consistency
-                    if (isCompactLayout && userEntry) {
+                    if (userEntry) {
+                        console.log('[Dashboard] Setting stats from userEntry:', {
+                            ugcCount: userEntry.ugcCount,
+                            artistsCount: userEntry.artistsCount
+                        });
                         setUgcStats({
                             ugcCount: userEntry.ugcCount,
                             artistsCount: userEntry.artistsCount
@@ -377,7 +388,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
 
         fetchRank();
-    }, [selectedRange, user.wallet, isCompactLayout]);
+    }, [selectedRangeToUse, user.wallet, isCompactLayout]);
+    
+    // Debug logging for useEffect dependencies
+    console.log('[Dashboard] useEffect dependencies:', {
+        selectedRangeToUse,
+        userWallet: user.wallet,
+        isCompactLayout,
+        allowEditUsername
+    });
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
     // Determine user status string for display (support multiple roles)
@@ -507,7 +526,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
-        setSelectedRange(range);
+        setInternalSelectedRange(range);
     };
 
     // Fetch recent edited UGC only for the full profile layout (not the compact leaderboard layout)
@@ -937,7 +956,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {/* Leaderboard Section */}
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
-                <Leaderboard highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet)} onRangeChange={handleLeaderboardRangeChange} />
+                <Leaderboard 
+                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet)} 
+                    onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange} 
+                />
             </div>
             )}
             
