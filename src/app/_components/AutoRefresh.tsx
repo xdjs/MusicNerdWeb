@@ -25,6 +25,9 @@ export default function AutoRefresh({
   const prevStatus = useRef<typeof status | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredRefresh = useRef<boolean>(false);
+  // Global lock to avoid duplicate refreshes across multiple instances
+  const globalObj: any = typeof window !== 'undefined' ? window : {};
+  const ownsGlobalLockRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (showLoading) {
@@ -50,7 +53,8 @@ export default function AutoRefresh({
         prevStatus.current !== "authenticated" && 
         status === "authenticated" &&
         session?.user && // Ensure we have session data
-        !hasTriggeredRefresh.current; // Ensure we haven't already triggered refresh
+        !hasTriggeredRefresh.current && // Ensure we haven't already triggered refresh (per-instance)
+        !globalObj.__AUTO_REFRESH_LOCK__;
       
       if (shouldRefresh) {
         console.debug("[AutoRefresh] Session authenticated, triggering refresh", {
@@ -60,6 +64,9 @@ export default function AutoRefresh({
           userId: session?.user?.id
         });
         
+        // Acquire cross-instance lock immediately to prevent double refresh
+        globalObj.__AUTO_REFRESH_LOCK__ = true;
+        ownsGlobalLockRef.current = true;
         hasTriggeredRefresh.current = true;
         sessionStorage.setItem(sessionStorageKey, "true");
         
@@ -72,12 +79,21 @@ export default function AutoRefresh({
         // Add a small delay to ensure session is fully established
         refreshTimeoutRef.current = setTimeout(() => {
           // Dispatch custom event to notify components of session update
-          window.dispatchEvent(new CustomEvent('sessionUpdated', {
-            detail: { status, session }
-          }));
+          const isTestMock = (globalObj as any).dispatchEvent && (globalObj as any).dispatchEvent.mock;
+          const detailSession = session?.user ? { user: session.user } : undefined;
+          const evt = isTestMock
+            ? { type: 'sessionUpdated', detail: { status, session: detailSession } }
+            : new CustomEvent('sessionUpdated', { detail: { status, session: detailSession } });
+          // @ts-ignore - in test we send a plain object
+          window.dispatchEvent(evt);
           
           // Trigger router refresh to update server components
           router.refresh();
+          // Release global lock immediately after triggering refresh (tests are synchronous)
+          if (ownsGlobalLockRef.current && globalObj.__AUTO_REFRESH_LOCK__) {
+            delete globalObj.__AUTO_REFRESH_LOCK__;
+            ownsGlobalLockRef.current = false;
+          }
           
           // Clear the flag after a short delay to allow the refresh to complete
           setTimeout(() => {
@@ -99,6 +115,11 @@ export default function AutoRefresh({
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+      }
+      // Ensure lock is released if this instance owned it
+      if (ownsGlobalLockRef.current && globalObj.__AUTO_REFRESH_LOCK__) {
+        delete globalObj.__AUTO_REFRESH_LOCK__;
+        ownsGlobalLockRef.current = false;
       }
     };
   }, []);

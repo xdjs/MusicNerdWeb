@@ -114,7 +114,7 @@ describe('Login Flow Integration', () => {
     act(() => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
     });
@@ -175,7 +175,7 @@ describe('Login Flow Integration', () => {
     act(() => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
     });
@@ -213,7 +213,7 @@ describe('Login Flow Integration', () => {
     act(() => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
     });
@@ -239,7 +239,7 @@ describe('Login Flow Integration', () => {
   it('should handle session update events in client components', async () => {
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: { user: { id: 'test-user-id' } },
+      data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 

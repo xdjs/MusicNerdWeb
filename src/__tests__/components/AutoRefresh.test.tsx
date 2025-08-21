@@ -60,7 +60,7 @@ describe('AutoRefresh', () => {
   it('should not trigger refresh when session is already authenticated on initial load', async () => {
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: { user: { id: 'test-user' } },
+      data: { user: { id: 'test-user' }, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 
@@ -87,7 +87,7 @@ describe('AutoRefresh', () => {
     // Then change to authenticated
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: { user: { id: 'test-user' } },
+      data: { user: { id: 'test-user' }, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 
@@ -127,7 +127,7 @@ describe('AutoRefresh', () => {
 
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: { user: { id: 'test-user' } },
+      data: { user: { id: 'test-user' }, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 
@@ -153,7 +153,7 @@ describe('AutoRefresh', () => {
     // Change to authenticated but without session data
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: null,
+      data: { user: null, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 
@@ -179,7 +179,7 @@ describe('AutoRefresh', () => {
 
     mockUseSession.mockReturnValue({
       status: 'authenticated',
-      data: { user: { id: 'test-user' } },
+      data: { user: { id: 'test-user' }, expires: '2099-01-01T00:00:00.000Z' } as any,
       update: jest.fn(),
     });
 

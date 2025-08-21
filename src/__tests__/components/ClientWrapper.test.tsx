@@ -91,7 +91,7 @@ describe('ClientWrapper Components', () => {
     it('should fetch and render authenticated user data', async () => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
 
@@ -108,7 +108,7 @@ describe('ClientWrapper Components', () => {
     it('should handle session update events', async () => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
 
@@ -146,7 +146,7 @@ describe('ClientWrapper Components', () => {
     it('should handle fetch errors gracefully', async () => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
 
@@ -165,7 +165,7 @@ describe('ClientWrapper Components', () => {
     it('should render authenticated user data', async () => {
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
 
@@ -183,7 +183,7 @@ describe('ClientWrapper Components', () => {
       
       mockUseSession.mockReturnValue({
         status: 'authenticated',
-        data: { user: { id: 'test-user-id' } },
+        data: { user: { id: 'test-user-id' }, expires: '2099-01-01T00:00:00.000Z' } as any,
         update: jest.fn(),
       });
 
