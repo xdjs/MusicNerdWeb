@@ -498,9 +498,32 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         fetchAllTimeStats();
     }, [ugcStatsUserWallet]);
 
-    // Note: Removed the effect that fetches filtered stats for compact layout
-    // The stats box in the leaderboard view now always shows total counts
-    // regardless of the selected time filter
+    // Fetch stats for the currently selected leaderboard range (compact layout only)
+    useEffect(() => {
+        if (!isCompactLayout) return;
+
+        async function fetchRangeStats() {
+            try {
+                let dateRange: DateRange;
+                const dates = getRangeDates(selectedRange);
+                if (dates) {
+                    dateRange = { from: dates.from, to: dates.to } as DateRange;
+                } else {
+                    // "all" range – use epoch to now
+                    dateRange = { from: new Date(0), to: new Date() } as DateRange;
+                }
+
+                const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
+                if (result) {
+                    setUgcStats(result);
+                }
+            } catch (e) {
+                console.error('[Dashboard] Error fetching UGC stats for range', e);
+            }
+        }
+
+        fetchRangeStats();
+    }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
@@ -615,7 +638,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {allTimeStats?.ugcCount ?? '—'}
+                                        {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
                                     </Badge>
                                 </div>
 
@@ -623,7 +646,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {allTimeStats?.artistsCount ?? '—'}
+                                        {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
                                     </Badge>
                                 </div>
                             </div>
