@@ -368,6 +368,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             setRank(nonHiddenIdx + 1);
                         }
                     }
+                    
+                    // Set stats from leaderboard data to ensure consistency
+                    if (isCompactLayout && userEntry) {
+                        setUgcStats({
+                            ugcCount: userEntry.ugcCount,
+                            artistsCount: userEntry.artistsCount
+                        });
+                    }
                 }
             } catch (e) {
                 console.error('Error fetching rank', e);
@@ -499,38 +507,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }, [ugcStatsUserWallet]);
 
     // Fetch stats for the currently selected leaderboard range (compact layout only)
-    useEffect(() => {
-        if (!isCompactLayout) return;
-
-        async function fetchRangeStats() {
-            try {
-                let dateRange: DateRange;
-                const dates = getRangeDates(selectedRange);
-                if (dates) {
-                    dateRange = { from: dates.from, to: dates.to } as DateRange;
-                } else {
-                    // "all" range – use epoch to now
-                    dateRange = { from: new Date(0), to: new Date() } as DateRange;
-                }
-
-                const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
-                if (result) {
-                    setUgcStats(result);
-                } else {
-                    // If no result, clear the stats to avoid showing stale data
-                    setUgcStats(null);
-                }
-            } catch (e) {
-                console.error('[Dashboard] Error fetching UGC stats for range', e);
-                // Clear stats on error to avoid showing stale data
-                setUgcStats(null);
-            }
-        }
-
-        // Clear stats immediately when range changes to avoid showing stale data
-        setUgcStats(null);
-        fetchRangeStats();
-    }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
+    // This is now handled by the rank fetching useEffect below, which uses the same leaderboard data
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
@@ -964,7 +941,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {/* Leaderboard Section */}
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
-                <Leaderboard highlightIdentifier={user.username || user.wallet} onRangeChange={handleLeaderboardRangeChange} />
+                <Leaderboard highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet)} onRangeChange={handleLeaderboardRangeChange} />
             </div>
             )}
             
