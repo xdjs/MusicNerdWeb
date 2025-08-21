@@ -71,6 +71,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         if (isConnected && session) {
             // Ensure we only refresh once per connection
             if (!hasRefreshed.current) {
+                console.debug("[Login] refreshing after wallet connection");
                 hasRefreshed.current = true;
                 router.refresh();
             }
@@ -101,6 +102,9 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
         // Handle initial login or reconnection
         if (!isConnected && !session && status === "unauthenticated") {
             // Reset refresh state when fully logged out
+            if (hasRefreshed.current) {
+                console.debug("[Login] resetting refresh state after logout");
+            }
             hasRefreshed.current = false;
             const loginInitiator = sessionStorage.getItem('loginInitiator');
             const isSearchFlow = sessionStorage.getItem('searchFlow');

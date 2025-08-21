@@ -39,16 +39,25 @@ export default function AutoRefresh({
 
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
+    console.debug("[AutoRefresh] effect", {
+      status,
+      prevStatus: prevStatus.current,
+      skip
+    });
 
     // Check if we need to refresh on initial load or status change
     if (!skip && status !== "loading") {
       // On initial load, prevStatus.current will be null, so we check if we're authenticated
       // On subsequent loads, we check if status changed from unauthenticated to authenticated
-      const shouldRefresh = 
+      const shouldRefresh =
         (prevStatus.current === null && status === "authenticated") || // Initial load with auth
         (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
-      
+
       if (shouldRefresh) {
+        console.debug("[AutoRefresh] refreshing", {
+          from: prevStatus.current,
+          to: status
+        });
         sessionStorage.setItem(sessionStorageKey, "true");
         // Soft refresh so server components pick up the new session instantly
         if (typeof router.refresh === "function") {
@@ -59,6 +68,7 @@ export default function AutoRefresh({
 
     if (skip && status !== "loading") {
       // Clear flag once the page has stabilized
+      console.debug("[AutoRefresh] clearing flag");
       sessionStorage.removeItem(sessionStorageKey);
     }
 
