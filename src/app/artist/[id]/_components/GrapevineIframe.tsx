@@ -16,18 +16,20 @@ export default function GrapevineIframe({ artistId, className }: GrapevineIframe
         );
     }
 
-    const handleIframeClick = () => {
+    const handleContainerClick = () => {
         window.open(`${grapevineUrl}/${artistId}`, '_blank', 'noopener,noreferrer');
     };
 
     return (
-        <div className="relative w-full h-[180px]">
+        <div 
+            className="relative w-full h-[180px] cursor-pointer" 
+            onClick={handleContainerClick}
+        >
             <iframe
                 src={`${grapevineUrl}/${artistId}`}
-                className="w-full h-full border-0 rounded-md cursor-pointer"
+                className="w-full h-full border-0 rounded-md pointer-events-none"
                 loading="lazy"
                 onError={() => console.error('Grapevine iframe failed to load')}
-                onClick={handleIframeClick}
             />
         </div>
     );
