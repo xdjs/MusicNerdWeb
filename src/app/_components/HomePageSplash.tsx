@@ -5,6 +5,7 @@ import SearchBar from "./nav/components/SearchBar";
 import SlidingText from "./SlidingText";
 import TypewriterText from "./TypeWriter";
 import Login from "./nav/components/Login";
+import { ThemeToggle } from "@/app/_components/ThemeToggle";
 
 export default function HomePage({ animation }: { animation: string }) {
 
@@ -96,7 +97,8 @@ export default function HomePage({ animation }: { animation: string }) {
 
     return (
         <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
-            <div className="absolute top-6 right-6">
+            <div className="absolute top-6 right-6 flex gap-4 items-center">
+                <ThemeToggle />
                 <Login buttonStyles="" />
             </div>
 
