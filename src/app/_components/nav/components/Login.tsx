@@ -34,12 +34,33 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const router = useRouter();
     const { toast } = useToast();
     const { data: session, status } = useSession();
-    const [currentStatus, setCurrentStatus] = useState(status);
+    const [currentStatus, setCurrentStatus] = useState<typeof status>(status);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
     // Count of total UGC entries (approved + pending)
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const shouldPromptRef = useRef(false);
+    const autoSignOutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastActivityRef = useRef(Date.now());
+
+    // Track user activity to prevent auto sign-out when user is active
+    useEffect(() => {
+        const updateActivity = () => {
+            lastActivityRef.current = Date.now();
+        };
+
+        // Track various user activities
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        events.forEach(event => {
+            document.addEventListener(event, updateActivity, true);
+        });
+
+        return () => {
+            events.forEach(event => {
+                document.removeEventListener(event, updateActivity, true);
+            });
+        };
+    }, []);
 
     const { isConnected, address } = useAccount();
     const { disconnect } = useDisconnect();
@@ -321,19 +342,64 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     // grace period.  If the wallet is still disconnected after the delay we
     // sign the user out silently.
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout | null = null;
-        if (!isConnected && status === "authenticated") {
-            timeoutId = setTimeout(() => {
-                // Re-check to ensure we didn't reconnect during the delay
-                if (!isConnected) {
-                    signOut({ redirect: false });
-                }
-            }, 1500);
+        // Clear any existing timeout
+        if (autoSignOutTimeoutRef.current) {
+            clearTimeout(autoSignOutTimeoutRef.current);
+            autoSignOutTimeoutRef.current = null;
         }
+        
+        // Only trigger auto sign-out if we're authenticated but not connected
+        if (!isConnected && status === "authenticated") {
+            // Check if this is a manual disconnect
+            const isManualDisconnect = sessionStorage.getItem('manualDisconnect') === 'true';
+            
+            // Don't auto sign-out if this was a manual disconnect
+            if (!isManualDisconnect) {
+                autoSignOutTimeoutRef.current = setTimeout(() => {
+                    // Re-check to ensure we didn't reconnect during the delay
+                    if (!isConnected && status === "authenticated") {
+                        // Double-check that this isn't a manual disconnect
+                        if (sessionStorage.getItem('manualDisconnect') !== 'true') {
+                            // Check if user has been active recently (within last 30 seconds)
+                            const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+                            if (timeSinceLastActivity > 30000) { // 30 seconds
+                                console.debug("[Login] Auto sign-out due to wallet disconnection");
+                                signOut({ redirect: false });
+                            } else {
+                                console.debug("[Login] Preventing auto sign-out due to recent user activity");
+                            }
+                        }
+                    }
+                    autoSignOutTimeoutRef.current = null;
+                }, 3000); // Increased grace period to 3 seconds
+            }
+        }
+        
         return () => {
-            if (timeoutId) clearTimeout(timeoutId);
+            if (autoSignOutTimeoutRef.current) {
+                clearTimeout(autoSignOutTimeoutRef.current);
+                autoSignOutTimeoutRef.current = null;
+            }
         };
     }, [isConnected, status]);
+
+    // Prevent auto sign-out when tab becomes visible (wallet connection is being restored)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && status === "authenticated") {
+                // Clear any pending auto sign-out timeouts when tab becomes visible
+                // This prevents sign-outs when wallet connection is being restored
+                if (autoSignOutTimeoutRef.current) {
+                    clearTimeout(autoSignOutTimeoutRef.current);
+                    autoSignOutTimeoutRef.current = null;
+                    console.debug("[Login] Tab became visible, cleared auto sign-out timeout");
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [status]);
 
     return (
         <ConnectButton.Custom>
