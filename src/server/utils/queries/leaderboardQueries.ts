@@ -44,8 +44,9 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
             LEFT JOIN ugc_counts uc ON uc.user_id = u.id
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
-                "ugcCount" DESC, 
-                "artistsCount" DESC,
+                (COALESCE(uc.ugc_count, 0) + COALESCE(ac.artist_count, 0)) DESC,
+                COALESCE(uc.ugc_count, 0) DESC, 
+                COALESCE(ac.artist_count, 0) DESC,
                 CASE 
                     WHEN u.username IS NOT NULL THEN 
                         CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
@@ -91,8 +92,25 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
             FROM users u
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
-                "ugcCount" DESC, 
-                "artistsCount" DESC,
+                ((
+                    SELECT COUNT(*)::int FROM ugcresearch ug 
+                    WHERE ug.user_id = u.id 
+                      AND ug.created_at BETWEEN ${fromIso} AND ${toIso}
+                ) + (
+                    SELECT COUNT(*)::int FROM artists a 
+                    WHERE a.added_by = u.id 
+                      AND a.created_at BETWEEN ${fromIso} AND ${toIso}
+                )) DESC,
+                (
+                    SELECT COUNT(*)::int FROM ugcresearch ug 
+                    WHERE ug.user_id = u.id 
+                      AND ug.created_at BETWEEN ${fromIso} AND ${toIso}
+                ) DESC, 
+                (
+                    SELECT COUNT(*)::int FROM artists a 
+                    WHERE a.added_by = u.id 
+                      AND a.created_at BETWEEN ${fromIso} AND ${toIso}
+                ) DESC,
                 CASE 
                     WHEN u.username IS NOT NULL THEN 
                         CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END

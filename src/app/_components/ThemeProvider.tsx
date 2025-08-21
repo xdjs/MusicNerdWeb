@@ -43,7 +43,7 @@ export function ThemeProvider({
       return stored
     }
     // If no stored preference, use system preference
-    return defaultTheme || getSystemTheme()
+    return getSystemTheme()
   })
 
   useEffect(() => {

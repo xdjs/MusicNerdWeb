@@ -516,12 +516,19 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
                 if (result) {
                     setUgcStats(result);
+                } else {
+                    // If no result, clear the stats to avoid showing stale data
+                    setUgcStats(null);
                 }
             } catch (e) {
                 console.error('[Dashboard] Error fetching UGC stats for range', e);
+                // Clear stats on error to avoid showing stale data
+                setUgcStats(null);
             }
         }
 
+        // Clear stats immediately when range changes to avoid showing stale data
+        setUgcStats(null);
         fetchRangeStats();
     }, [selectedRange, ugcStatsUserWallet, isCompactLayout]);
 
@@ -638,7 +645,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {(ugcStats ?? allTimeStats)?.ugcCount ?? '—'}
+                                        {isCompactLayout && ugcStats ? ugcStats.ugcCount : (allTimeStats?.ugcCount ?? '—')}
                                     </Badge>
                                 </div>
 
@@ -646,7 +653,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
                                     <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
-                                        {(ugcStats ?? allTimeStats)?.artistsCount ?? '—'}
+                                        {isCompactLayout && ugcStats ? ugcStats.artistsCount : (allTimeStats?.artistsCount ?? '—')}
                                     </Badge>
                                 </div>
                             </div>
