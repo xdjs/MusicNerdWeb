@@ -321,11 +321,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         async function fetchRank() {
             try {
-                console.debug('[Dashboard] Fetching rank for range:', selectedRange, 'isCompactLayout:', isCompactLayout);
-                
                 // Check if user is hidden first - if so, set rank to -1 and skip API call
                 if (user.isHidden) {
-                    console.debug('[Dashboard] User is hidden, setting rank to N/A');
                     setRank(-1);
                     setTotalEntries(null); // Don't show total for hidden users
                     return;
@@ -338,8 +335,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                     }
                 }
-                
-                console.debug('[Dashboard] Fetching from URL:', url);
 
                 const resp = await fetch(url);
                 if (!resp.ok) return;
@@ -358,16 +353,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     const userEntry = entries[idx];
                     const isUserHidden = user.isHidden || userEntry?.isHidden;
                     
-                    console.debug('[Dashboard] Rank calculation:', {
-                        userIsHidden: user.isHidden,
-                        entryIsHidden: userEntry?.isHidden,
-                        finalIsHidden: isUserHidden,
-                        userWallet: user.wallet,
-                        entryWallet: userEntry?.wallet
-                    });
-                    
                     if (isUserHidden) {
-                        console.debug('[Dashboard] Setting rank to -1 for hidden user');
                         setRank(-1); // Use -1 to indicate hidden user
                     } else {
                         // Calculate rank among non-hidden users only
@@ -379,10 +365,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     
                     // Set stats from leaderboard data to ensure consistency
                     if (isCompactLayout && userEntry) {
-                        console.debug('[Dashboard] Updating stats from leaderboard data:', {
-                            ugcCount: userEntry.ugcCount,
-                            artistsCount: userEntry.artistsCount
-                        });
                         setUgcStats({
                             ugcCount: userEntry.ugcCount,
                             artistsCount: userEntry.artistsCount
@@ -525,7 +507,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Callback from Leaderboard to keep range in sync
     const handleLeaderboardRangeChange = (range: RangeKey) => {
-        console.debug('[Dashboard] Leaderboard range changed to:', range);
         setSelectedRange(range);
     };
 
