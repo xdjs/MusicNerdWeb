@@ -235,6 +235,29 @@ describe("utils/services", () => {
       });
     });
 
+    it("extracts TikTok username correctly without storing full URL", async () => {
+        const result = await extractArtistId('https://www.tiktok.com/@tatemcrae');
+        expect(result).toEqual({
+            siteName: 'tiktok',
+            cardPlatformName: 'TikTok',
+            id: 'tatemcrae'
+        });
+    });
+
+    it('extracts TikTok username from URL without www subdomain', async () => {
+        const result = await extractArtistId('https://tiktok.com/@tatemcrae');
+        expect(result).toEqual({
+            siteName: 'tiktok',
+            cardPlatformName: 'TikTok',
+            id: 'tatemcrae'
+        });
+    });
+
+    it('returns null when TikTok URL does not match pattern', async () => {
+        const result = await extractArtistId('https://tiktok.com/invalid-format');
+        expect(result).toBeNull();
+    });
+
     it("returns null when url does not match any pattern", async () => {
       const res = await extractArtistId("https://unknown.com/user");
       expect(res).toBeNull();
