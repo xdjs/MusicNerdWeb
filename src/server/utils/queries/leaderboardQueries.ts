@@ -122,6 +122,7 @@ export async function getUgcStats() {
         return ugcList.length;
     } catch (e) {
         console.error("error getting user ugc stats", e);
+        throw new Error("Error getting user UGC stats");
     }
 }
 
@@ -162,6 +163,7 @@ export async function getUgcStatsInRange(date: DateRange, wallet: string | null 
         return { ugcCount: ugcList.length, artistsCount: artistsList.length };
     } catch (e) {
         console.error("error getting ugc stats for user in range", e);
+        throw new Error("Error getting UGC stats for user in range");
     }
 }
 
