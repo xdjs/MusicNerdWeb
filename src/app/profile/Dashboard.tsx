@@ -91,7 +91,7 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                 )}
                 <Link href={`/artist/${item.artistId}`} className="flex items-center gap-3 hover:underline flex-1">
                     <img src={item.imageUrl || "/default_pfp_pink.png"} alt="artist" className="h-8 w-8 rounded-full object-cover" />
-                    <span>{item.artistName ?? 'Unknown Artist'}</span>
+                    <span className="text-black dark:text-white">{item.artistName ?? 'Unknown Artist'}</span>
                 </Link>
                 {isEditing && (
                     <button
