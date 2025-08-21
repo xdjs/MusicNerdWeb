@@ -34,6 +34,12 @@ const getSystemTheme = (): Theme => {
 // Function to get session-based theme (always system preference for new sessions)
 const getSessionTheme = (storageKey: string): Theme => {
   if (typeof window !== 'undefined') {
+    // Check if user has manually set a preference (persists across sessions)
+    const stored = localStorage?.getItem(storageKey) as Theme
+    if (stored && (stored === "light" || stored === "dark")) {
+      return stored
+    }
+    
     // Check if this is a new session by looking for a session marker
     const sessionMarker = sessionStorage.getItem(`${storageKey}-session`)
     if (!sessionMarker) {
@@ -42,12 +48,6 @@ const getSessionTheme = (storageKey: string): Theme => {
       // Mark this session
       sessionStorage.setItem(`${storageKey}-session`, 'active')
       return systemTheme
-    }
-    
-    // Check if user has manually set a preference during this session
-    const stored = localStorage?.getItem(storageKey) as Theme
-    if (stored && (stored === "light" || stored === "dark")) {
-      return stored
     }
     
     // Fall back to system preference
@@ -71,7 +71,7 @@ export function ThemeProvider({
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
     const handleChange = () => {
-      // Only update if no manual preference is set for this session
+      // Only update if no manual preference is set (user hasn't explicitly chosen a theme)
       const stored = localStorage?.getItem(storageKey) as Theme
       if (!stored || !(stored === "light" || stored === "dark")) {
         setTheme(getSystemTheme())
@@ -88,8 +88,15 @@ export function ThemeProvider({
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === `${storageKey}-session` && e.newValue === null) {
-        // Session ended, reset to system preference
-        setTheme(getSystemTheme())
+        // Session ended, check if we should use system preference or user preference
+        const stored = localStorage?.getItem(storageKey) as Theme
+        if (stored && (stored === "light" || stored === "dark")) {
+          // User has a preference, use it
+          setTheme(stored)
+        } else {
+          // No user preference, use system preference
+          setTheme(getSystemTheme())
+        }
       }
     }
 
@@ -130,7 +137,7 @@ export function ThemeProvider({
   const resetToSystem = () => {
     const systemTheme = getSystemTheme()
     setTheme(systemTheme)
-    // Clear any stored preference
+    // Clear any stored preference to allow system preference to take over
     localStorage?.removeItem(storageKey)
   }
 
