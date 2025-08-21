@@ -41,6 +41,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const shouldPromptRef = useRef(false);
+    const hasRefreshed = useRef(false);
 
     const { isConnected, address } = useAccount();
     const { disconnect } = useDisconnect();
@@ -68,14 +69,20 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
 
         // Handle successful authentication
         if (isConnected && session) {
+            // Ensure we only refresh once per connection
+            if (!hasRefreshed.current) {
+                hasRefreshed.current = true;
+                router.refresh();
+            }
+
             // Reset prompt flag
             shouldPromptRef.current = false;
-            
+
             // Clear loading state if it was set
             if (searchBarRef?.current) {
                 searchBarRef.current.clearLoading();
             }
-            
+
             if (sessionStorage.getItem('searchFlow')) {
                 // Show success toast once
                 toast({
@@ -93,6 +100,8 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
 
         // Handle initial login or reconnection
         if (!isConnected && !session && status === "unauthenticated") {
+            // Reset refresh state when fully logged out
+            hasRefreshed.current = false;
             const loginInitiator = sessionStorage.getItem('loginInitiator');
             const isSearchFlow = sessionStorage.getItem('searchFlow');
             const isSearchFlowPrompted = sessionStorage.getItem('searchFlowPrompted');
