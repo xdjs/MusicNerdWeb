@@ -357,54 +357,54 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 if (!isConnected || status !== "authenticated") {
                     // User is not logged in – show dropdown with Log In option.
                     return (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                        <Button 
-                            ref={ref}
-                            id="login-btn" 
-                            size="lg" 
-                                    type="button"
-                                    className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
-                                    onClick={() => {
-                                        if (openConnectModal) {
-                                            shouldPromptRef.current = true;
-                                            sessionStorage.setItem('directLogin', 'true');
-                                            openConnectModal();
-                                        }
-                                    }}
-                                >
-                                    {buttonChildren ?? <Wallet color="white" />}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32">
-                                <DropdownMenuItem asChild>
-                                    <Link href="/leaderboard" prefetch>Leaderboard</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/profile" prefetch>User Profile</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={() => {
-                                if (openConnectModal) {
-                                    shouldPromptRef.current = true;
-                                    sessionStorage.setItem('directLogin', 'true');
-                                    openConnectModal();
-                                }
-                            }}
-                                >
-                                    Log In
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <div className="flex justify-center py-1.5">
-                                    <ThemeToggle />
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                            <Button 
+                                ref={ref}
+                                id="login-btn" 
+                                size="lg" 
+                                        type="button"
+                                        className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
+                                        onClick={() => {
+                                            if (openConnectModal) {
+                                                shouldPromptRef.current = true;
+                                                sessionStorage.setItem('directLogin', 'true');
+                                                openConnectModal();
+                                            }
+                                        }}
+                                    >
+                                        {buttonChildren ?? <Wallet color="white" />}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-32">
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/leaderboard" prefetch>Leaderboard</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/profile" prefetch>User Profile</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onSelect={() => {
+                                    if (openConnectModal) {
+                                        shouldPromptRef.current = true;
+                                        sessionStorage.setItem('directLogin', 'true');
+                                        openConnectModal();
+                                    }
+                                }}
+                                    >
+                                        Log In
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ThemeToggle />
+                        </div>
                     );
                 }
 
                 // User is authenticated – show dropdown with profile and logout options.
                 return (
+                    <div className="flex items-center gap-2">
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                         <Button 
@@ -483,12 +483,10 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             >
                                 Log Out
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <div className="flex justify-center py-1.5">
-                                <ThemeToggle />
-                            </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <ThemeToggle />
+                    </div>
                 );
             }}
         </ConnectButton.Custom>

@@ -68,12 +68,18 @@ export default function ClientWrapper() {
         console.debug('[Leaderboard] User is unauthenticated, clearing user data');
         setUser(null);
       }
-      setIsLoading(false);
+      // Only set loading to false when we have a definitive session state
+      if (status !== "loading") {
+        setIsLoading(false);
+      }
     };
 
-    // Fetch user data when session state is determined
+    // Only fetch user when session state is determined
     if (status !== "loading") {
       fetchUser();
+    } else {
+      // Keep loading state true while session is loading
+      setIsLoading(true);
     }
   }, [status, session]);
 
