@@ -29,6 +29,12 @@ jest.mock("../queries/queriesTS", () => ({
       siteName: "youtube",
       cardPlatformName: "YouTube", 
     },
+    {
+      // TikTok regex for @username format (supports both www and non-www)
+      regex: /^https?:\/\/(?:www\.)?tiktok\.com\/@([^/]+)$/,
+      siteName: "tiktok",
+      cardPlatformName: "TikTok",
+    },
   ]),
 }));
 
@@ -233,6 +239,29 @@ describe("utils/services", () => {
         cardPlatformName: "YouTube",
         id: "@fkj",
       });
+    });
+
+    it("extracts TikTok username correctly without storing full URL", async () => {
+        const result = await extractArtistId('https://www.tiktok.com/@tatemcrae');
+        expect(result).toEqual({
+            siteName: 'tiktok',
+            cardPlatformName: 'TikTok',
+            id: 'tatemcrae'
+        });
+    });
+
+    it('extracts TikTok username from URL without www subdomain', async () => {
+        const result = await extractArtistId('https://tiktok.com/@tatemcrae');
+        expect(result).toEqual({
+            siteName: 'tiktok',
+            cardPlatformName: 'TikTok',
+            id: 'tatemcrae'
+        });
+    });
+
+    it('returns null when TikTok URL does not match pattern', async () => {
+        const result = await extractArtistId('https://tiktok.com/invalid-format');
+        expect(result).toBeNull();
     });
 
     it("returns null when url does not match any pattern", async () => {

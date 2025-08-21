@@ -434,6 +434,9 @@ export async function approveUGC(
     try {
         // Normalise values for certain platforms before storing on the artist record
         let valueToStore = artistUrlOrId;
+        
+        // For most platforms, artistUrlOrId is now the extracted username/ID
+        // Only do URL parsing for platforms that need special handling
         if (siteName === "youtubechannel") {
             // Expect channel ID, not a full URL
             // Accept both full URLs and raw IDs and convert to ID only
@@ -551,7 +554,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
             .returning();
 
         if (isWhitelistedOrAdmin && newUGC?.id) {
-            await approveUGC(newUGC.id, artist.id, artistIdFromUrl.siteName, artistUrl);
+            await approveUGC(newUGC.id, artist.id, artistIdFromUrl.siteName, artistIdFromUrl.id);
         } else {
             // Pending submission by regular user – trigger (throttled) Discord ping
             await maybePingDiscordForPendingUGC();

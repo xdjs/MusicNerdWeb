@@ -61,18 +61,18 @@ const SearchBar = ({setUsers, query, setQuery}: {setUsers: (users: string) => vo
     }
 
     return (
-        <div className="relative w-full max-w-md z-30 text-black">
+        <div className="relative w-full max-w-md z-30">
             <input
                 onBlur={() => setShowResults(false)}
                 onFocus={() => setShowResults(true)}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                className="w-full px-4 py-2 border border-input rounded-lg focus:outline-none focus:ring focus:ring-ring bg-background text-foreground"
                 placeholder=""
             />
             {(showResults && query.length > 2) && (
-                <div ref={resultsContainer} className="absolute left-0 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div ref={resultsContainer} className="absolute left-0 w-full mt-2 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {isLoading ? <Skeleton /> :
                         <>
                             {data &&

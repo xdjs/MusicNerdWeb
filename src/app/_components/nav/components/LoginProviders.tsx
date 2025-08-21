@@ -4,6 +4,7 @@ import { ReactNode, Suspense, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { WagmiProvider as WagmiProviderBase, http, createConfig } from 'wagmi';
 import { mainnet } from 'wagmi/chains';
+import { useTheme } from '../../ThemeProvider';
 
 const queryClient = new QueryClient();
 
@@ -14,7 +15,7 @@ let isInitializing = false;
 // Dynamically import wallet-related components
 const WalletProviders = dynamic(
     async () => {
-        const { getDefaultConfig, RainbowKitProvider } = await import('@rainbow-me/rainbowkit');
+        const { getDefaultConfig, RainbowKitProvider, darkTheme, lightTheme } = await import('@rainbow-me/rainbowkit');
         const { http } = await import('wagmi');
         const { mainnet: rkMainnet } = await import('wagmi/chains');
         const { RainbowKitSiweNextAuthProvider } = await import('@rainbow-me/rainbowkit-siwe-next-auth');
@@ -45,6 +46,9 @@ const WalletProviders = dynamic(
         return function Providers({ children }: { children: ReactNode }) {
             console.debug('[WalletProviders] Rendering WalletConnect providers');
             
+            // Get current theme from ThemeProvider
+            const { theme } = useTheme();
+            
             return (
                 <WagmiProviderBase config={walletConfig}>
                     <QueryClientProvider client={queryClient}>
@@ -67,6 +71,7 @@ const WalletProviders = dynamic(
                                     learnMoreUrl: 'https://www.musicnerd.xyz',
                                     disclaimer: undefined
                                 }}
+                                theme={theme === 'dark' ? darkTheme() : lightTheme()}
                             >
                                 {children}
                             </RainbowKitProvider>

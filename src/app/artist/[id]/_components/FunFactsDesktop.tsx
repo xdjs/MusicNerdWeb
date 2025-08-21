@@ -55,7 +55,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
 
   return (
     <div className="hidden md:block bg-white rounded-lg shadow-2xl p-6 space-y-4 overflow-x-hidden">
-      <h2 className="text-2xl font-bold text-black">Fun Facts</h2>
+      <h2 className="text-2xl font-bold text-black dark:text-white">Fun Facts</h2>
       <div className="relative">
         {/* Buttons List */}
         <div className={fact ? "invisible pointer-events-none" : "flex flex-col space-y-2"}>
@@ -65,7 +65,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full flex items-center justify-center text-base font-semibold border-2 border-[#c6bfc7]"
+                    className="w-full flex items-center justify-center text-base font-semibold border-2 border-[#9b83a0] fun-facts-button"
                     onClick={() => fetchFact(type)}
                   >
                     <span className="flex items-baseline gap-4">
@@ -74,7 +74,7 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
                       >
                         {icon}
                       </span>
-                      <span className="leading-none">{label}</span>
+                      <span className="leading-none text-black dark:text-white">{label}</span>
                     </span>
                   </Button>
                 </TooltipTrigger>
@@ -88,10 +88,10 @@ export default function FunFactsDesktop({ artistId }: FunFactsDesktopProps) {
 
         {/* Overlay Fact Box */}
         {(fact || loading === true) && (
-                          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-[#c6bfc7] shadow-lg overflow-y-auto overflow-x-hidden pt-2 pb-2 pr-1 pl-4">
+                          <div className="absolute inset-0 flex flex-col bg-white rounded-lg border-2 border-[#9b83a0] shadow-lg overflow-y-auto overflow-x-hidden pt-2 pb-2 pr-1 pl-4">
             {/* Close button */}
             <button
-              className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-[#c6bfc7] rounded-md bg-[#c6bfc7] hover:bg-[#b8b1b9] focus:outline-none leading-none z-10"
+              className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border-2 border-[#9b83a0] rounded-md bg-[#9b83a0] hover:bg-[#b8b1b9] focus:outline-none leading-none z-10"
               aria-label="Close fun fact"
               onClick={() => {
                 setFact(null);

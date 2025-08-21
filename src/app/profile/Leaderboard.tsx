@@ -43,9 +43,29 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
         entry.wallet?.toLowerCase() === identifierLc ||
+        entry.wallet?.toLowerCase() === identifierLc?.replace('0x', '') ||
+        identifierLc?.replace('0x', '') === entry.wallet?.toLowerCase() ||
         (entry.username ?? '').toLowerCase() === identifierLc ||
-        (entry.email ?? '').toLowerCase() === identifierLc
+        (entry.email ?? '').toLowerCase() === identifierLc ||
+        // Additional fallback: check if username contains the identifier (for partial matches)
+        (entry.username ?? '').toLowerCase().includes(identifierLc) ||
+        identifierLc.includes((entry.username ?? '').toLowerCase()) ||
+        // More robust matching: check if the identifier is contained within the username
+        (entry.username && identifierLc && entry.username.toLowerCase().indexOf(identifierLc) !== -1) ||
+        // Check if the username is contained within the identifier
+        (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
     );
+    
+    // Debug logging for highlighting - log for all entries to help debug
+    console.log('[Leaderboard] Highlighting debug:', {
+        highlightIdentifier,
+        identifierLc,
+        entryUsername: entry.username,
+        entryWallet: entry.wallet,
+        isHighlighted,
+        usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
+        walletMatch: entry.wallet?.toLowerCase() === identifierLc
+    });
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
     useEffect(() => {
@@ -101,10 +121,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
             onMouseEnter={() => { setShowRecent(true); fetchRecent(); }}
             onMouseLeave={() => setShowRecent(false)}
                          className={cn(
-                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] bg-white border-2",
+                         "p-3 rounded-md transition-colors scroll-mt-12 hover:bg-[#f3f4f6] dark:hover:bg-gray-800 bg-background border-2",
                                                   isHighlighted
-                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_40px_rgba(255,156,227,0.6)]"
-                              : "border-[#c6bfc7]"
+                              ? "border-4 border-[#ff9ce3] sticky top-12 z-10 shadow-[0_0_30px_rgba(255,156,227,0.6)]"
+                              : "border-[#9b83a0]"
                      )}
         >
             {/* Mobile layout */}
@@ -120,10 +140,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                         )}
                     </span>
-                    {/* Profile Picture - evenly spaced between rank and username */}
-                    <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                         {/* Profile Picture - evenly spaced between rank and username */}
+                     <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                         {ensLoading ? (
-                            <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                         ) : ensAvatarUrl && !avatarError ? (
                             <img
                                 src={ensAvatarUrl}
@@ -144,26 +164,26 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Username */}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium truncate text-lg">
-                            {entry.username || entry.wallet.slice(0, 8) + "..."}
+                            {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
                         </p>
                     </div>
                 </div>
 
-                {/* UGC row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">UGC Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
-                        {entry.ugcCount}
-                    </Badge>
-                </div>
+                                 {/* UGC row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">UGC Added</span>
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.ugcCount}
+                     </Badge>
+                 </div>
 
-                {/* Artists row */}
-                <div className="flex justify-between items-center">
-                    <span className="text-[#6f4b75] font-semibold">Artists Added</span>
-                    <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-4 py-2 text-base rounded-full">
-                        {entry.artistsCount}
-                    </Badge>
-                </div>
+                 {/* Artists row */}
+                 <div className="flex justify-between items-center">
+                     <span className="text-[#9b83a0] font-semibold">Artists Added</span>
+                     <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                         {entry.artistsCount}
+                     </Badge>
+                 </div>
             </div>
 
                     {/* Desktop layout */}
@@ -180,10 +200,10 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
-                            {/* Avatar between rank and username */}
-                            <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
+                                                         {/* Avatar between rank and username */}
+                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
                                 {ensLoading ? (
-                                    <img className="w-5 h-5" src="/spinner.svg" alt="Loading..." />
+                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
                                 ) : ensAvatarUrl && !avatarError ? (
                                     <img
                                         src={ensAvatarUrl}
@@ -203,30 +223,30 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate text-lg">
-                                    {entry.username || entry.wallet.slice(0, 8) + "..."}
+                                    {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
                                 </p>
                             </div>
                         </div>
 
-                        {/* UGC count */}
-                        <div className="flex items-center justify-center">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.ugcCount}
-                            </Badge>
-                        </div>
+                                                                                                   {/* UGC count */}
+                          <div className="flex items-center justify-center">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.ugcCount}
+                              </Badge>
+                          </div>
 
-                        {/* Artist count */}
-                        <div className="flex items-center justify-end">
-                            <Badge className="bg-[#f3f4f6] text-[#6f4b75] px-3 py-1.5 text-base rounded-full">
-                                {entry.artistsCount}
-                            </Badge>
-                        </div>
+                          {/* Artist count */}
+                          <div className="flex items-center justify-end">
+                              <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-base">
+                                  {entry.artistsCount}
+                              </Badge>
+                          </div>
                     </div>
 
                     {/* Recently Added Artists inline expansion */}
                     {showRecent && (
                         <div className="mt-4">
-                            <p className="font-semibold text-center mb-2">{(entry.username || entry.email || entry.wallet.slice(0,8)+"...")}&#39;s Recently Edited</p>
+                            <p className="font-semibold text-center mb-2">{(entry.username || entry.email || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0,10)+"..." : '0x' + entry.wallet.slice(0,8)+"..."))}&#39;s Recently Edited</p>
                             {loadingRec && <p className="text-sm text-muted-foreground text-center">Loading...</p>}
                             {recent && recent.length ? (
                                 <ul className="grid grid-cols-3 gap-4 justify-items-center">
@@ -352,7 +372,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
@@ -364,7 +384,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                     "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
                                 onClick={() => setRange(key)}
                             >
@@ -388,7 +408,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         return (
             <Card className="max-w-3xl mx-auto shadow-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                    <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                             <Button
@@ -399,7 +419,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                                     "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
                                     range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                                 )}
                                 onClick={() => setRange(key)}
                             >
@@ -420,7 +440,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <TooltipProvider delayDuration={200}>
         <Card className="max-w-3xl mx-auto shadow-2xl">
             <CardHeader className="text-center">
-                <CardTitle className="mb-5 text-[#6f4b75]">Leaderboard</CardTitle>
+                <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
                         <Button
@@ -429,9 +449,9 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             variant="outline"
                             className={cn(
                                 "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
-                                range === key
-                                    ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                    : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                                                    range === key
+                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                             )}
                             onClick={() => setRange(key)}
                         >
@@ -443,7 +463,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
             </CardHeader>
             <CardContent>
                 {/* column headings (hidden on mobile) */}
-                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#6f4b75] text-center sticky top-0 z-20 bg-white py-2 mb-2">
+                <div className="hidden sm:grid grid-cols-3 font-semibold text-base text-[#9b83a0] text-center sticky top-0 z-20 bg-background py-2 mb-2">
                     <span className="justify-self-start text-left">User</span>
                     <span>UGC Added</span>
                     <span className="justify-self-end text-right">Artists Added</span>
@@ -470,14 +490,14 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 </div>
             </CardContent>
             {pageCount > 1 && (
-                <div className="bg-white border-t flex justify-end items-center gap-4 p-3">
+                <div className="bg-background border-t flex justify-end items-center gap-4 p-3">
                     <Button
                         size="sm"
                         className={cn(
                             "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
                             page === 1
                                 ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                         )}
                         disabled={page === 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -491,7 +511,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                             "py-1 px-2 text-[0.7rem] leading-tight sm:text-sm border-2",
                             page >= pageCount
                                 ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                                : "bg-white text-pastypink border-pastypink hover:bg-gray-100"
+                                : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
                         )}
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => Math.min(pageCount, p + 1))}

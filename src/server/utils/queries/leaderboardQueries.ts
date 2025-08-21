@@ -45,7 +45,17 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
-                "artistsCount" DESC
+                "artistsCount" DESC,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN 
+                        CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
+                    ELSE 
+                        CASE WHEN u.wallet ~ '^0x[0-9]' THEN 0 ELSE 1 END
+                    END,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username
+                    ELSE u.wallet
+                END ASC
         `);
         return result;
     } catch (e) {
@@ -82,7 +92,17 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
                 "ugcCount" DESC, 
-                "artistsCount" DESC
+                "artistsCount" DESC,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN 
+                        CASE WHEN u.username ~ '^[0-9]' THEN 0 ELSE 1 END
+                    ELSE 
+                        CASE WHEN u.wallet ~ '^0x[0-9]' THEN 0 ELSE 1 END
+                    END,
+                CASE 
+                    WHEN u.username IS NOT NULL THEN u.username
+                    ELSE u.wallet
+                END ASC
         `);
         return result;
     } catch (e) {

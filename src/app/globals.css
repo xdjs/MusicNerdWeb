@@ -38,6 +38,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --subtitle-color: rgb(89, 48, 97, 0.6);
   }
 
   .dark {
@@ -65,6 +66,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --subtitle-color: rgb(198, 191, 199);
   }
 }
 
@@ -75,6 +77,419 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Dark mode overrides for hard-coded black/white colors */
+.dark .text-black {
+  color: white !important;
+}
+
+/* Exception for theme toggle - keep black text in dark mode */
+.dark .theme-toggle-text {
+  color: black !important;
+}
+
+.dark .bg-white {
+  background-color: #1a1a1a !important; /* darker background instead of pure black */
+}
+
+.dark .bg-white\/80 {
+  background-color: rgba(26, 26, 26, 0.8) !important;
+}
+
+.dark .border-black {
+  border-color: #374151 !important; /* dark gray border instead of white */
+}
+
+.dark .text-white {
+  color: #f3f4f6 !important; /* slightly off-white for better readability */
+}
+
+
+
+/* Dark mode overrides for Leaderboard - consolidated */
+/* Note: Fun Facts buttons should keep the same border color in both modes */
+.dark .border-\[#9b83a0\]:not(.fun-facts-button) {
+  border-color: #6f4b75 !important;
+}
+
+.dark .border-\[#c6bfc7\] {
+  border-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .text-\[#6f4b75\] {
+  color: rgb(198, 191, 199, 0.8) !important;
+}
+
+.dark .text-muted-foreground {
+  color: white !important;
+}
+
+.dark .bg-\[#f3f4f6\] {
+  background-color: #1a1a1a !important;
+}
+
+.dark .text-\[#6f4b75\].bg-\[#f3f4f6\] {
+  color: rgb(198, 191, 220, 0.8) !important;
+}
+
+/* Dark mode override for Leaderboard column headings and numbers - use border color */
+.dark .text-\[#6f4b75\]:not(.bg-\[#f3f4f6\]) {
+  color: #9b83a0 !important;
+}
+
+.dark .text-\[#9b83a0\] {
+  color: #6f4b75 !important;
+}
+
+
+
+/* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
+.dark .home-text-h2:not([style*="#ff9ce3"]) {
+  color: #a08ba8 !important;
+}
+
+/* Ensure the pink "Music Nerd" title stays pink in dark mode - more specific */
+.dark .home-text-h2[style*="#ff9ce3"], 
+.dark .home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+/* Additional override to ensure pink color is preserved */
+.dark h2[style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+/* Force pink color for any element with #ff9ce3 in dark mode */
+.dark [style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark [style*="#ff9ce3"] * {
+  color: #ff9ce3 !important;
+}
+
+/* Additional overrides to ensure Music Nerd text stays pink in all modes */
+.home-text-h2[style*="#ff9ce3"],
+.home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"],
+.dark .home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+/* Override any global text color changes for Music Nerd text */
+.home-text-h2[style*="#ff9ce3"] *,
+.home-text-h2[style*="color: #ff9ce3"] * {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"] *,
+.dark .home-text-h2[style*="color: #ff9ce3"] * {
+  color: #ff9ce3 !important;
+}
+
+/* Force Music Nerd title text to stay pink regardless of any other CSS */
+.home-text-h2[style*="#ff9ce3"],
+.home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"],
+.dark .home-text-h2[style*="color: #ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+/* Ensure subtitle text has the correct color in light mode */
+.home-text-h2:not([style*="#ff9ce3"]) {
+  color: #9b83a0 !important;
+}
+
+.dark .home-text-h2:not([style*="#ff9ce3"]) {
+  color: #a08ba8 !important;
+}
+
+/* Ensure h2 elements within subtitle containers have the correct color */
+.home-text-h2:not([style*="#ff9ce3"]) h2 {
+  color: #9b83a0 !important;
+}
+
+.dark .home-text-h2:not([style*="#ff9ce3"]) h2 {
+  color: #a08ba8 !important;
+}
+
+/* Force the first title (Music Nerd) to be pink in all modes */
+.home-text-h2:first-child {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2:first-child {
+  color: #ff9ce3 !important;
+}
+
+/* Ensure all h2 elements within the first home-text-h2 are pink */
+.home-text-h2:first-child h2 {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2:first-child h2 {
+  color: #ff9ce3 !important;
+}
+
+/* Additional specific override for Music Nerd text in dark mode */
+.dark .home-text-h2[style*="color: #ff9ce3"] h2 {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="color: #ff9ce3"] h2 * {
+  color: #ff9ce3 !important;
+}
+
+/* Override any global text color changes for Music Nerd specifically */
+.dark .home-text-h2[style*="#ff9ce3"] {
+  color: #ff9ce3 !important;
+}
+
+.dark .home-text-h2[style*="#ff9ce3"] h2 {
+  color: #ff9ce3 !important;
+}
+
+/* Dark mode overrides for FunFacts components */
+.dark .bg-\[#9b83a0\] {
+  background-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .hover\:bg-\[#b8b1b9\]:hover {
+  background-color: rgb(111, 75, 117, 0.8) !important;
+}
+
+/* Dark mode overrides for UserEntriesTable components */
+.dark .bg-\[#c6bfc7\] {
+  background-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .text-\[#c6bfc7\] {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .hover\:text-\[#c6bfc7\]:hover {
+  color: rgb(89, 48, 97, 0.6) !important;
+}
+
+/* Dark mode overrides for Dashboard component */
+.dark .hover\:ring-\[#c6bfc7\]:hover {
+  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+.dark .focus\:ring-\[#c6bfc7\]:focus {
+  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
+}
+
+
+
+/* Dark mode override for "User Profile" heading */
+.dark h1.text-3xl.font-bold {
+  color: white !important;
+}
+
+/* Dark mode overrides for User Profile page text - more specific to avoid affecting home page */
+.dark [data-guest-user="true"] .text-black {
+  color: white !important;
+}
+
+.dark [data-guest-user="true"] p {
+  color: white !important;
+}
+
+.dark [data-guest-user="true"] span {
+  color: white !important;
+}
+
+.dark [data-guest-user="true"] div {
+  color: white !important;
+}
+
+.dark [data-guest-user="true"] h2, .dark [data-guest-user="true"] h3, .dark [data-guest-user="true"] h4, .dark [data-guest-user="true"] h5, .dark [data-guest-user="true"] h6 {
+  color: white !important;
+}
+
+/* Dark mode override for edit mode button - keep text and icons black */
+.dark button.bg-gray-200.text-foreground {
+  color: black !important;
+}
+
+.dark button.bg-gray-200.text-foreground svg {
+  color: black !important;
+}
+
+.dark .bg-black {
+  background-color: #1a1a1a !important; /* consistent dark background */
+}
+
+/* Preserve specific brand colors in dark mode */
+.dark [style*="rgb(89, 48, 97, 0.6)"] {
+  color: #c6bfc7 !important;
+}
+
+.dark [style*="rgb(89, 48, 97, 0.6)"] * {
+  color: #c6bfc7 !important;
+}
+
+
+
+/* Make footer text white in dark mode */
+.dark .text-maroon {
+  color: white !important;
+}
+
+/* Make "Ask Music Nerd about an artist" text match search placeholder color in dark mode */
+.dark .text-gray-500 {
+  color: #a0aec0 !important;
+}
+
+/* Search bar dark mode styling */
+.dark .bg-gray-100 {
+  background-color: #2d3748 !important; /* slightly lighter dark gray for better contrast */
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: #4a5568 !important; /* medium gray on hover */
+}
+
+.dark .text-black {
+  color: #f7fafc !important; /* bright white for better readability */
+}
+
+/* Make search icon white in dark mode */
+.dark svg[stroke-width="2.5"] {
+  color: #f7fafc !important; /* bright white icon */
+}
+
+/* Make search input text white in dark mode */
+.dark input::placeholder {
+  color: #ffffff !important; /* white placeholder for better visibility */
+}
+
+.dark input {
+  color: #f7fafc !important; /* bright white text */
+}
+
+/* Keep red notification dots with white borders in dark mode */
+.dark .bg-red-600 {
+  border: 2px solid white !important;
+}
+
+/* Add drop shadow to leaderboard card in dark mode */
+.dark .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Ensure pink highlighting takes precedence over other styles */
+.border-\[#ff9ce3\] {
+  border-color: #ff9ce3 !important;
+}
+
+.shadow-\[0_0_20px_rgba\(255\,156\,227\,0\.3\)\] {
+  box-shadow: 0 0 20px rgba(255, 156, 227, 0.3) !important;
+}
+
+/* Make search results dropdown dark in dark mode */
+.dark .bg-white {
+  background-color: #2d3748 !important; /* consistent with search bar */
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #4a5568 !important; /* consistent hover state */
+}
+
+/* Login statistics button dark mode styling */
+.dark .bg-accent\/40 {
+  background-color: #2d3748 !important; /* consistent with search bar */
+}
+
+.dark .hover\:bg-accent\/60:hover {
+  background-color: #4a5568 !important; /* consistent hover state */
+}
+
+/* Make the login button text white in dark mode */
+.dark .bg-accent\/40 span {
+  color: #f7fafc !important; /* bright white text */
+}
+
+/* Admin page dark mode styling */
+.dark .admin-page {
+  background-color: #1a1a1a !important;
+  color: #f7fafc !important;
+}
+
+.dark .admin-page h1,
+.dark .admin-page h2 {
+  color: #f7fafc !important;
+}
+
+/* Ensure admin page text is properly visible in dark mode */
+.dark .admin-page .text-muted-foreground {
+  color: #a0aec0 !important;
+}
+
+/* Admin page table styling in dark mode */
+.dark .admin-page .bg-card {
+  background-color: #2d3748 !important;
+}
+
+.dark .admin-page .border {
+  border-color: #4a5568 !important;
+}
+
+/* Admin page button styling in dark mode */
+.dark .admin-page .bg-background {
+  background-color: #1a1a1a !important;
+}
+
+.dark .admin-page .text-foreground {
+  color: #f7fafc !important;
+}
+
+.dark .admin-page .border-input {
+  border-color: #4a5568 !important;
+}
+
+.dark .admin-page .ring-ring {
+  --tw-ring-color: #4a5568 !important;
+}
+
+/* Checkbox styling for light and dark modes */
+/* Light mode: pink checkbox when checked */
+[data-state="checked"] {
+  background-color: #ff9ce3 !important;
+  border-color: #ff9ce3 !important;
+}
+
+/* Dark mode: light blue checkbox when checked */
+.dark [data-state="checked"] {
+  background-color: #2ad4fc !important;
+  border-color: #2ad4fc !important;
+}
+
+/* Ensure checkbox text (checkmark) is white for good contrast */
+[data-state="checked"] .text-primary-foreground {
+  color: white !important;
+}
+
+.dark [data-state="checked"] .text-primary-foreground {
+  color: white !important;
+}
+
+/* Theme toggle dark mode styling */
+.dark .theme-toggle-text {
+  color: white !important;
+}
+
+/* Ensure dark mode moon icon is blue */
+.dark .theme-toggle-text ~ div svg {
+  color: #2ad4fc !important;
 }
 
 .text-color-primary {
@@ -90,6 +505,10 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: white;
+}
+
+.dark body {
+  background: #1a1a1a; /* consistent dark background */
 }
 
 @layer utilities {

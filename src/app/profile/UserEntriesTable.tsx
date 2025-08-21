@@ -167,17 +167,17 @@ export default function UserEntriesTable() {
     <div className="max-w-3xl mx-auto mt-10">
       {/* Title above the table */}
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold text-[#6f4b75] outline-none">Your Artist Data Entry</h2>
+        <h2 className="text-2xl font-semibold text-[#c6bfc7] outline-none">Your Artist Data Entry</h2>
       </div>
       
-      <Card className="border-2 border-[#c6bfc7] shadow-none">
+      <Card className="border-2 border-[#9b83a0] shadow-none">
         {/* Mobile: Single scrollable container for header and table */}
         <div className="overflow-x-auto min-w-full max-w-full">
           {/* Table Header */}
-          <div className="bg-[#9b83a0] p-0 rounded-t-md border-b-2 border-[#c6bfc7] min-w-full">
+          <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
             <div className="grid grid-cols-[1fr_1fr_2fr_3fr_0.8fr_1fr] sm:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white">
               <div
-                className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#9b83a0] rounded-tl-md"
+                className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#c6bfc7] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -187,10 +187,10 @@ export default function UserEntriesTable() {
                   />
                 </div>
               </div>
-              <div className="text-center py-3 px-1 border-t border-[#9b83a0]">
+              <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
                 <span className="whitespace-nowrap">Time</span>
               </div>
-              <div className="text-left py-3 px-4 border-t border-[#9b83a0]">
+              <div className="text-left py-3 px-4 border-t border-[#c6bfc7]">
                 <div className="flex items-center gap-2">
                   <span className="whitespace-nowrap">Artist</span>
                   <div
@@ -208,13 +208,13 @@ export default function UserEntriesTable() {
                   </div>
                 </div>
               </div>
-              <div className="text-left py-3 px-4 border-t border-[#9b83a0] min-w-[160px]">
+              <div className="text-left py-3 px-4 border-t border-[#c6bfc7] min-w-[160px]">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                   <span className="whitespace-nowrap text-sm sm:text-base">Entry Type</span>
                   <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-[#6f4b75] bg-white"
+                    className="border border-gray-300 rounded-md p-1 text-xs h-6 w-full sm:w-16 text-white bg-white"
                   >
                     <option value="all">All</option>
                     {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
@@ -225,11 +225,11 @@ export default function UserEntriesTable() {
                   </select>
                 </div>
               </div>
-              <div className="text-center py-3 px-1 border-t border-[#9b83a0]">
+              <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
                 <span className="whitespace-nowrap">Site Link</span>
               </div>
               <div
-                className="text-center py-3 px-2 cursor-pointer select-none border-t border-r border-[#9b83a0] rounded-tr-md"
+                className="text-center py-3 px-2 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
                 onClick={() =>
                   setStatusSort((prev) =>
                     prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
@@ -251,14 +251,14 @@ export default function UserEntriesTable() {
           </div>
           
           {/* Table Body */}
-          <div className="p-0 border-b-2 border-[#c6bfc7] min-w-full">
+          <div className="p-0 border-b-2 border-[#9b83a0] min-w-full">
             <Table className="min-w-full">
               <TableBody>
                 {loading ? (
                   <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
                     <TableCell colSpan={6} className="text-center py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#9b83a0] border-t-transparent"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#c6bfc7] border-t-transparent"></div>
                         <span>Loading...</span>
                       </div>
                     </TableCell>
@@ -272,7 +272,7 @@ export default function UserEntriesTable() {
                       const displayArtist = entry.artistName ?? lastArtist ?? "—";
                       if (entry.artistName) lastArtist = entry.artistName;
                       return (
-                        <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                        <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#9b83a0]">
                           <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
                           <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
                           <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
@@ -301,7 +301,7 @@ export default function UserEntriesTable() {
                     });
                   })()
                 ) : (
-                  <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
+                  <TableRow className="bg-white hover:bg-white border-b border-[#9b83a0]">
                     <TableCell colSpan={6} className="text-center py-4">
                       No entries
                     </TableCell>
@@ -312,13 +312,13 @@ export default function UserEntriesTable() {
           </div>
         </div>
         {pageCount > 1 && (
-          <CardFooter className="bg-[#9b83a0] border border-[#9b83a0] rounded-b-md flex justify-end items-center gap-4 p-3">
+          <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
             <Button
               variant="outline"
               size="sm"
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
-              className="bg-white text-[#9b83a0] border-white hover:bg-gray-100 hover:text-[#9b83a0]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Prev
             </Button>
@@ -328,7 +328,7 @@ export default function UserEntriesTable() {
               size="sm"
               disabled={page >= pageCount}
               onClick={() => setPage((p) => p + 1)}
-              className="bg-white text-[#9b83a0] border-white hover:bg-gray-100 hover:text-[#9b83a0]"
+              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
             >
               Next
             </Button>

@@ -1,7 +1,7 @@
 "use client"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback, forwardRef, useRef } from 'react';
 import { useSession, signOut } from "next-auth/react";
 import { Wallet } from 'lucide-react';
@@ -13,6 +13,7 @@ import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
 import Jazzicon from 'react-jazzicon';
+
 
 
 // Add type for the SearchBar ref
@@ -364,7 +365,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             id="login-btn" 
                             size="lg" 
                                     type="button"
-                                    className={`hover:bg-gray-200 transition-colors duration-300 text-black px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
+                                    className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
                                     onClick={() => {
                                         if (openConnectModal) {
                                             shouldPromptRef.current = true;
@@ -376,7 +377,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     {buttonChildren ?? <Wallet color="white" />}
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-32">
                                 <DropdownMenuItem asChild>
                                     <Link href="/leaderboard" prefetch>Leaderboard</Link>
                                 </DropdownMenuItem>
@@ -414,7 +415,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             ) : ensLoading ? (
                                 <img className="max-h-6" src="/spinner.svg" alt="Loading..." />
                             ) : ensAvatar && !avatarError ? (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
+                                <div className="w-8 h-8 rounded-full overflow-hidden">
                                     <img 
                                         src={ensAvatar} 
                                         alt="ENS Avatar" 
@@ -423,11 +424,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                                     />
                                 </div>
                             ) : jazziconSeed ? (
-                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-white">
-                                    <Jazzicon diameter={28} seed={jazziconSeed} />
+                                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                                    <Jazzicon diameter={32} seed={jazziconSeed} />
                                 </div>
                             ) : (
-                                <div className="w-8 h-8 rounded-full p-0.5 bg-white">
+                                <div className="w-8 h-8 rounded-full overflow-hidden">
                                     <img 
                                         src="/default_pfp_pink.png" 
                                         alt="Default Profile" 
@@ -440,7 +441,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             )}
                         </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-32">
                             <DropdownMenuItem asChild>
                                 <Link href="/leaderboard" prefetch>Leaderboard</Link>
                             </DropdownMenuItem>
@@ -503,7 +504,7 @@ const NoWalletLogin: React.FC<LoginProps> = ({ buttonStyles }) => {
                     href="/admin"
                     title="Admin panel"
                     aria-label="Admin panel"
-                    className={`flex items-center justify-center w-full h-full bg-pastypink hover:bg-gray-200 transition-colors duration-300 text-black ${buttonStyles}`}
+                    className={`flex items-center justify-center w-full h-full bg-pastypink hover:bg-gray-200 transition-colors duration-300 text-white ${buttonStyles}`}
                 >
                     ⚙️
                 </Link>
