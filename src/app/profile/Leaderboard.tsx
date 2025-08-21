@@ -297,6 +297,8 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                 const monthAgo = new Date(now);
                 monthAgo.setMonth(now.getMonth() - 1);
                 return { from: monthAgo, to: now };
+            case "all":
+                return null; // For "all" time, return null to get all-time data from API
             default:
                 return null;
         }

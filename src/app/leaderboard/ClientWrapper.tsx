@@ -25,6 +25,7 @@ export default function ClientWrapper() {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRange, setSelectedRange] = useState<"today" | "week" | "month" | "all">("today");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -83,6 +84,11 @@ export default function ClientWrapper() {
 
   const currentUser = user || guestUser;
 
+  const handleRangeChange = (range: "today" | "week" | "month" | "all") => {
+    console.log('[ClientWrapper] Range changed to:', range);
+    setSelectedRange(range);
+  };
+
   return (
     <main className="px-5 sm:px-10 py-10">
       <AutoRefresh />
@@ -93,8 +99,12 @@ export default function ClientWrapper() {
         showDateRange={false} 
         hideLogin={true} 
         showStatus={false} 
+        selectedRange={selectedRange}
       />
-      <Leaderboard highlightIdentifier={currentUser.username || currentUser.wallet} />
+      <Leaderboard 
+        highlightIdentifier={currentUser.username || currentUser.wallet} 
+        onRangeChange={handleRangeChange}
+      />
     </main>
   );
 }
