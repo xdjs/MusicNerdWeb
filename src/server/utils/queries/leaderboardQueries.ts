@@ -44,6 +44,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
             LEFT JOIN ugc_counts uc ON uc.user_id = u.id
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
+                ("ugcCount" + "artistsCount") DESC,
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
                 CASE 
@@ -91,6 +92,7 @@ export async function getLeaderboardInRange(fromIso: string, toIso: string): Pro
             FROM users u
             ORDER BY 
                 CASE WHEN u.is_hidden = true THEN 1 ELSE 0 END,
+                ("ugcCount" + "artistsCount") DESC,
                 "ugcCount" DESC, 
                 "artistsCount" DESC,
                 CASE 
