@@ -26,7 +26,7 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
-  const { status, data: session } = useSession();
+  const { status, data: session, update } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
@@ -51,15 +51,13 @@ export default function AutoRefresh({
 
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
-    console.log('[AutoRefresh] Effect: status/session change', {
-      prevStatus: prevStatus.current,
-      currentStatus: status,
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      skip,
-      lock: !!window.__AUTO_REFRESH_LOCK__
-    });
+    const cookieStr = typeof document !== 'undefined' ? document.cookie || '' : '';
+    const hasSessionCookie = /(?:^|;\s)(__Secure-)?next-auth\.session-token=/.test(cookieStr);
+    console.log(
+      `[AutoRefresh] Effect: status/session change prev=${String(prevStatus.current)} curr=${status} ` +
+      `hasSession=${Boolean(session)} hasUser=${Boolean(session?.user)} userId=${String(session?.user?.id)} ` +
+      `skip=${skip} lock=${Boolean(window.__AUTO_REFRESH_LOCK__)} cookie=${hasSessionCookie}`
+    );
 
     // Check if we need to refresh on status change to authenticated
     if (!skip && status !== "loading") {
@@ -71,14 +69,30 @@ export default function AutoRefresh({
         session?.user && // Ensure we have session data
         !hasTriggeredRefresh.current && // Ensure we haven't already triggered refresh (per-instance)
         !window.__AUTO_REFRESH_LOCK__;
+      // Fallback: if cookie is present but status hasn't flipped yet, trigger one-time refresh
+      const shouldRefreshCookieFallback =
+        !skip &&
+        prevStatus.current === 'unauthenticated' &&
+        !hasTriggeredRefresh.current &&
+        !window.__AUTO_REFRESH_LOCK__ &&
+        hasSessionCookie;
       
-      if (shouldRefresh) {
-        console.log("[AutoRefresh] Session authenticated, triggering refresh", {
-          prevStatus: prevStatus.current,
-          currentStatus: status,
-          hasSession: !!session,
-          userId: session?.user?.id
-        });
+      if (shouldRefresh || shouldRefreshCookieFallback) {
+        console.log(
+          `[AutoRefresh] Session authenticated, triggering refresh via=${shouldRefresh ? 'status' : 'cookie-fallback'} ` +
+          `prev=${String(prevStatus.current)} curr=${status} userId=${String(session?.user?.id)}`
+        );
+        // If we have cookie fallback, try to force session update once
+        if (!shouldRefresh && shouldRefreshCookieFallback) {
+          (async () => {
+            try {
+              console.log('[AutoRefresh] Attempting session update() due to cookie presence');
+              await update();
+            } catch (e) {
+              console.log('[AutoRefresh] update() failed', e);
+            }
+          })();
+        }
         
         // Acquire cross-instance lock immediately to prevent double refresh
         window.__AUTO_REFRESH_LOCK__ = true;
@@ -132,6 +146,41 @@ export default function AutoRefresh({
           }, 1000);
         }, 500);
       } else {
+        // Secondary fallback: if client status hasn't flipped but server session exists, trigger refresh
+        if (
+          prevStatus.current === 'unauthenticated' &&
+          !hasTriggeredRefresh.current &&
+          !window.__AUTO_REFRESH_LOCK__
+        ) {
+          (async () => {
+            try {
+              const resp = await fetch('/api/auth/session', { credentials: 'include' });
+              const serverSession = await resp.json().catch(() => null);
+              if (serverSession?.user?.id) {
+                console.log('[AutoRefresh] Server session detected; triggering refresh');
+                window.__AUTO_REFRESH_LOCK__ = true;
+                ownsGlobalLockRef.current = true;
+                hasTriggeredRefresh.current = true;
+                sessionStorage.setItem(sessionStorageKey, "true");
+                router.refresh();
+                console.log('[AutoRefresh] router.refresh() invoked (server session fallback)');
+                if (ownsGlobalLockRef.current && window.__AUTO_REFRESH_LOCK__) {
+                  delete window.__AUTO_REFRESH_LOCK__;
+                  ownsGlobalLockRef.current = false;
+                }
+                setTimeout(() => {
+                  sessionStorage.removeItem(sessionStorageKey);
+                  hasTriggeredRefresh.current = false;
+                }, 1000);
+                return;
+              } else {
+                console.log('[AutoRefresh] No server session found');
+              }
+            } catch (e) {
+              console.log('[AutoRefresh] Error probing /api/auth/session', e);
+            }
+          })();
+        }
         if (skip) {
           console.log('[AutoRefresh] Skipping refresh due to sessionStorage flag', { key: sessionStorageKey });
         } else if (window.__AUTO_REFRESH_LOCK__) {
