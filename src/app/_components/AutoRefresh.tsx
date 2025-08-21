@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /**
- * Universal auto-refresh component that triggers a page reload when the user signs in
+ * Universal auto-refresh component that triggers a router refresh when the user signs in
  * to ensure server components pick up the new session data immediately.
- * Uses sessionStorage to prevent multiple refreshes.
+ * Uses sessionStorage to prevent multiple refreshes and router.refresh() for better UX.
  * 
  * @param sessionStorageKey - Optional custom key for sessionStorage (defaults to "autoRefreshSkipReload")
  * @param showLoading - Whether to show loading state (defaults to true)
@@ -18,9 +19,11 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (showLoading) {
@@ -38,30 +41,63 @@ export default function AutoRefresh({
   useEffect(() => {
     const skip = sessionStorage.getItem(sessionStorageKey) === "true";
 
-    // Check if we need to refresh on initial load or status change
+    // Check if we need to refresh on status change to authenticated
     if (!skip && status !== "loading") {
-      // On initial load, prevStatus.current will be null, so we check if we're authenticated
-      // On subsequent loads, we check if status changed from unauthenticated to authenticated
+      // Only trigger refresh when status changes from non-authenticated to authenticated
       const shouldRefresh = 
-        (prevStatus.current === null && status === "authenticated") || // Initial load with auth
-        (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
+        prevStatus.current && 
+        prevStatus.current !== "authenticated" && 
+        status === "authenticated" &&
+        session?.user; // Ensure we have session data
       
       if (shouldRefresh) {
+        console.debug("[AutoRefresh] Session authenticated, triggering refresh", {
+          prevStatus: prevStatus.current,
+          currentStatus: status,
+          hasSession: !!session,
+          userId: session?.user?.id
+        });
+        
         sessionStorage.setItem(sessionStorageKey, "true");
-        // Full reload so server components pick up the new session instantly
-        window.location.reload();
+        
+        // Clear any existing timeout
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        
+        // Use router.refresh() instead of window.location.reload() for better UX
+        // Add a small delay to ensure session is fully established
+        refreshTimeoutRef.current = setTimeout(() => {
+          // Dispatch custom event to notify components of session update
+          window.dispatchEvent(new CustomEvent('sessionUpdated', {
+            detail: { status, session }
+          }));
+          
+          // Trigger router refresh to update server components
+          router.refresh();
+          
+          // Clear the flag after a short delay to allow the refresh to complete
+          setTimeout(() => {
+            sessionStorage.removeItem(sessionStorageKey);
+          }, 1000);
+        }, 500);
       }
     }
 
-    if (skip && status !== "loading") {
-      // Clear flag once the page has stabilized
-      sessionStorage.removeItem(sessionStorageKey);
-    }
-
+    // Update previous status
     if (status !== "loading") {
       prevStatus.current = status;
     }
-  }, [status, sessionStorageKey]);
+  }, [status, session, sessionStorageKey, router]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading || status === "loading") {
     return (

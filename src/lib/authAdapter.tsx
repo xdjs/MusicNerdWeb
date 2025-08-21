@@ -123,8 +123,37 @@ export const authenticationAdapter = createAuthenticationAdapter({
         }
       }
 
-      // Wait a moment for the session to be established
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for the session to be established and verify it's available
+      let sessionEstablished = false;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (!sessionEstablished && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if session is available by trying to get it
+        try {
+          const sessionResponse = await fetch('/api/auth/session');
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            if (sessionData?.user?.id) {
+              sessionEstablished = true;
+              console.debug("[AuthAdapter] Session verified as established", {
+                userId: sessionData.user.id,
+                attempts: attempts + 1
+              });
+            }
+          }
+        } catch (error) {
+          console.debug("[AuthAdapter] Session check attempt failed:", error);
+        }
+        
+        attempts++;
+      }
+      
+      if (!sessionEstablished) {
+        console.warn("[AuthAdapter] Session not established after max attempts");
+      }
 
       return true;
     } catch (error) {

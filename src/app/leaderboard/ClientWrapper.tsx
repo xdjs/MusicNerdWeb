@@ -34,6 +34,11 @@ export default function ClientWrapper() {
           if (response.ok) {
             const userData = await response.json();
             setUser(userData);
+            console.debug("[LeaderboardClient] User data fetched successfully", {
+              userId: userData.id,
+              isWhiteListed: userData.isWhiteListed,
+              isAdmin: userData.isAdmin
+            });
           } else {
             // If user fetch fails, treat as guest
             setUser(null);
@@ -51,6 +56,23 @@ export default function ClientWrapper() {
     if (status !== "loading") {
       fetchUser();
     }
+  }, [status, session]);
+
+  // Listen for session updates and refetch user data
+  useEffect(() => {
+    const handleSessionUpdate = () => {
+      console.debug("[LeaderboardClient] Session update detected, refetching user data");
+      if (status === "authenticated" && session?.user?.id) {
+        setIsLoading(true);
+      }
+    };
+
+    // Listen for custom session update events
+    window.addEventListener('sessionUpdated', handleSessionUpdate);
+    
+    return () => {
+      window.removeEventListener('sessionUpdated', handleSessionUpdate);
+    };
   }, [status, session]);
 
   // Show loading while determining session
