@@ -59,10 +59,25 @@ export default function ClientWrapper() {
 
   // Listen for session updates and refetch user data
   useEffect(() => {
-    const handleSessionUpdate = () => {
+    const handleSessionUpdate = async () => {
       console.debug("[ProfileClient] Session update detected, refetching user data");
       if (status === "authenticated" && session?.user?.id) {
         setIsLoading(true);
+        try {
+          const response = await fetch(`/api/user/${session.user.id}`);
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            console.debug("[ProfileClient] User data refetched successfully", {
+              userId: userData.id,
+              isWhiteListed: userData.isWhiteListed,
+              isAdmin: userData.isAdmin
+            });
+          }
+        } catch (error) {
+          console.error('Failed to refetch user:', error);
+        }
+        setIsLoading(false);
       }
     };
 

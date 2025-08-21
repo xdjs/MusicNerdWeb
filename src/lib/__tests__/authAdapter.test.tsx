@@ -288,8 +288,8 @@ describe('authenticationAdapter', () => {
 
       await authenticationAdapter.verify(mockVerifyParams);
 
-      // Should be called twice: once for the 2-second wait after signIn
-      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000);
+      // Should be called with 500ms intervals for session verification and 2000ms for final wait
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 500);
     });
   });
 

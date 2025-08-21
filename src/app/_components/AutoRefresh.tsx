@@ -24,6 +24,7 @@ export default function AutoRefresh({
   const [isLoading, setIsLoading] = useState(true);
   const prevStatus = useRef<typeof status | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasTriggeredRefresh = useRef<boolean>(false);
 
   useEffect(() => {
     if (showLoading) {
@@ -48,7 +49,8 @@ export default function AutoRefresh({
         prevStatus.current && 
         prevStatus.current !== "authenticated" && 
         status === "authenticated" &&
-        session?.user; // Ensure we have session data
+        session?.user && // Ensure we have session data
+        !hasTriggeredRefresh.current; // Ensure we haven't already triggered refresh
       
       if (shouldRefresh) {
         console.debug("[AutoRefresh] Session authenticated, triggering refresh", {
@@ -58,6 +60,7 @@ export default function AutoRefresh({
           userId: session?.user?.id
         });
         
+        hasTriggeredRefresh.current = true;
         sessionStorage.setItem(sessionStorageKey, "true");
         
         // Clear any existing timeout
@@ -79,6 +82,7 @@ export default function AutoRefresh({
           // Clear the flag after a short delay to allow the refresh to complete
           setTimeout(() => {
             sessionStorage.removeItem(sessionStorageKey);
+            hasTriggeredRefresh.current = false; // Reset for future logins
           }, 1000);
         }, 500);
       }
