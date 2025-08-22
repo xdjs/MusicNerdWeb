@@ -19,11 +19,12 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const hasTriggeredRefresh = useRef(false);
   const [isClient, setIsClient] = useState(false);
+  const prevSessionState = useRef<{ hasSession: boolean; status: string } | null>(null);
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -50,24 +51,46 @@ export default function AutoRefresh({
       return;
     }
 
-    // If we have a session and we're authenticated, immediately refresh
+    const currentSessionState = {
+      hasSession: !!session,
+      status: status
+    };
+
+    // Check if we've transitioned to authenticated state
+    const hasTransitionedToAuthenticated = 
+      prevSessionState.current && 
+      !prevSessionState.current.hasSession && 
+      currentSessionState.hasSession && 
+      currentSessionState.status === "authenticated";
+
+    // If we have a session and we're authenticated, check if we need to refresh
     if (session && status === "authenticated") {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
-        if (!skipRefresh) {
+        if (!skipRefresh || hasTransitionedToAuthenticated) {
           // Mark that we've triggered a refresh immediately
           hasTriggeredRefresh.current = true;
           sessionStorage.setItem(sessionStorageKey, "true");
           
-          // Use Next.js router.refresh() for faster refresh - no full page reload
-          router.refresh();
+          // Force session update first, then reload
+          update().then(() => {
+            // Use full page reload to ensure server components get fresh session data
+            // This is necessary because the layout is a server component
+            window.location.reload();
+          }).catch(() => {
+            // If update fails, still reload
+            window.location.reload();
+          });
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
       }
     }
-  }, [session, status, sessionStorageKey, isClient, router]);
+
+    // Update previous session state
+    prevSessionState.current = currentSessionState;
+  }, [session, status, sessionStorageKey, isClient, update]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
