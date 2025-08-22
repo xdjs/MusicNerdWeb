@@ -15,7 +15,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
+      className="relative w-8 sm:w-28 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
         backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
       }}
@@ -33,8 +33,8 @@ export function ThemeToggle() {
         )}
       </div>
       
-      {/* Text labels - positioned on opposite side from toggle */}
-      <div className={`flex w-full text-sm transition-all duration-300 ${
+      {/* Text labels - positioned on opposite side from toggle, hidden on mobile */}
+      <div className={`hidden sm:flex w-full text-sm transition-all duration-300 ${
         isDark ? 'justify-start pl-2' : 'justify-end pr-2'
       }`}>
         <span className={`transition-opacity duration-300 whitespace-nowrap theme-toggle-text ${isDark ? 'opacity-100' : 'opacity-0'}`} style={{ color: isDark ? 'white' : '#1a202c' }}>
