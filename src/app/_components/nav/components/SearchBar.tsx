@@ -521,16 +521,18 @@ const NoWalletSearchBar = forwardRef(
 
                 // Clear all SIWE-related data
                 sessionStorage.removeItem('siwe-nonce');
-                localStorage.removeItem('siwe.session');
-                localStorage.removeItem('wagmi.siwe.message');
-                localStorage.removeItem('wagmi.siwe.signature');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('siwe.session');
+                    localStorage.removeItem('wagmi.siwe.message');
+                    localStorage.removeItem('wagmi.siwe.signature');
 
-                // Clear all wagmi-related data
-                localStorage.removeItem('wagmi.wallet');
-                localStorage.removeItem('wagmi.connected');
-                localStorage.removeItem('wagmi.injected.connected');
-                localStorage.removeItem('wagmi.store');
-                localStorage.removeItem('wagmi.cache');
+                    // Clear all wagmi-related data
+                    localStorage.removeItem('wagmi.wallet');
+                    localStorage.removeItem('wagmi.connected');
+                    localStorage.removeItem('wagmi.injected.connected');
+                    localStorage.removeItem('wagmi.store');
+                    localStorage.removeItem('wagmi.cache');
+                }
 
                 // Small delay to ensure cleanup is complete
                 setTimeout(() => {
@@ -692,17 +694,19 @@ const NoWalletSearchBar = forwardRef(
             
             // Clear all session data
             sessionStorage.clear();
-            localStorage.removeItem('siwe.session');
-            localStorage.removeItem('wagmi.siwe.message');
-            localStorage.removeItem('wagmi.siwe.signature');
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('siwe.session');
+                localStorage.removeItem('wagmi.siwe.message');
+                localStorage.removeItem('wagmi.siwe.signature');
+                
+                // Clear all wagmi-related data
+                localStorage.removeItem('wagmi.wallet');
+                localStorage.removeItem('wagmi.connected');
+                localStorage.removeItem('wagmi.injected.connected');
+                localStorage.removeItem('wagmi.store');
+                localStorage.removeItem('wagmi.cache');
+            }
             sessionStorage.removeItem('siwe-nonce');
-            
-            // Clear all wagmi-related data
-            localStorage.removeItem('wagmi.wallet');
-            localStorage.removeItem('wagmi.connected');
-            localStorage.removeItem('wagmi.injected.connected');
-            localStorage.removeItem('wagmi.store');
-            localStorage.removeItem('wagmi.cache');
             
             // First disconnect the wallet
             if (disconnect) {
@@ -978,7 +982,7 @@ function getBookmarkedArtistIds(userId: string | undefined): string[] {
     if (!userId || typeof window === 'undefined') return [];
     
     try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(`bookmarks_${userId}`) : null;
         if (raw) {
             const bookmarks = JSON.parse(raw) as { artistId: string }[];
             return bookmarks.map(b => b.artistId);
@@ -995,7 +999,7 @@ function getBookmarkedArtists(userId: string | undefined): Array<{id: string, na
     if (!userId || typeof window === 'undefined') return [];
     
     try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(`bookmarks_${userId}`) : null;
         if (raw) {
             const bookmarks = JSON.parse(raw) as { artistId: string; artistName: string; imageUrl?: string }[];
             return bookmarks.map(b => ({
@@ -1019,7 +1023,7 @@ function isArtistBookmarked(artistId: string | undefined, userId: string | undef
     if (!artistId || !userId || typeof window === 'undefined') return false;
     
     try {
-        const raw = localStorage.getItem(`bookmarks_${userId}`);
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(`bookmarks_${userId}`) : null;
         if (raw) {
             const bookmarks = JSON.parse(raw) as { artistId: string }[];
             return bookmarks.some((b) => b.artistId === artistId);

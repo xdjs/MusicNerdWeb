@@ -13,7 +13,7 @@ async function hasNewApprovedUGC(userId: string): Promise<boolean> {
 
     const storageKey = `approvedUGCCount_${userId}`;
     if (typeof window !== 'undefined') {
-      const storedCount = Number(localStorage.getItem(storageKey) || "0");
+      const storedCount = typeof window !== 'undefined' ? Number(localStorage.getItem(storageKey) || "0") : 0;
       return data.count > storedCount;
     }
     return false;

@@ -247,7 +247,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             try {
                 if (typeof window === 'undefined') return; // Skip on server side
                 
-                const raw = localStorage.getItem(`bookmarks_${user.id}`);
+                const raw = typeof window !== 'undefined' ? localStorage.getItem(`bookmarks_${user.id}`) : null;
                 if (raw) {
                     const parsed = JSON.parse(raw) as BookmarkItem[];
                     // Bookmarks are stored in most-recent-first order. No additional reversing needed.

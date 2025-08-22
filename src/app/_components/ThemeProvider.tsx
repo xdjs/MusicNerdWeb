@@ -35,7 +35,7 @@ const getStoredTheme = (storageKey: string): Theme | null => {
   if (typeof window === 'undefined') return null;
   
   try {
-    const stored = localStorage.getItem(storageKey) as Theme
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(storageKey) as Theme : null
     if (stored && (stored === "light" || stored === "dark")) {
       return stored
     }
