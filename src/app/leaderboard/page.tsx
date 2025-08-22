@@ -1,5 +1,5 @@
-import ClientWrapper from "./ClientWrapper";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <ClientWrapper />;
+  redirect("/leaderboard/today");
 } 

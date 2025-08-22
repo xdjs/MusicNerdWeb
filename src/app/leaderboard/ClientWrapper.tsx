@@ -21,11 +21,28 @@ type User = {
   legacyId: string | null;
 };
 
-export default function ClientWrapper() {
+export default function ClientWrapper({ filter }: { filter?: string }) {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRange, setSelectedRange] = useState<"today" | "week" | "month" | "all">("today");
+  
+  // Map URL filter to range value
+  const getInitialRange = (filter?: string): "today" | "week" | "month" | "all" => {
+    switch (filter) {
+      case "today":
+        return "today";
+      case "last-week":
+        return "week";
+      case "last-month":
+        return "month";
+      case "all-time":
+        return "all";
+      default:
+        return "today";
+    }
+  };
+  
+  const [selectedRange, setSelectedRange] = useState<"today" | "week" | "month" | "all">(getInitialRange(filter));
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -88,6 +105,12 @@ export default function ClientWrapper() {
     console.log('[ClientWrapper] Range changed to:', range);
     setSelectedRange(range);
   };
+
+  // Update selectedRange when filter prop changes
+  useEffect(() => {
+    const newRange = getInitialRange(filter);
+    setSelectedRange(newRange);
+  }, [filter]);
 
   return (
     <main className="px-5 sm:px-10 py-10">

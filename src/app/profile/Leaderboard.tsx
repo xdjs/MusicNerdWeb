@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import Jazzicon from "react-jazzicon";
 import { jsNumberForAddress } from "react-jazzicon";
 import { createPublicClient, http } from "viem";
@@ -269,19 +270,54 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
 }
 
 export default function Leaderboard({ highlightIdentifier, onRangeChange }: { highlightIdentifier?: string; onRangeChange?: (range: RangeKey) => void }) {
+    const router = useRouter();
+    const pathname = usePathname();
     const PER_PAGE = 10;
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showTopBtn, setShowTopBtn] = useState(false);
-    const [range, setRange] = useState<RangeKey>("today");
     const [page, setPage] = useState(1);
     const [pageCount, setPageCount] = useState(1);
+
+    // Determine current range from URL pathname
+    const getCurrentRange = (): RangeKey => {
+        if (pathname.includes('/last-week')) return "week";
+        if (pathname.includes('/last-month')) return "month";
+        if (pathname.includes('/all-time')) return "all";
+        return "today"; // default
+    };
+
+    const [range, setRange] = useState<RangeKey>(getCurrentRange());
 
     // Notify parent whenever the range changes (including initial mount)
     useEffect(() => {
         onRangeChange?.(range);
     }, [range, onRangeChange]);
+
+    // Update range when pathname changes
+    useEffect(() => {
+        const newRange = getCurrentRange();
+        if (newRange !== range) {
+            setRange(newRange);
+        }
+    }, [pathname]);
+
+    // Function to get the URL for a specific range
+    const getRangeUrl = (rangeKey: RangeKey): string => {
+        switch (rangeKey) {
+            case "today":
+                return "/leaderboard/today";
+            case "week":
+                return "/leaderboard/last-week";
+            case "month":
+                return "/leaderboard/last-month";
+            case "all":
+                return "/leaderboard/all-time";
+            default:
+                return "/leaderboard/today";
+        }
+    };
 
     function getRangeDates(r: RangeKey) {
         const now = new Date();
@@ -378,21 +414,21 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     {/* Range selector buttons */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
-                            <Button
-                                key={key}
-                                size="sm"
-                                variant="outline"
-                                className={cn(
-                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
-                                    range === key
-                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
-                                )}
-                                onClick={() => setRange(key)}
-                            >
-                                {range === key && <Check className="inline h-4 w-4 mr-1" />}
-                                {headingLabelMap[key]}
-                            </Button>
+                            <Link key={key} href={getRangeUrl(key)}>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
+                                        range === key
+                                            ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                            : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
+                                    )}
+                                >
+                                    {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                                    {headingLabelMap[key]}
+                                </Button>
+                            </Link>
                         ))}
                     </div>
                 </CardHeader>
@@ -413,21 +449,21 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                         {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
-                            <Button
-                                key={key}
-                                size="sm"
-                                variant="outline"
-                                className={cn(
-                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
-                                    range === key
-                                        ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
-                                        : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
-                                )}
-                                onClick={() => setRange(key)}
-                            >
-                                {range === key && <Check className="inline h-4 w-4 mr-1" />}
-                                {headingLabelMap[key]}
-                            </Button>
+                            <Link key={key} href={getRangeUrl(key)}>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2 font-bold",
+                                        range === key
+                                            ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
+                                            : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
+                                    )}
+                                >
+                                    {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                                    {headingLabelMap[key]}
+                                </Button>
+                            </Link>
                         ))}
                     </div>
                 </CardHeader>
@@ -443,23 +479,23 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
         <Card className="max-w-3xl mx-auto shadow-2xl">
             <CardHeader className="text-center">
                 <CardTitle className="mb-5 text-[#9b83a0]">Leaderboard</CardTitle>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full mt-6 mb-4">
                     {(["today", "week", "month", "all"] as RangeKey[]).map((key) => (
-                        <Button
-                            key={key}
-                            size="sm"
-                            variant="outline"
-                            className={cn(
-                                "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
-                                                                    range === key
+                        <Link key={key} href={getRangeUrl(key)}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className={cn(
+                                    "w-full py-2 px-2 text-sm leading-tight sm:py-1 sm:text-[0.7rem] sm:text-sm border-2",
+                                    range === key
                                         ? "bg-pastypink text-white border-pastypink hover:bg-pastypink/90"
                                         : "bg-background text-pastypink border-pastypink hover:bg-gray-100"
-                            )}
-                            onClick={() => setRange(key)}
-                        >
-                            {range === key && <Check className="inline h-4 w-4 mr-1" />}
-                            {headingLabelMap[key]}
-                        </Button>
+                                )}
+                            >
+                                {range === key && <Check className="inline h-4 w-4 mr-1" />}
+                                {headingLabelMap[key]}
+                            </Button>
+                        </Link>
                     ))}
                 </div>
             </CardHeader>
