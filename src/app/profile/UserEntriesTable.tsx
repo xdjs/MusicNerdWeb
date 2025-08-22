@@ -177,7 +177,7 @@ export default function UserEntriesTable() {
           <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
                          <div className="grid grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white">
               <div
-                className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#c6bfc7] rounded-tl-md"
+                className="text-center cursor-pointer select-none py-3 px-3 border-l border-t border-[#c6bfc7] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
               >
                                  <div className="flex items-center justify-center gap-1">
@@ -187,11 +187,11 @@ export default function UserEntriesTable() {
                    />
                  </div>
               </div>
-                             <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
-                             <div className="text-left py-3 px-2 border-t border-[#c6bfc7]">
-                 <div className="flex items-center gap-1">
+                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                 <div className="flex items-center justify-center gap-1">
                    <span className="whitespace-nowrap text-xs sm:text-sm">Artist</span>
                    <div
                      className="relative flex items-center cursor-text"
@@ -208,8 +208,8 @@ export default function UserEntriesTable() {
                    </div>
                  </div>
                </div>
-                             <div className="text-left py-3 px-2 border-t border-[#c6bfc7]">
-                 <div className="flex items-center gap-1">
+                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                 <div className="flex items-center justify-center gap-1">
                    <span className="whitespace-nowrap text-xs sm:text-sm">Entry Type</span>
                    <select
                      value={filter}
@@ -225,11 +225,11 @@ export default function UserEntriesTable() {
                   </select>
                 </div>
               </div>
-                             <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
                  <span className="whitespace-nowrap text-xs sm:text-base">Site Link</span>
                </div>
                              <div
-                 className="text-center py-3 px-1 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
+                 className="text-center py-3 px-3 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
                  onClick={() =>
                    setStatusSort((prev) =>
                      prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
