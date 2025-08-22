@@ -18,6 +18,8 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
+  console.log("[AutoRefresh] Component mounted with props:", { sessionStorageKey, showLoading });
+  
   const { data: session, status, update } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const hasTriggeredRefresh = useRef(false);

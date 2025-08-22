@@ -13,6 +13,11 @@ export default function Providers({
   children: React.ReactNode;
   session: Session | null;
 }) {
+  console.log("[Providers] Component mounted with session:", { 
+    hasSession: !!session, 
+    sessionId: session?.user?.id 
+  });
+  
   return (
     <ThemeProvider storageKey="musicnerd-theme">
       <SessionProvider 
