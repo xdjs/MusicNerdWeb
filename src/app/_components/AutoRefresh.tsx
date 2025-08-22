@@ -100,9 +100,16 @@ export default function AutoRefresh({
     if (session && status === "authenticated" && currentSessionId) {
       console.log("[AutoRefresh] Session is authenticated, checking refresh conditions...");
       
+      // Check if this is the initial load with an existing session
+      const isInitialLoadWithSession = !prevStatus.current && status === "authenticated";
+      
       // Always trigger refresh if we haven't already triggered one
       if (!hasTriggeredRefresh.current) {
-        console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId);
+        console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId, {
+          isInitialLoadWithSession,
+          hasTransitionedToAuthenticated,
+          sessionIdChanged
+        });
 
         // Mark that we've triggered a refresh immediately
         hasTriggeredRefresh.current = true;
