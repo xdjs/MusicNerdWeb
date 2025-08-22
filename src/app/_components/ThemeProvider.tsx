@@ -37,13 +37,18 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const stored = localStorage?.getItem(storageKey) as Theme
-    if (stored && (stored === "light" || stored === "dark")) {
-      return stored
+    // Only access localStorage on client side
+    if (typeof window !== 'undefined') {
+      // Check localStorage first
+      const stored = localStorage?.getItem(storageKey) as Theme
+      if (stored && (stored === "light" || stored === "dark")) {
+        return stored
+      }
+      // If no stored preference, use system preference
+      return getSystemTheme()
     }
-    // If no stored preference, use system preference
-    return getSystemTheme()
+    // Default to light theme on server side
+    return "light"
   })
 
   useEffect(() => {
@@ -55,7 +60,10 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage?.setItem(storageKey, theme)
+      // Only access localStorage on client side
+      if (typeof window !== 'undefined') {
+        localStorage?.setItem(storageKey, theme)
+      }
       setTheme(theme)
     },
   }
