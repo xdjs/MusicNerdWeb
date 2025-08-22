@@ -84,7 +84,6 @@ export default function ClientWrapper() {
 
   return (
     <>
-      <AutoRefresh />
       <Dashboard 
         user={currentUser} 
         showLeaderboard={false} 

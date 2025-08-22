@@ -18,50 +18,73 @@ export default function AutoRefresh({
   sessionStorageKey?: string; 
   showLoading?: boolean; 
 } = {}) {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const prevStatus = useRef<typeof status | null>(null);
+  const prevAuthState = useRef<{ hasSession: boolean; status: string } | null>(null);
 
+  // Show loading state while session is being determined
   useEffect(() => {
     if (showLoading) {
-      // Show loading for a brief moment to ensure session is stable
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 100);
-
-      return () => clearTimeout(timer);
+      if (status === "loading") {
+        setIsLoading(true);
+      } else {
+        // Small delay to ensure session is stable
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 200);
+        return () => clearTimeout(timer);
+      }
     } else {
       setIsLoading(false);
     }
   }, [status, showLoading]);
 
+  // Handle authentication state changes - following leaderboard pattern
   useEffect(() => {
-    const skip = sessionStorage.getItem(sessionStorageKey) === "true";
+    // Skip if still loading
+    if (status === "loading") {
+      return;
+    }
 
-    // Check if we need to refresh on initial load or status change
-    if (!skip && status !== "loading") {
-      // On initial load, prevStatus.current will be null, so we check if we're authenticated
-      // On subsequent loads, we check if status changed from unauthenticated to authenticated
-      const shouldRefresh = 
-        (prevStatus.current === null && status === "authenticated") || // Initial load with auth
-        (prevStatus.current && prevStatus.current !== status && status === "authenticated"); // Status change to auth
+    const currentAuthState = {
+      hasSession: !!session,
+      status: status
+    };
+
+    // Check if auth state has changed
+    const hasAuthStateChanged = 
+      !prevAuthState.current || 
+      prevAuthState.current.hasSession !== currentAuthState.hasSession ||
+      prevAuthState.current.status !== currentAuthState.status;
+
+    // If we've transitioned to authenticated and haven't refreshed yet
+    if (hasAuthStateChanged && currentAuthState.hasSession && currentAuthState.status === "authenticated") {
+      const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
       
-      if (shouldRefresh) {
+      if (!skipRefresh) {
+        // Mark that we've triggered a refresh
         sessionStorage.setItem(sessionStorageKey, "true");
-        // Full reload so server components pick up the new session instantly
-        window.location.reload();
+        
+        // Trigger page reload to ensure server components get fresh session data
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
       }
     }
 
-    if (skip && status !== "loading") {
-      // Clear flag once the page has stabilized
-      sessionStorage.removeItem(sessionStorageKey);
-    }
+    // Update previous state
+    prevAuthState.current = currentAuthState;
+  }, [session, status, sessionStorageKey]);
 
-    if (status !== "loading") {
-      prevStatus.current = status;
-    }
-  }, [status, sessionStorageKey]);
+  // Clear the skip flag when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear the flag after a delay to allow the page to stabilize
+      setTimeout(() => {
+        sessionStorage.removeItem(sessionStorageKey);
+      }, 2000);
+    };
+  }, [sessionStorageKey]);
 
   if (isLoading || status === "loading") {
     return (
@@ -76,3 +99,4 @@ export default function AutoRefresh({
 
   return null;
 }
+
