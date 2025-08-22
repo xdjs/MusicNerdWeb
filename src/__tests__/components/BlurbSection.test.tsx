@@ -192,7 +192,7 @@ describe('BlurbSection', () => {
     describe('Edit Mode Functionality', () => {
         const renderWithEditMode = (canEdit = true) => {
             return render(
-                <EditModeContext.Provider value={{ isEditing: true, canEdit, setIsEditing: jest.fn() }}>
+                <EditModeContext.Provider value={{ isEditing: true, canEdit, toggle: jest.fn() }}>
                     <BlurbSection {...defaultProps} />
                 </EditModeContext.Provider>
             );
@@ -250,7 +250,7 @@ describe('BlurbSection', () => {
     describe('Regenerate Functionality', () => {
         const renderWithEditMode = (canEdit = true) => {
             return render(
-                <EditModeContext.Provider value={{ isEditing: true, canEdit, setIsEditing: jest.fn() }}>
+                <EditModeContext.Provider value={{ isEditing: true, canEdit, toggle: jest.fn() }}>
                     <BlurbSection {...defaultProps} />
                 </EditModeContext.Provider>
             );
