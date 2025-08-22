@@ -77,9 +77,16 @@ export const authenticationAdapter = createAuthenticationAdapter({
 
       // Clear any existing SIWE data
       sessionStorage.removeItem('siwe-nonce');
-      localStorage.removeItem('siwe.session');
-      localStorage.removeItem('wagmi.siwe.message');
-      localStorage.removeItem('wagmi.siwe.signature');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('siwe.session');
+        localStorage.removeItem('wagmi.siwe.message');
+        localStorage.removeItem('wagmi.siwe.signature');
+      }
+
+      // Clear the auto-refresh skip flag to ensure refresh happens after verification
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('autoRefreshSkipReload');
+      }
 
       // First attempt to sign in
       const response = await signIn("credentials", {
