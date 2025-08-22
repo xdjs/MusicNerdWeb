@@ -151,7 +151,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 setUgcCount(data.count);
 
                 const storageKey = `ugcCount_${session.user.id}`;
-                const stored = Number(localStorage.getItem(storageKey) || '0');
+                const stored = typeof window !== 'undefined' ? Number(localStorage.getItem(storageKey) || '0') : 0;
                 setHasNewUGC(data.count > stored);
             }
         } catch (e) {
@@ -206,14 +206,16 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
             
             // Clear only wallet-related items
-            localStorage.removeItem('wagmi.wallet');
-            localStorage.removeItem('wagmi.connected');
-            localStorage.removeItem('wagmi.injected.connected');
-            localStorage.removeItem('wagmi.store');
-            localStorage.removeItem('wagmi.cache');
-            localStorage.removeItem('siwe.session');
-            localStorage.removeItem('wagmi.siwe.message');
-            localStorage.removeItem('wagmi.siwe.signature');
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('wagmi.wallet');
+                localStorage.removeItem('wagmi.connected');
+                localStorage.removeItem('wagmi.injected.connected');
+                localStorage.removeItem('wagmi.store');
+                localStorage.removeItem('wagmi.cache');
+                localStorage.removeItem('siwe.session');
+                localStorage.removeItem('wagmi.siwe.message');
+                localStorage.removeItem('wagmi.siwe.signature');
+            }
             
             // Reset prompt flag and manual disconnect flag, also clear flow flags
             shouldPromptRef.current = false;
@@ -298,11 +300,13 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 // Don't clear session storage if this was a manual disconnect
                 if (!sessionStorage.getItem('manualDisconnect')) {
                     sessionStorage.clear();
-                    localStorage.removeItem('wagmi.wallet');
-                    localStorage.removeItem('wagmi.connected');
-                    localStorage.removeItem('wagmi.injected.connected');
-                    localStorage.removeItem('wagmi.store');
-                    localStorage.removeItem('wagmi.cache');
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('wagmi.wallet');
+                        localStorage.removeItem('wagmi.connected');
+                        localStorage.removeItem('wagmi.injected.connected');
+                        localStorage.removeItem('wagmi.store');
+                        localStorage.removeItem('wagmi.cache');
+                    }
                 }
                 shouldPromptRef.current = false;
             }

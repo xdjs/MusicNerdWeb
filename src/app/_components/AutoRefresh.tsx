@@ -44,14 +44,14 @@ export default function AutoRefresh({
     }
   }, [status, showLoading]);
 
-  // Handle authentication state changes - immediate refresh
+  // Single effect to handle authentication state changes
   useEffect(() => {
     // Skip if not on client side or if we've already triggered a refresh
     if (!isClient || hasTriggeredRefresh.current) {
       return;
     }
 
-    console.log("[AutoRefresh] Status changed:", { 
+    console.log("[AutoRefresh] Session state changed:", { 
       prevStatus: prevStatus.current, 
       currentStatus: status, 
       hasSession: !!session,
@@ -81,6 +81,7 @@ export default function AutoRefresh({
           // Add a small delay to avoid interfering with authentication flow
           console.log("[AutoRefresh] Reloading page in 1 second...");
           setTimeout(() => {
+            console.log("[AutoRefresh] Reloading page...");
             window.location.reload();
           }, 1000);
         }
@@ -92,43 +93,6 @@ export default function AutoRefresh({
     // Update previous status
     prevStatus.current = status;
   }, [session, status, sessionStorageKey, isClient]);
-
-  // Additional effect to catch session object changes
-  useEffect(() => {
-    if (!isClient || hasTriggeredRefresh.current) {
-      return;
-    }
-
-    console.log("[AutoRefresh] Session object changed:", { 
-      hasSession: !!session,
-      sessionId: session?.user?.id,
-      sessionUser: session?.user,
-      status
-    });
-
-    // If we have a session with a user ID and we're authenticated, trigger refresh
-    if (session?.user?.id && status === "authenticated") {
-      try {
-        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
-
-        if (!skipRefresh) {
-          console.log("[AutoRefresh] Triggering refresh from session object change:", session.user.id);
-
-          // Mark that we've triggered a refresh immediately
-          hasTriggeredRefresh.current = true;
-          sessionStorage.setItem(sessionStorageKey, "true");
-
-          // Add a small delay to avoid interfering with authentication flow
-          console.log("[AutoRefresh] Reloading page in 1 second...");
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        }
-      } catch (error) {
-        console.error("[AutoRefresh] Error accessing sessionStorage:", error);
-      }
-    }
-  }, [session?.user?.id, status, sessionStorageKey, isClient]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {

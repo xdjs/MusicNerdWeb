@@ -12,8 +12,11 @@ async function hasNewApprovedUGC(userId: string): Promise<boolean> {
     const data = await resp.json();
 
     const storageKey = `approvedUGCCount_${userId}`;
-    const storedCount = Number(localStorage.getItem(storageKey) || "0");
-    return data.count > storedCount;
+    if (typeof window !== 'undefined') {
+      const storedCount = Number(localStorage.getItem(storageKey) || "0");
+      return data.count > storedCount;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -48,7 +51,7 @@ export default function AuthToast() {
           const resp = await fetch("/api/approvedUGCCount");
           if (resp.ok) {
             const data = await resp.json();
-            const stored = Number(localStorage.getItem(storageKey) || "0");
+            const stored = typeof window !== 'undefined' ? Number(localStorage.getItem(storageKey) || "0") : 0;
             const hasNew = data.count > stored;
 
             toast({
@@ -58,7 +61,9 @@ export default function AuthToast() {
             });
 
             // Persist the new count so we don't repeat the message until more approvals happen
-            localStorage.setItem(storageKey, String(data.count));
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(storageKey, String(data.count));
+            }
             if (hasNew) {
               // Let other tabs know approvals were seen
               window.dispatchEvent(new Event('approvedUGCUpdated'));
