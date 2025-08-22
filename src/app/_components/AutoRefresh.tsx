@@ -49,6 +49,7 @@ export default function AutoRefresh({
   useEffect(() => {
     // Skip if not on client side or if we've already triggered a refresh
     if (!isClient || hasTriggeredRefresh.current) {
+      console.log("[AutoRefresh] Skipping - not client or already triggered refresh");
       return;
     }
 
@@ -60,7 +61,8 @@ export default function AutoRefresh({
       prevSessionId: prevSessionId.current,
       currentSessionId,
       hasSession: !!session,
-      sessionUser: session?.user
+      sessionUser: session?.user,
+      hasTriggeredRefresh: hasTriggeredRefresh.current
     });
 
     // Check if we've transitioned to authenticated state
@@ -77,8 +79,15 @@ export default function AutoRefresh({
 
     // If we have a session and we're authenticated, trigger refresh
     if (session && status === "authenticated" && currentSessionId) {
+      console.log("[AutoRefresh] Session is authenticated, checking refresh conditions...");
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
+        console.log("[AutoRefresh] Refresh conditions:", {
+          skipRefresh,
+          hasTransitionedToAuthenticated,
+          sessionIdChanged,
+          shouldRefresh: !skipRefresh || hasTransitionedToAuthenticated || sessionIdChanged
+        });
 
         if (!skipRefresh || hasTransitionedToAuthenticated || sessionIdChanged) {
           console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId);
@@ -93,10 +102,18 @@ export default function AutoRefresh({
             console.log("[AutoRefresh] Reloading page...");
             window.location.reload();
           }, 1000);
+        } else {
+          console.log("[AutoRefresh] Skipping refresh - conditions not met");
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
       }
+    } else {
+      console.log("[AutoRefresh] Session not ready for refresh:", {
+        hasSession: !!session,
+        status,
+        currentSessionId
+      });
     }
 
     // Update previous values
