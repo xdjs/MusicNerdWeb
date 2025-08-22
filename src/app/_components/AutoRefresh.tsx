@@ -25,6 +25,7 @@ export default function AutoRefresh({
   const hasTriggeredRefresh = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const prevSessionState = useRef<{ hasSession: boolean; status: string } | null>(null);
+  const sessionStableTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function AutoRefresh({
     }
   }, [status, showLoading]);
 
-  // Handle authentication state changes - immediate refresh
+  // Handle authentication state changes - wait for session to be stable
   useEffect(() => {
     // Skip if not on client side, still loading, or if we've already triggered a refresh
     if (!isClient || status === "loading" || hasTriggeredRefresh.current) {
@@ -69,19 +70,30 @@ export default function AutoRefresh({
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
         if (!skipRefresh || hasTransitionedToAuthenticated) {
-          // Mark that we've triggered a refresh immediately
-          hasTriggeredRefresh.current = true;
-          sessionStorage.setItem(sessionStorageKey, "true");
-          
-          // Force session update first, then reload
-          update().then(() => {
-            // Use full page reload to ensure server components get fresh session data
-            // This is necessary because the layout is a server component
-            window.location.reload();
-          }).catch(() => {
-            // If update fails, still reload
-            window.location.reload();
-          });
+          // Clear any existing timeout
+          if (sessionStableTimeoutRef.current) {
+            clearTimeout(sessionStableTimeoutRef.current);
+          }
+
+          // Wait for session to be stable (similar to authAdapter's 2-second wait)
+          sessionStableTimeoutRef.current = setTimeout(async () => {
+            try {
+              // Mark that we've triggered a refresh
+              hasTriggeredRefresh.current = true;
+              sessionStorage.setItem(sessionStorageKey, "true");
+              
+              // Force session update first, then reload
+              await update();
+              
+              // Use full page reload to ensure server components get fresh session data
+              // This is necessary because the layout is a server component
+              window.location.reload();
+            } catch (error) {
+              console.error("[AutoRefresh] Error during refresh:", error);
+              // If update fails, still reload
+              window.location.reload();
+            }
+          }, 2500); // Wait 2.5 seconds for session to be fully established
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
@@ -91,6 +103,15 @@ export default function AutoRefresh({
     // Update previous session state
     prevSessionState.current = currentSessionState;
   }, [session, status, sessionStorageKey, isClient, update]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (sessionStableTimeoutRef.current) {
+        clearTimeout(sessionStableTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
