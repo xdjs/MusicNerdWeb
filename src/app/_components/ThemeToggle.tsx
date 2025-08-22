@@ -17,21 +17,21 @@ export function ThemeToggle() {
       {/* Mobile Theme Toggle - Hidden on Desktop */}
       <button
         onClick={toggleTheme}
-        className="relative w-12 h-12 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
+        className="relative w-14 h-14 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
         style={{
           backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
         }}
       >
         {/* Sliding toggle */}
         <div 
-          className={`absolute w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
+          className={`absolute w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
             isDark ? 'right-1 bg-black' : 'left-1 bg-white'
           }`}
         >
           {isDark ? (
-            <Moon size={20} style={{ color: '#2ad4fc' }} />
+            <Moon size={24} style={{ color: '#2ad4fc' }} />
           ) : (
-            <Sun size={20} className="text-purple-400" />
+            <Sun size={24} className="text-purple-400" />
           )}
         </div>
       </button>
