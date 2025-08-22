@@ -20,7 +20,7 @@ export default function AutoRefresh({
 } = {}) {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const prevAuthState = useRef<{ hasSession: boolean; status: string } | null>(null);
+  const hasTriggeredRefresh = useRef(false);
 
   // Show loading state while session is being determined
   useEffect(() => {
@@ -41,28 +41,18 @@ export default function AutoRefresh({
 
   // Handle authentication state changes - following leaderboard pattern
   useEffect(() => {
-    // Skip if still loading
-    if (status === "loading") {
+    // Skip if still loading or if we've already triggered a refresh
+    if (status === "loading" || hasTriggeredRefresh.current) {
       return;
     }
 
-    const currentAuthState = {
-      hasSession: !!session,
-      status: status
-    };
-
-    // Check if auth state has changed
-    const hasAuthStateChanged = 
-      !prevAuthState.current || 
-      prevAuthState.current.hasSession !== currentAuthState.hasSession ||
-      prevAuthState.current.status !== currentAuthState.status;
-
-    // If we've transitioned to authenticated and haven't refreshed yet
-    if (hasAuthStateChanged && currentAuthState.hasSession && currentAuthState.status === "authenticated") {
+    // If we have a session and we're authenticated, check if we need to refresh
+    if (session && status === "authenticated") {
       const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
       
       if (!skipRefresh) {
         // Mark that we've triggered a refresh
+        hasTriggeredRefresh.current = true;
         sessionStorage.setItem(sessionStorageKey, "true");
         
         // Trigger page reload to ensure server components get fresh session data
@@ -71,9 +61,6 @@ export default function AutoRefresh({
         }, 300);
       }
     }
-
-    // Update previous state
-    prevAuthState.current = currentAuthState;
   }, [session, status, sessionStorageKey]);
 
   // Clear the skip flag when component unmounts
