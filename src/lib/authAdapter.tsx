@@ -126,6 +126,10 @@ export const authenticationAdapter = createAuthenticationAdapter({
       // Wait a moment for the session to be established
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Dispatch verification complete event to trigger AutoRefresh
+      console.debug("[AuthAdapter] Dispatching verification-complete event");
+      window.dispatchEvent(new CustomEvent('verification-complete'));
+
       return true;
     } catch (error) {
       console.error("[AuthAdapter] Error during verification:", error);
