@@ -4,6 +4,7 @@ import { useState, useEffect, useContext } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useArtistBio } from "@/hooks/useArtistBio";
 
 interface BlurbSectionProps {
   artistName: string;
@@ -13,32 +14,21 @@ interface BlurbSectionProps {
 export default function BlurbSection({ artistName, artistId }: BlurbSectionProps) {
   const { isEditing, canEdit } = useContext(EditModeContext);
   const { toast } = useToast();
+  const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId);
 
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [aiBlurb, setAiBlurb] = useState<string | undefined>();
-  const [loadingAi, setLoadingAi] = useState(false);
-
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [originalBio, setOriginalBio] = useState<string>("");
 
-  // Fetch bio once on mount (or when artistId changes)
+  // Update edit text when bio changes
   useEffect(() => {
-    if (!aiBlurb && !loadingAi) {
-      setLoadingAi(true);
-      fetch(`/api/artistBio/${artistId}`)
-        .then(async (res) => {
-          if (!res.ok) throw new Error("Failed to load summary");
-          const json = await res.json();
-          setAiBlurb(json.bio as string);
-          setEditText(json.bio as string);
-          setOriginalBio(json.bio as string);
-        })
-        .catch(() => setAiBlurb("Failed to load summary."))
-        .finally(() => setLoadingAi(false));
+    if (aiBlurb) {
+      setEditText(aiBlurb);
+      setOriginalBio(aiBlurb);
     }
-  }, [aiBlurb, artistId, loadingAi]);
+  }, [aiBlurb]);
 
   // Reset the edit text when exiting edit mode without saving
   useEffect(() => {
@@ -66,8 +56,9 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
       });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) {
-        setAiBlurb(editText);
         setOriginalBio(editText);
+        // Refetch to update the cache
+        refetch();
         toast({ title: "Bio updated" });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
@@ -151,7 +142,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
              <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
                Discard
              </Button>
-             <Button onClick={handleSave} disabled={isSaving || editText.trim() === originalBio.trim()}>
+             <Button onClick={handleSave} disabled={isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
                {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
              </Button>
            </div>
