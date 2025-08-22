@@ -722,7 +722,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* Username row displayed above the three columns on all breakpoints */}
 					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
 						                        {!isEditingUsername && (
-                            <div className="flex items-center justify-start md:justify-center gap-3 w-full">
+                            <div className="flex items-center justify-center gap-3 w-full">
 								{/* Avatar left of username using ENS/Jazzicon logic */}
 								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
 									{ensLoading ? (
@@ -842,7 +842,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                             {/* Bottom area: UGC / Artists stats (vertical layout) */}
-                            <div className="mt-4">
+                            <div className="mt-8">
                             <Button
                                 asChild
                                 variant="outline"
@@ -859,7 +859,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="space-y-4 mt-12 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
+                        <div className="space-y-4 mt-8 md:mt-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
                                     <div className="flex items-center gap-2 w-full justify-center md:justify-start">
