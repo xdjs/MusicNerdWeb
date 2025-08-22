@@ -142,7 +142,7 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
              <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
                Discard
              </Button>
-             <Button onClick={handleSave} disabled={isSaving || editText.trim() === originalBio.trim()}>
+             <Button onClick={handleSave} disabled={isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
                {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
              </Button>
            </div>
