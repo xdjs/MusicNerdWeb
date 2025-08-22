@@ -173,6 +173,7 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#9b83a0] shadow-none">
         {/* Mobile: Single scrollable container for header and table */}
                                    <div className="overflow-x-auto w-full">
+                    <div className="min-w-[600px]">
                       {/* Table Header */}
             <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full sticky top-0 z-10">
                          <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white w-full">
@@ -301,6 +302,7 @@ export default function UserEntriesTable() {
                 <div className="text-center">No entries</div>
               </div>
             )}
+                    </div>
           </div>
         </div>
         {pageCount > 1 && (
