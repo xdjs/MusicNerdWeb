@@ -15,21 +15,21 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative w-12 sm:w-32 h-12 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
+      className="relative w-12 sm:w-28 h-8 sm:h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden"
       style={{
         backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
       }}
     >
       {/* Sliding toggle */}
       <div 
-        className={`absolute w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-          isDark ? 'right-2 bg-black' : 'left-2 bg-white'
+        className={`absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
+          isDark ? 'right-1 sm:right-2 bg-black' : 'left-1 sm:left-2 bg-white'
         }`}
       >
         {isDark ? (
-          <Moon size={20} style={{ color: '#2ad4fc' }} />
+          <Moon size={14} style={{ color: '#2ad4fc' }} />
         ) : (
-          <Sun size={20} className="text-purple-400" />
+          <Sun size={14} className="text-purple-400" />
         )}
       </div>
       
