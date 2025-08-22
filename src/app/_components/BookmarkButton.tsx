@@ -20,7 +20,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return;
     try {
-      const raw = localStorage.getItem(`bookmarks_${userId}`);
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(`bookmarks_${userId}`) : null;
       if (raw) {
         const arr = JSON.parse(raw) as { artistId: string }[];
         setBookmarked(arr.some((b) => b.artistId === artistId));
@@ -37,7 +37,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
       const newState = !prev;
       try {
         const key = `bookmarks_${userId}`;
-        const raw = localStorage.getItem(key);
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
         let arr: { artistId: string; artistName: string; imageUrl?: string }[] = raw ? JSON.parse(raw) : [];
 
         if (newState) {

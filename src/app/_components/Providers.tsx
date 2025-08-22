@@ -25,7 +25,7 @@ export default function Providers({
         refetchInterval={0} 
         refetchOnWindowFocus={false}
       >
-        <AutoRefresh sessionStorageKey="globalSkipReload" showLoading={false} />
+        {/* <AutoRefresh sessionStorageKey="globalSkipReload" showLoading={false} /> */}
         <AuthToast />
         {children}
       </SessionProvider>
