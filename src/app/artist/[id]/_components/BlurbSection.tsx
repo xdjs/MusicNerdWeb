@@ -105,7 +105,11 @@ export default function BlurbSection({ artistName, artistId }: BlurbSectionProps
   if (loadingAi) {
     return (
       <div className="h-28 relative border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-3 overflow-hidden">
-        <p className="text-gray-500 dark:text-gray-400 italic">Loading summary...</p>
+        <div className="flex items-center space-x-2">
+          <img src="/spinner.svg" className="h-4 w-4 animate-spin" alt="loading" />
+          <p className="text-gray-500 dark:text-gray-400 italic">Loading summary...</p>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">This may take a few seconds for new artists</p>
       </div>
     );
   }

@@ -9,6 +9,7 @@ interface BioCache {
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const CACHE_KEY = 'musicnerd_bio_cache';
+const API_TIMEOUT = 10000; // 10 seconds timeout
 
 // Get cache from localStorage or initialize empty
 const getCache = (): BioCache => {
@@ -44,6 +45,27 @@ const saveCache = (cache: BioCache) => {
   }
 };
 
+// Fetch with timeout
+const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+};
+
 interface UseArtistBioReturn {
   bio: string | undefined;
   loading: boolean;
@@ -71,9 +93,16 @@ export function useArtistBio(artistId: string): UseArtistBioReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/artistBio/${artistId}`);
+      const response = await fetchWithTimeout(`/api/artistBio/${artistId}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to load bio');
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        } else if (response.status === 500) {
+          throw new Error('Server error - please try again later');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
       }
       
       const data = await response.json();
@@ -91,7 +120,17 @@ export function useArtistBio(artistId: string): UseArtistBioReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load bio';
       setError(errorMessage);
-      setBio('Failed to load summary.');
+      
+      // Set a fallback message based on error type
+      if (errorMessage.includes('timeout')) {
+        setBio('Bio loading is taking longer than expected. Please refresh to try again.');
+      } else if (errorMessage.includes('Authentication')) {
+        setBio('Please log in to view artist bio.');
+      } else if (errorMessage.includes('Server error')) {
+        setBio('Bio temporarily unavailable. Please try again later.');
+      } else {
+        setBio('Failed to load summary.');
+      }
     } finally {
       setLoading(false);
     }
