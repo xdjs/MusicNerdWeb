@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /**
- * Universal auto-refresh component that triggers a page reload when the user signs in
+ * Universal auto-refresh component that triggers a page refresh when the user signs in
  * to ensure server components pick up the new session data immediately.
  * Uses sessionStorage to prevent multiple refreshes.
  * 
@@ -19,6 +20,7 @@ export default function AutoRefresh({
   showLoading?: boolean; 
 } = {}) {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const hasTriggeredRefresh = useRef(false);
   const [isClient, setIsClient] = useState(false);
@@ -34,58 +36,50 @@ export default function AutoRefresh({
       if (status === "loading") {
         setIsLoading(true);
       } else {
-        // Small delay to ensure session is stable
-        const timer = setTimeout(() => {
-          setIsLoading(false);
-        }, 200);
-        return () => clearTimeout(timer);
+        setIsLoading(false);
       }
     } else {
       setIsLoading(false);
     }
   }, [status, showLoading]);
 
-  // Handle authentication state changes - following leaderboard pattern
+  // Handle authentication state changes - immediate refresh
   useEffect(() => {
     // Skip if not on client side, still loading, or if we've already triggered a refresh
     if (!isClient || status === "loading" || hasTriggeredRefresh.current) {
       return;
     }
 
-    // If we have a session and we're authenticated, check if we need to refresh
+    // If we have a session and we're authenticated, immediately refresh
     if (session && status === "authenticated") {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
         if (!skipRefresh) {
-          // Mark that we've triggered a refresh
+          // Mark that we've triggered a refresh immediately
           hasTriggeredRefresh.current = true;
           sessionStorage.setItem(sessionStorageKey, "true");
           
-          // Trigger page reload to ensure server components get fresh session data
-          setTimeout(() => {
-            window.location.reload();
-          }, 300);
+          // Use Next.js router.refresh() for faster refresh - no full page reload
+          router.refresh();
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
       }
     }
-  }, [session, status, sessionStorageKey, isClient]);
+  }, [session, status, sessionStorageKey, isClient, router]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
     if (!isClient) return;
 
     return () => {
-      // Clear the flag after a delay to allow the page to stabilize
-      setTimeout(() => {
-        try {
-          sessionStorage.removeItem(sessionStorageKey);
-        } catch (error) {
-          console.error("[AutoRefresh] Error clearing sessionStorage:", error);
-        }
-      }, 2000);
+      // Clear the flag immediately
+      try {
+        sessionStorage.removeItem(sessionStorageKey);
+      } catch (error) {
+        console.error("[AutoRefresh] Error clearing sessionStorage:", error);
+      }
     };
   }, [sessionStorageKey, isClient]);
 
