@@ -51,7 +51,9 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
           arr = arr.filter((b) => b.artistId !== artistId);
         }
 
-        localStorage.setItem(key, JSON.stringify(arr));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(key, JSON.stringify(arr));
+        }
         // Notify others
         window.dispatchEvent(new Event('bookmarksUpdated'));
       } catch (e) {

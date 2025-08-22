@@ -452,7 +452,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             <DropdownMenuItem className="flex items-center gap-2" asChild>
                                 <Link href="/profile" prefetch onClick={() => {
                                     try {
-                                        if (session) {
+                                        if (session && typeof window !== 'undefined') {
                                             const storageKey = `ugcCount_${session.user.id}`;
                                             localStorage.setItem(storageKey, String(ugcCount));
                                             setHasNewUGC(false);

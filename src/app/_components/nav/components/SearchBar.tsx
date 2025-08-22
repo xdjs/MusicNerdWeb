@@ -975,7 +975,7 @@ function SocialIcons({ result }: { result: SearchResult }) {
 
 // Helper function to get all bookmarked artist IDs for the current user
 function getBookmarkedArtistIds(userId: string | undefined): string[] {
-    if (!userId) return [];
+    if (!userId || typeof window === 'undefined') return [];
     
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
@@ -992,7 +992,7 @@ function getBookmarkedArtistIds(userId: string | undefined): string[] {
 
 // Helper function to get bookmarked artists with full data in user's preferred order
 function getBookmarkedArtists(userId: string | undefined): Array<{id: string, name: string, images?: {url: string}[]}> {
-    if (!userId) return [];
+    if (!userId || typeof window === 'undefined') return [];
     
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
@@ -1016,7 +1016,7 @@ function getBookmarkedArtists(userId: string | undefined): Array<{id: string, na
 
 // Helper function to check if an artist is bookmarked by the current user
 function isArtistBookmarked(artistId: string | undefined, userId: string | undefined, _trigger?: number): boolean {
-    if (!artistId || !userId) return false;
+    if (!artistId || !userId || typeof window === 'undefined') return false;
     
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
