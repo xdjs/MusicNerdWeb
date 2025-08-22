@@ -53,7 +53,8 @@ export default function AutoRefresh({
       prevStatus: prevStatus.current, 
       currentStatus: status, 
       hasSession: !!session,
-      sessionId: session?.user?.id 
+      sessionId: session?.user?.id,
+      sessionUser: session?.user
     });
 
     // Check if we've transitioned to authenticated state
@@ -67,14 +68,14 @@ export default function AutoRefresh({
     if (session && status === "authenticated" && session.user?.id) {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
-        
+
         if (!skipRefresh || hasTransitionedToAuthenticated) {
           console.log("[AutoRefresh] Triggering refresh - authenticated with session:", session.user.id);
-          
+
           // Mark that we've triggered a refresh immediately
           hasTriggeredRefresh.current = true;
           sessionStorage.setItem(sessionStorageKey, "true");
-          
+
           // Immediate refresh - no delays
           console.log("[AutoRefresh] Reloading page...");
           window.location.reload();
@@ -87,6 +88,41 @@ export default function AutoRefresh({
     // Update previous status
     prevStatus.current = status;
   }, [session, status, sessionStorageKey, isClient]);
+
+  // Additional effect to catch session object changes
+  useEffect(() => {
+    if (!isClient || hasTriggeredRefresh.current) {
+      return;
+    }
+
+    console.log("[AutoRefresh] Session object changed:", { 
+      hasSession: !!session,
+      sessionId: session?.user?.id,
+      sessionUser: session?.user,
+      status
+    });
+
+    // If we have a session with a user ID and we're authenticated, trigger refresh
+    if (session?.user?.id && status === "authenticated") {
+      try {
+        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
+
+        if (!skipRefresh) {
+          console.log("[AutoRefresh] Triggering refresh from session object change:", session.user.id);
+
+          // Mark that we've triggered a refresh immediately
+          hasTriggeredRefresh.current = true;
+          sessionStorage.setItem(sessionStorageKey, "true");
+
+          // Immediate refresh - no delays
+          console.log("[AutoRefresh] Reloading page...");
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("[AutoRefresh] Error accessing sessionStorage:", error);
+      }
+    }
+  }, [session?.user?.id, status, sessionStorageKey, isClient]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
