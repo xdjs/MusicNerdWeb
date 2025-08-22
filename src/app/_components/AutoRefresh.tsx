@@ -78,9 +78,11 @@ export default function AutoRefresh({
           hasTriggeredRefresh.current = true;
           sessionStorage.setItem(sessionStorageKey, "true");
 
-          // Immediate refresh - no delays
-          console.log("[AutoRefresh] Reloading page...");
-          window.location.reload();
+          // Add a small delay to avoid interfering with authentication flow
+          console.log("[AutoRefresh] Reloading page in 1 second...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
@@ -116,9 +118,11 @@ export default function AutoRefresh({
           hasTriggeredRefresh.current = true;
           sessionStorage.setItem(sessionStorageKey, "true");
 
-          // Immediate refresh - no delays
-          console.log("[AutoRefresh] Reloading page...");
-          window.location.reload();
+          // Add a small delay to avoid interfering with authentication flow
+          console.log("[AutoRefresh] Reloading page in 1 second...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
