@@ -209,7 +209,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const newItems = arrayMove(items, oldIndex, newIndex);
                 
                 // Save to localStorage
-                localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
+                }
                 
                 return newItems;
             });
@@ -222,7 +224,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         
         const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
         setBookmarks(newBookmarks);
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
+        }
         
         // Notify other tabs/components
         window.dispatchEvent(new Event('bookmarksUpdated'));
@@ -230,8 +234,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Save bookmarks function
     function saveBookmarks() {
-        localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
-        window.dispatchEvent(new Event('bookmarksUpdated'));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
+            window.dispatchEvent(new Event('bookmarksUpdated'));
+        }
         setIsEditingBookmarks(false);
     }
 
@@ -239,6 +245,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         // Load bookmarks from localStorage (placeholder until backend wiring)
         const load = () => {
             try {
+                if (typeof window === 'undefined') return; // Skip on server side
+                
                 const raw = localStorage.getItem(`bookmarks_${user.id}`);
                 if (raw) {
                     const parsed = JSON.parse(raw) as BookmarkItem[];
@@ -423,7 +431,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const data = await resp.json();
 
                 const storageKey = `ugcCount_${user.id}`;
-                localStorage.setItem(storageKey, String(data.count));
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(storageKey, String(data.count));
+                }
                 // Notify other tabs/components
                 window.dispatchEvent(new Event('ugcCountUpdated'));
             } catch (e) {
