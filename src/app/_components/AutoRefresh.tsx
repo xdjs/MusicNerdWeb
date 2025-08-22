@@ -95,6 +95,42 @@ export default function AutoRefresh({
     prevStatus.current = status;
   }, [session, status, sessionStorageKey, isClient]);
 
+  // Listen for verification completion events
+  useEffect(() => {
+    if (!isClient || hasTriggeredRefresh.current) {
+      return;
+    }
+
+    const handleVerificationComplete = () => {
+      console.log("[AutoRefresh] Verification complete event received");
+      
+      try {
+        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
+        
+        if (!skipRefresh) {
+          console.log("[AutoRefresh] Triggering refresh after verification");
+          
+          // Mark that we've triggered a refresh immediately
+          hasTriggeredRefresh.current = true;
+          sessionStorage.setItem(sessionStorageKey, "true");
+          
+          // Immediate refresh - no delays
+          console.log("[AutoRefresh] Reloading page after verification...");
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("[AutoRefresh] Error accessing sessionStorage during verification:", error);
+      }
+    };
+
+    // Listen for custom verification complete event
+    window.addEventListener('verification-complete', handleVerificationComplete);
+
+    return () => {
+      window.removeEventListener('verification-complete', handleVerificationComplete);
+    };
+  }, [sessionStorageKey, isClient]);
+
   // Clear the skip flag when component unmounts
   useEffect(() => {
     if (!isClient) return;
