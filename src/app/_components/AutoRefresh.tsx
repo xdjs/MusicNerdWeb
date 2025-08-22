@@ -25,6 +25,7 @@ export default function AutoRefresh({
   const hasTriggeredRefresh = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const prevStatus = useRef<string | null>(null);
+  const prevSessionId = useRef<string | null>(null);
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -51,28 +52,36 @@ export default function AutoRefresh({
       return;
     }
 
+    const currentSessionId = session?.user?.id;
+    
     console.log("[AutoRefresh] Session state changed:", { 
       prevStatus: prevStatus.current, 
       currentStatus: status, 
+      prevSessionId: prevSessionId.current,
+      currentSessionId,
       hasSession: !!session,
-      sessionId: session?.user?.id,
       sessionUser: session?.user
     });
 
     // Check if we've transitioned to authenticated state
     const hasTransitionedToAuthenticated = 
-      prevStatus.current && 
+      prevStatus.current &&
       prevStatus.current !== "authenticated" && 
       status === "authenticated" && 
-      session?.user?.id;
+      currentSessionId;
+
+    // Check if session ID changed (user logged in)
+    const sessionIdChanged = 
+      prevSessionId.current !== currentSessionId && 
+      currentSessionId;
 
     // If we have a session and we're authenticated, trigger refresh
-    if (session && status === "authenticated" && session.user?.id) {
+    if (session && status === "authenticated" && currentSessionId) {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
 
-        if (!skipRefresh || hasTransitionedToAuthenticated) {
-          console.log("[AutoRefresh] Triggering refresh - authenticated with session:", session.user.id);
+        if (!skipRefresh || hasTransitionedToAuthenticated || sessionIdChanged) {
+          console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId);
 
           // Mark that we've triggered a refresh immediately
           hasTriggeredRefresh.current = true;
@@ -90,8 +99,9 @@ export default function AutoRefresh({
       }
     }
 
-    // Update previous status
+    // Update previous values
     prevStatus.current = status;
+    prevSessionId.current = currentSessionId || null;
   }, [session, status, sessionStorageKey, isClient]);
 
   // Clear the skip flag when component unmounts
