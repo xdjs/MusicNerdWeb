@@ -45,9 +45,11 @@ export const authenticationAdapter = createAuthenticationAdapter({
 
     // Clear any existing SIWE data to force a new message
     sessionStorage.removeItem('siwe-nonce');
-    localStorage.removeItem('siwe.session');
-    localStorage.removeItem('wagmi.siwe.message');
-    localStorage.removeItem('wagmi.siwe.signature');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('siwe.session');
+      localStorage.removeItem('wagmi.siwe.message');
+      localStorage.removeItem('wagmi.siwe.signature');
+    }
 
     const message = new SiweMessage({
       domain,
@@ -149,17 +151,19 @@ export const authenticationAdapter = createAuthenticationAdapter({
       
       // Clear all session data
       sessionStorage.clear();
-      localStorage.removeItem('siwe.session');
-      localStorage.removeItem('wagmi.siwe.message');
-      localStorage.removeItem('wagmi.siwe.signature');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('siwe.session');
+        localStorage.removeItem('wagmi.siwe.message');
+        localStorage.removeItem('wagmi.siwe.signature');
+        
+        // Clear all wagmi-related data
+        localStorage.removeItem('wagmi.wallet');
+        localStorage.removeItem('wagmi.connected');
+        localStorage.removeItem('wagmi.injected.connected');
+        localStorage.removeItem('wagmi.store');
+        localStorage.removeItem('wagmi.cache');
+      }
       sessionStorage.removeItem('siwe-nonce');
-      
-      // Clear all wagmi-related data
-      localStorage.removeItem('wagmi.wallet');
-      localStorage.removeItem('wagmi.connected');
-      localStorage.removeItem('wagmi.injected.connected');
-      localStorage.removeItem('wagmi.store');
-      localStorage.removeItem('wagmi.cache');
       
       // Sign out without clearing CSRF token
       await signOut({ 
