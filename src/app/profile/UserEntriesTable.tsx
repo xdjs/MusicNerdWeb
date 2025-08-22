@@ -175,9 +175,9 @@ export default function UserEntriesTable() {
                  <div className="overflow-x-auto min-w-[600px] max-w-full">
           {/* Table Header */}
           <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
-                         <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] text-white">
+                         <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] text-white min-w-[560px]">
               <div
-                className="text-center cursor-pointer select-none py-2 px-2 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md"
+                className="text-center cursor-pointer select-none py-3 px-1 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
               >
                                  <div className="flex items-center justify-center gap-1">
@@ -187,10 +187,10 @@ export default function UserEntriesTable() {
                    />
                  </div>
               </div>
-                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
-                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
                  <div className="flex items-center justify-center gap-1">
                    <span className="whitespace-nowrap text-xs sm:text-sm">Artist</span>
                    <div
@@ -208,7 +208,7 @@ export default function UserEntriesTable() {
                    </div>
                  </div>
                </div>
-                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
                  <div className="flex items-center justify-center gap-1">
                    <span className="whitespace-nowrap text-xs sm:text-sm">Entry Type</span>
                    <select
@@ -225,11 +225,11 @@ export default function UserEntriesTable() {
                   </select>
                 </div>
               </div>
-                             <div className="text-center py-3 px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
                  <span className="whitespace-nowrap text-xs sm:text-base">Site Link</span>
                </div>
                              <div
-                 className="text-center py-3 px-3 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
+                 className="text-center py-3 px-1 sm:px-3 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
                  onClick={() =>
                    setStatusSort((prev) =>
                      prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
@@ -268,12 +268,12 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                                         <div key={entry.id} className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] bg-white hover:bg-white border-b border-[#9b83a0] min-w-full">
-                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatDate(entry.createdAt)}</div>
-                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatTime(entry.createdAt)}</div>
-                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{displayArtist}</div>
-                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{entry.siteName ?? "—"}</div>
-                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">
+                                         <div key={entry.id} className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] bg-white hover:bg-white border-b border-[#9b83a0] min-w-[560px]">
+                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatDate(entry.createdAt)}</div>
+                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatTime(entry.createdAt)}</div>
+                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{displayArtist}</div>
+                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{entry.siteName ?? "—"}</div>
+                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">
                         {entry.ugcUrl ? (
                           <Link
                             className="text-blue-600 underline"
@@ -288,7 +288,7 @@ export default function UserEntriesTable() {
                         )}
                       </div>
                       <div
-                        className={`text-center px-3 py-2 border-l border-r border-[#c6bfc7] font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
+                        className={`text-center px-1 sm:px-3 py-2 border-l border-r border-[#c6bfc7] font-semibold text-xs sm:text-sm ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
                       >
                         {entry.accepted ? "Approved" : "Pending"}
                       </div>
