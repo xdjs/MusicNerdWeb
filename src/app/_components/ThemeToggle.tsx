@@ -17,7 +17,7 @@ export function ThemeToggle() {
       {/* Mobile Theme Toggle - Hidden on Desktop */}
       <button
         onClick={toggleTheme}
-        className="relative w-12 h-8 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
+        className="relative w-12 h-12 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
         style={{
           backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
         }}
