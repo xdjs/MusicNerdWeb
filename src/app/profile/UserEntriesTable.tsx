@@ -172,23 +172,23 @@ export default function UserEntriesTable() {
       
       <Card className="border-2 border-[#9b83a0] shadow-none">
         {/* Mobile: Single scrollable container for header and table */}
-        <div className="overflow-x-auto min-w-full max-w-full">
+                 <div className="overflow-x-auto min-w-[600px] max-w-full">
           {/* Table Header */}
           <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
-                         <div className="grid grid-cols-[60px_60px_90px_100px_60px_70px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] text-white">
+                         <div className="grid grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 border-l border-t border-[#c6bfc7] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
               >
                                  <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-sm">Date</span>
+                   <span className="whitespace-nowrap text-xs sm:text-base">Date</span>
                    <ArrowUpDown
                      className={`w-2 h-2 sm:w-3 sm:h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
                    />
                  </div>
               </div>
                              <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
-                 <span className="whitespace-nowrap text-xs sm:text-sm">Time</span>
+                 <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
                              <div className="text-left py-3 px-2 border-t border-[#c6bfc7]">
                  <div className="flex items-center gap-1">
@@ -202,7 +202,7 @@ export default function UserEntriesTable() {
                         onChange={(e) => setArtistQuery(e.target.value)}
                         placeholder="Search"
                         ref={artistInputRef}
-                        className="h-5 pr-4 pl-1 py-1 text-xs w-12 sm:w-20 bg-white border border-gray-300"
+                        className="h-5 pr-4 pl-1 py-1 text-xs w-12 sm:h-6 sm:pr-6 sm:pl-2 sm:w-20 bg-white border border-gray-300"
                       />
                      <SearchIcon className="absolute right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" strokeWidth={2} />
                    </div>
@@ -214,7 +214,7 @@ export default function UserEntriesTable() {
                    <select
                      value={filter}
                      onChange={(e) => setFilter(e.target.value)}
-                     className="border border-gray-300 rounded-md p-1 text-xs h-5 w-10 sm:w-16 text-black dark:text-white bg-white dark:bg-gray-800"
+                     className="border border-gray-300 rounded-md p-1 text-xs h-5 w-10 sm:h-6 sm:w-20 text-black dark:text-white bg-white dark:bg-gray-800"
                    >
                     <option value="all">All</option>
                     {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
@@ -226,18 +226,18 @@ export default function UserEntriesTable() {
                 </div>
               </div>
                              <div className="text-center py-3 px-1 border-t border-[#c6bfc7]">
-                 <span className="whitespace-nowrap text-xs sm:text-sm">Site Link</span>
+                 <span className="whitespace-nowrap text-xs sm:text-base">Site Link</span>
                </div>
-              <div
-                className="text-center py-3 px-2 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
-                onClick={() =>
-                  setStatusSort((prev) =>
-                    prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
-                  )
-                }
-              >
-                                 <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-sm">Status</span>
+                             <div
+                 className="text-center py-3 px-1 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md"
+                 onClick={() =>
+                   setStatusSort((prev) =>
+                     prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
+                   )
+                 }
+               >
+                 <div className="flex items-center justify-center gap-1">
+                   <span className="whitespace-nowrap text-xs sm:text-base">Status</span>
                    {statusSort === "approved" ? (
                      <ArrowUp className="w-2 h-2 sm:w-3 sm:h-3" />
                    ) : statusSort === "pending" ? (
@@ -246,7 +246,7 @@ export default function UserEntriesTable() {
                      <ArrowUpDown className="w-2 h-2 sm:w-3 sm:h-3" />
                    )}
                  </div>
-              </div>
+               </div>
             </div>
           </div>
           
@@ -268,7 +268,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                                         <div key={entry.id} className="grid grid-cols-[60px_60px_90px_100px_60px_70px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] bg-white hover:bg-white border-b border-[#9b83a0] min-w-full">
+                                         <div key={entry.id} className="grid grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] bg-white hover:bg-white border-b border-[#9b83a0] min-w-full">
                       <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatDate(entry.createdAt)}</div>
                       <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatTime(entry.createdAt)}</div>
                       <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{displayArtist}</div>
