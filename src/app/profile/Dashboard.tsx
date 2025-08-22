@@ -331,6 +331,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // always fetch the all-time leaderboard so the stat matches the "UGC Total"
     // values directly above it.
     useEffect(() => {
+        // Skip on server side
+        if (typeof window === 'undefined') return;
+        
         async function fetchRank() {
             try {
                 // Check if user is hidden first - if so, set rank to -1 and skip API call
@@ -404,8 +407,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     console.log('[Dashboard] useEffect dependencies:', {
         selectedRangeToUse,
         userWallet: user.wallet,
-        isCompactLayout,
-        allowEditUsername
+        isCompactLayout
     });
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Dashboard from "./Dashboard";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 
@@ -64,8 +64,8 @@ export default function ClientWrapper() {
     );
   }
 
-  // Guest user object
-  const guestUser: User = {
+  // Guest user object - memoized to prevent infinite re-renders
+  const guestUser = useMemo((): User => ({
     id: '00000000-0000-0000-0000-000000000000',
     wallet: '0x0000000000000000000000000000000000000000',
     email: null,
@@ -78,7 +78,7 @@ export default function ClientWrapper() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     legacyId: null,
-  };
+  }), []);
 
   const currentUser = user || guestUser;
 
