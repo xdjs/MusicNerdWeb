@@ -32,6 +32,16 @@ export default function AutoRefresh({
     setIsClient(true);
   }, []);
 
+  // Debug effect to see if component is re-rendering
+  useEffect(() => {
+    console.log("[AutoRefresh] Component re-rendered with:", {
+      status,
+      sessionExists: !!session,
+      sessionId: session?.user?.id,
+      isClient
+    });
+  });
+
   // Show loading state while session is being determined
   useEffect(() => {
     if (showLoading) {
@@ -47,6 +57,14 @@ export default function AutoRefresh({
 
   // Single effect to handle authentication state changes
   useEffect(() => {
+    console.log("[AutoRefresh] Effect triggered - checking conditions:", {
+      isClient,
+      hasTriggeredRefresh: hasTriggeredRefresh.current,
+      session: !!session,
+      status,
+      sessionId: session?.user?.id
+    });
+
     // Skip if not on client side or if we've already triggered a refresh
     if (!isClient || hasTriggeredRefresh.current) {
       console.log("[AutoRefresh] Skipping - not client or already triggered refresh");
