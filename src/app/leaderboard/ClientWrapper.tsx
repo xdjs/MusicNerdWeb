@@ -44,6 +44,12 @@ export default function ClientWrapper({ filter }: { filter?: string }) {
   
   const [selectedRange, setSelectedRange] = useState<"today" | "week" | "month" | "all">(getInitialRange(filter));
 
+  // Update selectedRange when filter prop changes
+  useEffect(() => {
+    const newRange = getInitialRange(filter);
+    setSelectedRange(newRange);
+  }, [filter]);
+
   useEffect(() => {
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
@@ -105,12 +111,6 @@ export default function ClientWrapper({ filter }: { filter?: string }) {
     console.log('[ClientWrapper] Range changed to:', range);
     setSelectedRange(range);
   };
-
-  // Update selectedRange when filter prop changes
-  useEffect(() => {
-    const newRange = getInitialRange(filter);
-    setSelectedRange(newRange);
-  }, [filter]);
 
   return (
     <main className="px-5 sm:px-10 py-10">
