@@ -64,12 +64,18 @@ export default function AutoRefresh({
       status === "authenticated" && 
       session?.user?.id;
 
+    // Check if this is initial load with authenticated session
+    const isInitialAuthenticatedLoad = 
+      prevStatus.current === null && 
+      status === "authenticated" && 
+      session?.user?.id;
+
     // If we have a session and we're authenticated, trigger refresh
     if (session && status === "authenticated" && session.user?.id) {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
-        if (!skipRefresh || hasTransitionedToAuthenticated) {
+        if (!skipRefresh || hasTransitionedToAuthenticated || isInitialAuthenticatedLoad) {
           console.log("[AutoRefresh] Triggering refresh - authenticated with session:", session.user.id);
           
           // Mark that we've triggered a refresh immediately
