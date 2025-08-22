@@ -424,6 +424,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
     useEffect(() => {
+        // Skip on server side
+        if (typeof window === 'undefined') return;
+        
         async function markUGCSeen() {
             try {
                 const resp = await fetch('/api/ugcCount');
@@ -462,7 +465,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }
 
     async function checkUgcStats() {
-        if (date?.from && date?.to) {
+        if (date?.from && date?.to && typeof window !== 'undefined') {
             setLoading(true);
             const result = await getUgcStatsInRange(date, ugcStatsUserWallet);
             if (result) {
@@ -473,7 +476,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }
 
     async function saveUsername() {
-        if (!usernameInput || usernameInput === user.username) { 
+        if (!usernameInput || usernameInput === user.username || typeof window === 'undefined') { 
             setIsEditingUsername(false); 
             return; 
         }
@@ -520,6 +523,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Fetch all-time stats **once** on mount. These counts remain static and are not affected by leaderboard range filters.
     useEffect(() => {
+        // Skip on server side
+        if (typeof window === 'undefined') return;
+        
         async function fetchAllTimeStats() {
             try {
                 const dateRange: DateRange = { from: new Date(0), to: new Date() } as DateRange;
@@ -543,7 +549,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
     // Fetch recent edited UGC only for the full profile layout (not the compact leaderboard layout)
     useEffect(() => {
-        if (!isCompactLayout) {
+        if (!isCompactLayout && typeof window !== 'undefined') {
             fetch('/api/recentEdited')
                 .then(res => res.json())
                 .then((data: RecentItem[]) => setRecentUGC(data))
