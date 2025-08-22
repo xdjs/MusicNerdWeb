@@ -175,7 +175,7 @@ export default function UserEntriesTable() {
                  <div className="overflow-x-auto min-w-[600px] max-w-full">
           {/* Table Header */}
           <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full">
-                         <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] text-white min-w-[560px]">
+                         <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] text-white">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -268,7 +268,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                                         <div key={entry.id} className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] bg-white hover:bg-white border-b border-[#9b83a0] min-w-[560px]">
+                                         <div key={entry.id} className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] bg-white hover:bg-white border-b border-[#9b83a0]">
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatDate(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatTime(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{displayArtist}</div>
