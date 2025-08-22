@@ -23,7 +23,7 @@ export function ThemeToggle() {
       {/* Sliding toggle */}
       <div 
         className={`absolute w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-          isDark ? 'right-1 bg-black' : 'left-1 bg-white'
+          isDark ? 'right-2 bg-black' : 'left-2 bg-white'
         }`}
       >
         {isDark ? (
