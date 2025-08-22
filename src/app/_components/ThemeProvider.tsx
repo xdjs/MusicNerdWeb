@@ -30,6 +30,21 @@ const getSystemTheme = (): Theme => {
   return "light"
 }
 
+// Function to safely get theme from localStorage
+const getStoredTheme = (storageKey: string): Theme | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const stored = localStorage.getItem(storageKey) as Theme
+    if (stored && (stored === "light" || stored === "dark")) {
+      return stored
+    }
+  } catch (error) {
+    console.error("[ThemeProvider] Error accessing localStorage:", error)
+  }
+  return null
+}
+
 export function ThemeProvider({
   children,
   defaultTheme,
@@ -37,9 +52,9 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const stored = localStorage?.getItem(storageKey) as Theme
-    if (stored && (stored === "light" || stored === "dark")) {
+    // Check localStorage first (only on client side)
+    const stored = getStoredTheme(storageKey)
+    if (stored) {
       return stored
     }
     // If no stored preference, use system preference
@@ -55,7 +70,13 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage?.setItem(storageKey, theme)
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(storageKey, theme)
+        }
+      } catch (error) {
+        console.error("[ThemeProvider] Error setting localStorage:", error)
+      }
       setTheme(theme)
     },
   }

@@ -21,6 +21,12 @@ export default function AutoRefresh({
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const hasTriggeredRefresh = useRef(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Show loading state while session is being determined
   useEffect(() => {
@@ -41,37 +47,47 @@ export default function AutoRefresh({
 
   // Handle authentication state changes - following leaderboard pattern
   useEffect(() => {
-    // Skip if still loading or if we've already triggered a refresh
-    if (status === "loading" || hasTriggeredRefresh.current) {
+    // Skip if not on client side, still loading, or if we've already triggered a refresh
+    if (!isClient || status === "loading" || hasTriggeredRefresh.current) {
       return;
     }
 
     // If we have a session and we're authenticated, check if we need to refresh
     if (session && status === "authenticated") {
-      const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
-      
-      if (!skipRefresh) {
-        // Mark that we've triggered a refresh
-        hasTriggeredRefresh.current = true;
-        sessionStorage.setItem(sessionStorageKey, "true");
+      try {
+        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
-        // Trigger page reload to ensure server components get fresh session data
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
+        if (!skipRefresh) {
+          // Mark that we've triggered a refresh
+          hasTriggeredRefresh.current = true;
+          sessionStorage.setItem(sessionStorageKey, "true");
+          
+          // Trigger page reload to ensure server components get fresh session data
+          setTimeout(() => {
+            window.location.reload();
+          }, 300);
+        }
+      } catch (error) {
+        console.error("[AutoRefresh] Error accessing sessionStorage:", error);
       }
     }
-  }, [session, status, sessionStorageKey]);
+  }, [session, status, sessionStorageKey, isClient]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
+    if (!isClient) return;
+
     return () => {
       // Clear the flag after a delay to allow the page to stabilize
       setTimeout(() => {
-        sessionStorage.removeItem(sessionStorageKey);
+        try {
+          sessionStorage.removeItem(sessionStorageKey);
+        } catch (error) {
+          console.error("[AutoRefresh] Error clearing sessionStorage:", error);
+        }
       }, 2000);
     };
-  }, [sessionStorageKey]);
+  }, [sessionStorageKey, isClient]);
 
   if (isLoading || status === "loading") {
     return (
