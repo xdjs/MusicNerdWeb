@@ -252,63 +252,55 @@ export default function UserEntriesTable() {
           
           {/* Table Body */}
           <div className="p-0 border-b-2 border-[#9b83a0] min-w-full">
-            <Table className="min-w-full">
-              <TableBody>
-                {loading ? (
-                  <TableRow className="bg-white hover:bg-white border-b border-[#c6bfc7]">
-                    <TableCell colSpan={6} className="text-center py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#c6bfc7] border-t-transparent"></div>
-                        <span>Loading...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : processed.length ? (
-                  (() => {
-                    let lastArtist: string | null = null;
-                    const pageStart = (page - 1) * PER_PAGE;
-                    const pageEnd = pageStart + PER_PAGE;
-                    return processed.slice(pageStart, pageEnd).map((entry) => {
-                      const displayArtist = entry.artistName ?? lastArtist ?? "—";
-                      if (entry.artistName) lastArtist = entry.artistName;
-                      return (
-                        <TableRow key={entry.id} className="bg-white hover:bg-white border-b border-[#9b83a0]">
-                          <TableCell className="text-center px-3 py-2">{formatDate(entry.createdAt)}</TableCell>
-                          <TableCell className="text-center px-3 py-2">{formatTime(entry.createdAt)}</TableCell>
-                          <TableCell className="text-center px-3 py-2">{displayArtist}</TableCell>
-                          <TableCell className="text-center px-3 py-2">{entry.siteName ?? "—"}</TableCell>
-                          <TableCell className="text-center px-3 py-2">
-                            {entry.ugcUrl ? (
-                              <Link
-                                className="text-blue-600 underline"
-                                href={entry.ugcUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                View
-                              </Link>
-                            ) : (
-                              "—"
-                            )}
-                          </TableCell>
-                          <TableCell
-                            className={`text-center px-3 py-2 font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
+            {loading ? (
+              <div className="bg-white border-b border-[#c6bfc7] py-4">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#c6bfc7] border-t-transparent"></div>
+                  <span>Loading...</span>
+                </div>
+              </div>
+            ) : processed.length ? (
+              (() => {
+                let lastArtist: string | null = null;
+                const pageStart = (page - 1) * PER_PAGE;
+                const pageEnd = pageStart + PER_PAGE;
+                return processed.slice(pageStart, pageEnd).map((entry) => {
+                  const displayArtist = entry.artistName ?? lastArtist ?? "—";
+                  if (entry.artistName) lastArtist = entry.artistName;
+                  return (
+                    <div key={entry.id} className="grid grid-cols-[0.8fr_0.8fr_1.5fr_2fr_0.8fr_0.8fr] sm:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] bg-white hover:bg-white border-b border-[#9b83a0] min-w-full">
+                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatDate(entry.createdAt)}</div>
+                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{formatTime(entry.createdAt)}</div>
+                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{displayArtist}</div>
+                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">{entry.siteName ?? "—"}</div>
+                      <div className="text-center px-3 py-2 border-l border-[#c6bfc7]">
+                        {entry.ugcUrl ? (
+                          <Link
+                            className="text-blue-600 underline"
+                            href={entry.ugcUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
-                            {entry.accepted ? "Approved" : "Pending"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    });
-                  })()
-                ) : (
-                  <TableRow className="bg-white hover:bg-white border-b border-[#9b83a0]">
-                    <TableCell colSpan={6} className="text-center py-4">
-                      No entries
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                            View
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
+                      </div>
+                      <div
+                        className={`text-center px-3 py-2 border-l border-r border-[#c6bfc7] font-semibold ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
+                      >
+                        {entry.accepted ? "Approved" : "Pending"}
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            ) : (
+              <div className="bg-white border-b border-[#9b83a0] py-4">
+                <div className="text-center">No entries</div>
+              </div>
+            )}
           </div>
         </div>
         {pageCount > 1 && (

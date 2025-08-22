@@ -630,14 +630,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                                 {/* Rank */}
                                 <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-center ml-4 sm:ml-0 pr-4 sm:pr-0">
-                                    <span className="font-semibold text-xs sm:text-base">Rank:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                    <span className="font-semibold text-sm sm:text-lg">Rank:</span>
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
                                     {totalEntries && (
                                         <>
-                                            <span className="text-xs sm:text-base">of</span>
-                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+                                            <span className="text-sm sm:text-lg">of</span>
+                                            <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                                 {totalEntries}
                                             </Badge>
                                         </>
@@ -646,17 +646,17 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
-                                    <span className="font-semibold text-xs sm:text-base">UGC Added:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+                                    <span className="font-semibold text-sm sm:text-lg">UGC Added:</span>
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.ugcCount : (allTimeStats?.ugcCount ?? '—')}
                                     </Badge>
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-base whitespace-nowrap">
-                                    <span className="font-semibold text-xs sm:text-base">Artists Added:</span>
-                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-base px-4 py-1">
+							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+                                    <span className="font-semibold text-sm sm:text-lg">Artists Added:</span>
+                                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.artistsCount : (allTimeStats?.artistsCount ?? '—')}
                                     </Badge>
                                 </div>
