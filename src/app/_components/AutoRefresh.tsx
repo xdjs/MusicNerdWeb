@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 /**
  * Universal auto-refresh component that triggers a page refresh when the user signs in
@@ -20,12 +19,10 @@ export default function AutoRefresh({
   showLoading?: boolean; 
 } = {}) {
   const { data: session, status, update } = useSession();
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const hasTriggeredRefresh = useRef(false);
   const [isClient, setIsClient] = useState(false);
-  const prevSessionState = useRef<{ hasSession: boolean; status: string } | null>(null);
-  const sessionStableTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevStatus = useRef<string | null>(null);
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -45,73 +42,51 @@ export default function AutoRefresh({
     }
   }, [status, showLoading]);
 
-  // Handle authentication state changes - wait for session to be stable
+  // Handle authentication state changes - immediate refresh
   useEffect(() => {
-    // Skip if not on client side, still loading, or if we've already triggered a refresh
-    if (!isClient || status === "loading" || hasTriggeredRefresh.current) {
+    // Skip if not on client side or if we've already triggered a refresh
+    if (!isClient || hasTriggeredRefresh.current) {
       return;
     }
 
-    const currentSessionState = {
+    console.log("[AutoRefresh] Status changed:", { 
+      prevStatus: prevStatus.current, 
+      currentStatus: status, 
       hasSession: !!session,
-      status: status
-    };
+      sessionId: session?.user?.id 
+    });
 
     // Check if we've transitioned to authenticated state
     const hasTransitionedToAuthenticated = 
-      prevSessionState.current && 
-      !prevSessionState.current.hasSession && 
-      currentSessionState.hasSession && 
-      currentSessionState.status === "authenticated";
+      prevStatus.current && 
+      prevStatus.current !== "authenticated" && 
+      status === "authenticated" && 
+      session?.user?.id;
 
-    // If we have a session and we're authenticated, check if we need to refresh
-    if (session && status === "authenticated") {
+    // If we have a session and we're authenticated, trigger refresh
+    if (session && status === "authenticated" && session.user?.id) {
       try {
         const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
         
         if (!skipRefresh || hasTransitionedToAuthenticated) {
-          // Clear any existing timeout
-          if (sessionStableTimeoutRef.current) {
-            clearTimeout(sessionStableTimeoutRef.current);
-          }
-
-          // Wait for session to be stable (similar to authAdapter's 2-second wait)
-          sessionStableTimeoutRef.current = setTimeout(async () => {
-            try {
-              // Mark that we've triggered a refresh
-              hasTriggeredRefresh.current = true;
-              sessionStorage.setItem(sessionStorageKey, "true");
-              
-              // Force session update first, then reload
-              await update();
-              
-              // Use full page reload to ensure server components get fresh session data
-              // This is necessary because the layout is a server component
-              window.location.reload();
-            } catch (error) {
-              console.error("[AutoRefresh] Error during refresh:", error);
-              // If update fails, still reload
-              window.location.reload();
-            }
-          }, 2500); // Wait 2.5 seconds for session to be fully established
+          console.log("[AutoRefresh] Triggering refresh - authenticated with session:", session.user.id);
+          
+          // Mark that we've triggered a refresh immediately
+          hasTriggeredRefresh.current = true;
+          sessionStorage.setItem(sessionStorageKey, "true");
+          
+          // Immediate refresh - no delays
+          console.log("[AutoRefresh] Reloading page...");
+          window.location.reload();
         }
       } catch (error) {
         console.error("[AutoRefresh] Error accessing sessionStorage:", error);
       }
     }
 
-    // Update previous session state
-    prevSessionState.current = currentSessionState;
-  }, [session, status, sessionStorageKey, isClient, update]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (sessionStableTimeoutRef.current) {
-        clearTimeout(sessionStableTimeoutRef.current);
-      }
-    };
-  }, []);
+    // Update previous status
+    prevStatus.current = status;
+  }, [session, status, sessionStorageKey, isClient]);
 
   // Clear the skip flag when component unmounts
   useEffect(() => {
