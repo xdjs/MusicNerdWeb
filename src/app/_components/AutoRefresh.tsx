@@ -38,7 +38,8 @@ export default function AutoRefresh({
       status,
       sessionExists: !!session,
       sessionId: session?.user?.id,
-      isClient
+      isClient,
+      timestamp: new Date().toISOString()
     });
   });
 
@@ -98,39 +99,39 @@ export default function AutoRefresh({
     // If we have a session and we're authenticated, trigger refresh
     if (session && status === "authenticated" && currentSessionId) {
       console.log("[AutoRefresh] Session is authenticated, checking refresh conditions...");
-      try {
-        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
-        console.log("[AutoRefresh] Refresh conditions:", {
-          skipRefresh,
-          hasTransitionedToAuthenticated,
-          sessionIdChanged,
-          shouldRefresh: !skipRefresh || hasTransitionedToAuthenticated || sessionIdChanged
-        });
+      
+      // Always trigger refresh if we haven't already triggered one
+      if (!hasTriggeredRefresh.current) {
+        console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId);
 
-        if (!skipRefresh || hasTransitionedToAuthenticated || sessionIdChanged) {
-          console.log("[AutoRefresh] Triggering refresh - authenticated with session:", currentSessionId);
-
-          // Mark that we've triggered a refresh immediately
-          hasTriggeredRefresh.current = true;
+        // Mark that we've triggered a refresh immediately
+        hasTriggeredRefresh.current = true;
+        
+        try {
           sessionStorage.setItem(sessionStorageKey, "true");
-
-          // Add a small delay to avoid interfering with authentication flow
-          console.log("[AutoRefresh] Reloading page in 1 second...");
-          setTimeout(() => {
-            console.log("[AutoRefresh] Reloading page...");
-            window.location.reload();
-          }, 1000);
-        } else {
-          console.log("[AutoRefresh] Skipping refresh - conditions not met");
+        } catch (error) {
+          console.error("[AutoRefresh] Error setting sessionStorage:", error);
         }
-      } catch (error) {
-        console.error("[AutoRefresh] Error accessing sessionStorage:", error);
+
+        // Add a small delay to avoid interfering with authentication flow
+        console.log("[AutoRefresh] Reloading page in 1 second...");
+        setTimeout(() => {
+          console.log("[AutoRefresh] Reloading page...");
+          window.location.reload();
+        }, 1000);
+      } else {
+        console.log("[AutoRefresh] Already triggered refresh, skipping");
       }
+    } else if (status === "authenticated" && !currentSessionId) {
+      console.log("[AutoRefresh] Status is authenticated but no session ID - this might be the issue");
+    } else if (status !== "authenticated") {
+      console.log("[AutoRefresh] Status is not authenticated:", status);
     } else {
       console.log("[AutoRefresh] Session not ready for refresh:", {
         hasSession: !!session,
         status,
-        currentSessionId
+        currentSessionId,
+        hasTriggeredRefresh: hasTriggeredRefresh.current
       });
     }
 
