@@ -191,9 +191,9 @@ export default function UserEntriesTable() {
                              <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
-                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
-                 <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-sm">Artist</span>
+                             <div className="text-left py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
+                 <div className="flex items-center justify-start gap-1">
+                   <span className="whitespace-nowrap text-xs sm:text-base">Artist</span>
                    <div
                      className="relative flex items-center cursor-text"
                      onClick={() => artistInputRef.current?.focus()}
@@ -203,19 +203,19 @@ export default function UserEntriesTable() {
                         onChange={(e) => setArtistQuery(e.target.value)}
                         placeholder="Search"
                         ref={artistInputRef}
-                        className="h-6 pr-6 pl-2 py-1 text-xs w-16 sm:h-6 sm:pr-6 sm:pl-2 sm:w-20 bg-white border border-gray-300"
+                        className="h-6 pr-6 pl-2 py-1 text-xs w-20 sm:h-6 sm:pr-6 sm:pl-2 sm:w-20 bg-white border border-gray-300"
                       />
                      <SearchIcon className="absolute right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" strokeWidth={2} />
                    </div>
                  </div>
                </div>
-                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
-                 <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-sm">Entry Type</span>
+                             <div className="text-left py-3 px-2 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-start">
+                 <div className="flex items-center justify-start gap-1">
+                   <span className="whitespace-nowrap text-xs sm:text-base">Entry Type</span>
                    <select
                      value={filter}
                      onChange={(e) => setFilter(e.target.value)}
-                     className="border border-gray-300 rounded-md p-1 text-xs h-6 w-14 sm:h-6 sm:w-20 text-black dark:text-white bg-white dark:bg-gray-800"
+                     className="border border-gray-300 rounded-md p-1 text-xs h-6 w-18 sm:h-6 sm:w-20 text-black dark:text-white bg-white dark:bg-gray-800"
                    >
                     <option value="all">All</option>
                     {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (

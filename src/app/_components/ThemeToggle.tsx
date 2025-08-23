@@ -17,7 +17,7 @@ export function ThemeToggle() {
       {/* Mobile Theme Toggle - Hidden on Desktop */}
       <button
         onClick={toggleTheme}
-        className="relative w-14 h-14 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
+        className="relative w-12 h-12 rounded-full transition-all duration-300 ease-in-out flex items-center overflow-hidden sm:hidden"
         style={{
           backgroundColor: isDark ? '#2d3748' : '#f3f4f6',
         }}
@@ -25,7 +25,7 @@ export function ThemeToggle() {
         {/* Sliding toggle */}
         <div 
           className={`absolute w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-            isDark ? 'right-3 bg-black' : 'left-3 bg-white'
+            isDark ? 'right-2 bg-black' : 'left-2 bg-white'
           }`}
         >
           {isDark ? (
