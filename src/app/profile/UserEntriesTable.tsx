@@ -192,10 +192,10 @@ export default function UserEntriesTable() {
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
                              <div className="text-left py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
-                 <div className="flex flex-col gap-2">
+                 <div className="flex items-center justify-start gap-1 w-full">
                    <span className="whitespace-nowrap text-xs sm:text-base">Artist</span>
                    <div
-                     className="relative flex items-center cursor-text w-full"
+                     className="relative flex items-center cursor-text flex-1"
                      onClick={() => artistInputRef.current?.focus()}
                    >
                                            <Input
@@ -209,8 +209,8 @@ export default function UserEntriesTable() {
                    </div>
                  </div>
                </div>
-                             <div className="text-left py-3 px-2 sm:px-3 border-t border-[#c6bfc7] flex items-start justify-start">
-                 <div className="flex flex-col gap-2 w-full">
+                             <div className="text-left py-3 px-2 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-start">
+                 <div className="flex items-center justify-start gap-1 w-full">
                    <span className="whitespace-nowrap text-xs sm:text-base">Entry Type</span>
                    <select
                      value={filter}
@@ -226,7 +226,7 @@ export default function UserEntriesTable() {
                   </select>
                 </div>
               </div>
-                             <div className="text-center py-3 px-2 sm:px-4 border-t border-[#c6bfc7] flex items-center justify-center">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
                  <span className="whitespace-nowrap text-xs sm:text-base">Site Link</span>
                </div>
                              <div
