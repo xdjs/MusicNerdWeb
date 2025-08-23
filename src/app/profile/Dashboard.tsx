@@ -742,7 +742,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                                                  {/* Mobile Edit button under username */}
                          {allowEditUsername && !isGuestUser && (
-                             <div className="md:hidden pt-8 flex justify-center">
+                             <div className="md:hidden pt-4 flex justify-center">
                                  <Button
                                      size="sm"
                                      variant="ghost"
@@ -829,7 +829,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         {/* Left column - admin controls, status & stats */}
                         <div className="flex flex-col md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
-                            <div className="space-y-8 md:space-y-4">
+                            <div className="space-y-4 md:space-y-4 pt-4 md:pt-0">
                                 {/* Admin user search removed */}
 
                                 {/* Role heading aligned with other column headings */}
