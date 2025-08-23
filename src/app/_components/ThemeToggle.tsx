@@ -24,14 +24,14 @@ export function ThemeToggle() {
       >
         {/* Sliding toggle */}
         <div 
-          className={`absolute w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
-            isDark ? 'right-1 bg-black' : 'left-1 bg-white'
+          className={`absolute w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out shadow-sm ${
+            isDark ? 'right-2 bg-black' : 'left-2 bg-white'
           }`}
         >
           {isDark ? (
-            <Moon size={24} style={{ color: '#2ad4fc' }} />
+            <Moon size={20} style={{ color: '#2ad4fc' }} />
           ) : (
-            <Sun size={24} className="text-purple-400" />
+            <Sun size={20} className="text-purple-400" />
           )}
         </div>
       </button>
