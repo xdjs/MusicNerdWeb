@@ -170,13 +170,13 @@ export default function UserEntriesTable() {
         <h2 className="text-2xl font-semibold text-[#c6bfc7] outline-none">Your Artist Data Entry</h2>
       </div>
       
-      <Card className="border-2 border-[#9b83a0] shadow-none">
+      <Card className="border-2 border-[#9b83a0] shadow-none max-w-[680px] lg:max-w-none">
         {/* Mobile: Single scrollable container for header and table */}
                                    <div className="overflow-x-auto w-full">
-                    <div className="min-w-[600px] max-w-[600px] sm:max-w-none">
+                                         <div className="min-w-[680px] max-w-[680px] sm:max-w-none">
                       {/* Table Header */}
             <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full sticky top-0 z-10">
-                         <div className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] text-white w-full">
+                         <div className="grid grid-cols-[80px_80px_160px_180px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] text-white w-full">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md flex items-center justify-center"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -269,7 +269,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                                         <div key={entry.id} className="grid grid-cols-[80px_80px_120px_140px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1fr] bg-white hover:bg-white border-b border-[#9b83a0] w-full">
+                                         <div key={entry.id} className="grid grid-cols-[80px_80px_160px_180px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] bg-white hover:bg-white border-b border-[#9b83a0] w-full">
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatDate(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatTime(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{displayArtist}</div>
