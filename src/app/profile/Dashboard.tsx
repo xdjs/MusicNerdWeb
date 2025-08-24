@@ -801,7 +801,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                                                                                                                              {/* Three-column section under username */}
-                       <div className="flex flex-col space-y-8 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left relative">
+                       <div className="flex flex-col space-y-4 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left relative">
                                                    {/* Desktop Edit button positioned above Recently Edited column */}
                           {allowEditUsername && !isGuestUser && (
                               <div className="hidden md:block absolute -top-20 right-0">
