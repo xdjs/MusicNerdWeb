@@ -191,7 +191,7 @@ export default function UserEntriesTable() {
                              <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
-                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
                  <div className="flex items-center justify-center gap-1 w-full">
                    <span className="whitespace-nowrap text-xs sm:text-base">Artist</span>
                    <div
