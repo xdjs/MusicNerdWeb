@@ -742,7 +742,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                                                  {/* Mobile Edit button under username */}
                          {allowEditUsername && !isGuestUser && (
-                             <div className="md:hidden text-center">
+                             <div className="md:hidden pt-4 text-center">
                                  <Button
                                      size="sm"
                                      variant="ghost"
@@ -859,7 +859,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="space-y-4 mt-8 mb-12 md:mt-0 md:mb-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
+                        <div className="space-y-4 mt-8 mb-8 md:mt-0 md:mb-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
                                     <div className="flex items-center gap-2 w-full justify-center md:justify-start">
