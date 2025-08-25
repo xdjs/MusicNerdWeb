@@ -126,7 +126,7 @@ export default function HomePage({ animation }: { animation: string }) {
                     </div>
                 </div>
                 <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-gray-500 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
+                    <div className="text-[#c6bfc7] text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
                         Ask Music Nerd about an artist
                     </div>
                     <Suspense fallback={<div>Loading...</div>}>
