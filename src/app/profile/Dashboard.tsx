@@ -859,7 +859,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="space-y-4 mt-12 mb-20 md:mt-0 md:mb-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
+                        <div className="space-y-4 mt-8 mb-8 md:mt-0 md:mb-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
                                     <div className="flex items-center gap-2 w-full justify-center md:justify-start">
@@ -941,7 +941,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
                                                                                                                                                                                                                                                                                                                                                                                                                {/* Right column - recently edited */}
-                            <div className="space-y-4 mt-20 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                            <div className="space-y-4 mt-8 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
                                                                <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px] text-foreground">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
