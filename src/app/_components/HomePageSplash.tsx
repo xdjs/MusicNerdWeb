@@ -97,7 +97,7 @@ export default function HomePage({ animation }: { animation: string }) {
 
     return (
         <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
-            <div className="absolute top-6 right-6 flex gap-4 items-center">
+            <div className="absolute top-6 right-6 flex flex-row gap-4 items-center">
                 <ThemeToggle />
                 <Login buttonStyles="" />
             </div>
@@ -126,7 +126,7 @@ export default function HomePage({ animation }: { animation: string }) {
                     </div>
                 </div>
                 <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-gray-500 text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
+                    <div className="text-[#c6bfc7] text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
                         Ask Music Nerd about an artist
                     </div>
                     <Suspense fallback={<div>Loading...</div>}>
