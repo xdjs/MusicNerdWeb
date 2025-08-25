@@ -173,10 +173,10 @@ export default function UserEntriesTable() {
       <Card className="border-2 border-[#9b83a0] shadow-none max-w-[720px] lg:max-w-none">
         {/* Mobile: Single scrollable container for header and table */}
                                    <div className="overflow-x-auto w-full">
-                                         <div className="min-w-[740px] max-w-[740px] sm:max-w-none">
+                                         <div className="min-w-[720px] max-w-[720px] sm:max-w-none">
                       {/* Table Header */}
             <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full sticky top-0 z-10">
-                         <div className="grid grid-cols-[80px_80px_200px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] text-white w-full">
+                         <div className="grid grid-cols-[80px_80px_160px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] text-white w-full">
               <div
                 className="text-center cursor-pointer select-none py-3 px-1 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md flex items-center justify-center"
                 onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
@@ -191,7 +191,7 @@ export default function UserEntriesTable() {
                              <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
                  <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
                </div>
-                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7]">
+                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
                  <div className="flex items-center justify-center gap-1 w-full">
                    <span className="whitespace-nowrap text-xs sm:text-base">Artist</span>
                    <div
@@ -203,7 +203,7 @@ export default function UserEntriesTable() {
                         onChange={(e) => setArtistQuery(e.target.value)}
                         placeholder="Search"
                         ref={artistInputRef}
-                        className="h-6 pr-2 pl-2 py-1 text-xs w-17 sm:h-6 sm:pr-6 sm:pl-2 sm:w-full bg-white border border-gray-300 text-black dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300"
+                        className="h-6 pr-6 pl-2 py-1 text-xs w-full sm:h-6 sm:pr-6 sm:pl-2 sm:w-full bg-white border border-gray-300 text-black dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300"
                       />
                      <SearchIcon className="absolute right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" strokeWidth={2} />
                    </div>
@@ -269,7 +269,7 @@ export default function UserEntriesTable() {
                   const displayArtist = entry.artistName ?? lastArtist ?? "—";
                   if (entry.artistName) lastArtist = entry.artistName;
                   return (
-                                         <div key={entry.id} className="grid grid-cols-[80px_80px_200px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] bg-white hover:bg-white border-b border-[#9b83a0] w-full">
+                                         <div key={entry.id} className="grid grid-cols-[80px_80px_160px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] bg-white hover:bg-white border-b border-[#9b83a0] w-full">
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatDate(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatTime(entry.createdAt)}</div>
                       <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{displayArtist}</div>
