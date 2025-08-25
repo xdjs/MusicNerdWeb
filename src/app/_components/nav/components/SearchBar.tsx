@@ -324,7 +324,7 @@ const WalletSearchBar = forwardRef(
                     <Search size={24} strokeWidth={2.5} />
                     <Input
                         type="text"
-                        placeholder="Search artists..."
+                        placeholder="Search..."
                         value={query}
                         onChange={handleInputChange}
                         onFocus={handleFocus}
@@ -785,7 +785,7 @@ const NoWalletSearchBar = forwardRef(
                     <Search size={24} strokeWidth={2.5} />
                     <Input
                         type="text"
-                        placeholder="Search artists..."
+                        placeholder="Search..."
                         value={query}
                         onChange={handleInputChange}
                         onFocus={handleFocus}

@@ -97,7 +97,7 @@ export default function HomePage({ animation }: { animation: string }) {
 
     return (
         <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
-            <div className="absolute top-6 right-6 flex gap-4 items-center">
+            <div className="absolute top-6 right-6 flex flex-row gap-4 items-center">
                 <ThemeToggle />
                 <Login buttonStyles="" />
             </div>
