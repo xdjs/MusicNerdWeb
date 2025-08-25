@@ -742,7 +742,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 						)}
                                                  {/* Mobile Edit button under username */}
                          {allowEditUsername && !isGuestUser && (
-                             <div className="md:hidden pt-4 text-center">
+                             <div className="md:hidden pt-6 flex justify-center">
                                  <Button
                                      size="sm"
                                      variant="ghost"
@@ -801,7 +801,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                                                                                                                              {/* Three-column section under username */}
-                       <div className="flex flex-col space-y-4 md:grid md:w-fit md:grid-cols-[auto_auto_1fr] md:gap-32 md:space-y-0 md:max-w-4xl mx-auto text-center md:text-left relative">
+                       <div className="space-y-8 md:space-y-0 md:grid md:w-fit md:grid-cols-[auto_auto_auto] md:gap-48 md:max-w-4xl mx-auto text-center md:text-left relative">
                                                    {/* Desktop Edit button positioned above Recently Edited column */}
                           {allowEditUsername && !isGuestUser && (
                               <div className="hidden md:block absolute -top-20 right-0">
@@ -827,9 +827,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                               </div>
                           )}
                         {/* Left column - admin controls, status & stats */}
-                        <div className="flex flex-col md:flex-none md:items-start md:text-left">
+                        <div className="flex flex-col items-center text-center md:flex-none md:items-start md:text-left">
                             {/* Top area: admin controls and status */}
-                            <div className="space-y-4 md:space-y-4 -mt-4 md:mt-0">
+                            <div className="space-y-4">
                                 {/* Admin user search removed */}
 
                                 {/* Role heading aligned with other column headings */}
@@ -842,7 +842,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                             {/* Bottom area: UGC / Artists stats (vertical layout) */}
-                            <div className="mt-8 md:mt-8">
+                            <div className="mt-8">
                             <Button
                                 asChild
                                 variant="outline"
@@ -859,7 +859,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
 
                         {/* Middle column - Bookmarks */}
-                        <div className="space-y-4 mt-8 mb-12 md:mt-0 md:mb-0 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
+                        <div className="space-y-4 flex flex-col items-center text-center md:items-start md:text-left md:flex-none">
                             {!isGuestUser && (
                                 <>
                                     <div className="flex items-center gap-2 w-full justify-center md:justify-start">
@@ -941,7 +941,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
 
                                                                                                                                                                                                                                                                                                                                                                                                                {/* Right column - recently edited */}
-                            <div className="space-y-4 mt-8 md:mt-0 flex flex-col items-center md:items-start md:text-left md:flex-none">
+                            <div className="space-y-4 flex flex-col items-center md:items-start md:text-left md:flex-none">
                                                                <h3 className="text-lg font-semibold text-center md:text-left whitespace-nowrap min-w-[140px] text-foreground">Recently Edited</h3>
                             {recentUGC.length ? (
                                 <ul className="space-y-3">
@@ -961,7 +961,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     </div>
 
                     {/* User Artist Data Entries table */}
-                    <div className="mt-12 md:mt-0">
+                    <div className="mt-8 md:mt-0">
                         <UserEntriesTable />
                     </div>
                 </>
