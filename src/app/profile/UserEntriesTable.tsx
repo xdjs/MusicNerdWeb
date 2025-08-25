@@ -203,7 +203,7 @@ export default function UserEntriesTable() {
                         onChange={(e) => setArtistQuery(e.target.value)}
                         placeholder="Search"
                         ref={artistInputRef}
-                        className="h-6 pr-6 pl-2 py-1 text-xs w-17 sm:h-6 sm:pr-6 sm:pl-2 sm:w-full bg-white border border-gray-300 text-black dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300"
+                        className="h-6 pr-6 pl-2 py-1 text-xs w-16.5 sm:h-6 sm:pr-6 sm:pl-2 sm:w-full bg-white border border-gray-300 text-black dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300"
                       />
                      <SearchIcon className="absolute right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" strokeWidth={2} />
                    </div>
