@@ -236,7 +236,7 @@ export const getNumberOfSpotifyReleases = unstable_cache(async (id: string | nul
     if(!id) return 0;
     try {
       const albumData = await axios.get(
-        `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&market=US&limit=1`,
+        `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle`,
         headers
       );
   
@@ -252,7 +252,7 @@ export const getArtistTopTrack = unstable_cache(async (id: string | null, header
     if(!id) return null;
     try {
         const response = await axios.get(
-            `https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`,
+            `https://api.spotify.com/v1/artists/${id}/top-tracks`,
             headers
         );
         
@@ -270,7 +270,7 @@ export const getArtistTopTrackName = unstable_cache(async (id: string | null, he
     if(!id) return null;
     try {
         const response = await axios.get(
-            `https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`,
+            `https://api.spotify.com/v1/artists/${id}/top-tracks`,
             headers
         );
         
