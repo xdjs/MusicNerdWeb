@@ -83,12 +83,16 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     // Set timeout for OpenAI API call
     const openaiTimeout = 15000; // 15 seconds
     
+    const messages = [{ role: "system" as const, 
+      content: 'You are an artifical intelligence whose sole purpose is to follow the provided prompt.' 
+        +promptParts.join("\n") }];
+    
+    console.debug("OpenAI messages:", JSON.stringify(messages, null, 2));
+    
     const completion = await Promise.race([
       openai.chat.completions.create({
         model: "gpt-4o",
-        messages: [{ role: "system", 
-        content: 'You are an artifical intelligence whose sole purpose is to follow the provided prompt.' 
-          +promptParts.join("\n") }],
+        messages,
         temperature:0.8,
       }),
       new Promise<never>((_, reject) => 
