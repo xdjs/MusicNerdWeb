@@ -73,6 +73,7 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
     if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
     if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
+    if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
     if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
 
     //build prompt from parts generated and parts from the aiprompts table
