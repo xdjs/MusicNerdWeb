@@ -14,7 +14,7 @@ describe('Environment Variables', () => {
   });
 
   describe('OPENAI_MODEL', () => {
-    it('should use default value when OPENAI_MODEL is not set', async () => {
+    it('should be undefined when OPENAI_MODEL is not set', async () => {
       // Remove OPENAI_MODEL from environment
       process.env = { ...originalEnv };
       delete process.env.OPENAI_MODEL;
@@ -22,7 +22,7 @@ describe('Environment Variables', () => {
       // Dynamic import to get fresh module with current env
       const { OPENAI_MODEL } = await import('@/env');
       
-      expect(OPENAI_MODEL).toBe('gpt-5-nano');
+      expect(OPENAI_MODEL).toBeUndefined();
     });
 
     it('should use environment value when OPENAI_MODEL is set', async () => {
@@ -48,7 +48,7 @@ describe('Environment Variables', () => {
       // Dynamic import to get fresh module with current env
       const { OPENAI_MODEL } = await import('@/env');
       
-      expect(OPENAI_MODEL).toBe('gpt-5-nano'); // Should fallback to default
+      expect(OPENAI_MODEL).toBe(''); // Should be empty string, not undefined
     });
 
     it('should handle various model names correctly', async () => {

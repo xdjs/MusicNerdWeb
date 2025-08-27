@@ -44,7 +44,7 @@ DISCORD_WEBHOOK_URL=your_discord_webhook_url
 OPENAI_API_KEY=your_openai_api_key
 # OpenAI timeout in milliseconds (defaults to 60000ms if not set)
 OPENAI_TIMEOUT_MS=60000
-# OpenAI model to use (defaults to gpt-5-nano if not set)
+# OpenAI model to use (optional - if not set, no model parameter is sent to OpenAI)
 OPENAI_MODEL=gpt-5-nano
 
 # Optional: Coverage reporting webhook

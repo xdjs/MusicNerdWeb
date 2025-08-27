@@ -19,4 +19,4 @@ export const NEXTAUTH_URL = process.env.NEXTAUTH_URL ?? "";
 export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
 export const OPENAI_API_KEY = validateEnv(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY', isTestEnv);
 export const OPENAI_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '60000', 10);
-export const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
+export const OPENAI_MODEL = process.env.OPENAI_MODEL;

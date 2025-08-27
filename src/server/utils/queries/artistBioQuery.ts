@@ -84,17 +84,25 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     console.debug("OpenAI artistData:", JSON.stringify(artistData, null, 2));
     
     const openaiStartTime = Date.now();
+    const openaiRequest: any = {
+      prompt: {
+          id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
+          variables: {
+              artist_name: artist.name!,
+              artist_data: artistData
+          }
+      }
+    };
+
+    // Only include model parameter if OPENAI_MODEL environment variable is explicitly set
+    if (OPENAI_MODEL) {
+      openaiRequest.model = OPENAI_MODEL;
+    }
+
+    console.debug("OpenAI request:", JSON.stringify(openaiRequest, null, 2));
+    
     const completion = await Promise.race([
-      openai.responses.create({
-        model: OPENAI_MODEL,
-        prompt: {
-            id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
-            variables: {
-                artist_name: artist.name!,
-                artist_data: artistData
-            }
-        }
-      }),
+      openai.responses.create(openaiRequest),
       new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('OpenAI timeout')), openaiTimeout)
       )

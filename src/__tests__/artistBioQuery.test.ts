@@ -4,8 +4,7 @@ import { NextResponse } from 'next/server';
 // Mock NextResponse
 const mockNextResponseJson = jest.fn().mockImplementation((data, options) => ({
   json: () => Promise.resolve(data),
-  status: options?.status || 200,
-  ...data
+  status: options?.status || 200
 }));
 
 jest.mock('next/server', () => ({
@@ -85,20 +84,20 @@ describe('artistBioQuery - OPENAI_MODEL usage', () => {
       youtube: null,
       youtubechannel: null,
       wikipedia: null
-    };
+    } as any;
 
     // Mock the OpenAI response
     const mockOpenAIResponse = {
       output_text: 'Generated bio text'
-    };
+    } as any;
 
     // Import mocked modules
     const { openai } = await import('@/server/lib/openai');
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
     
     // Setup mocks
-    (getArtistById as jest.MockedFunction<typeof getArtistById>).mockResolvedValue(mockArtist);
-    (openai.responses.create as jest.MockedFunction<typeof openai.responses.create>).mockResolvedValue(mockOpenAIResponse);
+    (getArtistById as any).mockResolvedValue(mockArtist);
+    (openai.responses.create as any).mockResolvedValue(mockOpenAIResponse);
 
     // Import and call the function
     const { getOpenAIBio } = await import('@/server/utils/queries/artistBioQuery');
@@ -122,7 +121,7 @@ describe('artistBioQuery - OPENAI_MODEL usage', () => {
     expect(mockNextResponseJson).toHaveBeenCalledWith({ bio: 'Generated bio text' });
   });
 
-  it('should use default model when OPENAI_MODEL is not set', async () => {
+  it('should not include model parameter when OPENAI_MODEL is not set', async () => {
     // Remove OPENAI_MODEL from environment
     process.env = { 
       ...originalEnv,
@@ -142,29 +141,28 @@ describe('artistBioQuery - OPENAI_MODEL usage', () => {
       youtube: null,
       youtubechannel: null,
       wikipedia: null
-    };
+    } as any;
 
     // Mock the OpenAI response
     const mockOpenAIResponse = {
       output_text: 'Generated bio text'
-    };
+    } as any;
 
     // Import mocked modules
     const { openai } = await import('@/server/lib/openai');
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
     
     // Setup mocks
-    (getArtistById as jest.MockedFunction<typeof getArtistById>).mockResolvedValue(mockArtist);
-    (openai.responses.create as jest.MockedFunction<typeof openai.responses.create>).mockResolvedValue(mockOpenAIResponse);
+    (getArtistById as any).mockResolvedValue(mockArtist);
+    (openai.responses.create as any).mockResolvedValue(mockOpenAIResponse);
 
     // Import and call the function
     const { getOpenAIBio } = await import('@/server/utils/queries/artistBioQuery');
     const result = await getOpenAIBio('test-id');
 
-    // Verify the OpenAI call was made with the default model
+    // Verify the OpenAI call was made WITHOUT a model parameter
     expect(openai.responses.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'gpt-5-nano', // Default value
         prompt: expect.objectContaining({
           id: expect.any(String),
           variables: expect.objectContaining({
@@ -174,6 +172,70 @@ describe('artistBioQuery - OPENAI_MODEL usage', () => {
         })
       })
     );
+
+    // Verify that the call does NOT contain a model property
+    const callArgs = (openai.responses.create as any).mock.calls[0][0];
+    expect(callArgs).not.toHaveProperty('model');
+
+    // Verify NextResponse.json was called with the bio
+    expect(mockNextResponseJson).toHaveBeenCalledWith({ bio: 'Generated bio text' });
+  });
+
+  it('should not include model parameter when OPENAI_MODEL is empty string', async () => {
+    // Set empty OPENAI_MODEL value
+    process.env = { 
+      ...originalEnv,
+      OPENAI_API_KEY: 'test-key',
+      OPENAI_TIMEOUT_MS: '60000',
+      OPENAI_MODEL: ''
+    };
+
+    // Mock the artist data
+    const mockArtist = {
+      id: 'test-id',
+      name: 'Test Artist',
+      spotify: null,
+      instagram: null,
+      x: null,
+      soundcloud: null,
+      youtube: null,
+      youtubechannel: null,
+      wikipedia: null
+    } as any;
+
+    // Mock the OpenAI response
+    const mockOpenAIResponse = {
+      output_text: 'Generated bio text'
+    } as any;
+
+    // Import mocked modules
+    const { openai } = await import('@/server/lib/openai');
+    const { getArtistById } = await import('@/server/utils/queries/artistQueries');
+    
+    // Setup mocks
+    (getArtistById as any).mockResolvedValue(mockArtist);
+    (openai.responses.create as any).mockResolvedValue(mockOpenAIResponse);
+
+    // Import and call the function
+    const { getOpenAIBio } = await import('@/server/utils/queries/artistBioQuery');
+    const result = await getOpenAIBio('test-id');
+
+    // Verify the OpenAI call was made WITHOUT a model parameter
+    expect(openai.responses.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.objectContaining({
+          id: expect.any(String),
+          variables: expect.objectContaining({
+            artist_name: 'Test Artist',
+            artist_data: expect.any(String)
+          })
+        })
+      })
+    );
+
+    // Verify that the call does NOT contain a model property (empty string is falsy)
+    const callArgs = (openai.responses.create as jest.MockedFunction<typeof openai.responses.create>).mock.calls[0][0];
+    expect(callArgs).not.toHaveProperty('model');
 
     // Verify NextResponse.json was called with the bio
     expect(mockNextResponseJson).toHaveBeenCalledWith({ bio: 'Generated bio text' });
