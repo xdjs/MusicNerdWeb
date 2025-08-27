@@ -16,10 +16,6 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
   if (!artist) {
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
-  const prompt = await getActivePrompt();
-  if (!prompt) {
-    return NextResponse.json({ error: "No prompt found"})
-  }
 
   let spotifyBioData = ""; //empty string for spotify data
 
@@ -69,10 +65,10 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
   }
 
     // Put all informational sections of prompt together
-  const promptParts: string[] = [prompt.promptBeforeName, artist.name!, prompt.promptAfterName];
+  const promptParts: string[] = [];
     if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
     if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
-    if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
+    if (artist.x) promptParts.push(`X: https://x.com/${artist.x}`);
     if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
     if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
     if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
@@ -81,27 +77,31 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     //build prompt from parts generated and parts from the aiprompts table
   try {
     // Set timeout for OpenAI API call
-    const openaiTimeout = 15000; // 15 seconds
+    const openaiTimeout = 60000; // 60 seconds
+    const artistData = promptParts.join("\n");    
+    console.debug("OpenAI artistData:", JSON.stringify(artistData, null, 2));
     
-    const messages = [{ role: "system" as const, 
-      content: 'You are an artifical intelligence whose sole purpose is to follow the provided prompt.' 
-        +promptParts.join("\n") }];
-    
-    console.debug("OpenAI messages:", JSON.stringify(messages, null, 2));
-    
+    const openaiStartTime = Date.now();
     const completion = await Promise.race([
-      openai.chat.completions.create({
-        model: "gpt-4o",
-        messages,
-        temperature:0.8,
+      openai.responses.create({
+        prompt: {
+            id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
+            variables: {
+                artist_name: artist.name!,
+                artist_data: artistData
+            }
+        }
       }),
       new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('OpenAI timeout')), openaiTimeout)
       )
     ]);
+    const openaiEndTime = Date.now();
+    const openaiDurationMs = openaiEndTime - openaiStartTime;
     
-    const bio = completion.choices[0]?.message?.content?.trim() ?? "";
-
+    const bio = completion.output_text ?? "";
+    console.debug("OpenAI bio:", JSON.stringify(bio, null, 2));
+    console.debug("OpenAI call duration:", `${openaiDurationMs}ms`);
     //If bio generation is successful, overwrite existing bio in the artist row/object
     if (bio) {
       await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
