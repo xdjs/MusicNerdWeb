@@ -5,6 +5,7 @@ import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { OPENAI_TIMEOUT_MS } from "@/env";
 
 //Helper function that generates a bio using OpenAI with data drawn from Spotify
 //Params:
@@ -76,8 +77,8 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
 
     //build prompt from parts generated and parts from the aiprompts table
   try {
-    // Set timeout for OpenAI API call
-    const openaiTimeout = 60000; // 60 seconds
+    // Set timeout for OpenAI API call from environment variable
+    const openaiTimeout = OPENAI_TIMEOUT_MS;
     const artistData = promptParts.join("\n");    
     console.debug("OpenAI artistData:", JSON.stringify(artistData, null, 2));
     
