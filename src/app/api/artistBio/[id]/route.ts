@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { getOpenAIBio } from "@/server/utils/queries/openAIQuery";
+import { getOpenAIBio } from "@/server/utils/queries/artistBioQuery";
 
 // CORS configuration for this route
 const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || "*";
