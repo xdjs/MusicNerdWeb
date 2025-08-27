@@ -5,7 +5,7 @@ import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
-import { OPENAI_TIMEOUT_MS } from "@/env";
+import { OPENAI_TIMEOUT_MS, OPENAI_MODEL } from "@/env";
 
 //Helper function that generates a bio using OpenAI with data drawn from Spotify
 //Params:
@@ -86,7 +86,7 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     const openaiStartTime = Date.now();
     const completion = await Promise.race([
       openai.responses.create({
-        model: "gpt-5-nano",
+        model: OPENAI_MODEL,
         prompt: {
             id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
             variables: {
