@@ -4,7 +4,7 @@ export * from "./leaderboardQueries";
 export * from "./userQueries";
 export * from "./discord";
 export * from "./externalApiQueries";
-export * from "./openAIQuery";
+export * from "./artistBioQuery";
 
 
 const {youtube_api_key} = process.env;
