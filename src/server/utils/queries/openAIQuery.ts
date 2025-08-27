@@ -86,6 +86,7 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     const openaiStartTime = Date.now();
     const completion = await Promise.race([
       openai.responses.create({
+        model: "gpt-5-nano",
         prompt: {
             id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
             variables: {
