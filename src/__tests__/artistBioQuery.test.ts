@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 // Mock NextResponse
 const mockNextResponseJson = jest.fn().mockImplementation((data, options) => ({
   json: () => Promise.resolve(data),
-  status: options?.status || 200
+  status: (options as any)?.status ?? 200,
 }));
 
 jest.mock('next/server', () => ({
@@ -30,10 +30,11 @@ jest.mock('@/server/db/drizzle', () => ({
   db: {
     update: jest.fn().mockReturnValue({
       set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue(undefined)
-      })
-    })
-  }
+        // Ensure the mocked function resolves to void without type errors
+        where: jest.fn(() => Promise.resolve()),
+      }),
+    }),
+  },
 }));
 
 jest.mock('@/server/db/schema', () => ({
