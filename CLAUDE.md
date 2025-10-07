@@ -1,7 +1,7 @@
-# MusicNerdNG - Claude AI Assistant Guide
+# MusicNerdWeb - Claude AI Assistant Guide
 
 ## Project Overview
-MusicNerdNG is a Next.js web application that serves as a crowd-sourced directory for music artists. It enables users to discover artists, manage artist data, and explore social media/platform connections across the music ecosystem.
+MusicNerdWeb is a Next.js web application that serves as a crowd-sourced directory for music artists. It enables users to discover artists, manage artist data, and explore social media/platform connections across the music ecosystem.
 
 ## Tech Stack
 - **Framework**: Next.js 14 (App Router)

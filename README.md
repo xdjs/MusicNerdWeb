@@ -1,6 +1,6 @@
-# MusicNerdNG
+# MusicNerdWeb
 
-MusicNerdNG is a Next.js application that provides artist discovery and management features, integrating with Spotify and other social media platforms.
+MusicNerdWeb is a Next.js application that provides artist discovery and management features, integrating with Spotify and other social media platforms.
 
 ## Features
 
@@ -60,8 +60,8 @@ NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT=false
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/xdjs/MusicNerdNG.git
-cd MusicNerdNG
+git clone https://github.com/xdjs/MusicNerdWeb.git
+cd MusicNerdWeb
 ```
 
 2. Install dependencies:
