@@ -24,7 +24,6 @@ jobs:
         run: npm run build
 
       - name: Analyze bundle
-        uses: nextjs-components/next-bundle-analysis@v0.5.0
+        uses: hashicorp/nextjs-bundle-analysis@v0.2.1
         with:
-          budget: 250000 # Size budget in bytes (250KB)
-          budget-total: 5000000 # Total bundle budget in bytes (5MB) 
+          bundle-stats-file: .next/analyze/__bundle_analysis.json 
