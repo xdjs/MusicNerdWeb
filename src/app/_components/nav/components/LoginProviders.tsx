@@ -59,7 +59,7 @@ const WalletProviders = dynamic(
                                 chainId: undefined,
                                 domain: window.location.host,
                                 uri: window.location.origin,
-                                expirationTime: new Date(Date.now() + 1000 * 60 * 5).toISOString(), // 5 minutes from now
+                                expirationTime: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes from now
                             })}
                             enabled={true}
                         >

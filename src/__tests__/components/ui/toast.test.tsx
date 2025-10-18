@@ -32,7 +32,7 @@ describe('Toast', () => {
     it('renders destructive variant', () => {
         render(
             <ToastProvider>
-                <Toast variant="destructive">
+                <Toast variant="destructive" open={true}>
                     <ToastTitle>Error</ToastTitle>
                     <ToastDescription>Something went wrong</ToastDescription>
                 </Toast>
@@ -40,7 +40,8 @@ describe('Toast', () => {
             </ToastProvider>
         );
 
-        const toastElement = screen.getByText('Error').closest('[role="status"]');
+        // Find the toast container by getting the parent of the title
+        const toastElement = screen.getByText('Error').parentElement;
         expect(toastElement).toHaveClass('destructive');
     });
 

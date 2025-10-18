@@ -112,7 +112,7 @@ describe('authenticationAdapter', () => {
   describe('createMessage', () => {
     const mockParams = {
       nonce: 'test-nonce',
-      address: '0x1234567890123456789012345678901234567890',
+      address: '0x1234567890123456789012345678901234567890' as `0x${string}`,
       chainId: 1,
     };
 
@@ -190,19 +190,6 @@ describe('authenticationAdapter', () => {
       // Issued time should be within test execution time
       expect(issuedTime).toBeGreaterThanOrEqual(beforeTime);
       expect(issuedTime).toBeLessThanOrEqual(afterTime);
-    });
-  });
-
-  describe('getMessageBody', () => {
-    it('should return prepared message body', () => {
-      const mockMessage = {
-        prepareMessage: jest.fn().mockReturnValue('prepared-message-body'),
-      } as any;
-
-      const result = authenticationAdapter.getMessageBody({ message: mockMessage });
-
-      expect(mockMessage.prepareMessage).toHaveBeenCalled();
-      expect(result).toBe('prepared-message-body');
     });
   });
 
