@@ -63,6 +63,11 @@ export const authenticationAdapter = createAuthenticationAdapter({
     console.debug("[AuthAdapter] Created SIWE message");
     return message;
   },
+  getMessageBody: ({ message }: { message: SiweMessage }) => {
+    const messageBody = message.prepareMessage();
+    console.debug("[AuthAdapter] Prepared message body");
+    return messageBody;
+  },
   verify: async ({ message, signature }) => {
     try {
       console.debug("[AuthAdapter] Starting verification", {
