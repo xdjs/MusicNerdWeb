@@ -193,6 +193,19 @@ describe('authenticationAdapter', () => {
     });
   });
 
+  describe('getMessageBody', () => {
+    it('should call prepareMessage and return the result', () => {
+      const mockMessage = {
+        prepareMessage: jest.fn().mockReturnValue('mocked-message-body'),
+      } as any;
+
+      const result = authenticationAdapter.getMessageBody({ message: mockMessage });
+
+      expect(mockMessage.prepareMessage).toHaveBeenCalled();
+      expect(result).toBe('mocked-message-body');
+    });
+  });
+
   describe('verify', () => {
     const mockMessage = {
       domain: 'localhost',
