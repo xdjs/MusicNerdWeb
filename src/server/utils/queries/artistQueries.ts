@@ -304,7 +304,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
     try {
         console.debug("[Server] Starting addArtist for spotifyId:", spotifyId);
 
-        const headersList = headers();
+        const headersList = await headers();
         console.debug("[Server] Request headers:", {
             cookie: headersList.get("cookie"),
             authorization: headersList.get("authorization"),

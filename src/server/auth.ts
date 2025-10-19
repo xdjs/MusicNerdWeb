@@ -208,7 +208,7 @@ export const authOptions: NextAuthOptions = {
           const normalizedAuthDomain = authUrl.hostname.split(':')[0];
 
           // Get CSRF token with proper error handling
-          const csrfToken = cookies().get('next-auth.csrf-token')?.value;
+          const csrfToken = (await cookies()).get('next-auth.csrf-token')?.value;
           console.debug("[Auth] CSRF token from cookies:", {
             hasToken: !!csrfToken,
             tokenLength: csrfToken?.length || 0,

@@ -16,11 +16,12 @@ import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 type ArtistProfileProps = {
-    params: { id: string };
-    searchParams: { [key: string]: string | undefined };
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ [key: string]: string | undefined }>;
 }
 
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
+    const { id } = await params;
     const session = await getServerAuthSession();
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
     let canEdit = walletlessEnabled;
@@ -32,7 +33,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             canEdit = false;
         }
     }
-    const artist = await getArtistById(params.id);
+    const artist = await getArtistById(id);
     if (!artist) {
         return notFound();
     }

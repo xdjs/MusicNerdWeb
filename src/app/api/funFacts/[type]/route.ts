@@ -17,14 +17,15 @@ async function getPrompts() {
   }
 }
 
-export async function GET(req: Request, { params }: { params: { type: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ type: string }> }) {
+  const { type } = await params;
+
   // Set a timeout for the entire operation to prevent Vercel timeouts
-  const timeoutPromise = new Promise<NextResponse>((_, reject) => 
+  const timeoutPromise = new Promise<NextResponse>((_, reject) =>
     setTimeout(() => reject(new Error('Fun fact generation timeout')), 20000) // 20 second timeout
   );
 
   const funFactOperation = async (): Promise<NextResponse> => {
-    const { type } = params;
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

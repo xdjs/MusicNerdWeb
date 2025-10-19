@@ -21,8 +21,9 @@ const createJsonResponse = (data: any, init?: ResponseInit) => {
 // Mock the components instead of importing them
 jest.mock('@/app/artist/[id]/page', () => ({
     __esModule: true,
-    default: jest.fn((props) => {
-        const { opADM } = props.searchParams;
+    default: jest.fn(async (props) => {
+        const searchParams = await props.searchParams;
+        const { opADM } = searchParams;
         return (
             <div>
                 <div data-testid="add-artist-data" data-open={opADM === '1' ? 'true' : 'false'}>
@@ -35,8 +36,9 @@ jest.mock('@/app/artist/[id]/page', () => ({
 
 jest.mock('@/app/add-artist/page', () => ({
     __esModule: true,
-    default: jest.fn((props) => {
-        const { spotify } = props.searchParams;
+    default: jest.fn(async (props) => {
+        const searchParams = await props.searchParams;
+        const { spotify } = searchParams;
         if (!spotify) {
             return <div>No Spotify ID provided</div>;
         }
@@ -98,8 +100,8 @@ describe('URL Parameter Handling', () => {
     describe('Artist Page Parameters', () => {
         it('should handle opADM parameter for opening AddArtistData modal', async () => {
             const props = {
-                params: { id: 'test-id' },
-                searchParams: { opADM: '1' }
+                params: Promise.resolve({ id: 'test-id' }),
+                searchParams: Promise.resolve({ opADM: '1' })
             };
 
             const Component = await import('@/app/artist/[id]/page').then(mod => mod.default(props));
@@ -111,8 +113,8 @@ describe('URL Parameter Handling', () => {
 
         it('should not open AddArtistData modal without opADM parameter', async () => {
             const props = {
-                params: { id: 'test-id' },
-                searchParams: {}
+                params: Promise.resolve({ id: 'test-id' }),
+                searchParams: Promise.resolve({})
             };
 
             const Component = await import('@/app/artist/[id]/page').then(mod => mod.default(props));
@@ -126,7 +128,7 @@ describe('URL Parameter Handling', () => {
     describe('Add Artist Page Parameters', () => {
         it('should handle spotify parameter for artist data', async () => {
             const props = {
-                searchParams: { spotify: 'test-spotify-id' }
+                searchParams: Promise.resolve({ spotify: 'test-spotify-id' })
             };
 
             const Component = await import('@/app/add-artist/page').then(mod => mod.default(props));
@@ -137,7 +139,7 @@ describe('URL Parameter Handling', () => {
 
         it('should show error message when spotify parameter is missing', async () => {
             const props = {
-                searchParams: {}
+                searchParams: Promise.resolve({})
             };
 
             const Component = await import('@/app/add-artist/page').then(mod => mod.default(props));
@@ -148,7 +150,7 @@ describe('URL Parameter Handling', () => {
 
         it('should show error message when spotify artist fetch fails', async () => {
             const props = {
-                searchParams: { spotify: 'invalid-id' }
+                searchParams: Promise.resolve({ spotify: 'invalid-id' })
             };
 
             const Component = await import('@/app/add-artist/page').then(mod => mod.default(props));

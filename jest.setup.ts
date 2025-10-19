@@ -77,16 +77,6 @@ global.fetch = jest.fn(() =>
     })
 ) as jest.Mock;
 
-// Mock window.location.reload to prevent JSDOM errors
-const mockLocation = {
-    ...window.location,
-    reload: jest.fn(),
-};
-Object.defineProperty(window, 'location', {
-    value: mockLocation,
-    writable: true,
-});
-
 // Mock next/router
 jest.mock('next/router', () => ({
     useRouter: () => ({
