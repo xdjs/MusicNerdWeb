@@ -18,15 +18,17 @@ export async function OPTIONS() {
 
 
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   // Set a timeout for the entire operation to prevent Vercel timeouts
-  const timeoutPromise = new Promise<NextResponse>((_, reject) => 
+  const timeoutPromise = new Promise<NextResponse>((_, reject) =>
     setTimeout(() => reject(new Error('Bio generation timeout')), 25000) // 25 second timeout
   );
 
   const bioOperation = async (): Promise<NextResponse> => {
     // Fetch artist row/object
-    const artist = await getArtistById(params.id);
+    const artist = await getArtistById(id);
     if (!artist) {
       return NextResponse.json({ error: "Artist not found" }, { status: 404, headers: CORS_HEADERS });
     }
@@ -44,7 +46,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     //generate a bio and return it
     try {
-      const response = await getOpenAIBio(params.id);
+      const response = await getOpenAIBio(id);
       Object.entries(CORS_HEADERS).forEach(([key, value]) => response.headers.set(key, String(value)));
       return response;
     //Error Handling
@@ -77,8 +79,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 // ----------------------------------
 // PUT /api/artistBio/[id]
 // ----------------------------------
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const bio: string = body?.bio;
     const regenerate: boolean = body?.regenerate || false;
@@ -90,7 +93,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const { updateArtistBio } = await import("@/server/utils/queries/artistQueries");
 
-    const result = await updateArtistBio(params.id, bio, regenerate);
+    const result = await updateArtistBio(id, bio, regenerate);
 
     if (result.status === "success") {
       return NextResponse.json({ 
