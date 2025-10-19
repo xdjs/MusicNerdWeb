@@ -126,8 +126,8 @@ describe('ArtistPage', () => {
     });
 
     const defaultProps = {
-        params: { id: 'test-id' },
-        searchParams: {} as { [key: string]: string | undefined }
+        params: Promise.resolve({ id: 'test-id' }),
+        searchParams: Promise.resolve({} as { [key: string]: string | undefined })
     };
 
     it('renders artist data when available', async () => {
@@ -186,8 +186,8 @@ describe('ArtistPage', () => {
 
     it('does not auto open AddArtistData anymore', async () => {
         const propsWithOpADM = {
-            ...defaultProps,
-            searchParams: { opADM: '1' }
+            searchParams: Promise.resolve({ opADM: '1' }),
+            params: Promise.resolve({ id: 'test-id' })
         };
 
         (getArtistById as jest.Mock).mockResolvedValue(mockArtist);

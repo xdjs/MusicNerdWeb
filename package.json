@@ -69,6 +69,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@jest/globals": "^30.2.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -78,11 +79,11 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/testing-library__jest-dom": "^5.14.9",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "@vitejs/plugin-react": "^4.7.0",
     "drizzle-kit": "^0.31.5",
-    "eslint": "^8",
+    "eslint": "^9.38.0",
     "eslint-config-next": "15.5.6",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.2.0",
