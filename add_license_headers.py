@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to add license headers to source code files.
-Copyright (c) 2025 MusicNerdNG
+Copyright (c) 2025 xDJs LLC
 Licensed under the MIT License.
 """
 
@@ -14,35 +14,35 @@ from typing import Dict, List, Tuple, Optional
 # License header templates for different file types
 LICENSE_HEADERS = {
     'js': '''/**
- * Copyright (c) 2025 MusicNerdNG
+ * Copyright (c) 2025 xDJs LLC
  * Licensed under the MIT License.
  * See LICENSE file in the project root for full license information.
  */
 
 ''',
     'css': '''/*
- * Copyright (c) 2025 MusicNerdNG
+ * Copyright (c) 2025 xDJs LLC
  * Licensed under the MIT License.
  * See LICENSE file in the project root for full license information.
  */
 
 ''',
     'html': '''<!--
-Copyright (c) 2025 MusicNerdNG
+Copyright (c) 2025 xDJs LLC
 Licensed under the MIT License.
 See LICENSE file in the project root for full license information.
 -->
 
 ''',
     'sql': '''--
--- Copyright (c) 2025 MusicNerdNG
+-- Copyright (c) 2025 xDJs LLC
 -- Licensed under the MIT License.
 -- See LICENSE file in the project root for full license information.
 --
 
 ''',
     'py': '''"""
-Copyright (c) 2025 MusicNerdNG
+Copyright (c) 2025 xDJs LLC
 Licensed under the MIT License.
 See LICENSE file in the project root for full license information.
 """
@@ -50,7 +50,7 @@ See LICENSE file in the project root for full license information.
 ''',
     'sh': '''#!/bin/bash
 #
-# Copyright (c) 2025 MusicNerdNG
+# Copyright (c) 2025 xDJs LLC
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 #
@@ -122,7 +122,7 @@ def has_license_header(content: str, file_type: str) -> bool:
     
     # Check for various forms of copyright notice
     copyright_patterns = [
-        r'copyright.*musicnerdng',
+        r'copyright.*xDJs LLC',
         r'licensed under.*mit',
         r'see license file',
         r'mit license'

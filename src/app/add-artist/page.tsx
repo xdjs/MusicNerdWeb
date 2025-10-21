@@ -5,9 +5,10 @@ import AddArtistContent from "./_components/AddArtistContent";
 export default async function AddArtistPage({
     searchParams,
 }: {
-    searchParams: { [key: string]: string | undefined };
+    searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-    const spotifyId = searchParams.spotify;
+    const params = await searchParams;
+    const spotifyId = params.spotify;
     
     if (!spotifyId) {
         return (

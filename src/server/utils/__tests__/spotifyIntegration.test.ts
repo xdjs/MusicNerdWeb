@@ -25,7 +25,7 @@ jest.mock('@/env', () => ({
 
 // Mock next/cache
 jest.mock('next/cache', () => ({
-    unstable_cache: (fn: Function) => fn,
+    unstable_cache: <T extends (...args: any[]) => any>(fn: T) => fn,
 }));
 
 describe('Spotify API Integration', () => {

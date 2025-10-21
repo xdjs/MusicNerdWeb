@@ -160,7 +160,7 @@ function analyzeCoverage() {
     let cleanPath = filePath.replace(/\\/g, '/');
     
     // Remove any absolute path prefix (Windows or Unix)
-    cleanPath = cleanPath.replace(/^.*[\\\/]MusicNerdNG[\\\/]/, '');
+    cleanPath = cleanPath.replace(/^.*[\\\/]MusicNerdWeb[\\\/]/, '');
     
     // Remove src/ prefix and file extensions
     cleanPath = cleanPath.replace(/^src\//, '').replace(/\.(ts|tsx|js|jsx)$/, '');

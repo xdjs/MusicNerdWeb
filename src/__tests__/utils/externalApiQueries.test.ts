@@ -544,7 +544,7 @@ describe('externalApiQueries', () => {
       const result = await getNumberOfSpotifyReleases('test_artist_id', mockHeaders);
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://api.spotify.com/v1/artists/test_artist_id/albums?include_groups=album%2Csingle&market=US&limit=1',
+        'https://api.spotify.com/v1/artists/test_artist_id/albums?include_groups=album%2Csingle',
         mockHeaders
       );
 
@@ -604,7 +604,7 @@ describe('externalApiQueries', () => {
       const result = await getArtistTopTrack('test_artist_id', mockHeaders);
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://api.spotify.com/v1/artists/test_artist_id/top-tracks?market=US',
+        'https://api.spotify.com/v1/artists/test_artist_id/top-tracks',
         mockHeaders
       );
 

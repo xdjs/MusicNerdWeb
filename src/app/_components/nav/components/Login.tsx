@@ -30,7 +30,7 @@ interface LoginProps {
 
 // Component for wallet-enabled mode
 const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
-    ({ buttonChildren, buttonStyles = "bg-gray-100", isplaceholder = false, searchBarRef }, ref): JSX.Element => {
+    ({ buttonChildren, buttonStyles = "bg-gray-100", isplaceholder = false, searchBarRef }, ref): React.ReactElement => {
     const router = useRouter();
     const { toast } = useToast();
     const { data: session, status } = useSession();
@@ -514,7 +514,7 @@ const NoWalletLogin: React.FC<LoginProps> = ({ buttonStyles }) => {
 };
 
 // Main component that decides which version to render
-const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): JSX.Element => {
+const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): React.ReactElement => {
     // Walletless mode is only permitted when NODE_ENV !== 'production'
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
 

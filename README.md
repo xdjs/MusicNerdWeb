@@ -1,6 +1,6 @@
-# MusicNerdNG
+# MusicNerdWeb
 
-MusicNerdNG is a Next.js application that provides artist discovery and management features, integrating with Spotify and other social media platforms.
+MusicNerdWeb is a Next.js application that provides artist discovery and management features, integrating with Spotify and other social media platforms.
 
 ## Features
 
@@ -42,6 +42,10 @@ DISCORD_WEBHOOK_URL=your_discord_webhook_url
 
 # OpenAI API (for AI features like bio generation and fun facts)
 OPENAI_API_KEY=your_openai_api_key
+# OpenAI timeout in milliseconds (defaults to 60000ms if not set)
+OPENAI_TIMEOUT_MS=60000
+# OpenAI model to use (optional - if not set, no model parameter is sent to OpenAI)
+OPENAI_MODEL=gpt-5-nano
 
 # Optional: Coverage reporting webhook
 DISCORD_COVERAGE_URL=your_discord_coverage_webhook_url
@@ -56,8 +60,8 @@ NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT=false
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/xdjs/MusicNerdNG.git
-cd MusicNerdNG
+git clone https://github.com/xdjs/MusicNerdWeb.git
+cd MusicNerdWeb
 ```
 
 2. Install dependencies:
