@@ -173,4 +173,5 @@ jobs:
         else
           echo "❌ Some checks failed!"
           echo "Job status was: $STATUS"
-          exit 1 
+          exit 1
+        fi 
