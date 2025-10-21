@@ -7,7 +7,16 @@ on:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    
+
+    env:
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
+      NEXTAUTH_SECRET: test-secret-for-ci
+      NEXTAUTH_URL: http://localhost:3000
+      SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
+      DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
     steps:
       - uses: actions/checkout@v4
       
