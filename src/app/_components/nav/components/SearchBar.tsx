@@ -380,8 +380,11 @@ const WalletSearchBar = forwardRef(
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                                             <span className="cursor-pointer hover:text-gray-600 hover:underline">Add to MusicNerd</span>
                                                             <span className="text-pink-400">|</span>
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-gray-600"
+                                                                onMouseDown={(e) => {
+                                                                    e.stopPropagation();
+                                                                }}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     window.open(`https://open.spotify.com/artist/${result.spotify}`, '_blank');
@@ -832,8 +835,11 @@ const NoWalletSearchBar = forwardRef(
                                                         <div className="text-xs text-gray-500 flex items-center gap-1">
                                                             <span className="cursor-pointer hover:text-gray-600 hover:underline">Add to MusicNerd</span>
                                                             <span className="text-gray-300">|</span>
-                                                            <div 
+                                                            <div
                                                                 className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-gray-600"
+                                                                onMouseDown={(e) => {
+                                                                    e.stopPropagation();
+                                                                }}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     window.open(`https://open.spotify.com/artist/${result.spotify}`, '_blank');
