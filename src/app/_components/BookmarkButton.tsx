@@ -18,7 +18,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
 
   // Load initial bookmark state
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || typeof window === 'undefined') return;
     try {
       const raw = localStorage.getItem(`bookmarks_${userId}`);
       if (raw) {
@@ -31,7 +31,7 @@ export default function BookmarkButton({ className, artistId, artistName, imageU
   }, [userId, artistId]);
 
   const handleClick = () => {
-    if (!userId) return; // safety
+    if (!userId || typeof window === 'undefined') return; // safety
 
     setBookmarked((prev) => {
       const newState = !prev;

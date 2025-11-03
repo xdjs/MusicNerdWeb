@@ -518,7 +518,7 @@ const NoWalletSearchBar = forwardRef(
             sessionStorage.setItem('searchFlowPrompted', 'true');
 
             // Only proceed if this wasn't a manual disconnect
-            if (!sessionStorage.getItem('manualDisconnect')) {
+            if (typeof window !== 'undefined' && !sessionStorage.getItem('manualDisconnect')) {
                 // Clear CSRF token cookie first
                 document.cookie = 'next-auth.csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
 
@@ -687,19 +687,21 @@ const NoWalletSearchBar = forwardRef(
         try {
             console.debug("[SearchBar] Signing out");
             
+            if (typeof window === 'undefined') return;
+
             // Set flag to indicate this was a manual disconnect
             sessionStorage.setItem('manualDisconnect', 'true');
-            
+
             // Clear CSRF token cookie first
             document.cookie = 'next-auth.csrf-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-            
+
             // Clear all session data
             sessionStorage.clear();
             localStorage.removeItem('siwe.session');
             localStorage.removeItem('wagmi.siwe.message');
             localStorage.removeItem('wagmi.siwe.signature');
             sessionStorage.removeItem('siwe-nonce');
-            
+
             // Clear all wagmi-related data
             localStorage.removeItem('wagmi.wallet');
             localStorage.removeItem('wagmi.connected');
@@ -981,8 +983,8 @@ function SocialIcons({ result }: { result: SearchResult }) {
 
 // Helper function to get all bookmarked artist IDs for the current user
 function getBookmarkedArtistIds(userId: string | undefined): string[] {
-    if (!userId) return [];
-    
+    if (!userId || typeof window === 'undefined') return [];
+
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
         if (raw) {
@@ -992,14 +994,14 @@ function getBookmarkedArtistIds(userId: string | undefined): string[] {
     } catch (e) {
         console.debug('[SearchResults] error parsing bookmarks', e);
     }
-    
+
     return [];
 }
 
 // Helper function to get bookmarked artists with full data in user's preferred order
 function getBookmarkedArtists(userId: string | undefined): Array<{id: string, name: string, images?: {url: string}[]}> {
-    if (!userId) return [];
-    
+    if (!userId || typeof window === 'undefined') return [];
+
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
         if (raw) {
@@ -1016,14 +1018,14 @@ function getBookmarkedArtists(userId: string | undefined): Array<{id: string, na
     } catch (e) {
         console.debug('[SearchResults] error parsing bookmarks', e);
     }
-    
+
     return [];
 }
 
 // Helper function to check if an artist is bookmarked by the current user
 function isArtistBookmarked(artistId: string | undefined, userId: string | undefined, _trigger?: number): boolean {
-    if (!artistId || !userId) return false;
-    
+    if (!artistId || !userId || typeof window === 'undefined') return false;
+
     try {
         const raw = localStorage.getItem(`bookmarks_${userId}`);
         if (raw) {
@@ -1033,7 +1035,7 @@ function isArtistBookmarked(artistId: string | undefined, userId: string | undef
     } catch (e) {
         console.debug('[SearchResults] error parsing bookmarks', e);
     }
-    
+
     return false;
 }
 

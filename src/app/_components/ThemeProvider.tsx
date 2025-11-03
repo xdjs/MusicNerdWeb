@@ -37,8 +37,12 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
+    // SSR safety check
+    if (typeof window === 'undefined') {
+      return defaultTheme ?? "light"
+    }
     // Check localStorage first
-    const stored = localStorage?.getItem(storageKey) as Theme
+    const stored = localStorage.getItem(storageKey) as Theme
     if (stored && (stored === "light" || stored === "dark")) {
       return stored
     }
@@ -55,7 +59,9 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage?.setItem(storageKey, theme)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, theme)
+      }
       setTheme(theme)
     },
   }
