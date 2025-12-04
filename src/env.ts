@@ -22,5 +22,5 @@ export const OPENAI_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '6000
 export const OPENAI_MODEL = process.env.OPENAI_MODEL;
 
 // Privy Configuration
-export const PRIVY_APP_ID = validateEnv(process.env.NEXT_PUBLIC_PRIVY_APP_ID, 'NEXT_PUBLIC_PRIVY_APP_ID', isTestEnv);
-export const PRIVY_APP_SECRET = validateEnv(process.env.PRIVY_APP_SECRET, 'PRIVY_APP_SECRET', isTestEnv);
+export const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";
