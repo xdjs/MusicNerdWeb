@@ -150,9 +150,11 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                 const data = await res.json();
                 setUgcCount(data.count);
 
-                const storageKey = `ugcCount_${session.user.id}`;
-                const stored = Number(localStorage.getItem(storageKey) || '0');
-                setHasNewUGC(data.count > stored);
+                if (typeof window !== 'undefined') {
+                    const storageKey = `ugcCount_${session.user.id}`;
+                    const stored = Number(localStorage.getItem(storageKey) || '0');
+                    setHasNewUGC(data.count > stored);
+                }
             }
         } catch (e) {
             console.error('[Login] Error fetching UGC count', e);
@@ -206,14 +208,16 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             }
             
             // Clear only wallet-related items
-            localStorage.removeItem('wagmi.wallet');
-            localStorage.removeItem('wagmi.connected');
-            localStorage.removeItem('wagmi.injected.connected');
-            localStorage.removeItem('wagmi.store');
-            localStorage.removeItem('wagmi.cache');
-            localStorage.removeItem('siwe.session');
-            localStorage.removeItem('wagmi.siwe.message');
-            localStorage.removeItem('wagmi.siwe.signature');
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('wagmi.wallet');
+                localStorage.removeItem('wagmi.connected');
+                localStorage.removeItem('wagmi.injected.connected');
+                localStorage.removeItem('wagmi.store');
+                localStorage.removeItem('wagmi.cache');
+                localStorage.removeItem('siwe.session');
+                localStorage.removeItem('wagmi.siwe.message');
+                localStorage.removeItem('wagmi.siwe.signature');
+            }
             
             // Reset prompt flag and manual disconnect flag, also clear flow flags
             shouldPromptRef.current = false;
@@ -296,7 +300,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
             // Clean up flags if authentication fails
             if (status === "unauthenticated" && currentStatus === "loading") {
                 // Don't clear session storage if this was a manual disconnect
-                if (!sessionStorage.getItem('manualDisconnect')) {
+                if (typeof window !== 'undefined' && !sessionStorage.getItem('manualDisconnect')) {
                     sessionStorage.clear();
                     localStorage.removeItem('wagmi.wallet');
                     localStorage.removeItem('wagmi.connected');
@@ -448,7 +452,7 @@ const WalletLogin = forwardRef<HTMLButtonElement, LoginProps>(
                             <DropdownMenuItem className="flex items-center gap-2" asChild>
                                 <Link href="/profile" prefetch onClick={() => {
                                     try {
-                                        if (session) {
+                                        if (session && typeof window !== 'undefined') {
                                             const storageKey = `ugcCount_${session.user.id}`;
                                             localStorage.setItem(storageKey, String(ugcCount));
                                             setHasNewUGC(false);

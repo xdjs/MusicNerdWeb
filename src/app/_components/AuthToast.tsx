@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Helper to check if the user has newly approved UGC
 async function hasNewApprovedUGC(userId: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
   try {
     const resp = await fetch("/api/approvedUGCCount");
     if (!resp.ok) return false;
@@ -40,7 +41,7 @@ export default function AuthToast() {
 
     // Show a welcome toast only when transitioning into "authenticated" from any
     // other state (after the initial mount), with a valid user object.
-    if (prevStatus !== "authenticated" && status === "authenticated" && session?.user) {
+    if (prevStatus !== "authenticated" && status === "authenticated" && session?.user && typeof window !== 'undefined') {
       (async () => {
         const storageKey = `approvedUGCCount_${session.user.id}`;
         // Check if approvedUGC count increased
