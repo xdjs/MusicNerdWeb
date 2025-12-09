@@ -154,7 +154,9 @@ const baseArtist: Artist = {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     supercollector: null,
-    bio: null
+    bio: null,
+    webmapdata: null,
+    nodePfp: null
 };
 
 const mockUrlMaps: UrlMap[] = [
@@ -873,8 +875,8 @@ describe('UGC Functions', () => {
     describe('getPendingUGC', () => {
         it('should return pending UGC data with user information', async () => {
             const mockUgcData = [
-                { id: 'ugc1', ugcUrl: 'https://instagram.com/test1', artistId: 'artist1', ugcUser: { wallet: '0x111' } },
-                { id: 'ugc2', ugcUrl: 'https://twitter.com/test2', artistId: 'artist2', ugcUser: null }
+                { id: 'ugc1', ugcUrl: 'https://instagram.com/test1', artistId: 'artist1', user: { wallet: '0x111' } },
+                { id: 'ugc2', ugcUrl: 'https://twitter.com/test2', artistId: 'artist2', user: null }
             ];
             (db.query.ugcresearch.findMany as jest.Mock).mockResolvedValue(mockUgcData);
 
