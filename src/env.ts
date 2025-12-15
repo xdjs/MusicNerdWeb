@@ -20,3 +20,7 @@ export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
 export const OPENAI_API_KEY = validateEnv(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY', isTestEnv);
 export const OPENAI_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '60000', 10);
 export const OPENAI_MODEL = process.env.OPENAI_MODEL;
+
+// Privy Configuration
+export const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
+export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";

@@ -5,8 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1727931768371,
-      "tag": "0000_shocking_sunspot",
+      "when": 1765317660549,
+      "tag": "0000_broad_sentinels",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765394070869,
+      "tag": "0001_add_privy_user_id",
       "breakpoints": true
     }
   ]

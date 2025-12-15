@@ -131,7 +131,9 @@ describe('Artist Management - addArtist', () => {
             addedBy: 'test-user-id',
             cameo: null,
             farcaster: null,
-            bio: null
+            bio: null,
+            webmapdata: null,
+            nodePfp: null
         });
 
         const result = await addArtist('test-spotify-id');

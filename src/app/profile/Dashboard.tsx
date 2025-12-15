@@ -362,7 +362,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const nonHiddenUsers = entries.filter((entry: any) => !entry.isHidden);
                 setTotalEntries(nonHiddenUsers.length);
                 
-                const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
+                const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
                 console.log('[Dashboard] User lookup:', { idx, userWallet: user.wallet });
                 
                 if (idx !== -1) {
@@ -374,7 +374,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         setRank(-1); // Use -1 to indicate hidden user
                     } else {
                         // Calculate rank among non-hidden users only
-                        const nonHiddenIdx = nonHiddenUsers.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet.toLowerCase());
+                        const nonHiddenIdx = nonHiddenUsers.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
                         if (nonHiddenIdx !== -1) {
                             setRank(nonHiddenIdx + 1);
                         }
@@ -971,7 +971,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
                 <Leaderboard 
-                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet)} 
+                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet || undefined)} 
                     onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange} 
                 />
             </div>

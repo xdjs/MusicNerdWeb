@@ -116,7 +116,9 @@ export const createMockArtist = (id: string, name: string, spotify: string): Art
     addedBy: 'test-user-id',
     cameo: null,
     farcaster: null,
-    bio: null
+    bio: null,
+    webmapdata: null,
+    nodePfp: null
 });
 
 // Basic tests to verify mock functionality
