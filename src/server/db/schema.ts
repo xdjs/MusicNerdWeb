@@ -94,7 +94,8 @@ export const users = pgTable("users", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	email: text(),
 	username: text(),
-	wallet: text().notNull(),
+	wallet: text(),  // Nullable for Privy users who haven't linked a wallet
+	privyUserId: text("privy_user_id"),  // Privy authentication identifier
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	legacyId: text("legacy_id"),
@@ -106,6 +107,7 @@ export const users = pgTable("users", {
 	acceptedUgcCount: bigint("accepted_ugc_count", { mode: "number" }),
 }, (table) => [
 	unique("users_wallet_key").on(table.wallet),
+	unique("users_privy_user_id_key").on(table.privyUserId),
 	pgPolicy("mnweb_delete_users", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_users", { as: "permissive", for: "insert", to: ["mnweb"] }),
 	pgPolicy("mnweb_select_users", { as: "permissive", for: "select", to: ["mnweb"] }),

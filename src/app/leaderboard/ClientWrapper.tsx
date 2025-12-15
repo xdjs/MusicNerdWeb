@@ -8,9 +8,10 @@ import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
   id: string;
-  wallet: string;
+  wallet: string | null;
   email: string | null;
   username: string | null;
+  privyUserId: string | null;
   isAdmin: boolean;
   isWhiteListed: boolean;
   isSuperAdmin: boolean;
@@ -72,6 +73,7 @@ export default function ClientWrapper() {
     wallet: '0x0000000000000000000000000000000000000000',
     email: null,
     username: 'Guest User',
+    privyUserId: null,
     isAdmin: false,
     isWhiteListed: false,
     isSuperAdmin: false,
@@ -101,8 +103,8 @@ export default function ClientWrapper() {
         showStatus={false} 
         selectedRange={selectedRange}
       />
-      <Leaderboard 
-        highlightIdentifier={currentUser.username || currentUser.wallet} 
+      <Leaderboard
+        highlightIdentifier={currentUser.username || currentUser.wallet || undefined}
         onRangeChange={handleRangeChange}
       />
     </main>
