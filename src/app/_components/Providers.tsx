@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Session } from "next-auth";
 import AuthToast from "./AuthToast";
 import { ThemeProvider } from "./ThemeProvider";
+import { PrivyProviderWrapper } from "./PrivyProviderWrapper";
 
 export default function Providers({
   children,
@@ -13,15 +14,17 @@ export default function Providers({
   session: Session | null;
 }) {
   return (
-    <ThemeProvider storageKey="musicnerd-theme">
-      <SessionProvider 
-        session={session}
-        refetchInterval={0} 
-        refetchOnWindowFocus={false}
-      >
-        <AuthToast />
-        {children}
-      </SessionProvider>
-    </ThemeProvider>
+    <PrivyProviderWrapper>
+      <ThemeProvider storageKey="musicnerd-theme">
+        <SessionProvider
+          session={session}
+          refetchInterval={0}
+          refetchOnWindowFocus={false}
+        >
+          <AuthToast />
+          {children}
+        </SessionProvider>
+      </ThemeProvider>
+    </PrivyProviderWrapper>
   );
 } 
