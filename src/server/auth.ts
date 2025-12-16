@@ -7,7 +7,8 @@ import { cookies } from 'next/headers';
 import { NEXTAUTH_URL } from "@/env";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SiweMessage } from "siwe";
-import { getUserByWallet, createUser } from "@/server/utils/queries/userQueries";
+import { getUserByWallet, createUser, getUserByPrivyId, createUserFromPrivy } from "@/server/utils/queries/userQueries";
+import { verifyPrivyToken } from "@/server/utils/privy";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -19,17 +20,20 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      privyUserId?: string;
       walletAddress?: string;
       isWhiteListed?: boolean;
       isAdmin?: boolean;
       isSuperAdmin?: boolean;
       isHidden?: boolean;
+      needsLegacyLink?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
-    walletAddress: string;
+    privyUserId?: string;
+    walletAddress?: string;
     email?: string;
     username?: string;
     location?: string;
@@ -41,16 +45,19 @@ declare module "next-auth" {
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     isHidden?: boolean;
+    needsLegacyLink?: boolean;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
+    privyUserId?: string;
     walletAddress?: string;
     isWhiteListed?: boolean;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     isHidden?: boolean;
+    needsLegacyLink?: boolean;
     lastRefresh?: number;
   }
 }
@@ -65,6 +72,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         // Copy all user properties to the token during initial login
+        token.privyUserId = user.privyUserId;
         token.walletAddress = user.walletAddress;
         token.email = user.email;
         token.name = user.name || user.username;
@@ -72,40 +80,55 @@ export const authOptions: NextAuthOptions = {
         token.isAdmin = user.isAdmin;
         token.isSuperAdmin = user.isSuperAdmin;
         token.isHidden = user.isHidden;
+        token.needsLegacyLink = user.needsLegacyLink;
         token.lastRefresh = Date.now();
       } else {
         // Refresh user data from database in these cases:
         // 1. Explicit session update trigger
         // 2. Token is older than 5 minutes (for role changes)
         // 3. Missing critical properties
-        const shouldRefresh = 
-          trigger === "update" || 
-          !token.lastRefresh || 
+        const shouldRefresh =
+          trigger === "update" ||
+          !token.lastRefresh ||
           (Date.now() - (token.lastRefresh as number)) > 5 * 60 * 1000 || // 5 minutes
-          token.isAdmin === undefined || 
+          token.isAdmin === undefined ||
           token.isWhiteListed === undefined ||
           token.isSuperAdmin === undefined ||
           token.isHidden === undefined;
 
-        if (shouldRefresh && token.walletAddress) {
+        if (shouldRefresh) {
           try {
-            console.debug('[Auth] Refreshing user data from database', { 
-              trigger, 
-              lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
-              wallet: token.walletAddress 
-            });
-            
-            const refreshedUser = await getUserByWallet(token.walletAddress);
+            // Try to refresh by Privy ID first, then by wallet
+            let refreshedUser = null;
+
+            if (token.privyUserId) {
+              console.debug('[Auth] Refreshing user data from database by Privy ID', {
+                trigger,
+                lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
+                privyUserId: token.privyUserId
+              });
+              refreshedUser = await getUserByPrivyId(token.privyUserId);
+            } else if (token.walletAddress) {
+              console.debug('[Auth] Refreshing user data from database by wallet', {
+                trigger,
+                lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
+                wallet: token.walletAddress
+              });
+              refreshedUser = await getUserByWallet(token.walletAddress);
+            }
+
             if (refreshedUser) {
               // Update all user properties from database
+              token.walletAddress = refreshedUser.wallet ?? undefined;
               token.isWhiteListed = refreshedUser.isWhiteListed;
               token.isAdmin = refreshedUser.isAdmin;
               token.isSuperAdmin = refreshedUser.isSuperAdmin;
               token.isHidden = refreshedUser.isHidden;
-              token.email = refreshedUser.email;
-              token.name = refreshedUser.username;
+              token.email = refreshedUser.email ?? undefined;
+              token.name = refreshedUser.username ?? undefined;
+              token.needsLegacyLink = !refreshedUser.wallet;
               token.lastRefresh = Date.now();
-              
+
               console.debug('[Auth] User data refreshed', {
                 isAdmin: refreshedUser.isAdmin,
                 isWhiteListed: refreshedUser.isWhiteListed,
@@ -127,6 +150,7 @@ export const authOptions: NextAuthOptions = {
         user: {
           ...session.user,
           id: token.sub,
+          privyUserId: token.privyUserId,
           walletAddress: token.walletAddress,
           email: token.email,
           name: token.name,
@@ -134,6 +158,7 @@ export const authOptions: NextAuthOptions = {
           isAdmin: token.isAdmin,
           isSuperAdmin: token.isSuperAdmin,
           isHidden: token.isHidden,
+          needsLegacyLink: token.needsLegacyLink,
         },
       }
     },
@@ -154,7 +179,65 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
+    // Privy authentication provider (email-first)
     CredentialsProvider({
+      id: "privy",
+      name: "Privy",
+      credentials: {
+        authToken: { label: "Auth Token", type: "text" },
+      },
+      async authorize(credentials): Promise<any> {
+        if (!credentials?.authToken) {
+          console.error('[Auth] No Privy auth token provided');
+          return null;
+        }
+
+        // Verify the Privy token
+        const privyUser = await verifyPrivyToken(credentials.authToken);
+        if (!privyUser) {
+          console.error('[Auth] Privy token verification failed');
+          return null;
+        }
+
+        // Look up user by Privy ID
+        let user = await getUserByPrivyId(privyUser.userId);
+
+        if (!user) {
+          // New user - create account
+          console.debug('[Auth] Creating new user from Privy login', {
+            privyUserId: privyUser.userId,
+            email: privyUser.email
+          });
+          user = await createUserFromPrivy({
+            privyUserId: privyUser.userId,
+            email: privyUser.email,
+          });
+        }
+
+        if (!user) {
+          console.error('[Auth] Failed to get or create user');
+          return null;
+        }
+
+        console.debug('[Auth] Privy login successful', { userId: user.id });
+
+        return {
+          id: user.id,
+          privyUserId: privyUser.userId,
+          email: user.email,
+          walletAddress: user.wallet,
+          isWhiteListed: user.isWhiteListed,
+          isAdmin: user.isAdmin,
+          isSuperAdmin: user.isSuperAdmin,
+          isHidden: user.isHidden,
+          isSignupComplete: true,
+          needsLegacyLink: !user.wallet,
+        };
+      },
+    }),
+    // Legacy SIWE authentication provider (wallet-first) - kept for backwards compatibility
+    CredentialsProvider({
+      id: "ethereum",
       name: "Ethereum",
       credentials: {
         message: {
