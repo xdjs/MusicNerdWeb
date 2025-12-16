@@ -54,7 +54,8 @@ interface UseArtistBioReturn {
 export function useArtistBio(artistId: string, initialBio?: string | null): UseArtistBioReturn {
   // Check for initial value from server or cache
   const getInitialBio = (): string | undefined => {
-    if (initialBio) return initialBio;
+    // Use != null to allow empty strings (only skip if undefined/null)
+    if (initialBio != null) return initialBio;
     const cache = getCache();
     const cached = cache[artistId];
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -110,8 +111,8 @@ export function useArtistBio(artistId: string, initialBio?: string | null): UseA
   };
 
   useEffect(() => {
-    // Skip fetch if we have a server-provided initialBio or valid cached value
-    if (initialBio) {
+    // Skip fetch if we have a server-provided initialBio (use != null to allow empty strings)
+    if (initialBio != null) {
       setLoading(false);
       return;
     }
