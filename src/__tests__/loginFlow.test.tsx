@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Login from '@/app/_components/nav/components/Login';
 
@@ -12,21 +12,6 @@ let sessionData: any = null;
 jest.mock('next-auth/react', () => ({
     useSession: jest.fn(() => ({ data: sessionData, status: authStatus })),
     signOut: jest.fn(),
-    signIn: jest.fn(),
-}));
-
-// Mock Privy hooks
-const loginMock = jest.fn();
-jest.mock('@privy-io/react-auth', () => ({
-    usePrivy: () => ({
-        ready: true,
-        authenticated: false,
-        user: null,
-        getAccessToken: jest.fn().mockResolvedValue('mock-token'),
-    }),
-    useLogin: () => ({ login: loginMock }),
-    useLogout: () => ({ logout: jest.fn() }),
-    useLinkAccount: () => ({ linkWallet: jest.fn() }),
 }));
 
 // Mock next/navigation router hooks that SearchBar expects
@@ -86,7 +71,7 @@ jest.mock('@/app/_components/LoadingPage', () => ({
 
 // -------------------- Test --------------------
 
-describe('Login flow – Privy authentication', () => {
+describe('Login flow – SIWE prompt appears', () => {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
     });
@@ -94,28 +79,30 @@ describe('Login flow – Privy authentication', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         sessionStorage.clear();
-        authStatus = 'unauthenticated';
+        authStatus = 'loading';
         sessionData = null;
     });
 
-    it('renders login button and triggers Privy login on click', async () => {
-        render(
+    it('opens RainbowKit connect modal (SIWE step) once auth status resolves', async () => {
+        jest.useFakeTimers();
+
+        // Prepare environment
+        authStatus = 'unauthenticated';
+        // Set flags that trigger Login to prompt connection
+        sessionStorage.setItem('searchFlow', 'true');
+        sessionStorage.setItem('loginInitiator', 'searchBar');
+
+        const { rerender } = render(
             <QueryClientProvider client={queryClient}>
                 <Login buttonStyles="" />
             </QueryClientProvider>
         );
 
-        // Wait for the component to be fully rendered
+        // Allow effects to run
         await waitFor(() => {
-            expect(screen.getByRole('button')).toBeInTheDocument();
+            expect(openConnectModalMock).toHaveBeenCalled();
         });
 
-        const loginBtn = screen.getByRole('button');
-        fireEvent.click(loginBtn);
-
-        // Verify Privy login was triggered
-        await waitFor(() => {
-            expect(loginMock).toHaveBeenCalled();
-        });
+        jest.useRealTimers();
     });
 }); 

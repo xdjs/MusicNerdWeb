@@ -291,10 +291,10 @@ describe('Session Security', () => {
         });
 
         it('should handle authenticated session', async () => {
-            // Database user type (uses null for optional fields)
-            const mockDbUser = {
+            const mockUser = {
                 id: 'test-user-id',
                 email: 'test@example.com',
+                name: 'Test User',
                 username: 'testuser',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
@@ -308,22 +308,8 @@ describe('Session Security', () => {
                 privyUserId: null
             };
 
-            // Session user type (uses undefined for optional fields)
-            const mockSessionUser = {
-                id: 'test-user-id',
-                email: 'test@example.com',
-                name: 'Test User',
-                walletAddress: '0x1234567890abcdef',
-                isAdmin: false,
-                isWhiteListed: true,
-                isSuperAdmin: false,
-                isHidden: false,
-                privyUserId: undefined,
-                needsLegacyLink: false
-            };
-
             const mockSession = {
-                user: mockSessionUser,
+                user: mockUser,
                 expires: '2025-06-11T18:15:20.712Z'
             };
 
@@ -331,7 +317,7 @@ describe('Session Security', () => {
             const mockGetUserById = getUserById as jest.MockedFunction<typeof getUserById>;
 
             mockGetServerAuthSession.mockResolvedValue(mockSession);
-            mockGetUserById.mockResolvedValue(mockDbUser);
+            mockGetUserById.mockResolvedValue(mockUser);
 
             const session = await getServerAuthSession();
             expect(session).toEqual(mockSession);
