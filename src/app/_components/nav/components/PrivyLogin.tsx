@@ -30,12 +30,28 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
 
     const { login } = useLogin({
-      onComplete: async ({ user }) => {
+      onComplete: async () => {
+        // Set flag to trigger NextAuth login once Privy state is ready
+        setIsLoggingIn(true);
+        setPendingNextAuthLogin(true);
+      },
+      onError: (error) => {
+        console.error('[PrivyLogin] Privy login error:', error);
+        setIsLoggingIn(false);
+        setPendingNextAuthLogin(false);
+      },
+    });
+
+    // Handle NextAuth login after Privy authentication is complete
+    useEffect(() => {
+      const completeLogin = async () => {
+        if (!pendingNextAuthLogin || !authenticated || !ready) return;
+
         try {
-          setIsLoggingIn(true);
-          // Get the auth token from Privy
+          // Get the auth token from Privy (now that we're authenticated)
           const authToken = await getAccessToken();
           if (!authToken) {
             console.error('[PrivyLogin] Failed to get auth token');
@@ -44,7 +60,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               description: 'Failed to get authentication token. Please try again.',
               variant: 'destructive',
             });
-            setIsLoggingIn(false);
             return;
           }
 
@@ -76,13 +91,12 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           });
         } finally {
           setIsLoggingIn(false);
+          setPendingNextAuthLogin(false);
         }
-      },
-      onError: (error) => {
-        console.error('[PrivyLogin] Privy login error:', error);
-        setIsLoggingIn(false);
-      },
-    });
+      };
+
+      completeLogin();
+    }, [pendingNextAuthLogin, authenticated, ready, getAccessToken, toast]);
 
     const { logout: privyLogout } = useLogout({
       onSuccess: () => {
