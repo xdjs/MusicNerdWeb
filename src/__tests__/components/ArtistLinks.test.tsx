@@ -76,6 +76,8 @@ const mockArtist: Artist = {
     cameo: null,
     farcaster: null,
     supercollector: null,
+    webmapdata: null,
+    nodePfp: null,
 };
 
 const mockSession: Session = {

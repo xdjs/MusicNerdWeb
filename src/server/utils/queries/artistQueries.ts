@@ -1,7 +1,7 @@
 import { db } from "@/server/db/drizzle";
 import { getSpotifyHeaders, getSpotifyArtist } from "@/server/utils/queries/externalApiQueries";
 import { eq, sql, inArray, and, arrayContains } from "drizzle-orm";
-import { artists, ugcresearch, aiPrompts } from "@/server/db/schema";
+import { artists, ugcresearch, aiprompts } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
@@ -586,10 +586,10 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 export async function getPendingUGC() {
     const start = performance.now();
     try {
-        const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { ugcUser: true } });
+        const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { user: true } });
         return result.map((obj) => {
-            const { ugcUser, ...rest } = obj;
-            return { ...rest, wallet: ugcUser?.wallet ?? null, username: ugcUser?.username ?? null };
+            const { user, ...rest } = obj;
+            return { ...rest, wallet: user?.wallet ?? null, username: user?.username ?? null };
         });
     } catch (e) {
         console.error("error getting pending ugc", e);
@@ -723,7 +723,7 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
 // ----------------------------------
 
 export async function getActivePrompt() {
-    return await db.query.aiPrompts.findFirst({ where: eq(aiPrompts.isActive, true) });
+    return await db.query.aiprompts.findFirst({ where: eq(aiprompts.isActive, true) });
 }
 
 export async function setActivePrompt() {
@@ -739,7 +739,7 @@ export async function generateArtistBio(artistId: string): Promise<string | null
         const promptRow = await getActivePrompt();
         if (!promptRow) return null;
 
-        const promptParts: string[] = [promptRow.promptBeforeName, artist.name ?? "", promptRow.promptAfterName];
+        const promptParts: string[] = [promptRow.promptBeforeName ?? "", artist.name ?? "", promptRow.promptAfterName ?? ""];
         if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
         if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
         if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);

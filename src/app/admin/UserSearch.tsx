@@ -76,7 +76,7 @@ const SearchBar = ({setUsers, query, setQuery}: {setUsers: (users: string) => vo
                     {isLoading ? <Skeleton /> :
                         <>
                             {data &&
-                                <Users users={data} setUsers={(user:string) => handleUserClick(user)}/>
+                                <Users users={data.filter((u): u is string => u !== null)} setUsers={(user:string) => handleUserClick(user)}/>
                             }
                         </>
                     }

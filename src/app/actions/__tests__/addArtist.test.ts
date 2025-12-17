@@ -40,7 +40,8 @@ describe('addArtist Server Action', () => {
     isAdmin: false,
     isSuperAdmin: false,
     isHidden: false,
-    acceptedUgcCount: null
+    acceptedUgcCount: null,
+    privyUserId: null
   };
   const mockSpotifyHeaders = {
     headers: {
