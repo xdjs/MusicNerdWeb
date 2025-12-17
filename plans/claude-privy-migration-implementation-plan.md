@@ -13,9 +13,9 @@
 | 2. Database Schema Updates | ✅ Complete |
 | 3. Privy SDK Integration | ✅ Complete |
 | 4. NextAuth Privy Provider | ✅ Complete |
-| 5. Login UI Implementation | ⏳ Not Started |
-| 6. Legacy Account Migration Flow | ⏳ Not Started |
-| 7. Account Merge Logic | ⏳ Not Started |
+| 5. Login UI Implementation | ✅ Complete |
+| 6. Legacy Account Migration Flow | ✅ Complete |
+| 7. Account Merge Logic | ✅ Complete |
 | 8. Remove Legacy Auth Packages | ⏳ Not Started |
 
 ---
