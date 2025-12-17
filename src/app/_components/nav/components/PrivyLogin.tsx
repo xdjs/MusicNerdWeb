@@ -33,7 +33,14 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
 
     const { login } = useLogin({
-      onComplete: async () => {
+      onComplete: async (user, isNewUser, wasAlreadyAuthenticated) => {
+        console.log('[PrivyLogin] onComplete called:', {
+          userId: user?.user?.id,
+          isNewUser,
+          wasAlreadyAuthenticated,
+          currentAuthenticated: authenticated,
+          currentReady: ready,
+        });
         // Set flag to trigger NextAuth login once Privy state is ready
         setIsLoggingIn(true);
         setPendingNextAuthLogin(true);
@@ -48,13 +55,35 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     // Handle NextAuth login after Privy authentication is complete
     useEffect(() => {
       const completeLogin = async () => {
-        if (!pendingNextAuthLogin || !authenticated || !ready) return;
+        console.log('[PrivyLogin] completeLogin check:', {
+          pendingNextAuthLogin,
+          authenticated,
+          ready,
+          hasPrivyUser: !!privyUser,
+          privyUserId: privyUser?.id,
+        });
+
+        if (!pendingNextAuthLogin || !authenticated || !ready) {
+          console.log('[PrivyLogin] Skipping - conditions not met');
+          return;
+        }
 
         try {
+          console.log('[PrivyLogin] Attempting to get access token...');
           // Get the auth token from Privy (now that we're authenticated)
           const authToken = await getAccessToken();
+          console.log('[PrivyLogin] getAccessToken result:', {
+            hasToken: !!authToken,
+            tokenLength: authToken?.length,
+          });
+
           if (!authToken) {
-            console.error('[PrivyLogin] Failed to get auth token');
+            console.error('[PrivyLogin] Failed to get auth token - getAccessToken returned:', authToken);
+            console.error('[PrivyLogin] Privy state at failure:', {
+              ready,
+              authenticated,
+              privyUser: privyUser ? { id: privyUser.id, email: privyUser.email } : null,
+            });
             toast({
               title: 'Login Error',
               description: 'Failed to get authentication token. Please try again.',
@@ -96,7 +125,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       };
 
       completeLogin();
-    }, [pendingNextAuthLogin, authenticated, ready, getAccessToken, toast]);
+    }, [pendingNextAuthLogin, authenticated, ready, getAccessToken, toast, privyUser]);
 
     const { logout: privyLogout } = useLogout({
       onSuccess: () => {
