@@ -73,12 +73,25 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           // Get the auth token from Privy (now that we're authenticated)
           const authToken = await getAccessToken();
           console.log('[PrivyLogin] getAccessToken result:', {
+            type: typeof authToken,
+            value: authToken,
+            stringified: JSON.stringify(authToken),
             hasToken: !!authToken,
-            tokenLength: authToken?.length,
+            tokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
           });
 
-          if (!authToken) {
-            console.error('[PrivyLogin] Failed to get auth token - getAccessToken returned:', authToken);
+          // Handle case where getAccessToken might return an object with token property
+          const token = typeof authToken === 'string' ? authToken : (authToken as any)?.token || (authToken as any)?.accessToken;
+
+          console.log('[PrivyLogin] Extracted token:', {
+            type: typeof token,
+            hasToken: !!token,
+            tokenLength: typeof token === 'string' ? token.length : 'not a string',
+            tokenPreview: typeof token === 'string' ? token.substring(0, 50) + '...' : 'N/A',
+          });
+
+          if (!token) {
+            console.error('[PrivyLogin] Failed to get auth token');
             console.error('[PrivyLogin] Privy state at failure:', {
               ready,
               authenticated,
@@ -93,8 +106,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           }
 
           // Sign in with NextAuth using the Privy provider
+          console.log('[PrivyLogin] Calling NextAuth signIn with token...');
           const result = await signIn('privy', {
-            authToken,
+            authToken: token,
             redirect: false,
           });
 
