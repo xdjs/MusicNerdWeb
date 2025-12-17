@@ -32,6 +32,9 @@ const customJestConfig: Config = {
         // Handle RainbowKit ESM module
         '^@rainbow-me/rainbowkit$': '<rootDir>/__mocks__/rainbowkit.js',
         '^@rainbow-me/rainbowkit/(.*)$': '<rootDir>/__mocks__/rainbowkit.js',
+        // Handle Privy ESM modules
+        '^@privy-io/server-auth$': '<rootDir>/__mocks__/@privy-io/server-auth.js',
+        '^@privy-io/react-auth$': '<rootDir>/__mocks__/@privy-io/react-auth.js',
         // Handle next-auth
         '^next-auth/react$': '<rootDir>/src/test/__mocks__/next-auth.ts',
         // Handle CSS imports

@@ -11,6 +11,21 @@ let sessionData: any = null;
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(() => ({ data: sessionData, status: authStatus })),
   signOut: jest.fn(),
+  signIn: jest.fn(),
+}));
+
+// Mock Privy hooks
+const loginMock = jest.fn();
+jest.mock('@privy-io/react-auth', () => ({
+  usePrivy: () => ({
+    ready: true,
+    authenticated: false,
+    user: null,
+    getAccessToken: jest.fn().mockResolvedValue('mock-token'),
+  }),
+  useLogin: () => ({ login: loginMock }),
+  useLogout: () => ({ logout: jest.fn() }),
+  useLinkAccount: () => ({ linkWallet: jest.fn() }),
 }));
 
 const openConnectModalMock = jest.fn();
@@ -77,7 +92,7 @@ describe('Login component – basic rendering', () => {
     expect(gearLink).toHaveAttribute('href', '/admin');
   });
 
-  it('shows connect button and opens RainbowKit modal in normal mode', async () => {
+  it('shows login button and triggers Privy login in normal mode', async () => {
     process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT = 'false';
 
     renderWithProviders(<Login buttonStyles="" />);
@@ -87,12 +102,12 @@ describe('Login component – basic rendering', () => {
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
-    const connectBtn = screen.getByRole('button');
-    fireEvent.click(connectBtn);
-    
-    // Wait for the mock to be called
+    const loginBtn = screen.getByRole('button');
+    fireEvent.click(loginBtn);
+
+    // Wait for the Privy login mock to be called
     await waitFor(() => {
-      expect(openConnectModalMock).toHaveBeenCalled();
+      expect(loginMock).toHaveBeenCalled();
     });
   });
 }); 

@@ -13,6 +13,7 @@ import { addArtist } from "@/app/actions/addArtist";
 import Link from 'next/link';
 import { useEnsAvatar } from '@/hooks/useEnsAvatar';
 import Jazzicon from 'react-jazzicon';
+import PrivyLogin from './PrivyLogin';
 
 
 
@@ -526,10 +527,14 @@ const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): React.Reac
         return <NoWalletLogin {...props} />;
     }
 
-    return <WalletLogin {...props} ref={ref} />;
+    // Use Privy-based login (email-first authentication)
+    return <PrivyLogin buttonStyles={props.buttonStyles} ref={ref} />;
 });
 
 Login.displayName = 'Login';
 
 export default Login;
+
+// Export WalletLogin for backwards compatibility if needed
+export { WalletLogin };
 
