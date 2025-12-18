@@ -180,8 +180,7 @@ describe('ArtistPage', () => {
     });
 
     const defaultProps = {
-        params: Promise.resolve({ id: 'test-id' }),
-        searchParams: Promise.resolve({} as { [key: string]: string | undefined })
+        params: Promise.resolve({ id: 'test-id' })
     };
 
     it('renders artist data when available', async () => {
@@ -240,7 +239,6 @@ describe('ArtistPage', () => {
 
     it('does not auto open AddArtistData anymore', async () => {
         const propsWithOpADM = {
-            searchParams: Promise.resolve({ opADM: '1' }),
             params: Promise.resolve({ id: 'test-id' })
         };
 

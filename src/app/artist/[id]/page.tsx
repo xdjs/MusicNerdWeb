@@ -20,7 +20,6 @@ import SeoArtistLinks from "./_components/SeoArtistLinks";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ [key: string]: string | undefined }>;
 }
 
 export async function generateMetadata({ params }: ArtistProfileProps): Promise<Metadata> {
@@ -65,7 +64,7 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
     };
 }
 
-export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
+export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
     const session = await getServerAuthSession();
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
