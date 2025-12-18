@@ -3,13 +3,17 @@
 ## Status: COMPLETED
 
 **Implemented:** 2024-12-16
-**Commit:** `e2536aa` - Add SEO metadata and server-side bio for artist pages
+**Commits:**
+- `e2536aa` - Add SEO metadata and server-side bio for artist pages
+- `a0e2ea6` - Fix empty string bio being treated as no bio
+- `963f566` - Add SEO-friendly social links for crawler visibility
 
 ## Summary
 
 Make artist pages crawlable by search engines and generate rich social media previews by:
 1. Adding dynamic metadata generation (Open Graph, Twitter cards)
 2. Moving artist bio fetching to server-side
+3. Adding server-rendered social links for crawlers
 
 **Out of scope:** Fun facts will remain client-side interactive features.
 
@@ -17,20 +21,22 @@ Make artist pages crawlable by search engines and generate rich social media pre
 
 ## Problem Analysis
 
-### Current State
+### Original State (Before Implementation)
 | Content | Rendering | Crawlable? |
 |---------|-----------|------------|
-| Artist name, image, links | Server-side | ✅ Yes |
+| Artist name, image | Server-side | ✅ Yes |
+| Social links | Client-side (inside EditModeProvider) | ❌ No |
 | Meta tags (title, og:image) | Static/generic | ❌ No (shows "Music Nerd") |
 | Artist bio | Client-side (`useArtistBio` hook) | ❌ No |
 | Fun facts | Client-side (on-demand) | ❌ No (keeping as-is) |
 
-### Target State
+### Final State (After Implementation)
 | Content | Rendering | Crawlable? |
 |---------|-----------|------------|
-| Artist name, image, links | Server-side | ✅ Yes |
+| Artist name, image | Server-side | ✅ Yes |
+| Social links | Server-side (SeoArtistLinks) | ✅ Yes |
 | Meta tags | Dynamic per artist | ✅ Yes |
-| Artist bio | Server-side | ✅ Yes |
+| Artist bio | Server-side (initialBio) | ✅ Yes |
 | Fun facts | Client-side | ❌ No (by design) |
 
 ---
@@ -136,12 +142,50 @@ Make artist pages crawlable by search engines and generate rich social media pre
 
 ---
 
+### Task 5: Add SEO-Friendly Social Links - DONE
+
+**File:** `src/app/artist/[id]/_components/SeoArtistLinks.tsx` (new)
+
+**Problem:**
+The existing `ArtistLinks` component is rendered inside `EditModeProvider` (a client component boundary), causing the social links to be serialized as RSC payload rather than actual HTML `<a>` tags.
+
+**Solution:**
+Create a new `SeoArtistLinks` server component that:
+1. Renders outside the `EditModeProvider` client boundary
+2. Outputs actual `<a href="...">` anchor tags
+3. Uses `sr-only` class to hide from visual users but remain in DOM for crawlers
+4. Includes Spotify link and all social platform links
+
+**Changes:**
+```typescript
+// New file: SeoArtistLinks.tsx
+export default async function SeoArtistLinks({ artist }: { artist: Artist }) {
+    const artistLinks = await getArtistLinks(artist);
+    return (
+        <nav aria-label="Artist social links" className="sr-only">
+            <ul>
+                {/* Actual <a> tags for each social link */}
+            </ul>
+        </nav>
+    );
+}
+```
+
+Added to page.tsx outside EditModeProvider:
+```typescript
+</EditModeProvider>
+<SeoArtistLinks artist={artist} />
+```
+
+---
+
 ## Files Modified
 
 | File | Changes | Status |
 |------|---------|--------|
-| `src/app/artist/[id]/page.tsx` | Add `generateMetadata`, pass `initialBio` to BlurbSection | DONE |
+| `src/app/artist/[id]/page.tsx` | Add `generateMetadata`, pass `initialBio`, add `SeoArtistLinks` | DONE |
 | `src/app/artist/[id]/_components/BlurbSection.tsx` | Accept `initialBio` prop, render server-side content | DONE |
+| `src/app/artist/[id]/_components/SeoArtistLinks.tsx` | New server component for crawlable social links | DONE |
 | `src/hooks/useArtistBio.ts` | Support `initialBio` parameter, skip fetch if provided | DONE |
 | `src/__tests__/components/BlurbSection.test.tsx` | Update test for new hook signature | DONE |
 
@@ -159,16 +203,19 @@ generateMetadata() runs server-side
 ArtistProfile() runs server-side
   → Fetches artist (has bio column)
   → Passes bio to BlurbSection
+  → Renders SeoArtistLinks outside client boundary
          ↓
 HTML Response includes:
   ✅ <title>Drake | Music Nerd</title>
   ✅ <meta property="og:image" content="spotify-image.jpg">
   ✅ <div class="bio">Drake is a Canadian rapper...</div>
+  ✅ <nav class="sr-only"><a href="https://instagram.com/...">...</a></nav>
          ↓
 Client hydration
   → BlurbSection initializes with server bio
   → No client fetch needed (already has data)
   → Admin can still regenerate via refetch()
+  → Visual links render inside EditModeProvider (interactive)
 ```
 
 ---
@@ -184,15 +231,22 @@ Client hydration
    - View page source (Cmd+U) to confirm bio is in initial HTML
    - Disable JavaScript and verify bio still displays
 
-3. **Functionality preserved:**
+3. **Social links crawlability:**
+   - View page source to confirm `<a href="https://instagram.com/...">` tags
+   - Run: `curl -s [url] | grep -E "instagram|spotify|twitter"`
+   - Verify links are in `<nav class="sr-only">` section
+
+4. **Functionality preserved:**
    - Admin regenerate bio still works
    - Edit mode still works
    - Loading states work during regeneration
+   - Visual social links still interactive
 
-4. **Edge cases:**
+5. **Edge cases:**
    - Artist with no bio shows placeholder
    - Artist not found shows 404 with appropriate meta
    - Artist with no Spotify image uses fallback
+   - Artist with no social links renders empty nav
 
 ---
 
@@ -206,6 +260,7 @@ Client hydration
 **Search engine results:**
 - Title: "Drake | Music Nerd"
 - Snippet: Artist bio text (crawlable in HTML)
+- Social profiles indexed and potentially shown in knowledge panel
 
 **Page source (what crawlers see):**
 ```html
@@ -213,4 +268,11 @@ Client hydration
 <meta property="og:title" content="Drake | Music Nerd">
 <meta property="og:image" content="https://i.scdn.co/image/...">
 <div class="bio">Drake is a Canadian rapper and singer...</div>
+<nav aria-label="Artist social links" class="sr-only">
+  <ul>
+    <li><a href="https://open.spotify.com/artist/...">Drake on Spotify</a></li>
+    <li><a href="https://instagram.com/champagnepapi">Drake on Instagram</a></li>
+    <li><a href="https://x.com/drake">Drake on X</a></li>
+  </ul>
+</nav>
 ```
