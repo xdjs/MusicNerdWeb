@@ -16,6 +16,7 @@ import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
+import SeoArtistLinks from "./_components/SeoArtistLinks";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
@@ -204,6 +205,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </div>
             </div>
             </EditModeProvider>
+            {/* SEO-only links rendered outside client boundary for crawler visibility */}
+            <SeoArtistLinks artist={artist} />
         </>
     );
 }
