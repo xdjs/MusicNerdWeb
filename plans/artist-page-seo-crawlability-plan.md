@@ -179,15 +179,44 @@ Added to page.tsx outside EditModeProvider:
 
 ---
 
+### Task 6: Fix BAILOUT_TO_CLIENT_SIDE_RENDERING - DONE
+
+**File:** `src/app/artist/[id]/page.tsx`
+
+**Problem:**
+Despite implementing Tasks 1-5, the entire page was bailing out to client-side rendering due to unused `searchParams` in the function signature. This caused:
+- Bio content to be in RSC payload instead of HTML
+- SeoArtistLinks `<a>` tags to be serialized as JSON instead of rendered as HTML
+- Search engines and social media crawlers unable to see content
+
+**Root Cause:**
+The page component accepted `searchParams: Promise<{ [key: string]: string | undefined }>` in its props but never used it. In Next.js, accepting searchParams forces dynamic rendering, which triggered the bailout.
+
+**Solution:**
+Removed unused `searchParams` from:
+1. `ArtistProfileProps` type definition
+2. `ArtistProfile` function signature
+3. Test mocks in `ArtistPage.test.tsx`
+
+**Impact:**
+This fix allows Next.js to properly server-render the page, ensuring:
+- Artist bio is in the initial HTML response
+- Social links render as actual `<a>` tags in HTML
+- Meta tags + content are both crawlable
+- No more `BAILOUT_TO_CLIENT_SIDE_RENDERING`
+
+---
+
 ## Files Modified
 
 | File | Changes | Status |
 |------|---------|--------|
-| `src/app/artist/[id]/page.tsx` | Add `generateMetadata`, pass `initialBio`, add `SeoArtistLinks` | DONE |
+| `src/app/artist/[id]/page.tsx` | Add `generateMetadata`, pass `initialBio`, add `SeoArtistLinks`, remove unused `searchParams` | DONE |
 | `src/app/artist/[id]/_components/BlurbSection.tsx` | Accept `initialBio` prop, render server-side content | DONE |
 | `src/app/artist/[id]/_components/SeoArtistLinks.tsx` | New server component for crawlable social links | DONE |
 | `src/hooks/useArtistBio.ts` | Support `initialBio` parameter, skip fetch if provided | DONE |
 | `src/__tests__/components/BlurbSection.test.tsx` | Update test for new hook signature | DONE |
+| `src/__tests__/components/ArtistPage.test.tsx` | Update test mocks to remove `searchParams` | DONE |
 
 ---
 
