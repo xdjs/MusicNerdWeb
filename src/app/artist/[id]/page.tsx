@@ -15,9 +15,53 @@ import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
+import type { Metadata } from "next";
+
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
     searchParams: Promise<{ [key: string]: string | undefined }>;
+}
+
+export async function generateMetadata({ params }: ArtistProfileProps): Promise<Metadata> {
+    const { id } = await params;
+    const artist = await getArtistById(id);
+
+    if (!artist) {
+        return {
+            title: "Artist Not Found | Music Nerd",
+            description: "The requested artist could not be found on Music Nerd.",
+        };
+    }
+
+    const headers = await getSpotifyHeaders();
+    const spotifyImg = await getSpotifyImage(artist.spotify ?? "", undefined, headers);
+    const imageUrl = spotifyImg.artistImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
+    const artistName = artist.name ?? "Unknown Artist";
+
+    return {
+        title: `${artistName} | Music Nerd`,
+        description: `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`,
+        openGraph: {
+            type: "profile",
+            title: `${artistName} | Music Nerd`,
+            description: `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`,
+            url: `https://www.musicnerd.xyz/artist/${id}`,
+            images: [
+                {
+                    url: imageUrl,
+                    width: 640,
+                    height: 640,
+                    alt: `${artistName} profile image`,
+                },
+            ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `${artistName} | Music Nerd`,
+            description: `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`,
+            images: [imageUrl],
+        },
+    };
 }
 
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
@@ -83,10 +127,11 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                             <div className="text-black pt-0 mb-4">
                                 {(artist) && getArtistDetailsText(artist, numReleases)}
                             </div>
-                            <BlurbSection 
+                            <BlurbSection
                                 key={artist.bio ?? ""}
                                 artistName={artist.name ?? ""}
                                 artistId={artist.id}
+                                initialBio={artist.bio ?? null}
                                 />
                         </div>
                     </div>
