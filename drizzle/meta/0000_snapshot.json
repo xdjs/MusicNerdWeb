@@ -4,51 +4,109 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.users": {
-      "name": "users",
+    "public.funfacts": {
+      "name": "funfacts",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "bigint",
+          "primaryKey": false,
           "notNull": true,
-          "default": "uuid_generate_v4()"
+          "identity": {
+            "type": "byDefault",
+            "name": "funfacts_id_seq",
+            "increment": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "startWith": "1",
+            "cache": "1",
+            "cycle": false,
+            "schema": "public"
+          }
         },
-        "email": {
-          "name": "email",
+        "lore_drop": {
+          "name": "lore_drop",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "username": {
-          "name": "username",
+        "behind_the_scenes": {
+          "name": "behind_the_scenes",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "wallet": {
-          "name": "wallet",
+        "recent_activity": {
+          "name": "recent_activity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "surprise_me": {
+          "name": "surprise_me",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "Enable read access for all users": {
+          "name": "Enable read access for all users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.aiprompts": {
+      "name": "aiprompts",
+      "schema": "",
+      "columns": {
+        "prompt_id": {
+          "name": "prompt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_before_name": {
+          "name": "prompt_before_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "(now() AT TIME ZONE 'utc'::text)"
+          "default": false
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "(now() AT TIME ZONE 'utc'::text)"
-        },
-        "legacy_id": {
-          "name": "legacy_id",
+        "prompt_after_name": {
+          "name": "prompt_after_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -57,15 +115,420 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "users_wallet_key": {
-          "columns": [
-            "wallet"
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mnweb_delete_aiprompts": {
+          "name": "mnweb_delete_aiprompts",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
           ],
-          "nullsNotDistinct": false,
-          "name": "users_wallet_key"
+          "using": "true"
+        },
+        "mnweb_insert_aiprompts": {
+          "name": "mnweb_insert_aiprompts",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_aiprompts": {
+          "name": "mnweb_select_aiprompts",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_aiprompts": {
+          "name": "mnweb_update_aiprompts",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
         }
-      }
+      },
+      "isRLSEnabled": true
+    },
+    "public.history": {
+      "name": "history",
+      "schema": "",
+      "columns": {
+        "guild_id": {
+          "name": "guild_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posted_at": {
+          "name": "posted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "top_artist": {
+          "name": "top_artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_track": {
+          "name": "top_track",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mn_bot_history_ins": {
+          "name": "mn_bot_history_ins",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mn_bot"
+          ],
+          "withCheck": "true"
+        },
+        "mn_bot_history_sel": {
+          "name": "mn_bot_history_sel",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mn_bot"
+          ]
+        },
+        "mn_bot_history_upd": {
+          "name": "mn_bot_history_upd",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mn_bot"
+          ]
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.bot_prompts": {
+      "name": "bot_prompts",
+      "schema": "",
+      "columns": {
+        "slow": {
+          "name": "slow",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moderate": {
+          "name": "moderate",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "busy": {
+          "name": "busy",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompts": {
+          "name": "prompts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fun_fact": {
+          "name": "fun_fact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shaming": {
+          "name": "shaming",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "track_fact": {
+          "name": "track_fact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mn_bot_bot_prompts_sel": {
+          "name": "mn_bot_bot_prompts_sel",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mn_bot"
+          ],
+          "using": "true"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.wrap_guilds": {
+      "name": "wrap_guilds",
+      "schema": "",
+      "columns": {
+        "guild_id": {
+          "name": "guild_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "local_time": {
+          "name": "local_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "posted": {
+          "name": "posted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wrap_up": {
+          "name": "wrap_up",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shame": {
+          "name": "shame",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wrap_tracks": {
+          "name": "wrap_tracks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wrap_artists": {
+          "name": "wrap_artists",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interval": {
+          "name": "interval",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "channel": {
+          "name": "channel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mn_bot_wrap_guilds_del": {
+          "name": "mn_bot_wrap_guilds_del",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mn_bot"
+          ],
+          "using": "true"
+        },
+        "mn_bot_wrap_guilds_ins": {
+          "name": "mn_bot_wrap_guilds_ins",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mn_bot"
+          ]
+        },
+        "mn_bot_wrap_guilds_sel": {
+          "name": "mn_bot_wrap_guilds_sel",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mn_bot"
+          ]
+        },
+        "mn_bot_wrap_guilds_upd": {
+          "name": "mn_bot_wrap_guilds_upd",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mn_bot"
+          ]
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.user_tracks": {
+      "name": "user_tracks",
+      "schema": "",
+      "columns": {
+        "guild_id": {
+          "name": "guild_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tracks": {
+          "name": "tracks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "top_track": {
+          "name": "top_track",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_artist": {
+          "name": "top_artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artists": {
+          "name": "artists",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        }
+      },
+      "indexes": {
+        "idx_user_tracks_guild_id": {
+          "name": "idx_user_tracks_guild_id",
+          "columns": [
+            {
+              "expression": "guild_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_tracks_user_id": {
+          "name": "idx_user_tracks_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mn_bot_user_tracks_ins": {
+          "name": "mn_bot_user_tracks_ins",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mn_bot"
+          ],
+          "withCheck": "true"
+        },
+        "mn_bot_user_tracks_sel": {
+          "name": "mn_bot_user_tracks_sel",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mn_bot"
+          ]
+        },
+        "mn_bot_user_tracks_upd": {
+          "name": "mn_bot_user_tracks_upd",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mn_bot"
+          ]
+        }
+      },
+      "isRLSEnabled": false
     },
     "public.artists": {
       "name": "artists",
@@ -74,9 +537,9 @@
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
-          "default": "uuid_generate_v4()"
+          "default": "extensions.uuid_generate_v4()"
         },
         "legacy_id": {
           "name": "legacy_id",
@@ -366,8 +829,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "addedBy": {
-          "name": "addedBy",
+        "added_by": {
+          "name": "added_by",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -397,17 +860,194 @@
           "primaryKey": false,
           "notNull": true,
           "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
+        "supercollector": {
+          "name": "supercollector",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "webmapdata": {
+          "name": "webmapdata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "node_pfp": {
+          "name": "node_pfp",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "artists_added_by_created_at_idx": {
+          "name": "artists_added_by_created_at_idx",
+          "columns": [
+            {
+              "expression": "added_by",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamptz_ops",
+              "isExpression": false
+            },
+            {
+              "expression": "created_at",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamptz_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_lcname_btree_idx": {
+          "name": "artists_lcname_btree_idx",
+          "columns": [
+            {
+              "expression": "lcname",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_lcname_trgm_gin": {
+          "name": "artists_lcname_trgm_gin",
+          "columns": [
+            {
+              "expression": "lcname",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "gin_trgm_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "artists_lcname_trgm_idx": {
+          "name": "artists_lcname_trgm_idx",
+          "columns": [
+            {
+              "expression": "lcname",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "gist_trgm_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        },
+        "artists_name_trgm_idx": {
+          "name": "artists_name_trgm_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "gist_trgm_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        },
+        "artists_spotify_uniq": {
+          "name": "artists_spotify_uniq",
+          "columns": [
+            {
+              "expression": "spotify",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "where": "(spotify IS NOT NULL)",
+          "with": {}
+        },
+        "idx_artists_added_by": {
+          "name": "idx_artists_added_by",
+          "columns": [
+            {
+              "expression": "added_by",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_artists_name": {
+          "name": "idx_artists_name",
+          "columns": [
+            {
+              "expression": "name",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_artists_name_gin": {
+          "name": "idx_artists_name_gin",
+          "columns": [
+            {
+              "expression": "to_tsvector('english'::regconfig, name)",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "tsvector_ops",
+              "isExpression": true
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "artists_addedby_fkey": {
-          "name": "artists_addedby_fkey",
+        "artists_added_by_fkey": {
+          "name": "artists_added_by_fkey",
           "tableFrom": "artists",
           "tableTo": "users",
           "schemaTo": "public",
           "columnsFrom": [
-            "addedBy"
+            "added_by"
           ],
           "columnsTo": [
             "id"
@@ -417,78 +1057,87 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "Allow webmapdata_editor to see all rows": {
+          "name": "Allow webmapdata_editor to see all rows",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "webmapdata_editor"
+          ],
+          "using": "true"
+        },
+        "Allow webmapdata_editor to update webmapdata column": {
+          "name": "Allow webmapdata_editor to update webmapdata column",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "webmapdata_editor"
+          ]
+        },
+        "mnweb_delete_artists": {
+          "name": "mnweb_delete_artists",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_insert_artists": {
+          "name": "mnweb_insert_artists",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_artists": {
+          "name": "mnweb_select_artists",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_artists": {
+          "name": "mnweb_update_artists",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
+        }
+      },
+      "isRLSEnabled": true
     },
-    "public.urlmap": {
-      "name": "urlmap",
+    "public.users": {
+      "name": "users",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false,
-          "default": "uuid_generate_v4()"
+          "notNull": true,
+          "default": "extensions.uuid_generate_v4()"
         },
-        "siteurl": {
-          "name": "siteurl",
+        "email": {
+          "name": "email",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sitename": {
-          "name": "sitename",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "example": {
-          "name": "example",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "appstingformat": {
-          "name": "appstingformat",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cardorder": {
-          "name": "cardorder",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
-        "isiframeenabled": {
-          "name": "isiframeenabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "isembedenabled": {
-          "name": "isembedenabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "carddescription": {
-          "name": "carddescription",
+        "username": {
+          "name": "username",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "cardplatformname": {
-          "name": "cardplatformname",
+        "wallet": {
+          "name": "wallet",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "isweb3site": {
-          "name": "isweb3site",
-          "type": "boolean",
           "primaryKey": false,
           "notNull": true
         },
@@ -503,77 +1152,46 @@
           "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "(now() AT TIME ZONE 'utc'::text)"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "urlmap_siteurl_key": {
-          "columns": [
-            "siteurl"
-          ],
-          "nullsNotDistinct": false,
-          "name": "urlmap_siteurl_key"
         },
-        "urlmap_sitename_key": {
-          "columns": [
-            "sitename"
-          ],
-          "nullsNotDistinct": false,
-          "name": "urlmap_sitename_key"
-        },
-        "urlmap_example_key": {
-          "columns": [
-            "example"
-          ],
-          "nullsNotDistinct": false,
-          "name": "urlmap_example_key"
-        },
-        "urlmap_appstingformat_key": {
-          "columns": [
-            "appstingformat"
-          ],
-          "nullsNotDistinct": false,
-          "name": "urlmap_appstingformat_key"
-        }
-      }
-    },
-    "public.featured": {
-      "name": "featured",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "uuid_generate_v4()"
-        },
-        "featuredartist": {
-          "name": "featuredartist",
-          "type": "uuid",
+        "legacy_id": {
+          "name": "legacy_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "featuredcollector": {
-          "name": "featuredcollector",
-          "type": "uuid",
+        "is_admin": {
+          "name": "is_admin",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
+        "is_white_listed": {
+          "name": "is_white_listed",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
+          "notNull": true,
+          "default": false
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
+        "is_super_admin": {
+          "name": "is_super_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_hidden": {
+          "name": "is_hidden",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "accepted_ugc_count": {
+          "name": "accepted_ugc_count",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": false
         }
@@ -581,7 +1199,44 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mnweb_delete_users": {
+          "name": "mnweb_delete_users",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_users": {
+          "name": "mnweb_insert_users",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_users": {
+          "name": "mnweb_select_users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_users": {
+          "name": "mnweb_update_users",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
+        }
+      },
+      "isRLSEnabled": false
     },
     "public.ugcresearch": {
       "name": "ugcresearch",
@@ -591,8 +1246,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false,
-          "default": "uuid_generate_v4()"
+          "notNull": true,
+          "default": "extensions.uuid_generate_v4()"
         },
         "created_at": {
           "name": "created_at",
@@ -608,8 +1263,8 @@
           "notNull": false,
           "default": "now()"
         },
-        "artistURI": {
-          "name": "artistURI",
+        "artist_uri": {
+          "name": "artist_uri",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -618,34 +1273,35 @@
           "name": "accepted",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "default": false
         },
-        "ugcURL": {
-          "name": "ugcURL",
+        "ugc_url": {
+          "name": "ugc_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "siteName": {
-          "name": "siteName",
+        "site_name": {
+          "name": "site_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "siteUsername": {
-          "name": "siteUsername",
+        "site_username": {
+          "name": "site_username",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "artistID": {
-          "name": "artistID",
+        "artist_id": {
+          "name": "artist_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
-        "dateProcessed": {
-          "name": "dateProcessed",
+        "date_processed": {
+          "name": "date_processed",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -656,22 +1312,62 @@
           "primaryKey": false,
           "notNull": false
         },
-        "userID": {
-          "name": "userID",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_ugcresearch_user_id": {
+          "name": "idx_ugcresearch_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ugcresearch_user_created_at_idx": {
+          "name": "ugcresearch_user_created_at_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamp_ops",
+              "isExpression": false
+            },
+            {
+              "expression": "created_at",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamp_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "ugcresearch_artistID_fkey": {
-          "name": "ugcresearch_artistID_fkey",
+        "ugcresearch_artist_id_fkey": {
+          "name": "ugcresearch_artist_id_fkey",
           "tableFrom": "ugcresearch",
           "tableTo": "artists",
           "schemaTo": "public",
           "columnsFrom": [
-            "artistID"
+            "artist_id"
           ],
           "columnsTo": [
             "id"
@@ -679,13 +1375,13 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "ugcresearch_userID_fkey": {
-          "name": "ugcresearch_userID_fkey",
+        "ugcresearch_user_id_fkey": {
+          "name": "ugcresearch_user_id_fkey",
           "tableFrom": "ugcresearch",
           "tableTo": "users",
           "schemaTo": "public",
           "columnsFrom": [
-            "userID"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -695,14 +1391,64 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mnweb_delete_ugcresearch": {
+          "name": "mnweb_delete_ugcresearch",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_ugcresearch": {
+          "name": "mnweb_insert_ugcresearch",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_ugcresearch": {
+          "name": "mnweb_select_ugcresearch",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_ugcresearch": {
+          "name": "mnweb_update_ugcresearch",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
+        }
+      },
+      "isRLSEnabled": true
     },
-    "public.ugcwhitelist": {
-      "name": "ugcwhitelist",
+    "public.featured": {
+      "name": "featured",
       "schema": "",
       "columns": {
-        "userid": {
-          "name": "userid",
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "extensions.uuid_generate_v4()"
+        },
+        "featured_artist": {
+          "name": "featured_artist",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "featured_collector": {
+          "name": "featured_collector",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -718,19 +1464,32 @@
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "ugcwhitelist_userid_fkey": {
-          "name": "ugcwhitelist_userid_fkey",
-          "tableFrom": "ugcwhitelist",
-          "tableTo": "users",
+        "featured_featured_artist_fkey": {
+          "name": "featured_featured_artist_fkey",
+          "tableFrom": "featured",
+          "tableTo": "artists",
           "schemaTo": "public",
           "columnsFrom": [
-            "userid"
+            "featured_artist"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "featured_featured_collector_fkey": {
+          "name": "featured_featured_collector_fkey",
+          "tableFrom": "featured",
+          "tableTo": "artists",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "featured_collector"
           ],
           "columnsTo": [
             "id"
@@ -740,12 +1499,238 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mnweb_delete_featured": {
+          "name": "mnweb_delete_featured",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_featured": {
+          "name": "mnweb_insert_featured",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_featured": {
+          "name": "mnweb_select_featured",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_featured": {
+          "name": "mnweb_update_featured",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.urlmap": {
+      "name": "urlmap",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "extensions.uuid_generate_v4()"
+        },
+        "site_url": {
+          "name": "site_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "site_name": {
+          "name": "site_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "example": {
+          "name": "example",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "app_string_format": {
+          "name": "app_string_format",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_iframe_enabled": {
+          "name": "is_iframe_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_embed_enabled": {
+          "name": "is_embed_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "card_description": {
+          "name": "card_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "card_platform_name": {
+          "name": "card_platform_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_web3_site": {
+          "name": "is_web3_site",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
+        "site_image": {
+          "name": "site_image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "regex": {
+          "name": "regex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'\"\"'"
+        },
+        "regex_matcher": {
+          "name": "regex_matcher",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_monetized": {
+          "name": "is_monetized",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "regex_options": {
+          "name": "regex_options",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "color_hex": {
+          "name": "color_hex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'#000000'"
+        },
+        "platform_type_list": {
+          "name": "platform_type_list",
+          "type": "platform_type[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{\"RAY['social'::platform_typ\"}'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {
+        "mnweb_delete_urlmap": {
+          "name": "mnweb_delete_urlmap",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_urlmap": {
+          "name": "mnweb_insert_urlmap",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_select_urlmap": {
+          "name": "mnweb_select_urlmap",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ]
+        },
+        "mnweb_update_urlmap": {
+          "name": "mnweb_update_urlmap",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ]
+        }
+      },
+      "isRLSEnabled": true
     }
   },
-  "enums": {},
+  "enums": {
+    "public.platform_type": {
+      "name": "platform_type",
+      "values": [
+        "social",
+        "web3",
+        "listen"
+      ],
+      "schema": "public"
+    }
+  },
   "schemas": {},
   "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
     "schemas": {},
     "tables": {},
@@ -753,22 +1738,22 @@
   },
   "internal": {
     "tables": {
-      "users": {
-        "columns": {
-          "created_at": {
-            "isDefaultAnExpression": true
-          },
-          "updated_at": {
-            "isDefaultAnExpression": true
-          }
-        }
-      },
       "artists": {
         "columns": {
           "wallets": {
             "isArray": true,
             "dimensions": 1,
             "rawType": "text"
+          },
+          "updated_at": {
+            "isDefaultAnExpression": true
+          }
+        }
+      },
+      "users": {
+        "columns": {
+          "created_at": {
+            "isDefaultAnExpression": true
           },
           "updated_at": {
             "isDefaultAnExpression": true
@@ -782,6 +1767,16 @@
           },
           "updated_at": {
             "isDefaultAnExpression": true
+          },
+          "regex_options": {
+            "isArray": true,
+            "dimensions": 1,
+            "rawType": "text"
+          },
+          "platform_type_list": {
+            "isArray": true,
+            "dimensions": 1,
+            "rawType": "platform_type"
           }
         }
       }

@@ -48,7 +48,14 @@ jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     getArtistLinks: jest.fn(),
     getAllLinks: jest.fn(),
+}));
+
+jest.mock('@/server/utils/queries/userQueries', () => ({
     getUserById: jest.fn().mockResolvedValue({ isWhiteListed: false, isAdmin: false }),
+}));
+
+jest.mock('@/server/utils/services', () => ({
+    getArtistDetailsText: jest.fn().mockReturnValue('Artist details'),
 }));
 
 // Mock external API queries
@@ -78,6 +85,53 @@ jest.mock('@/app/_components/ArtistLinks', () => {
         );
     };
 });
+
+jest.mock('@/app/artist/[id]/_components/BlurbSection', () => ({
+    __esModule: true,
+    default: () => <div>Loading summary...</div>,
+}));
+
+jest.mock('@/app/artist/[id]/_components/FunFactsMobile', () => ({
+    __esModule: true,
+    default: () => <div data-testid="fun-facts-mobile">Fun Facts Mobile</div>,
+}));
+
+jest.mock('@/app/artist/[id]/_components/FunFactsDesktop', () => ({
+    __esModule: true,
+    default: () => <div data-testid="fun-facts-desktop">Fun Facts Desktop</div>,
+}));
+
+jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => ({
+    __esModule: true,
+    default: () => <div data-testid="grapevine">Grapevine</div>,
+}));
+
+jest.mock('@/app/_components/AutoRefresh', () => ({
+    __esModule: true,
+    default: () => null,
+}));
+
+jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => ({
+    __esModule: true,
+    default: () => null,
+}));
+
+jest.mock('@/app/_components/BookmarkButton', () => ({
+    __esModule: true,
+    default: () => <button data-testid="bookmark-button">Bookmark</button>,
+}));
+
+jest.mock('@/app/_components/EditModeToggle', () => ({
+    __esModule: true,
+    default: () => <button data-testid="edit-mode-toggle">Edit Mode</button>,
+}));
+
+jest.mock('@/app/_components/EditModeContext', () => ({
+    EditModeProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    EditModeContext: {
+        Provider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    },
+}));
 
 const mockArtist = {
     id: 'test-id',
@@ -126,8 +180,7 @@ describe('ArtistPage', () => {
     });
 
     const defaultProps = {
-        params: Promise.resolve({ id: 'test-id' }),
-        searchParams: Promise.resolve({} as { [key: string]: string | undefined })
+        params: Promise.resolve({ id: 'test-id' })
     };
 
     it('renders artist data when available', async () => {
@@ -186,7 +239,6 @@ describe('ArtistPage', () => {
 
     it('does not auto open AddArtistData anymore', async () => {
         const propsWithOpADM = {
-            searchParams: Promise.resolve({ opADM: '1' }),
             params: Promise.resolve({ id: 'test-id' })
         };
 

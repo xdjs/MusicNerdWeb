@@ -7,7 +7,7 @@ const ArtistLinkButton = ({ link }: { link: ArtistLink }) => (
   <Button
     key={link.id}
     className="w-full hover:bg-opacity-50 items-center justify-start space-x-2 h-auto"
-    style={{ backgroundColor: link.colorHex }}
+    style={{ backgroundColor: link.colorHex ?? '#000000' }}
     asChild
   >
     <a href={link.artistUrl} target="_blank" rel="noopener noreferrer">

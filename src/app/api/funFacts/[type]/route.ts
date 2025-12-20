@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { openai } from "@/server/lib/openai";
-import { funFacts } from "@/server/db/schema";
+import { funfacts } from "@/server/db/schema";
 import { db } from "@/server/db/drizzle";
 import { eq } from "drizzle-orm";
 
 async function getPrompts() {
   try {
-    const result = await db.query.funFacts.findFirst({
-      where: eq(funFacts.isActive, true),
+    const result = await db.query.funfacts.findFirst({
+      where: eq(funfacts.isActive, true),
     });
     return result;
   } catch (error) {
@@ -46,7 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       return NextResponse.json({ error: "Failed to fetch prompts" }, { status: 500 });
     }
 
-    const promptMap: Record<string, string> = {
+    const promptMap: Record<string, string | null> = {
       surprise: prompts.surpriseMe,
       lore: prompts.loreDrop,
       bts: prompts.behindTheScenes,
