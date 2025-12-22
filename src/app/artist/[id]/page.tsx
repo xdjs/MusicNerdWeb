@@ -18,7 +18,7 @@ import SessionDependentButtons from "./_components/SessionDependentButtons";
 // Enable static generation with ISR
 // Since we removed getServerAuthSession() (which uses cookies()), 
 // Next.js can now statically generate these pages
-export const dynamic = 'auto'; // Let Next.js decide, but prefer static
+export const dynamic = 'force-static'; // Force static generation (ISR)
 export const revalidate = 3600; // Revalidate every hour (ISR)
 
 type ArtistProfileProps = {
