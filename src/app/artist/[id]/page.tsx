@@ -1,14 +1,9 @@
 import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
-import { getUserById } from "@/server/utils/queries/userQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
-import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistDetailsText } from "@/server/utils/services";
-import { getServerAuthSession } from "@/server/auth";
 import { notFound } from "next/navigation";
-import { EditModeProvider } from "@/app/_components/EditModeContext";
-import EditModeToggle from "@/app/_components/EditModeToggle";
 import BlurbSection from "./_components/BlurbSection";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import FunFactsMobile from "./_components/FunFactsMobile";
@@ -17,6 +12,14 @@ import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
 import SeoArtistLinks from "./_components/SeoArtistLinks";
+import ClientSessionWrapper from "./_components/ClientSessionWrapper";
+import SessionDependentButtons from "./_components/SessionDependentButtons";
+
+// Enable static generation with ISR
+// Since we removed getServerAuthSession() (which uses cookies()), 
+// Next.js can now statically generate these pages
+export const dynamic = 'auto'; // Let Next.js decide, but prefer static
+export const revalidate = 3600; // Revalidate every hour (ISR)
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
@@ -66,17 +69,6 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 
 export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
-    const session = await getServerAuthSession();
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
-    let canEdit = walletlessEnabled;
-    if (session?.user?.id) {
-        const user = await getUserById(session.user.id);
-        if (user?.isAdmin) {
-            canEdit = true;
-        } else {
-            canEdit = false;
-        }
-    }
     const artist = await getArtistById(id);
     if (!artist) {
         return notFound();
@@ -93,7 +85,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
 
     return (
         <>
-            <EditModeProvider canEdit={canEdit}>
+            <ClientSessionWrapper>
             <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
@@ -112,17 +104,11 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                 <strong className="text-black text-2xl mr-2">
                                     {artist.name}
                                 </strong>
-                                <div className="flex items-center gap-2">
-                                    {session && (
-                                        <BookmarkButton
-                                            artistId={artist.id}
-                                            artistName={artist.name ?? ''}
-                                            imageUrl={spotifyImg.artistImage ?? ''}
-                                            userId={session.user.id}
-                                        />
-                                    )}
-                                    {canEdit && <EditModeToggle />}
-                                </div>
+                                <SessionDependentButtons
+                                    artistId={artist.id}
+                                    artistName={artist.name ?? ''}
+                                    imageUrl={spotifyImg.artistImage ?? ''}
+                                />
                             </div>
                             <div className="text-black pt-0 mb-4">
                                 {(artist) && getArtistDetailsText(artist, numReleases)}
@@ -155,7 +141,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
-                                        <ArtistLinks canEdit={canEdit} isMonetized={false} artist={artist} spotifyImg={spotifyImg.artistImage} session={session} availableLinks={urlMapList} isOpenOnLoad={false} showAddButton={false} />
+                                        <ArtistLinks canEdit={false} isMonetized={false} artist={artist} spotifyImg={spotifyImg.artistImage} session={null} availableLinks={urlMapList} isOpenOnLoad={false} showAddButton={false} />
                                     }
                                 </div>
                             </div>
@@ -177,7 +163,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
-                                        <ArtistLinks isMonetized={true} artist={artist} spotifyImg={spotifyImg.artistImage} session={session} availableLinks={urlMapList} isOpenOnLoad={false} canEdit={canEdit} />
+                                        <ArtistLinks isMonetized={true} artist={artist} spotifyImg={spotifyImg.artistImage} session={null} availableLinks={urlMapList} isOpenOnLoad={false} canEdit={false} />
                                     }
                                 </div>
                             </div>
@@ -203,7 +189,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                     <GrapevineIframe artistId={artist.id} />
                 </div>
             </div>
-            </EditModeProvider>
+            </ClientSessionWrapper>
             {/* SEO-only links rendered outside client boundary for crawler visibility */}
             <SeoArtistLinks artist={artist} />
         </>
