@@ -1,4 +1,4 @@
-import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
+import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
@@ -11,9 +11,9 @@ import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
+import SeoArtistLinks from "./_components/SeoArtistLinks";
 import ClientSessionWrapper from "./_components/ClientSessionWrapper";
 import SessionDependentButtons from "./_components/SessionDependentButtons";
-import type { Artist } from "@/server/db/DbTypes";
 
 // Enable static generation with ISR
 // Since we removed getServerAuthSession() (which uses cookies()), 
@@ -190,55 +190,8 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                 </div>
             </div>
             </ClientSessionWrapper>
-            {/* SEO-only links rendered as raw HTML for crawler visibility (bypasses RSC serialization) */}
-            <SeoArtistLinksHtml artist={artist} />
+            {/* SEO-only links rendered outside client boundary for crawler visibility */}
+            <SeoArtistLinks artist={artist} />
         </>
     );
-}
-
-/**
- * Renders artist links as raw HTML string to ensure they appear in initial HTML
- * even when BAILOUT_TO_CLIENT_SIDE_RENDERING occurs.
- * This bypasses React's RSC serialization and ensures crawlers can see the links.
- */
-async function SeoArtistLinksHtml({ artist }: { artist: Artist }) {
-    const artistLinks = await getArtistLinks(artist);
-
-    // Filter to only non-monetized social links (excluding spotify which is handled separately)
-    const socialLinks = artistLinks.filter(
-        (link) => !link.isMonetized && link.siteName !== "spotify"
-    );
-
-    if (socialLinks.length === 0 && !artist.spotify) {
-        return null;
-    }
-
-    // Generate HTML string directly (bypasses RSC serialization)
-    const linksHtml = [
-        artist.spotify && `<li><a href="https://open.spotify.com/artist/${artist.spotify}">${escapeHtml(artist.name)} on Spotify</a></li>`,
-        ...socialLinks.map(link => 
-            `<li><a href="${escapeHtml(link.artistUrl)}">${escapeHtml(artist.name)} on ${escapeHtml(link.cardPlatformName)}</a></li>`
-        )
-    ].filter(Boolean).join('\n');
-
-    const html = `
-        <nav aria-label="Artist social links" class="sr-only">
-            <ul>
-                ${linksHtml}
-            </ul>
-        </nav>
-    `;
-
-    // Render as raw HTML to bypass RSC serialization
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
-}
-
-function escapeHtml(text: string | null | undefined): string {
-    if (!text) return '';
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
