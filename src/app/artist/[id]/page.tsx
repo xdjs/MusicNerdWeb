@@ -1,4 +1,3 @@
-import React from "react";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
@@ -192,17 +191,17 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
             </div>
             </ClientSessionWrapper>
             {/* SEO-only links rendered as raw HTML for crawler visibility (bypasses RSC serialization) */}
-            {await SeoArtistLinksHtml(artist)}
+            <SeoArtistLinksHtml artist={artist} />
         </>
     );
 }
 
 /**
- * Generates artist links as raw HTML string to ensure they appear in initial HTML
+ * Renders artist links as raw HTML string to ensure they appear in initial HTML
  * even when BAILOUT_TO_CLIENT_SIDE_RENDERING occurs.
- * Returns the HTML as a React element that gets rendered directly, bypassing React serialization.
+ * This bypasses React's RSC serialization and ensures crawlers can see the links.
  */
-async function SeoArtistLinksHtml(artist: Artist): Promise<React.ReactElement> {
+async function SeoArtistLinksHtml({ artist }: { artist: Artist }) {
     const artistLinks = await getArtistLinks(artist);
 
     // Filter to only non-monetized social links (excluding spotify which is handled separately)
@@ -211,10 +210,10 @@ async function SeoArtistLinksHtml(artist: Artist): Promise<React.ReactElement> {
     );
 
     if (socialLinks.length === 0 && !artist.spotify) {
-        return <></>;
+        return null;
     }
 
-    // Generate HTML string directly
+    // Generate HTML string directly (bypasses RSC serialization)
     const linksHtml = [
         artist.spotify && `<li><a href="https://open.spotify.com/artist/${artist.spotify}">${escapeHtml(artist.name)} on Spotify</a></li>`,
         ...socialLinks.map(link => 
@@ -222,11 +221,16 @@ async function SeoArtistLinksHtml(artist: Artist): Promise<React.ReactElement> {
         )
     ].filter(Boolean).join('\n');
 
-    const html = `<nav aria-label="Artist social links" class="sr-only"><ul>${linksHtml}</ul></nav>`;
+    const html = `
+        <nav aria-label="Artist social links" class="sr-only">
+            <ul>
+                ${linksHtml}
+            </ul>
+        </nav>
+    `;
 
-    // Use dangerouslySetInnerHTML - this should render as HTML even with BAILOUT
-    // The key is that this is a server component, so it renders during SSR
-    return <div dangerouslySetInnerHTML={{ __html: html }} suppressHydrationWarning />;
+    // Render as raw HTML to bypass RSC serialization
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 function escapeHtml(text: string | null | undefined): string {
