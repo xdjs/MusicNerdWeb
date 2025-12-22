@@ -4,8 +4,6 @@ import '@rainbow-me/rainbowkit/styles.css';
 import Nav from "./_components/nav";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "./_components/Footer";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/server/auth";
 import Providers from "./_components/Providers";
 import LoginProviders from "./_components/nav/components/LoginProviders";
 
@@ -38,21 +36,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  console.debug("Root layout session state:", {
-    exists: !!session,
-    userId: session?.user?.id
-  });
-
+  // Removed getServerSession() to prevent BAILOUT_TO_CLIENT_SIDE_RENDERING
+  // SessionProvider will fetch session client-side, enabling static generation
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <Providers session={session}>
+        <Providers session={null}>
           <LoginProviders>
             <Nav />
             <main className="flex-grow flex flex-col min-h-0">
