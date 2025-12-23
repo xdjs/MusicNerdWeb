@@ -49,12 +49,12 @@ export default function RootLayout({
         <Providers session={null}>
           <LoginProviders>
             <Nav />
-            <main className="flex-grow flex flex-col min-h-0">
-              {children}
-            </main>
-            <Toaster />
-            <Footer />
           </LoginProviders>
+          <main className="flex-grow flex flex-col min-h-0">
+            {children}
+          </main>
+          <Toaster />
+          <Footer />
         </Providers>
       </body>
     </html>

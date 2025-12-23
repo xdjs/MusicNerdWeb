@@ -1,0 +1,75 @@
+The direct causes of your bailout / empty HTML
+	1.	LoginProviders uses dynamic(..., { ssr: false })
+
+	•	That is an explicit “do not server render” flag.
+	•	Worse: you wrap {children} (i.e., your entire app content) inside <WalletProviders> when wallet is required.
+	•	Result: the entire page becomes client-only, including /artist/[id]. Your SEO HTML will be a shell.
+
+This alone explains your “links only in RSC payload” symptom.
+	2.	Your app is wrapped in client-only providers at the root
+
+	•	Providers.tsx is "use client" (ThemeProvider + SessionProvider + AuthToast). Fine if scoped, but you’re wrapping the whole app in it.
+	•	LoginProviders.tsx is "use client" and (in the wallet-required path) wraps the whole app in a component that is SSR-disabled.
+
+	3.	Your homepage page.tsx is "use client"
+
+	•	Not the artist page, but it signals the general pattern: top-level pages are client. That guarantees crawl-poor HTML.
+
+What to do (minimal, surgical, works)
+
+Fix #1 (the big one): Stop wrapping the whole app in SSR-disabled wallet providers
+Wallet UI should not be a global wrapper around the entire app. It should be a small client island.
+
+Concretely:
+	•	Remove LoginProviders from layout.tsx wrapping {children}.
+	•	Move wallet providers to only the components/routes that actually need them (e.g., “Add artist”, “Edit”, “Profile”, etc.)
+	•	For public pages like /artist/[id], don’t include wallet providers at all.
+
+If you insist on having wallet context globally, do it without ssr:false around the entire tree. But RainbowKit often forces client anyway—so scope it.
+
+Fix #2: Split layout into server + client islands
+Keep app/layout.tsx as server (it currently is). Structure like:
+	•	layout.tsx (Server)
+	•	<Nav /> (Server shell)
+	•	<WalletButtonClient /> (Client, includes wallet providers inside it)
+	•	{children} (Server routes can SSR)
+	•	<Footer /> (Server)
+
+Your Providers (Theme + Session) can still wrap the app if you accept that it’s a client boundary—but don’t combine it with SSR-disabled wallet wrappers. Better: move SessionProvider to only routes that need it, or keep it but ensure SSR content is outside the wallet-only wrapper.
+
+Fix #3: Remove ssr: false from the wrapper that encloses {children}
+Right now:
+const WalletProviders = dynamic(..., { ssr: false })
+...
+<WalletProviders>{children}</WalletProviders>
+
+That is: “all children are client-only.” Don’t do that.
+
+If you keep dynamic import, apply it to the wallet button or connect modal only, not the whole page tree.
+
+What I would change first (order matters)
+	1.	In layout.tsx:
+
+	•	Delete <LoginProviders> wrapper around {children}.
+	•	If you need it, put it around a small component (wallet button area), not the whole app.
+
+	2.	In LoginProviders:
+
+	•	Stop exporting a provider that wraps arbitrary children in an ssr:false component.
+	•	Instead export WalletButtonClient (or similar) that’s ssr:false and self-contained.
+
+	3.	For /artist/[id]:
+
+	•	Ensure app/artist/[id]/page.tsx is a Server Component (no "use client"), and renders the <a> links directly.
+
+Sanity check you can run
+
+After Fix #1, do:
+	•	curl -L https://.../artist/<id> and confirm you see actual <a href> in the response body.
+If yes: SSR is back.
+If no: the artist route itself is still client or links are rendered inside a client component.
+
+Opinion
+
+Wrapping your whole app in wallet providers (and then disabling SSR for them) is like putting your entire website in a “Loading…” div so a connect button can feel included. Don’t. Scope the blast radius.
+

@@ -56,6 +56,12 @@ jest.mock('@/app/_components/HomePageSplash', () => ({
     ),
 }));
 
+// Mock LoginProviders component
+jest.mock('@/app/_components/nav/components/LoginProviders', () => ({
+    __esModule: true,
+    default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 // Create a wrapper component for providers
 const queryClient = new QueryClient({
     defaultOptions: {
