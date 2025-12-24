@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/react';
 import ArtistLinks from '@/app/_components/ArtistLinks';
 import { getArtistLinks } from '@/server/utils/queries/artistQueries';
 import { Artist, UrlMap } from '@/server/db/DbTypes';
-import { Session } from 'next-auth';
 
 // Mock the server function
 jest.mock('@/server/utils/queries/artistQueries', () => ({
@@ -80,10 +79,7 @@ const mockArtist: Artist = {
     nodePfp: null,
 };
 
-const mockSession: Session = {
-    user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com' },
-    expires: '2024-12-31',
-};
+// Session removed - authentication disabled
 
 const mockAvailableLinks: UrlMap[] = [
     {
@@ -157,7 +153,6 @@ describe('ArtistLinks YouTube Rendering', () => {
             isMonetized: false,
             artist: mockArtist,
             spotifyImg: 'test-spotify-image.jpg',
-            session: mockSession,
             availableLinks: mockAvailableLinks,
             isOpenOnLoad: false,
             canEdit: false,
@@ -197,7 +192,6 @@ describe('ArtistLinks YouTube Rendering', () => {
             isMonetized: false,
             artist: artistWithChannelOnly,
             spotifyImg: 'test-spotify-image.jpg',
-            session: mockSession,
             availableLinks: mockAvailableLinks,
             isOpenOnLoad: false,
             canEdit: false,
@@ -237,7 +231,6 @@ describe('ArtistLinks YouTube Rendering', () => {
             isMonetized: false,
             artist: mockArtist, // Has both youtube and youtubechannel data
             spotifyImg: 'test-spotify-image.jpg',
-            session: mockSession,
             availableLinks: mockAvailableLinks,
             isOpenOnLoad: false,
             canEdit: false,
@@ -264,7 +257,6 @@ describe('ArtistLinks YouTube Rendering', () => {
             isMonetized: false,
             artist: artistWithoutYoutube,
             spotifyImg: 'test-spotify-image.jpg',
-            session: mockSession,
             availableLinks: mockAvailableLinks,
             isOpenOnLoad: false,
             canEdit: false,
@@ -300,7 +292,6 @@ describe('ArtistLinks YouTube Rendering', () => {
             isMonetized: true, // Testing monetized section
             artist: mockArtist,
             spotifyImg: 'test-spotify-image.jpg',
-            session: mockSession,
             availableLinks: mockAvailableLinks,
             isOpenOnLoad: false,
             canEdit: false,

@@ -24,10 +24,7 @@ jest.mock('next/headers', () => ({
     headers: jest.fn(),
 }));
 
-// Mock next-auth
-jest.mock('next-auth', () => ({
-    getServerSession: jest.fn(),
-}));
+// next-auth mock removed - authentication disabled
 
 // Mock auth options
 jest.mock('@/server/auth', () => ({
