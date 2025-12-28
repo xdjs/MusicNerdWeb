@@ -1,5 +1,5 @@
-import ClientWrapper from "./ClientWrapper";
+import UnauthorizedPage from "@/app/_components/UnauthorizedPage";
 
 export default function Page() {
-    return <ClientWrapper />;
+    return <UnauthorizedPage />;
 }
