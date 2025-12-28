@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { Artist } from '@/server/db/DbTypes';
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -35,6 +36,7 @@ interface SearchBarProps {
 
 function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const router = useRouter();
+    const { toast } = useToast();
     const [query, setQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
     const [debouncedQuery] = useDebounce(query, 200);
@@ -107,13 +109,17 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     }, []);
 
     const handleResultClick = (result: SearchResult) => {
-        setShowResults(false);
-        setQuery('');
-
         if (result.isSpotifyOnly) {
-            // Read-only mode - can't add artists
+            toast({
+                title: "Artist not in database",
+                description: "Adding new artists is temporarily disabled.",
+                variant: "default",
+            });
             return;
         }
+
+        setShowResults(false);
+        setQuery('');
 
         if (result.id) {
             router.push(`/artist/${result.id}`);
@@ -148,22 +154,26 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                             <button
                                 key={result.isSpotifyOnly ? `spotify-${result.spotify}` : result.id}
                                 onClick={() => handleResultClick(result)}
-                                className="w-full p-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                                className={`w-full p-3 flex items-center gap-3 text-left ${
+                                    result.isSpotifyOnly
+                                        ? 'opacity-50 cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-750'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
                             >
                                 <div className="flex items-center justify-center w-10 h-10">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={spotifyImage || "/default_pfp_pink.png"}
                                         alt={result.name ?? "Artist"}
-                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8' : 'w-10 h-10'}`}
+                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8 grayscale' : 'w-10 h-10'}`}
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <div className={`font-medium text-gray-900 dark:text-white ${result.isSpotifyOnly ? 'text-sm' : 'text-base'}`}>
+                                    <div className={`font-medium ${result.isSpotifyOnly ? 'text-sm text-gray-500 dark:text-gray-400' : 'text-base text-gray-900 dark:text-white'}`}>
                                         {result.name}
                                     </div>
                                     {result.isSpotifyOnly ? (
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                        <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                                             <ExternalLink className="h-3 w-3" />
                                             <span>Not in MusicNerd yet</span>
                                         </div>
