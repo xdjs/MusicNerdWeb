@@ -17,6 +17,8 @@ jobs:
       SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
       DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.PRIVY_APP_ID }}
+      PRIVY_APP_SECRET: ${{ secrets.PRIVY_APP_SECRET }}
 
     steps:
     - uses: actions/checkout@v4
@@ -51,6 +53,8 @@ jobs:
       SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
       DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.PRIVY_APP_ID }}
+      PRIVY_APP_SECRET: ${{ secrets.PRIVY_APP_SECRET }}
 
     steps:
     - uses: actions/checkout@v4
@@ -87,6 +91,8 @@ jobs:
       SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
       DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.PRIVY_APP_ID }}
+      PRIVY_APP_SECRET: ${{ secrets.PRIVY_APP_SECRET }}
 
     steps:
     - uses: actions/checkout@v4

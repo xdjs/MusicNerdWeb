@@ -4,6 +4,7 @@ import Link from "next/link"
 import SearchBar from "./components/SearchBar"
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { Suspense } from "react";
+import Login from "./components/Login";
 
 export default function NavContent() {
     return (
@@ -25,6 +26,7 @@ export default function NavContent() {
             </div>
             <div className="flex gap-2 items-center">
                 <ThemeToggle />
+                <Login />
             </div>
         </nav>
     )

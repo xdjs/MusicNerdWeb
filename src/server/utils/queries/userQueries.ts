@@ -1,6 +1,6 @@
 import { db } from "@/server/db/drizzle";
-import { eq, ilike, inArray } from "drizzle-orm";
-import { users } from "@/server/db/schema";
+import { eq, ilike, inArray, sql } from "drizzle-orm";
+import { users, artists, ugcresearch } from "@/server/db/schema";
 import { getServerAuthSession } from "@/server/auth";
 
 export async function getUserByWallet(wallet: string) {
@@ -231,5 +231,151 @@ export async function removeFromHidden(userIds: string[]) {
         await db.update(users).set({ isHidden: false, updatedAt: now }).where(inArray(users.id, userIds));
     } catch (e) {
         console.error("error unhiding users", e);
+    }
+}
+
+// ============================================================================
+// Privy Authentication Functions
+// ============================================================================
+
+/**
+ * Get user by Privy user ID
+ */
+export async function getUserByPrivyId(privyUserId: string) {
+    try {
+        const result = await withDbRetry(() =>
+            db.query.users.findFirst({ where: eq(users.privyUserId, privyUserId) })
+        );
+        return result ?? null;
+    } catch (error) {
+        console.error("error getting user by Privy ID", error);
+        return null;
+    }
+}
+
+/**
+ * Create a new user from Privy login
+ */
+export async function createUserFromPrivy(data: {
+    privyUserId: string;
+    email?: string;
+}) {
+    try {
+        const [newUser] = await db.insert(users).values({
+            privyUserId: data.privyUserId,
+            email: data.email,
+            isWhiteListed: false,
+            isAdmin: false,
+            isSuperAdmin: false,
+            isHidden: false,
+        }).returning();
+        return newUser ?? null;
+    } catch (error) {
+        console.error("error creating user from Privy", error);
+        return null;
+    }
+}
+
+/**
+ * Link a wallet address to an existing user
+ */
+export async function linkWalletToUser(userId: string, walletAddress: string) {
+    try {
+        const now = new Date().toISOString();
+        const [updated] = await db.update(users)
+            .set({
+                wallet: walletAddress.toLowerCase(),
+                updatedAt: now,
+            })
+            .where(eq(users.id, userId))
+            .returning();
+        return updated ?? null;
+    } catch (error) {
+        console.error("error linking wallet to user", error);
+        return null;
+    }
+}
+
+/**
+ * Update a user's Privy ID (for legacy account linking)
+ */
+export async function updateUserPrivyId(userId: string, privyUserId: string, email?: string) {
+    try {
+        const now = new Date().toISOString();
+        const updateData: Record<string, string> = {
+            privyUserId,
+            updatedAt: now,
+        };
+        if (email) {
+            updateData.email = email;
+        }
+        const [updated] = await db.update(users)
+            .set(updateData)
+            .where(eq(users.id, userId))
+            .returning();
+        return updated ?? null;
+    } catch (error) {
+        console.error("error updating user Privy ID", error);
+        return null;
+    }
+}
+
+export type MergeAccountsResult = {
+    success: boolean;
+    mergedUserId?: string;
+    error?: string;
+};
+
+/**
+ * Merge accounts: transfer data from current (placeholder) user to legacy user, then delete placeholder
+ * - Updates legacy user with privyUserId and email
+ * - Transfers artists added by current user to legacy user
+ * - Transfers UGC submissions from current user to legacy user
+ * - Deletes the placeholder current user
+ */
+export async function mergeAccounts(
+    currentUserId: string,
+    legacyUserId: string,
+    privyUserId: string,
+    email?: string
+): Promise<MergeAccountsResult> {
+    try {
+        const now = new Date().toISOString();
+
+        // Get legacy user to verify it exists
+        const legacyUser = await db.query.users.findFirst({
+            where: eq(users.id, legacyUserId)
+        });
+
+        if (!legacyUser) {
+            return { success: false, error: 'Legacy user not found' };
+        }
+
+        // Update legacy user with Privy ID and email
+        await db.update(users)
+            .set({
+                privyUserId,
+                email: email || legacyUser.email,
+                updatedAt: now,
+            })
+            .where(eq(users.id, legacyUserId));
+
+        // Transfer artists from current user to legacy user
+        await db.update(artists)
+            .set({ addedBy: legacyUserId })
+            .where(eq(artists.addedBy, currentUserId));
+
+        // Transfer UGC submissions from current user to legacy user
+        await db.update(ugcresearch)
+            .set({ userId: legacyUserId })
+            .where(eq(ugcresearch.userId, currentUserId));
+
+        // Delete the placeholder current user
+        await db.delete(users).where(eq(users.id, currentUserId));
+
+        return { success: true, mergedUserId: legacyUserId };
+    } catch (error) {
+        console.error("error merging accounts", error);
+        return { success: false, error: 'Merge failed' };
     }
 } 

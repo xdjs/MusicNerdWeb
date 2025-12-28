@@ -24,14 +24,21 @@ const customJestConfig: Config = {
         '^@components/(.*)$': '<rootDir>/src/components/$1',
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+        '^jose$': '<rootDir>/node_modules/jose/dist/node/cjs/index.js',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
+        '^@panva/hkdf$': '<rootDir>/node_modules/@panva/hkdf/dist/node/cjs/index.js',
+        '^next-auth$': '<rootDir>/__mocks__/next-auth/index.js',
+        '^next-auth/react$': '<rootDir>/__mocks__/next-auth/react.js',
+        '^next-auth/providers/credentials$': '<rootDir>/__mocks__/next-auth/providers/credentials.js',
+        '^next-auth/(.*)$': '<rootDir>/__mocks__/next-auth/index.js',
+        '^@privy-io/server-auth$': '<rootDir>/__mocks__/@privy-io/server-auth.js',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports
         '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': '<rootDir>/__mocks__/fileMock.js',
     },
     transformIgnorePatterns: [
-        'node_modules/(?!(jose|@radix-ui|@panva|@tanstack|@tanstack/react-query|@tanstack/query-core)/)'
+        'node_modules/(?!(jose|openid-client|oauth4webapi|@radix-ui|@panva|@tanstack|@tanstack/react-query|@tanstack/query-core|@privy-io)/)'
     ],
     testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
     moduleDirectories: ['node_modules', '<rootDir>/'],

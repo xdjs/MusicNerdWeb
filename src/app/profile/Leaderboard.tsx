@@ -9,11 +9,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import Jazzicon from "react-jazzicon";
-import { jsNumberForAddress } from "react-jazzicon";
-import { createPublicClient, http } from "viem";
-import { getEnsAvatar, getEnsName } from "viem/ens";
-import { mainnet } from "wagmi/chains";
 
 type RangeKey = "today" | "week" | "month" | "all";
 
@@ -25,20 +20,28 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
-const publicClient = createPublicClient({
-    chain: mainnet,
-    transport: http(),
-});
+// Generate a consistent color based on string (for avatar backgrounds)
+function stringToColor(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 60%)`;
+}
+
+// Get initials from username or email
+function getInitials(name: string): string {
+    const parts = name.split(/[\s@._-]+/).filter(Boolean);
+    if (parts.length >= 2) {
+        return (parts[0]![0] + parts[1]![0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+}
 
 function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
-
-    // Avatar state for each leaderboard entry (replicates corner icon logic)
-    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
-    const [avatarError, setAvatarError] = useState(false);
-    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
-    const [ensLoading, setEnsLoading] = useState(false);
 
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
@@ -55,46 +58,15 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         // Check if the username is contained within the identifier
         (entry.username && identifierLc && identifierLc.indexOf(entry.username.toLowerCase()) !== -1)
     );
-    
-    // Debug logging for highlighting - log for all entries to help debug
-    console.log('[Leaderboard] Highlighting debug:', {
-        highlightIdentifier,
-        identifierLc,
-        entryUsername: entry.username,
-        entryWallet: entry.wallet,
-        isHighlighted,
-        usernameMatch: (entry.username ?? '').toLowerCase() === identifierLc,
-        walletMatch: entry.wallet?.toLowerCase() === identifierLc
-    });
+
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
 
-    useEffect(() => {
-        let cancelled = false;
-        async function resolveAvatar() {
-            setEnsLoading(true);
-            setAvatarError(false);
-            try {
-                const ensName = await getEnsName(publicClient, { address: entry.wallet as `0x${string}` });
-                let finalAvatar: string | null = null;
-                if (ensName) {
-                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
-                }
-                if (!cancelled) {
-                    setEnsAvatarUrl(finalAvatar ?? null);
-                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(entry.wallet));
-                }
-            } catch {
-                if (!cancelled) {
-                    setEnsAvatarUrl(null);
-                    setJazziconSeed(jsNumberForAddress(entry.wallet));
-                }
-            } finally {
-                if (!cancelled) setEnsLoading(false);
-            }
-        }
-        resolveAvatar();
-        return () => { cancelled = true; };
-    }, [entry.wallet]);
+    // Determine display name and avatar
+    const displayName = entry.username || entry.email ||
+        (entry.wallet?.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : entry.wallet ? '0x' + entry.wallet.slice(0, 8) + "..." : 'Anonymous');
+    const avatarSeed = entry.username || entry.email || entry.wallet || entry.userId;
+    const avatarColor = stringToColor(avatarSeed);
+    const initials = getInitials(displayName);
 
     async function fetchRecent() {
         if (recent || loadingRec) return;
@@ -140,31 +112,17 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             : <span className="relative left-[-10px] top-[1px] inline-block">{rank}</span>
                         )}
                     </span>
-                                         {/* Profile Picture - evenly spaced between rank and username */}
-                     <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                        {ensLoading ? (
-                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                        ) : ensAvatarUrl && !avatarError ? (
-                            <img
-                                src={ensAvatarUrl}
-                                alt="ENS Avatar"
-                                className="w-full h-full object-cover"
-                                onError={() => setAvatarError(true)}
-                            />
-                        ) : jazziconSeed ? (
-                            <Jazzicon diameter={32} seed={jazziconSeed} />
-                        ) : (
-                            <img
-                                src="/default_pfp_pink.png"
-                                alt="Default Profile"
-                                className="w-full h-full object-cover"
-                            />
-                        )}
+                    {/* Profile Picture - evenly spaced between rank and username */}
+                    <div
+                        className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center text-white font-semibold text-sm"
+                        style={{ backgroundColor: avatarColor }}
+                    >
+                        {initials}
                     </div>
                     {/* Username */}
                     <div className="flex-1 min-w-0">
                         <p className="font-medium truncate text-lg">
-                            {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
+                            {displayName}
                         </p>
                     </div>
                 </div>
@@ -200,30 +158,16 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             </span>
                             {/* Consistent left padding before avatar to push name right */}
                             <div className="w-5 flex-none" />
-                                                         {/* Avatar between rank and username */}
-                             <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                {ensLoading ? (
-                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                                ) : ensAvatarUrl && !avatarError ? (
-                                    <img
-                                        src={ensAvatarUrl}
-                                        alt="ENS Avatar"
-                                        className="w-full h-full object-cover"
-                                        onError={() => setAvatarError(true)}
-                                    />
-                                ) : jazziconSeed ? (
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
-                                ) : (
-                                    <img
-                                        src="/default_pfp_pink.png"
-                                        alt="Default Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
+                            {/* Avatar between rank and username */}
+                            <div
+                                className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center text-white font-semibold text-sm"
+                                style={{ backgroundColor: avatarColor }}
+                            >
+                                {initials}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate text-lg">
-                                    {entry.username || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0, 10) + "..." : '0x' + entry.wallet.slice(0, 8) + "...")}
+                                    {displayName}
                                 </p>
                             </div>
                         </div>
@@ -246,7 +190,7 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     {/* Recently Added Artists inline expansion */}
                     {showRecent && (
                         <div className="mt-4">
-                            <p className="font-semibold text-center mb-2">{(entry.username || entry.email || (entry.wallet.startsWith('0x') ? entry.wallet.slice(0,10)+"..." : '0x' + entry.wallet.slice(0,8)+"..."))}&#39;s Recently Edited</p>
+                            <p className="font-semibold text-center mb-2">{displayName}&#39;s Recently Edited</p>
                             {loadingRec && <p className="text-sm text-muted-foreground text-center">Loading...</p>}
                             {recent && recent.length ? (
                                 <ul className="grid grid-cols-3 gap-4 justify-items-center">
