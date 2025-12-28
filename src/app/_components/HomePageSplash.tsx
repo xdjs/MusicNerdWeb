@@ -97,22 +97,23 @@ export default function HomePage({ animation }: { animation: string }) {
 
     return (
         <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
-            <div className="absolute top-6 right-6 flex flex-row gap-4 items-center">
-                <ThemeToggle />
-                <Login />
+            {/* Header row with logo on left and controls on right */}
+            <div className="absolute top-6 left-6 right-6 flex flex-row justify-between items-center">
+                <img
+                    src="/icon.ico"
+                    className="w-auto"
+                    style={{
+                        width: 'clamp(68px, calc(68px + (94 - 68) * ((100vw - 360px) / (1440 - 360))), 94px)'
+                    }}
+                    alt="logo"
+                />
+                <div className="flex flex-row gap-4 items-center">
+                    <ThemeToggle />
+                    <Login />
+                </div>
             </div>
 
             <div className="w-full">
-                <div className="flex flex-col items-center md:fixed md:left-8 md:top-8 mb-4">
-                    <img
-                        src="/icon.ico"
-                        className="w-auto"
-                        style={{
-                            width: 'clamp(68px, calc(68px + (94 - 68) * ((100vw - 360px) / (1440 - 360))), 94px)'
-                        }}
-                        alt="logo"
-                    />
-                </div>
 
                 <div className="grow mb-8">
                     <div className="font-bold w-full"
