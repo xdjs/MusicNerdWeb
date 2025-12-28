@@ -145,7 +145,7 @@ export default function Login({ buttonStyles }: { buttonStyles?: string }) {
   return (
     <Button
       onClick={login}
-      className={`bg-[#E91E8C] hover:bg-[#C4177A] text-white ${buttonStyles || ''}`}
+      className={`bg-pastyblue hover:bg-pastyblue/80 text-white ${buttonStyles || ''}`}
     >
       Log In
     </Button>
