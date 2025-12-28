@@ -55,11 +55,18 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         queryFn: async () => {
             if (!debouncedQuery || debouncedQuery.trim() === '') return [];
 
-            const response = await fetch(`/api/searchArtists?query=${encodeURIComponent(debouncedQuery)}`);
+            const response = await fetch('/api/searchArtists', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: debouncedQuery }),
+            });
             if (!response.ok) {
                 throw new Error('Search failed');
             }
-            return response.json();
+            const data = await response.json();
+            return data.results;
         },
         enabled: debouncedQuery.trim() !== '',
     });
