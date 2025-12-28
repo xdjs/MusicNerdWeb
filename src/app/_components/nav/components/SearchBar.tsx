@@ -1,14 +1,12 @@
 "use client"
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
-import Image from 'next/image';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -37,7 +35,6 @@ interface SearchBarProps {
 
 function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const router = useRouter();
-    const pathname = usePathname();
     const [query, setQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
     const [debouncedQuery] = useDebounce(query, 200);
@@ -143,36 +140,65 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                     ref={resultsContainer}
                     className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
                 >
-                    {results.map((result, index) => (
-                        <button
-                            key={result.isSpotifyOnly ? `spotify-${result.spotify}` : result.id}
-                            onClick={() => handleResultClick(result)}
-                            className="w-full p-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
-                        >
-                            {result.images && result.images.length > 0 ? (
-                                <Image
-                                    src={result.images[0].url}
-                                    alt={result.name || 'Artist'}
-                                    width={48}
-                                    height={48}
-                                    className="rounded"
-                                />
-                            ) : (
-                                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded" />
-                            )}
-                            <div className="flex-1">
-                                <div className="font-medium text-gray-900 dark:text-white">
-                                    {result.name}
+                    {results.map((result) => {
+                        const spotifyImage = result.images?.[0]?.url;
+                        const hasSocialLinks = result.bandcamp || result.youtube || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok;
+
+                        return (
+                            <button
+                                key={result.isSpotifyOnly ? `spotify-${result.spotify}` : result.id}
+                                onClick={() => handleResultClick(result)}
+                                className="w-full p-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                            >
+                                <div className="flex items-center justify-center w-10 h-10">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={spotifyImage || "/default_pfp_pink.png"}
+                                        alt={result.name ?? "Artist"}
+                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8' : 'w-10 h-10'}`}
+                                    />
                                 </div>
-                                {result.isSpotifyOnly && (
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                        <ExternalLink className="h-3 w-3" />
-                                        <span>Authentication required to add</span>
+                                <div className="flex-1">
+                                    <div className={`font-medium text-gray-900 dark:text-white ${result.isSpotifyOnly ? 'text-sm' : 'text-base'}`}>
+                                        {result.name}
                                     </div>
-                                )}
-                            </div>
-                        </button>
-                    ))}
+                                    {result.isSpotifyOnly ? (
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                            <ExternalLink className="h-3 w-3" />
+                                            <span>Not in MusicNerd yet</span>
+                                        </div>
+                                    ) : hasSocialLinks && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {result.bandcamp && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                            {(result.youtube || result.youtubechannel) && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                            {result.instagram && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/instagram-svgrepo-com.svg" alt="Instagram" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                            {result.x && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/x_icon.svg" alt="X" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                            {result.facebook && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/facebook_icon.svg" alt="Facebook" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                            {result.tiktok && (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src="/siteIcons/tiktok_icon.svg" alt="TikTok" className="w-3.5 h-3.5 opacity-70" />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 
