@@ -83,14 +83,21 @@ export const authOptions: NextAuthOptions = {
         if (!user) {
           // New user - create account
           console.log('[Auth] Creating new user for Privy ID:', privyUser.userId);
+          console.log('[Auth] User data:', { email: privyUser.email, wallets: privyUser.linkedWallets });
+
           user = await createUserFromPrivy({
             privyUserId: privyUser.userId,
             email: privyUser.email,
           });
+
+          if (!user) {
+            console.error('[Auth] createUserFromPrivy returned null - user creation failed');
+            console.error('[Auth] This is likely a database issue. Check if privy_user_id column exists.');
+          }
         }
 
         if (!user) {
-          console.error('[Auth] Failed to get or create user');
+          console.error('[Auth] Failed to get or create user for Privy ID:', privyUser.userId);
           return null;
         }
 
