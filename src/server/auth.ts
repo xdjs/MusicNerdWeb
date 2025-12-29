@@ -65,20 +65,29 @@ export const authOptions: NextAuthOptions = {
         authToken: { label: 'Auth Token', type: 'text' },
       },
       async authorize(credentials) {
+        console.log('[Auth] ========== AUTHORIZE CALLED ==========');
+        console.log('[Auth] Credentials received:', credentials ? 'yes' : 'no');
+        console.log('[Auth] Auth token present:', credentials?.authToken ? `${credentials.authToken.substring(0, 20)}...` : 'no');
+
         if (!credentials?.authToken) {
           console.error('[Auth] No auth token provided');
           return null;
         }
 
         // Verify Privy token
+        console.log('[Auth] Verifying Privy token...');
         const privyUser = await verifyPrivyToken(credentials.authToken);
+        console.log('[Auth] Privy verification result:', privyUser ? JSON.stringify(privyUser) : 'null');
+
         if (!privyUser) {
           console.error('[Auth] Privy token verification failed');
           return null;
         }
 
         // Look up user by Privy ID
+        console.log('[Auth] Looking up user by Privy ID:', privyUser.userId);
         let user = await getUserByPrivyId(privyUser.userId);
+        console.log('[Auth] getUserByPrivyId result:', user ? JSON.stringify({ id: user.id, privyUserId: user.privyUserId }) : 'null');
 
         if (!user) {
           // New user - create account

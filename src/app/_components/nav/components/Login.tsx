@@ -22,14 +22,22 @@ export default function Login({ buttonStyles }: { buttonStyles?: string }) {
   const [hasPendingUGC, setHasPendingUGC] = useState(false);
 
   const { login } = useLogin({
-    onComplete: async () => {
+    onComplete: async (user) => {
+      console.log('[Login] Privy onComplete called');
+      console.log('[Login] Privy user:', JSON.stringify(user, null, 2));
       try {
+        console.log('[Login] Getting access token...');
         const authToken = await getAccessToken();
+        console.log('[Login] Access token received:', authToken ? `${authToken.substring(0, 20)}...` : 'null');
         if (authToken) {
-          await signIn('privy', {
+          console.log('[Login] Calling NextAuth signIn with privy provider...');
+          const result = await signIn('privy', {
             authToken,
             redirect: false,
           });
+          console.log('[Login] NextAuth signIn result:', JSON.stringify(result, null, 2));
+        } else {
+          console.error('[Login] No auth token received from Privy');
         }
       } catch (error) {
         console.error('[Login] Error signing in with NextAuth:', error);

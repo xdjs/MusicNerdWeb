@@ -242,13 +242,19 @@ export async function removeFromHidden(userIds: string[]) {
  * Get user by Privy user ID
  */
 export async function getUserByPrivyId(privyUserId: string) {
+    console.log('[UserQueries] getUserByPrivyId called with:', privyUserId);
     try {
+        console.log('[UserQueries] Querying database for user...');
         const result = await withDbRetry(() =>
             db.query.users.findFirst({ where: eq(users.privyUserId, privyUserId) })
         );
+        console.log('[UserQueries] Query result:', result ? JSON.stringify({ id: result.id, privyUserId: result.privyUserId, email: result.email }) : 'null');
         return result ?? null;
     } catch (error) {
-        console.error("error getting user by Privy ID", error);
+        console.error("[UserQueries] Error getting user by Privy ID:", error);
+        if (error instanceof Error) {
+            console.error("[UserQueries] Error message:", error.message);
+        }
         return null;
     }
 }
