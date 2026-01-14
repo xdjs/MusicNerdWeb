@@ -82,13 +82,11 @@ Returns an array of artist summaries ordered by relevance. The consumer decides 
   "artists": [
     {
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      "name": "Daft Punk",
-      "imageUrl": "https://..."
+      "name": "Daft Punk"
     },
     {
       "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "name": "Daft Punk Tribute",
-      "imageUrl": "https://..."
+      "name": "Daft Punk Tribute"
     }
   ],
   "totalResults": 2
@@ -118,9 +116,8 @@ Fetch detailed information for a specific artist by ID. This is a thin wrapper o
 Returns the full artist object containing:
 - `id` - MusicNerd artist ID
 - `name` - Artist name
-- `bio` - AI-generated artist biography (if available)
+- `bio` - AI-generated artist biography (may be null)
 - `spotifyId` - Spotify artist ID (if linked)
-- `imageUrl` - Artist image URL
 - `socialLinks` - All available platform links
 
 **Example Request:**
@@ -141,7 +138,6 @@ Returns the full artist object containing:
     "name": "Daft Punk",
     "bio": "Daft Punk was a French electronic music duo...",
     "spotifyId": "4tZwfgrHOc3mvqYlEYSvVi",
-    "imageUrl": "https://...",
     "socialLinks": {
       "spotify": { "handle": "4tZwfgrHOc3mvqYlEYSvVi", "url": "https://open.spotify.com/artist/4tZwfgrHOc3mvqYlEYSvVi" },
       "instagram": { "handle": "daftpunk", "url": "https://instagram.com/daftpunk" },
@@ -182,7 +178,6 @@ Submit user-generated content updates for an artist (requires authentication).
 interface ArtistSummary {
   id: string; // UUID
   name: string;
-  imageUrl: string | null;
 }
 
 // Social link with both handle and full URL
@@ -197,7 +192,6 @@ interface ArtistDetail {
   name: string;
   bio: string | null;
   spotifyId: string | null;
-  imageUrl: string | null;
   socialLinks: {
     // All available platform links (empty object {} if none)
     spotify?: SocialLink;
