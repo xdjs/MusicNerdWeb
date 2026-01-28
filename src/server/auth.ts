@@ -10,6 +10,9 @@ import { SiweMessage } from "siwe";
 import { getUserByWallet, createUser, getUserByPrivyId, createUserFromPrivy } from "@/server/utils/queries/userQueries";
 import { verifyPrivyToken } from "@/server/utils/privy";
 
+// Lock to prevent concurrent session refresh operations
+const refreshLocks = new Map<string, Promise<void>>();
+
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
  * object and keep type safety.
@@ -96,49 +99,49 @@ export const authOptions: NextAuthOptions = {
           token.isSuperAdmin === undefined ||
           token.isHidden === undefined;
 
-        if (shouldRefresh) {
-          try {
-            // Try to refresh by Privy ID first, then by wallet
-            let refreshedUser = null;
+        if (shouldRefresh && token.sub) {
+          // Use a lock to prevent concurrent refresh operations for the same user
+          const lockKey = token.sub;
 
-            if (token.privyUserId) {
-              console.debug('[Auth] Refreshing user data from database by Privy ID', {
-                trigger,
-                lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
-                privyUserId: token.privyUserId
-              });
-              refreshedUser = await getUserByPrivyId(token.privyUserId);
-            } else if (token.walletAddress) {
-              console.debug('[Auth] Refreshing user data from database by wallet', {
-                trigger,
-                lastRefresh: token.lastRefresh ? new Date(token.lastRefresh as number).toISOString() : 'never',
-                wallet: token.walletAddress
-              });
-              refreshedUser = await getUserByWallet(token.walletAddress);
+          // If a refresh is already in progress, skip this one
+          if (refreshLocks.has(lockKey)) {
+            // Just return the current token while another refresh is in progress
+          } else {
+            // Create a new refresh operation with a lock
+            const refreshOperation = (async () => {
+              try {
+                // Try to refresh by Privy ID first, then by wallet
+                let refreshedUser = null;
+
+                if (token.privyUserId) {
+                  refreshedUser = await getUserByPrivyId(token.privyUserId);
+                } else if (token.walletAddress) {
+                  refreshedUser = await getUserByWallet(token.walletAddress);
+                }
+
+                if (refreshedUser) {
+                  // Update all user properties from database
+                  token.walletAddress = refreshedUser.wallet ?? undefined;
+                  token.isWhiteListed = refreshedUser.isWhiteListed;
+                  token.isAdmin = refreshedUser.isAdmin;
+                  token.isSuperAdmin = refreshedUser.isSuperAdmin;
+                  token.isHidden = refreshedUser.isHidden;
+                  token.email = refreshedUser.email ?? undefined;
+                  token.name = refreshedUser.username ?? undefined;
+                  token.needsLegacyLink = !refreshedUser.wallet;
+                  token.lastRefresh = Date.now();
+                }
+              } catch (error) {
+                console.error('[Auth] Error refreshing user data in JWT callback:', error);
+              }
+            })();
+
+            refreshLocks.set(lockKey, refreshOperation);
+            try {
+              await refreshOperation;
+            } finally {
+              refreshLocks.delete(lockKey);
             }
-
-            if (refreshedUser) {
-              // Update all user properties from database
-              token.walletAddress = refreshedUser.wallet ?? undefined;
-              token.isWhiteListed = refreshedUser.isWhiteListed;
-              token.isAdmin = refreshedUser.isAdmin;
-              token.isSuperAdmin = refreshedUser.isSuperAdmin;
-              token.isHidden = refreshedUser.isHidden;
-              token.email = refreshedUser.email ?? undefined;
-              token.name = refreshedUser.username ?? undefined;
-              token.needsLegacyLink = !refreshedUser.wallet;
-              token.lastRefresh = Date.now();
-
-              console.debug('[Auth] User data refreshed', {
-                isAdmin: refreshedUser.isAdmin,
-                isWhiteListed: refreshedUser.isWhiteListed,
-                isSuperAdmin: refreshedUser.isSuperAdmin,
-                isHidden: refreshedUser.isHidden,
-                userId: refreshedUser.id
-              });
-            }
-          } catch (error) {
-            console.error('[Auth] Error refreshing user data in JWT callback:', error);
           }
         }
       }
@@ -193,7 +196,9 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log('[Auth] Privy authorize called with token length:', credentials.authToken.length);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] Privy authorize called with token length:', credentials.authToken.length);
+          }
 
           // Verify the Privy token
           const privyUser = await verifyPrivyToken(credentials.authToken);
@@ -202,27 +207,35 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log('[Auth] Privy token verified successfully', {
-            userId: privyUser.userId,
-            email: privyUser.email,
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] Privy token verified successfully', {
+              userId: privyUser.userId,
+              email: privyUser.email,
+            });
+          }
 
           // Look up user by Privy ID
           let user = await getUserByPrivyId(privyUser.userId);
-          console.log('[Auth] getUserByPrivyId result:', user ? { id: user.id, email: user.email } : 'not found');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] getUserByPrivyId result:', user ? { id: user.id, email: user.email } : 'not found');
+          }
 
           if (!user) {
             // New user - create account
-            console.log('[Auth] Creating new user from Privy login', {
-              privyUserId: privyUser.userId,
-              email: privyUser.email
-            });
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Auth] Creating new user from Privy login', {
+                privyUserId: privyUser.userId,
+                email: privyUser.email
+              });
+            }
             try {
               user = await createUserFromPrivy({
                 privyUserId: privyUser.userId,
                 email: privyUser.email,
               });
-              console.log('[Auth] User created successfully', { id: user?.id, privyUserId: user?.privyUserId });
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[Auth] User created successfully', { id: user?.id, privyUserId: user?.privyUserId });
+              }
             } catch (createError) {
               console.error('[Auth] Failed to create user from Privy:', createError);
               return null;
@@ -234,7 +247,9 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log('[Auth] Privy login successful', { userId: user.id, privyUserId: user.privyUserId });
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Auth] Privy login successful', { userId: user.id, privyUserId: user.privyUserId });
+          }
 
           return {
             id: user.id,

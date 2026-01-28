@@ -26,10 +26,14 @@ export interface PrivyVerificationResult {
   }>;
 }
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export async function verifyPrivyToken(
   authToken: string
 ): Promise<PrivyVerificationResult | null> {
-  console.log('[Privy] verifyPrivyToken called with token length:', authToken?.length);
+  if (isDev) {
+    console.log('[Privy] verifyPrivyToken called with token length:', authToken?.length);
+  }
 
   try {
     let user;
@@ -38,42 +42,50 @@ export async function verifyPrivyToken(
     // This is used for test users that don't receive tokens
     if (authToken.startsWith('privyid:')) {
       const privyUserId = authToken.slice(8); // Remove 'privyid:' prefix
-      console.log('[Privy] Processing direct Privy ID:', privyUserId);
+      if (isDev) {
+        console.log('[Privy] Processing direct Privy ID:', privyUserId);
+      }
 
       // Verify user exists by fetching from Privy API
-      console.log('[Privy] Calling privyClient.getUser to verify user exists...');
       user = await privyClient.getUser(privyUserId);
       if (!user) {
         console.error('[Privy] User not found for Privy ID:', privyUserId);
         return null;
       }
-      console.log('[Privy] User verified via direct ID, userId:', user.id);
+      if (isDev) {
+        console.log('[Privy] User verified via direct ID, userId:', user.id);
+      }
     }
     // Check if this is an identity token (prefixed with 'idtoken:')
     else if (authToken.startsWith('idtoken:')) {
       const idToken = authToken.slice(8); // Remove 'idtoken:' prefix
-      console.log('[Privy] Processing identity token, length:', idToken.length);
+      if (isDev) {
+        console.log('[Privy] Processing identity token, length:', idToken.length);
+      }
 
       // Verify identity token and get user
-      console.log('[Privy] Calling privyClient.getUser with idToken...');
       user = await privyClient.getUser({ idToken });
-      console.log('[Privy] Identity token verified, userId:', user.id);
+      if (isDev) {
+        console.log('[Privy] Identity token verified, userId:', user.id);
+      }
     } else {
       // Standard access token flow
-      console.log('[Privy] Calling privyClient.verifyAuthToken...');
       const verifiedClaims = await privyClient.verifyAuthToken(authToken);
-      console.log('[Privy] Token verified, userId:', verifiedClaims.userId);
+      if (isDev) {
+        console.log('[Privy] Token verified, userId:', verifiedClaims.userId);
+      }
 
       // Get full user details
-      console.log('[Privy] Fetching full user details...');
       user = await privyClient.getUser(verifiedClaims.userId);
     }
 
-    console.log('[Privy] Got user details:', {
-      id: user.id,
-      email: user.email?.address,
-      linkedAccountsCount: user.linkedAccounts?.length,
-    });
+    if (isDev) {
+      console.log('[Privy] Got user details:', {
+        id: user.id,
+        email: user.email?.address,
+        linkedAccountsCount: user.linkedAccounts?.length,
+      });
+    }
 
     return {
       userId: user.id,

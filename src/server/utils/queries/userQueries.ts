@@ -336,7 +336,7 @@ export async function mergeAccounts(
     legacyUserId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        // Get both users
+        // Get both users first (outside transaction to validate inputs)
         const currentUser = await db.query.users.findFirst({
             where: eq(users.id, currentUserId)
         });
@@ -351,36 +351,39 @@ export async function mergeAccounts(
 
         const now = new Date().toISOString();
 
-        // Update legacy user with Privy ID and merged data
-        await db
-            .update(users)
-            .set({
-                privyUserId: currentUser.privyUserId,
-                email: currentUser.email || legacyUser.email,
-                acceptedUgcCount: (legacyUser.acceptedUgcCount || 0) +
-                    (currentUser.acceptedUgcCount || 0),
-                updatedAt: now,
-            })
-            .where(eq(users.id, legacyUserId));
+        // Perform all mutations in a single transaction
+        await db.transaction(async (tx) => {
+            // Update legacy user with Privy ID and merged data
+            await tx
+                .update(users)
+                .set({
+                    privyUserId: currentUser.privyUserId,
+                    email: currentUser.email || legacyUser.email,
+                    acceptedUgcCount: (legacyUser.acceptedUgcCount || 0) +
+                        (currentUser.acceptedUgcCount || 0),
+                    updatedAt: now,
+                })
+                .where(eq(users.id, legacyUserId));
 
-        // Update foreign keys: artists.addedBy
-        await db.execute(sql`
-            UPDATE artists
-            SET added_by = ${legacyUserId}
-            WHERE added_by = ${currentUserId}
-        `);
+            // Update foreign keys: artists.addedBy
+            await tx.execute(sql`
+                UPDATE artists
+                SET added_by = ${legacyUserId}
+                WHERE added_by = ${currentUserId}
+            `);
 
-        // Update foreign keys: ugcresearch.userId
-        await db.execute(sql`
-            UPDATE ugcresearch
-            SET user_id = ${legacyUserId}
-            WHERE user_id = ${currentUserId}
-        `);
+            // Update foreign keys: ugcresearch.userId
+            await tx.execute(sql`
+                UPDATE ugcresearch
+                SET user_id = ${legacyUserId}
+                WHERE user_id = ${currentUserId}
+            `);
 
-        // Delete the current (placeholder) user
-        await db
-            .delete(users)
-            .where(eq(users.id, currentUserId));
+            // Delete the current (placeholder) user
+            await tx
+                .delete(users)
+                .where(eq(users.id, currentUserId));
+        });
 
         return { success: true };
     } catch (error) {
