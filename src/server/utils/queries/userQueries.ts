@@ -310,8 +310,16 @@ export async function updateUserPrivyId(userId: string, privyUserId: string) {
     }
 }
 
+// Wallet address validation regex
+const WALLET_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+
 // Link wallet to user
 export async function linkWalletToUser(userId: string, walletAddress: string) {
+    // Validate wallet address format
+    if (!WALLET_ADDRESS_REGEX.test(walletAddress)) {
+        throw new Error("Invalid wallet address format");
+    }
+
     try {
         const now = new Date().toISOString();
         const [updatedUser] = await db

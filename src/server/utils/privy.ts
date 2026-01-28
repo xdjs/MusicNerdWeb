@@ -2,12 +2,13 @@ import { PrivyClient } from '@privy-io/server-auth';
 import { PRIVY_APP_ID, PRIVY_APP_SECRET } from '@/env';
 import { TOKEN_PREFIXES } from './privyConstants';
 
-// Validate Privy configuration
+// Validate Privy configuration - fail fast in production
 if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
-  console.error('[Privy] Missing configuration:', {
-    hasAppId: !!PRIVY_APP_ID,
-    hasAppSecret: !!PRIVY_APP_SECRET,
-  });
+  const errorMsg = `[Privy] Missing configuration: hasAppId=${!!PRIVY_APP_ID}, hasAppSecret=${!!PRIVY_APP_SECRET}`;
+  console.error(errorMsg);
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(errorMsg);
+  }
 }
 
 const privyClient = new PrivyClient(

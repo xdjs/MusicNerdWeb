@@ -65,9 +65,12 @@ export const authOptions = {
           // Use a lock to prevent concurrent refresh operations for the same user
           const lockKey = token.sub;
 
-          // If a refresh is already in progress, skip this one
+          // If a refresh is already in progress, skip this one and return current token.
+          // This is intentional: returning slightly stale data (up to 5 min) is acceptable
+          // for role checks, and prevents thundering herd on concurrent requests.
+          // Critical auth checks use real-time DB lookups, not cached session data.
           if (refreshLocks.has(lockKey)) {
-            // Just return the current token while another refresh is in progress
+            // Return current token while another refresh is in progress
           } else {
             // Create a new refresh operation with a lock
             const refreshOperation = (async () => {
