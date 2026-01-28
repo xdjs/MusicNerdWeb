@@ -25,6 +25,11 @@ const customJestConfig: Config = {
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
+        // Privy mocks
+        '^@privy-io/server-auth$': '<rootDir>/__mocks__/@privy-io/server-auth.js',
+        '^@privy-io/react-auth$': '<rootDir>/__mocks__/@privy-io/react-auth.js',
+        '^next-auth/react$': '<rootDir>/src/test/__mocks__/next-auth.ts',
+        '^next-auth/next$': '<rootDir>/src/test/__mocks__/next-auth-next.ts',
         // Handle CSS imports
         '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
         // Handle image imports
