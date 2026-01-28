@@ -187,52 +187,71 @@ export const authOptions: NextAuthOptions = {
         authToken: { label: "Auth Token", type: "text" },
       },
       async authorize(credentials): Promise<any> {
-        if (!credentials?.authToken) {
-          console.error('[Auth] No Privy auth token provided');
-          return null;
-        }
+        try {
+          if (!credentials?.authToken) {
+            console.error('[Auth] No Privy auth token provided');
+            return null;
+          }
 
-        // Verify the Privy token
-        const privyUser = await verifyPrivyToken(credentials.authToken);
-        if (!privyUser) {
-          console.error('[Auth] Privy token verification failed');
-          return null;
-        }
+          console.log('[Auth] Privy authorize called with token length:', credentials.authToken.length);
 
-        // Look up user by Privy ID
-        let user = await getUserByPrivyId(privyUser.userId);
+          // Verify the Privy token
+          const privyUser = await verifyPrivyToken(credentials.authToken);
+          if (!privyUser) {
+            console.error('[Auth] Privy token verification failed');
+            return null;
+          }
 
-        if (!user) {
-          // New user - create account
-          console.debug('[Auth] Creating new user from Privy login', {
-            privyUserId: privyUser.userId,
-            email: privyUser.email
-          });
-          user = await createUserFromPrivy({
-            privyUserId: privyUser.userId,
+          console.log('[Auth] Privy token verified successfully', {
+            userId: privyUser.userId,
             email: privyUser.email,
           });
-        }
 
-        if (!user) {
-          console.error('[Auth] Failed to get or create user');
+          // Look up user by Privy ID
+          let user = await getUserByPrivyId(privyUser.userId);
+          console.log('[Auth] getUserByPrivyId result:', user ? { id: user.id, email: user.email } : 'not found');
+
+          if (!user) {
+            // New user - create account
+            console.log('[Auth] Creating new user from Privy login', {
+              privyUserId: privyUser.userId,
+              email: privyUser.email
+            });
+            try {
+              user = await createUserFromPrivy({
+                privyUserId: privyUser.userId,
+                email: privyUser.email,
+              });
+              console.log('[Auth] User created successfully', { id: user?.id, privyUserId: user?.privyUserId });
+            } catch (createError) {
+              console.error('[Auth] Failed to create user from Privy:', createError);
+              return null;
+            }
+          }
+
+          if (!user) {
+            console.error('[Auth] Failed to get or create user');
+            return null;
+          }
+
+          console.log('[Auth] Privy login successful', { userId: user.id, privyUserId: user.privyUserId });
+
+          return {
+            id: user.id,
+            privyUserId: privyUser.userId,
+            email: user.email,
+            walletAddress: user.wallet,
+            isWhiteListed: user.isWhiteListed,
+            isAdmin: user.isAdmin,
+            isSuperAdmin: user.isSuperAdmin,
+            isHidden: user.isHidden,
+            isSignupComplete: true,
+            needsLegacyLink: !user.wallet,
+          };
+        } catch (error) {
+          console.error('[Auth] Privy authorize error:', error);
           return null;
         }
-
-        console.debug('[Auth] Privy login successful', { userId: user.id });
-
-        return {
-          id: user.id,
-          privyUserId: privyUser.userId,
-          email: user.email,
-          walletAddress: user.wallet,
-          isWhiteListed: user.isWhiteListed,
-          isAdmin: user.isAdmin,
-          isSuperAdmin: user.isSuperAdmin,
-          isHidden: user.isHidden,
-          isSignupComplete: true,
-          needsLegacyLink: !user.wallet,
-        };
       },
     }),
     // Legacy SIWE authentication provider (wallet-first) - kept for backwards compatibility

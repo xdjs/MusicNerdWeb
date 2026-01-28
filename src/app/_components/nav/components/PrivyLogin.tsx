@@ -1,6 +1,6 @@
 'use client';
 
-import { usePrivy, useLogin, useLogout } from '@privy-io/react-auth';
+import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface PrivyLoginProps {
 const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
   ({ buttonStyles = '' }, ref) => {
     const { ready, authenticated, user: privyUser, getAccessToken } = usePrivy();
+    const { identityToken } = useIdentityToken();
     const { data: session, status } = useSession();
     const { toast } = useToast();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
@@ -33,9 +34,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
 
     const { login } = useLogin({
-      onComplete: async (user, isNewUser, wasAlreadyAuthenticated) => {
+      onComplete: async (params) => {
+        const { user, isNewUser, wasAlreadyAuthenticated } = params;
         console.log('[PrivyLogin] onComplete called:', {
-          userId: user?.user?.id,
+          userId: user?.id,
           isNewUser,
           wasAlreadyAuthenticated,
           currentAuthenticated: authenticated,
@@ -70,39 +72,95 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
         try {
           console.log('[PrivyLogin] Attempting to get access token...');
-          // Get the auth token from Privy (now that we're authenticated)
-          const authToken = await getAccessToken();
-          console.log('[PrivyLogin] getAccessToken result:', {
-            type: typeof authToken,
-            value: authToken,
-            stringified: JSON.stringify(authToken),
-            hasToken: !!authToken,
-            tokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
-          });
 
-          // Handle case where getAccessToken might return an object with token property
-          const token = typeof authToken === 'string' ? authToken : (authToken as any)?.token || (authToken as any)?.accessToken;
+          // Retry logic for getAccessToken - it may return null initially due to timing
+          let token: string | null = null;
+          const maxRetries = 5;
+          const retryDelay = 500; // ms
 
-          console.log('[PrivyLogin] Extracted token:', {
-            type: typeof token,
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            console.log(`[PrivyLogin] getAccessToken attempt ${attempt}/${maxRetries}`);
+            const authToken = await getAccessToken();
+            console.log('[PrivyLogin] getAccessToken result:', {
+              attempt,
+              type: typeof authToken,
+              value: authToken,
+              hasToken: !!authToken,
+              tokenLength: typeof authToken === 'string' ? authToken.length : 'not a string',
+            });
+
+            // Handle case where getAccessToken might return an object with token property
+            token = typeof authToken === 'string' ? authToken : (authToken as any)?.token || (authToken as any)?.accessToken || null;
+
+            if (token) {
+              console.log('[PrivyLogin] Token obtained successfully on attempt', attempt);
+              break;
+            }
+
+            // Fallback 1: try reading directly from localStorage (Privy stores token with key "privy:token")
+            if (typeof window !== 'undefined') {
+              const localStorageToken = localStorage.getItem('privy:token');
+              console.log('[PrivyLogin] localStorage privy:token:', {
+                attempt,
+                hasToken: !!localStorageToken,
+                tokenLength: localStorageToken?.length || 0,
+              });
+              if (localStorageToken) {
+                token = localStorageToken;
+                console.log('[PrivyLogin] Token obtained from localStorage on attempt', attempt);
+                break;
+              }
+            }
+
+            // Fallback 2: try identity token (available even when access token isn't)
+            try {
+              console.log('[PrivyLogin] Trying identity token fallback...');
+              const idToken = await getIdentityToken();
+              console.log('[PrivyLogin] getIdentityToken result:', {
+                attempt,
+                hasToken: !!idToken,
+                tokenLength: idToken?.length || 0,
+              });
+              if (idToken) {
+                token = `idtoken:${idToken}`;  // Prefix to indicate this is an identity token
+                console.log('[PrivyLogin] Identity token obtained on attempt', attempt);
+                break;
+              }
+            } catch (idTokenError) {
+              console.log('[PrivyLogin] getIdentityToken failed:', idTokenError);
+            }
+
+            if (attempt < maxRetries) {
+              console.log(`[PrivyLogin] Token is null, waiting ${retryDelay}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+          }
+
+          console.log('[PrivyLogin] Final token status:', {
             hasToken: !!token,
             tokenLength: typeof token === 'string' ? token.length : 'not a string',
             tokenPreview: typeof token === 'string' ? token.substring(0, 50) + '...' : 'N/A',
           });
 
           if (!token) {
-            console.error('[PrivyLogin] Failed to get auth token');
-            console.error('[PrivyLogin] Privy state at failure:', {
-              ready,
-              authenticated,
-              privyUser: privyUser ? { id: privyUser.id, email: privyUser.email } : null,
-            });
-            toast({
-              title: 'Login Error',
-              description: 'Failed to get authentication token. Please try again.',
-              variant: 'destructive',
-            });
-            return;
+            // Final fallback: use Privy user ID directly (for test users that don't get tokens)
+            if (privyUser?.id) {
+              console.log('[PrivyLogin] Using direct Privy ID fallback:', privyUser.id);
+              token = `privyid:${privyUser.id}`;  // Prefix to indicate this is a direct Privy ID
+            } else {
+              console.error('[PrivyLogin] Failed to get auth token after all retries');
+              console.error('[PrivyLogin] Privy state at failure:', {
+                ready,
+                authenticated,
+                privyUser: privyUser ? { id: privyUser.id, email: privyUser.email } : null,
+              });
+              toast({
+                title: 'Login Error',
+                description: 'Failed to get authentication token. Please try again.',
+                variant: 'destructive',
+              });
+              return;
+            }
           }
 
           // Sign in with NextAuth using the Privy provider

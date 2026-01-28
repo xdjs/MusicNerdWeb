@@ -259,6 +259,10 @@ export async function createUserFromPrivy(data: {
     privyUserId: string;
     email?: string;
 }) {
+    console.log('[createUserFromPrivy] Starting with data:', {
+        privyUserId: data.privyUserId,
+        email: data.email,
+    });
     try {
         const [newUser] = await db
             .insert(users)
@@ -271,10 +275,20 @@ export async function createUserFromPrivy(data: {
                 isHidden: false,
             })
             .returning();
+        console.log('[createUserFromPrivy] User created successfully:', {
+            id: newUser?.id,
+            privyUserId: newUser?.privyUserId,
+            email: newUser?.email,
+        });
         return newUser;
     } catch (e) {
-        console.error("error creating user from Privy", e);
-        throw new Error("Error creating user from Privy");
+        console.error("[createUserFromPrivy] Database error:", e);
+        console.error("[createUserFromPrivy] Error details:", {
+            name: (e as Error)?.name,
+            message: (e as Error)?.message,
+            stack: (e as Error)?.stack,
+        });
+        throw new Error(`Error creating user from Privy: ${(e as Error)?.message}`);
     }
 }
 
