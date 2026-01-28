@@ -9,12 +9,13 @@ import { useArtistBio } from "@/hooks/useArtistBio";
 interface BlurbSectionProps {
   artistName: string;
   artistId: string;
+  initialBio?: string | null;
 }
 
-export default function BlurbSection({ artistName, artistId }: BlurbSectionProps) {
+export default function BlurbSection({ artistName, artistId, initialBio }: BlurbSectionProps) {
   const { isEditing, canEdit } = useContext(EditModeContext);
   const { toast } = useToast();
-  const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId);
+  const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
 
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [editText, setEditText] = useState<string>("");

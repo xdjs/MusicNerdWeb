@@ -51,9 +51,22 @@ interface UseArtistBioReturn {
   refetch: () => void;
 }
 
-export function useArtistBio(artistId: string): UseArtistBioReturn {
-  const [bio, setBio] = useState<string | undefined>();
-  const [loading, setLoading] = useState(false);
+export function useArtistBio(artistId: string, initialBio?: string | null): UseArtistBioReturn {
+  // Check for initial value from server or cache
+  const getInitialBio = (): string | undefined => {
+    // Use != null to allow empty strings (only skip if undefined/null)
+    if (initialBio != null) return initialBio;
+    const cache = getCache();
+    const cached = cache[artistId];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.bio;
+    }
+    return undefined;
+  };
+
+  const initialValue = getInitialBio();
+  const [bio, setBio] = useState<string | undefined>(initialValue);
+  const [loading, setLoading] = useState(!initialValue);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBio = async () => {
@@ -98,15 +111,24 @@ export function useArtistBio(artistId: string): UseArtistBioReturn {
   };
 
   useEffect(() => {
-    // Only fetch if we don't have a cached version
+    // Skip fetch if we have a server-provided initialBio (use != null to allow empty strings)
+    if (initialBio != null) {
+      setLoading(false);
+      return;
+    }
+
+    // Check cache - if valid, we already have the bio from initialization
     const cache = getCache();
     const cached = cache[artistId];
-    if (!cached || Date.now() - cached.timestamp >= CACHE_TTL) {
-      fetchBio();
-    } else {
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setBio(cached.bio);
+      setLoading(false);
+      return;
     }
-  }, [artistId]);
+
+    // No initialBio and no valid cache - fetch from API
+    fetchBio();
+  }, [artistId, initialBio]);
 
   const refetch = () => {
     // Clear cache and refetch

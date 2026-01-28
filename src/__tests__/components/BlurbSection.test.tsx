@@ -169,8 +169,8 @@ describe('BlurbSection', () => {
 
             render(<BlurbSection {...defaultProps} />);
             
-            // The hook should be called with the correct artist ID
-            expect(mockUseArtistBio).toHaveBeenCalledWith('test-artist-id');
+            // The hook should be called with the correct artist ID and initialBio (undefined when not provided)
+            expect(mockUseArtistBio).toHaveBeenCalledWith('test-artist-id', undefined);
         });
 
         it('handles non-ok response', async () => {
