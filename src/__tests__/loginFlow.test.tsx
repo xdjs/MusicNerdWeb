@@ -27,6 +27,8 @@ jest.mock('@privy-io/react-auth', () => ({
     useLogin: () => ({ login: loginMock }),
     useLogout: () => ({ logout: jest.fn() }),
     useLinkAccount: () => ({ linkWallet: jest.fn() }),
+    useIdentityToken: () => ({ identityToken: null }),
+    getIdentityToken: jest.fn().mockResolvedValue(null),
 }));
 
 // Mock next/navigation router hooks that SearchBar expects
