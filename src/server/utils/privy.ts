@@ -2,19 +2,21 @@ import { PrivyClient } from '@privy-io/server-auth';
 import { PRIVY_APP_ID, PRIVY_APP_SECRET } from '@/env';
 import { TOKEN_PREFIXES } from './privyConstants';
 
-// Validate Privy configuration - fail fast in production
-if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
-  const errorMsg = `[Privy] Missing configuration: hasAppId=${!!PRIVY_APP_ID}, hasAppSecret=${!!PRIVY_APP_SECRET}`;
-  console.error(errorMsg);
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(errorMsg);
-  }
-}
+// Lazy-initialized Privy client to avoid build-time errors when env vars are missing
+let privyClient: PrivyClient | null = null;
 
-const privyClient = new PrivyClient(
-  PRIVY_APP_ID,
-  PRIVY_APP_SECRET
-);
+function getPrivyClient(): PrivyClient {
+  if (!privyClient) {
+    // Validate Privy configuration - fail fast when actually needed
+    if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
+      const errorMsg = `[Privy] Missing configuration: hasAppId=${!!PRIVY_APP_ID}, hasAppSecret=${!!PRIVY_APP_SECRET}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    privyClient = new PrivyClient(PRIVY_APP_ID, PRIVY_APP_SECRET);
+  }
+  return privyClient;
+}
 
 export interface PrivyVerificationResult {
   userId: string;
@@ -47,7 +49,7 @@ export async function verifyPrivyToken(
       }
 
       // Verify user exists by fetching from Privy API
-      user = await privyClient.getUser(privyUserId);
+      user = await getPrivyClient().getUser(privyUserId);
       if (!user) {
         console.error('[Privy] User not found for Privy ID:', privyUserId);
         return null;
@@ -64,19 +66,19 @@ export async function verifyPrivyToken(
       }
 
       // Verify identity token and get user
-      user = await privyClient.getUser({ idToken });
+      user = await getPrivyClient().getUser({ idToken });
       if (isDev) {
         console.log('[Privy] Identity token verified, userId:', user.id);
       }
     } else {
       // Standard access token flow
-      const verifiedClaims = await privyClient.verifyAuthToken(authToken);
+      const verifiedClaims = await getPrivyClient().verifyAuthToken(authToken);
       if (isDev) {
         console.log('[Privy] Token verified, userId:', verifiedClaims.userId);
       }
 
       // Get full user details
-      user = await privyClient.getUser(verifiedClaims.userId);
+      user = await getPrivyClient().getUser(verifiedClaims.userId);
     }
 
     if (isDev) {
@@ -108,7 +110,7 @@ export async function verifyPrivyToken(
 
 export async function getPrivyUser(privyUserId: string) {
   try {
-    return await privyClient.getUser(privyUserId);
+    return await getPrivyClient().getUser(privyUserId);
   } catch (error) {
     console.error('[Privy] Failed to get user:', error);
     return null;
