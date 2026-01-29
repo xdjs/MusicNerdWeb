@@ -5,7 +5,9 @@ import { getServerAuthSession } from "@/server/auth";
 
 export async function getUserByWallet(wallet: string) {
     try {
-        const result = await withDbRetry(() => db.query.users.findFirst({ where: eq(users.wallet, wallet) }));
+        // Normalize wallet address to lowercase for consistent lookups
+        const normalizedWallet = wallet.toLowerCase();
+        const result = await withDbRetry(() => db.query.users.findFirst({ where: eq(users.wallet, normalizedWallet) }));
         return result;
     } catch (error) {
         console.error("error getting user by wallet", error);
