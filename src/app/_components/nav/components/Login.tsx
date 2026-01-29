@@ -7,6 +7,9 @@ interface LoginProps {
     buttonStyles?: string;
 }
 
+// Check if Privy is configured
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+
 // Component for non-wallet mode (walletless dev mode)
 const isLocalEnvironment = typeof window === 'undefined'
     ? process.env.NODE_ENV !== 'production'
@@ -35,7 +38,8 @@ const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): React.Reac
     // Walletless mode is only permitted when NODE_ENV !== 'production'
     const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
 
-    if (walletlessEnabled) {
+    // Skip Privy login if not configured (e.g., during CI build)
+    if (!PRIVY_APP_ID || walletlessEnabled) {
         return <NoWalletLogin {...props} />;
     }
 
