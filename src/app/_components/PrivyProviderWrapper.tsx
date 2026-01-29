@@ -7,10 +7,18 @@ interface PrivyProviderWrapperProps {
   children: ReactNode;
 }
 
+// Get the app ID, defaulting to empty string if not set
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+
 export function PrivyProviderWrapper({ children }: PrivyProviderWrapperProps) {
+  // Skip PrivyProvider if app ID is not configured (e.g., during CI build)
+  if (!PRIVY_APP_ID) {
+    return <>{children}</>;
+  }
+
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
+      appId={PRIVY_APP_ID}
       config={{
         // Appearance
         appearance: {
