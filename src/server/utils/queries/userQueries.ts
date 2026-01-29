@@ -343,23 +343,23 @@ export async function mergeAccounts(
     legacyUserId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        // Get both users first (outside transaction to validate inputs)
-        const currentUser = await db.query.users.findFirst({
-            where: eq(users.id, currentUserId)
-        });
-
-        const legacyUser = await db.query.users.findFirst({
-            where: eq(users.id, legacyUserId)
-        });
-
-        if (!currentUser || !legacyUser) {
-            return { success: false, error: 'User not found' };
-        }
-
         const now = new Date().toISOString();
 
-        // Perform all mutations in a single transaction
-        await db.transaction(async (tx) => {
+        // Perform all operations in a single transaction to prevent TOCTOU race conditions
+        const result = await db.transaction(async (tx) => {
+            // Get both users inside transaction to ensure consistency
+            const currentUser = await tx.query.users.findFirst({
+                where: eq(users.id, currentUserId)
+            });
+
+            const legacyUser = await tx.query.users.findFirst({
+                where: eq(users.id, legacyUserId)
+            });
+
+            if (!currentUser || !legacyUser) {
+                return { success: false as const, error: 'User not found' };
+            }
+
             // Update legacy user with Privy ID and merged data
             await tx
                 .update(users)
@@ -390,9 +390,11 @@ export async function mergeAccounts(
             await tx
                 .delete(users)
                 .where(eq(users.id, currentUserId));
+
+            return { success: true as const };
         });
 
-        return { success: true };
+        return result;
     } catch (error) {
         console.error('[Merge] Account merge failed:', error);
         return { success: false, error: 'Merge failed' };

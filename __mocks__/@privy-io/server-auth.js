@@ -11,7 +11,12 @@ class PrivyClient {
 
   async getUser(userId) {
     // Handle object parameter (for identity token verification)
-    const id = typeof userId === 'object' ? userId.idToken ? 'mock-privy-user-id' : userId : userId;
+    let id;
+    if (typeof userId === 'object') {
+      id = userId.idToken || userId.userId || 'mock-privy-user-id';
+    } else {
+      id = userId;
+    }
     return {
       id: id,
       email: { address: 'test@example.com' },

@@ -41,12 +41,15 @@ export async function verifyPrivyToken(
     let user;
 
     // Check if this is a direct Privy ID (prefixed with 'privyid:')
-    // This is used for test users that don't receive tokens
+    // This is used for test users that don't receive tokens - ONLY allowed in development
     if (authToken.startsWith(TOKEN_PREFIXES.PRIVY_ID)) {
-      const privyUserId = authToken.slice(TOKEN_PREFIXES.PRIVY_ID.length);
-      if (isDev) {
-        console.log('[Privy] Processing direct Privy ID:', privyUserId);
+      if (!isDev) {
+        console.error('[Privy] Direct Privy ID auth not allowed in production');
+        return null;
       }
+
+      const privyUserId = authToken.slice(TOKEN_PREFIXES.PRIVY_ID.length);
+      console.log('[Privy] Processing direct Privy ID:', privyUserId);
 
       // Verify user exists by fetching from Privy API
       user = await getPrivyClient().getUser(privyUserId);
@@ -54,9 +57,8 @@ export async function verifyPrivyToken(
         console.error('[Privy] User not found for Privy ID:', privyUserId);
         return null;
       }
-      if (isDev) {
-        console.log('[Privy] User verified via direct ID, userId:', user.id);
-      }
+      // Already in dev-only block, no need to check isDev
+      console.log('[Privy] User verified via direct ID, userId:', user.id);
     }
     // Check if this is an identity token (prefixed with 'idtoken:')
     else if (authToken.startsWith(TOKEN_PREFIXES.ID_TOKEN)) {
