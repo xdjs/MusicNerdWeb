@@ -48,4 +48,4 @@ launch.env
 certificates
 
 # cursor config
-/.cursor
+/.cursor.playwright-mcp/
