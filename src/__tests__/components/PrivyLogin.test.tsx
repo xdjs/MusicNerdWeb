@@ -272,6 +272,7 @@ describe('PrivyLogin', () => {
 
       await waitFor(() => {
         expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
+        expect(mockPrivyLogout).toHaveBeenCalled();
       });
     });
   });

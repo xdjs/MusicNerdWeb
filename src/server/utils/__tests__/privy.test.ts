@@ -97,13 +97,7 @@ describe('verifyPrivyToken', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when getUser returns null for direct Privy ID', async () => {
-    mockGetUser.mockResolvedValue(null);
-
-    // In dev, direct ID returns null when user not found
-    // But the code checks `if (!user)` which will catch null
-    // However getUser returning null causes a property access error on .linkedAccounts
-    // Actually let's test identity token path since dev-only is tricky
+  it('returns null when getUser throws for identity token', async () => {
     mockGetUser.mockRejectedValue(new Error('Not found'));
 
     const result = await verifyPrivyToken('idtoken:some-token');

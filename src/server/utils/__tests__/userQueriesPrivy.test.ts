@@ -27,15 +27,6 @@ jest.mock('@/server/db/schema', () => ({
   },
 }));
 
-// Create chainable mock for db operations
-const mockReturning = jest.fn();
-const mockWhere = jest.fn().mockReturnValue({ returning: mockReturning });
-const mockSet = jest.fn().mockReturnValue({ where: mockWhere });
-const mockValues = jest.fn().mockReturnValue({ returning: mockReturning });
-const mockDelete = jest.fn().mockReturnValue({ where: jest.fn() });
-const mockExecute = jest.fn();
-const mockFindFirst = jest.fn();
-
 const mockTx = {
   query: {
     users: {
@@ -54,8 +45,6 @@ const mockTx = {
   }),
   execute: jest.fn(),
 };
-
-const mockTransaction = jest.fn(async (callback) => callback(mockTx));
 
 jest.mock('@/server/db/drizzle', () => ({
   db: {
