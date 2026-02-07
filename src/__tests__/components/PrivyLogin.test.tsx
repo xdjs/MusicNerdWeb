@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Track callback refs so tests can invoke them
 let loginCallbacks: { onComplete?: Function; onError?: Function } = {};
@@ -60,13 +60,16 @@ jest.mock('@/app/_components/nav/components/LegacyAccountModal', () => ({
 }));
 
 // Mock UI components
-jest.mock('@/components/ui/button', () => ({
-  Button: React.forwardRef(({ children, onClick, disabled, className, size, type, id, ...props }, ref) => (
+jest.mock('@/components/ui/button', () => {
+  const React = require('react');
+  const MockButton = React.forwardRef(({ children, onClick, disabled, className, type, id, ...props }, ref) => (
     <button ref={ref} onClick={onClick} disabled={disabled} className={className} id={id} type={type} {...props}>
       {children}
     </button>
-  )),
-}));
+  ));
+  MockButton.displayName = 'MockButton';
+  return { Button: MockButton };
+});
 
 jest.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }) => <div data-testid="dropdown">{children}</div>,
@@ -84,7 +87,9 @@ jest.mock('lucide-react', () => ({
 }));
 
 jest.mock('next/link', () => {
-  return ({ children, href, ...props }) => <a href={href} {...props}>{children}</a>;
+  return function MockLink({ children, href, ...props }) {
+    return <a href={href} {...props}>{children}</a>;
+  };
 });
 
 jest.mock('@/server/utils/privyConstants', () => ({
