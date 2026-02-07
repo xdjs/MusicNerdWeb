@@ -49,3 +49,6 @@ certificates
 
 # cursor config
 /.cursor.playwright-mcp/
+
+# playwright mcp
+.playwright-mcp/
