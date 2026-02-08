@@ -362,6 +362,16 @@ export async function mergeAccounts(
                 return { success: false as const, error: 'User not found' };
             }
 
+            if (!currentUser.privyUserId) {
+                return { success: false as const, error: 'Current user has no Privy ID' };
+            }
+
+            // Clear privyUserId from placeholder first to avoid unique constraint violation
+            await tx
+                .update(users)
+                .set({ privyUserId: null })
+                .where(eq(users.id, currentUserId));
+
             // Update legacy user with Privy ID and merged data
             await tx
                 .update(users)

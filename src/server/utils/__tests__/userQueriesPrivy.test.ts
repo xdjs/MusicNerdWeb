@@ -384,6 +384,43 @@ describe('Privy User Query Functions', () => {
       expect(result).toEqual({ success: false, error: 'User not found' });
     });
 
+    it('returns failure when current user has no privyUserId', async () => {
+      const currentUserNoPrivy = { ...currentUser, privyUserId: null };
+      mockTx.query.users.findFirst
+        .mockResolvedValueOnce(currentUserNoPrivy)
+        .mockResolvedValueOnce(legacyUser);
+
+      const result = await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
+
+      expect(result).toEqual({ success: false, error: 'Current user has no Privy ID' });
+      expect(mockTx.update).not.toHaveBeenCalled();
+    });
+
+    it('clears privyUserId from placeholder before setting on legacy user', async () => {
+      mockTx.query.users.findFirst
+        .mockResolvedValueOnce(currentUser)
+        .mockResolvedValueOnce(legacyUser);
+
+      const updateCalls = [];
+      mockTx.update.mockImplementation(() => ({
+        set: (values) => {
+          updateCalls.push(values);
+          return {
+            where: jest.fn().mockReturnValue({
+              returning: jest.fn(),
+            }),
+          };
+        },
+      }));
+
+      await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
+
+      expect(updateCalls[0]).toEqual({ privyUserId: null });
+      expect(updateCalls[1]).toMatchObject({
+        privyUserId: 'did:privy:current',
+      });
+    });
+
     it('returns failure when transaction throws', async () => {
       transactionFn.mockRejectedValueOnce(new Error('Transaction deadlock'));
 
