@@ -7,7 +7,7 @@ export async function getUserByWallet(wallet: string) {
     try {
         // Normalize wallet address to lowercase for consistent lookups
         const normalizedWallet = wallet.toLowerCase();
-        const result = await withDbRetry(() => db.query.users.findFirst({ where: eq(users.wallet, normalizedWallet) }));
+        const result = await withDbRetry(() => db.query.users.findFirst({ where: ilike(users.wallet, normalizedWallet) }));
         return result;
     } catch (error) {
         console.error("error getting user by wallet", error);
