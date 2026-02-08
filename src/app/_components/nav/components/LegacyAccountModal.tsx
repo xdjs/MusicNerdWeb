@@ -105,13 +105,14 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
             variant="outline"
             onClick={onClose}
             disabled={isLinking}
+            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             Skip for now
           </Button>
           <Button
             onClick={handleLinkWallet}
             disabled={isLinking}
-            className="bg-pastypink hover:bg-pastypink/80"
+            className="bg-pastypink hover:bg-pastypink/80 text-black"
           >
             {isLinking ? 'Connecting...' : 'Connect Wallet'}
           </Button>
