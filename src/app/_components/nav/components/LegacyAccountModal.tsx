@@ -87,7 +87,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Welcome to Music Nerd!</DialogTitle>
+          <DialogTitle className="dark:text-white">Welcome to Music Nerd!</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Have an existing Music Nerd wallet-based account? Connect your
             wallet to link your old account and restore your contribution history.
