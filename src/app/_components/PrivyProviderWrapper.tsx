@@ -25,6 +25,13 @@ export function PrivyProviderWrapper({ children }: PrivyProviderWrapperProps) {
           theme: 'dark',
           accentColor: '#E91E8C', // MusicNerd pink
           logo: '/musicNerdLogo.png',
+          walletList: [
+            'detected_ethereum_wallets',
+            'metamask',
+            'coinbase_wallet',
+            'rainbow',
+            'wallet_connect',
+          ],
         },
         // Login methods - email only
         loginMethods: ['email'],
