@@ -4,21 +4,21 @@
 MusicNerdWeb is a Next.js web application that serves as a crowd-sourced directory for music artists. It enables users to discover artists, manage artist data, and explore social media/platform connections across the music ecosystem.
 
 ## Tech Stack
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: NextAuth.js with Web3 wallet support (SIWE)
+- **Authentication**: Privy (email-first) with NextAuth.js CredentialsProvider
 - **Styling**: Tailwind CSS + SCSS
 - **UI Components**: Radix UI primitives + custom components
-- **Web3**: RainbowKit, Wagmi, SIWE for wallet authentication
+- **Web3**: Privy SDK handles wallet signature verification for optional wallet linking (legacy account migration)
 - **AI Integration**: OpenAI API for artist bios and fun facts
-- **Testing**: Jest with React Testing Library
+- **Testing**: Jest 30 with React Testing Library
 - **State Management**: React Query (@tanstack/react-query)
 
 ## Key Features
 1. **Artist Discovery & Search**: Search artists with combined local database and Spotify API results
 2. **Social Media Aggregation**: Collect and display artist links from 40+ platforms
-3. **Web3 Authentication**: Wallet-based login with ENS support
+3. **Authentication**: Privy email-first login with optional wallet linking for legacy accounts
 4. **AI-Powered Content**: Auto-generated artist biographies and fun facts
 5. **User-Generated Content (UGC)**: Community-driven artist data collection with admin moderation
 6. **Leaderboard System**: Track user contributions and rankings
@@ -54,7 +54,6 @@ Key entities in the PostgreSQL database:
 - **ugcresearch**: User-generated content submissions pending approval
 - **urlmap**: Platform configuration and URL patterns for link validation
 - **featured**: Featured artists and collectors
-- **coverageReports**: Test coverage tracking
 - **aiPrompts**: AI prompt templates for content generation
 - **funFacts**: AI-generated fun facts about artists
 
@@ -64,10 +63,12 @@ Key entities in the PostgreSQL database:
 - Platform links are validated against urlmap regex patterns
 
 ## Authentication System
-- **Web3-First**: Uses SIWE (Sign-In with Ethereum) for wallet-based authentication
-- **NextAuth Integration**: Custom credentials provider for wallet verification
+- **Privy Email-First**: Users authenticate via Privy (email login as primary method)
+- **NextAuth Integration**: CredentialsProvider named "privy" verifies Privy tokens
+- **Token Formats**: Standard access token, `idtoken:` prefix, `privyid:` prefix (dev only)
+- **Legacy Account Migration**: Lazy, user-initiated via `needsLegacyLink` session flag + `LegacyAccountModal`
+- **Wallet Linking**: Optional — legacy wallet users can link their wallet to a Privy account via `mergeAccounts()`
 - **Role-Based Access**: Admin and whitelist user roles
-- **Guest Mode**: Optional wallet requirement bypass for development
 - **Session Management**: JWT-based sessions with 30-day expiry
 
 ## API Endpoints
@@ -78,6 +79,9 @@ Key API routes in `src/app/api/`:
 - `/funFacts/[type]` - AI-generated fun facts
 - `/leaderboard` - User contribution rankings
 - `/admin/*` - Admin management endpoints
+- `/auth/*` - Privy authentication routes
+- `/mcp/*` - MCP server for exposing artist data to AI assistants
+- `/user` - User profile and wallet operations
 
 ## Development Workflow
 
@@ -105,6 +109,7 @@ Required in `.env.local`:
 - `SUPABASE_DB_CONNECTION` - PostgreSQL connection string
 - `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID/SECRET` - Spotify API credentials
 - `NEXTAUTH_URL/SECRET` - NextAuth configuration
+- `NEXT_PUBLIC_PRIVY_APP_ID` - Privy application ID
 - `OPENAI_API_KEY` - For AI features
 - `DISCORD_WEBHOOK_URL` - UGC notifications
 
@@ -116,9 +121,11 @@ Required in `.env.local`:
 - `src/server/utils/queries/artistQueries.ts` - Database queries
 
 ### Authentication Flow
-- `src/server/auth.ts` - NextAuth configuration with SIWE
-- `src/app/_components/nav/components/Login.tsx` - Login UI
-- Web3 wallet connection via RainbowKit
+- `src/server/auth.ts` - NextAuth configuration with Privy CredentialsProvider
+- `src/app/_components/nav/components/Login.tsx` - Login UI wrapper
+- `src/app/_components/nav/components/PrivyLogin.tsx` - Privy login component
+- `src/app/_components/PrivyProviderWrapper.tsx` - Privy context provider
+- `src/server/utils/privy.ts` - Privy token verification utilities
 
 ### Search Functionality
 - `src/app/_components/nav/components/SearchBar.tsx` - Search interface
@@ -133,23 +140,24 @@ Required in `.env.local`:
 ## Code Quality Tools
 - **ESLint**: Code linting with Next.js config
 - **TypeScript**: Strict type checking
-- **Prettier**: Code formatting (implied via package structure)
 - **Coverage Reports**: Jest coverage with Discord notifications
 
 ## Important Notes for Claude
-1. **Web3 Context**: This is a Web3-enabled application requiring wallet connections
+1. **Auth Context**: Email-first authentication via Privy; wallet linking is optional for legacy accounts
 2. **Role-Based Features**: Many features require admin or whitelist privileges
 3. **External Dependencies**: Heavy integration with Spotify API and OpenAI
 4. **Database First**: Most data operations go through Drizzle ORM queries
 5. **Type Safety**: Strict TypeScript usage throughout the codebase
-6. **Testing Required**: Always run tests after code changes
+6. **Pre-Push Gate**: Before pushing any code to origin, run `npm run type-check && npm run lint && npm run test && npm run build` locally. All checks must pass and any failures must be fixed before pushing.
 7. **Environment Dependent**: Many features require proper env variable configuration
 
 ## Recent Development Focus
 Based on git history, recent work includes:
-- YouTube URL handling refactor (see `plans/youtube-url-refactor-plan.md`)
-- Leaderboard improvements and UX enhancements
-- Database schema optimizations for user-generated content
+- Privy email-first authentication migration (replacing legacy Web3-only login)
+- Legacy account linking and wallet merge flow
+- MCP server for exposing artist data to AI assistants
+- SSR conversion and SEO improvements
+- Security vulnerability fixes
 
 ## Commands to Run After Changes
 ```bash
