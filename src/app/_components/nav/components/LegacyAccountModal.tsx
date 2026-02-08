@@ -87,7 +87,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Welcome to Music Nerd!</DialogTitle>
+          <DialogTitle className="dark:text-white">Welcome to Music Nerd!</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Have an existing Music Nerd wallet-based account? Connect your
             wallet to link your old account and restore your contribution history.
@@ -105,13 +105,14 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
             variant="outline"
             onClick={onClose}
             disabled={isLinking}
+            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             Skip for now
           </Button>
           <Button
             onClick={handleLinkWallet}
             disabled={isLinking}
-            className="bg-pastypink hover:bg-pastypink/80"
+            className="bg-pastypink hover:bg-pastypink/80 text-black"
           >
             {isLinking ? 'Connecting...' : 'Connect Wallet'}
           </Button>
