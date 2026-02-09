@@ -39,3 +39,23 @@ export async function requireAdmin(): Promise<AuthResult> {
 
   return authResult;
 }
+
+/**
+ * Require a whitelisted or admin session. Returns 401 if not authenticated, 403 if neither.
+ */
+export async function requireWhitelistedOrAdmin(): Promise<AuthResult> {
+  const authResult = await requireAuth();
+  if (!authResult.authenticated) {
+    return authResult;
+  }
+
+  const dbUser = await getUserById(authResult.userId);
+  if (!dbUser?.isAdmin && !dbUser?.isWhiteListed) {
+    return {
+      authenticated: false,
+      response: Response.json({ error: 'Forbidden' }, { status: 403 }),
+    };
+  }
+
+  return authResult;
+}
