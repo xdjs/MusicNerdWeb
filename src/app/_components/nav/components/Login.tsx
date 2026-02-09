@@ -35,11 +35,8 @@ const NoWalletLogin: React.FC<LoginProps> = ({ buttonStyles }) => {
 
 // Main component that decides which version to render
 const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): React.ReactElement => {
-    // Walletless mode is only permitted when NODE_ENV !== 'production'
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
-
     // Skip Privy login if not configured (e.g., during CI build)
-    if (!PRIVY_APP_ID || walletlessEnabled) {
+    if (!PRIVY_APP_ID) {
         return <NoWalletLogin {...props} />;
     }
 

@@ -52,18 +52,13 @@ describe('removeArtistData', () => {
     }));
   });
 
-  it('allows deletion when walletless mode enabled', async () => {
-    process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT = 'true';
+  it('rejects unauthenticated user', async () => {
     (getServerAuthSession as any).mockResolvedValue(null);
 
-    const resp = await removeArtistData(ARTIST_ID, SITE_NAME);
-
-    expect(resp.status).toBe('success');
-    expect(db.execute).toHaveBeenCalled();
+    await expect(removeArtistData(ARTIST_ID, SITE_NAME)).rejects.toThrow('Not authenticated');
   });
 
-  it('rejects unauthenticated user when walletless disabled', async () => {
-    process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT = 'false';
+  it('rejects non-whitelisted, non-admin user', async () => {
     (getServerAuthSession as any).mockResolvedValue({ user: { id: 'user-1' } });
     (db.query.users.findFirst as jest.Mock).mockImplementation(async () => ({ isWhiteListed: false, isAdmin: false }));
 
@@ -73,7 +68,6 @@ describe('removeArtistData', () => {
   });
 
   it('allows whitelisted user', async () => {
-    process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT = 'false';
     (getServerAuthSession as any).mockResolvedValue({ user: { id: 'user-2' } });
     (db.query.users.findFirst as jest.Mock).mockImplementation(async () => ({ isWhiteListed: true, isAdmin: false }));
 
