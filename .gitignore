@@ -52,3 +52,6 @@ certificates
 
 # playwright mcp
 .playwright-mcp/
+
+# claude code local settings
+.claude/settings.local.json

@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm install *)",
+      "Bash(npm install)",
+      "Bash(npm uninstall *)",
+      "Bash(npm audit *)",
+      "Bash(npx jest *)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(npx playwright *)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(node -e *)",
+      "Bash(vercel *)",
+      "Bash(curl *)",
+      "Bash(jq *)",
+      "Bash(lsof *)",
+      "Bash(kill *)",
+      "Bash(pkill *)",
+      "Bash(dig *)",
+      "Bash(claude mcp *)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.privy.io)",
+      "WebFetch(domain:docs-legacy.privy.io)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:music-nerd-git-staging-musicnerd.vercel.app)",
+      "mcp__plugin_github_github__*",
+      "mcp__plugin_playwright_playwright__*",
+      "mcp__devdb__*",
+      "mcp__proddb__*"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}
