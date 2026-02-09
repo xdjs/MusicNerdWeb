@@ -22,6 +22,8 @@
       "Bash(pkill *)",
       "Bash(dig *)",
       "Bash(claude mcp *)",
+      "Bash(cd /Users/clt/src/xdjs/MusicNerdWeb*)",
+      "Bash(ln -s /Users/clt/src/xdjs/MusicNerdWeb*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.privy.io)",
@@ -36,7 +38,10 @@
     "deny": [
       "Bash(git push --force *)",
       "Bash(git reset --hard *)",
-      "Bash(rm -rf *)"
+      "Bash(rm -rf *)",
+      "Bash(cd * && git push --force *)",
+      "Bash(cd * && git reset --hard *)",
+      "Bash(cd * && rm -rf *)"
     ]
   },
   "hooks": {
