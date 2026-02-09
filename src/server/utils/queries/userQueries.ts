@@ -60,9 +60,8 @@ export async function createUser(wallet: string) {
 }
 
 export async function getWhitelistedUsers() {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const session = await getServerAuthSession();
-    if (!session && !walletlessEnabled) throw new Error("Unauthorized");
+    if (!session) throw new Error("Unauthorized");
     try {
         const result = await db.query.users.findMany({ where: eq(users.isWhiteListed, true) });
         return result ?? [];
@@ -196,9 +195,8 @@ export async function removeFromAdmin(userIds: string[]) {
 }
 
 export async function getAllUsers() {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const session = await getServerAuthSession();
-    if (!session && !walletlessEnabled) throw new Error("Unauthorized");
+    if (!session) throw new Error("Unauthorized");
     try {
         const result = await db.query.users.findMany();
         return result ?? [];
