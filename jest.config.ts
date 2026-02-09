@@ -38,7 +38,7 @@ const customJestConfig: Config = {
     transformIgnorePatterns: [
         'node_modules/(?!(jose|@radix-ui|@panva|@tanstack|@tanstack/react-query|@tanstack/query-core)/)'
     ],
-    testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
+    testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
     moduleDirectories: ['node_modules', '<rootDir>/'],
     testMatch: [
         '**/__tests__/**/*.[jt]s?(x)',
