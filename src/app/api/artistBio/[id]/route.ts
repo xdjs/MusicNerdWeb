@@ -84,7 +84,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const auth = await requireAdmin();
     if (!auth.authenticated) {
-      return auth.response;
+      const body = await auth.response.text();
+      return new Response(body, {
+        status: auth.response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          ...CORS_HEADERS,
+        },
+      });
     }
 
     const { id } = await params;
