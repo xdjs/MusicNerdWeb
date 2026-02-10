@@ -92,7 +92,7 @@ describe('GET /api/ugcCount', () => {
     expect(data).toEqual({ count: 0 });
   });
 
-  it('returns { count: 0 } with status 500 on error', async () => {
+  it('returns { count: 0 } with status 200 on error', async () => {
     const { GET, mockGetSession, mockFindMany } = await setup();
     mockGetSession.mockResolvedValue({
       user: { id: 'user-123' },
@@ -101,7 +101,7 @@ describe('GET /api/ugcCount', () => {
     mockFindMany.mockRejectedValue(new Error('DB error'));
 
     const response = await GET();
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toEqual({ count: 0 });
   });

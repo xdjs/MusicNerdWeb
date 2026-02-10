@@ -19,6 +19,6 @@ export async function GET() {
     return Response.json({ count: results.length });
   } catch (error) {
     console.error('[ugcCount] Error:', error);
-    return Response.json({ count: 0 }, { status: 500 });
+    return Response.json({ count: 0 });
   }
 }

@@ -121,6 +121,20 @@ describe('POST /api/removeArtistData', () => {
     expect(data.error).toBe('Unauthorized');
   });
 
+  it('returns 400 on malformed JSON body', async () => {
+    const { POST, mockRequireAuth } = await setup();
+    mockRequireAuth.mockResolvedValue({
+      authenticated: true,
+      session: { user: { id: 'user-123' } },
+      userId: 'user-123',
+    });
+
+    const response = await POST(createRequest());
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toBe('Invalid request body');
+  });
+
   it('returns 500 on unexpected error', async () => {
     const { POST, mockRequireAuth, mockRemoveArtistData } = await setup();
     mockRequireAuth.mockResolvedValue({
