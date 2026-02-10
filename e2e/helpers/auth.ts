@@ -8,8 +8,11 @@ import { type Page, expect } from '@playwright/test';
 export async function login(page: Page, email: string, otp: string) {
   await page.goto('/');
 
-  // Click the login button (Mail icon button)
+  // Click the login button (Mail icon button) — opens dropdown menu
   await page.click('#login-btn');
+
+  // Click "Log In" from the dropdown menu to trigger Privy modal
+  await page.getByRole('menuitem', { name: 'Log In' }).click();
 
   // Privy modal opens — enter email
   const emailInput = page.locator('input[type="email"]');
@@ -17,12 +20,17 @@ export async function login(page: Page, email: string, otp: string) {
   await emailInput.fill(email);
   await emailInput.press('Enter');
 
-  // Enter OTP digits — Privy uses individual digit inputs
-  const otpInputs = page.locator('input[autocomplete="one-time-code"]');
+  // Wait for OTP dialog to appear
+  const otpHeading = page.getByRole('heading', { name: 'Enter confirmation code' });
+  await otpHeading.waitFor({ state: 'visible', timeout: 15_000 });
+
+  // Enter OTP digits — Privy uses individual textbox inputs inside the dialog
+  const dialog = page.getByRole('dialog');
+  const otpInputs = dialog.getByRole('textbox');
   const count = await otpInputs.count();
 
-  if (count > 1) {
-    // Individual digit inputs
+  if (count >= 6) {
+    // Individual digit inputs (6 separate textboxes)
     for (let i = 0; i < otp.length; i++) {
       await otpInputs.nth(i).fill(otp[i]);
     }
