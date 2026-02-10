@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getOpenAIBio } from "@/server/utils/queries/artistBioQuery";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 // CORS configuration for this route
 const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_ALLOWED_ORIGIN || "*";
@@ -81,6 +82,18 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 // ----------------------------------
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAdmin();
+    if (!auth.authenticated) {
+      const body = await auth.response.text();
+      return new Response(body, {
+        status: auth.response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          ...CORS_HEADERS,
+        },
+      });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const bio: string = body?.bio;
