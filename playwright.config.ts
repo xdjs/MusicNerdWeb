@@ -8,8 +8,15 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: process.env.BASE_URL || 'https://localhost:3000',
+    baseURL: 'https://localhost:3001',
     ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
+  },
+  webServer: {
+    command: 'npx next dev --experimental-https --port 3001',
+    url: 'https://localhost:3001',
+    reuseExistingServer: true,
+    ignoreHTTPSErrors: true,
+    timeout: 60_000,
   },
 });
