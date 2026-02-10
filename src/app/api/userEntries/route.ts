@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
 import { ugcresearch, artists } from "@/server/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +26,16 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
 
     // Build conditions
-    let conditions = eq(ugcresearch.userId, userId) as any;
+    let conditions: SQL = eq(ugcresearch.userId, userId);
     if (siteFilter && siteFilter !== "all") {
-      conditions = and(conditions, eq(ugcresearch.siteName, siteFilter));
+      conditions = and(conditions, eq(ugcresearch.siteName, siteFilter))!;
     }
 
     // Total count
-    const total = (await db.query.ugcresearch.findMany({ where: conditions })).length;
+    const [{ value: total }] = await db
+      .select({ value: count() })
+      .from(ugcresearch)
+      .where(conditions);
     const pageCount = noPaginate ? 1 : Math.ceil(total / PER_PAGE);
     const offset = noPaginate ? 0 : (page - 1) * PER_PAGE;
 

@@ -16,7 +16,7 @@ export async function GET(
 
     // Users can only fetch their own data
     if (auth.session.user.id !== id) {
-      return Response.json({ error: "Not authorized" }, { status: 401 });
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const user = await getUserById(id);

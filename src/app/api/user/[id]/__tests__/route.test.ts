@@ -57,7 +57,7 @@ describe("GET /api/user/[id]", () => {
     expect(data.error).toBe("Not authenticated");
   });
 
-  it("returns 401 when requesting another user's data", async () => {
+  it("returns 403 when requesting another user's data", async () => {
     const { GET, mockRequireAuth } = await setup();
     mockRequireAuth.mockResolvedValue({
       authenticated: true,
@@ -66,9 +66,9 @@ describe("GET /api/user/[id]", () => {
     });
 
     const response = await GET(createRequest("user-2"), createParams("user-2"));
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
     const data = await response.json();
-    expect(data.error).toBe("Not authorized");
+    expect(data.error).toBe("Forbidden");
   });
 
   it("returns 200 with user data when requesting own data", async () => {

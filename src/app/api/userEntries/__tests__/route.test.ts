@@ -37,6 +37,7 @@ jest.mock("drizzle-orm", () => ({
   eq: jest.fn((...args) => ({ type: "eq", args })),
   and: jest.fn((...args) => ({ type: "and", args })),
   desc: jest.fn((col) => ({ type: "desc", col })),
+  count: jest.fn(() => ({ type: "count" })),
 }));
 
 // Polyfill Response.json for test environment
@@ -73,23 +74,36 @@ describe("GET /api/userEntries", () => {
     return new Request(url.toString());
   }
 
-  // Build a fluent chain mock that supports both `await baseQuery` and `baseQuery.limit(...).offset(...)`
-  function setupDbSelect(mockDb: any, rows: any[]) {
+  // Build a fluent chain mock for the count query (db.select({ value: count() }).from().where())
+  function buildCountChain(total: number) {
     const chain: any = {};
+    chain.from = jest.fn(() => chain);
+    chain.where = jest.fn(() => chain);
+    chain.then = (resolve, reject) => Promise.resolve([{ value: total }]).then(resolve, reject);
+    return chain;
+  }
 
-    // Each method returns the chain object for fluent chaining
+  // Build a fluent chain mock that supports both `await baseQuery` and `baseQuery.limit(...).offset(...)`
+  function buildDataChain(rows: any[]) {
+    const chain: any = {};
     chain.from = jest.fn(() => chain);
     chain.leftJoin = jest.fn(() => chain);
     chain.where = jest.fn(() => chain);
     chain.orderBy = jest.fn(() => chain);
     chain.limit = jest.fn(() => chain);
     chain.offset = jest.fn(() => chain);
-
-    // Make chain thenable so `await chain` resolves to rows
     chain.then = (resolve, reject) => Promise.resolve(rows).then(resolve, reject);
-
-    mockDb.select.mockReturnValue(chain);
     return chain;
+  }
+
+  // Set up db.select to return count chain first, then data chain
+  function setupDbSelect(mockDb: any, rows: any[], total: number) {
+    const countChain = buildCountChain(total);
+    const dataChain = buildDataChain(rows);
+    mockDb.select
+      .mockReturnValueOnce(countChain)
+      .mockReturnValueOnce(dataChain);
+    return dataChain;
   }
 
   it("returns empty result when not authenticated", async () => {
@@ -113,11 +127,8 @@ describe("GET /api/userEntries", () => {
       { id: "e1", createdAt: "2025-01-01", siteName: "spotify", ugcUrl: "http://x", accepted: true, artistName: "Artist1" },
     ];
 
-    // Mock the count query
-    mockDb.query.ugcresearch.findMany.mockResolvedValue([{ id: "e1" }, { id: "e2" }]);
-
-    // Mock the select query chain
-    setupDbSelect(mockDb, mockEntries);
+    // Mock both count and data select queries
+    setupDbSelect(mockDb, mockEntries, 2);
 
     const response = await GET(createRequest({ page: "1" }));
     expect(response.status).toBe(200);
@@ -138,8 +149,7 @@ describe("GET /api/userEntries", () => {
       { id: "e1", createdAt: "2025-01-01", siteName: "instagram", ugcUrl: "http://x", accepted: true, artistName: "Artist1" },
     ];
 
-    mockDb.query.ugcresearch.findMany.mockResolvedValue([{ id: "e1" }]);
-    setupDbSelect(mockDb, mockEntries);
+    setupDbSelect(mockDb, mockEntries, 1);
 
     const response = await GET(createRequest({ siteName: "instagram" }));
     expect(response.status).toBe(200);
@@ -165,8 +175,7 @@ describe("GET /api/userEntries", () => {
       artistName: `Artist${i}`,
     }));
 
-    mockDb.query.ugcresearch.findMany.mockResolvedValue(mockEntries);
-    setupDbSelect(mockDb, mockEntries);
+    setupDbSelect(mockDb, mockEntries, 15);
 
     const response = await GET(createRequest({ all: "true" }));
     expect(response.status).toBe(200);
@@ -183,7 +192,12 @@ describe("GET /api/userEntries", () => {
       expires: "2025-12-31",
     });
 
-    mockDb.query.ugcresearch.findMany.mockRejectedValue(new Error("DB error"));
+    // Make the count query fail by returning a rejecting chain
+    const failChain: any = {};
+    failChain.from = jest.fn(() => failChain);
+    failChain.where = jest.fn(() => failChain);
+    failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error("DB error")).then(_resolve, reject);
+    mockDb.select.mockReturnValueOnce(failChain);
 
     const response = await GET(createRequest());
     expect(response.status).toBe(500);
