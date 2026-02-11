@@ -9,6 +9,11 @@ INPUT=$(cat)
 #   Grep: path (optional, defaults to cwd)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // empty')
 
+# Reject paths containing .. segments (path traversal)
+if [[ "$FILE_PATH" == *".."* ]]; then
+  exit 0  # fall through to normal prompting
+fi
+
 # Auto-approve operations within the project and any worktrees (MusicNerdWeb*)
 if [[ "$FILE_PATH" =~ ^/Users/clt/src/xdjs/MusicNerdWeb ]]; then
   cat <<EOF

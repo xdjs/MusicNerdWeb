@@ -37,11 +37,17 @@
     ],
     "deny": [
       "Bash(git push --force *)",
+      "Bash(git push -f *)",
       "Bash(git reset --hard *)",
       "Bash(rm -rf *)",
+      "Bash(git branch -D *)",
+      "Bash(git clean -f*)",
       "Bash(cd * && git push --force *)",
+      "Bash(cd * && git push -f *)",
       "Bash(cd * && git reset --hard *)",
-      "Bash(cd * && rm -rf *)"
+      "Bash(cd * && rm -rf *)",
+      "Bash(cd * && git branch -D *)",
+      "Bash(cd * && git clean -f*)"
     ]
   },
   "hooks": {
