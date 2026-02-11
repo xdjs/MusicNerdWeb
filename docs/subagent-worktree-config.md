@@ -2,17 +2,45 @@
 
 Enable Claude Code sub-agents (via the `Task` tool with `general-purpose` type) to autonomously read, write, and execute commands in git worktrees with minimal permission prompts.
 
-## 1. Bash Allow Pattern
+## 1. Bash Allow Patterns
 
-In `.claude/settings.json`:
+In `.claude/settings.json`, worktree commands use a **least-privilege** approach — only specific CI commands are auto-approved:
 
+```json
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb*)",
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run type-check)",
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run lint)",
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run test)",
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run build)",
+"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npx jest *)"
 ```
-"Bash(cd /Users/clt/src/xdjs/MusicNerdWeb*)"
-```
 
-The trailing `*` glob matches any worktree suffix (`-phase1`, `-phase2`, etc.) **and** anything after it, so `cd /worktree && npm run test` matches as a single string.
+The first pattern allows `cd` into any worktree. The remaining patterns allow specific chained commands. Any other chained command (e.g., `cd /worktree && npm run dev`) will prompt for approval.
 
 **Key insight**: cwd does NOT persist between Bash calls in sub-agents, so every command must be prefixed with `cd /path/to/worktree && `.
+
+Git commands use specific subcommands rather than a broad `git *` wildcard:
+
+```json
+"Bash(git status *)",
+"Bash(git diff *)",
+"Bash(git log *)",
+"Bash(git add *)",
+"Bash(git commit *)",
+"Bash(git checkout -b *)",
+"Bash(git branch *)",
+"Bash(git worktree *)",
+"Bash(git push *)",
+"Bash(git fetch *)",
+"Bash(git show *)",
+"Bash(git ls-tree *)",
+"Bash(git stash *)",
+"Bash(git -C *)"
+```
+
+Destructive git operations like `git checkout .`, `git rebase`, and `git merge` require manual approval.
+
+**Removed for security**: `node -e *` (arbitrary code execution), `curl *` (arbitrary network access), `mcp__proddb__*` (unguarded production DB operations).
 
 ## 2. Deny Patterns Must Duplicate with `cd` Prefix
 
