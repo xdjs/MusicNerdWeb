@@ -41,6 +41,16 @@ export function PrivyProviderWrapper({ children }: PrivyProviderWrapperProps) {
             createOnLogin: 'off',
           },
         },
+        // Disable Solana wallet connectors — not used, suppresses console warning
+        externalWallets: {
+          solana: {
+            connectors: {
+              onMount: () => {},
+              onUnmount: () => {},
+              get: () => [],
+            },
+          },
+        },
       }}
     >
       {children}
