@@ -665,23 +665,6 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 // Bio update helper
 // ----------------------------------
 export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
-    const session = await getServerAuthSession();
-    if (!session) {
-        throw new Error("Not authenticated");
-    }
-
-    const user = session?.user?.id ? await getUserById(session.user.id) : null;
-
-    // Only admins can edit bios
-    if (!user?.isAdmin) {
-        return { status: "error", message: "Unauthorized" };
-    }
-
-    // For regeneration, only admins can do it
-    if (regenerate && !user?.isAdmin) {
-        return { status: "error", message: "Only admins can regenerate bios" };
-    }
-
     try {
         if (regenerate) {
             // Generate new bio using OpenAI

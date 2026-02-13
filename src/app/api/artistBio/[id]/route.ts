@@ -115,7 +115,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }, { headers: CORS_HEADERS });
     }
 
-    return NextResponse.json({ message: result.message }, { status: 403, headers: CORS_HEADERS });
+    return NextResponse.json({ message: result.message }, { status: 500, headers: CORS_HEADERS });
   } catch (e) {
     console.error("[artistBio] PUT error", e);
     return NextResponse.json({ message: "Error updating bio" }, { status: 500, headers: CORS_HEADERS });
