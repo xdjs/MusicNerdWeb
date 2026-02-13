@@ -20,6 +20,7 @@ test.describe('Profile — authenticated', () => {
 
   test('shows user profile with stats', async ({ page }) => {
     await page.goto('/profile');
+    await page.waitForLoadState('networkidle');
 
     await dismissLegacyModal(page);
 

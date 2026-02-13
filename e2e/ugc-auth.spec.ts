@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { login, fetchAsUser } from './helpers/auth';
-
-const REGULAR_USER = { email: 'test-4473@privy.io', otp: '676856' };
-const ADMIN_USER = { email: 'test-3256@privy.io', otp: '207862' };
+import { fetchAsUser, dismissLegacyModal } from './helpers/auth';
+import { TEST_ACCOUNTS } from './helpers/test-data';
 
 // ---------------------------------------------------------------------------
 // Unauthenticated tests — no login needed, can run in parallel via `request`
@@ -38,14 +36,15 @@ test.describe('Unauthenticated route behavior', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Authenticated tests — regular user
-// Single login, multiple API checks to avoid Privy rate-limiting
+// Authenticated tests — regular user (stored auth state, no fresh login)
 // ---------------------------------------------------------------------------
 test.describe('Regular user route behavior', () => {
+  test.use({ storageState: TEST_ACCOUNTS.regular.storageState });
   test.setTimeout(60_000);
 
   test('all UGC routes return expected results for regular user', async ({ page }) => {
-    await login(page, REGULAR_USER.email, REGULAR_USER.otp);
+    await page.goto('/');
+    await dismissLegacyModal(page);
 
     // GET /api/ugcCount — authenticated user gets a numeric count
     const ugcRes = await fetchAsUser(page, '/api/ugcCount');
@@ -74,13 +73,16 @@ test.describe('Regular user route behavior', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Authenticated tests — admin user
+// Authenticated tests — admin user (stored auth state, no fresh login)
 // ---------------------------------------------------------------------------
 test.describe('Admin user route behavior', () => {
+  test.use({ storageState: TEST_ACCOUNTS.admin.storageState });
   test.setTimeout(60_000);
 
   test('GET /api/pendingUGCCount returns count >= 0 for admin', async ({ page }) => {
-    await login(page, ADMIN_USER.email, ADMIN_USER.otp);
+    await page.goto('/');
+    await dismissLegacyModal(page);
+
     const res = await fetchAsUser(page, '/api/pendingUGCCount');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('count');

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login } from './helpers/auth';
+import { login, dismissLegacyModal } from './helpers/auth';
 import { TEST_ACCOUNTS } from './helpers/test-data';
 
 // These tests exercise the login/logout flow directly — no stored auth state.
@@ -24,6 +24,7 @@ test.describe('Auth flow', () => {
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    await dismissLegacyModal(page);
 
     // Profile button should be visible (authenticated state shows avatar)
     const profileBtn = page.locator('#login-btn');
@@ -46,6 +47,7 @@ test.describe('Auth flow', () => {
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    await dismissLegacyModal(page);
 
     const profileBtn = page.locator('#login-btn');
     await expect(profileBtn).toBeVisible();
@@ -60,6 +62,7 @@ test.describe('Auth flow', () => {
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    await dismissLegacyModal(page);
 
     // Open dropdown and click Log Out
     await page.click('#login-btn');

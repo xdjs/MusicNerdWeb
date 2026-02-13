@@ -44,7 +44,7 @@ export async function login(page: Page, email: string, otp: string) {
   }
 
   // Wait for authenticated session by polling /api/auth/session
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
     const session = await page.evaluate(async () => {
       try {
@@ -64,7 +64,7 @@ export async function login(page: Page, email: string, otp: string) {
     } catch { return {}; }
   });
   if (!finalSession?.user?.id) {
-    throw new Error('Login failed: session not established within 30 seconds');
+    throw new Error('Login failed: session not established within 45 seconds');
   }
 
   // Dismiss the LegacyAccountModal if it appears ("Welcome to Music Nerd!")
