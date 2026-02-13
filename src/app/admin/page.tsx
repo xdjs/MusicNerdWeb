@@ -2,7 +2,6 @@ import { getServerAuthSession } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { getUserById, getAllUsers } from "@/server/utils/queries/userQueries";
 import { getPendingUGC } from "@/server/utils/queries/artistQueries";
-import UnauthorizedPage from "@/app/_components/UnauthorizedPage";
 import UGCDataTable from "./ugc-data-table";
 import { ugcColumns, whitelistedColumns } from "./columns";
 import UsersSection from "./UsersSection";
@@ -17,7 +16,7 @@ export default async function Admin() {
   // Check if user is admin
   const user = await getUserById(session.user.id);
   if (!user?.isAdmin) {
-    return <UnauthorizedPage />;
+    redirect('/');
   }
 
   // Fetch data for admin dashboard

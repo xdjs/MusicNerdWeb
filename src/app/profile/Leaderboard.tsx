@@ -9,11 +9,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import Jazzicon from "react-jazzicon";
-import { jsNumberForAddress } from "react-jazzicon";
-import { createPublicClient, http } from "viem";
-import { getEnsAvatar, getEnsName } from "viem/ens";
-import { mainnet } from "wagmi/chains";
 
 type RangeKey = "today" | "week" | "month" | "all";
 
@@ -25,20 +20,9 @@ type RecentItem = {
     imageUrl: string | null;
 };
 
-const publicClient = createPublicClient({
-    chain: mainnet,
-    transport: http(),
-});
-
 function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: LeaderboardEntry; rank: number | null; highlightIdentifier?: string }) {
     const [recent, setRecent] = useState<RecentItem[] | null>(null);
     const [loadingRec, setLoadingRec] = useState(false);
-
-    // Avatar state for each leaderboard entry (replicates corner icon logic)
-    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
-    const [avatarError, setAvatarError] = useState(false);
-    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
-    const [ensLoading, setEnsLoading] = useState(false);
 
     const identifierLc = highlightIdentifier?.toLowerCase();
     const isHighlighted = identifierLc && (
@@ -67,34 +51,6 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
         walletMatch: entry.wallet?.toLowerCase() === identifierLc
     });
     const isPodium = !!rank && rank <= 3 && !entry.isHidden;
-
-    useEffect(() => {
-        let cancelled = false;
-        async function resolveAvatar() {
-            setEnsLoading(true);
-            setAvatarError(false);
-            try {
-                const ensName = await getEnsName(publicClient, { address: entry.wallet as `0x${string}` });
-                let finalAvatar: string | null = null;
-                if (ensName) {
-                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
-                }
-                if (!cancelled) {
-                    setEnsAvatarUrl(finalAvatar ?? null);
-                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(entry.wallet));
-                }
-            } catch {
-                if (!cancelled) {
-                    setEnsAvatarUrl(null);
-                    setJazziconSeed(jsNumberForAddress(entry.wallet));
-                }
-            } finally {
-                if (!cancelled) setEnsLoading(false);
-            }
-        }
-        resolveAvatar();
-        return () => { cancelled = true; };
-    }, [entry.wallet]);
 
     async function fetchRecent() {
         if (recent || loadingRec) return;
@@ -142,24 +98,11 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                     </span>
                                          {/* Profile Picture - evenly spaced between rank and username */}
                      <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                        {ensLoading ? (
-                            <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                        ) : ensAvatarUrl && !avatarError ? (
-                            <img
-                                src={ensAvatarUrl}
-                                alt="ENS Avatar"
-                                className="w-full h-full object-cover"
-                                onError={() => setAvatarError(true)}
-                            />
-                        ) : jazziconSeed ? (
-                            <Jazzicon diameter={32} seed={jazziconSeed} />
-                        ) : (
-                            <img
-                                src="/default_pfp_pink.png"
-                                alt="Default Profile"
-                                className="w-full h-full object-cover"
-                            />
-                        )}
+                        <img
+                            src="/default_pfp_pink.png"
+                            alt="Default Profile"
+                            className="w-full h-full object-cover"
+                        />
                     </div>
                     {/* Username */}
                     <div className="flex-1 min-w-0">
@@ -202,24 +145,11 @@ function LeaderboardRow({ entry, rank, highlightIdentifier }: { entry: Leaderboa
                             <div className="w-5 flex-none" />
                                                          {/* Avatar between rank and username */}
                              <div className="w-8 h-8 flex-none rounded-full overflow-hidden flex items-center justify-center">
-                                {ensLoading ? (
-                                    <img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-                                ) : ensAvatarUrl && !avatarError ? (
-                                    <img
-                                        src={ensAvatarUrl}
-                                        alt="ENS Avatar"
-                                        className="w-full h-full object-cover"
-                                        onError={() => setAvatarError(true)}
-                                    />
-                                ) : jazziconSeed ? (
-                                    <Jazzicon diameter={32} seed={jazziconSeed} />
-                                ) : (
-                                    <img
-                                        src="/default_pfp_pink.png"
-                                        alt="Default Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
+                                <img
+                                    src="/default_pfp_pink.png"
+                                    alt="Default Profile"
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate text-lg">
