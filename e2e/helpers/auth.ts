@@ -52,10 +52,40 @@ export async function login(page: Page, email: string, otp: string) {
         return await res.json();
       } catch { return {}; }
     });
-    if (session?.user?.id) return;
+    if (session?.user?.id) break;
     await page.waitForTimeout(1_000);
   }
-  throw new Error('Login failed: session not established within 30 seconds');
+
+  // Check session was established
+  const finalSession = await page.evaluate(async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      return await res.json();
+    } catch { return {}; }
+  });
+  if (!finalSession?.user?.id) {
+    throw new Error('Login failed: session not established within 30 seconds');
+  }
+
+  // Dismiss the LegacyAccountModal if it appears ("Welcome to Music Nerd!")
+  const skipBtn = page.getByRole('button', { name: 'Skip for now' });
+  if (await skipBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await skipBtn.click();
+    // Wait for modal to close
+    await skipBtn.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+  }
+}
+
+/**
+ * Dismiss the LegacyAccountModal ("Welcome to Music Nerd!") if it appears.
+ * Call this after navigating to a page with stored auth state.
+ */
+export async function dismissLegacyModal(page: Page) {
+  const skipBtn = page.getByRole('button', { name: 'Skip for now' });
+  if (await skipBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await skipBtn.click();
+    await skipBtn.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+  }
 }
 
 export async function fetchAsUser(

@@ -76,13 +76,14 @@ test.describe('Admin page access checks', () => {
     await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).not.toBeVisible();
   });
 
-  test('Regular user visiting /admin sees Unauthorized page', async ({ page }) => {
+  test('Regular user visiting /admin is redirected to home', async ({ page }) => {
     await login(page, 'test-4473@privy.io', '676856');
 
     await page.goto('/admin');
 
-    // Non-admin user sees the UnauthorizedPage component
-    await expect(page.getByRole('heading', { name: '401 Unauthorized' })).toBeVisible();
+    // Non-admin user is redirected to "/" (changed from UnauthorizedPage in PR #976)
+    await page.waitForURL('**/');
+    expect(page.url()).toMatch(/\/$/);
     // Should NOT see the admin dashboard
     await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).not.toBeVisible();
   });
