@@ -27,29 +27,34 @@ export default function ClientWrapper() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
           const response = await fetch(`/api/user/${session.user.id}`);
+          if (cancelled) return;
           if (response.ok) {
             const userData = await response.json();
-            setUser(userData);
+            if (!cancelled) setUser(userData);
           } else {
-            setUser(null);
+            if (!cancelled) setUser(null);
           }
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          setUser(null);
+          if (!cancelled) setUser(null);
         }
       } else {
-        setUser(null);
+        if (!cancelled) setUser(null);
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     if (status !== "loading") {
       fetchUser();
     }
+
+    return () => { cancelled = true; };
   }, [status, session]);
 
   if (status === "loading" || isLoading) {

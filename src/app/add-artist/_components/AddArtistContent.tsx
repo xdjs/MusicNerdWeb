@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { addArtist } from "../../actions/addArtist";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 interface SpotifyArtist {
     id: string;
@@ -90,7 +90,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Spo
                     </div>
                 )}
                 <div className="flex flex-col md:flex-row gap-8 items-center">
-                    {initialArtist.images[0] && (
+                    {initialArtist.images?.[0] && (
                         <img
                             src={initialArtist.images[0].url}
                             alt={initialArtist.name}

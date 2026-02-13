@@ -235,9 +235,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [internalSelectedRange, setInternalSelectedRange] = useState<RangeKey>("today");
     const selectedRangeToUse = selectedRange || internalSelectedRange;
 
-    // Debug logging
-    console.log('[Dashboard] Range state:', { selectedRange, internalSelectedRange, selectedRangeToUse });
-
     // (duplicate RangeKey and selectedRange definition removed)
 
     // Fetch leaderboard rank (only in compact layout)
@@ -264,8 +261,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 if (dates) {
                     url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                 }
-                console.log('[Dashboard] Fetching rank:', { url, selectedRangeToUse, dates, isCompactLayout });
-
                 const resp = await fetch(url);
                 if (!resp.ok) return;
                 const data = await resp.json();
@@ -273,14 +268,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 // Handle both paginated and non-paginated responses
                 const entries = Array.isArray(data) ? data : data.entries;
 
-                console.log('[Dashboard] API response:', { dataLength: entries?.length, isArray: Array.isArray(data) });
-
                 // Exclude hidden users from total count
                 const nonHiddenUsers = entries.filter((entry: any) => !entry.isHidden);
                 setTotalEntries(nonHiddenUsers.length);
 
                 const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
-                console.log('[Dashboard] User lookup:', { idx, userWallet: user.wallet });
 
                 if (idx !== -1) {
                     // Check if the current user is hidden - check both user object and leaderboard entry
@@ -299,10 +291,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
                     // Set stats from leaderboard data to ensure consistency (only in compact layout)
                     if (userEntry && isCompactLayout) {
-                        console.log('[Dashboard] Setting stats from userEntry:', {
-                            ugcCount: userEntry.ugcCount,
-                            artistsCount: userEntry.artistsCount
-                        });
                         setUgcStats({
                             ugcCount: userEntry.ugcCount,
                             artistsCount: userEntry.artistsCount
@@ -317,13 +305,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         fetchRank();
     }, [selectedRangeToUse, user.wallet, isCompactLayout]);
 
-    // Debug logging for useEffect dependencies
-    console.log('[Dashboard] useEffect dependencies:', {
-        selectedRangeToUse,
-        userWallet: user.wallet,
-        isCompactLayout,
-        allowEditUsername
-    });
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
     // Determine user status string for display (support multiple roles)
