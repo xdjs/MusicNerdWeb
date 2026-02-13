@@ -2,13 +2,18 @@ import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
+import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistDetailsText } from "@/server/utils/services";
+import { getServerAuthSession } from "@/server/auth";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
+import EditModeToggle from "@/app/_components/EditModeToggle";
 import BlurbSection from "./_components/BlurbSection";
+import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import FunFactsMobile from "./_components/FunFactsMobile";
 import FunFactsDesktop from "./_components/FunFactsDesktop";
 import GrapevineIframe from "./_components/GrapevineIframe";
+import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
 import SeoArtistLinks from "./_components/SeoArtistLinks";
 
@@ -60,7 +65,8 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 
 export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
-    const canEdit = false; // Authentication disabled - read-only mode
+    const session = await getServerAuthSession();
+    const canEdit = !!session;
 
     const artist = await getArtistById(id);
     if (!artist) {
@@ -79,6 +85,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
+            <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
                 <div className="bg-white rounded-lg md:w-2/3 gap-y-4 shadow-2xl px-5 py-5 md:py-10 md:px-10 space-y-8">
@@ -95,6 +102,17 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                 <strong className="text-black text-2xl mr-2">
                                     {artist.name}
                                 </strong>
+                                <div className="flex items-center gap-2">
+                                    {session && (
+                                        <BookmarkButton
+                                            artistId={artist.id}
+                                            artistName={artist.name ?? ''}
+                                            imageUrl={spotifyImg.artistImage ?? ''}
+                                            userId={session.user.id}
+                                        />
+                                    )}
+                                    {canEdit && <EditModeToggle />}
+                                </div>
                             </div>
                             <div className="text-black pt-0 mb-4">
                                 {(artist) && getArtistDetailsText(artist, numReleases)}
@@ -116,6 +134,14 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                     <strong className="text-black text-2xl">
                                         Social Media Links
                                     </strong>
+                                    <div className="mt-2 md:mt-0 md:ml-2">
+                                        <AddArtistData
+                                            artist={artist}
+                                            spotifyImg={spotifyImg.artistImage ?? ""}
+                                            availableLinks={urlMapList}
+                                            isOpenOnLoad={false}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
@@ -130,6 +156,14 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                     <strong className="text-black text-2xl">
                                         Support the Artist
                                     </strong>
+                                    <div className="mt-2 md:mt-0 md:ml-2">
+                                        <AddArtistData
+                                            artist={artist}
+                                            spotifyImg={spotifyImg.artistImage ?? ""}
+                                            availableLinks={urlMapList}
+                                            isOpenOnLoad={false}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
