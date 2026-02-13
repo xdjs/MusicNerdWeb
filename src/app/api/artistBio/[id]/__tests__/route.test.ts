@@ -157,6 +157,48 @@ describe('/api/artistBio/[id]', () => {
       const data = await response.json();
       expect(data.message).toBe('Invalid bio');
     });
+
+    it('returns 500 when updateArtistBio returns error', async () => {
+      const { PUT, mockGetSession, mockGetUserById, mockUpdateArtistBio } =
+        await setup();
+      mockGetSession.mockResolvedValue(adminSession);
+      mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+      mockUpdateArtistBio.mockResolvedValue({
+        status: 'error',
+        message: 'Failed to generate bio',
+      });
+
+      const response = await PUT(
+        createPutRequest({ bio: 'Some bio text' }),
+        { params: paramsPromise }
+      );
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.message).toBe('Failed to generate bio');
+    });
+
+    it('returns 200 with regenerated bio when regenerate flag is set', async () => {
+      const { PUT, mockGetSession, mockGetUserById, mockUpdateArtistBio } =
+        await setup();
+      mockGetSession.mockResolvedValue(adminSession);
+      mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+      mockUpdateArtistBio.mockResolvedValue({
+        status: 'success',
+        message: 'Bio regenerated',
+        data: 'A newly generated bio from AI',
+      });
+
+      const response = await PUT(
+        createPutRequest({ regenerate: true }),
+        { params: paramsPromise }
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.message).toBe('Bio regenerated');
+      expect(data.bio).toBe('A newly generated bio from AI');
+    });
   });
 
   describe('GET', () => {
