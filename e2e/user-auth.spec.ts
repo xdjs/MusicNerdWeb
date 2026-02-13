@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { login, fetchAsUser } from './helpers/auth';
-
-const TEST_USER_EMAIL = 'test-4473@privy.io';
-const TEST_USER_OTP = '676856';
+import { fetchAsUser, dismissLegacyModal } from './helpers/auth';
+import { TEST_ACCOUNTS } from './helpers/test-data';
 
 /* ------------------------------------------------------------------ */
 /*  Unauthenticated tests — no login needed, use request context      */
@@ -31,15 +29,17 @@ test.describe('Unauthenticated requests', () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  Authenticated tests — require Privy login via browser              */
+/*  Authenticated tests — use stored auth state instead of login()    */
 /* ------------------------------------------------------------------ */
 test.describe('Authenticated requests', () => {
+  test.use({ storageState: TEST_ACCOUNTS.regular.storageState });
   test.setTimeout(60_000);
 
   let userId: string;
 
-  test('login and fetch own profile via GET /api/user/[id]', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_OTP);
+  test('fetch own profile via GET /api/user/[id]', async ({ page }) => {
+    await page.goto('/');
+    await dismissLegacyModal(page);
 
     // Discover the user's ID from the session
     const session = await fetchAsUser(page, '/api/auth/session');
@@ -55,7 +55,8 @@ test.describe('Authenticated requests', () => {
   });
 
   test('authenticated user cannot fetch another user profile', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_OTP);
+    await page.goto('/');
+    await dismissLegacyModal(page);
 
     // Use a fake user ID that does not match the logged-in user
     const res = await fetchAsUser(page, '/api/user/wrong-user-id');
@@ -64,7 +65,8 @@ test.describe('Authenticated requests', () => {
   });
 
   test('GET /api/userEntries returns entries structure', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_OTP);
+    await page.goto('/');
+    await dismissLegacyModal(page);
 
     const res = await fetchAsUser(page, '/api/userEntries');
     expect(res.status).toBe(200);
@@ -77,7 +79,8 @@ test.describe('Authenticated requests', () => {
   });
 
   test('GET /api/recentEdited returns array', async ({ page }) => {
-    await login(page, TEST_USER_EMAIL, TEST_USER_OTP);
+    await page.goto('/');
+    await dismissLegacyModal(page);
 
     const res = await fetchAsUser(page, '/api/recentEdited');
     expect(res.status).toBe(200);

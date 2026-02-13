@@ -1,17 +1,30 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
+  timeout: 60_000,
   use: {
     baseURL: 'https://localhost:3001',
     ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
+  projects: [
+    {
+      name: 'setup',
+      testMatch: /global-setup\.ts/,
+    },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+    },
+  ],
   webServer: {
     command: 'npx next dev --experimental-https --port 3001',
     url: 'https://localhost:3001',

@@ -53,5 +53,8 @@ certificates
 # playwright mcp
 .playwright-mcp/
 
+# playwright auth state
+e2e/.auth/
+
 # claude code local settings
 .claude/settings.local.json
