@@ -3,6 +3,7 @@ import { login, dismissLegacyModal } from './helpers/auth';
 import { TEST_ACCOUNTS } from './helpers/test-data';
 
 // These tests exercise the login/logout flow directly — no stored auth state.
+// Each login() call takes ~15s and hits the DB, so minimize fresh logins.
 test.describe('Auth flow', () => {
   test.setTimeout(90_000);
 
@@ -19,7 +20,7 @@ test.describe('Auth flow', () => {
     await expect(page.getByText('Admin Panel')).not.toBeVisible();
   });
 
-  test('regular user login shows profile menu without admin link', async ({ page }) => {
+  test('regular user login, profile menu, and logout', async ({ page }) => {
     await login(page, TEST_ACCOUNTS.regular.email, TEST_ACCOUNTS.regular.otp);
 
     await page.goto('/');
@@ -40,6 +41,16 @@ test.describe('Auth flow', () => {
 
     // Should see Log Out
     await expect(page.getByText('Log Out')).toBeVisible();
+
+    // --- Logout flow ---
+    await page.getByText('Log Out').click();
+
+    // Wait for page reload / session clear
+    await page.waitForLoadState('networkidle');
+
+    // Should be back to unauthenticated state — Log In menu item visible
+    await page.click('#login-btn');
+    await expect(page.getByRole('menuitem', { name: 'Log In' })).toBeVisible({ timeout: 15_000 });
   });
 
   test('admin user login shows admin panel link', async ({ page }) => {
@@ -55,24 +66,5 @@ test.describe('Auth flow', () => {
 
     // Admin should see the Admin Panel link
     await expect(page.getByText('Admin Panel')).toBeVisible();
-  });
-
-  test('logout clears session', async ({ page }) => {
-    await login(page, TEST_ACCOUNTS.regular.email, TEST_ACCOUNTS.regular.otp);
-
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await dismissLegacyModal(page);
-
-    // Open dropdown and click Log Out
-    await page.click('#login-btn');
-    await page.getByText('Log Out').click();
-
-    // Wait for page reload / session clear
-    await page.waitForLoadState('networkidle');
-
-    // Should be back to unauthenticated state — Log In menu item visible
-    await page.click('#login-btn');
-    await expect(page.getByRole('menuitem', { name: 'Log In' })).toBeVisible({ timeout: 15_000 });
   });
 });

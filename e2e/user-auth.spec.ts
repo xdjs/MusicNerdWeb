@@ -60,8 +60,8 @@ test.describe('Authenticated requests', () => {
 
     // Use a fake user ID that does not match the logged-in user
     const res = await fetchAsUser(page, '/api/user/wrong-user-id');
-    expect(res.status).toBe(401);
-    expect(res.body).toEqual({ error: 'Not authorized' });
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Forbidden' });
   });
 
   test('GET /api/userEntries returns entries structure', async ({ page }) => {

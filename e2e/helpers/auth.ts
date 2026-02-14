@@ -95,15 +95,25 @@ export async function fetchAsUser(
 ) {
   return page.evaluate(
     async ({ url, init }) => {
-      const res = await fetch(url, {
-        method: init?.method || 'GET',
-        headers: { 'Content-Type': 'application/json', ...init?.headers },
-        body: init?.body,
-      });
-      const text = await res.text();
-      let json: any = null;
-      try { json = JSON.parse(text); } catch {}
-      return { status: res.status, body: json ?? text };
+      const maxRetries = 3;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const res = await fetch(url, {
+          method: init?.method || 'GET',
+          headers: { 'Content-Type': 'application/json', ...init?.headers },
+          body: init?.body,
+        });
+        const text = await res.text();
+        let json: any = null;
+        try { json = JSON.parse(text); } catch {}
+        // Retry on 500/503 (typically DB connection timeouts)
+        if ((res.status === 500 || res.status === 503) && attempt < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        return { status: res.status, body: json ?? text };
+      }
+      // Should not reach here, but just in case
+      return { status: 500, body: 'Max retries exhausted' };
     },
     { url, init },
   );
