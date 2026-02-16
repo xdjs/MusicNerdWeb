@@ -52,6 +52,11 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             currentReady: ready,
           });
         }
+        // Skip NextAuth login flow if user was already authenticated
+        // (e.g., component remount during page navigation)
+        if (wasAlreadyAuthenticated) {
+          return;
+        }
         // Set flag to trigger NextAuth login once Privy state is ready
         setIsLoggingIn(true);
         setPendingNextAuthLogin(true);

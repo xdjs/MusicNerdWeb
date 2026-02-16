@@ -356,5 +356,48 @@ describe('PrivyLogin', () => {
 
       expect(mockLogin).toHaveBeenCalled();
     });
+
+    it('does not trigger NextAuth login when wasAlreadyAuthenticated is true', async () => {
+      mockPrivyState.ready = true;
+      mockPrivyState.authenticated = true;
+
+      render(<PrivyLogin />);
+
+      // Simulate Privy calling onComplete with wasAlreadyAuthenticated: true
+      await loginCallbacks.onComplete?.({
+        user: { id: 'did:privy:user123' },
+        isNewUser: false,
+        wasAlreadyAuthenticated: true,
+      });
+
+      // signIn should NOT be called — no need to re-establish NextAuth session
+      expect(mockSignIn).not.toHaveBeenCalled();
+      // Toast should NOT show
+      expect(mockToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Welcome!' })
+      );
+    });
+
+    it('triggers NextAuth login when wasAlreadyAuthenticated is false', async () => {
+      mockPrivyState.ready = true;
+      mockPrivyState.authenticated = true;
+      mockPrivyState.user = { id: 'did:privy:user123' };
+
+      render(<PrivyLogin />);
+
+      // Simulate Privy calling onComplete with a fresh login
+      await loginCallbacks.onComplete?.({
+        user: { id: 'did:privy:user123' },
+        isNewUser: false,
+        wasAlreadyAuthenticated: false,
+      });
+
+      // pendingNextAuthLogin should now be true, wait for the effect to run
+      await waitFor(() => {
+        expect(mockSignIn).toHaveBeenCalledWith('privy', expect.objectContaining({
+          redirect: false,
+        }));
+      });
+    });
   });
 });
