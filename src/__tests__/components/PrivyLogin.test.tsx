@@ -103,6 +103,8 @@ jest.mock('@/server/utils/privyConstants', () => ({
 import PrivyLogin from '@/app/_components/nav/components/PrivyLogin';
 
 describe('PrivyLogin', () => {
+  let mockSessionStorage: Record<string, string> = {};
+
   beforeEach(() => {
     jest.clearAllMocks();
     loginCallbacks = {};
@@ -122,6 +124,17 @@ describe('PrivyLogin', () => {
     // Mock window.location.reload - replace location with a plain object
     delete (window as any).location;
     (window as any).location = { reload: jest.fn(), href: 'http://localhost' };
+    // Mock sessionStorage
+    mockSessionStorage = {};
+    Object.defineProperty(window, 'sessionStorage', {
+      value: {
+        getItem: jest.fn((key: string) => mockSessionStorage[key] ?? null),
+        setItem: jest.fn((key: string, value: string) => { mockSessionStorage[key] = value; }),
+        removeItem: jest.fn((key: string) => { delete mockSessionStorage[key]; }),
+        clear: jest.fn(() => { Object.keys(mockSessionStorage).forEach(k => delete mockSessionStorage[k]); }),
+      },
+      writable: true,
+    });
   });
 
   describe('Loading state', () => {
@@ -252,6 +265,57 @@ describe('PrivyLogin', () => {
       render(<PrivyLogin />);
 
       expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
+    });
+
+    it('does not auto-show modal on re-render when already shown this session', () => {
+      mockPrivyState.authenticated = true;
+      mockSessionData = {
+        user: {
+          id: 'user-uuid',
+          needsLegacyLink: true,
+          isAdmin: false,
+        },
+        expires: '2025-12-31',
+      };
+      mockSessionStatus = 'authenticated';
+
+      // Simulate that the modal was already shown this session
+      mockSessionStorage['legacyModalShown'] = 'true';
+
+      render(<PrivyLogin />);
+
+      expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
+    });
+
+    it('clears session flag on logout so modal shows again', async () => {
+      mockPrivyState.authenticated = true;
+      mockSessionData = {
+        user: {
+          id: 'user-uuid',
+          needsLegacyLink: true,
+          isAdmin: false,
+        },
+        expires: '2025-12-31',
+      };
+      mockSessionStatus = 'authenticated';
+
+      render(<PrivyLogin />);
+
+      // Modal should auto-show
+      await waitFor(() => {
+        expect(screen.getByTestId('legacy-modal')).toBeInTheDocument();
+      });
+
+      // sessionStorage should have the flag set
+      expect(sessionStorage.setItem).toHaveBeenCalledWith('legacyModalShown', 'true');
+
+      // Click Log Out
+      const logoutItem = screen.getByText('Log Out');
+      fireEvent.click(logoutItem);
+
+      await waitFor(() => {
+        expect(sessionStorage.removeItem).toHaveBeenCalledWith('legacyModalShown');
+      });
     });
   });
 

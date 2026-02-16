@@ -21,6 +21,7 @@ interface PrivyLoginProps {
 }
 
 const isDev = process.env.NODE_ENV === 'development';
+const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -33,7 +34,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const { data: session, status } = useSession();
     const { toast } = useToast();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
-    const [hasShownModal, setHasShownModal] = useState(false);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
     const [ugcCount, setUgcCount] = useState<number>(0);
     const [hasNewUGC, setHasNewUGC] = useState(false);
@@ -183,17 +183,18 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
-    // Show legacy account modal for new users (once per session)
+    // Show legacy account modal for new users (once per login session)
     useEffect(() => {
       if (
         session?.user?.needsLegacyLink &&
-        !hasShownModal &&
-        status === 'authenticated'
+        status === 'authenticated' &&
+        typeof window !== 'undefined' &&
+        !sessionStorage.getItem(LEGACY_MODAL_SHOWN_KEY)
       ) {
         setShowLegacyModal(true);
-        setHasShownModal(true);
+        sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
       }
-    }, [session?.user?.needsLegacyLink, hasShownModal, status]);
+    }, [session?.user?.needsLegacyLink, status]);
 
     // Fetch pending UGC count for admins
     const fetchPendingUGC = useCallback(async () => {
@@ -255,6 +256,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
     const handleLogout = async () => {
       try {
+        sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
         await signOut({ redirect: false });
         await privyLogout();
         toast({
