@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
 import AutoRefresh from "@/app/_components/AutoRefresh";
@@ -37,6 +37,19 @@ export default function ClientWrapper() {
           if (response.ok) {
             const userData = await response.json();
             if (!cancelled) setUser(userData);
+          } else if (response.status === 404) {
+            // JWT references a user that no longer exists in the database
+            // (e.g., after DB reset or mergeAccounts() deleted a placeholder).
+            // Clear the stale NextAuth session to avoid a confusing split state
+            // where the nav shows "authenticated" but the profile shows "guest".
+            console.warn(
+              '[ClientWrapper] User not found (404) for session user ID:',
+              session.user.id,
+              '— signing out stale session'
+            );
+            await signOut({ redirect: false });
+            window.location.href = '/';
+            return;
           } else {
             if (!cancelled) setUser(null);
           }
