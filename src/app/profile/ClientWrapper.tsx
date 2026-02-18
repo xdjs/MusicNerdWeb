@@ -38,6 +38,7 @@ export default function ClientWrapper() {
             const userData = await response.json();
             if (!cancelled) setUser(userData);
           } else if (response.status === 404) {
+            if (cancelled) return;
             // JWT references a user that no longer exists in the database
             // (e.g., after DB reset or mergeAccounts() deleted a placeholder).
             // Clear the stale NextAuth session to avoid a confusing split state

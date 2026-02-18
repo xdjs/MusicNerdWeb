@@ -1,12 +1,10 @@
-// @ts-nocheck
-
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 
 // ---- Mutable mock state ----
 
 const mockSignOut = jest.fn(() => Promise.resolve({ ok: true }));
-let mockSessionData: any = null;
+let mockSessionData: { user: { id: string; name: string; email: string }; expires: string } | null = null;
 let mockSessionStatus = 'unauthenticated';
 
 jest.mock('next-auth/react', () => ({
@@ -14,14 +12,14 @@ jest.mock('next-auth/react', () => ({
     data: mockSessionData,
     status: mockSessionStatus,
   }),
-  signOut: (...args) => mockSignOut(...args),
+  signOut: (...args: Parameters<typeof mockSignOut>) => mockSignOut(...args),
 }));
 
 // Mock child components so the test focuses on ClientWrapper logic
 jest.mock('../Dashboard', () => {
   return {
     __esModule: true,
-    default: ({ user }) => (
+    default: ({ user }: { user: { id: string; username?: string | null } }) => (
       <div data-testid="dashboard" data-user-id={user.id} data-username={user.username}>
         Dashboard: {user.username || user.id}
       </div>
