@@ -41,15 +41,14 @@ export default function ClientWrapper() {
             if (cancelled) return;
             // JWT references a user that no longer exists in the database
             // (e.g., after DB reset or mergeAccounts() deleted a placeholder).
-            // Clear the stale NextAuth session to avoid a confusing split state
-            // where the nav shows "authenticated" but the profile shows "guest".
+            // Clear the stale NextAuth session and redirect to home to avoid
+            // a confusing split state (nav shows authenticated, content shows guest).
             console.warn(
               '[ClientWrapper] User not found (404) for session user ID:',
               session.user.id,
-              '— signing out stale session'
+              '- signing out stale session'
             );
-            await signOut({ redirect: false });
-            window.location.href = '/';
+            await signOut({ callbackUrl: '/', redirect: true });
             return;
           } else {
             if (!cancelled) setUser(null);

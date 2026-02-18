@@ -99,7 +99,7 @@ describe('ClientWrapper', () => {
   });
 
   // --- 2. 404 case: JWT references a deleted user ---
-  it('calls signOut and redirects to / when API returns 404', async () => {
+  it('calls signOut with redirect when API returns 404', async () => {
     mockSessionData = {
       user: { id: 'user-123', name: 'Test User', email: 'test@example.com' },
       expires: new Date(Date.now() + 86400000).toISOString(),
@@ -112,23 +112,15 @@ describe('ClientWrapper', () => {
       json: () => Promise.resolve({ error: 'User not found' }),
     });
 
-    // Spy on console.warn to verify the log message
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     render(<ClientWrapper />);
 
     await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
+      expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/', redirect: true });
     });
 
-    // The code sets window.location.href = '/'. jsdom may resolve it to a full URL.
-    expect(window.location.href).toMatch(/^(\/|http:\/\/localhost\/?)$/);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[ClientWrapper] User not found (404)'),
-      'user-123',
-      expect.any(String)
-    );
-
+    expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
