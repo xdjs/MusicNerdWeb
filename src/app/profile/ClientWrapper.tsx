@@ -48,7 +48,11 @@ export default function ClientWrapper() {
               session.user.id,
               '- signing out stale session'
             );
-            await signOut({ callbackUrl: '/', redirect: true });
+            try {
+              await signOut({ callbackUrl: '/', redirect: true });
+            } catch {
+              if (!cancelled) window.location.href = '/';
+            }
             return;
           } else {
             if (!cancelled) setUser(null);
