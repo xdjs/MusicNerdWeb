@@ -78,19 +78,6 @@ export default function AutoRefresh({
     prevStatus.current = status;
   }, [session, status, sessionStorageKey, isClient]);
 
-  // Clear the skip flag when component unmounts
-  useEffect(() => {
-    if (!isClient) return;
-
-    return () => {
-      try {
-        sessionStorage.removeItem(sessionStorageKey);
-      } catch (error) {
-        console.error("[AutoRefresh] Error clearing sessionStorage:", error);
-      }
-    };
-  }, [sessionStorageKey, isClient]);
-
   if (isLoading || status === "loading") {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
