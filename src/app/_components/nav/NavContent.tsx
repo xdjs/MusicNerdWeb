@@ -9,7 +9,7 @@ import { Suspense } from "react";
 
 export default function NavContent() {
     return (
-        <nav className="p-6 nav-bar flex items-center justify-between max-w-[1000px] mx-auto">
+        <nav className="w-full p-6 nav-bar flex items-center justify-between max-w-[1000px] mx-auto">
             <div className="flex gap-2">
                 <Link href={"/"}>
                     <img
