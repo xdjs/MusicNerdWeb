@@ -52,9 +52,16 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             currentReady: ready,
           });
         }
-        // Skip NextAuth login flow if user was already authenticated
-        // (e.g., component remount during page navigation)
+        // If Privy says already authenticated, only re-trigger NextAuth
+        // if NextAuth is out of sync (split state from a previous failed update).
         if (wasAlreadyAuthenticated) {
+          if (status === 'unauthenticated') {
+            if (isDev) {
+              console.log('[PrivyLogin] wasAlreadyAuthenticated but NextAuth unauthenticated — re-triggering login');
+            }
+            setIsLoggingIn(true);
+            setPendingNextAuthLogin(true);
+          }
           return;
         }
         // Set flag to trigger NextAuth login once Privy state is ready
@@ -159,10 +166,15 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               variant: 'destructive',
             });
           } else {
+            // SessionProvider with refetchInterval=0 doesn't auto-update after
+            // signIn sets the cookie. Neither update() nor getSession() reliably
+            // propagate to all useSession() consumers. Reload the page to ensure
+            // all components (nav, profile, leaderboard) read the new session.
             toast({
               title: 'Welcome!',
               description: 'You have successfully logged in.',
             });
+            window.location.reload();
           }
         } catch (error) {
           console.error('[PrivyLogin] Login error:', error);
