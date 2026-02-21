@@ -271,6 +271,7 @@ export async function createUserFromPrivy(data: {
             .values({
                 privyUserId: data.privyUserId,
                 email: data.email,
+                username: data.email,
                 isWhiteListed: false,
                 isAdmin: false,
                 isSuperAdmin: false,
@@ -288,6 +289,18 @@ export async function createUserFromPrivy(data: {
     } catch (e) {
         console.error("[createUserFromPrivy] Database error:", e);
         throw new Error(`Error creating user from Privy: ${(e as Error)?.message}`);
+    }
+}
+
+// Backfill username from email for existing users who have no username
+export async function backfillUsernameFromEmail(userId: string, email: string) {
+    try {
+        await db
+            .update(users)
+            .set({ username: email, updatedAt: new Date().toISOString() })
+            .where(eq(users.id, userId));
+    } catch (e) {
+        console.error("[backfillUsernameFromEmail] Database error:", e);
     }
 }
 

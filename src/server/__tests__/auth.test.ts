@@ -11,6 +11,7 @@ jest.mock('@/server/utils/queries/userQueries', () => ({
   getUserByPrivyId: jest.fn(),
   createUserFromPrivy: jest.fn(),
   getUserByWallet: jest.fn(),
+  backfillUsernameFromEmail: jest.fn(),
 }));
 
 const mockDbUser = {
@@ -33,7 +34,7 @@ const mockDbUserNoWallet = {
 // Helper to get fresh mocks and authOptions
 async function setup() {
   const { verifyPrivyToken } = await import('@/server/utils/privy');
-  const { getUserByPrivyId, createUserFromPrivy, getUserByWallet } = await import(
+  const { getUserByPrivyId, createUserFromPrivy, getUserByWallet, backfillUsernameFromEmail } = await import(
     '@/server/utils/queries/userQueries'
   );
   const { authOptions } = await import('@/server/auth');
@@ -44,6 +45,7 @@ async function setup() {
     mockGetUserByPrivyId: getUserByPrivyId as jest.Mock,
     mockCreateUserFromPrivy: createUserFromPrivy as jest.Mock,
     mockGetUserByWallet: getUserByWallet as jest.Mock,
+    mockBackfillUsernameFromEmail: backfillUsernameFromEmail as jest.Mock,
   };
 }
 
@@ -105,6 +107,7 @@ describe('Auth - Privy Credentials Provider', () => {
         id: 'db-user-uuid',
         privyUserId: 'did:privy:user123',
         email: 'user@example.com',
+        username: 'testuser',
         walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
         isWhiteListed: true,
         isAdmin: false,
@@ -191,6 +194,64 @@ describe('Auth - Privy Credentials Provider', () => {
       const result = await authorize({ authToken: 'valid-token' });
 
       expect(result.needsLegacyLink).toBe(false);
+    });
+
+    it('backfills username from email when user has no username', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+        await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue({
+        ...mockDbUser,
+        username: null,
+      });
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(mockBackfillUsernameFromEmail).toHaveBeenCalledWith('db-user-uuid', 'user@example.com');
+      expect(result.username).toBe('user@example.com');
+    });
+
+    it('does not backfill username when user already has one', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+        await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue(mockDbUser);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(mockBackfillUsernameFromEmail).not.toHaveBeenCalled();
+      expect(result.username).toBe('testuser');
+    });
+
+    it('does not backfill username when user has no email', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+        await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: undefined,
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue({
+        ...mockDbUser,
+        username: null,
+        email: null,
+      });
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(mockBackfillUsernameFromEmail).not.toHaveBeenCalled();
+      expect(result.username).toBeNull();
     });
   });
 });

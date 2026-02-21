@@ -1,7 +1,7 @@
 import NextAuth, { getServerSession } from "next-auth/next";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByPrivyId, createUserFromPrivy, getUserByWallet } from "@/server/utils/queries/userQueries";
+import { getUserByPrivyId, createUserFromPrivy, getUserByWallet, backfillUsernameFromEmail } from "@/server/utils/queries/userQueries";
 import { verifyPrivyToken } from "@/server/utils/privy";
 
 // Lock to prevent concurrent session refresh operations
@@ -212,6 +212,12 @@ export const authOptions = {
             return null;
           }
 
+          // Backfill username from email for existing users who have no username
+          if (!user.username && user.email) {
+            await backfillUsernameFromEmail(user.id, user.email);
+            user = { ...user, username: user.email };
+          }
+
           if (process.env.NODE_ENV === 'development') {
             console.log('[Auth] Privy login successful', { userId: user.id, privyUserId: user.privyUserId });
           }
@@ -220,6 +226,7 @@ export const authOptions = {
             id: user.id,
             privyUserId: privyUser.userId,
             email: user.email,
+            username: user.username,
             walletAddress: user.wallet,
             isWhiteListed: user.isWhiteListed,
             isAdmin: user.isAdmin,
