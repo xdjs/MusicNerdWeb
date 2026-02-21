@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import SearchBar from "./components/SearchBar"
+import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { Suspense } from "react";
@@ -23,6 +24,7 @@ export default function NavContent() {
                 <Suspense>
                     <SearchBar />
                 </Suspense>
+                <AddArtist />
             </div>
             <div className="flex gap-2 items-center">
                 <ThemeToggle />
