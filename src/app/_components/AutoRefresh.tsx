@@ -74,8 +74,12 @@ export default function AutoRefresh({
       }
     }
 
-    // Update previous status
-    prevStatus.current = status;
+    // Update previous status, skipping "loading" so that the
+    // post-reload loading→authenticated transition is not mistaken
+    // for a real login (only unauthenticated→authenticated should count)
+    if (status !== "loading") {
+      prevStatus.current = status;
+    }
   }, [session, status, sessionStorageKey, isClient]);
 
   if (isLoading || status === "loading") {
