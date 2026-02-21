@@ -85,7 +85,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
-            <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
+            <AutoRefresh showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
                 <div className="bg-white rounded-lg md:w-2/3 gap-y-4 shadow-2xl px-5 py-5 md:py-10 md:px-10 space-y-8">
