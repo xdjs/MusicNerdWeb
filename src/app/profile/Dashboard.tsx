@@ -306,7 +306,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }, [selectedRangeToUse, user.wallet, isCompactLayout]);
 
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
-    const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
+    const displayName = isGuestUser ? 'User Profile' : (user?.username || user?.email || user?.wallet);
     // Determine user status string for display (support multiple roles)
     const statusString = (() => {
         const roles: string[] = [];
@@ -508,7 +508,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 									</div>
 								)}
                                     <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
-                                        {user?.username ? user.username : user?.wallet}
+                                        {user?.username || user?.email || user?.wallet}
                                     </span>
                                     {/* (arrow removed; entire bar now clickable) */}
                                 </div>
@@ -848,7 +848,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
                 <Leaderboard
-                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet || undefined)}
+                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.email || user.wallet || undefined)}
                     onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange}
                 />
             </div>
