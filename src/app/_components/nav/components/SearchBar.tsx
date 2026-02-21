@@ -127,7 +127,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     };
 
     return (
-        <div className="relative w-full max-w-lg mx-auto">
+        <div className="relative w-full max-w-[400px]">
             <div className="relative">
                 <Input
                     type="text"
