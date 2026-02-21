@@ -39,6 +39,7 @@
       "Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run test)",
       "Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run build)",
       "Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npx jest *)",
+      "Bash(cd /Users/clt/src/xdjs/MusicNerdWeb* && npm run type-check && npm run lint && npm run test && npm run build)",
       "Bash(ln -s /Users/clt/src/xdjs/MusicNerdWeb*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
