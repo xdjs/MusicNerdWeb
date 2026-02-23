@@ -6,7 +6,6 @@ import '@testing-library/jest-dom';
 const mockPush = jest.fn();
 const mockToast = jest.fn();
 const mockLogin = jest.fn();
-let loginOnComplete: (() => void) | undefined;
 const mockAddArtist = jest.fn();
 
 jest.mock('next/navigation', () => ({
@@ -23,10 +22,7 @@ jest.mock('next-auth/react', () => ({
 }));
 
 jest.mock('@privy-io/react-auth', () => ({
-    useLogin: (opts?: { onComplete?: () => void }) => {
-        loginOnComplete = opts?.onComplete;
-        return { login: mockLogin };
-    },
+    useLogin: () => ({ login: mockLogin }),
 }));
 
 jest.mock('@/app/actions/addArtist', () => ({
@@ -37,15 +33,11 @@ jest.mock('use-debounce', () => ({
     useDebounce: (val: string) => [val],
 }));
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 
-// We need to import the inner component. Since SearchBar wraps in its own
-// QueryClientProvider, we import the default export which handles that.
 import SearchBar from '@/app/_components/nav/components/SearchBar';
 
-// Helper to make the search results visible by mocking the fetch response
 function mockSearchResults(results: object[]) {
     global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -60,6 +52,13 @@ const spotifyOnlyResult = {
     images: [{ url: 'https://img.spotify.com/test.jpg', height: 64, width: 64 }],
 };
 
+const spotifyOnlyResult2 = {
+    name: 'Other Artist',
+    spotify: '6def456',
+    isSpotifyOnly: true,
+    images: [{ url: 'https://img.spotify.com/test2.jpg', height: 64, width: 64 }],
+};
+
 const dbResult = {
     id: '42',
     name: 'Existing Artist',
@@ -69,10 +68,20 @@ const dbResult = {
 };
 
 describe('SearchBar Add Artist Flow', () => {
+    let mockSessionStorage: Record<string, string>;
+
     beforeEach(() => {
         jest.clearAllMocks();
-        loginOnComplete = undefined;
         (useSession as jest.Mock).mockReturnValue({ data: null });
+        // Mock sessionStorage
+        mockSessionStorage = {};
+        jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => mockSessionStorage[key] ?? null);
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => { mockSessionStorage[key] = value; });
+        jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => { delete mockSessionStorage[key]; });
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     async function renderAndSearch(results: object[]) {
@@ -81,9 +90,9 @@ describe('SearchBar Add Artist Flow', () => {
         const input = screen.getByPlaceholderText('Search for an artist...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.focus(input);
-        // Wait for results to appear
+        const firstName = (results[0] as { name: string }).name;
         await waitFor(() => {
-            expect(screen.getByText(results[0] && 'name' in results[0] ? (results[0] as { name: string }).name : '')).toBeInTheDocument();
+            expect(screen.getByText(firstName)).toBeInTheDocument();
         });
     }
 
@@ -104,33 +113,47 @@ describe('SearchBar Add Artist Flow', () => {
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('calls login() when unauthenticated user clicks a Spotify-only result', async () => {
+    it('calls login() and stores pending ID when unauthenticated user clicks a Spotify-only result', async () => {
         await renderAndSearch([spotifyOnlyResult]);
 
         fireEvent.click(screen.getByText('New Artist'));
 
         expect(mockLogin).toHaveBeenCalled();
         expect(mockAddArtist).not.toHaveBeenCalled();
+        expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBe('6abc123');
     });
 
-    it('auto-retries add after login completes via onComplete callback', async () => {
-        // Start unauthenticated
-        (useSession as jest.Mock).mockReturnValue({ data: null });
-        await renderAndSearch([spotifyOnlyResult]);
-
-        // Click triggers login
-        fireEvent.click(screen.getByText('New Artist'));
-        expect(mockLogin).toHaveBeenCalled();
-
-        // Simulate login completing — session is now available and onComplete fires
+    it('completes pending add on mount when session exists and sessionStorage has pending ID', async () => {
+        // Simulate post-login reload: session is now available and pending ID is in storage
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        mockSessionStorage['pendingAddArtistSpotifyId'] = '6abc123';
         mockAddArtist.mockResolvedValue({ status: 'success', artistId: '99', artistName: 'New Artist' });
 
-        // Fire the onComplete callback (Privy calls this after successful login)
-        expect(loginOnComplete).toBeDefined();
-        await loginOnComplete!();
+        mockSearchResults([]);
+        await act(async () => {
+            render(<SearchBar />);
+        });
 
-        expect(mockAddArtist).toHaveBeenCalledWith('6abc123');
-        expect(mockPush).toHaveBeenCalledWith('/artist/99');
+        await waitFor(() => {
+            expect(mockAddArtist).toHaveBeenCalledWith('6abc123');
+            expect(mockPush).toHaveBeenCalledWith('/artist/99');
+        });
+        // Should have cleared sessionStorage
+        expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBeUndefined();
+    });
+
+    it('does not trigger pending add when there is no session', async () => {
+        mockSessionStorage['pendingAddArtistSpotifyId'] = '6abc123';
+
+        mockSearchResults([]);
+        render(<SearchBar />);
+
+        // Give effects time to run
+        await act(async () => {});
+
+        expect(mockAddArtist).not.toHaveBeenCalled();
+        // Pending ID should still be in storage (waiting for session)
+        expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBe('6abc123');
     });
 
     it('calls addArtist and navigates on success when authenticated', async () => {
@@ -158,7 +181,7 @@ describe('SearchBar Add Artist Flow', () => {
         });
     });
 
-    it('shows error toast when addArtist fails', async () => {
+    it('shows error toast when addArtist fails and keeps dropdown open', async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
         mockAddArtist.mockResolvedValue({ status: 'error', message: 'Spotify API down' });
 
@@ -172,9 +195,11 @@ describe('SearchBar Add Artist Flow', () => {
             }));
         });
         expect(mockPush).not.toHaveBeenCalled();
+        // Dropdown should still be visible on error
+        expect(screen.getByText('Add to MusicNerd')).toBeInTheDocument();
     });
 
-    it('shows error toast when addArtist throws', async () => {
+    it('shows error toast when addArtist throws and keeps dropdown open', async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
         mockAddArtist.mockRejectedValue(new Error('Network error'));
 
@@ -187,6 +212,8 @@ describe('SearchBar Add Artist Flow', () => {
                 description: 'Failed to add artist - please try again',
             }));
         });
+        // Dropdown should still be visible on error
+        expect(screen.getByText('Add to MusicNerd')).toBeInTheDocument();
     });
 
     it('navigates to artist page for existing DB results', async () => {
@@ -198,24 +225,46 @@ describe('SearchBar Add Artist Flow', () => {
         expect(mockAddArtist).not.toHaveBeenCalled();
     });
 
-    it('hides results dropdown while adding an artist', async () => {
+    it('only disables the specific result being added, not others', async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
         let resolveAdd!: (val: unknown) => void;
         mockAddArtist.mockReturnValue(new Promise(r => { resolveAdd = r; }));
 
-        await renderAndSearch([spotifyOnlyResult]);
+        await renderAndSearch([spotifyOnlyResult, spotifyOnlyResult2, dbResult]);
 
-        // Results are visible before clicking
-        expect(screen.getByText('New Artist')).toBeInTheDocument();
-
+        // Click the first Spotify-only result
         fireEvent.click(screen.getByText('New Artist'));
 
-        // Results dropdown closes during add
         await waitFor(() => {
-            expect(screen.queryByText('Add to MusicNerd')).not.toBeInTheDocument();
+            // The clicked result shows "Adding..." and is disabled
+            expect(screen.getByText('Adding...')).toBeInTheDocument();
+            const addingButton = screen.getByText('Adding...').closest('button');
+            expect(addingButton).toBeDisabled();
+
+            // The other Spotify result is NOT disabled
+            const otherButton = screen.getByText('Other Artist').closest('button');
+            expect(otherButton).not.toBeDisabled();
+
+            // The DB result is NOT disabled
+            const dbButton = screen.getByText('Existing Artist').closest('button');
+            expect(dbButton).not.toBeDisabled();
         });
 
         // Resolve to clean up
         resolveAdd({ status: 'success', artistId: '99' });
+    });
+
+    it('closes dropdown only on success, not during add', async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        mockAddArtist.mockResolvedValue({ status: 'success', artistId: '99', artistName: 'New Artist' });
+
+        await renderAndSearch([spotifyOnlyResult]);
+        fireEvent.click(screen.getByText('New Artist'));
+
+        // After success, dropdown should close
+        await waitFor(() => {
+            expect(mockPush).toHaveBeenCalledWith('/artist/99');
+            expect(screen.queryByText('Add to MusicNerd')).not.toBeInTheDocument();
+        });
     });
 });

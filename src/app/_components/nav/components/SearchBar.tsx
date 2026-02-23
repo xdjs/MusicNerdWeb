@@ -37,6 +37,8 @@ interface SearchBarProps {
     isTopSide?: boolean;
 }
 
+const PENDING_ADD_KEY = 'pendingAddArtistSpotifyId';
+
 function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const router = useRouter();
     const { toast } = useToast();
@@ -48,19 +50,18 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const search = searchParams.get('search');
     const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const { data: session } = useSession();
-    const [isAddingArtist, setIsAddingArtist] = useState(false);
-    const pendingArtistRef = useRef<SearchResult | null>(null);
+    const { login } = useLogin();
+    const [addingSpotifyId, setAddingSpotifyId] = useState<string | null>(null);
 
-    const handleAddArtist = useCallback(async (result: SearchResult) => {
-        if (!result.spotify) return;
+    const handleAddArtist = useCallback(async (spotifyId: string) => {
         try {
-            setIsAddingArtist(true);
-            setShowResults(false);
-            const addResult = await addArtist(result.spotify);
+            setAddingSpotifyId(spotifyId);
+            const addResult = await addArtist(spotifyId);
 
             if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
-                router.push(`/artist/${addResult.artistId}`);
+                setShowResults(false);
                 setQuery('');
+                router.push(`/artist/${addResult.artistId}`);
             } else {
                 toast({
                     variant: "destructive",
@@ -76,19 +77,19 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                 description: "Failed to add artist - please try again"
             });
         } finally {
-            setIsAddingArtist(false);
+            setAddingSpotifyId(null);
         }
     }, [router, toast]);
 
-    const { login } = useLogin({
-        onComplete: () => {
-            if (pendingArtistRef.current) {
-                const pending = pendingArtistRef.current;
-                pendingArtistRef.current = null;
-                handleAddArtist(pending);
-            }
+    // After login + page reload, complete the pending add-artist flow
+    useEffect(() => {
+        if (!session) return;
+        const pendingId = sessionStorage.getItem(PENDING_ADD_KEY);
+        if (pendingId) {
+            sessionStorage.removeItem(PENDING_ADD_KEY);
+            handleAddArtist(pendingId);
         }
-    });
+    }, [session, handleAddArtist]);
 
     useEffect(() => {
         setQuery(search ?? '');
@@ -158,12 +159,12 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
             if (!result.spotify) return;
 
             if (!session) {
-                pendingArtistRef.current = result;
+                sessionStorage.setItem(PENDING_ADD_KEY, result.spotify);
                 login();
                 return;
             }
 
-            await handleAddArtist(result);
+            await handleAddArtist(result.spotify);
             return;
         }
 
@@ -198,11 +199,12 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                     {results.map((result) => {
                         const spotifyImage = result.images?.[0]?.url;
                         const hasSocialLinks = result.bandcamp || result.youtube || result.youtubechannel || result.instagram || result.x || result.facebook || result.tiktok;
+                        const isThisAdding = result.isSpotifyOnly && addingSpotifyId === result.spotify;
 
                         return (
                             <button
                                 key={result.isSpotifyOnly ? `spotify-${result.spotify}` : result.id}
-                                disabled={isAddingArtist}
+                                disabled={isThisAdding}
                                 onClick={() => handleResultClick(result)}
                                 className={`w-full p-3 flex items-center gap-3 text-left disabled:opacity-50 ${
                                     result.isSpotifyOnly
@@ -224,7 +226,9 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                                     </div>
                                     {result.isSpotifyOnly && result.spotify ? (
                                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                            <span className="cursor-pointer hover:text-gray-600 hover:underline">Add to MusicNerd</span>
+                                            <span className="hover:text-gray-600 hover:underline">
+                                                {isThisAdding ? 'Adding...' : 'Add to MusicNerd'}
+                                            </span>
                                             <span className="text-pink-400">|</span>
                                             <a
                                                 href={`https://open.spotify.com/artist/${result.spotify}`}
