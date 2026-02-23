@@ -497,24 +497,23 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] dark:hover:bg-gray-800 w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-[0_0_20px_rgba(255,156,227,0.3)] text-foreground"
+                                className="relative cursor-pointer flex flex-row items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] dark:hover:bg-gray-800 w-full gap-4 sm:gap-6 focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-[0_0_20px_rgba(255,156,227,0.3)] text-foreground"
                             >
                                  {/* User */}
- 								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
+ 								<div className="flex items-center space-x-2 min-w-0">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
- 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
 										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
 									</div>
 								)}
-                                    <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
+                                    <span className="font-medium truncate text-sm sm:text-lg">
                                         {user?.username || user?.email || user?.wallet}
                                     </span>
-                                    {/* (arrow removed; entire bar now clickable) */}
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-center ml-4 sm:ml-0 pr-4 sm:pr-0">
+                                <div className="flex flex-row items-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
@@ -527,11 +526,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             </Badge>
                                         </>
                                     )}
-                                    {/* (arrow moved next to name) */}
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.ugcCount : (allTimeStats?.ugcCount ?? '—')}
@@ -539,7 +537,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.artistsCount : (allTimeStats?.artistsCount ?? '—')}
