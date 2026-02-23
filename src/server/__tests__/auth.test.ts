@@ -24,11 +24,18 @@ const mockDbUser = {
   isAdmin: false,
   isSuperAdmin: false,
   isHidden: false,
+  createdAt: '2025-01-01T00:00:00.000Z', // pre-migration
 };
 
 const mockDbUserNoWallet = {
   ...mockDbUser,
   wallet: null,
+};
+
+const mockDbUserPostMigration = {
+  ...mockDbUser,
+  wallet: null,
+  createdAt: '2026-03-01T00:00:00.000Z', // post-migration
 };
 
 // Helper to get fresh mocks and authOptions
@@ -60,6 +67,7 @@ function getAuthorize(authOptions: any) {
 describe('Auth - Privy Credentials Provider', () => {
   beforeEach(() => {
     jest.resetModules();
+    process.env.PRIVY_MIGRATION_DATE = '2026-02-23';
   });
 
   describe('authorize()', () => {
@@ -196,6 +204,52 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.needsLegacyLink).toBe(false);
     });
 
+    it('sets needsLegacyLink to false for post-migration user without wallet', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(false);
+    });
+
+    it('sets needsLegacyLink to true for pre-migration user without wallet', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue(mockDbUserNoWallet);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
+    it('defaults needsLegacyLink to true when PRIVY_MIGRATION_DATE is not set', async () => {
+      delete process.env.PRIVY_MIGRATION_DATE;
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
     it('backfills username from email when user has no username', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
         await setup();
@@ -259,6 +313,7 @@ describe('Auth - Privy Credentials Provider', () => {
 describe('Auth - JWT Callback', () => {
   beforeEach(() => {
     jest.resetModules();
+    process.env.PRIVY_MIGRATION_DATE = '2026-02-23';
   });
 
   it('copies all user properties to token on initial sign-in', async () => {
@@ -411,6 +466,26 @@ describe('Auth - JWT Callback', () => {
     const result = await jwtCallback({ token });
 
     expect(result.needsLegacyLink).toBe(true);
+  });
+
+  it('sets needsLegacyLink to false for post-migration user during refresh', async () => {
+    const { authOptions, mockGetUserByPrivyId } = await setup();
+    const jwtCallback = authOptions.callbacks.jwt;
+    mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+
+    const token = {
+      sub: 'user-uuid',
+      privyUserId: 'did:privy:user123',
+      lastRefresh: Date.now() - 6 * 60 * 1000,
+      isAdmin: false,
+      isWhiteListed: false,
+      isSuperAdmin: false,
+      isHidden: false,
+    };
+
+    const result = await jwtCallback({ token });
+
+    expect(result.needsLegacyLink).toBe(false);
   });
 
   it('handles DB errors gracefully during refresh', async () => {

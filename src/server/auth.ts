@@ -7,6 +7,17 @@ import { verifyPrivyToken } from "@/server/utils/privy";
 // Lock to prevent concurrent session refresh operations
 const refreshLocks = new Map<string, Promise<void>>();
 
+/**
+ * Returns true if the user was created before the Privy migration date,
+ * meaning they may have a legacy wallet to link. If no migration date
+ * is configured, defaults to true (safe fallback).
+ */
+export function isLegacyUser(createdAt: string | null | undefined): boolean {
+  const migrationDate = process.env.PRIVY_MIGRATION_DATE;
+  if (!migrationDate || !createdAt) return true;
+  return new Date(createdAt) < new Date(migrationDate);
+}
+
 // Define session user type for better type safety
 interface SessionUser {
   id: string;
@@ -93,7 +104,7 @@ export const authOptions = {
                   token.isHidden = refreshedUser.isHidden;
                   token.email = refreshedUser.email ?? undefined;
                   token.name = refreshedUser.username ?? undefined;
-                  token.needsLegacyLink = !refreshedUser.wallet;
+                  token.needsLegacyLink = !refreshedUser.wallet && isLegacyUser(refreshedUser.createdAt);
                   token.lastRefresh = Date.now();
                 }
               } catch (error) {
@@ -233,7 +244,7 @@ export const authOptions = {
             isSuperAdmin: user.isSuperAdmin,
             isHidden: user.isHidden,
             isSignupComplete: true,
-            needsLegacyLink: !user.wallet,
+            needsLegacyLink: !user.wallet && isLegacyUser(user.createdAt),
           };
         } catch (error) {
           console.error('[Auth] Privy authorize error:', error);
