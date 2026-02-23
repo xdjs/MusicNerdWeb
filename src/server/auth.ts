@@ -10,12 +10,17 @@ const refreshLocks = new Map<string, Promise<void>>();
 /**
  * Returns true if the user was created before the Privy migration date,
  * meaning they may have a legacy wallet to link. If no migration date
- * is configured, defaults to true (safe fallback).
+ * is configured or the value is malformed, defaults to true (safe fallback).
+ *
+ * PRIVY_MIGRATION_DATE should be an ISO 8601 date string (e.g. '2026-02-23').
+ * Date-only strings are parsed as UTC midnight per the ES spec.
  */
 export function isLegacyUser(createdAt: string | null | undefined): boolean {
   const migrationDate = process.env.PRIVY_MIGRATION_DATE;
   if (!migrationDate || !createdAt) return true;
-  return new Date(createdAt) < new Date(migrationDate);
+  const migrationTime = new Date(migrationDate).getTime();
+  if (isNaN(migrationTime)) return true;
+  return new Date(createdAt).getTime() < migrationTime;
 }
 
 // Define session user type for better type safety

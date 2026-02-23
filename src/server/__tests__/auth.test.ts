@@ -174,7 +174,7 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result).toBeNull();
     });
 
-    it('sets needsLegacyLink to true when user has no wallet', async () => {
+    it('sets needsLegacyLink to true for pre-migration user without wallet (via mockDbUserNoWallet)', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
@@ -243,6 +243,54 @@ describe('Auth - Privy Credentials Provider', () => {
         linkedAccounts: [],
       });
       mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
+    it('defaults needsLegacyLink to true when PRIVY_MIGRATION_DATE is malformed', async () => {
+      process.env.PRIVY_MIGRATION_DATE = 'not-a-date';
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
+    it('defaults needsLegacyLink to true when user has null createdAt', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue({ ...mockDbUserNoWallet, createdAt: null });
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
+    it('defaults needsLegacyLink to true when user has undefined createdAt', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      const userWithoutCreatedAt = { ...mockDbUserNoWallet };
+      delete userWithoutCreatedAt.createdAt;
+      mockGetUserByPrivyId.mockResolvedValue(userWithoutCreatedAt);
 
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
