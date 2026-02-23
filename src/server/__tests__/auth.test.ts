@@ -281,6 +281,21 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.needsLegacyLink).toBe(true);
     });
 
+    it('defaults needsLegacyLink to true when user has malformed createdAt', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
+      mockVerifyPrivyToken.mockResolvedValue({
+        userId: 'did:privy:user123',
+        email: 'user@example.com',
+        linkedAccounts: [],
+      });
+      mockGetUserByPrivyId.mockResolvedValue({ ...mockDbUserNoWallet, createdAt: 'not-a-date' });
+
+      const authorize = getAuthorize(authOptions);
+      const result = await authorize({ authToken: 'valid-token' });
+
+      expect(result.needsLegacyLink).toBe(true);
+    });
+
     it('defaults needsLegacyLink to true when user has undefined createdAt', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
       mockVerifyPrivyToken.mockResolvedValue({

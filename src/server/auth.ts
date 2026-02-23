@@ -20,7 +20,9 @@ export function isLegacyUser(createdAt: string | null | undefined): boolean {
   if (!migrationDate || !createdAt) return true;
   const migrationTime = new Date(migrationDate).getTime();
   if (isNaN(migrationTime)) return true;
-  return new Date(createdAt).getTime() < migrationTime;
+  const createdTime = new Date(createdAt).getTime();
+  if (isNaN(createdTime)) return true;
+  return createdTime < migrationTime;
 }
 
 // Define session user type for better type safety
