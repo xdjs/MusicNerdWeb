@@ -8,6 +8,9 @@ import { Artist } from '@/server/db/DbTypes';
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSession } from "next-auth/react";
+import { useLogin } from "@privy-io/react-auth";
+import { addArtist } from "@/app/actions/addArtist";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -44,6 +47,9 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const resultsContainer = useRef(null);
     const search = searchParams.get('search');
     const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    const { data: session } = useSession();
+    const { login } = useLogin();
+    const [isAddingArtist, setIsAddingArtist] = useState(false);
 
     useEffect(() => {
         setQuery(search ?? '');
@@ -108,13 +114,38 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         };
     }, []);
 
-    const handleResultClick = (result: SearchResult) => {
+    const handleResultClick = async (result: SearchResult) => {
         if (result.isSpotifyOnly) {
-            toast({
-                title: "Artist not in database",
-                description: "Adding new artists is temporarily disabled.",
-                variant: "default",
-            });
+            if (!session) {
+                login();
+                return;
+            }
+
+            try {
+                setIsAddingArtist(true);
+                setShowResults(false);
+                const addResult = await addArtist(result.spotify ?? "");
+
+                if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
+                    router.push(`/artist/${addResult.artistId}`);
+                    setQuery('');
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: addResult.message || "Failed to add artist"
+                    });
+                }
+            } catch (error) {
+                console.error("[SearchBar] Error adding artist:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Failed to add artist - please try again"
+                });
+            } finally {
+                setIsAddingArtist(false);
+            }
             return;
         }
 
@@ -156,7 +187,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                                 onClick={() => handleResultClick(result)}
                                 className={`w-full p-3 flex items-center gap-3 text-left ${
                                     result.isSpotifyOnly
-                                        ? 'opacity-50 cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-750'
+                                        ? 'hover:bg-gray-50 dark:hover:bg-gray-750'
                                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                             >
@@ -165,7 +196,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                                     <img
                                         src={spotifyImage || "/default_pfp_pink.png"}
                                         alt={result.name ?? "Artist"}
-                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8 grayscale' : 'w-10 h-10'}`}
+                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8' : 'w-10 h-10'}`}
                                     />
                                 </div>
                                 <div className="flex-1">
@@ -173,9 +204,19 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                                         {result.name}
                                     </div>
                                     {result.isSpotifyOnly ? (
-                                        <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                                            <ExternalLink className="h-3 w-3" />
-                                            <span>Not in MusicNerd yet</span>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                            <span className="cursor-pointer hover:text-gray-600 hover:underline">Add to MusicNerd</span>
+                                            <span className="text-pink-400">|</span>
+                                            <div
+                                                className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-gray-600"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`https://open.spotify.com/artist/${result.spotify}`, '_blank');
+                                                }}
+                                            >
+                                                <span className="hover:underline">View on Spotify</span>
+                                                <ExternalLink size={12} className="text-gray-500" />
+                                            </div>
                                         </div>
                                     ) : hasSocialLinks && (
                                         <div className="flex items-center gap-2 mt-1">
