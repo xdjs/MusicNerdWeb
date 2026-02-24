@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { Mail } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LegacyAccountModal } from './LegacyAccountModal';
 import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
@@ -318,7 +318,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
               onClick={() => login()}
             >
-              <Mail color="white" size={20} />
+              <LogIn color="white" size={20} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-32">
