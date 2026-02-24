@@ -1,50 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
 import { ugcresearch, artists } from "@/server/db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
 const PER_PAGE = 10;
 
-export async function GET(request: Request) {
-  const start = performance.now();
+export async function GET(request: NextRequest) {
+  const session = await getServerAuthSession();
+
+  if (!session?.user?.id) {
+    return Response.json({ entries: [], total: 0, pageCount: 0 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const siteFilter = searchParams.get("siteName");
+  const noPaginate = searchParams.get("all") === "true" || (siteFilter && siteFilter !== "all");
+
   try {
-    const { searchParams } = new URL(request.url);
-    const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
-    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
-    const siteFilter = searchParams.get("siteName");
-    const noPaginate = searchParams.get("all") === "true" || siteFilter;
+    const userId = session.user.id;
 
-    const session = await getServerAuthSession();
-    const walletlessEnabled =
-      process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" &&
-      process.env.NODE_ENV !== "production";
-
-    let userId: string | null = null;
-
-    if (session && session.user?.id) {
-      userId = session.user.id;
-    } else if (walletlessEnabled) {
-      // Guest user – use sentinel UUID so we can still show demo data for guest profile
-      userId = "00000000-0000-0000-0000-000000000000";
-    }
-
-    if (!userId) {
-      return NextResponse.json({ entries: [], total: 0, pageCount: 0 }, { status: 200 });
-    }
-
-    // Base where conditions – show both approved and pending entries for the user
-    const uid = userId as string; // after early return above, userId is guaranteed to be set
-    let conditions = eq(ugcresearch.userId, uid) as any;
-    if (siteFilter) {
-      // narrow to specific entry type
-      conditions = and(conditions, eq(ugcresearch.siteName, siteFilter));
+    // Build conditions
+    let conditions: SQL = eq(ugcresearch.userId, userId);
+    if (siteFilter && siteFilter !== "all") {
+      conditions = and(conditions, eq(ugcresearch.siteName, siteFilter))!;
     }
 
     // Total count
-    const total = (await db.query.ugcresearch.findMany({ where: conditions })).length;
+    const [{ value: total }] = await db
+      .select({ value: count() })
+      .from(ugcresearch)
+      .where(conditions);
     const pageCount = noPaginate ? 1 : Math.ceil(total / PER_PAGE);
     const offset = noPaginate ? 0 : (page - 1) * PER_PAGE;
 
@@ -66,12 +57,9 @@ export async function GET(request: Request) {
       ? await baseQuery
       : await baseQuery.limit(PER_PAGE).offset(offset);
 
-    return NextResponse.json({ entries: rows, total, pageCount }, { status: 200 });
-  } catch (e) {
-    console.error("[userEntries] error", e);
-    return NextResponse.json({ entries: [], total: 0, pageCount: 0 }, { status: 500 });
-  } finally {
-    const end = performance.now();
-    console.debug(`[userEntries] GET took ${end - start}ms`);
+    return Response.json({ entries: rows, total, pageCount });
+  } catch (error) {
+    console.error("[API] userEntries error", error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

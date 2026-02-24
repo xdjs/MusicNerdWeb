@@ -1,5 +1,4 @@
 import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
-import { getUserById } from "@/server/utils/queries/userQueries";
 import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
@@ -67,16 +66,8 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
     const session = await getServerAuthSession();
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
-    let canEdit = walletlessEnabled;
-    if (session?.user?.id) {
-        const user = await getUserById(session.user.id);
-        if (user?.isAdmin) {
-            canEdit = true;
-        } else {
-            canEdit = false;
-        }
-    }
+    const canEdit = !!session;
+
     const artist = await getArtistById(id);
     if (!artist) {
         return notFound();
@@ -94,7 +85,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
-            <AutoRefresh sessionStorageKey="artistSkipReload" showLoading={false} />
+            <AutoRefresh showLoading={false} />
             <div className="gap-4 px-4 flex flex-col md:flex-row max-w-[1000px] mx-auto">
                 {/* Artist Info Box */}
                 <div className="bg-white rounded-lg md:w-2/3 gap-y-4 shadow-2xl px-5 py-5 md:py-10 md:px-10 space-y-8">
@@ -104,7 +95,6 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                             <AspectRatio ratio={1 / 1} className="flex items-center place-content-center bg-muted rounded-md overflow-hidden w-full mb-4">
                                 <img src={spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
                             </AspectRatio>
-                            {/* Add links button removed; bookmark now beside name */}
                         </div>
                         {/* Right Column: Name and Description */}
                         <div className="flex flex-col justify-start md:col-span-2 pl-0 md:pl-4">
@@ -145,17 +135,17 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                         Social Media Links
                                     </strong>
                                     <div className="mt-2 md:mt-0 md:ml-2">
-                                        <AddArtistData 
-                                            artist={artist} 
-                                            spotifyImg={spotifyImg.artistImage ?? ""} 
-                                            availableLinks={urlMapList} 
-                                            isOpenOnLoad={false} 
+                                        <AddArtistData
+                                            artist={artist}
+                                            spotifyImg={spotifyImg.artistImage ?? ""}
+                                            availableLinks={urlMapList}
+                                            isOpenOnLoad={false}
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
-                                        <ArtistLinks canEdit={canEdit} isMonetized={false} artist={artist} spotifyImg={spotifyImg.artistImage} session={session} availableLinks={urlMapList} isOpenOnLoad={false} showAddButton={false} />
+                                        <ArtistLinks canEdit={canEdit} isMonetized={false} artist={artist} spotifyImg={spotifyImg.artistImage} availableLinks={urlMapList} isOpenOnLoad={false} showAddButton={false} />
                                     }
                                 </div>
                             </div>
@@ -167,17 +157,17 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                         Support the Artist
                                     </strong>
                                     <div className="mt-2 md:mt-0 md:ml-2">
-                                        <AddArtistData 
-                                            artist={artist} 
-                                            spotifyImg={spotifyImg.artistImage ?? ""} 
-                                            availableLinks={urlMapList} 
-                                            isOpenOnLoad={false} 
+                                        <AddArtistData
+                                            artist={artist}
+                                            spotifyImg={spotifyImg.artistImage ?? ""}
+                                            availableLinks={urlMapList}
+                                            isOpenOnLoad={false}
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-4">
                                     {(artist) &&
-                                        <ArtistLinks isMonetized={true} artist={artist} spotifyImg={spotifyImg.artistImage} session={session} availableLinks={urlMapList} isOpenOnLoad={false} canEdit={canEdit} />
+                                        <ArtistLinks isMonetized={true} artist={artist} spotifyImg={spotifyImg.artistImage} availableLinks={urlMapList} isOpenOnLoad={false} canEdit={canEdit} />
                                     }
                                 </div>
                             </div>

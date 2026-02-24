@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
 import AutoRefresh from "@/app/_components/AutoRefresh";
@@ -27,33 +27,53 @@ export default function ClientWrapper() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
           const response = await fetch(`/api/user/${session.user.id}`);
+          if (cancelled) return;
           if (response.ok) {
             const userData = await response.json();
-            setUser(userData);
+            if (!cancelled) setUser(userData);
+          } else if (response.status === 404) {
+            if (cancelled) return;
+            // JWT references a user that no longer exists in the database
+            // (e.g., after DB reset or mergeAccounts() deleted a placeholder).
+            // Clear the stale NextAuth session and redirect to home to avoid
+            // a confusing split state (nav shows authenticated, content shows guest).
+            console.warn(
+              '[ClientWrapper] User not found (404) for session user ID:',
+              session.user.id,
+              '- signing out stale session'
+            );
+            try {
+              await signOut({ callbackUrl: '/', redirect: true });
+            } catch {
+              if (!cancelled) window.location.href = '/';
+            }
+            return;
           } else {
-            // If user fetch fails, treat as guest
-            setUser(null);
+            if (!cancelled) setUser(null);
           }
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          setUser(null);
+          if (!cancelled) setUser(null);
         }
       } else {
-        setUser(null);
+        if (!cancelled) setUser(null);
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     if (status !== "loading") {
       fetchUser();
     }
+
+    return () => { cancelled = true; };
   }, [status, session]);
 
-  // Show loading while determining session
   if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
@@ -65,7 +85,6 @@ export default function ClientWrapper() {
     );
   }
 
-  // Guest user object
   const guestUser: User = {
     id: '00000000-0000-0000-0000-000000000000',
     wallet: '0x0000000000000000000000000000000000000000',
@@ -87,11 +106,11 @@ export default function ClientWrapper() {
   return (
     <>
       <AutoRefresh />
-      <Dashboard 
-        user={currentUser} 
-        showLeaderboard={false} 
-        showDateRange={false} 
-        allowEditUsername={true} 
+      <Dashboard
+        user={currentUser}
+        showLeaderboard={false}
+        showDateRange={false}
+        allowEditUsername={true}
       />
     </>
   );

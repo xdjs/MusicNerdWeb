@@ -1,109 +1,45 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /**
- * Universal auto-refresh component that triggers a page refresh when the user signs in
- * to ensure server components pick up the new session data immediately.
- * Uses sessionStorage to prevent multiple refreshes.
- * 
- * @param sessionStorageKey - Optional custom key for sessionStorage (defaults to "autoRefreshSkipReload")
- * @param showLoading - Whether to show loading state (defaults to true)
+ * Refreshes server component data when the user signs in.
+ * Uses router.refresh() to re-fetch server components without a full page
+ * reload, preserving client-side state (modals, forms, React context).
+ *
+ * @param showLoading - Whether to show a loading overlay while the initial session is being determined (defaults to true)
  */
-export default function AutoRefresh({ 
-  sessionStorageKey = "autoRefreshSkipReload", 
-  showLoading = true 
-}: { 
-  sessionStorageKey?: string; 
-  showLoading?: boolean; 
+export default function AutoRefresh({
+  showLoading = true
+}: {
+  showLoading?: boolean;
 } = {}) {
-  const { data: session, status } = useSession();
-  const [isLoading, setIsLoading] = useState(true);
-  const hasTriggeredRefresh = useRef(false);
-  const [isClient, setIsClient] = useState(false);
+  const { status } = useSession();
+  const router = useRouter();
+  const hasRefreshed = useRef(false);
   const prevStatus = useRef<string | null>(null);
 
-  // Ensure we're on the client side
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (hasRefreshed.current) return;
 
-  // Show loading state while session is being determined
-  useEffect(() => {
-    if (showLoading) {
-      if (status === "loading") {
-        setIsLoading(true);
-      } else {
-        setIsLoading(false);
-      }
-    } else {
-      setIsLoading(false);
-    }
-  }, [status, showLoading]);
-
-  // Handle authentication state changes - immediate refresh
-  useEffect(() => {
-    // Skip if not on client side or if we've already triggered a refresh
-    if (!isClient || hasTriggeredRefresh.current) {
-      return;
+    // Only refresh on a genuine unauthenticated→authenticated transition
+    if (
+      prevStatus.current === "unauthenticated" &&
+      status === "authenticated"
+    ) {
+      hasRefreshed.current = true;
+      router.refresh();
     }
 
-    console.log("[AutoRefresh] Status changed:", { 
-      prevStatus: prevStatus.current, 
-      currentStatus: status, 
-      hasSession: !!session,
-      sessionId: session?.user?.id,
-      sessionUser: session?.user 
-    });
-
-    // Check if we've transitioned to authenticated state
-    const hasTransitionedToAuthenticated = 
-      prevStatus.current && 
-      prevStatus.current !== "authenticated" && 
-      status === "authenticated" && 
-      session?.user?.id;
-
-    // If we have a session and we're authenticated, trigger refresh
-    if (session && status === "authenticated" && session.user?.id) {
-      try {
-        const skipRefresh = sessionStorage.getItem(sessionStorageKey) === "true";
-        
-        if (!skipRefresh || hasTransitionedToAuthenticated) {
-          console.log("[AutoRefresh] Triggering refresh - authenticated with session:", session.user.id);
-          
-          // Mark that we've triggered a refresh immediately
-          hasTriggeredRefresh.current = true;
-          sessionStorage.setItem(sessionStorageKey, "true");
-          
-          // Immediate refresh - no delays
-          console.log("[AutoRefresh] Reloading page...");
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error("[AutoRefresh] Error accessing sessionStorage:", error);
-      }
+    // Skip "loading" so post-mount loading→authenticated isn't mistaken for login
+    if (status !== "loading") {
+      prevStatus.current = status;
     }
+  }, [status, router]);
 
-    // Update previous status
-    prevStatus.current = status;
-  }, [session, status, sessionStorageKey, isClient]);
-
-  // Clear the skip flag when component unmounts
-  useEffect(() => {
-    if (!isClient) return;
-
-    return () => {
-      // Clear the flag immediately
-      try {
-        sessionStorage.removeItem(sessionStorageKey);
-      } catch (error) {
-        console.error("[AutoRefresh] Error clearing sessionStorage:", error);
-      }
-    };
-  }, [sessionStorageKey, isClient]);
-
-  if (isLoading || status === "loading") {
+  if (showLoading && status === "loading") {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
         <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">

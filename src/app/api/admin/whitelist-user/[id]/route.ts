@@ -1,32 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { updateWhitelistedUser } from "@/server/utils/queries/userQueries";
-import { getServerAuthSession } from "@/server/auth";
-import { getUserById } from "@/server/utils/queries/userQueries";
+import { requireAdmin } from '@/lib/auth-helpers';
+import { updateWhitelistedUser } from '@/server/utils/queries/userQueries';
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await params;
-    const body = await request.json();
-    const { wallet, email, username, isAdmin, isWhiteListed, isHidden } = body ?? {};
-
-    // Check if roles are being updated and validate admin permissions
-    if (isAdmin !== undefined || isWhiteListed !== undefined || isHidden !== undefined) {
-      const session = await getServerAuthSession();
-      if (!session?.user?.id) {
-        return NextResponse.json({ status: "error", message: "Not authenticated" }, { status: 401 });
-      }
-      
-      const currentUser = await getUserById(session.user.id);
-      if (!currentUser?.isAdmin) {
-        return NextResponse.json({ status: "error", message: "Only admins can edit user roles" }, { status: 403 });
-      }
+    const auth = await requireAdmin();
+    if (!auth.authenticated) {
+      return auth.response;
     }
 
-    const resp = await updateWhitelistedUser(id, { wallet, email, username, isAdmin, isWhiteListed, isHidden });
-    const statusCode = resp.status === "success" ? 200 : 400;
-    return NextResponse.json(resp, { status: statusCode });
+    const { id } = await params;
+    const body = await request.json();
+    const { wallet, email, username, isAdmin, isWhiteListed, isHidden } = body;
+
+    const result = await updateWhitelistedUser(id, {
+      wallet,
+      email,
+      username,
+      isAdmin,
+      isWhiteListed,
+      isHidden,
+    });
+
+    if (result.status === 'success') {
+      return Response.json({ message: result.message }, { status: 200 });
+    }
+
+    return Response.json({ error: result.message }, { status: 400 });
   } catch (e) {
-    console.error("update whitelist user error", e);
-    return NextResponse.json({ status: "error", message: "Server error" }, { status: 500 });
+    console.error('[whitelist-user] PUT error', e);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

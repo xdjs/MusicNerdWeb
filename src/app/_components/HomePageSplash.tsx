@@ -2,9 +2,9 @@
 
 import { Suspense } from "react";
 import SearchBar from "./nav/components/SearchBar";
+import Login from "./nav/components/Login";
 import SlidingText from "./SlidingText";
 import TypewriterText from "./TypeWriter";
-import Login from "./nav/components/Login";
 import { ThemeToggle } from "@/app/_components/ThemeToggle";
 
 export default function HomePage({ animation }: { animation: string }) {

@@ -30,7 +30,6 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
-import { useConnectModal } from '@rainbow-me/rainbowkit';
 import Link from "next/link";
 
 export default function AddArtistData({ artist, spotifyImg, availableLinks, isOpenOnLoad = false, label }: { artist: Artist, spotifyImg: string, availableLinks: UrlMap[], isOpenOnLoad: boolean, label?: string }) {
@@ -41,10 +40,6 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
     const [addArtistResp, setAddArtistResp] = useState<AddArtistDataResp | null>(null);
     const router = useRouter();
     const { toast } = useToast();
-    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== 'true';
-    
-    // Always call hooks, conditionally use their results
-    const { openConnectModal } = useConnectModal();
 
     // State to hold platform regexes from the backend
     const [platformRegexes, setPlatformRegexes] = useState<{ siteName: string, regex: string }[]>([]);
@@ -132,10 +127,10 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                 body: JSON.stringify({ url }),
             });
             const data = await response.json();
-            console.debug('Backend validation response:', data); // Frontend log
+            console.debug('Backend validation response:', data);
             return data.valid;
         } catch (e) {
-            console.debug('Backend validation error:', e); // Frontend log
+            console.debug('Backend validation error:', e);
             return true; // If the backend fails, don't block the user
         }
     }
@@ -154,7 +149,6 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
             setIsLoading(false);
             return;
         }
-        // Only use regex and backend for YouTube validation
         const isPlatformValid = await validatePlatformLinkBackend(formattedUrl);
         if (!isPlatformValid) {
             setAddArtistResp({ status: "error", message: "This link is invalid or not supported." });
@@ -191,10 +185,8 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
     }
 
     function handleClick() {
-        if (!isWalletRequired || session) {
+        if (session) {
             setIsModalOpen(true);
-        } else if (openConnectModal) {
-            openConnectModal();
         }
     }
 
@@ -269,7 +261,7 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                     <div className="flex flex-col items-center">
                                         <h2 className="text-green-600">{addArtistResp.message}</h2>
                                         <Link href="/leaderboard" className="text-blue-600 underline hover:underline mt-1">
-                                            🏆 View Leaderboard
+                                            View Leaderboard
                                         </Link>
                                     </div>
                                     : null

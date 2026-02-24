@@ -144,17 +144,9 @@ export async function getUgcStats() {
 }
 
 export async function getUgcStatsInRange(date: DateRange, wallet: string | null = null) {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
-
     let session = await getServerAuthSession();
-    let userId: string;
-
-    if (walletlessEnabled && !session) {
-        userId = "00000000-0000-0000-0000-000000000000";
-    } else {
-        if (!session) throw new Error("Not authenticated");
-        userId = session.user.id;
-    }
+    if (!session) throw new Error("Not authenticated");
+    let userId: string = session.user.id;
 
     if (wallet) {
         const searchedUser = await getUserByWallet(wallet);

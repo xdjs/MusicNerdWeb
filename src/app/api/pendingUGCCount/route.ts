@@ -1,32 +1,25 @@
-import { NextResponse } from "next/server";
-import { getServerAuthSession } from "@/server/auth";
-import { getPendingUGC } from "@/server/utils/queries/artistQueries";
-import { getUserById } from "@/server/utils/queries/userQueries";
+import { getServerAuthSession } from '@/server/auth';
+import { getUserById } from '@/server/utils/queries/userQueries';
+import { getPendingUGC } from '@/server/utils/queries/artistQueries';
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const start = performance.now();
   try {
     const session = await getServerAuthSession();
-    if (!session || !session.user?.id) {
-      // Not authenticated – return 0 so client simply hides badge
-      return NextResponse.json({ count: 0 }, { status: 200 });
+    if (!session?.user?.id) {
+      return Response.json({ count: 0 });
     }
 
-    const dbUser = await getUserById(session.user.id);
-    if (!dbUser?.isAdmin) {
-      // Non-admin users shouldn't see pending info
-      return NextResponse.json({ count: 0 }, { status: 200 });
+    const user = await getUserById(session.user.id);
+    if (!user?.isAdmin) {
+      return Response.json({ count: 0 });
     }
 
-    const pending = await getPendingUGC();
-    return NextResponse.json({ count: pending.length }, { status: 200 });
-  } catch (e) {
-    console.error("[pendingUGCCount] error", e);
-    return NextResponse.json({ count: 0 }, { status: 500 });
-  } finally {
-    const end = performance.now();
-    console.debug(`[pendingUGCCount] GET took ${end - start}ms`);
+    const pendingUGC = await getPendingUGC();
+    return Response.json({ count: pendingUGC.length });
+  } catch (error) {
+    console.error('[pendingUGCCount] Error:', error);
+    return Response.json({ count: 0 });
   }
 }

@@ -48,4 +48,10 @@ launch.env
 certificates
 
 # cursor config
-/.cursor
+/.cursor.playwright-mcp/
+
+# playwright mcp
+.playwright-mcp/
+
+# claude code local settings
+.claude/settings.local.json

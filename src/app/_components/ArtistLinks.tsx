@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
-import { Session } from "next-auth";
 import EditablePlatformLink from "./EditablePlatformLink";
 
 function StaticPlatformLink({ link, descriptor, image }: { link: string; descriptor: string; image: string }) {
@@ -18,7 +17,7 @@ function StaticPlatformLink({ link, descriptor, image }: { link: string; descrip
     );
 }
 
-export default async function ArtistLinks({ isMonetized, artist, spotifyImg, session, availableLinks, isOpenOnLoad = false, canEdit = false, showAddButton = true }: { isMonetized: boolean; artist: Artist; spotifyImg: string; session: Session | null; availableLinks: UrlMap[]; isOpenOnLoad: boolean; canEdit?: boolean; showAddButton?: boolean }) {
+export default async function ArtistLinks({ isMonetized, artist, spotifyImg, availableLinks, isOpenOnLoad = false, canEdit = false, showAddButton = true }: { isMonetized: boolean; artist: Artist; spotifyImg: string; availableLinks: UrlMap[]; isOpenOnLoad: boolean; canEdit?: boolean; showAddButton?: boolean }) {
     let artistLinks = await getArtistLinks(artist);
     artistLinks = artistLinks.filter((el) => el.isMonetized === isMonetized && el.siteName !== 'spotify');
     

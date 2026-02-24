@@ -29,33 +29,36 @@ export default function ClientWrapper() {
   const [selectedRange, setSelectedRange] = useState<"today" | "week" | "month" | "all">("today");
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUser = async () => {
       if (status === "authenticated" && session?.user?.id) {
         try {
           const response = await fetch(`/api/user/${session.user.id}`);
+          if (cancelled) return;
           if (response.ok) {
             const userData = await response.json();
-            setUser(userData);
+            if (!cancelled) setUser(userData);
           } else {
-            // If user fetch fails, treat as guest
-            setUser(null);
+            if (!cancelled) setUser(null);
           }
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          setUser(null);
+          if (!cancelled) setUser(null);
         }
       } else {
-        setUser(null);
+        if (!cancelled) setUser(null);
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     if (status !== "loading") {
       fetchUser();
     }
+
+    return () => { cancelled = true; };
   }, [status, session]);
 
-  // Show loading while determining session
   if (status === "loading" || isLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
@@ -67,7 +70,6 @@ export default function ClientWrapper() {
     );
   }
 
-  // Guest user object
   const guestUser: User = {
     id: '00000000-0000-0000-0000-000000000000',
     wallet: '0x0000000000000000000000000000000000000000',
@@ -87,20 +89,19 @@ export default function ClientWrapper() {
   const currentUser = user || guestUser;
 
   const handleRangeChange = (range: "today" | "week" | "month" | "all") => {
-    console.log('[ClientWrapper] Range changed to:', range);
     setSelectedRange(range);
   };
 
   return (
     <main className="px-5 sm:px-10 py-10">
       <AutoRefresh />
-      <Dashboard 
-        user={currentUser} 
-        allowEditUsername={false} 
-        showLeaderboard={false} 
-        showDateRange={false} 
-        hideLogin={true} 
-        showStatus={false} 
+      <Dashboard
+        user={currentUser}
+        allowEditUsername={false}
+        showLeaderboard={false}
+        showDateRange={false}
+        hideLogin={true}
+        showStatus={false}
         selectedRange={selectedRange}
       />
       <Leaderboard

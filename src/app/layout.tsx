@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import '@rainbow-me/rainbowkit/styles.css';
 import Nav from "./_components/nav";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "./_components/Footer";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/server/auth";
 import Providers from "./_components/Providers";
-import LoginProviders from "./_components/nav/components/LoginProviders";
 
 export const metadata: Metadata = {
   title: "Music Nerd",
@@ -38,29 +34,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  console.debug("Root layout session state:", {
-    exists: !!session,
-    userId: session?.user?.id
-  });
-
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <Providers session={session}>
-          <LoginProviders>
-            <Nav />
-            <main className="flex-grow flex flex-col min-h-0">
-              {children}
-            </main>
-            <Toaster />
-            <Footer />
-          </LoginProviders>
+        <Providers>
+          <Nav />
+          <main className="flex-grow flex flex-col min-h-0">
+            {children}
+          </main>
+          <Toaster />
+          <Footer />
         </Providers>
       </body>
     </html>

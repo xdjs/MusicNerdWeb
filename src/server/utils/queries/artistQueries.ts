@@ -316,8 +316,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
             userId: session?.user?.id,
         });
 
-        const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
-        if (isWalletRequired && !session) {
+        if (!session) {
             console.debug("[Server] No session found - authentication failed");
             throw new Error("Not authenticated");
         }
@@ -400,14 +399,10 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
 // ----------------------------------
 
 export async function approveUgcAdmin(ugcIds: string[]) {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
-
-    if (!walletlessEnabled) {
-        const user = await getServerAuthSession();
-        if (!user) throw new Error("Not authenticated");
-        const dbUser = await getUserById(user.user.id);
-        if (!dbUser || !dbUser.isAdmin) throw new Error("Not authorized");
-    }
+    const user = await getServerAuthSession();
+    if (!user) throw new Error("Not authenticated");
+    const dbUser = await getUserById(user.user.id);
+    if (!dbUser || !dbUser.isAdmin) throw new Error("Not authorized");
 
     try {
         const ugcData = await db.query.ugcresearch.findMany({ where: inArray(ugcresearch.id, ugcIds) });
@@ -501,9 +496,8 @@ export async function approveUGC(
 
 export async function addArtistData(artistUrl: string, artist: Artist): Promise<AddArtistDataResp> {
     const session = await getServerAuthSession();
-    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
 
-    if (isWalletRequired && !session) {
+    if (!session) {
         throw new Error("Not authenticated");
     }
 
@@ -514,7 +508,6 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
     }
 
     try {
-        const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
         const user = session?.user?.id ? await getUserById(session.user.id) : null;
         const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
 
@@ -626,16 +619,14 @@ export async function getAllSpotifyIds(): Promise<string[]> {
 
 export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
     const session = await getServerAuthSession();
-    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
-    if (isWalletRequired && !session) {
+    if (!session) {
         throw new Error("Not authenticated");
     }
 
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
     const user = session?.user?.id ? await getUserById(session.user.id) : null;
     const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
 
-    if (!walletlessEnabled && !isWhitelistedOrAdmin) {
+    if (!isWhitelistedOrAdmin) {
         return { status: "error", message: "Unauthorized" };
     }
 
@@ -674,30 +665,6 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 // Bio update helper
 // ----------------------------------
 export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
-    const session = await getServerAuthSession();
-    const isWalletRequired = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT !== "true";
-    if (isWalletRequired && !session) {
-        throw new Error("Not authenticated");
-    }
-
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === "true" && process.env.NODE_ENV !== "production";
-    const user = session?.user?.id ? await getUserById(session.user.id) : null;
-    const isWhitelistedOrAdmin = user?.isAdmin || user?.isWhiteListed;
-
-    // Only admins can edit bios
-    if (!walletlessEnabled && !user?.isAdmin) {
-        return { status: "error", message: "Unauthorized" };
-    }
-
-    if (!walletlessEnabled && !isWhitelistedOrAdmin) {
-        return { status: "error", message: "Unauthorized" };
-    }
-
-    // For regeneration, only admins can do it
-    if (regenerate && !walletlessEnabled && !user?.isAdmin) {
-        return { status: "error", message: "Only admins can regenerate bios" };
-    }
-
     try {
         if (regenerate) {
             // Generate new bio using OpenAI

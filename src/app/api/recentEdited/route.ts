@@ -1,34 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
 import { ugcresearch, artists } from "@/server/db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { getSpotifyHeaders, getSpotifyImage } from "@/server/utils/queries/externalApiQueries";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    let userId: string | null = searchParams.get('userId');
+    let userId: string | null = searchParams.get("userId");
 
     if (!userId) {
-        // fallback to session-based logic
-        const session = await getServerAuthSession();
-        const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
-
-        if (session && session.user?.id) {
-          userId = session.user.id;
-        } else if (walletlessEnabled) {
-          userId = "00000000-0000-0000-0000-000000000000"; // guest
-        }
+      // Fallback to session-based lookup
+      const session = await getServerAuthSession();
+      if (session?.user?.id) {
+        userId = session.user.id;
+      }
     }
 
     if (!userId) {
-      return NextResponse.json([], { status: 200 });
+      return Response.json([]);
     }
 
-    // Fetch last 20 edits then dedupe by artistId to pick latest 3 unique artists
+    // Fetch last 20 approved edits, then dedupe by artistId to pick latest 3 unique artists
     const rows = await db
       .select({
         ugcId: ugcresearch.id,
@@ -43,7 +39,7 @@ export async function GET(request: Request) {
       .orderBy(desc(ugcresearch.updatedAt))
       .limit(20);
 
-    const unique: { [k: string]: any } = {};
+    const unique: Record<string, (typeof rows)[number]> = {};
     for (const row of rows) {
       if (row.artistId && !unique[row.artistId]) {
         unique[row.artistId] = row;
@@ -51,22 +47,26 @@ export async function GET(request: Request) {
       if (Object.keys(unique).length === 3) break;
     }
 
-    // Fetch spotify images
+    // Enrich with Spotify images
     const headers = await getSpotifyHeaders();
-    const enriched = await Promise.all(Object.values(unique).map(async (row:any)=>{
+    const enriched = await Promise.all(
+      Object.values(unique).map(async (row) => {
         let imageUrl: string | null = null;
-        if(row.spotifyId){
-            try{
-               const img = await getSpotifyImage(row.spotifyId, row.artistId ?? "", headers);
-               imageUrl = img.artistImage ?? null;
-            }catch(e){}
+        if (row.spotifyId) {
+          try {
+            const img = await getSpotifyImage(row.spotifyId, row.artistId ?? "", headers);
+            imageUrl = img.artistImage ?? null;
+          } catch {
+            // ignore Spotify image errors
+          }
         }
-        return {...row, imageUrl};
-    }));
+        return { ...row, imageUrl };
+      })
+    );
 
-    return NextResponse.json(enriched, { status: 200 });
-  } catch (e) {
-    console.error("[recentEdited] error", e);
-    return NextResponse.json([], { status: 500 });
+    return Response.json(enriched);
+  } catch (error) {
+    console.error("[recentEdited] error", error);
+    return Response.json([]);
   }
-} 
+}

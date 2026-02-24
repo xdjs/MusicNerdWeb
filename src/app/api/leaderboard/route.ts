@@ -8,12 +8,6 @@ export const revalidate = 60; // cache for 1 minute
 export async function GET(request: NextRequest | Request) {
     const start = performance.now();
     try {
-        // Check if walletless mode is enabled
-        const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
-        
-        // In walletless mode, we allow access without authentication
-        // In normal mode, this would typically check for authentication
-        
         const urlString = request.url;
         const { searchParams } = new URL(urlString);
         const from = searchParams.get('from');

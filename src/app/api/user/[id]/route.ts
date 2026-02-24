@@ -1,29 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerAuthSession } from "@/server/auth";
+import { NextRequest } from "next/server";
+import { requireAuth } from "@/lib/auth-helpers";
 import { getUserById } from "@/server/utils/queries/userQueries";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const session = await getServerAuthSession();
+    const auth = await requireAuth();
 
-    // Check if user is authenticated and requesting their own data
-    if (!session || session.user.id !== id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!auth.authenticated) {
+      return auth.response;
+    }
+
+    // Users can only fetch their own data
+    if (auth.session.user.id !== id) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const user = await getUserById(id);
-    
+
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    return Response.json(user);
   } catch (error) {
-    console.error('[API] Error fetching user:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("[API] get user error", error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

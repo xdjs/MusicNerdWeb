@@ -2,7 +2,7 @@
 
 import DatePicker from "./DatePicker";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
@@ -10,12 +10,6 @@ import { User } from "@/server/db/DbTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
 import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
-import Jazzicon from 'react-jazzicon';
-import { jsNumberForAddress } from 'react-jazzicon';
-import { createPublicClient, http } from 'viem';
-import { getEnsAvatar, getEnsName } from 'viem/ens';
-import { mainnet } from 'wagmi/chains';
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -56,8 +50,8 @@ type BookmarkItem = {
 };
 
 // Sortable bookmark item component
-function SortableBookmarkItem({ item, isEditing, onDelete }: { 
-    item: BookmarkItem; 
+function SortableBookmarkItem({ item, isEditing, onDelete }: {
+    item: BookmarkItem;
     isEditing: boolean;
     onDelete: (artistId: string) => void;
 }) {
@@ -135,53 +129,11 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [date, setDate] = useState<DateRange | undefined>();
     const [ugcStats, setUgcStats] = useState<{ ugcCount: number, artistsCount: number } | null>(null);
     const [loading, setLoading] = useState(false);
-    const [ugcStatsUserWallet, setUgcStatsUserWallet] = useState<string | null>(null); // retained for future but UI removed
-    const [query, setQuery] = useState(''); // retained; will not be used but harmless
     const [allTimeStats, setAllTimeStats] = useState<{ ugcCount: number, artistsCount: number } | null>(null);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [usernameInput, setUsernameInput] = useState(user.username ?? "");
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
-    // Avatar state (ENS/Jazzicon) for profile header
-    const [ensAvatarUrl, setEnsAvatarUrl] = useState<string | null>(null);
-    const [avatarError, setAvatarError] = useState(false);
-    const [jazziconSeed, setJazziconSeed] = useState<number | null>(null);
-    const [ensLoading, setEnsLoading] = useState(false);
-
-    const publicClient = createPublicClient({ chain: mainnet, transport: http() });
-
-    useEffect(() => {
-        let cancelled = false;
-        async function resolveAvatar() {
-            if (!user?.wallet) {
-                setEnsAvatarUrl(null);
-                setJazziconSeed(null);
-                return;
-            }
-            setEnsLoading(true);
-            setAvatarError(false);
-            try {
-                const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
-                let finalAvatar: string | null = null;
-                if (ensName) {
-                    finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
-                }
-                if (!cancelled) {
-                    setEnsAvatarUrl(finalAvatar ?? null);
-                    setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
-                }
-            } catch {
-                if (!cancelled) {
-                    setEnsAvatarUrl(null);
-                    setJazziconSeed(user.wallet ? jsNumberForAddress(user.wallet) : null);
-                }
-            } finally {
-                if (!cancelled) setEnsLoading(false);
-            }
-        }
-        resolveAvatar();
-        return () => { cancelled = true; };
-    }, [user?.wallet]);
     const [rank, setRank] = useState<number | null>(null);
     // ----------- Bookmarks state & pagination -----------
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
@@ -207,12 +159,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const newIndex = items.findIndex((item) => item.artistId === over?.id);
 
                 const newItems = arrayMove(items, oldIndex, newIndex);
-                
+
                 // Save to localStorage
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
                 }
-                
+
                 return newItems;
             });
         }
@@ -221,13 +173,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // Delete bookmark function
     function deleteBookmark(artistId: string) {
         if (!window.confirm('Remove this bookmark?')) return;
-        
+
         const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
         setBookmarks(newBookmarks);
         if (typeof window !== 'undefined') {
             localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
         }
-        
+
         // Notify other tabs/components
         window.dispatchEvent(new Event('bookmarksUpdated'));
     }
@@ -246,7 +198,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         const load = () => {
             try {
                 if (typeof window === 'undefined') return; // Skip on server side
-                
+
                 const raw = localStorage.getItem(`bookmarks_${user.id}`);
                 if (raw) {
                     const parsed = JSON.parse(raw) as BookmarkItem[];
@@ -282,46 +234,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     type RangeKey = "today" | "week" | "month" | "all";
     const [internalSelectedRange, setInternalSelectedRange] = useState<RangeKey>("today");
     const selectedRangeToUse = selectedRange || internalSelectedRange;
-    
-    // Debug logging
-    console.log('[Dashboard] Range state:', { selectedRange, internalSelectedRange, selectedRangeToUse });
 
     // (duplicate RangeKey and selectedRange definition removed)
-
-	// ENS avatar fetch for the logged-in user's wallet (top gray bar avatar)
-	useEffect(() => {
-		let cancelled = false;
-		async function resolveAvatar() {
-			if (!user?.wallet) {
-				setEnsAvatarUrl(null);
-				setJazziconSeed(null);
-				return;
-			}
-			setEnsLoading(true);
-			setAvatarError(false);
-			try {
-				const publicClient = createPublicClient({ chain: mainnet, transport: http() });
-				const ensName = await getEnsName(publicClient, { address: user.wallet as `0x${string}` });
-				let finalAvatar: string | null = null;
-				if (ensName) {
-					finalAvatar = await getEnsAvatar(publicClient, { name: ensName });
-				}
-				if (!cancelled) {
-					setEnsAvatarUrl(finalAvatar ?? null);
-					setJazziconSeed(finalAvatar ? null : jsNumberForAddress(user.wallet));
-				}
-			} catch (e) {
-				if (!cancelled) {
-					setEnsAvatarUrl(null);
-					setJazziconSeed(user?.wallet ? jsNumberForAddress(user.wallet) : null);
-				}
-			} finally {
-				if (!cancelled) setEnsLoading(false);
-			}
-		}
-		resolveAvatar();
-		return () => { cancelled = true; };
-	}, [user?.wallet]);
 
     // Fetch leaderboard rank (only in compact layout)
     const [totalEntries, setTotalEntries] = useState<number | null>(null);
@@ -347,29 +261,24 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 if (dates) {
                     url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
                 }
-                console.log('[Dashboard] Fetching rank:', { url, selectedRangeToUse, dates, isCompactLayout });
-
                 const resp = await fetch(url);
                 if (!resp.ok) return;
                 const data = await resp.json();
-                
+
                 // Handle both paginated and non-paginated responses
                 const entries = Array.isArray(data) ? data : data.entries;
-                
-                console.log('[Dashboard] API response:', { dataLength: entries?.length, isArray: Array.isArray(data) });
-                
+
                 // Exclude hidden users from total count
                 const nonHiddenUsers = entries.filter((entry: any) => !entry.isHidden);
                 setTotalEntries(nonHiddenUsers.length);
-                
+
                 const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
-                console.log('[Dashboard] User lookup:', { idx, userWallet: user.wallet });
-                
+
                 if (idx !== -1) {
                     // Check if the current user is hidden - check both user object and leaderboard entry
                     const userEntry = entries[idx];
                     const isUserHidden = user.isHidden || userEntry?.isHidden;
-                    
+
                     if (isUserHidden) {
                         setRank(-1); // Use -1 to indicate hidden user
                     } else {
@@ -379,13 +288,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             setRank(nonHiddenIdx + 1);
                         }
                     }
-                    
+
                     // Set stats from leaderboard data to ensure consistency (only in compact layout)
                     if (userEntry && isCompactLayout) {
-                        console.log('[Dashboard] Setting stats from userEntry:', {
-                            ugcCount: userEntry.ugcCount,
-                            artistsCount: userEntry.artistsCount
-                        });
                         setUgcStats({
                             ugcCount: userEntry.ugcCount,
                             artistsCount: userEntry.artistsCount
@@ -399,16 +304,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 
         fetchRank();
     }, [selectedRangeToUse, user.wallet, isCompactLayout]);
-    
-    // Debug logging for useEffect dependencies
-    console.log('[Dashboard] useEffect dependencies:', {
-        selectedRangeToUse,
-        userWallet: user.wallet,
-        isCompactLayout,
-        allowEditUsername
-    });
+
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
-    const displayName = isGuestUser ? 'User Profile' : (user?.username ? user.username : user?.wallet);
+    const displayName = isGuestUser ? 'User Profile' : (user?.username || user?.email || user?.wallet);
     // Determine user status string for display (support multiple roles)
     const statusString = (() => {
         const roles: string[] = [];
@@ -419,7 +317,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         return roles.join(", ");
     })();
 
-    const { openConnectModal } = useConnectModal();
     const { status } = useSession();
 
     // When the profile page mounts, record the current approved UGC count so the red dot is cleared.
@@ -451,20 +348,16 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // No need for duplicate logic here
 
     function handleLogin() {
-        if (openConnectModal) {
-            openConnectModal();
-        } else {
-            const navLoginBtn = document.getElementById("login-btn");
-            if (navLoginBtn) {
-                (navLoginBtn as HTMLButtonElement).click();
-            }
+        const navLoginBtn = document.getElementById("login-btn");
+        if (navLoginBtn) {
+            (navLoginBtn as HTMLButtonElement).click();
         }
     }
 
     async function checkUgcStats() {
         if (date?.from && date?.to) {
             setLoading(true);
-            const result = await getUgcStatsInRange(date, ugcStatsUserWallet);
+            const result = await getUgcStatsInRange(date, null);
             if (result) {
                 setUgcStats(result);
             }
@@ -473,9 +366,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     }
 
     async function saveUsername() {
-        if (!usernameInput || usernameInput === user.username) { 
-            setIsEditingUsername(false); 
-            return; 
+        if (!usernameInput || usernameInput === user.username) {
+            setIsEditingUsername(false);
+            return;
         }
         setSavingUsername(true);
         try {
@@ -523,7 +416,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         async function fetchAllTimeStats() {
             try {
                 const dateRange: DateRange = { from: new Date(0), to: new Date() } as DateRange;
-                const result = await getUgcStatsInRange(dateRange, ugcStatsUserWallet);
+                const result = await getUgcStatsInRange(dateRange, null);
                 if (result) setAllTimeStats(result);
             } catch (e) {
                 console.error('[Dashboard] Error fetching all-time UGC stats', e);
@@ -531,7 +424,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
 
         fetchAllTimeStats();
-    }, [ugcStatsUserWallet]);
+    }, []);
 
     // Fetch stats for the currently selected leaderboard range (compact layout only)
     // This is now handled by the rank fetching useEffect below, which uses the same leaderboard data
@@ -604,32 +497,23 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                     }
                                 }}
-                                className="relative cursor-pointer grid grid-cols-2 sm:grid-cols-4 items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] dark:hover:bg-gray-800 w-full gap-x-4 gap-y-3 justify-items-center focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-[0_0_20px_rgba(255,156,227,0.3)] text-foreground"
+                                className="relative cursor-pointer flex flex-row items-center py-3 px-4 sm:px-6 border-4 border-[#ff9ce3] rounded-md bg-background hover:bg-[#f3f4f6] dark:hover:bg-gray-800 w-full gap-4 sm:gap-6 focus:outline-none focus:ring-2 focus:ring-[#ff9ce3] shadow-[0_0_20px_rgba(255,156,227,0.3)] text-foreground"
                             >
                                  {/* User */}
- 								<div className="flex items-center space-x-2 overflow-hidden justify-start mr-4 sm:mr-0 pl-4 sm:pl-0 justify-self-start sm:justify-self-center">
+ 								<div className="flex items-center space-x-2 min-w-0">
  									{/* Avatar inline with username */}
 								{!isGuestUser && (
- 										<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-										{ensLoading ? (
-											<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-										) : ensAvatarUrl && !avatarError ? (
-											<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-										) : jazziconSeed ? (
-											<Jazzicon diameter={32} seed={jazziconSeed} />
-										) : (
-											<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-										)}
+ 										<div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
+										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
 									</div>
 								)}
-                                    <span className="font-medium truncate max-w-[160px] text-sm sm:text-lg">
-                                        {ugcStatsUserWallet ?? (user?.username ? user.username : user?.wallet)}
+                                    <span className="font-medium truncate text-sm sm:text-lg">
+                                        {user?.username || user?.email || user?.wallet}
                                     </span>
-                                    {/* (arrow removed; entire bar now clickable) */}
                                 </div>
 
                                 {/* Rank */}
-                                <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap sm:justify-center justify-center ml-4 sm:ml-0 pr-4 sm:pr-0">
+                                <div className="flex flex-row items-center gap-1 sm:gap-2 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">Rank:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
@@ -642,11 +526,10 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                             </Badge>
                                         </>
                                     )}
-                                    {/* (arrow moved next to name) */}
                                 </div>
 
 							{/* UGC Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.ugcCount : (allTimeStats?.ugcCount ?? '—')}
@@ -654,7 +537,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                 </div>
 
 							{/* Artists Count */}
-							<div className="flex flex-row flex-nowrap items-center justify-center gap-1 text-xs sm:text-lg whitespace-nowrap">
+							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {isCompactLayout && ugcStats ? ugcStats.artistsCount : (allTimeStats?.artistsCount ?? '—')}
@@ -723,17 +606,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 					<div className="relative pb-4 w-full md:max-w-4xl md:mx-auto">
 						                        {!isEditingUsername && (
                             <div className="flex items-center justify-center gap-3 w-full">
-								{/* Avatar left of username using ENS/Jazzicon logic */}
+								{/* Avatar left of username */}
 								<div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center hover:animate-[slow-spin_10s_linear_infinite]">
-									{ensLoading ? (
-										<img className="w-4 h-4" src="/spinner.svg" alt="Loading..." />
-									) : ensAvatarUrl && !avatarError ? (
-										<img src={ensAvatarUrl} alt="ENS Avatar" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
-									) : jazziconSeed ? (
-										<Jazzicon diameter={32} seed={jazziconSeed} />
-									) : (
-										<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
-									)}
+									<img src="/default_pfp_pink.png" alt="Default Profile" className="w-full h-full object-cover" />
 								</div>
 								<p className="text-lg font-semibold leading-none text-foreground">
 									{displayName}
@@ -765,9 +640,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                              </div>
                          )}
 
-                         
 
-                        
+
+
                         {allowEditUsername && !isGuestUser && isEditingUsername && (
                             <div className="flex flex-col items-center gap-2 w-full pt-2">
                                 <div className="flex items-center gap-2 border-2 border-gray-300 bg-background rounded-md px-3 py-2 shadow-sm w-64 flex-nowrap">
@@ -869,15 +744,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                                 <Button size="sm" className="bg-gray-200 text-foreground hover:bg-gray-300 border border-gray-300" onClick={saveBookmarks}>
                                                     Save
                                                 </Button>
-                                                <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => { 
-                                                    setIsEditingBookmarks(false); 
+                                                <Button size="sm" variant="ghost" className="border border-gray-300" onClick={() => {
+                                                    setIsEditingBookmarks(false);
                                                 }}>
                                                     Cancel
                                                 </Button>
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     {bookmarks.length ? (
                                         <>
                                             <DndContext
@@ -970,13 +845,13 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {/* Leaderboard Section */}
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
-                <Leaderboard 
-                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.wallet || undefined)} 
-                    onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange} 
+                <Leaderboard
+                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.email || user.wallet || undefined)}
+                    onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange}
                 />
             </div>
             )}
-            
+
 
         </section>
     )

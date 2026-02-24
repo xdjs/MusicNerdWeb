@@ -111,8 +111,7 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// Reuse the custom next-auth mock for the `next-auth/react` entry point
-jest.mock('next-auth/react', () => jest.requireActual('./src/test/__mocks__/next-auth'));
+// next-auth mock removed - authentication disabled
 
 // Mock database (drizzle) globally for tests
 jest.mock('@/server/db/drizzle', () => {

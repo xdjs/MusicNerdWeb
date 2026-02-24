@@ -1,54 +1,44 @@
 import { getServerAuthSession } from "@/server/auth";
+import { redirect } from "next/navigation";
 import { getUserById, getAllUsers } from "@/server/utils/queries/userQueries";
 import { getPendingUGC } from "@/server/utils/queries/artistQueries";
-import UGCDataTable from "./ugc-data-table";        
-import { ugcColumns } from "./columns";
-import { whitelistedColumns } from "./columns";
-import UsersDataTable from "./whitelisted-data-table";
-import AutoRefresh from "@/app/_components/AutoRefresh";
-import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import UGCDataTable from "./ugc-data-table";
+import { ugcColumns, whitelistedColumns } from "./columns";
+import UsersSection from "./UsersSection";
 
 export default async function Admin() {
-    const walletlessEnabled = process.env.NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT === 'true' && process.env.NODE_ENV !== 'production';
+  const session = await getServerAuthSession();
 
-    let isAuthorized = false;
-    let userId: string | undefined;
+  if (!session) {
+    redirect('/');
+  }
 
-    if (walletlessEnabled) {
-        // Local dev shortcut – treat as admin without auth.
-        isAuthorized = true;
-    } else {
-        const session = await getServerAuthSession();
-        const user = session?.user;
-        if (!user) return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="Log in to access this page" /></>;
-        userId = user.id;
-        const userRecord = await getUserById(userId);
-        if (!userRecord || !userRecord.isAdmin) return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="You are not authorized to access this page" /></>;
-        isAuthorized = true;
-    }
+  // Check if user is admin
+  const user = await getUserById(session.user.id);
+  if (!user?.isAdmin) {
+    redirect('/');
+  }
 
-    if (!isAuthorized) {
-        return <><AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} /><PleaseLoginPage text="You are not authorized to access this page" /></>;
-    }
+  // Fetch data for admin dashboard
+  const [pendingUGCData, allUsers] = await Promise.all([
+    getPendingUGC(),
+    getAllUsers(),
+  ]);
 
-    const [pendingUGCData, allUsers] = await Promise.all([
-        getPendingUGC(),
-        getAllUsers(),
-    ]);
+  return (
+    <section className="admin-page px-4 sm:px-10 py-5 space-y-6">
+      <h1 className="text-3xl font-bold text-center mb-8">Admin Dashboard</h1>
 
-            return (
-            <section className="admin-page px-10 py-5 space-y-6">
-                {/* Silent client-side helper to refresh page after login */}
-                <AutoRefresh sessionStorageKey="adminSkipReload" showLoading={false} />
-                <h1 className="text-2xl">Site Management</h1>
-            <div>
-                <h2 className="text-xl pb-3">Pending UGC</h2>
-                <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
-            </div>
-            <div>
-                <h2 className="text-xl pb-3">Users</h2>
-                <UsersDataTable columns={whitelistedColumns} data={allUsers || []} />
-            </div>
-        </section>
-    );
+      {/* Pending UGC Section */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-[#9b83a0]">
+          Pending UGC Submissions ({pendingUGCData.length})
+        </h2>
+        <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
+      </div>
+
+      {/* Users Section */}
+      <UsersSection columns={whitelistedColumns} data={allUsers || []} />
+    </section>
+  );
 }
