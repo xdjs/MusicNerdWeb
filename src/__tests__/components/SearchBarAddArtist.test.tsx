@@ -113,7 +113,7 @@ describe('SearchBar Add Artist Flow', () => {
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('calls login() and stores pending ID when unauthenticated user clicks a Spotify-only result', async () => {
+    it('calls login() and stores pending ID + timestamp when unauthenticated user clicks a Spotify-only result', async () => {
         await renderAndSearch([spotifyOnlyResult]);
 
         fireEvent.click(screen.getByText('New Artist'));
@@ -121,12 +121,13 @@ describe('SearchBar Add Artist Flow', () => {
         expect(mockLogin).toHaveBeenCalled();
         expect(mockAddArtist).not.toHaveBeenCalled();
         expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBe('6abc123');
+        expect(mockSessionStorage['pendingAddArtistTimestamp']).toBeDefined();
     });
 
-    it('completes pending add on mount when session exists and sessionStorage has pending ID', async () => {
-        // Simulate post-login reload: session is now available and pending ID is in storage
+    it('completes pending add on mount when session exists and pending ID is fresh', async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
         mockSessionStorage['pendingAddArtistSpotifyId'] = '6abc123';
+        mockSessionStorage['pendingAddArtistTimestamp'] = String(Date.now());
         mockAddArtist.mockResolvedValue({ status: 'success', artistId: '99', artistName: 'New Artist' });
 
         mockSearchResults([]);
@@ -138,17 +139,34 @@ describe('SearchBar Add Artist Flow', () => {
             expect(mockAddArtist).toHaveBeenCalledWith('6abc123');
             expect(mockPush).toHaveBeenCalledWith('/artist/99');
         });
-        // Should have cleared sessionStorage
+        expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBeUndefined();
+        expect(mockSessionStorage['pendingAddArtistTimestamp']).toBeUndefined();
+    });
+
+    it('discards stale pending add (older than 5 minutes)', async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        mockSessionStorage['pendingAddArtistSpotifyId'] = '6abc123';
+        mockSessionStorage['pendingAddArtistTimestamp'] = String(Date.now() - 6 * 60 * 1000);
+
+        mockSearchResults([]);
+        await act(async () => {
+            render(<SearchBar />);
+        });
+
+        await act(async () => {});
+
+        expect(mockAddArtist).not.toHaveBeenCalled();
+        // Keys should still be cleaned up even if expired
         expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBeUndefined();
     });
 
     it('does not trigger pending add when there is no session', async () => {
         mockSessionStorage['pendingAddArtistSpotifyId'] = '6abc123';
+        mockSessionStorage['pendingAddArtistTimestamp'] = String(Date.now());
 
         mockSearchResults([]);
         render(<SearchBar />);
 
-        // Give effects time to run
         await act(async () => {});
 
         expect(mockAddArtist).not.toHaveBeenCalled();

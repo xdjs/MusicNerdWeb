@@ -34,9 +34,9 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
 
         const result = await dbAddArtist(spotifyId);
 
-        // Only send Discord message if we have user data
         if (result.status === "success" && user) {
-            await sendDiscordMessage(`${user.wallet || user.email || user.id} added new artist named: ${result.artistName} (Submitted SpotifyId: ${spotifyId})`);
+            const userLabel = user.wallet || user.email || user.id || 'unknown';
+            await sendDiscordMessage(`${userLabel} added new artist named: ${result.artistName} (Submitted SpotifyId: ${spotifyId})`);
         }
 
         return result;

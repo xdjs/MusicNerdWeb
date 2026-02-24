@@ -38,6 +38,8 @@ interface SearchBarProps {
 }
 
 const PENDING_ADD_KEY = 'pendingAddArtistSpotifyId';
+const PENDING_ADD_TS_KEY = 'pendingAddArtistTimestamp';
+const PENDING_ADD_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const router = useRouter();
@@ -85,10 +87,16 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     useEffect(() => {
         if (!session) return;
         const pendingId = sessionStorage.getItem(PENDING_ADD_KEY);
-        if (pendingId) {
-            sessionStorage.removeItem(PENDING_ADD_KEY);
-            handleAddArtist(pendingId);
-        }
+        if (!pendingId) return;
+
+        const timestamp = Number(sessionStorage.getItem(PENDING_ADD_TS_KEY) || '0');
+        sessionStorage.removeItem(PENDING_ADD_KEY);
+        sessionStorage.removeItem(PENDING_ADD_TS_KEY);
+
+        // Discard stale pending adds (e.g. user dismissed login, logged in later)
+        if (Date.now() - timestamp > PENDING_ADD_TTL_MS) return;
+
+        handleAddArtist(pendingId);
     }, [session, handleAddArtist]);
 
     useEffect(() => {
@@ -160,6 +168,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
 
             if (!session) {
                 sessionStorage.setItem(PENDING_ADD_KEY, result.spotify);
+                sessionStorage.setItem(PENDING_ADD_TS_KEY, String(Date.now()));
                 login();
                 return;
             }
