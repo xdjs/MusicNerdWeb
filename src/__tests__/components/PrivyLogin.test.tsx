@@ -306,8 +306,8 @@ describe('PrivyLogin', () => {
         expect(screen.getByTestId('legacy-modal')).toBeInTheDocument();
       });
 
-      // sessionStorage should have the flag set
-      expect(sessionStorage.setItem).toHaveBeenCalledWith('legacyModalShown', 'true');
+      // sessionStorage should NOT have the flag yet (only set on close)
+      expect(sessionStorage.setItem).not.toHaveBeenCalledWith('legacyModalShown', 'true');
 
       // Click Log Out
       const logoutItem = screen.getByText('Log Out');
