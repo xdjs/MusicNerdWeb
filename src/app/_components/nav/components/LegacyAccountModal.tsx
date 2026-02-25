@@ -132,7 +132,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
           </div>
         )}
 
-        <DialogFooter className="flex flex-wrap justify-center gap-2 sm:flex-row">
+        <DialogFooter className="flex flex-wrap justify-center gap-2 sm:flex-row sm:justify-center sm:space-x-0">
           <Button
             variant="outline"
             onClick={onClose}
