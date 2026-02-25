@@ -23,7 +23,6 @@ interface PrivyLoginProps {
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 const LOGIN_TOAST_KEY = 'showLoginToast';
-const LOGOUT_TOAST_KEY = 'showLogoutToast';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -205,24 +204,20 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
-    // Show login/logout toasts after post-reload.
-    // Gated on status !== 'loading' so the Toaster component has time to
+    // Show welcome toast after post-login reload.
+    // Gated on status=authenticated so the Toaster component has time to
     // subscribe its listener before we dispatch (PrivyLogin effects fire
     // before Toaster effects on initial mount due to tree depth ordering).
     useEffect(() => {
-      if (status === 'loading' || typeof window === 'undefined') return;
-
-      if (sessionStorage.getItem(LOGIN_TOAST_KEY)) {
+      if (
+        status === 'authenticated' &&
+        typeof window !== 'undefined' &&
+        sessionStorage.getItem(LOGIN_TOAST_KEY)
+      ) {
         sessionStorage.removeItem(LOGIN_TOAST_KEY);
         toast({
           title: 'Welcome!',
           description: 'You have successfully logged in.',
-        });
-      } else if (sessionStorage.getItem(LOGOUT_TOAST_KEY)) {
-        sessionStorage.removeItem(LOGOUT_TOAST_KEY);
-        toast({
-          title: 'Logged Out',
-          description: 'You have been logged out successfully.',
         });
       }
     }, [toast, status]);
@@ -302,7 +297,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
         await signOut({ redirect: false });
         await privyLogout();
-        sessionStorage.setItem(LOGOUT_TOAST_KEY, 'true');
+        toast({
+          title: 'Logged Out',
+          description: 'You have been logged out successfully.',
+        });
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);
