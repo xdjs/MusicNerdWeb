@@ -204,16 +204,23 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
-    // Show welcome toast after post-login reload
+    // Show welcome toast after post-login reload.
+    // Gated on status=authenticated so the Toaster component has time to
+    // subscribe its listener before we dispatch (PrivyLogin effects fire
+    // before Toaster effects on initial mount due to tree depth ordering).
     useEffect(() => {
-      if (typeof window !== 'undefined' && sessionStorage.getItem(LOGIN_TOAST_KEY)) {
+      if (
+        status === 'authenticated' &&
+        typeof window !== 'undefined' &&
+        sessionStorage.getItem(LOGIN_TOAST_KEY)
+      ) {
         sessionStorage.removeItem(LOGIN_TOAST_KEY);
         toast({
           title: 'Welcome!',
           description: 'You have successfully logged in.',
         });
       }
-    }, [toast]);
+    }, [toast, status]);
 
     // Show legacy account modal for new users (once per login session)
     useEffect(() => {
