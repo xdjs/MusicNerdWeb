@@ -7,24 +7,6 @@ import { verifyPrivyToken } from "@/server/utils/privy";
 // Lock to prevent concurrent session refresh operations
 const refreshLocks = new Map<string, Promise<void>>();
 
-/**
- * Returns true if the user was created before the Privy migration date,
- * meaning they may have a legacy wallet to link. If no migration date
- * is configured or the value is malformed, defaults to true (safe fallback).
- *
- * PRIVY_MIGRATION_DATE should be an ISO 8601 date string (e.g. '2026-02-23').
- * Date-only strings are parsed as UTC midnight per the ES spec.
- */
-export function isLegacyUser(createdAt: string | null | undefined): boolean {
-  const migrationDate = process.env.PRIVY_MIGRATION_DATE;
-  if (!migrationDate || !createdAt) return true;
-  const migrationTime = new Date(migrationDate).getTime();
-  if (isNaN(migrationTime)) return true;
-  const createdTime = new Date(createdAt).getTime();
-  if (isNaN(createdTime)) return true;
-  return createdTime < migrationTime;
-}
-
 // Define session user type for better type safety
 interface SessionUser {
   id: string;
@@ -111,7 +93,7 @@ export const authOptions = {
                   token.isHidden = refreshedUser.isHidden;
                   token.email = refreshedUser.email ?? undefined;
                   token.name = refreshedUser.username ?? undefined;
-                  token.needsLegacyLink = !refreshedUser.wallet && isLegacyUser(refreshedUser.createdAt);
+                  token.needsLegacyLink = !refreshedUser.wallet && !refreshedUser.legacyLinkDismissed;
                   token.lastRefresh = Date.now();
                 }
               } catch (error) {
@@ -251,7 +233,7 @@ export const authOptions = {
             isSuperAdmin: user.isSuperAdmin,
             isHidden: user.isHidden,
             isSignupComplete: true,
-            needsLegacyLink: !user.wallet && isLegacyUser(user.createdAt),
+            needsLegacyLink: !user.wallet && !user.legacyLinkDismissed,
           };
         } catch (error) {
           console.error('[Auth] Privy authorize error:', error);

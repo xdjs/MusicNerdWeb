@@ -83,7 +83,7 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 }));
 
 jest.mock('lucide-react', () => ({
-  Mail: () => <svg data-testid="mail-icon" />,
+  LogIn: () => <svg data-testid="login-icon" />,
 }));
 
 jest.mock('next/link', () => {
@@ -150,10 +150,10 @@ describe('PrivyLogin', () => {
   });
 
   describe('Unauthenticated state', () => {
-    it('renders login button with Mail icon', () => {
+    it('renders login button with LogIn icon', () => {
       render(<PrivyLogin />);
 
-      expect(screen.getByTestId('mail-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('login-icon')).toBeInTheDocument();
     });
 
     it('renders dropdown with Leaderboard and User Profile links', () => {

@@ -15,6 +15,13 @@
       "when": 1765394070869,
       "tag": "0001_add_privy_user_id",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765490000000,
+      "tag": "0002_add_legacy_link_dismissed",
+      "breakpoints": true
     }
   ]
 }
