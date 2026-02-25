@@ -42,8 +42,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
     const reloadingRef = useRef(false);
-    const statusRef = useRef(status);
-    statusRef.current = status;
 
     const { login } = useLogin({
       onComplete: async (params) => {
@@ -55,22 +53,12 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             wasAlreadyAuthenticated,
             currentAuthenticated: authenticated,
             currentReady: ready,
-            nextAuthStatus: statusRef.current,
           });
-        }
-        // Skip if NextAuth session is already valid (e.g., onComplete
-        // re-fired after a post-login reload — avoids a double reload
-        // that would kill the welcome toast).
-        if (statusRef.current === 'authenticated') {
-          if (isDev) {
-            console.log('[PrivyLogin] NextAuth already authenticated — skipping');
-          }
-          return;
         }
         // If Privy says already authenticated, only re-trigger NextAuth
         // if NextAuth is out of sync (split state from a previous failed update).
         if (wasAlreadyAuthenticated) {
-          if (statusRef.current === 'unauthenticated') {
+          if (status === 'unauthenticated') {
             if (isDev) {
               console.log('[PrivyLogin] wasAlreadyAuthenticated but NextAuth unauthenticated — re-triggering login');
             }
