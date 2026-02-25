@@ -174,26 +174,15 @@ function toast({ ...props }: Toast) {
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
-  // Subscribe synchronously during render so listeners are populated
-  // before any sibling/child useEffect can call toast().
-  const subscribedRef = React.useRef(false)
-  if (!subscribedRef.current) {
-    listeners.push(setState)
-    subscribedRef.current = true
-  }
-
   React.useEffect(() => {
-    // Re-sync in case a toast was dispatched between useState init
-    // and this effect.
-    setState(memoryState)
+    listeners.push(setState)
     return () => {
       const index = listeners.indexOf(setState)
       if (index > -1) {
         listeners.splice(index, 1)
       }
-      subscribedRef.current = false
     }
-  }, [])
+  }, [state])
 
   return {
     ...state,
