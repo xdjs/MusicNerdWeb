@@ -350,6 +350,25 @@ export async function linkWalletToUser(userId: string, walletAddress: string) {
     }
 }
 
+// Dismiss legacy link prompt permanently
+export async function dismissLegacyLink(userId: string) {
+    try {
+        const now = new Date().toISOString();
+        const [updatedUser] = await db
+            .update(users)
+            .set({
+                legacyLinkDismissed: true,
+                updatedAt: now,
+            })
+            .where(eq(users.id, userId))
+            .returning();
+        return updatedUser;
+    } catch (e) {
+        console.error("error dismissing legacy link", e);
+        throw new Error("Error dismissing legacy link");
+    }
+}
+
 // Merge accounts (legacy wallet user into current Privy user)
 export async function mergeAccounts(
     currentUserId: string,

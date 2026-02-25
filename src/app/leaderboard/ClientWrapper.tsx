@@ -16,6 +16,7 @@ type User = {
   isWhiteListed: boolean;
   isSuperAdmin: boolean;
   isHidden: boolean;
+  legacyLinkDismissed: boolean;
   acceptedUgcCount: number | null;
   createdAt: string;
   updatedAt: string;
@@ -80,6 +81,7 @@ export default function ClientWrapper() {
     isWhiteListed: false,
     isSuperAdmin: false,
     isHidden: false,
+    legacyLinkDismissed: false,
     acceptedUgcCount: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

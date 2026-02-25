@@ -24,18 +24,13 @@ const mockDbUser = {
   isAdmin: false,
   isSuperAdmin: false,
   isHidden: false,
-  createdAt: '2025-01-01T00:00:00.000Z', // pre-migration
+  legacyLinkDismissed: false,
+  createdAt: '2025-01-01T00:00:00.000Z',
 };
 
 const mockDbUserNoWallet = {
   ...mockDbUser,
   wallet: null,
-};
-
-const mockDbUserPostMigration = {
-  ...mockDbUser,
-  wallet: null,
-  createdAt: '2026-03-01T00:00:00.000Z', // post-migration
 };
 
 // Helper to get fresh mocks and authOptions
@@ -67,7 +62,6 @@ function getAuthorize(authOptions: any) {
 describe('Auth - Privy Credentials Provider', () => {
   beforeEach(() => {
     jest.resetModules();
-    process.env.PRIVY_MIGRATION_DATE = '2026-02-23';
   });
 
   describe('authorize()', () => {
@@ -174,7 +168,7 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result).toBeNull();
     });
 
-    it('sets needsLegacyLink to true for pre-migration user without wallet (via mockDbUserNoWallet)', async () => {
+    it('sets needsLegacyLink to true for user without wallet (not dismissed)', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
@@ -204,113 +198,22 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.needsLegacyLink).toBe(false);
     });
 
-    it('sets needsLegacyLink to false for post-migration user without wallet', async () => {
+    it('sets needsLegacyLink to false when user dismissed legacy link', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
         email: 'user@example.com',
         linkedAccounts: [],
       });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+      mockGetUserByPrivyId.mockResolvedValue({
+        ...mockDbUserNoWallet,
+        legacyLinkDismissed: true,
+      });
 
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
       expect(result.needsLegacyLink).toBe(false);
-    });
-
-    it('sets needsLegacyLink to true for pre-migration user without wallet', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUserNoWallet);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('defaults needsLegacyLink to true when PRIVY_MIGRATION_DATE is not set', async () => {
-      delete process.env.PRIVY_MIGRATION_DATE;
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('defaults needsLegacyLink to true when PRIVY_MIGRATION_DATE is malformed', async () => {
-      process.env.PRIVY_MIGRATION_DATE = 'not-a-date';
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('defaults needsLegacyLink to true when user has null createdAt', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue({ ...mockDbUserNoWallet, createdAt: null });
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('defaults needsLegacyLink to true when user has malformed createdAt', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      mockGetUserByPrivyId.mockResolvedValue({ ...mockDbUserNoWallet, createdAt: 'not-a-date' });
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
-    });
-
-    it('defaults needsLegacyLink to true when user has undefined createdAt', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId } = await setup();
-      mockVerifyPrivyToken.mockResolvedValue({
-        userId: 'did:privy:user123',
-        email: 'user@example.com',
-        linkedAccounts: [],
-      });
-      const userWithoutCreatedAt = { ...mockDbUserNoWallet };
-      delete userWithoutCreatedAt.createdAt;
-      mockGetUserByPrivyId.mockResolvedValue(userWithoutCreatedAt);
-
-      const authorize = getAuthorize(authOptions);
-      const result = await authorize({ authToken: 'valid-token' });
-
-      expect(result.needsLegacyLink).toBe(true);
     });
 
     it('backfills username from email when user has no username', async () => {
@@ -376,7 +279,6 @@ describe('Auth - Privy Credentials Provider', () => {
 describe('Auth - JWT Callback', () => {
   beforeEach(() => {
     jest.resetModules();
-    process.env.PRIVY_MIGRATION_DATE = '2026-02-23';
   });
 
   it('copies all user properties to token on initial sign-in', async () => {
@@ -511,7 +413,7 @@ describe('Auth - JWT Callback', () => {
     );
   });
 
-  it('updates needsLegacyLink based on wallet presence during refresh', async () => {
+  it('updates needsLegacyLink based on wallet and dismissed status during refresh', async () => {
     const { authOptions, mockGetUserByPrivyId } = await setup();
     const jwtCallback = authOptions.callbacks.jwt;
     mockGetUserByPrivyId.mockResolvedValue(mockDbUserNoWallet);
@@ -531,10 +433,13 @@ describe('Auth - JWT Callback', () => {
     expect(result.needsLegacyLink).toBe(true);
   });
 
-  it('sets needsLegacyLink to false for post-migration user during refresh', async () => {
+  it('sets needsLegacyLink to false when user dismissed legacy link during refresh', async () => {
     const { authOptions, mockGetUserByPrivyId } = await setup();
     const jwtCallback = authOptions.callbacks.jwt;
-    mockGetUserByPrivyId.mockResolvedValue(mockDbUserPostMigration);
+    mockGetUserByPrivyId.mockResolvedValue({
+      ...mockDbUserNoWallet,
+      legacyLinkDismissed: true,
+    });
 
     const token = {
       sub: 'user-uuid',
