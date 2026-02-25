@@ -2,7 +2,7 @@
 
 import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useEffect, useState, useCallback, forwardRef } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ interface PrivyLoginProps {
 
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
+const LOGIN_TOAST_KEY = 'showLoginToast';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -39,6 +40,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
+    const reloadingRef = useRef(false);
 
     const { login } = useLogin({
       onComplete: async (params) => {
@@ -170,10 +172,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             // signIn sets the cookie. Neither update() nor getSession() reliably
             // propagate to all useSession() consumers. Reload the page to ensure
             // all components (nav, profile, leaderboard) read the new session.
-            toast({
-              title: 'Welcome!',
-              description: 'You have successfully logged in.',
-            });
+            // Show the toast after reload to avoid flash (toast + modal appear
+            // briefly before reload, then again after).
+            sessionStorage.setItem(LOGIN_TOAST_KEY, 'true');
+            reloadingRef.current = true;
             window.location.reload();
           }
         } catch (error) {
@@ -184,8 +186,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             variant: 'destructive',
           });
         } finally {
-          setIsLoggingIn(false);
-          setPendingNextAuthLogin(false);
+          if (!reloadingRef.current) {
+            setIsLoggingIn(false);
+            setPendingNextAuthLogin(false);
+          }
         }
       };
 
@@ -199,6 +203,17 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         }
       },
     });
+
+    // Show welcome toast after post-login reload
+    useEffect(() => {
+      if (typeof window !== 'undefined' && sessionStorage.getItem(LOGIN_TOAST_KEY)) {
+        sessionStorage.removeItem(LOGIN_TOAST_KEY);
+        toast({
+          title: 'Welcome!',
+          description: 'You have successfully logged in.',
+        });
+      }
+    }, [toast]);
 
     // Show legacy account modal for new users (once per login session)
     useEffect(() => {
