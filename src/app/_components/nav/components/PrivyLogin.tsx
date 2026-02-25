@@ -209,7 +209,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         !sessionStorage.getItem(LEGACY_MODAL_SHOWN_KEY)
       ) {
         setShowLegacyModal(true);
-        sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
       }
     }, [session?.user?.needsLegacyLink, status]);
 
@@ -416,7 +415,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
         <LegacyAccountModal
           open={showLegacyModal}
-          onClose={() => setShowLegacyModal(false)}
+          onClose={() => {
+            setShowLegacyModal(false);
+            sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
+          }}
         />
       </>
     );
