@@ -362,6 +362,9 @@ export async function dismissLegacyLink(userId: string) {
             })
             .where(eq(users.id, userId))
             .returning();
+        if (!updatedUser) {
+            throw new Error("User not found");
+        }
         return updatedUser;
     } catch (e) {
         console.error("error dismissing legacy link", e);

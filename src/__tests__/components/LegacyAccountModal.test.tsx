@@ -277,7 +277,7 @@ describe('LegacyAccountModal', () => {
 
     it('shows loading state during dismiss', async () => {
       // Make the promise hang so we can check loading state
-      let resolvePromise: Function;
+      let resolvePromise: (value: { success: boolean }) => void;
       mockDismissLegacyLink.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve; }));
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
