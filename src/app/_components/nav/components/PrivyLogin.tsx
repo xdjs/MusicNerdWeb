@@ -22,7 +22,6 @@ interface PrivyLoginProps {
 
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
-const LOGIN_TOAST_KEY = 'showLoginToast';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -172,9 +171,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             // signIn sets the cookie. Neither update() nor getSession() reliably
             // propagate to all useSession() consumers. Reload the page to ensure
             // all components (nav, profile, leaderboard) read the new session.
-            // Show the toast after reload to avoid flash (toast + modal appear
-            // briefly before reload, then again after).
-            sessionStorage.setItem(LOGIN_TOAST_KEY, 'true');
             reloadingRef.current = true;
             window.location.reload();
           }
@@ -203,24 +199,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         }
       },
     });
-
-    // Show welcome toast after post-login reload.
-    // Gated on status=authenticated so the Toaster component has time to
-    // subscribe its listener before we dispatch (PrivyLogin effects fire
-    // before Toaster effects on initial mount due to tree depth ordering).
-    useEffect(() => {
-      if (
-        status === 'authenticated' &&
-        typeof window !== 'undefined' &&
-        sessionStorage.getItem(LOGIN_TOAST_KEY)
-      ) {
-        sessionStorage.removeItem(LOGIN_TOAST_KEY);
-        toast({
-          title: 'Welcome!',
-          description: 'You have successfully logged in.',
-        });
-      }
-    }, [toast, status]);
 
     // Show legacy account modal for new users (once per login session)
     useEffect(() => {
@@ -297,10 +275,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
         await signOut({ redirect: false });
         await privyLogout();
-        toast({
-          title: 'Logged Out',
-          description: 'You have been logged out successfully.',
-        });
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);
