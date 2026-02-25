@@ -206,24 +206,28 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     });
 
     // Show login/logout toasts after post-reload.
-    // Gated on status !== 'loading' so the Toaster component has time to
-    // subscribe its listener before we dispatch (PrivyLogin effects fire
-    // before Toaster effects on initial mount due to tree depth ordering).
+    // Deferred via setTimeout(0) so the Toaster component has time to
+    // subscribe its listener and Radix Toast properly starts its auto-dismiss
+    // timer (dispatching synchronously in an effect races with Toaster's mount).
     useEffect(() => {
       if (status === 'loading' || typeof window === 'undefined') return;
 
       if (sessionStorage.getItem(LOGIN_TOAST_KEY)) {
         sessionStorage.removeItem(LOGIN_TOAST_KEY);
-        toast({
-          title: 'Welcome!',
-          description: 'You have successfully logged in.',
-        });
+        setTimeout(() => {
+          toast({
+            title: 'Welcome!',
+            description: 'You have successfully logged in.',
+          });
+        }, 0);
       } else if (sessionStorage.getItem(LOGOUT_TOAST_KEY)) {
         sessionStorage.removeItem(LOGOUT_TOAST_KEY);
-        toast({
-          title: 'Logged Out',
-          description: 'You have been logged out successfully.',
-        });
+        setTimeout(() => {
+          toast({
+            title: 'Logged Out',
+            description: 'You have been logged out successfully.',
+          });
+        }, 0);
       }
     }, [toast, status]);
 
