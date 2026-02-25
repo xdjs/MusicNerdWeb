@@ -24,7 +24,6 @@ const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
 const LOGIN_TOAST_KEY = 'showLoginToast';
 const LOGOUT_TOAST_KEY = 'showLogoutToast';
-const LOGIN_RELOAD_KEY = 'loginReloadPending';
 
 // Retry configuration from environment variables
 const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '5', 10);
@@ -59,17 +58,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             nextAuthStatus: statusRef.current,
           });
         }
-        // Skip if we just completed a login and are in a post-reload state.
-        // Privy can re-fire onComplete after a page reload, which would
-        // re-trigger signIn + reload and kill the welcome toast.
-        if (typeof window !== 'undefined' && sessionStorage.getItem(LOGIN_RELOAD_KEY)) {
-          sessionStorage.removeItem(LOGIN_RELOAD_KEY);
-          if (isDev) {
-            console.log('[PrivyLogin] Post-login reload detected — skipping re-trigger');
-          }
-          return;
-        }
-        // Skip if NextAuth session is already valid
+        // Skip if NextAuth session is already valid (e.g., onComplete
+        // re-fired after a post-login reload — avoids a double reload
+        // that would kill the welcome toast).
         if (statusRef.current === 'authenticated') {
           if (isDev) {
             console.log('[PrivyLogin] NextAuth already authenticated — skipping');
@@ -197,7 +188,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             // Show the toast after reload to avoid flash (toast + modal appear
             // briefly before reload, then again after).
             sessionStorage.setItem(LOGIN_TOAST_KEY, 'true');
-            sessionStorage.setItem(LOGIN_RELOAD_KEY, 'true');
             reloadingRef.current = true;
             window.location.reload();
           }
@@ -235,7 +225,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
       if (sessionStorage.getItem(LOGIN_TOAST_KEY)) {
         sessionStorage.removeItem(LOGIN_TOAST_KEY);
-        sessionStorage.removeItem(LOGIN_RELOAD_KEY);
         toast({
           title: 'Welcome!',
           description: 'You have successfully logged in.',
