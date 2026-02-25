@@ -132,7 +132,7 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
           </div>
         )}
 
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+        <DialogFooter className="flex flex-wrap gap-2 sm:flex-row">
           <Button
             variant="outline"
             onClick={onClose}
@@ -142,19 +142,19 @@ export function LegacyAccountModal({ open, onClose }: LegacyAccountModalProps) {
             Skip for now
           </Button>
           <Button
-            variant="outline"
-            onClick={handleDismiss}
-            disabled={isBusy}
-            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            {isDismissing ? 'Dismissing...' : "I don't have a legacy account"}
-          </Button>
-          <Button
             onClick={handleLinkWallet}
             disabled={isBusy}
             className="bg-pastypink hover:bg-pastypink/80 text-black"
           >
             {isLinking ? 'Connecting...' : 'Connect Wallet'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDismiss}
+            disabled={isBusy}
+            className="dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            {isDismissing ? 'Dismissing...' : 'New user'}
           </Button>
         </DialogFooter>
       </DialogContent>

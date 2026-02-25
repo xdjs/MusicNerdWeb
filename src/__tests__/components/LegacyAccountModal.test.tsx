@@ -73,7 +73,7 @@ describe('LegacyAccountModal', () => {
     expect(screen.getByText(/existing Music Nerd wallet-based account/i)).toBeInTheDocument();
     expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
     expect(screen.getByText('Skip for now')).toBeInTheDocument();
-    expect(screen.getByText("I don't have a legacy account")).toBeInTheDocument();
+    expect(screen.getByText("New user")).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -247,7 +247,7 @@ describe('LegacyAccountModal', () => {
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
-      fireEvent.click(screen.getByText("I don't have a legacy account"));
+      fireEvent.click(screen.getByText("New user"));
 
       await waitFor(() => {
         expect(mockDismissLegacyLink).toHaveBeenCalled();
@@ -261,7 +261,7 @@ describe('LegacyAccountModal', () => {
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
-      fireEvent.click(screen.getByText("I don't have a legacy account"));
+      fireEvent.click(screen.getByText("New user"));
 
       await waitFor(() => {
         expect(mockDismissLegacyLink).toHaveBeenCalled();
@@ -282,7 +282,7 @@ describe('LegacyAccountModal', () => {
 
       render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
-      fireEvent.click(screen.getByText("I don't have a legacy account"));
+      fireEvent.click(screen.getByText("New user"));
 
       expect(screen.getByText('Dismissing...')).toBeInTheDocument();
 
