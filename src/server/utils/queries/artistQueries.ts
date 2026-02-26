@@ -554,8 +554,10 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
         }
 
         if (user) {
+            const displayName =
+                user.username || user.email?.split("@")[0] || user.wallet || "Anonymous";
             await sendDiscordMessage(
-                `${user.wallet || "Anonymous"} added ${artist.name}'s ${artistIdFromUrl.cardPlatformName}: ${artistIdFromUrl.id} (Submitted URL: ${artistUrl}) ${newUGC.createdAt}`
+                `${displayName} added ${artist.name}'s ${artistIdFromUrl.cardPlatformName}: ${artistIdFromUrl.id} (Submitted URL: ${artistUrl}) ${newUGC.createdAt}`
             );
         }
 

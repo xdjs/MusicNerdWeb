@@ -117,6 +117,11 @@ export async function searchForUsersByWallet(wallet: string) {
     }
 }
 
+// Uniqueness is not enforced — duplicate usernames are allowed by design.
+export async function updateUsername(userId: string, username: string) {
+    await db.update(users).set({ username }).where(eq(users.id, userId));
+}
+
 export type UpdateWhitelistedUserResp = {
     status: "success" | "error";
     message: string;

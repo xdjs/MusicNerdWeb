@@ -372,22 +372,28 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
         setSavingUsername(true);
         try {
-            const resp = await fetch(`/api/admin/whitelist-user/${user.id}`, {
-                method: "PUT",
+            const resp = await fetch(`/api/user/${user.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: usernameInput })
             });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => null);
+                alert(data?.message || "Failed to update username");
+                return;
+            }
             const data = await resp.json();
             if (data.status === "success") {
                 window.location.reload();
-            } else {
-                alert(data.message || "Failed to update username");
+                return;
             }
+            alert(data.message || "Failed to update username");
         } catch(e) {
             alert("Server error updating username");
+        } finally {
+            setSavingUsername(false);
+            setIsEditingUsername(false);
         }
-        setSavingUsername(false);
-        setIsEditingUsername(false);
     }
 
     function getRangeDates(r: RangeKey) {
