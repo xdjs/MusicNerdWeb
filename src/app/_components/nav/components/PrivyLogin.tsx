@@ -2,7 +2,7 @@
 
 import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useEffect, useState, useCallback, forwardRef } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -39,6 +39,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
+    const reloadingRef = useRef(false);
 
     const { login } = useLogin({
       onComplete: async (params) => {
@@ -170,10 +171,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             // signIn sets the cookie. Neither update() nor getSession() reliably
             // propagate to all useSession() consumers. Reload the page to ensure
             // all components (nav, profile, leaderboard) read the new session.
-            toast({
-              title: 'Welcome!',
-              description: 'You have successfully logged in.',
-            });
+            reloadingRef.current = true;
             window.location.reload();
           }
         } catch (error) {
@@ -184,8 +182,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             variant: 'destructive',
           });
         } finally {
-          setIsLoggingIn(false);
-          setPendingNextAuthLogin(false);
+          if (!reloadingRef.current) {
+            setIsLoggingIn(false);
+            setPendingNextAuthLogin(false);
+          }
         }
       };
 
@@ -209,7 +209,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         !sessionStorage.getItem(LEGACY_MODAL_SHOWN_KEY)
       ) {
         setShowLegacyModal(true);
-        sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
       }
     }, [session?.user?.needsLegacyLink, status]);
 
@@ -276,10 +275,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         sessionStorage.removeItem(LEGACY_MODAL_SHOWN_KEY);
         await signOut({ redirect: false });
         await privyLogout();
-        toast({
-          title: 'Logged Out',
-          description: 'You have been logged out successfully.',
-        });
         window.location.reload();
       } catch (error) {
         console.error('[PrivyLogin] Logout error:', error);
@@ -416,7 +411,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
         <LegacyAccountModal
           open={showLegacyModal}
-          onClose={() => setShowLegacyModal(false)}
+          onClose={() => {
+            setShowLegacyModal(false);
+            sessionStorage.setItem(LEGACY_MODAL_SHOWN_KEY, 'true');
+          }}
         />
       </>
     );

@@ -31,10 +31,16 @@ jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
+// Mock the dismissLegacyLink server action
+const mockDismissLegacyLink = jest.fn();
+jest.mock('@/app/actions/dismissLegacyLink', () => ({
+  dismissLegacyLink: (...args) => mockDismissLegacyLink(...args),
+}));
+
 // Mock Radix Dialog to render in JSDOM without portals
 jest.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ open, children, onOpenChange }) =>
-    open ? <div data-testid="dialog" onClick={() => onOpenChange?.(false)}>{children}</div> : null,
+  Dialog: ({ open, children }) =>
+    open ? <div data-testid="dialog">{children}</div> : null,
   DialogContent: ({ children, className }) => <div data-testid="dialog-content" className={className}>{children}</div>,
   DialogHeader: ({ children }) => <div>{children}</div>,
   DialogTitle: ({ children }) => <h2>{children}</h2>,
@@ -57,15 +63,17 @@ describe('LegacyAccountModal', () => {
     jest.clearAllMocks();
     linkAccountCallbacks = {};
     global.fetch = jest.fn();
+    mockDismissLegacyLink.mockReset();
   });
 
-  it('renders dialog with correct content when open', () => {
+  it('renders dialog with all three buttons when open', () => {
     render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
 
     expect(screen.getByText('Welcome to Music Nerd!')).toBeInTheDocument();
     expect(screen.getByText(/existing Music Nerd wallet-based account/i)).toBeInTheDocument();
     expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
     expect(screen.getByText('Skip for now')).toBeInTheDocument();
+    expect(screen.getByText("New user")).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -230,5 +238,73 @@ describe('LegacyAccountModal', () => {
 
     // fetch should NOT be called for non-wallet types
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  // Dismiss button tests
+  describe('dismiss button', () => {
+    it('calls dismissLegacyLink and closes modal on success', async () => {
+      mockDismissLegacyLink.mockResolvedValue({ success: true });
+
+      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByText("New user"));
+
+      await waitFor(() => {
+        expect(mockDismissLegacyLink).toHaveBeenCalled();
+        expect(mockUpdateSession).toHaveBeenCalled();
+        expect(mockOnClose).toHaveBeenCalled();
+      });
+    });
+
+    it('shows error when dismiss fails', async () => {
+      mockDismissLegacyLink.mockResolvedValue({ success: false, error: 'Server error' });
+
+      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByText("New user"));
+
+      await waitFor(() => {
+        expect(mockDismissLegacyLink).toHaveBeenCalled();
+        expect(mockOnClose).not.toHaveBeenCalled();
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Error',
+            variant: 'destructive',
+          })
+        );
+      });
+    });
+
+    it('shows loading state during dismiss', async () => {
+      // Make the promise hang so we can check loading state
+      let resolvePromise: (value: { success: boolean }) => void;
+      mockDismissLegacyLink.mockReturnValue(new Promise((resolve) => { resolvePromise = resolve; }));
+
+      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByText("New user"));
+
+      expect(screen.getByText('Dismissing...')).toBeInTheDocument();
+
+      // All buttons should be disabled during dismiss
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach((button) => {
+        expect(button).toBeDisabled();
+      });
+
+      // Resolve to clean up
+      resolvePromise({ success: true });
+    });
+
+    it('disables all buttons during wallet linking', () => {
+      render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+
+      fireEvent.click(screen.getByText('Connect Wallet'));
+
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach((button) => {
+        expect(button).toBeDisabled();
+      });
+    });
   });
 });
