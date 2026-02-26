@@ -9,7 +9,7 @@ import { PgColumn } from "drizzle-orm/pg-core";
 import { headers } from "next/headers";
 import { openai } from "@/server/lib/openai";
 
-import { getUserById } from "@/server/utils/queries/userQueries";
+import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier";
 
@@ -369,7 +369,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
             const user = await getUserById(session.user.id);
             if (user) {
                 await sendDiscordMessage(
-                    `${user.wallet || "Anonymous"} added new artist named: ${newArtist.name} (Submitted SpotifyId: ${spotifyId}) ${newArtist.createdAt}`
+                    `${getUserDisplayName(user)} added new artist named: ${newArtist.name} (Submitted SpotifyId: ${spotifyId}) ${newArtist.createdAt}`
                 );
             }
         }
@@ -554,10 +554,8 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
         }
 
         if (user) {
-            const displayName =
-                user.username || user.email?.split("@")[0] || user.wallet || "Anonymous";
             await sendDiscordMessage(
-                `${displayName} added ${artist.name}'s ${artistIdFromUrl.cardPlatformName}: ${artistIdFromUrl.id} (Submitted URL: ${artistUrl}) ${newUGC.createdAt}`
+                `${getUserDisplayName(user)} added ${artist.name}'s ${artistIdFromUrl.cardPlatformName}: ${artistIdFromUrl.id} (Submitted URL: ${artistUrl}) ${newUGC.createdAt}`
             );
         }
 

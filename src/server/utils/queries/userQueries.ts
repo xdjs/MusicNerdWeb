@@ -117,6 +117,12 @@ export async function searchForUsersByWallet(wallet: string) {
     }
 }
 
+/** Resolve a user's display name for Discord notifications.
+ *  Priority: username → email prefix → wallet → "Anonymous" */
+export function getUserDisplayName(user: { username?: string | null; email?: string | null; wallet?: string | null }): string {
+    return user.username || user.email?.split("@")[0] || user.wallet || "Anonymous";
+}
+
 // Uniqueness is not enforced — duplicate usernames are allowed by design.
 export async function updateUsername(userId: string, username: string) {
     await db.update(users).set({ username }).where(eq(users.id, userId));
