@@ -372,8 +372,8 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
         }
         setSavingUsername(true);
         try {
-            const resp = await fetch(`/api/admin/whitelist-user/${user.id}`, {
-                method: "PUT",
+            const resp = await fetch(`/api/user/${user.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: usernameInput })
             });

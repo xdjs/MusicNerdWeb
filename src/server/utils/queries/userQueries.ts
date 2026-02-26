@@ -117,6 +117,20 @@ export async function searchForUsersByWallet(wallet: string) {
     }
 }
 
+export async function updateUsername(
+    userId: string,
+    username: string
+): Promise<{ status: "success" | "error"; message: string }> {
+    try {
+        if (!userId) throw new Error("Invalid user id");
+        await db.update(users).set({ username }).where(eq(users.id, userId));
+        return { status: "success", message: "Username updated" };
+    } catch (e) {
+        console.error("error updating username", e);
+        return { status: "error", message: "Error updating username" };
+    }
+}
+
 export type UpdateWhitelistedUserResp = {
     status: "success" | "error";
     message: string;
