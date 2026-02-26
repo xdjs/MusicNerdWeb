@@ -2,7 +2,7 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getSpotifyHeaders, getSpotifyArtist } from '@/server/utils/queries/externalApiQueries';
-import { getUserById } from '@/server/utils/queries/userQueries';
+import { getUserById, getUserDisplayName } from '@/server/utils/queries/userQueries';
 import { sendDiscordMessage } from '@/server/utils/queries/discord';
 import { addArtist as dbAddArtist, type AddArtistResp } from "@/server/utils/queries/artistQueries";
 
@@ -35,8 +35,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
         const result = await dbAddArtist(spotifyId);
 
         if (result.status === "success" && user) {
-            const userLabel = user.wallet || user.email || user.id || 'unknown';
-            await sendDiscordMessage(`${userLabel} added new artist named: ${result.artistName} (Submitted SpotifyId: ${spotifyId})`);
+            await sendDiscordMessage(`${getUserDisplayName(user)} added new artist named: ${result.artistName} (Submitted SpotifyId: ${spotifyId})`);
         }
 
         return result;

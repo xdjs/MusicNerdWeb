@@ -7,6 +7,7 @@ jest.mock("@/server/auth", () => ({
 }));
 
 jest.mock("@/server/utils/queries/userQueries", () => ({
+    ...jest.requireActual("@/server/utils/queries/userQueries"),
     getUserById: jest.fn(),
 }));
 
