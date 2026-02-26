@@ -46,10 +46,21 @@ export async function PATCH(
 
     // Users can only update their own username
     if (auth.session.user.id !== id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+      return Response.json(
+        { status: "error", message: "Forbidden" },
+        { status: 403 }
+      );
     }
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json(
+        { status: "error", message: "Invalid request body" },
+        { status: 400 }
+      );
+    }
     const { username } = body;
 
     const trimmed = typeof username === "string" ? username.trim() : "";
@@ -64,6 +75,13 @@ export async function PATCH(
     if (trimmed.length > 50) {
       return Response.json(
         { status: "error", message: "Username must be 50 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    if (/[\x00-\x1F\x7F]/.test(trimmed)) {
+      return Response.json(
+        { status: "error", message: "Username contains invalid characters" },
         { status: 400 }
       );
     }

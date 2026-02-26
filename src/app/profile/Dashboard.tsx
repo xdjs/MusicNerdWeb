@@ -385,14 +385,15 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             const data = await resp.json();
             if (data.status === "success") {
                 window.location.reload();
-            } else {
-                alert(data.message || "Failed to update username");
+                return;
             }
+            alert(data.message || "Failed to update username");
         } catch(e) {
             alert("Server error updating username");
+        } finally {
+            setSavingUsername(false);
+            setIsEditingUsername(false);
         }
-        setSavingUsername(false);
-        setIsEditingUsername(false);
     }
 
     function getRangeDates(r: RangeKey) {

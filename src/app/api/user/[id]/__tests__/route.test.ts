@@ -179,7 +179,25 @@ describe("PATCH /api/user/[id]", () => {
     );
     expect(response.status).toBe(403);
     const data = await response.json();
-    expect(data.error).toBe("Forbidden");
+    expect(data.status).toBe("error");
+    expect(data.message).toBe("Forbidden");
+  });
+
+  it("returns 400 when request body is not valid JSON", async () => {
+    const { PATCH, mockRequireAuth } = await setup();
+    mockRequireAuth.mockResolvedValue(authedAs("user-1"));
+
+    const response = await PATCH(
+      new Request("http://localhost/api/user/user-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: "not json",
+      }),
+      createParams("user-1")
+    );
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.message).toBe("Invalid request body");
   });
 
   it("returns 400 when username is missing", async () => {
@@ -221,6 +239,19 @@ describe("PATCH /api/user/[id]", () => {
     const data = await response.json();
     expect(data.status).toBe("error");
     expect(data.message).toBe("Username must be 50 characters or less");
+  });
+
+  it("returns 400 when username contains control characters", async () => {
+    const { PATCH, mockRequireAuth } = await setup();
+    mockRequireAuth.mockResolvedValue(authedAs("user-1"));
+
+    const response = await PATCH(
+      createRequest("user-1", { username: "user\x00name" }),
+      createParams("user-1")
+    );
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.message).toBe("Username contains invalid characters");
   });
 
   it("accepts a username at exactly 50 characters", async () => {
