@@ -8,6 +8,8 @@ jest.mock("@/server/auth", () => ({
 
 jest.mock("@/server/utils/queries/userQueries", () => ({
     getUserById: jest.fn(),
+    getUserDisplayName: (user) =>
+        user.username || user.email?.split("@")[0] || user.wallet || "Anonymous",
 }));
 
 jest.mock("@/server/utils/services", () => ({
