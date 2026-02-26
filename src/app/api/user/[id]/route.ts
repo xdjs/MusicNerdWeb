@@ -52,23 +52,25 @@ export async function PATCH(
     const body = await request.json();
     const { username } = body;
 
-    if (typeof username !== "string" || username.trim().length === 0) {
+    const trimmed = typeof username === "string" ? username.trim() : "";
+
+    if (trimmed.length === 0) {
       return Response.json(
         { status: "error", message: "Username is required" },
         { status: 400 }
       );
     }
 
-    const result = await updateUsername(id, username.trim());
-
-    if (result.status === "success") {
-      return Response.json({ status: "success", message: result.message });
+    if (trimmed.length > 50) {
+      return Response.json(
+        { status: "error", message: "Username must be 50 characters or less" },
+        { status: 400 }
+      );
     }
 
-    return Response.json(
-      { status: "error", message: result.message },
-      { status: 400 }
-    );
+    await updateUsername(id, trimmed);
+
+    return Response.json({ status: "success", message: "Username updated" });
   } catch (error) {
     console.error("[API] update username error", error);
     return Response.json(
