@@ -200,6 +200,28 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       },
     });
 
+    // Handle login click — if Privy is already authenticated but NextAuth isn't,
+    // we have a stale/split session. Log out of Privy first, then start fresh.
+    const handleLogin = useCallback(async () => {
+      if (authenticated && status === 'unauthenticated') {
+        if (isDev) {
+          console.log('[PrivyLogin] Stale Privy session detected, logging out before fresh login');
+        }
+        setIsLoggingIn(true);
+        try {
+          await privyLogout();
+        } catch (e) {
+          if (isDev) {
+            console.log('[PrivyLogin] Privy logout error during reset:', e);
+          }
+        }
+        setIsLoggingIn(false);
+        login();
+      } else {
+        login();
+      }
+    }, [authenticated, status, login, privyLogout]);
+
     // Show legacy account modal for new users (once per login session)
     useEffect(() => {
       if (
@@ -311,7 +333,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               size="lg"
               type="button"
               className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
-              onClick={() => login()}
+              onClick={() => handleLogin()}
             >
               <LogIn color="white" size={20} />
             </Button>
@@ -327,7 +349,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 User Profile
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => login()}>Log In</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleLogin()}>Log In</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
