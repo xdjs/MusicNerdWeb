@@ -171,6 +171,13 @@ describe("addArtistData – Discord display name", () => {
         expect(discordMessageArg()).toMatch(/^fallback added/);
     });
 
+    it("does not send a Discord message when user is null", async () => {
+        const userMod = await import("@/server/utils/queries/userQueries");
+        (userMod.getUserById as jest.Mock).mockResolvedValue(null);
+        await addArtistData(MOCK_ARTIST_URL, MOCK_ARTIST);
+        expect(sendDiscordMessage).not.toHaveBeenCalled();
+    });
+
     it("includes artist name, platform, handle, URL, and timestamp", async () => {
         await runWithUser({ username: "tester" });
         const msg = discordMessageArg();
