@@ -214,13 +214,20 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           if (isDev) {
             console.log('[PrivyLogin] Privy logout error during reset:', e);
           }
+          setIsLoggingIn(false);
+          toast({
+            title: 'Login Error',
+            description: 'Could not reset session. Please refresh the page.',
+            variant: 'destructive',
+          });
+          return;
         }
         setIsLoggingIn(false);
         login();
       } else {
         login();
       }
-    }, [authenticated, status, login, privyLogout]);
+    }, [authenticated, status, login, privyLogout, toast]);
 
     // Show legacy account modal for new users (once per login session)
     useEffect(() => {
@@ -333,7 +340,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               size="lg"
               type="button"
               className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
-              onClick={() => handleLogin()}
+              onClick={handleLogin}
             >
               <LogIn color="white" size={20} />
             </Button>
@@ -349,7 +356,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 User Profile
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleLogin()}>Log In</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleLogin}>Log In</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
