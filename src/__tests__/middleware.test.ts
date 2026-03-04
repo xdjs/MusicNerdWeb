@@ -209,4 +209,34 @@ describe('middleware rate limiting', () => {
     expect(_rateLimitMap.has('10.0.0.0:default')).toBe(false);
     expect(_rateLimitMap.has('99.99.99.99:default')).toBe(true);
   });
+
+  it('skips rate limiting when IP cannot be determined', async () => {
+    const { middleware, _rateLimitMap } = await loadMiddleware();
+    const url = 'https://localhost:3000/api/leaderboard';
+
+    // No x-real-ip or x-forwarded-for headers
+    for (let i = 0; i < 100; i++) {
+      const req = new NextRequest(url);
+      const res = middleware(req);
+      expect(res.status).not.toBe(429);
+    }
+
+    // No entries should be created for unknown IPs
+    expect(_rateLimitMap.size).toBe(0);
+  });
+
+  it('auth paths are excluded by matcher config', async () => {
+    const { config } = await loadMiddleware();
+    const matcher = new RegExp(config.matcher);
+
+    // Auth paths should NOT match
+    expect(matcher.test('/api/auth/signin')).toBe(false);
+    expect(matcher.test('/api/auth/callback')).toBe(false);
+    expect(matcher.test('/api/auth/session')).toBe(false);
+
+    // Regular API paths should match
+    expect(matcher.test('/api/leaderboard')).toBe(true);
+    expect(matcher.test('/api/funFacts/random')).toBe(true);
+    expect(matcher.test('/api/validateLink')).toBe(true);
+  });
 });

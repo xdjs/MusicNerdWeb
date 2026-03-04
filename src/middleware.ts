@@ -20,20 +20,14 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(val) && val > 0 ? val : fallback;
 }
 
-function getLimit(tier: Tier): number {
-  switch (tier) {
-    case 'strict':
-      return envInt('RATE_LIMIT_STRICT', 5);
-    case 'medium':
-      return envInt('RATE_LIMIT_MEDIUM', 20);
-    default:
-      return envInt('RATE_LIMIT_DEFAULT', 60);
-  }
-}
-
-function getWindowMs(): number {
-  return envInt('RATE_LIMIT_WINDOW_MS', 60_000);
-}
+// Cached at module load so env vars aren't re-read on every request.
+// jest.resetModules() in tests causes re-evaluation, so env override tests still work.
+const LIMITS = {
+  strict: envInt('RATE_LIMIT_STRICT', 5),
+  medium: envInt('RATE_LIMIT_MEDIUM', 20),
+  default: envInt('RATE_LIMIT_DEFAULT', 60),
+} as const;
+const WINDOW_MS = envInt('RATE_LIMIT_WINDOW_MS', 60_000);
 
 interface RateLimitEntry {
   count: number;
@@ -67,12 +61,16 @@ export function middleware(request: NextRequest): NextResponse {
   const ip =
     request.headers.get('x-real-ip') ??
     request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
-    'unknown';
+    null;
+
+  // Skip rate limiting if IP can't be determined (local dev, health checks)
+  // to avoid all anonymous requests sharing one bucket.
+  if (!ip) return NextResponse.next();
+
   const pathname = request.nextUrl.pathname;
   const now = Date.now();
-  const windowMs = getWindowMs();
   const tier = getTier(pathname);
-  const limit = getLimit(tier);
+  const limit = LIMITS[tier];
   const key = `${ip}:${tier}`;
 
   // Periodic cleanup to prevent memory leaks
@@ -84,7 +82,7 @@ export function middleware(request: NextRequest): NextResponse {
   const entry = _rateLimitMap.get(key);
 
   if (!entry || now >= entry.resetTime) {
-    const newEntry = { count: 1, resetTime: now + windowMs };
+    const newEntry = { count: 1, resetTime: now + WINDOW_MS };
     _rateLimitMap.set(key, newEntry);
     const response = NextResponse.next();
     for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, limit, now))) {
