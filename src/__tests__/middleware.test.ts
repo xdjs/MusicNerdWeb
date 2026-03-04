@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
 // NextRequest.ip is read-only, so we set x-forwarded-for as the fallback.
-// The middleware uses: request.ip ?? rightmost x-forwarded-for ?? 'unknown'
+// The middleware uses: x-real-ip ?? rightmost x-forwarded-for ?? null (skip if no IP)
 function makeRequest(path: string, ip = '1.2.3.4'): NextRequest {
   const url = `https://localhost:3000${path}`;
   return new NextRequest(url, {
