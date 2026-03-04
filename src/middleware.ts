@@ -45,7 +45,7 @@ function cleanup(now: number) {
   }
 }
 
-function rateLimitHeaders(entry: RateLimitEntry, limit: number, now: number): Record<string, string> {
+function rateLimitHeaders(entry: RateLimitEntry, limit: number): Record<string, string> {
   const remaining = Math.max(0, limit - entry.count);
   return {
     'X-RateLimit-Limit': String(limit),
@@ -84,7 +84,7 @@ export function middleware(request: NextRequest): NextResponse {
     const newEntry = { count: 1, resetTime: now + WINDOW_MS };
     _rateLimitMap.set(key, newEntry);
     const response = NextResponse.next();
-    for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, limit, now))) {
+    for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, limit))) {
       response.headers.set(h, v);
     }
     return response;
@@ -95,7 +95,7 @@ export function middleware(request: NextRequest): NextResponse {
   // is the first to be rejected (entry.count > limit).
   entry.count++;
 
-  const headers = rateLimitHeaders(entry, limit, now);
+  const headers = rateLimitHeaders(entry, limit);
 
   if (entry.count > limit) {
     const retryAfterSec = Math.ceil((entry.resetTime - now) / 1000);
