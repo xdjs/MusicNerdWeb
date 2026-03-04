@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// NOTE: This uses in-memory storage which resets on serverless cold starts and is
+// not shared across worker instances. This provides best-effort protection for a
+// low-traffic site. For stronger guarantees, swap to @upstash/ratelimit + @upstash/redis.
+
 const STRICT_PATHS = ['/api/funFacts', '/api/artistBio'];
 const MEDIUM_PATHS = ['/api/validateLink'];
 
@@ -11,19 +15,24 @@ function getTier(pathname: string): Tier {
   return 'default';
 }
 
+function envInt(name: string, fallback: number): number {
+  const val = Number(process.env[name]);
+  return Number.isFinite(val) && val > 0 ? val : fallback;
+}
+
 function getLimit(tier: Tier): number {
   switch (tier) {
     case 'strict':
-      return Number(process.env.RATE_LIMIT_STRICT) || 5;
+      return envInt('RATE_LIMIT_STRICT', 5);
     case 'medium':
-      return Number(process.env.RATE_LIMIT_MEDIUM) || 20;
+      return envInt('RATE_LIMIT_MEDIUM', 20);
     default:
-      return Number(process.env.RATE_LIMIT_DEFAULT) || 60;
+      return envInt('RATE_LIMIT_DEFAULT', 60);
   }
 }
 
 function getWindowMs(): number {
-  return Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000;
+  return envInt('RATE_LIMIT_WINDOW_MS', 60_000);
 }
 
 interface RateLimitEntry {
@@ -42,8 +51,23 @@ function cleanup(now: number) {
   }
 }
 
+function rateLimitHeaders(entry: RateLimitEntry, limit: number, now: number): Record<string, string> {
+  const remaining = Math.max(0, limit - entry.count);
+  const resetSec = Math.ceil((entry.resetTime - now) / 1000);
+  return {
+    'X-RateLimit-Limit': String(limit),
+    'X-RateLimit-Remaining': String(remaining),
+    'X-RateLimit-Reset': String(resetSec),
+  };
+}
+
 export function middleware(request: NextRequest): NextResponse {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  // x-real-ip is set by Vercel/nginx from the actual TCP connection, not spoofable.
+  // Fall back to rightmost x-forwarded-for (proxy-appended, not client-controlled).
+  const ip =
+    request.headers.get('x-real-ip') ??
+    request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
+    'unknown';
   const pathname = request.nextUrl.pathname;
   const now = Date.now();
   const windowMs = getWindowMs();
@@ -51,20 +75,30 @@ export function middleware(request: NextRequest): NextResponse {
   const limit = getLimit(tier);
   const key = `${ip}:${tier}`;
 
-  // Periodic cleanup every 100 requests
-  requestCount++;
-  if (requestCount % 100 === 0) {
+  // Periodic cleanup to prevent memory leaks
+  requestCount = (requestCount + 1) % 100;
+  if (requestCount === 0) {
     cleanup(now);
   }
 
   const entry = _rateLimitMap.get(key);
 
   if (!entry || now >= entry.resetTime) {
-    _rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
-    return NextResponse.next();
+    const newEntry = { count: 1, resetTime: now + windowMs };
+    _rateLimitMap.set(key, newEntry);
+    const response = NextResponse.next();
+    for (const [h, v] of Object.entries(rateLimitHeaders(newEntry, limit, now))) {
+      response.headers.set(h, v);
+    }
+    return response;
   }
 
+  // Count increments before the limit check: first request sets count=1 in the
+  // branch above, subsequent requests increment here. The (limit+1)th request
+  // is the first to be rejected (entry.count > limit).
   entry.count++;
+
+  const headers = rateLimitHeaders(entry, limit, now);
 
   if (entry.count > limit) {
     const retryAfterSec = Math.ceil((entry.resetTime - now) / 1000);
@@ -73,11 +107,16 @@ export function middleware(request: NextRequest): NextResponse {
       headers: {
         'Content-Type': 'application/json',
         'Retry-After': String(retryAfterSec),
+        ...headers,
       },
     });
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  for (const [h, v] of Object.entries(headers)) {
+    response.headers.set(h, v);
+  }
+  return response;
 }
 
 export const config = {
