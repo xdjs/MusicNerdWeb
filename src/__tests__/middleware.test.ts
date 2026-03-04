@@ -133,7 +133,11 @@ describe('middleware rate limiting', () => {
     expect(res.status).not.toBe(429);
     expect(res.headers.get('X-RateLimit-Limit')).toBe('60');
     expect(res.headers.get('X-RateLimit-Remaining')).toBe('59');
-    expect(Number(res.headers.get('X-RateLimit-Reset'))).toBeGreaterThan(0);
+    // X-RateLimit-Reset is a Unix timestamp (seconds since epoch)
+    const reset = Number(res.headers.get('X-RateLimit-Reset'));
+    const nowSec = Math.ceil(Date.now() / 1000);
+    expect(reset).toBeGreaterThanOrEqual(nowSec);
+    expect(reset).toBeLessThanOrEqual(nowSec + 60);
   });
 
   it('X-RateLimit-Remaining decrements correctly', async () => {

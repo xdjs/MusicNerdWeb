@@ -47,11 +47,10 @@ function cleanup(now: number) {
 
 function rateLimitHeaders(entry: RateLimitEntry, limit: number, now: number): Record<string, string> {
   const remaining = Math.max(0, limit - entry.count);
-  const resetSec = Math.ceil((entry.resetTime - now) / 1000);
   return {
     'X-RateLimit-Limit': String(limit),
     'X-RateLimit-Remaining': String(remaining),
-    'X-RateLimit-Reset': String(resetSec),
+    'X-RateLimit-Reset': String(Math.ceil(entry.resetTime / 1000)),
   };
 }
 
