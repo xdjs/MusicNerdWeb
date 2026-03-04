@@ -173,30 +173,4 @@ export async function getUgcStatsInRange(date: DateRange, wallet: string | null 
     } catch (e) {
         console.error("error getting ugc stats for user in range", e);
     }
-}
-
-// Debug function to check for duplicate users
-export async function checkForDuplicateUsers(): Promise<any[]> {
-    const start = performance.now();
-    try {
-        const result = await db.execute(sql`
-            SELECT 
-                wallet,
-                COUNT(*) as user_count,
-                ARRAY_AGG(id) as user_ids,
-                ARRAY_AGG(username) as usernames,
-                ARRAY_AGG(email) as emails
-            FROM users 
-            GROUP BY wallet 
-            HAVING COUNT(*) > 1
-            ORDER BY user_count DESC
-        `);
-        return result;
-    } catch (e) {
-        console.error("error checking for duplicate users", e);
-        return [];
-    } finally {
-        const end = performance.now();
-        console.debug(`[checkForDuplicateUsers] took ${end - start}ms`);
-    }
 } 
