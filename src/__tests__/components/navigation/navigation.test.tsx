@@ -21,9 +21,9 @@ jest.mock('next/navigation', () => ({
 }));
 
 // ── Child component mock ─────────────────────────────────────────────────────
-jest.mock('@/app/_components/nav/NavContent', () => () => (
-  <div data-testid="nav-content">NavContent</div>
-));
+jest.mock('@/app/_components/nav/NavContent', () => function MockNavContent() {
+  return <div data-testid="nav-content">NavContent</div>;
+});
 
 // ── Import after mocks ───────────────────────────────────────────────────────
 import Nav from '@/app/_components/nav';

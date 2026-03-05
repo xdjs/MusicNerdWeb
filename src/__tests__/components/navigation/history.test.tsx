@@ -25,13 +25,13 @@ jest.mock('next/link', () => {
 });
 
 // ── Child component mocks ────────────────────────────────────────────────────
-jest.mock('@/app/_components/nav/components/SearchBar', () => () => (
-  <div data-testid="search-bar" />
-));
+jest.mock('@/app/_components/nav/components/SearchBar', () => function MockSearchBar() {
+  return <div data-testid="search-bar" />;
+});
 
-jest.mock('@/app/_components/nav/components/AddArtist', () => () => (
-  <div data-testid="add-artist" />
-));
+jest.mock('@/app/_components/nav/components/AddArtist', () => function MockAddArtist() {
+  return <div data-testid="add-artist" />;
+});
 
 jest.mock('@/app/_components/nav/components/Login', () => {
   const React = require('react');

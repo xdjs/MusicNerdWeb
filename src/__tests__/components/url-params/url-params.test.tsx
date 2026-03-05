@@ -149,9 +149,9 @@ jest.mock('next/navigation', () => ({
   redirect: (...args) => mockRedirect(...args),
 }));
 
-jest.mock('@/app/add-artist/_components/AddArtistContent', () => () => (
-  <div data-testid="add-artist-content" />
-));
+jest.mock('@/app/add-artist/_components/AddArtistContent', () => function MockAddArtistContent() {
+  return <div data-testid="add-artist-content" />;
+});
 
 import AddArtistPage from '@/app/add-artist/page';
 
