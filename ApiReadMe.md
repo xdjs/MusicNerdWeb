@@ -140,13 +140,6 @@ Url Structure: `{baseurl}/api/{endpoint}`
  - Auth: N/A
  - Error: 404 if coverage data not found, 400 for unsupported format
 
-**test-log**
-
- - Type: GET, POST
- - Response: Test logging data
- - Auth: N/A
- - Note: Development/testing endpoint
-
 **Example Usage**
 ```javascript
 // Example for findTwitterHandle
