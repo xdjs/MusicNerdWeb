@@ -149,7 +149,8 @@ Required in `.env.local`:
 4. **Database First**: Most data operations go through Drizzle ORM queries
 5. **Type Safety**: Strict TypeScript usage throughout the codebase
 6. **Pre-Push Gate**: Before pushing any code to origin, run `npm run type-check && npm run lint && npm run test && npm run build` locally. All checks must pass and any failures must be fixed before pushing.
-7. **Environment Dependent**: Many features require proper env variable configuration
+7. **Branching Strategy**: If a `staging` branch exists in the repository, always create new branches from `staging` (not `main`) and open pull requests against `staging` (not `main`).
+8. **Environment Dependent**: Many features require proper env variable configuration
 
 ## Recent Development Focus
 Based on git history, recent work includes:
