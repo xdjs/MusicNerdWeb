@@ -213,6 +213,13 @@ describe('AddArtist', () => {
                     expect(screen.getByText('Check out Existing Artist')).toBeInTheDocument();
                 });
             });
+
+            it('does not call addArtist when URL fails regex extraction', async () => {
+                // The onSubmit function guards with a regex match before calling addArtist;
+                // passing an invalid URL string exercises that null-return path.
+                await openModalAndSubmit('https://notspotify.com/artist/123');
+                expect(mockAddArtist).not.toHaveBeenCalled();
+            });
         });
     });
 });

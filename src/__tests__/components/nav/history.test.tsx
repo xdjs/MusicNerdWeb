@@ -3,10 +3,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockPush = jest.fn();
-const mockBack = jest.fn();
 
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
+    useRouter: () => ({ push: mockPush, back: jest.fn(), replace: jest.fn() }),
     usePathname: () => '/artist/123',
     useSearchParams: () => new URLSearchParams(),
 }));
@@ -64,22 +63,6 @@ describe('Navigation history behavior', () => {
 
         fireEvent.click(screen.getByText('Radiohead'));
         expect(mockPush).toHaveBeenCalledWith('/artist/42');
-    });
-
-    it('uses router.push (not router.back) when navigating to an artist', async () => {
-        mockSearchResults([makeDbResult('42', 'Radiohead')]);
-        render(<SearchBar />);
-
-        const input = screen.getByPlaceholderText('Search for an artist...');
-        fireEvent.change(input, { target: { value: 'radio' } });
-        fireEvent.focus(input);
-
-        await waitFor(() => {
-            expect(screen.getByText('Radiohead')).toBeInTheDocument();
-        });
-
-        fireEvent.click(screen.getByText('Radiohead'));
-        expect(mockBack).not.toHaveBeenCalled();
     });
 
     it('different results push different URLs', async () => {

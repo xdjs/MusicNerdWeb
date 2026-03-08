@@ -162,10 +162,6 @@ describe('ArtistProfile page', () => {
 
     describe('generateMetadata', () => {
         it('returns correct title and description for an existing artist', async () => {
-            (getArtistById as jest.Mock).mockResolvedValue(mockArtist);
-            (getSpotifyHeaders as jest.Mock).mockResolvedValue(mockHeaders);
-            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImg);
-
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.title).toBe('Test Artist | Music Nerd');
             expect(metadata.description).toContain('Test Artist');
@@ -179,10 +175,6 @@ describe('ArtistProfile page', () => {
         });
 
         it('includes OpenGraph image from Spotify', async () => {
-            (getArtistById as jest.Mock).mockResolvedValue(mockArtist);
-            (getSpotifyHeaders as jest.Mock).mockResolvedValue(mockHeaders);
-            (getSpotifyImage as jest.Mock).mockResolvedValue(mockSpotifyImg);
-
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images?.[0]).toMatchObject({
                 url: 'https://img.spotify.com/artist.jpg',
