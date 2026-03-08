@@ -71,6 +71,22 @@ Key entities in the PostgreSQL database:
 - **Role-Based Access**: Admin and whitelist user roles
 - **Session Management**: JWT-based sessions with 30-day expiry
 
+## Rate Limiting Middleware
+API rate limiting is implemented in `src/middleware.ts` (in-memory, applied to all `/api/*` except `/api/auth/*`):
+- **Strict** (5 req/min): `/api/funFacts`, `/api/artistBio`
+- **Medium** (20 req/min): `/api/validateLink`
+- **Default** (60 req/min): all other API routes
+- Limits are configurable via `RATE_LIMIT_STRICT`, `RATE_LIMIT_MEDIUM`, `RATE_LIMIT_DEFAULT`, and `RATE_LIMIT_WINDOW_MS` env vars
+- In-memory storage resets on serverless cold starts and is not shared across workers — best-effort protection
+
+## Auth Guard Helpers
+`src/lib/auth-helpers.ts` provides reusable server-side guards for API routes:
+- `requireAuth()` — returns 401 if not authenticated
+- `requireAdmin()` — returns 401/403; does a real-time DB lookup to verify admin role
+- `requireWhitelistedOrAdmin()` — returns 401/403 for neither role
+
+Use these when writing new API endpoints that need auth/role checks.
+
 ## API Endpoints
 Key API routes in `src/app/api/`:
 - `/searchArtists` - Artist search with Spotify integration
@@ -82,6 +98,15 @@ Key API routes in `src/app/api/`:
 - `/auth/*` - Privy authentication routes
 - `/mcp/*` - MCP server for exposing artist data to AI assistants
 - `/user` - User profile and wallet operations
+
+### API Route Conventions
+- **Performance logging**: Routes wrap handler bodies in `performance.now()` and log duration via `console.debug`
+- **Timeout races**: AI routes use `Promise.race` with timeouts — `artistBio` 25s, `funFacts` 20s, `searchArtists` 12s
+- **In-memory caching**: `searchArtists` and `searchArtists/batch` use a 5-minute TTL cache (same serverless caveat as rate limiting)
+- **Error format**: Routes return `{ error: "message" }` (inconsistent in some older routes as `{ status, message }`)
+
+## Server Actions
+`src/app/actions/` contains Next.js Server Actions (all marked `"use server"`). These are thin wrappers — all business logic lives in `src/server/utils/queries/`.
 
 ## Development Workflow
 
@@ -109,9 +134,18 @@ Required in `.env.local`:
 - `SUPABASE_DB_CONNECTION` - PostgreSQL connection string
 - `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID/SECRET` - Spotify API credentials
 - `NEXTAUTH_URL/SECRET` - NextAuth configuration
-- `NEXT_PUBLIC_PRIVY_APP_ID` - Privy application ID
+- `NEXT_PUBLIC_PRIVY_APP_ID` / `PRIVY_APP_SECRET` - Privy client and server credentials
 - `OPENAI_API_KEY` - For AI features
 - `DISCORD_WEBHOOK_URL` - UGC notifications
+
+Optional:
+- `OPENAI_TIMEOUT_MS` (default 60000) / `OPENAI_MODEL` - OpenAI config overrides
+- `RATE_LIMIT_STRICT` / `RATE_LIMIT_MEDIUM` / `RATE_LIMIT_DEFAULT` / `RATE_LIMIT_WINDOW_MS` - Rate limit tuning
+- `NEXT_PUBLIC_ALLOWED_ORIGIN` (default `"*"`) - CORS origin for select API routes
+- `TIMEOUT_COUNT` (default 900s) - Discord UGC notification cooldown
+- `DISCORD_COVERAGE_URL` - Separate webhook for CI coverage reports
+
+Environment variables are validated via `src/env.ts` — review before adding new ones.
 
 ## Key Components
 
