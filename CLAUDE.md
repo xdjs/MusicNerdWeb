@@ -232,11 +232,18 @@ Environment variables are validated via `src/env.ts` — review before adding ne
 ## Git Workflow
 - **Branching**: Feature branches off `staging` → PR to `staging` → PR from `staging` to `main`
 - **Branch naming**: `username/feature-name` (e.g. `clt/new-endpoint`, `Piper/darkmode`)
-- **Never push directly to `main` or `staging`** — always use PRs
-- **Before pushing**: Run all checks and fix any failures before pushing:
+- **Commit messages**: Conventional commits — `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `revert:`
+- **PRs always target `staging`**, never `main` directly
+- **Before pushing**: Run all checks and fix any failures:
   ```bash
   npm run type-check && npm run lint && npm run test && npm run build
   ```
+  Note: `npm run test` works without `.env.local` (env vars fall back to `'test-value'` when `NODE_ENV=test`), but `npm run build` requires `.env.local` or the build will throw. If no `.env.local` exists, stub one with the minimum required vars:
+  ```bash
+  echo 'NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=stub\nNEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stub\nOPENAI_API_KEY=stub' > .env.local
+  ```
+  These three are the only vars that throw on missing values (see `src/env.ts`). All others default to `""`.
+- **CI**: GitHub Actions automatically runs the same checks (type-check → lint → test → build) on every push and PR
 
 ## Important Notes for Claude
 1. **Database First**: Most data operations go through Drizzle ORM queries. Import types from `@/server/db/DbTypes`, not from drizzle-orm directly.
