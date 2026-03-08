@@ -108,6 +108,70 @@ Key API routes in `src/app/api/`:
 ## Server Actions
 `src/app/actions/` contains Next.js Server Actions (all marked `"use server"`). These are thin wrappers — all business logic lives in `src/server/utils/queries/`.
 
+## Coding Conventions
+
+### Style
+- **Package manager**: `npm` (not bun/yarn/pnpm — ignore the `bun.lockb` file)
+- **Node version**: 20
+- **Indentation**: Mixed across the codebase (2 and 4 spaces). Match the file you're editing.
+- **Path alias**: `@/` → `src/`. Use `@/` for cross-module imports; relative paths for same-feature-folder imports.
+- **Env vars in server code**: Import from `@/env`, never use `process.env` directly. In test env (`NODE_ENV=test`), validation returns `'test-value'` so tests run without `.env.local`.
+
+### Components
+- Components are **Server Components by default** (Next.js App Router). Add `"use client"` as the first line when using hooks, event handlers, or browser APIs.
+- Server components call `getServerAuthSession()` from `@/server/auth`. Client components use `useSession()` from `next-auth/react`.
+- Use `cn()` from `@/lib/utils` for Tailwind class merging.
+
+### API Routes
+- Dynamic params are a `Promise` in Next.js 15: `{ params }: { params: Promise<{ id: string }> }` — always `await params`.
+- Add `export const dynamic = "force-dynamic"` to routes that read from the database, or Next.js may statically cache the response at build time.
+- Named exports for HTTP methods (`GET`, `POST`, etc.) — no default export.
+
+## Writing Tests
+Tests use Jest 30 with JSDOM. The test infrastructure has significant boilerplate — follow these patterns exactly.
+
+### API Route Test Template
+```typescript
+// @ts-nocheck
+import { jest } from '@jest/globals';
+
+// Mock dependencies BEFORE dynamic imports
+jest.mock('@/lib/auth-helpers', () => ({ requireAuth: jest.fn() }));
+jest.mock('@/server/utils/queries/someQueries', () => ({ myQuery: jest.fn() }));
+
+// Polyfill Response.json (JSDOM doesn't have it)
+if (!('json' in Response)) {
+  Response.json = (data, init) =>
+    new Response(JSON.stringify(data), {
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      status: init?.status || 200,
+    });
+}
+
+describe('GET /api/example', () => {
+  beforeEach(() => { jest.resetModules(); });
+
+  async function setup() {
+    const { requireAuth } = await import('@/lib/auth-helpers');
+    const { GET } = await import('../route');
+    return { GET, mockRequireAuth: requireAuth as jest.Mock };
+  }
+
+  // For dynamic routes, params must be a Promise:
+  // { params: Promise.resolve({ id: 'some-id' }) }
+});
+```
+
+### Key testing facts
+- **File location**: `__tests__/` subdirectory co-located with the file under test
+- **Global mocks** (already set up in `jest.setup.ts` — don't re-mock these):
+  - `@/server/db/drizzle` (db object with query.urlmap/artists/users/ugcresearch)
+  - `openai` (returns `'mocked response'`)
+  - `@/app/actions/serverActions` (all server actions)
+  - `next/router`, `next/navigation`, `global.fetch`, `window.matchMedia`
+- **`jest.resetModules()` + dynamic imports** are required for API route tests so mocks apply before the route module loads
+- **Test timeout**: 20 seconds
+
 ## Development Workflow
 
 ### Available Scripts
@@ -165,35 +229,13 @@ Environment variables are validated via `src/env.ts` — review before adding ne
 - `src/app/_components/nav/components/SearchBar.tsx` - Search interface
 - `src/app/api/searchArtists/route.ts` - Combined DB + Spotify search
 
-## Testing Strategy
-- **Unit Tests**: Component and utility testing with Jest
-- **API Tests**: Route handler testing
-- **Coverage**: Comprehensive test coverage reporting
-- **CI/CD**: GitHub Actions with automated testing
-
-## Code Quality Tools
-- **ESLint**: Code linting with Next.js config
-- **TypeScript**: Strict type checking
-- **Coverage Reports**: Jest coverage with Discord notifications
+## Git Workflow
+- **Branching**: Feature branches off `staging` → PR to `staging` → PR from `staging` to `main`
+- **Branch naming**: `username/feature-name` (e.g. `clt/new-endpoint`, `Piper/darkmode`)
+- **Never push directly to `main` or `staging`** — always use PRs
 
 ## Important Notes for Claude
-1. **Auth Context**: Email-first authentication via Privy; wallet linking is optional for legacy accounts
-2. **Role-Based Features**: Many features require admin or whitelist privileges
-3. **External Dependencies**: Heavy integration with Spotify API and OpenAI
-4. **Database First**: Most data operations go through Drizzle ORM queries
-5. **Type Safety**: Strict TypeScript usage throughout the codebase
-6. **Pre-Push Gate**: Before pushing any code to origin, run `npm run type-check && npm run lint && npm run test && npm run build` locally. All checks must pass and any failures must be fixed before pushing.
-7. **Environment Dependent**: Many features require proper env variable configuration
-
-## Recent Development Focus
-Based on git history, recent work includes:
-- Privy email-first authentication migration (replacing legacy Web3-only login)
-- Legacy account linking and wallet merge flow
-- MCP server for exposing artist data to AI assistants
-- SSR conversion and SEO improvements
-- Security vulnerability fixes
-
-## Commands to Run After Changes
-```bash
-npm run type-check && npm run lint && npm run test && npm run build
-```
+1. **Pre-Push Gate**: Before pushing any code to origin, run `npm run type-check && npm run lint && npm run test && npm run build` locally. All checks must pass and any failures must be fixed before pushing.
+2. **Database First**: Most data operations go through Drizzle ORM queries. Import types from `@/server/db/DbTypes`, not from drizzle-orm directly.
+3. **External Dependencies**: Heavy integration with Spotify API and OpenAI — these are mocked in tests.
+4. **ESLint**: Flat config (`eslint.config.mjs`). `@typescript-eslint/no-explicit-any` and `@typescript-eslint/ban-ts-comment` are warnings, not errors. Test files have these rules disabled entirely.
