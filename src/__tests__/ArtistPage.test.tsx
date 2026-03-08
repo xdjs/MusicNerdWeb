@@ -30,21 +30,21 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock('@/app/_components/ArtistLinks', () => () => <div data-testid="artist-links" />);
-jest.mock('@/app/_components/BookmarkButton', () => () => <div data-testid="bookmark-button" />);
+jest.mock('@/app/_components/ArtistLinks', () => function ArtistLinks() { return <div data-testid="artist-links" />; });
+jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
-    EditModeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
 }));
-jest.mock('@/app/_components/EditModeToggle', () => () => <button data-testid="edit-mode-toggle">Edit</button>);
-jest.mock('@/app/_components/AutoRefresh', () => () => null);
-jest.mock('@/app/artist/[id]/_components/BlurbSection', () => () => <div data-testid="blurb-section" />);
-jest.mock('@/app/artist/[id]/_components/AddArtistData', () => () => <div data-testid="add-artist-data" />);
-jest.mock('@/app/artist/[id]/_components/FunFactsMobile', () => () => <div data-testid="fun-facts-mobile" />);
-jest.mock('@/app/artist/[id]/_components/FunFactsDesktop', () => () => <div data-testid="fun-facts-desktop" />);
-jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => () => <div data-testid="grapevine-iframe" />);
-jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => () => null);
+jest.mock('@/app/_components/EditModeToggle', () => function EditModeToggle() { return <button data-testid="edit-mode-toggle">Edit</button>; });
+jest.mock('@/app/_components/AutoRefresh', () => function AutoRefresh() { return null; });
+jest.mock('@/app/artist/[id]/_components/BlurbSection', () => function BlurbSection() { return <div data-testid="blurb-section" />; });
+jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtistData() { return <div data-testid="add-artist-data" />; });
+jest.mock('@/app/artist/[id]/_components/FunFactsMobile', () => function FunFactsMobile() { return <div data-testid="fun-facts-mobile" />; });
+jest.mock('@/app/artist/[id]/_components/FunFactsDesktop', () => function FunFactsDesktop() { return <div data-testid="fun-facts-desktop" />; });
+jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
+jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 jest.mock('@radix-ui/react-aspect-ratio', () => ({
-    AspectRatio: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    AspectRatio: function AspectRatio({ children }: { children: React.ReactNode }) { return <div>{children}</div>; },
 }));
 
 import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';

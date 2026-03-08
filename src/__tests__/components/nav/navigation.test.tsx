@@ -10,11 +10,11 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock('@/app/_components/nav/components/SearchBar', () => () => <div data-testid="search-bar" />);
-jest.mock('@/app/_components/nav/components/AddArtist', () => () => <button data-testid="add-artist-button">+</button>);
-jest.mock('@/app/_components/nav/components/Login', () => () => <div data-testid="login-component" />);
+jest.mock('@/app/_components/nav/components/SearchBar', () => function SearchBar() { return <div data-testid="search-bar" />; });
+jest.mock('@/app/_components/nav/components/AddArtist', () => function AddArtist() { return <button data-testid="add-artist-button">+</button>; });
+jest.mock('@/app/_components/nav/components/Login', () => function Login() { return <div data-testid="login-component" />; });
 jest.mock('@/app/_components/ThemeToggle', () => ({
-    ThemeToggle: () => <button data-testid="theme-toggle" />,
+    ThemeToggle: function ThemeToggle() { return <button data-testid="theme-toggle" />; },
 }));
 jest.mock('next/link', () => {
     return function MockLink({ children, href, ...props }: any) {
