@@ -163,7 +163,7 @@ describe('GET /api/example', () => {
 ```
 
 ### Key testing facts
-- **File location**: `__tests__/` subdirectory co-located with the file under test
+- **File location**: API route tests go in `__tests__/` subdirectory co-located with the route (e.g. `src/app/api/user/[id]/__tests__/route.test.ts`). Shared utility tests go in `src/__tests__/` or `src/lib/__tests__/`.
 - **Global mocks** (already set up in `jest.setup.ts` — don't re-mock these):
   - `@/server/db/drizzle` (db object with query.urlmap/artists/users/ugcresearch)
   - `openai` (returns `'mocked response'`)
@@ -202,12 +202,14 @@ Required in `.env.local`:
 - `OPENAI_API_KEY` - For AI features
 - `DISCORD_WEBHOOK_URL` - UGC notifications
 
-Optional:
-- `OPENAI_TIMEOUT_MS` (default 60000) / `OPENAI_MODEL` - OpenAI config overrides
+Optional (in `.env.local`):
+- `OPENAI_TIMEOUT_MS` (default 60000ms) / `OPENAI_MODEL` - OpenAI config overrides
 - `RATE_LIMIT_STRICT` / `RATE_LIMIT_MEDIUM` / `RATE_LIMIT_DEFAULT` / `RATE_LIMIT_WINDOW_MS` - Rate limit tuning
-- `NEXT_PUBLIC_ALLOWED_ORIGIN` (default `"*"`) - CORS origin for select API routes
-- `TIMEOUT_COUNT` (default 900s) - Discord UGC notification cooldown
-- `DISCORD_COVERAGE_URL` - Separate webhook for CI coverage reports
+- `NEXT_PUBLIC_ALLOWED_ORIGIN` (default `"*"`) - CORS origin for select API routes (read via `process.env`, not `@/env`)
+- `TIMEOUT_COUNT` (default 900s) - Discord UGC notification cooldown (read via `process.env`, not `@/env`)
+
+CI-only (GitHub Actions secrets, not set locally):
+- `DISCORD_COVERAGE_URL` - Webhook for CI coverage reports
 
 Environment variables are validated via `src/env.ts` — review before adding new ones.
 
