@@ -233,9 +233,12 @@ Environment variables are validated via `src/env.ts` — review before adding ne
 - **Branching**: Feature branches off `staging` → PR to `staging` → PR from `staging` to `main`
 - **Branch naming**: `username/feature-name` (e.g. `clt/new-endpoint`, `Piper/darkmode`)
 - **Never push directly to `main` or `staging`** — always use PRs
+- **Before pushing**: Run all checks and fix any failures before pushing:
+  ```bash
+  npm run type-check && npm run lint && npm run test && npm run build
+  ```
 
 ## Important Notes for Claude
-1. **Pre-Push Gate**: Before pushing any code to origin, run `npm run type-check && npm run lint && npm run test && npm run build` locally. All checks must pass and any failures must be fixed before pushing.
-2. **Database First**: Most data operations go through Drizzle ORM queries. Import types from `@/server/db/DbTypes`, not from drizzle-orm directly.
-3. **External Dependencies**: Heavy integration with Spotify API and OpenAI — these are mocked in tests.
-4. **ESLint**: Flat config (`eslint.config.mjs`). `@typescript-eslint/no-explicit-any` and `@typescript-eslint/ban-ts-comment` are warnings, not errors. Test files have these rules disabled entirely.
+1. **Database First**: Most data operations go through Drizzle ORM queries. Import types from `@/server/db/DbTypes`, not from drizzle-orm directly.
+2. **External Dependencies**: Heavy integration with Spotify API and OpenAI — these are mocked in tests.
+3. **ESLint**: Flat config (`eslint.config.mjs`). `@typescript-eslint/no-explicit-any` and `@typescript-eslint/ban-ts-comment` are warnings, not errors. Test files have these rules disabled entirely.
