@@ -160,7 +160,7 @@ describe('AddArtist', () => {
         describe('Form submission', () => {
             async function openModalAndSubmit(spotifyUrl: string) {
                 render(<AddArtist />);
-                fireEvent.click(screen.getAllByRole('button')[0]);
+                fireEvent.click(screen.getByRole('button'));
                 // Trigger submit by calling the captured handleSubmit fn directly
                 await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
                 await capturedSubmitFn!({ artistSpotifyUrl: spotifyUrl });
