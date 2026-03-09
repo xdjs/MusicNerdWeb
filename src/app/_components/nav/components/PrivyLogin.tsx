@@ -137,7 +137,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
           if (!token) {
             // Final fallback: use Privy user ID directly (for test users that don't get tokens)
-            if (privyUser?.id) {
+            // This path is intentionally blocked in production — verifyPrivyToken returns null
+            // for privyid: prefixed tokens in production environments.
+            if (process.env.NODE_ENV !== 'production' && privyUser?.id) {
               if (isDev) {
                 console.log('[PrivyLogin] Using direct Privy ID fallback:', privyUser.id);
               }
@@ -146,7 +148,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               console.error('[PrivyLogin] Failed to get auth token after all retries');
               toast({
                 title: 'Login Error',
-                description: 'Failed to get authentication token. Please try again.',
+                description: process.env.NODE_ENV === 'production'
+                  ? 'Authentication temporarily unavailable, please refresh the page.'
+                  : 'Failed to get authentication token. Please try again.',
                 variant: 'destructive',
               });
               return;
