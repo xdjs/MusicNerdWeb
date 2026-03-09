@@ -100,6 +100,7 @@
     "esbuild": "^0.25.5",
     "drizzle-kit": {
       "esbuild": "^0.25.5"
-    }
+    },
+    "react-day-picker": "^9.4.4"
   }
 }
