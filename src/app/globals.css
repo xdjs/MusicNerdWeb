@@ -2,71 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-.scrollbar-hide {
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
-  scrollbar-width: none; /* Firefox */
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Safari and Chrome */
-}
+/* ============================================
+   RECXRD Design System - Sleek Dark Mode
+   ============================================ */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Dark mode as default - sleek, high-end aesthetic */
+    --background: 0 0% 4%; /* #0A0A0A */
+    --foreground: 0 0% 98%; /* Near white */
+    
+    --card: 0 0% 6%; /* Slightly lighter than bg */
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 0 0% 98%; /* White primary for dark bg */
+    --primary-foreground: 0 0% 4%;
+    
+    --secondary: 0 0% 12%; /* Dark gray */
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 18%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 40%;
+    
     --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --subtitle-color: rgb(89, 48, 97, 0.6);
+    
+    /* RECXRD brand colors */
+    --recxrd-glow: 210 100% 60%; /* Subtle blue glow for active states */
+    --recxrd-success: 142 76% 36%;
+    --recxrd-warning: 38 92% 50%;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --subtitle-color: rgb(198, 191, 199);
+  /* Light mode override (optional) */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 4%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 4%;
   }
 }
 
@@ -74,617 +81,269 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    color-scheme: dark;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Dark mode overrides for hard-coded black/white colors */
-.dark .text-black {
-  color: white !important;
-}
-
-/* Exception for theme toggle - keep black text in dark mode */
-.dark .theme-toggle-text {
-  color: black !important;
-}
-
-.dark .bg-white {
-  background-color: #1a1a1a !important; /* darker background instead of pure black */
-}
-
-.dark .bg-white\/80 {
-  background-color: rgba(26, 26, 26, 0.8) !important;
-}
-
-.dark .border-black {
-  border-color: #374151 !important; /* dark gray border instead of white */
-}
-
-.dark .text-white {
-  color: #f3f4f6 !important; /* slightly off-white for better readability */
-}
-
-
-
-/* Dark mode overrides for Leaderboard - consolidated */
-/* Note: Fun Facts buttons should keep the same border color in both modes */
-.dark .border-\[#9b83a0\]:not(.fun-facts-button) {
-  border-color: #6f4b75 !important;
-}
-
-.dark .border-\[#c6bfc7\] {
-  border-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-.dark .text-\[#6f4b75\] {
-  color: rgb(198, 191, 199, 0.8) !important;
-}
-
-.dark .text-muted-foreground {
-  color: white !important;
-}
-
-.dark .bg-\[#f3f4f6\] {
-  background-color: #1a1a1a !important;
-}
-
-.dark .text-\[#6f4b75\].bg-\[#f3f4f6\] {
-  color: rgb(198, 191, 220, 0.8) !important;
-}
-
-/* Dark mode override for Leaderboard column headings and numbers - use border color */
-.dark .text-\[#6f4b75\]:not(.bg-\[#f3f4f6\]) {
-  color: #9b83a0 !important;
-}
-
-.dark .text-\[#9b83a0\] {
-  color: #6f4b75 !important;
-}
-
-
-
-/* Dark mode override for home page subtitle text - but preserve the pink "Music Nerd" title */
-.dark .home-text-h2:not([style*="#ff9ce3"]) {
-  color: #a08ba8 !important;
-}
-
-/* Ensure the pink "Music Nerd" title stays pink in dark mode - more specific */
-.dark .home-text-h2[style*="#ff9ce3"], 
-.dark .home-text-h2[style*="color: #ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-/* Additional override to ensure pink color is preserved */
-.dark h2[style*="#ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-/* Force pink color for any element with #ff9ce3 in dark mode */
-.dark [style*="#ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-.dark [style*="#ff9ce3"] * {
-  color: #ff9ce3 !important;
-}
-
-/* Additional overrides to ensure Music Nerd text stays pink in all modes */
-.home-text-h2[style*="#ff9ce3"],
-.home-text-h2[style*="color: #ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-.dark .home-text-h2[style*="#ff9ce3"],
-.dark .home-text-h2[style*="color: #ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-/* Override any global text color changes for Music Nerd text */
-.home-text-h2[style*="#ff9ce3"] *,
-.home-text-h2[style*="color: #ff9ce3"] * {
-  color: #ff9ce3 !important;
-}
-
-.dark .home-text-h2[style*="#ff9ce3"] *,
-.dark .home-text-h2[style*="color: #ff9ce3"] * {
-  color: #ff9ce3 !important;
-}
-
-/* Force Music Nerd title text to stay pink regardless of any other CSS */
-.home-text-h2[style*="#ff9ce3"],
-.home-text-h2[style*="color: #ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-.dark .home-text-h2[style*="#ff9ce3"],
-.dark .home-text-h2[style*="color: #ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-/* Ensure subtitle text has the correct color in light mode */
-.home-text-h2:not([style*="#ff9ce3"]) {
-  color: #9b83a0 !important;
-}
-
-.dark .home-text-h2:not([style*="#ff9ce3"]) {
-  color: #a08ba8 !important;
-}
+/* ============================================
+   Glassmorphism & Effects
+   ============================================ */
 
-/* Ensure h2 elements within subtitle containers have the correct color */
-.home-text-h2:not([style*="#ff9ce3"]) h2 {
-  color: #9b83a0 !important;
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
 }
 
-.dark .home-text-h2:not([style*="#ff9ce3"]) h2 {
-  color: #a08ba8 !important;
+.glass-card {
+  @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-xl;
 }
 
-/* Force the first title (Music Nerd) to be pink in all modes */
-.home-text-h2:first-child {
-  color: #ff9ce3 !important;
+.glass-hover {
+  @apply transition-all duration-300 hover:bg-white/[0.08] hover:border-white/[0.15];
 }
 
-.dark .home-text-h2:first-child {
-  color: #ff9ce3 !important;
+.glow-border {
+  @apply border border-white/10;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
 }
 
-/* Ensure all h2 elements within the first home-text-h2 are pink */
-.home-text-h2:first-child h2 {
-  color: #ff9ce3 !important;
+.glow-border-active {
+  @apply border border-blue-500/50;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
 }
 
-.dark .home-text-h2:first-child h2 {
-  color: #ff9ce3 !important;
-}
-
-/* Additional specific override for Music Nerd text in dark mode */
-.dark .home-text-h2[style*="color: #ff9ce3"] h2 {
-  color: #ff9ce3 !important;
-}
-
-.dark .home-text-h2[style*="color: #ff9ce3"] h2 * {
-  color: #ff9ce3 !important;
-}
-
-/* Override any global text color changes for Music Nerd specifically */
-.dark .home-text-h2[style*="#ff9ce3"] {
-  color: #ff9ce3 !important;
-}
-
-.dark .home-text-h2[style*="#ff9ce3"] h2 {
-  color: #ff9ce3 !important;
-}
-
-/* Dark mode overrides for FunFacts components */
-.dark .bg-\[#9b83a0\] {
-  background-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-.dark .hover\:bg-\[#b8b1b9\]:hover {
-  background-color: rgb(111, 75, 117, 0.8) !important;
-}
-
-/* Dark mode overrides for UserEntriesTable components */
-.dark .bg-\[#c6bfc7\] {
-  background-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-.dark .text-\[#c6bfc7\] {
-  color: rgb(89, 48, 97, 0.6) !important;
-}
-
-.dark .hover\:text-\[#c6bfc7\]:hover {
-  color: rgb(89, 48, 97, 0.6) !important;
-}
-
-/* Dark mode overrides for Dashboard component */
-.dark .hover\:ring-\[#c6bfc7\]:hover {
-  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-.dark .focus\:ring-\[#c6bfc7\]:focus {
-  --tw-ring-color: rgb(89, 48, 97, 0.6) !important;
-}
-
-
-
-/* Dark mode override for "User Profile" heading */
-.dark h1.text-3xl.font-bold {
-  color: white !important;
-}
-
-/* Dark mode overrides for User Profile page text - more specific to avoid affecting home page */
-.dark [data-guest-user="true"] .text-black {
-  color: white !important;
-}
-
-.dark [data-guest-user="true"] p {
-  color: white !important;
-}
-
-.dark [data-guest-user="true"] span {
-  color: white !important;
-}
-
-.dark [data-guest-user="true"] div {
-  color: white !important;
-}
-
-.dark [data-guest-user="true"] h2, .dark [data-guest-user="true"] h3, .dark [data-guest-user="true"] h4, .dark [data-guest-user="true"] h5, .dark [data-guest-user="true"] h6 {
-  color: white !important;
-}
-
-/* Dark mode override for edit mode button - keep text and icons black */
-.dark button.bg-gray-200.text-foreground {
-  color: black !important;
-}
-
-.dark button.bg-gray-200.text-foreground svg {
-  color: black !important;
-}
-
-.dark .bg-black {
-  background-color: #1a1a1a !important; /* consistent dark background */
-}
+/* ============================================
+   Typography
+   ============================================ */
 
-/* Preserve specific brand colors in dark mode */
-.dark [style*="rgb(89, 48, 97, 0.6)"] {
-  color: #c6bfc7 !important;
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60;
 }
 
-.dark [style*="rgb(89, 48, 97, 0.6)"] * {
-  color: #c6bfc7 !important;
+.heading-xl {
+  @apply text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight;
 }
-
-
 
-/* Make footer text white in dark mode */
-.dark .text-maroon {
-  color: white !important;
+.heading-lg {
+  @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
 }
 
-/* Make "Ask Music Nerd about an artist" text match search placeholder color in dark mode */
-.dark .text-gray-500 {
-  color: #a0aec0 !important;
+.heading-md {
+  @apply text-xl md:text-2xl font-semibold tracking-tight;
 }
 
-/* Search bar dark mode styling */
-.dark .bg-gray-100 {
-  background-color: #2d3748 !important; /* slightly lighter dark gray for better contrast */
+.body-lg {
+  @apply text-lg text-muted-foreground leading-relaxed;
 }
 
-.dark .hover\:bg-gray-200:hover {
-  background-color: #4a5568 !important; /* medium gray on hover */
+.body-sm {
+  @apply text-sm text-muted-foreground;
 }
 
-.dark .text-black {
-  color: #f7fafc !important; /* bright white for better readability */
-}
+/* ============================================
+   Button Styles
+   ============================================ */
 
-/* Make search icon white in dark mode */
-.dark svg[stroke-width="2.5"] {
-  color: #f7fafc !important; /* bright white icon */
+.btn-primary {
+  @apply bg-white text-black font-medium px-6 py-3 rounded-lg 
+         transition-all duration-200 
+         hover:bg-white/90 hover:scale-[1.02]
+         active:scale-[0.98];
 }
 
-/* Make search input text white in dark mode */
-.dark input::placeholder {
-  color: #ffffff !important; /* white placeholder for better visibility */
+.btn-secondary {
+  @apply bg-white/10 text-white font-medium px-6 py-3 rounded-lg 
+         border border-white/10
+         transition-all duration-200 
+         hover:bg-white/15 hover:border-white/20;
 }
 
-.dark input {
-  color: #f7fafc !important; /* bright white text */
+.btn-ghost {
+  @apply text-muted-foreground font-medium px-4 py-2 rounded-lg 
+         transition-all duration-200 
+         hover:text-white hover:bg-white/5;
 }
 
-/* Keep red notification dots with white borders in dark mode */
-.dark .bg-red-600 {
-  border: 2px solid white !important;
-}
+/* ============================================
+   Card Styles
+   ============================================ */
 
-/* Add drop shadow to leaderboard card in dark mode */
-.dark .shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+.vault-card {
+  @apply bg-card border border-border rounded-xl p-6
+         transition-all duration-300
+         hover:border-white/20 hover:bg-white/[0.02];
 }
 
-/* Ensure pink highlighting takes precedence over other styles */
-.border-\[#ff9ce3\] {
-  border-color: #ff9ce3 !important;
+.source-card {
+  @apply glass-card p-5 space-y-3
+         transition-all duration-300
+         hover:border-white/15;
 }
 
-.shadow-\[0_0_20px_rgba\(255\,156\,227\,0\.3\)\] {
-  box-shadow: 0 0 20px rgba(255, 156, 227, 0.3) !important;
-}
+/* ============================================
+   Badge Styles
+   ============================================ */
 
-/* Make search results dropdown dark in dark mode */
-.dark .bg-white {
-  background-color: #2d3748 !important; /* consistent with search bar */
+.badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
 }
 
-.dark .hover\:bg-gray-100:hover {
-  background-color: #4a5568 !important; /* consistent hover state */
+.badge-pending {
+  @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
 }
 
-/* Login statistics button dark mode styling */
-.dark .bg-accent\/40 {
-  background-color: #2d3748 !important; /* consistent with search bar */
+.badge-approved {
+  @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
 }
 
-.dark .hover\:bg-accent\/60:hover {
-  background-color: #4a5568 !important; /* consistent hover state */
+.badge-interview {
+  @apply bg-blue-500/10 text-blue-400 border border-blue-500/20;
 }
 
-/* Make the login button text white in dark mode */
-.dark .bg-accent\/40 span {
-  color: #f7fafc !important; /* bright white text */
+.badge-review {
+  @apply bg-purple-500/10 text-purple-400 border border-purple-500/20;
 }
 
-/* Admin page dark mode styling */
-.dark .admin-page {
-  background-color: #1a1a1a !important;
-  color: #f7fafc !important;
+.badge-lore {
+  @apply bg-rose-500/10 text-rose-400 border border-rose-500/20;
 }
 
-.dark .admin-page h1,
-.dark .admin-page h2 {
-  color: #f7fafc !important;
-}
+/* ============================================
+   Form Elements
+   ============================================ */
 
-/* Ensure admin page text is properly visible in dark mode */
-.dark .admin-page .text-muted-foreground {
-  color: #a0aec0 !important;
+.input-dark {
+  @apply bg-white/5 border-white/10 text-white placeholder:text-white/40
+         focus:border-white/30 focus:ring-1 focus:ring-white/20
+         transition-all duration-200;
 }
 
-/* Admin page table styling in dark mode */
-.dark .admin-page .bg-card {
-  background-color: #2d3748 !important;
-}
+/* ============================================
+   Scrollbar
+   ============================================ */
 
-.dark .admin-page .border {
-  border-color: #4a5568 !important;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Admin page button styling in dark mode */
-.dark .admin-page .bg-background {
-  background-color: #1a1a1a !important;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-.dark .admin-page .text-foreground {
-  color: #f7fafc !important;
+/* Custom scrollbar for content areas */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
-.dark .admin-page .border-input {
-  border-color: #4a5568 !important;
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
 }
 
-.dark .admin-page .ring-ring {
-  --tw-ring-color: #4a5568 !important;
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Checkbox styling for light and dark modes */
-/* Light mode: pink checkbox when checked */
-[data-state="checked"] {
-  background-color: #ff9ce3 !important;
-  border-color: #ff9ce3 !important;
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
-/* Dark mode: light blue checkbox when checked */
-.dark [data-state="checked"] {
-  background-color: #2ad4fc !important;
-  border-color: #2ad4fc !important;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Ensure checkbox text (checkmark) is white for good contrast */
-[data-state="checked"] .text-primary-foreground {
-  color: white !important;
-}
+/* ============================================
+   Animations
+   ============================================ */
 
-.dark [data-state="checked"] .text-primary-foreground {
-  color: white !important;
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Theme toggle dark mode styling */
-.dark .theme-toggle-text {
-  color: white !important;
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Ensure dark mode moon icon is blue */
-.dark .theme-toggle-text ~ div svg {
-  color: #2ad4fc !important;
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.2); }
 }
 
-.text-color-primary {
-  color: #EDADF8;
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: white;
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.dark body {
-  background: #1a1a1a; /* consistent dark background */
-}
+/* Staggered animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* ============================================
+   Layout Utilities
+   ============================================ */
 
-.search-bar {
-  border-radius: 5px;
+.container-narrow {
+  @apply max-w-4xl mx-auto px-4 sm:px-6;
 }
 
-.koho-extralight {
-  font-family: "KoHo", sans-serif;
-  font-weight: 200;
-  font-style: normal;
+.container-wide {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-.koho-light {
-  font-family: "KoHo", sans-serif;
-  font-weight: 300;
-  font-style: normal;
-}
+/* ============================================
+   RECXRD Specific Components
+   ============================================ */
 
-.pink-btn {
-  background-color: #EDADF8;
-  color: #422B46;
-  font-family: "KoHo", sans-serif;
-  border-radius: 5px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 30px;
-  padding-right: 30px;
-  font-size: 18px;
+.nav-link {
+  @apply text-muted-foreground hover:text-white transition-colors duration-200;
 }
-
 
-.nav-grid {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+.vault-header {
+  @apply flex items-center justify-between pb-4 border-b border-border;
 }
 
-.link-item-grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center; /* Vertically center the items */
+.vault-grid {
+  @apply grid gap-4;
 }
 
-
-.home-text {
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 0px;
-  padding-bottom: 24px;
+.source-url {
+  @apply text-xs text-muted-foreground truncate hover:text-white transition-colors;
 }
 
-.home-text-h2 {
-  font-size: clamp(28px, calc(28px + (78 - 28) * ((100vw - 360px) / (1440 - 360))), 70px);
-  letter-spacing: clamp(-1px, calc(-1px + (-3 - -1) * ((100vw - 360px) / (1440 - 360))), -3px);
-  line-height: clamp(36px, calc(36px + (78 - 36) * ((100vw - 360px) / (1440 - 360))), 70px);
+.triage-actions {
+  @apply flex items-center gap-3 pt-3 border-t border-border/50;
 }
 
-.home-text-height {
-  max-height: clamp(36px, calc(36px + (78 - 36) * ((100vw - 360px) / (1440 - 360))), 70px);
-}
+/* ============================================
+   Legacy Compatibility (minimal)
+   ============================================ */
 
 .SearchBar {
   max-width: 30rem;
   flex-grow: 1;
 }
 
-@media screen and (max-width: 768px) {
-  .nav-bar {
-    padding-left: 18px;
-    padding-right: 18px;
-    column-gap: 10px;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
-
-  .home-text {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  .nav-grid {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .pink-btn {
-    font-size: 16px;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-
-  .nav-grid .SearchBar {
-    font-size: 16px;
-    grid-column: span 2;
-    grid-row-start: 2;
-  }
-}
-
-@keyframes scroll-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@keyframes scroll-right {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(50%); }
-}
-
-.animate-scroll-left {
-  animation: scroll-left 20s linear infinite;
-}
-
-.animate-scroll-right {
-  animation: scroll-right 20s linear infinite;
-}
-
-.navbar {
-  @apply flex justify-between items-center w-full p-4 bg-gray-800;
-}
-
-.logo {
-  @apply h-10;
-}
-
-.search-bar {
-  @apply p-2 border rounded;
-}
-
-.login-button {
-  @apply p-2 bg-purple-600 text-white rounded;
-}
-
-.artist-name {
-  @apply text-4xl text-purple-500;
-}
-
-.artist-details {
-  @apply my-2;
-}
-
-.wiki-link {
-  @apply text-blue-600;
-}
-
-.image {
-  @apply rounded-lg;
-}
-
-@keyframes slow-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-slow-spin {
-  animation: slow-spin 10s linear infinite;
-}
-
-.support-button, .sound-button, .world-button {
-  @apply m-2 p-2 bg-green-500 text-white rounded;
-}
-
-.add-support {
-  @apply mt-8;
-}
-
-.support-input {
-  @apply p-2 border rounded w-64;
-}
-
-.play-button {
-  @apply p-4 bg-pink-500 text-white rounded;
-}
-
-.scroll-text {
-  @apply mt-4 text-gray-600;
 }

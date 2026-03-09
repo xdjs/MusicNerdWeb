@@ -2,33 +2,35 @@
 
 import Link from "next/link"
 import SearchBar from "./components/SearchBar"
-import AddArtist from "./components/AddArtist";
-import Login from "./components/Login";
-import { ThemeToggle } from "@/app/_components/ThemeToggle";
 import { Suspense } from "react";
 
 export default function NavContent() {
     return (
-        <nav className="w-full p-6 nav-bar flex items-center justify-between max-w-[1000px] mx-auto">
-            <div className="flex gap-2">
-                <Link href={"/"}>
-                    <img
-                        src="/icon.ico"
-                        className="w-16 hover:animate-[spin_3s_linear_infinite]"
-                        alt="logo"
-                    />
-                </Link>
-            </div>
+        <nav className="w-full px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
+            {/* Logo / Brand */}
+            <Link href="/" className="flex items-center gap-2 group">
+                <span className="text-2xl font-bold tracking-tight text-white">
+                    RECXRD
+                </span>
+            </Link>
 
-            <div className="flex items-center justify-center gap-2 flex-grow">
-                <Suspense>
+            {/* Search Bar */}
+            <div className="flex-1 max-w-md mx-8">
+                <Suspense fallback={
+                    <div className="h-10 bg-white/5 rounded-lg animate-pulse" />
+                }>
                     <SearchBar />
                 </Suspense>
-                <AddArtist />
             </div>
-            <div className="flex gap-2 items-center">
-                <ThemeToggle />
-                <Login buttonStyles="" />
+
+            {/* Right side actions */}
+            <div className="flex items-center gap-4">
+                <Link 
+                    href="/prototype/dashboard" 
+                    className="text-sm text-muted-foreground hover:text-white transition-colors"
+                >
+                    Artist Demo
+                </Link>
             </div>
         </nav>
     )

@@ -5,8 +5,7 @@ import { useDebounce } from 'use-debounce';
 import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
-import { Input } from '@/components/ui/input';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from "next-auth/react";
 import { useLogin } from "@privy-io/react-auth";
@@ -35,13 +34,14 @@ interface SearchResult extends Artist {
 
 interface SearchBarProps {
     isTopSide?: boolean;
+    autoFocus?: boolean;
 }
 
 const PENDING_ADD_KEY = 'pendingAddArtistSpotifyId';
 const PENDING_ADD_TS_KEY = 'pendingAddArtistTimestamp';
-const PENDING_ADD_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const PENDING_ADD_TTL_MS = 5 * 60 * 1000;
 
-function SearchBarInner({ isTopSide = false }: SearchBarProps) {
+function SearchBarInner({ isTopSide = false, autoFocus = false }: SearchBarProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [query, setQuery] = useState('');
@@ -49,6 +49,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const [debouncedQuery] = useDebounce(query, 200);
     const searchParams = useSearchParams();
     const resultsContainer = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const search = searchParams.get('search');
     const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const { data: session } = useSession();
@@ -83,7 +84,6 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         }
     }, [router, toast]);
 
-    // After login + page reload, complete the pending add-artist flow
     useEffect(() => {
         if (!session) return;
         const pendingId = sessionStorage.getItem(PENDING_ADD_KEY);
@@ -93,7 +93,6 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         sessionStorage.removeItem(PENDING_ADD_KEY);
         sessionStorage.removeItem(PENDING_ADD_TS_KEY);
 
-        // Discard stale pending adds (e.g. user dismissed login, logged in later)
         if (Date.now() - timestamp > PENDING_ADD_TTL_MS) return;
 
         handleAddArtist(pendingId);
@@ -102,6 +101,30 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     useEffect(() => {
         setQuery(search ?? '');
     }, [search]);
+
+    // Auto-focus functionality
+    useEffect(() => {
+        if (autoFocus && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [autoFocus]);
+
+    // Expose focus method for external triggers
+    const focusInput = useCallback(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    // Make focus method available globally for homepage CTA
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            (window as unknown as { focusSearchBar?: () => void }).focusSearchBar = focusInput;
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                delete (window as unknown as { focusSearchBar?: () => void }).focusSearchBar;
+            }
+        };
+    }, [focusInput]);
 
     const { data: results = [], isLoading } = useQuery<SearchResult[]>({
         queryKey: ['searchArtists', debouncedQuery],
@@ -186,24 +209,32 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     };
 
     return (
-        <div className="relative w-full max-w-[400px]">
+        <div className="relative w-full">
+            {/* Search Input */}
             <div className="relative">
-                <Input
+                <input
+                    ref={inputRef}
                     type="text"
-                    placeholder="Search for an artist..."
+                    placeholder="Search artists..."
                     value={query}
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     onFocus={handleFocus}
-                    className="pl-10"
+                    className="w-full h-10 pl-10 pr-4 bg-white/5 border border-white/10 rounded-lg
+                               text-white placeholder:text-white/40
+                               focus:outline-none focus:border-white/25 focus:bg-white/[0.07]
+                               transition-all duration-200"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             </div>
 
+            {/* Results Dropdown */}
             {showResults && results.length > 0 && (
                 <div
                     ref={resultsContainer}
-                    className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
+                    className="absolute w-full mt-2 bg-card border border-border rounded-xl 
+                               shadow-2xl shadow-black/50 max-h-96 overflow-y-auto z-50
+                               animate-fade-in"
                 >
                     {results.map((result) => {
                         const spotifyImage = result.images?.[0]?.url;
@@ -215,66 +246,64 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                                 key={result.isSpotifyOnly ? `spotify-${result.spotify}` : result.id}
                                 disabled={isThisAdding}
                                 onClick={() => handleResultClick(result)}
-                                className={`w-full p-3 flex items-center gap-3 text-left disabled:opacity-50 ${
-                                    result.isSpotifyOnly
-                                        ? 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                                className={`w-full p-3 flex items-center gap-3 text-left 
+                                           transition-colors duration-150
+                                           disabled:opacity-50 
+                                           hover:bg-white/5 
+                                           border-b border-border/50 last:border-b-0`}
                             >
-                                <div className="flex items-center justify-center w-10 h-10">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                {/* Avatar */}
+                                <div className="flex-shrink-0">
                                     <img
                                         src={spotifyImage || "/default_pfp_pink.png"}
                                         alt={result.name ?? "Artist"}
-                                        className={`object-cover rounded-full ${result.isSpotifyOnly ? 'w-8 h-8' : 'w-10 h-10'}`}
+                                        className={`object-cover rounded-full ${
+                                            result.isSpotifyOnly ? 'w-8 h-8 opacity-70' : 'w-10 h-10'
+                                        }`}
                                     />
                                 </div>
-                                <div className="flex-1">
-                                    <div className={`font-medium ${result.isSpotifyOnly ? 'text-sm text-gray-500 dark:text-gray-400' : 'text-base text-gray-900 dark:text-white'}`}>
+                                
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                    <div className={`font-medium truncate ${
+                                        result.isSpotifyOnly 
+                                            ? 'text-sm text-white/60' 
+                                            : 'text-white'
+                                    }`}>
                                         {result.name}
                                     </div>
+                                    
                                     {result.isSpotifyOnly && result.spotify ? (
-                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                            <span className="hover:text-gray-600 hover:underline">
-                                                {isThisAdding ? 'Adding...' : 'Add to MusicNerd'}
+                                        <div className="flex items-center gap-2 text-xs text-white/40 mt-0.5">
+                                            <span className="flex items-center gap-1">
+                                                <Plus size={10} />
+                                                {isThisAdding ? 'Adding...' : 'Add to archive'}
                                             </span>
-                                            <span className="text-pink-400">|</span>
+                                            <span className="text-white/20">|</span>
                                             <a
                                                 href={`https://open.spotify.com/artist/${result.spotify}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-600 hover:underline"
+                                                className="flex items-center gap-1 hover:text-white/60 transition-colors"
                                             >
-                                                <span>View on Spotify</span>
-                                                <ExternalLink size={12} className="text-gray-500" />
+                                                <span>Spotify</span>
+                                                <ExternalLink size={10} />
                                             </a>
                                         </div>
                                     ) : hasSocialLinks && (
                                         <div className="flex items-center gap-2 mt-1">
                                             {result.bandcamp && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3.5 h-3.5 opacity-70" />
+                                                <img src="/siteIcons/bandcamp_icon.svg" alt="Bandcamp" className="w-3 h-3 opacity-50" />
                                             )}
                                             {(result.youtube || result.youtubechannel) && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3.5 h-3.5 opacity-70" />
+                                                <img src="/siteIcons/youtube_icon.svg" alt="YouTube" className="w-3 h-3 opacity-50" />
                                             )}
                                             {result.instagram && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/instagram-svgrepo-com.svg" alt="Instagram" className="w-3.5 h-3.5 opacity-70" />
+                                                <img src="/siteIcons/instagram-svgrepo-com.svg" alt="Instagram" className="w-3 h-3 opacity-50" />
                                             )}
                                             {result.x && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/x_icon.svg" alt="X" className="w-3.5 h-3.5 opacity-70" />
-                                            )}
-                                            {result.facebook && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/facebook_icon.svg" alt="Facebook" className="w-3.5 h-3.5 opacity-70" />
-                                            )}
-                                            {result.tiktok && (
-                                                /* eslint-disable-next-line @next/next/no-img-element */
-                                                <img src="/siteIcons/tiktok_icon.svg" alt="TikTok" className="w-3.5 h-3.5 opacity-70" />
+                                                <img src="/siteIcons/x_icon.svg" alt="X" className="w-3 h-3 opacity-50" />
                                             )}
                                         </div>
                                     )}
@@ -285,9 +314,10 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                 </div>
             )}
 
+            {/* Loading State */}
             {isLoading && (
-                <div className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center z-50">
-                    <div className="text-gray-600 dark:text-gray-400">Searching...</div>
+                <div className="absolute w-full mt-2 bg-card border border-border rounded-xl p-4 text-center z-50">
+                    <div className="text-white/40 text-sm">Searching...</div>
                 </div>
             )}
         </div>
