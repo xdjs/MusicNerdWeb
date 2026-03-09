@@ -2,8 +2,6 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getSpotifyHeaders, getSpotifyArtist } from '@/server/utils/queries/externalApiQueries';
-import { getUserById, getUserDisplayName } from '@/server/utils/queries/userQueries';
-import { sendDiscordMessage } from '@/server/utils/queries/discord';
 import { addArtist as dbAddArtist, type AddArtistResp } from "@/server/utils/queries/artistQueries";
 
 export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
@@ -29,14 +27,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
             return { status: "error", message: "Invalid artist data received from Spotify" };
         }
 
-        // Get user data if we have a session
-        const user = session?.user?.id ? await getUserById(session.user.id) : null;
-
         const result = await dbAddArtist(spotifyId);
-
-        if (result.status === "success" && user) {
-            await sendDiscordMessage(`${getUserDisplayName(user)} added new artist named: ${result.artistName} (Submitted SpotifyId: ${spotifyId})`);
-        }
 
         return result;
     } catch (e) {

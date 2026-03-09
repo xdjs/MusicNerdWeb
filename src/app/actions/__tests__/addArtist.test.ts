@@ -7,14 +7,6 @@ jest.mock('@/server/utils/queries/externalApiQueries', () => ({
   getSpotifyArtist: jest.fn(),
 }));
 
-jest.mock('@/server/utils/queries/userQueries', () => ({
-  getUserById: jest.fn(),
-}));
-
-jest.mock('@/server/utils/queries/discord', () => ({
-  sendDiscordMessage: jest.fn(),
-}));
-
 jest.mock('@/server/utils/queries/artistQueries', () => ({
   addArtist: jest.fn(),
 }));
