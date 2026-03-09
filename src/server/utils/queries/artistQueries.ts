@@ -617,6 +617,57 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     }
 }
 
+// Whitelist of allowed platform column names that can be nulled via removeArtistData.
+// Derived from the artists table schema — only platform/social columns are included.
+// System columns (id, name, lcname, addedBy, createdAt, updatedAt, bio, etc.) are intentionally excluded.
+const ALLOWED_PLATFORM_COLUMNS = new Set([
+    "bandcamp",
+    "facebook",
+    "x",
+    "soundcloud",
+    "patreon",
+    "instagram",
+    "youtube",
+    "youtubechannel",
+    "spotify",
+    "twitch",
+    "imdb",
+    "musicbrainz",
+    "wikidata",
+    "mixcloud",
+    "facebookID",
+    "discogs",
+    "tiktok",
+    "tiktokID",
+    "jaxsta",
+    "famousbirthdays",
+    "songexploder",
+    "colorsxstudios",
+    "bandsintown",
+    "linktree",
+    "onlyfans",
+    "wikipedia",
+    "audius",
+    "zora",
+    "catalog",
+    "opensea",
+    "foundation",
+    "lastfm",
+    "linkedin",
+    "soundxyz",
+    "mirror",
+    "glassnode",
+    "spotifyusername",
+    "bandcampfan",
+    "tellie",
+    "lens",
+    "cameo",
+    "farcaster",
+    "supercollector",
+    "wallets",
+    "ens",
+]);
+
 export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
     const session = await getServerAuthSession();
     if (!session) {
@@ -632,6 +683,9 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 
     try {
         const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
+        if (!ALLOWED_PLATFORM_COLUMNS.has(columnName)) {
+            return { status: "error", message: "Invalid platform column" };
+        }
         if (columnName === "wallets" || columnName === "wallet") {
             await db.execute(sql`
                 UPDATE artists
