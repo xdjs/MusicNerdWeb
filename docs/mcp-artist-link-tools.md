@@ -144,7 +144,9 @@ npm run db:push       # Push to dev DB (or db:migrate)
 Keys are provisioned manually via SQL until an admin tool is built (future story). To create a key for an agent:
 
 ```bash
-# Generate a random API key
+# Generate a random API key (hex-only output, safe for SQL interpolation)
+# WARNING: Do not adapt this template for non-hex key formats without using
+# parameterized queries — direct string interpolation would be an injection risk.
 export MCP_KEY=$(openssl rand -hex 32)
 echo "Store this key securely — it cannot be retrieved later: $MCP_KEY"
 
@@ -180,11 +182,18 @@ The logic for writing a link value to the `artists` table (column sanitization, 
 
 ### New Code
 
-**File: `src/server/utils/queries/artistLinkService.ts`** (new file)
+**File: `src/server/utils/artistLinkService.ts`** (new file, alongside existing `services.ts`)
 
 ```typescript
 // Constants
 export const BIO_RELEVANT_COLUMNS = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
+
+// System columns that must never be written by link helpers, regardless of
+// what urlmap contains. Belt-and-suspenders guard against misconfiguration.
+const SYSTEM_COLUMNS = new Set([
+  "id", "name", "lcname", "bio", "addedBy", "createdAt", "updatedAt",
+  "legacyId", "webmapdata", "nodePfp", "notes", "collectsNFTs",
+]);
 
 // Sanitize a siteName to a safe SQL column identifier
 export function sanitizeColumnName(siteName: string): string {
@@ -194,8 +203,7 @@ export function sanitizeColumnName(siteName: string): string {
 // Set a platform link on an artist record.
 // Handles ens and generic text columns.
 // Triggers bio regeneration for prompt-relevant columns.
-// NOTE: wallets are excluded — they use array_append and require
-// a different calling convention. Callers handle wallets directly.
+// Throws if siteName is a system column, wallets, or value is empty.
 export async function setArtistLink(
   artistId: string,
   siteName: string,
@@ -205,22 +213,26 @@ export async function setArtistLink(
 // Clear (null out) a platform link on an artist record.
 // Handles generic text columns only.
 // Triggers bio regeneration for prompt-relevant columns.
-// NOTE: wallets are excluded — the existing removeArtistData wallets
-// path has a known bug (passes artistId instead of wallet address to
-// array_remove). Wallets clearing is out of scope for this refactor.
+// Throws if siteName is a system column or wallets.
 export async function clearArtistLink(
   artistId: string,
   siteName: string
 ): Promise<void>
 ```
 
+Both helpers throw immediately if:
+- `siteName` is in `SYSTEM_COLUMNS` (prevents accidental writes to `id`, `name`, `bio`, etc.)
+- `siteName` is `wallets` or `wallet` (excluded from scope — see below)
+- (`setArtistLink` only) `value` is empty/falsy — the helper is safe by construction and does not rely on callers to validate
+
 The implementation is extracted from the existing `approveUGC()` and `removeArtistData()` write logic, with these improvements:
 
 1. **Remove youtube normalization from the helper** — Phase 1A guarantees `extractArtistId()` returns storage-ready values. The helper trusts its input.
 2. **Single `BIO_RELEVANT_COLUMNS` constant** — replaces two separate inline arrays.
 3. **`sanitizeColumnName()` exported** — can be unit tested independently.
-4. **Wallets excluded from both helpers** — `setArtistLink` throws if `siteName` is `wallets` or `wallet`; `clearArtistLink` does the same. The existing wallets code paths in `approveUGC()` and `removeArtistData()` remain inline and unchanged. This avoids embedding the pre-existing `array_remove` bug into shared infrastructure.
-5. **`extractArtistId` result validated** — callers must verify that the returned `id` is non-empty before passing to `setArtistLink`, since edge cases in `services.ts` can produce an object with an empty `id` even when the regex matches.
+4. **Wallets excluded from both helpers** — both throw if `siteName` is `wallets` or `wallet`. The existing wallets code paths in `approveUGC()` and `removeArtistData()` remain inline and unchanged. This avoids embedding the pre-existing `array_remove` bug into shared infrastructure.
+5. **System column denylist** — both helpers throw if `siteName` resolves to a system column (`id`, `name`, `bio`, etc.). This is a belt-and-suspenders guard independent of caller-side validation, preventing accidental writes even if urlmap is misconfigured.
+6. **Empty value guard** — `setArtistLink` throws if `value` is empty/falsy. The helper is safe by construction; callers do not need to pre-validate.
 
 ### Modifications to Existing Code
 
@@ -231,8 +243,6 @@ The implementation is extracted from the existing `approveUGC()` and `removeArti
    if (siteName === "wallets" || siteName === "wallet") {
      // Wallets stay inline — array_append logic unchanged
      await db.execute(sql`...`);
-   } else if (siteName === "ens") {
-     await setArtistLink(artistId, siteName, artistUrlOrId);
    } else {
      await setArtistLink(artistId, siteName, artistUrlOrId);
    }
@@ -254,7 +264,7 @@ The implementation is extracted from the existing `approveUGC()` and `removeArti
 
 ### Tests (TDD)
 
-**File: `src/server/utils/queries/__tests__/artistLinkService.test.ts`** (new file)
+**File: `src/server/utils/__tests__/artistLinkService.test.ts`** (new file)
 
 Write tests **before** implementation:
 
@@ -267,10 +277,13 @@ Write tests **before** implementation:
 | 5 | `setArtistLink` — triggers bio regeneration for prompt-relevant column (instagram) |
 | 6 | `setArtistLink` — does NOT trigger bio regeneration for non-relevant column (tiktok) |
 | 7 | `setArtistLink` — throws for wallets siteName (excluded from scope) |
-| 8 | `clearArtistLink` — nulls a generic text column |
-| 9 | `clearArtistLink` — triggers bio regeneration for prompt-relevant column |
-| 10 | `clearArtistLink` — does NOT trigger bio regeneration for non-relevant column |
-| 11 | `clearArtistLink` — throws for wallets siteName (excluded from scope) |
+| 8 | `setArtistLink` — throws for system column siteName (e.g., `name`, `id`, `bio`) |
+| 9 | `setArtistLink` — throws for empty value |
+| 10 | `clearArtistLink` — nulls a generic text column |
+| 11 | `clearArtistLink` — triggers bio regeneration for prompt-relevant column |
+| 12 | `clearArtistLink` — does NOT trigger bio regeneration for non-relevant column |
+| 13 | `clearArtistLink` — throws for wallets siteName (excluded from scope) |
+| 14 | `clearArtistLink` — throws for system column siteName |
 
 ### Acceptance Tests
 
@@ -278,7 +291,7 @@ All automated. Run: `npm run test`
 
 | # | Test | Validates |
 |---|------|-----------|
-| AT-1 | `artistLinkService.test.ts` — all 11 cases green | New helpers work correctly |
+| AT-1 | `artistLinkService.test.ts` — all 14 cases green | New helpers work correctly |
 | AT-2 | `removeArtistData.test.ts` — existing tests pass unchanged | `removeArtistData` refactor didn't break behavior |
 | AT-3 | `removeArtistData route.test.ts` — existing tests pass unchanged | API layer unaffected |
 | AT-4 | `services.test.ts` — all pass | No regression |
@@ -353,20 +366,24 @@ All automated. Run: `npm run test`
 
 **File: `src/app/api/mcp/server.ts`**
 
-Register two new tools:
+Register two new tools. Add a comment block at the top of the tool registration section:
+```typescript
+// CONVENTION: All mutating tools MUST call requireMcpAuth() as their first
+// operation before any DB work. Read-only tools do not require auth.
+```
 
 #### `set_artist_link`
 
 - **Input:** `artistId` (UUID), `url` (string)
 - **Requires auth:** Yes (validated via request context)
+- **Note:** The platform is inferred from the URL via `extractArtistId()` first-match semantics against urlmap regexes. Agents do not specify a platform name — it is determined automatically. If a URL could theoretically match multiple platforms, the first urlmap match wins.
 - **Flow:**
   1. Validate `artistId` exists in `artists` table
   2. Call `extractArtistId(url)` — returns `{ siteName, id }` or null
   3. If null or `id` is empty/falsy, return error: "URL does not match any approved platform"
   4. Read current value of `artist[siteName]` (for audit `oldValue`)
-  5. Call `setArtistLink(artistId, siteName, id)`
-  6. Write to `mcp_audit_log`: action=`set`, field=siteName, submittedUrl=url, oldValue, newValue=id, apiKeyHash from context
-  7. Return success with siteName, extracted ID, and old value
+  5. In a single DB transaction: call `setArtistLink(artistId, siteName, id)` and write to `mcp_audit_log` (action=`set`, field=siteName, submittedUrl=url, oldValue, newValue=id, apiKeyHash from context). This ensures the audit trail is never missing if the artist record was updated.
+  6. Return success with siteName, extracted ID, and old value
 
 #### `delete_artist_link`
 
@@ -377,9 +394,8 @@ Register two new tools:
   2. Validate `siteName` exists in `urlmap` table
   3. Read current value of `artist[siteName]` (for audit `oldValue`)
   4. If current value is already null, return error: "Link is not set"
-  5. Call `clearArtistLink(artistId, siteName)`
-  6. Write to `mcp_audit_log`: action=`delete`, field=siteName, oldValue, apiKeyHash from context
-  7. Return success with siteName and old value
+  5. In a single DB transaction: call `clearArtistLink(artistId, siteName)` and write to `mcp_audit_log` (action=`delete`, field=siteName, oldValue, apiKeyHash from context).
+  6. Return success with siteName and old value
 
 ### Auth Context Threading
 
@@ -442,6 +458,8 @@ export async function logMcpAudit(entry: {
 
 Simple insert into `mcp_audit_log`.
 
+> **Implementation note:** The `oldValue` in audit log entries is a best-effort snapshot read before the write. It is not protected by a `SELECT ... FOR UPDATE` lock, so concurrent updates could result in a stale `oldValue`. This is acceptable for audit purposes — the audit log records what the system believed the old value was at read time, not a transactionally-guaranteed history.
+
 ### Tests (TDD)
 
 **File: `src/app/api/mcp/__tests__/set-artist-link.test.ts`** (new file)
@@ -482,6 +500,7 @@ Simple insert into `mcp_audit_log`.
 |---|-----------|
 | 1 | `requireMcpAuth` returns apiKeyHash when context is set |
 | 2 | `requireMcpAuth` throws when context is not set |
+| 3 | `requireMcpAuth` context survives async hops (verify with `await`ed async function inside `mcpRequestContext.run()`) |
 
 ### Acceptance Tests
 
@@ -492,7 +511,7 @@ All automated. Run: `npm run test`
 | AT-1 | `set-artist-link.test.ts` — all 8 cases green | set tool works |
 | AT-2 | `delete-artist-link.test.ts` — all 7 cases green | delete tool works |
 | AT-3 | `audit.test.ts` — all 2 cases green | Audit logging works |
-| AT-4 | `request-context.test.ts` — all 2 cases green | Auth context threading works |
+| AT-4 | `request-context.test.ts` — all 3 cases green | Auth context threading works |
 | AT-5 | `transformers.test.ts` — existing MCP tests pass | No regression on read-only tools |
 | AT-6 | Full test suite: `npm run test` | Full regression |
 | AT-7 | CI gate: `npm run type-check && npm run lint && npm run test && npm run build` | Full CI |
@@ -507,7 +526,7 @@ All automated. Run: `npm run test`
 
 ### Changes
 
-1. **Update `CLAUDE.md`** — document new MCP tools, new tables, API key provisioning instructions.
+1. **Update `CLAUDE.md`** — document new MCP tools, new tables, API key provisioning instructions. Note that MCP API keys are managed via SQL (no env var, nothing to add to `src/env.ts`).
 2. **Manual E2E validation** against dev server.
 
 ### Acceptance Tests
@@ -539,8 +558,8 @@ All automated. Run: `npm run test`
 
 | File | Phase |
 |------|-------|
-| `src/server/utils/queries/artistLinkService.ts` | 2A |
-| `src/server/utils/queries/__tests__/artistLinkService.test.ts` | 2A |
+| `src/server/utils/artistLinkService.ts` | 2A |
+| `src/server/utils/__tests__/artistLinkService.test.ts` | 2A |
 | `src/app/api/mcp/auth.ts` | 2B |
 | `src/app/api/mcp/__tests__/auth.test.ts` | 2B |
 | `src/app/api/mcp/request-context.ts` | 3 |
