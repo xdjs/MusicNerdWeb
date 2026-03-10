@@ -41,7 +41,7 @@ Phase 1B ──────────┤                       ├──> Phas
 ## Phase 1A: Refactor `extractArtistId()` to Return Storage-Ready Values
 
 **Branch:** `refactor/extract-artist-id-storage-ready`
-**PR target:** `feature/mcp-artist-link-tools` (long-lived feature branch off `main`)
+**PR target:** `staging`
 
 ### Problem
 
@@ -51,10 +51,10 @@ Phase 1B ──────────┤                       ├──> Phas
 
 **File: `src/server/utils/services.ts`**
 
-1. In the `youtubechannel` block (lines 110-125): change `@` prefix logic — return plain username without `@`:
+1. In the `youtubechannel` block (the `if (siteName === 'youtubechannel')` branch): change `@` prefix logic — return plain username without `@`:
    - `id: atUsername.startsWith('@') ? atUsername.substring(1) : atUsername` (instead of adding `@`)
    - Same for `plainUsername`
-2. In the `youtube` block (lines 129-154): same change — return plain username without `@`.
+2. In the `youtube` block (the `if (siteName === 'youtube')` branch): same change — return plain username without `@`.
 3. No other platforms are affected.
 
 **File: `src/server/utils/__tests__/services.test.ts`**
@@ -71,7 +71,7 @@ This file is client-side. It calls `extractArtistId` indirectly via `addArtistDa
 
 **File: `src/server/utils/queries/artistQueries.ts`**
 
-The `approveUGC()` youtube normalization (lines 449-464) now becomes a no-op since `extractArtistId` already returns the storage-ready value. However, **do not remove that code in this phase** — leave it in place as a defensive passthrough. It will be removed in Phase 2A when we extract `setArtistLink()`.
+The `approveUGC()` youtube normalization (the `if (siteName === "youtube")` branch inside `approveUGC`) now becomes a no-op since `extractArtistId` already returns the storage-ready value. However, **do not remove that code in this phase** — leave it in place as a defensive passthrough. It will be removed in Phase 2A when we extract `setArtistLink()`.
 
 ### Acceptance Tests
 
@@ -92,7 +92,7 @@ All automated. Run: `npm run test`
 ## Phase 1B: Schema Changes (New Tables)
 
 **Branch:** `feature/mcp-schema`
-**PR target:** `feature/mcp-artist-link-tools`
+**PR target:** `staging`
 
 ### New Tables
 
@@ -139,6 +139,24 @@ npm run db:generate   # Generate migration
 npm run db:push       # Push to dev DB (or db:migrate)
 ```
 
+### API Key Provisioning
+
+Keys are provisioned manually via SQL until an admin tool is built (future story). To create a key for an agent:
+
+```bash
+# Generate a random API key
+export MCP_KEY=$(openssl rand -hex 32)
+echo "Store this key securely — it cannot be retrieved later: $MCP_KEY"
+
+# Insert the hashed key into the database
+echo "INSERT INTO mcp_api_keys (key_hash, label) VALUES (encode(sha256('$MCP_KEY'::bytea), 'hex'), 'agent-name-here');" | psql $SUPABASE_DB_CONNECTION
+```
+
+To revoke a key:
+```sql
+UPDATE mcp_api_keys SET revoked_at = now() WHERE label = 'agent-name-here';
+```
+
 ### Acceptance Tests
 
 | # | Test | Type |
@@ -153,12 +171,12 @@ npm run db:push       # Push to dev DB (or db:migrate)
 ## Phase 2A: Extract `setArtistLink()` and `clearArtistLink()` Helpers
 
 **Branch:** `refactor/artist-link-helpers`
-**PR target:** `feature/mcp-artist-link-tools`
+**PR target:** `staging`
 **Depends on:** Phase 1A merged
 
 ### Problem
 
-The logic for writing a link value to the `artists` table (column sanitization, wallets/ens special cases, bio regeneration) is duplicated across `approveUGC()` and `removeArtistData()`. Both also maintain separate copies of the `promptRelevantColumns` array.
+The logic for writing a link value to the `artists` table (column sanitization, special cases, bio regeneration) is duplicated across `approveUGC()` and `removeArtistData()`. Both also maintain separate copies of the `promptRelevantColumns` array.
 
 ### New Code
 
@@ -174,8 +192,10 @@ export function sanitizeColumnName(siteName: string): string {
 }
 
 // Set a platform link on an artist record.
-// Handles wallets (array_append), ens, and generic text columns.
+// Handles ens and generic text columns.
 // Triggers bio regeneration for prompt-relevant columns.
+// NOTE: wallets are excluded — they use array_append and require
+// a different calling convention. Callers handle wallets directly.
 export async function setArtistLink(
   artistId: string,
   siteName: string,
@@ -183,35 +203,54 @@ export async function setArtistLink(
 ): Promise<void>
 
 // Clear (null out) a platform link on an artist record.
-// Handles wallets (array_remove) and generic text columns.
+// Handles generic text columns only.
 // Triggers bio regeneration for prompt-relevant columns.
+// NOTE: wallets are excluded — the existing removeArtistData wallets
+// path has a known bug (passes artistId instead of wallet address to
+// array_remove). Wallets clearing is out of scope for this refactor.
 export async function clearArtistLink(
   artistId: string,
   siteName: string
 ): Promise<void>
 ```
 
-The implementation is extracted verbatim from the existing `approveUGC()` write logic (lines 428-488) and `removeArtistData()` write logic (lines 633-648), with these improvements:
+The implementation is extracted from the existing `approveUGC()` and `removeArtistData()` write logic, with these improvements:
 
 1. **Remove youtube normalization from the helper** — Phase 1A guarantees `extractArtistId()` returns storage-ready values. The helper trusts its input.
 2. **Single `BIO_RELEVANT_COLUMNS` constant** — replaces two separate inline arrays.
 3. **`sanitizeColumnName()` exported** — can be unit tested independently.
+4. **Wallets excluded from both helpers** — `setArtistLink` throws if `siteName` is `wallets` or `wallet`; `clearArtistLink` does the same. The existing wallets code paths in `approveUGC()` and `removeArtistData()` remain inline and unchanged. This avoids embedding the pre-existing `array_remove` bug into shared infrastructure.
+5. **`extractArtistId` result validated** — callers must verify that the returned `id` is non-empty before passing to `setArtistLink`, since edge cases in `services.ts` can produce an object with an empty `id` even when the regex matches.
 
 ### Modifications to Existing Code
 
 **File: `src/server/utils/queries/artistQueries.ts`**
 
-1. **`approveUGC()`**: Remove lines 427-488 (column sanitization, youtube normalization, the SQL UPDATE, bio regen). Replace with:
+1. **`approveUGC()`**: Replace the column sanitization, youtube normalization, and generic SQL UPDATE/bio regen with:
    ```typescript
-   await setArtistLink(artistId, siteName, artistUrlOrId);
+   if (siteName === "wallets" || siteName === "wallet") {
+     // Wallets stay inline — array_append logic unchanged
+     await db.execute(sql`...`);
+   } else if (siteName === "ens") {
+     await setArtistLink(artistId, siteName, artistUrlOrId);
+   } else {
+     await setArtistLink(artistId, siteName, artistUrlOrId);
+   }
    await db.update(ugcresearch).set({ accepted: true }).where(eq(ugcresearch.id, ugcId));
    ```
 
-2. **`removeArtistData()`**: Remove lines 633-648 (column sanitization, SQL UPDATE, bio regen). Replace with:
+2. **`removeArtistData()`**: Replace the column sanitization, SQL UPDATE, and bio regen with:
    ```typescript
-   await clearArtistLink(artistId, siteName);
+   if (columnName === "wallets" || columnName === "wallet") {
+     // Wallets stay inline — existing code unchanged (has known bug, out of scope)
+     await db.execute(sql`...`);
+   } else {
+     await clearArtistLink(artistId, siteName);
+   }
    ```
    Keep the auth check and UGC comment as-is.
+
+> **Note for reviewers:** The previous `removeArtistData()` used an inline allowlist (`ALLOWED_PLATFORM_COLUMNS`) as a safeguard against arbitrary column writes. This is intentionally not carried into `clearArtistLink()` because the MCP `delete_artist_link` tool validates `siteName` against the `urlmap` table before calling the helper, and the UGC path validates via `extractArtistId()`. The urlmap-based validation is more maintainable than a hardcoded allowlist.
 
 ### Tests (TDD)
 
@@ -224,14 +263,14 @@ Write tests **before** implementation:
 | 1 | `sanitizeColumnName` strips non-alphanumeric/underscore characters |
 | 2 | `sanitizeColumnName` passes through clean names unchanged |
 | 3 | `setArtistLink` — sets a generic text column (e.g., instagram) via `sql.identifier` |
-| 4 | `setArtistLink` — appends to wallets array, avoids duplicates |
-| 5 | `setArtistLink` — sets ens directly |
-| 6 | `setArtistLink` — triggers bio regeneration for prompt-relevant column (instagram) |
-| 7 | `setArtistLink` — does NOT trigger bio regeneration for non-relevant column (tiktok) |
+| 4 | `setArtistLink` — sets ens directly |
+| 5 | `setArtistLink` — triggers bio regeneration for prompt-relevant column (instagram) |
+| 6 | `setArtistLink` — does NOT trigger bio regeneration for non-relevant column (tiktok) |
+| 7 | `setArtistLink` — throws for wallets siteName (excluded from scope) |
 | 8 | `clearArtistLink` — nulls a generic text column |
-| 9 | `clearArtistLink` — handles wallets (array_remove) |
-| 10 | `clearArtistLink` — triggers bio regeneration for prompt-relevant column |
-| 11 | `clearArtistLink` — does NOT trigger bio regeneration for non-relevant column |
+| 9 | `clearArtistLink` — triggers bio regeneration for prompt-relevant column |
+| 10 | `clearArtistLink` — does NOT trigger bio regeneration for non-relevant column |
+| 11 | `clearArtistLink` — throws for wallets siteName (excluded from scope) |
 
 ### Acceptance Tests
 
@@ -252,7 +291,7 @@ All automated. Run: `npm run test`
 ## Phase 2B: MCP Auth Helper
 
 **Branch:** `feature/mcp-auth`
-**PR target:** `feature/mcp-artist-link-tools`
+**PR target:** `staging`
 **Depends on:** Phase 1B merged (needs `mcp_api_keys` table)
 
 ### New Code
@@ -275,7 +314,8 @@ Implementation:
 2. Parse `Bearer <key>` format.
 3. SHA-256 hash the key.
 4. Look up hash in `mcp_api_keys` where `revoked_at IS NULL`.
-5. Return the hash string on success (for audit logging), or `null`.
+5. Compare using `crypto.timingSafeEqual(Buffer.from(storedHash), Buffer.from(computedHash))` to prevent timing attacks.
+6. Return the hash string on success (for audit logging), or `null`.
 
 ### Tests (TDD)
 
@@ -306,7 +346,7 @@ All automated. Run: `npm run test`
 ## Phase 3: MCP Tools (`set_artist_link`, `delete_artist_link`)
 
 **Branch:** `feature/mcp-link-tools`
-**PR target:** `feature/mcp-artist-link-tools`
+**PR target:** `staging`
 **Depends on:** Phase 2A and Phase 2B merged
 
 ### Changes
@@ -322,7 +362,7 @@ Register two new tools:
 - **Flow:**
   1. Validate `artistId` exists in `artists` table
   2. Call `extractArtistId(url)` — returns `{ siteName, id }` or null
-  3. If null, return error: "URL does not match any approved platform"
+  3. If null or `id` is empty/falsy, return error: "URL does not match any approved platform"
   4. Read current value of `artist[siteName]` (for audit `oldValue`)
   5. Call `setArtistLink(artistId, siteName, id)`
   6. Write to `mcp_audit_log`: action=`set`, field=siteName, submittedUrl=url, oldValue, newValue=id, apiKeyHash from context
@@ -364,11 +404,12 @@ export const mcpRequestContext = new AsyncLocalStorage<McpRequestContext>();
 **File: `src/app/api/mcp/route.ts`** (modified)
 
 In the `POST` handler, before calling `handleMcpRequest`:
-1. Call `validateMcpApiKey(req)`
-2. If null, return 401 JSON-RPC error
-3. Wrap `handleMcpRequest(req)` in `mcpRequestContext.run({ apiKeyHash }, ...)`
+1. If `Authorization` header is present, call `validateMcpApiKey(req)` and store the result
+2. Wrap `handleMcpRequest(req)` in `mcpRequestContext.run({ apiKeyHash }, ...)` if auth succeeded, or run without context if no header was provided
 
-Read-only tools (`search_artists`, `get_artist`) remain accessible without auth — the auth gate only applies when a tool handler calls `mcpRequestContext.getStore()`. Alternatively, we can make auth mandatory for all POST requests. **Decision: make auth optional at the route level; individual tools that require auth call a helper that reads from AsyncLocalStorage and throws if not present.** This preserves backward compatibility for read-only tools.
+Read-only tools (`search_artists`, `get_artist`) remain accessible without auth — the auth gate only applies when a tool handler calls `requireMcpAuth()` from AsyncLocalStorage. **Decision: auth is optional at the route level; individual write tools call `requireMcpAuth()` which throws if no valid auth context is present.** This preserves backward compatibility for read-only tools.
+
+**Rate limiting:** `/api/mcp` currently falls into the default tier (60 req/min). Since write tools are authenticated and intended for internal agents, the default tier is acceptable for now. If abuse becomes a concern, add `/api/mcp` to `MEDIUM_PATHS` in `middleware.ts`.
 
 **File: `src/app/api/mcp/auth.ts`** (modified)
 
@@ -409,11 +450,12 @@ Simple insert into `mcp_audit_log`.
 |---|-----------|
 | 1 | Returns error when artist ID does not exist |
 | 2 | Returns error when URL does not match any platform |
-| 3 | Sets instagram link for artist — calls `setArtistLink` with correct args |
-| 4 | Sets wikipedia link — validates against urlmap regex |
-| 5 | Returns old value when overwriting existing link |
-| 6 | Writes audit log entry with correct fields |
-| 7 | Returns error when no auth context (unauthenticated) |
+| 3 | Returns error when extractArtistId returns object with empty id |
+| 4 | Sets instagram link for artist — calls `setArtistLink` with correct args |
+| 5 | Sets wikipedia link — validates against urlmap regex |
+| 6 | Returns old value when overwriting existing link |
+| 7 | Writes audit log entry with correct fields |
+| 8 | Returns error when no auth context (unauthenticated) |
 
 **File: `src/app/api/mcp/__tests__/delete-artist-link.test.ts`** (new file)
 
@@ -447,7 +489,7 @@ All automated. Run: `npm run test`
 
 | # | Test | Validates |
 |---|------|-----------|
-| AT-1 | `set-artist-link.test.ts` — all 7 cases green | set tool works |
+| AT-1 | `set-artist-link.test.ts` — all 8 cases green | set tool works |
 | AT-2 | `delete-artist-link.test.ts` — all 7 cases green | delete tool works |
 | AT-3 | `audit.test.ts` — all 2 cases green | Audit logging works |
 | AT-4 | `request-context.test.ts` — all 2 cases green | Auth context threading works |
@@ -457,17 +499,16 @@ All automated. Run: `npm run test`
 
 ---
 
-## Phase 4: Integration and Final Validation
+## Phase 4: Final Validation and Documentation
 
-**Branch:** `feature/mcp-artist-link-tools` (the long-lived feature branch)
-**PR target:** `main`
-**Depends on:** All previous phases merged into the feature branch
+**Branch:** `docs/mcp-tools-claude-md`
+**PR target:** `staging`
+**Depends on:** Phase 3 merged
 
 ### Changes
 
-1. **Wire auth into `route.ts`** — wrap POST handler with `mcpRequestContext.run()` if Authorization header is present.
-2. **Update `CLAUDE.md`** — document new MCP tools, new env vars (if any), new tables.
-3. **Verify all read-only tools still work without auth** (backward compatibility).
+1. **Update `CLAUDE.md`** — document new MCP tools, new tables, API key provisioning instructions.
+2. **Manual E2E validation** against dev server.
 
 ### Acceptance Tests
 
@@ -491,8 +532,8 @@ All automated. Run: `npm run test`
 | 1B | Add `mcp_api_keys` + `mcp_audit_log` schema | — | 1A |
 | 2A | Extract `setArtistLink` / `clearArtistLink` | 1A | 2B |
 | 2B | MCP auth helper | 1B | 2A |
-| 3 | MCP tools + audit + request context | 2A, 2B | — |
-| 4 | Integration wiring + final validation | 3 | — |
+| 3 | MCP tools + audit + auth wiring + request context | 2A, 2B | — |
+| 4 | Documentation + manual E2E validation | 3 | — |
 
 ### Files Created
 
@@ -518,5 +559,5 @@ All automated. Run: `npm run test`
 | `src/server/db/schema.ts` | 1B | Add two new tables |
 | `src/server/utils/queries/artistQueries.ts` | 2A | Slim down `approveUGC()` and `removeArtistData()` |
 | `src/app/api/mcp/server.ts` | 3 | Register `set_artist_link` and `delete_artist_link` |
-| `src/app/api/mcp/route.ts` | 3, 4 | Thread auth context via AsyncLocalStorage |
-| `CLAUDE.md` | 4 | Document new tools and tables |
+| `src/app/api/mcp/route.ts` | 3 | Thread auth context via AsyncLocalStorage |
+| `CLAUDE.md` | 4 | Document new tools, tables, and provisioning |
