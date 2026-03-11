@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { openai } from "@/server/lib/openai";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { db } from "@/server/db/drizzle";
-import { artists } from "@/server/db/schema";
+import { artists, aiprompts } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
 import { OPENAI_TIMEOUT_MS, OPENAI_MODEL } from "@/env";
@@ -127,4 +127,56 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     }
     return NextResponse.json({ error: "Failed to generate bio" }, { status: 500 });
   }
+}
+
+// ----------------------------------
+// Prompt helpers
+// ----------------------------------
+
+export async function getActivePrompt() {
+    return await db.query.aiprompts.findFirst({ where: eq(aiprompts.isActive, true) });
+}
+
+export async function setActivePrompt() {
+    // TODO: implement if necessary
+}
+
+// Helper to (re)generate an artist bio immediately using OpenAI and store it
+export async function generateArtistBio(artistId: string): Promise<string | null> {
+    try {
+        const artist = await getArtistById(artistId);
+        if (!artist) return null;
+        const promptRow = await getActivePrompt();
+        if (!promptRow) return null;
+
+        const promptParts: string[] = [promptRow.promptBeforeName ?? "", artist.name ?? "", promptRow.promptAfterName ?? ""];
+        if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
+        if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
+        if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
+        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+        if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
+        if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
+        promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "You are an artifical intelligence whose sole purpose is to follow the provided prompt." +
+                        promptParts.join("\n"),
+                },
+            ],
+            temperature: 0.8,
+        });
+        const bio = completion.choices[0]?.message?.content?.trim() ?? "";
+        if (bio) {
+            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+        }
+        return bio;
+    } catch (e) {
+        console.error("[generateArtistBio] Error generating bio", e);
+        return null;
+    }
 }

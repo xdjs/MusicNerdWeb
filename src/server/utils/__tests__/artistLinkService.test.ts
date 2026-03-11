@@ -2,7 +2,7 @@
 import { jest } from "@jest/globals";
 
 // Mock generateArtistBio before any dynamic imports
-jest.mock("@/server/utils/queries/artistQueries", () => ({
+jest.mock("@/server/utils/queries/artistBioQuery", () => ({
   generateArtistBio: jest.fn().mockResolvedValue("mocked bio"),
 }));
 
@@ -16,7 +16,7 @@ describe("artistLinkService", () => {
     db.execute = jest.fn().mockResolvedValue([]);
     // Mock artist existence check - return a found artist by default
     (db as any).query.artists.findFirst = jest.fn().mockResolvedValue({ id: "artist-123" });
-    const { generateArtistBio } = await import("@/server/utils/queries/artistQueries");
+    const { generateArtistBio } = await import("@/server/utils/queries/artistBioQuery");
     const { setArtistLink, clearArtistLink, sanitizeColumnName, BIO_RELEVANT_COLUMNS } = await import("../artistLinkService");
     return { db, setArtistLink, clearArtistLink, sanitizeColumnName, BIO_RELEVANT_COLUMNS, generateArtistBio };
   }
@@ -34,19 +34,21 @@ describe("artistLinkService", () => {
     expect(sanitizeColumnName("youtube_channel")).toBe("youtube_channel");
   });
 
-  // 3. setArtistLink sets a generic text column
+  // 3. setArtistLink sets a generic text column and returns oldValue
   it("setArtistLink sets a generic text column via sql.identifier", async () => {
     const { db, setArtistLink } = await setup();
-    await setArtistLink("artist-123", "instagram", "testuser");
+    const result = await setArtistLink("artist-123", "instagram", "testuser");
     expect(db.execute).toHaveBeenCalled();
+    expect(result).toEqual({ oldValue: null });
   });
 
   // 4. setArtistLink sets ens directly
   it("setArtistLink sets ens directly", async () => {
     const { db, setArtistLink, generateArtistBio } = await setup();
-    await setArtistLink("artist-123", "ens", "vitalik.eth");
+    const result = await setArtistLink("artist-123", "ens", "vitalik.eth");
     expect(db.execute).toHaveBeenCalledTimes(1);
     expect(generateArtistBio).not.toHaveBeenCalled();
+    expect(result).toEqual({ oldValue: null });
   });
 
   // 5. setArtistLink triggers bio regen for prompt-relevant column
@@ -85,11 +87,12 @@ describe("artistLinkService", () => {
     await expect(setArtistLink("artist-123", "instagram", "")).rejects.toThrow("Value must not be empty");
   });
 
-  // 10. clearArtistLink nulls a generic text column
+  // 10. clearArtistLink nulls a generic text column and returns oldValue
   it("clearArtistLink nulls a generic text column", async () => {
     const { db, clearArtistLink } = await setup();
-    await clearArtistLink("artist-123", "instagram");
+    const result = await clearArtistLink("artist-123", "instagram");
     expect(db.execute).toHaveBeenCalled();
+    expect(result).toEqual({ oldValue: null });
   });
 
   // 11. clearArtistLink triggers bio regen for prompt-relevant column
@@ -138,5 +141,21 @@ describe("artistLinkService", () => {
     const { db, clearArtistLink } = await setup();
     (db as any).query.artists.findFirst.mockResolvedValue(null);
     await expect(clearArtistLink("nonexistent-id", "instagram")).rejects.toThrow("Artist not found");
+  });
+
+  // 18. setArtistLink returns old value when column has existing data
+  it("setArtistLink returns old value when overwriting", async () => {
+    const { db, setArtistLink } = await setup();
+    (db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-123", instagram: "old-user" });
+    const result = await setArtistLink("artist-123", "instagram", "new-user");
+    expect(result).toEqual({ oldValue: "old-user" });
+  });
+
+  // 19. clearArtistLink returns old value when column has existing data
+  it("clearArtistLink returns old value when clearing", async () => {
+    const { db, clearArtistLink } = await setup();
+    (db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-123", x: "old-handle" });
+    const result = await clearArtistLink("artist-123", "x");
+    expect(result).toEqual({ oldValue: "old-handle" });
   });
 });

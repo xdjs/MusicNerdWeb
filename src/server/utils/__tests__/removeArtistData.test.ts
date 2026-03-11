@@ -82,4 +82,16 @@ describe('removeArtistData', () => {
     expect(resp.status).toBe('success');
     expect(clearArtistLink).toHaveBeenCalledWith(ARTIST_ID, SITE_NAME);
   });
-}); 
+
+  it('returns error for invalid platform column', async () => {
+    (getServerAuthSession as any).mockResolvedValue({ user: { id: 'user-2' } });
+    (db.query.users.findFirst as jest.Mock).mockImplementation(async () => ({ isWhiteListed: true, isAdmin: false }));
+
+    const { clearArtistLink: mockClear } = require('@/server/utils/artistLinkService');
+    mockClear.mockRejectedValue(new Error('Column not in writable whitelist: unknown_platform'));
+
+    const resp = await removeArtistData(ARTIST_ID, 'unknown_platform');
+    expect(resp.status).toBe('error');
+    expect(resp.message).toBe('Invalid platform column');
+  });
+});

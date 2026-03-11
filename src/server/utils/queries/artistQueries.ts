@@ -1,18 +1,18 @@
 import { db } from "@/server/db/drizzle";
 import { getSpotifyHeaders, getSpotifyArtist } from "@/server/utils/queries/externalApiQueries";
 import { eq, sql, inArray, and, arrayContains } from "drizzle-orm";
-import { artists, ugcresearch, aiprompts } from "@/server/db/schema";
+import { artists, ugcresearch } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { PgColumn } from "drizzle-orm/pg-core";
 import { headers } from "next/headers";
-import { openai } from "@/server/lib/openai";
 
 import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
+import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 
 // ----------------------------------
 // Types
@@ -637,6 +637,9 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
         return { status: "success", message: "Artist data removed" };
     } catch (e) {
         console.error("Error removing artist data", e);
+        if (e instanceof Error && e.message.startsWith("Column not in writable whitelist")) {
+            return { status: "error", message: "Invalid platform column" };
+        }
         return { status: "error", message: "Error removing artist data" };
     }
 }
@@ -664,59 +667,6 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
         return { status: "error", message: "Error updating bio" };
     }
 }
-
-// ----------------------------------
-// Prompt helpers
-// ----------------------------------
-
-export async function getActivePrompt() {
-    return await db.query.aiprompts.findFirst({ where: eq(aiprompts.isActive, true) });
-}
-
-export async function setActivePrompt() {
-    // TODO: implement if necessary
-}
-
-
-// Helper to (re)generate an artist bio immediately using OpenAI and store it
-export async function generateArtistBio(artistId: string): Promise<string | null> {
-    try {
-        const artist = await getArtistById(artistId);
-        if (!artist) return null;
-        const promptRow = await getActivePrompt();
-        if (!promptRow) return null;
-
-        const promptParts: string[] = [promptRow.promptBeforeName ?? "", artist.name ?? "", promptRow.promptAfterName ?? ""];
-        if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
-        if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
-        if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
-        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
-        if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
-        if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
-        promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "You are an artifical intelligence whose sole purpose is to follow the provided prompt." +
-                        promptParts.join("\n"),
-                },
-            ],
-            temperature: 0.8,
-        });
-        const bio = completion.choices[0]?.message?.content?.trim() ?? "";
-        if (bio) {
-            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
-        }
-        return bio;
-    } catch (e) {
-        console.error("[generateArtistBio] Error generating bio", e);
-        return null;
-    }
-} 
 
 // Helper to remove accents/diacritics and optionally lowercase the result
 function normaliseText(input: string): string {
