@@ -27,6 +27,6 @@ This is a well-scoped, well-documented release. The AsyncLocalStorage pattern fo
 | Tests | Comprehensive |
 | Docs | CLAUDE.md updated |
 | Blocking issues | None |
-| Suggested follow-ups | action CHECK constraint, WRITABLEE_LINK_COLUMNS drift doc, already-null guard in delete_artist_link |
+| Suggested follow-ups | action CHECK constraint, WRITABLE_LINK_COLUMNS drift doc, already-null guard in delete_artist_link |
 
 Reviewed with Claude Code
