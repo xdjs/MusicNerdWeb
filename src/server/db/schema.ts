@@ -292,7 +292,7 @@ export const mcpApiKeys = pgTable("mcp_api_keys", {
 	revokedAt: timestamp("revoked_at", { withTimezone: true, mode: 'string' }),
 }, (table) => [
 	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"] }),
+	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"] }),
 	pgPolicy("mnweb_delete_mcp_api_keys", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
 ]);
@@ -316,7 +316,7 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 	}),
 	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
 	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
-	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"] }),
+	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]);
 
 // Relations
