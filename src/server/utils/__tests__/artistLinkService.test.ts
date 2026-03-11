@@ -14,6 +14,8 @@ describe("artistLinkService", () => {
   async function setup() {
     const { db } = await import("@/server/db/drizzle");
     db.execute = jest.fn().mockResolvedValue([]);
+    // Mock artist existence check - return a found artist by default
+    (db as any).query.artists.findFirst = jest.fn().mockResolvedValue({ id: "artist-123" });
     const { generateArtistBio } = await import("@/server/utils/queries/artistQueries");
     const { setArtistLink, clearArtistLink, sanitizeColumnName, BIO_RELEVANT_COLUMNS } = await import("../artistLinkService");
     return { db, setArtistLink, clearArtistLink, sanitizeColumnName, BIO_RELEVANT_COLUMNS, generateArtistBio };
@@ -122,5 +124,19 @@ describe("artistLinkService", () => {
   it("setArtistLink throws for empty sanitized column name", async () => {
     const { setArtistLink } = await setup();
     await expect(setArtistLink("artist-123", "!@#", "val")).rejects.toThrow("Invalid column name");
+  });
+
+  // 16. setArtistLink throws for non-existent artist
+  it("setArtistLink throws for non-existent artist", async () => {
+    const { db, setArtistLink } = await setup();
+    (db as any).query.artists.findFirst.mockResolvedValue(null);
+    await expect(setArtistLink("nonexistent-id", "instagram", "testuser")).rejects.toThrow("Artist not found");
+  });
+
+  // 17. clearArtistLink throws for non-existent artist
+  it("clearArtistLink throws for non-existent artist", async () => {
+    const { db, clearArtistLink } = await setup();
+    (db as any).query.artists.findFirst.mockResolvedValue(null);
+    await expect(clearArtistLink("nonexistent-id", "instagram")).rejects.toThrow("Artist not found");
   });
 });

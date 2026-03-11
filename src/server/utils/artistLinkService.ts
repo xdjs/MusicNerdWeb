@@ -3,7 +3,8 @@
  * Used by MCP tools (Phase 3) and will replace inline logic in artistQueries.ts (Phase 2A integration).
  */
 import { db } from "@/server/db/drizzle";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { artists } from "@/server/db/schema";
 import { generateArtistBio } from "./queries/artistQueries";
 
 export const BIO_RELEVANT_COLUMNS = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
@@ -19,7 +20,7 @@ const WRITABLE_LINK_COLUMNS = new Set([
   "linktree", "onlyfans", "wikipedia", "audius", "zora", "catalog", "opensea",
   "foundation", "lastfm", "linkedin", "soundxyz", "mirror", "glassnode",
   "spotifyusername", "bandcampfan", "tellie", "lens", "cameo", "farcaster",
-  "supercollector", "ens", "mintsongs",
+  "supercollector", "ens",
 ]);
 
 export function sanitizeColumnName(siteName: string): string {
@@ -46,6 +47,14 @@ export async function setArtistLink(
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  const artist = await db.query.artists.findFirst({
+    where: eq(artists.id, artistId),
+    columns: { id: true },
+  });
+  if (!artist) {
+    throw new Error(`Artist not found: ${artistId}`);
+  }
+
   if (!value) {
     throw new Error("Value must not be empty");
   }
@@ -53,7 +62,7 @@ export async function setArtistLink(
   // For bio-relevant columns, set value and null bio in a single statement
   if (BIO_RELEVANT_COLUMNS.includes(columnName)) {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value}, bio = NULL WHERE id = ${artistId}`);
-    await generateArtistBio(artistId);
+    generateArtistBio(artistId).catch((e) => console.error("[artistLinkService] Bio regen failed", e));
   } else {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value} WHERE id = ${artistId}`);
   }
@@ -66,9 +75,17 @@ export async function clearArtistLink(
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  const artist = await db.query.artists.findFirst({
+    where: eq(artists.id, artistId),
+    columns: { id: true },
+  });
+  if (!artist) {
+    throw new Error(`Artist not found: ${artistId}`);
+  }
+
   if (BIO_RELEVANT_COLUMNS.includes(columnName)) {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL, bio = NULL WHERE id = ${artistId}`);
-    await generateArtistBio(artistId);
+    generateArtistBio(artistId).catch((e) => console.error("[artistLinkService] Bio regen failed", e));
   } else {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);
   }
