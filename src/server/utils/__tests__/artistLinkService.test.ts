@@ -41,17 +41,17 @@ describe("artistLinkService", () => {
 
   // 4. setArtistLink sets ens directly
   it("setArtistLink sets ens directly", async () => {
-    const { db, setArtistLink } = await setup();
+    const { db, setArtistLink, generateArtistBio } = await setup();
     await setArtistLink("artist-123", "ens", "vitalik.eth");
-    expect(db.execute).toHaveBeenCalled();
+    expect(db.execute).toHaveBeenCalledTimes(1);
+    expect(generateArtistBio).not.toHaveBeenCalled();
   });
 
   // 5. setArtistLink triggers bio regen for prompt-relevant column
   it("setArtistLink triggers bio regeneration for prompt-relevant column", async () => {
     const { db, setArtistLink, generateArtistBio } = await setup();
     await setArtistLink("artist-123", "instagram", "testuser");
-    // Should have called execute 2 times (set value + null bio)
-    expect(db.execute).toHaveBeenCalledTimes(2);
+    expect(db.execute).toHaveBeenCalledTimes(1);
     expect(generateArtistBio).toHaveBeenCalledWith("artist-123");
   });
 
@@ -72,9 +72,9 @@ describe("artistLinkService", () => {
   // 8. setArtistLink throws for system column
   it("setArtistLink throws for system column siteName", async () => {
     const { setArtistLink } = await setup();
-    await expect(setArtistLink("artist-123", "name", "test")).rejects.toThrow("Cannot write to system column");
-    await expect(setArtistLink("artist-123", "id", "test")).rejects.toThrow("Cannot write to system column");
-    await expect(setArtistLink("artist-123", "bio", "test")).rejects.toThrow("Cannot write to system column");
+    await expect(setArtistLink("artist-123", "name", "test")).rejects.toThrow("Column not in writable whitelist");
+    await expect(setArtistLink("artist-123", "id", "test")).rejects.toThrow("Column not in writable whitelist");
+    await expect(setArtistLink("artist-123", "bio", "test")).rejects.toThrow("Column not in writable whitelist");
   });
 
   // 9. setArtistLink throws for empty value
@@ -94,7 +94,7 @@ describe("artistLinkService", () => {
   it("clearArtistLink triggers bio regeneration for prompt-relevant column", async () => {
     const { db, clearArtistLink, generateArtistBio } = await setup();
     await clearArtistLink("artist-123", "x");
-    expect(db.execute).toHaveBeenCalledTimes(2);
+    expect(db.execute).toHaveBeenCalledTimes(1);
     expect(generateArtistBio).toHaveBeenCalledWith("artist-123");
   });
 
@@ -115,6 +115,12 @@ describe("artistLinkService", () => {
   // 14. clearArtistLink throws for system column
   it("clearArtistLink throws for system column siteName", async () => {
     const { clearArtistLink } = await setup();
-    await expect(clearArtistLink("artist-123", "name")).rejects.toThrow("Cannot write to system column");
+    await expect(clearArtistLink("artist-123", "name")).rejects.toThrow("Column not in writable whitelist");
+  });
+
+  // 15. setArtistLink throws for empty sanitized column name
+  it("setArtistLink throws for empty sanitized column name", async () => {
+    const { setArtistLink } = await setup();
+    await expect(setArtistLink("artist-123", "!@#", "val")).rejects.toThrow("Invalid column name");
   });
 });
