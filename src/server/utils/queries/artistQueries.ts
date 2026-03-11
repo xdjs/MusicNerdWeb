@@ -618,7 +618,8 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 
     try {
         if (siteName === "wallets" || siteName === "wallet") {
-            // Wallets stay inline — existing code unchanged (has known bug, out of scope)
+            // FIXME: Bug — uses artistId as the value to remove instead of the wallet address.
+            // The caller should pass the wallet address, not the artist ID.
             await db.execute(sql`
                 UPDATE artists
                 SET wallets = array_remove(wallets, ${artistId})

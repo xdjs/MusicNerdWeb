@@ -47,6 +47,7 @@ export async function setArtistLink(
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  // Fetch full row to capture oldValue for audit trail (MCP callers use the return value)
   const artist = await db.query.artists.findFirst({
     where: eq(artists.id, artistId),
   });
@@ -78,6 +79,7 @@ export async function clearArtistLink(
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  // Fetch full row to capture oldValue for audit trail (MCP callers use the return value)
   const artist = await db.query.artists.findFirst({
     where: eq(artists.id, artistId),
   });
