@@ -12,9 +12,7 @@ describe("MCP auth", () => {
   async function setup() {
     const { db } = await import("@/server/db/drizzle");
     // Ensure mcpApiKeys query surface exists
-    if (!(db as any).query.mcpApiKeys) {
-      (db as any).query.mcpApiKeys = { findFirst: jest.fn(), findMany: jest.fn() };
-    }
+    (db as any).query.mcpApiKeys = { findFirst: jest.fn(), findMany: jest.fn() };
     const { hashApiKey, validateMcpApiKey } = await import("../auth");
     return { db, hashApiKey, validateMcpApiKey };
   }
@@ -39,9 +37,9 @@ describe("MCP auth", () => {
     const { db, hashApiKey, validateMcpApiKey } = await setup();
     const testKey = "valid-api-key";
     const testHash = hashApiKey(testKey);
-    (db as any).query.mcpApiKeys.findMany.mockResolvedValue([
-      { keyHash: testHash, revokedAt: null },
-    ]);
+    (db as any).query.mcpApiKeys.findFirst.mockResolvedValue(
+      { keyHash: testHash, revokedAt: null }
+    );
     const req = new Request("http://localhost/api/mcp", {
       headers: { Authorization: `Bearer ${testKey}` },
     });
@@ -67,10 +65,25 @@ describe("MCP auth", () => {
     expect(result).toBeNull();
   });
 
+  // Test 5b: accepts lowercase bearer scheme
+  it("validateMcpApiKey — accepts lowercase bearer scheme", async () => {
+    const { db, hashApiKey, validateMcpApiKey } = await setup();
+    const testKey = "valid-api-key";
+    const testHash = hashApiKey(testKey);
+    (db as any).query.mcpApiKeys.findFirst.mockResolvedValue(
+      { keyHash: testHash, revokedAt: null }
+    );
+    const req = new Request("http://localhost/api/mcp", {
+      headers: { Authorization: `bearer ${testKey}` },
+    });
+    const result = await validateMcpApiKey(req);
+    expect(result).toBe(testHash);
+  });
+
   // Test 6: returns null for unknown key
   it("validateMcpApiKey — returns null for unknown key", async () => {
     const { db, validateMcpApiKey } = await setup();
-    (db as any).query.mcpApiKeys.findMany.mockResolvedValue([]);
+    (db as any).query.mcpApiKeys.findFirst.mockResolvedValue(null);
     const req = new Request("http://localhost/api/mcp", {
       headers: { Authorization: "Bearer unknown-key" },
     });
@@ -82,10 +95,7 @@ describe("MCP auth", () => {
   it("validateMcpApiKey — returns null for revoked key", async () => {
     const { db, hashApiKey, validateMcpApiKey } = await setup();
     const testKey = "revoked-key";
-    const testHash = hashApiKey(testKey);
-    (db as any).query.mcpApiKeys.findMany.mockResolvedValue([
-      { keyHash: testHash, revokedAt: "2024-01-01T00:00:00Z" },
-    ]);
+    (db as any).query.mcpApiKeys.findFirst.mockResolvedValue(null);
     const req = new Request("http://localhost/api/mcp", {
       headers: { Authorization: `Bearer ${testKey}` },
     });
