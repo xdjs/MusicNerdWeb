@@ -294,7 +294,7 @@ export const mcpApiKeys = pgTable("mcp_api_keys", {
 	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"] }),
-	pgPolicy("mnweb_delete_mcp_api_keys", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
+	// No DELETE policy for mnweb — keys are soft-deleted via revoked_at UPDATE, not hard-deleted
 ]);
 
 // Append-only audit log — no UPDATE or DELETE policies granted to application role.

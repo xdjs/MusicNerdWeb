@@ -159,7 +159,7 @@ export async function generateArtistBio(artistId: string): Promise<string | null
         promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: OPENAI_MODEL || "gpt-4o",
             messages: [
                 {
                     role: "system",
