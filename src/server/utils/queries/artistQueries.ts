@@ -12,6 +12,7 @@ import { openai } from "@/server/lib/openai";
 import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier";
+import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
 
 // ----------------------------------
 // Types
@@ -424,12 +425,10 @@ export async function approveUGC(
     siteName: string,
     artistUrlOrId: string
 ) {
-    // Sanitize siteName to match column naming convention (remove dots and other non-alphanumerics)
-    const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
     try {
         // Normalise values for certain platforms before storing on the artist record
         let valueToStore = artistUrlOrId;
-        
+
         // For most platforms, artistUrlOrId is now the extracted username/ID
         // Only do URL parsing for platforms that need special handling
         if (siteName === "youtubechannel") {
@@ -462,29 +461,16 @@ export async function approveUGC(
                 /* ignore */
             }
         }
+
         if (siteName === "wallets" || siteName === "wallet") {
+            // Wallets stay inline — array_append logic unchanged
             await db.execute(sql`
                 UPDATE artists
                 SET wallets = array_append(wallets, ${artistUrlOrId})
                 WHERE id = ${artistId} AND NOT wallets @> ARRAY[${artistUrlOrId}]
             `);
-        } else if (siteName === "ens") {
-            await db.execute(sql`
-                UPDATE artists
-                SET ens = ${artistUrlOrId}
-                WHERE id = ${artistId}
-            `);
         } else {
-            await db.execute(sql`
-                UPDATE artists
-                SET ${sql.identifier(columnName)} = ${valueToStore}
-                WHERE id = ${artistId}`);
-        }
-
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
-            await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
-            await generateArtistBio(artistId);
+            await setArtistLink(artistId, siteName, valueToStore);
         }
 
         await db.update(ugcresearch).set({ accepted: true }).where(eq(ugcresearch.id, ugcId));
@@ -617,57 +603,6 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     }
 }
 
-// Whitelist of allowed platform column names that can be nulled via removeArtistData.
-// Derived from the artists table schema — only platform/social columns are included.
-// System columns (id, name, lcname, addedBy, createdAt, updatedAt, bio, etc.) are intentionally excluded.
-const ALLOWED_PLATFORM_COLUMNS = new Set([
-    "bandcamp",
-    "facebook",
-    "x",
-    "soundcloud",
-    "patreon",
-    "instagram",
-    "youtube",
-    "youtubechannel",
-    "spotify",
-    "twitch",
-    "imdb",
-    "musicbrainz",
-    "wikidata",
-    "mixcloud",
-    "facebookID",
-    "discogs",
-    "tiktok",
-    "tiktokID",
-    "jaxsta",
-    "famousbirthdays",
-    "songexploder",
-    "colorsxstudios",
-    "bandsintown",
-    "linktree",
-    "onlyfans",
-    "wikipedia",
-    "audius",
-    "zora",
-    "catalog",
-    "opensea",
-    "foundation",
-    "lastfm",
-    "linkedin",
-    "soundxyz",
-    "mirror",
-    "glassnode",
-    "spotifyusername",
-    "bandcampfan",
-    "tellie",
-    "lens",
-    "cameo",
-    "farcaster",
-    "supercollector",
-    "wallets",
-    "ens",
-]);
-
 export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
     const session = await getServerAuthSession();
     if (!session) {
@@ -682,23 +617,14 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
     }
 
     try {
-        const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
-        if (!ALLOWED_PLATFORM_COLUMNS.has(columnName)) {
-            return { status: "error", message: "Invalid platform column" };
-        }
-        if (columnName === "wallets" || columnName === "wallet") {
+        if (siteName === "wallets" || siteName === "wallet") {
+            // Wallets stay inline — existing code unchanged (has known bug, out of scope)
             await db.execute(sql`
                 UPDATE artists
                 SET wallets = array_remove(wallets, ${artistId})
                 WHERE id = ${artistId}`);
         } else {
-            await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);
-        }
-
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
-            await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
-            await generateArtistBio(artistId);
+            await clearArtistLink(artistId, siteName);
         }
 
         // NOTE: We no longer delete the UGC record so that the original contribution
