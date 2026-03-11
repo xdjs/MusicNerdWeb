@@ -111,44 +111,44 @@ export async function extractArtistId(artistUrl: string) {
                     return { 
                         siteName: 'youtube', 
                         cardPlatformName, 
-                        id: atUsername.startsWith('@') ? atUsername : `@${atUsername}` 
+                        id: atUsername.startsWith('@') ? atUsername.substring(1) : atUsername
                     };
                 }
-                
+
                 // If it's a plain username format (new support for youtube.com/USERNAME)
                 if (plainUsername) {
-                    return { 
-                        siteName: 'youtube', 
-                        cardPlatformName, 
-                        id: plainUsername.startsWith('@') ? plainUsername : `@${plainUsername}` 
+                    return {
+                        siteName: 'youtube',
+                        cardPlatformName,
+                        id: plainUsername.startsWith('@') ? plainUsername.substring(1) : plainUsername
                     };
                 }
             }
-            
+
             // Handle dedicated YouTube username platform parsing
             if (siteName === 'youtube') {
                 // YouTube username platform regex: ^https://(www\.)?youtube\.com/(?:@([^/]+)|([^/]+))$
                 // Group 1: optional www
-                // Group 2: @username capture group  
+                // Group 2: @username capture group
                 // Group 3: plain username capture group
-                
+
                 const atUsername = match[2]; // From @([^/]+) pattern
                 const plainUsername = match[3]; // From ([^/]+) pattern
-                
+
                 // Extract the actual username (prefer @username over plain username)
                 if (atUsername) {
                     return {
                         siteName: 'youtube',
                         cardPlatformName,
-                        id: atUsername.startsWith('@') ? atUsername : `@${atUsername}`
+                        id: atUsername.startsWith('@') ? atUsername.substring(1) : atUsername
                     };
                 }
-                
+
                 if (plainUsername) {
                     return {
-                        siteName: 'youtube', 
+                        siteName: 'youtube',
                         cardPlatformName,
-                        id: plainUsername.startsWith('@') ? plainUsername : `@${plainUsername}`
+                        id: plainUsername.startsWith('@') ? plainUsername.substring(1) : plainUsername
                     };
                 }
             }
