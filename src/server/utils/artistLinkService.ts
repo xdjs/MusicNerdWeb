@@ -59,6 +59,7 @@ export async function setArtistLink(
     throw new Error("Value must not be empty");
   }
 
+  // Safe: assertWritable() above guarantees columnName is a known text column from the whitelist
   const oldValue = (artist as Record<string, unknown>)[columnName] as string | null ?? null;
 
   // For bio-relevant columns, set value and null bio in a single statement
@@ -87,6 +88,7 @@ export async function clearArtistLink(
     throw new Error(`Artist not found: ${artistId}`);
   }
 
+  // Safe: assertWritable() above guarantees columnName is a known text column from the whitelist
   const oldValue = (artist as Record<string, unknown>)[columnName] as string | null ?? null;
 
   if (BIO_RELEVANT_COLUMNS.includes(columnName)) {

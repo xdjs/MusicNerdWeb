@@ -30,6 +30,8 @@ describe("delete_artist_link MCP tool", () => {
     return { clearArtistLink, logMcpAudit, requireMcpAuth, McpAuthError, server };
   }
 
+  // NOTE: _registeredTools is an internal McpServer API. No public callTool() exists.
+  // If the SDK renames this property, these tests will need updating.
   async function callDeleteArtistLink(setup_result: any, args: { artistId: string; siteName: string }) {
     const { server } = setup_result;
     const tool = (server as any)._registeredTools["delete_artist_link"];

@@ -48,14 +48,11 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-    // Wrap request handling in auth context if authenticated
-    if (apiKeyHash) {
-      const response = await mcpRequestContext.run({ apiKeyHash }, () => handleMcpRequest(req));
-      return response;
-    }
-
-    // No auth header — still allow request (read-only tools don't require auth)
-    const response = await handleMcpRequest(req);
+    // Wrap in auth context when authenticated; unauthenticated requests still
+    // proceed so read-only tools remain accessible without an API key.
+    const response = apiKeyHash
+      ? await mcpRequestContext.run({ apiKeyHash }, () => handleMcpRequest(req))
+      : await handleMcpRequest(req);
     return response;
   } catch (error) {
     console.error("[MCP] POST error:", error);

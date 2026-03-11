@@ -35,6 +35,8 @@ describe("set_artist_link MCP tool", () => {
   }
 
   // Helper to call the set_artist_link tool handler directly via _registeredTools
+  // NOTE: _registeredTools is an internal McpServer API. No public callTool() exists.
+  // If the SDK renames this property, these tests will need updating.
   async function callSetArtistLink(setup_result: any, args: { artistId: string; url: string }) {
     const { server } = setup_result;
     const tool = (server as any)._registeredTools["set_artist_link"];
