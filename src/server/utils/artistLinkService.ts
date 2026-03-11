@@ -1,6 +1,6 @@
 /**
  * Shared helpers for writing/clearing platform links on artist records.
- * Used by MCP tools (Phase 3) and will replace inline logic in artistQueries.ts (Phase 2A integration).
+ * Used by MCP tools and artistQueries.ts (approveUGC, removeArtistData).
  */
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";

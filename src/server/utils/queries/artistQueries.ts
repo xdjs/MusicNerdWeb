@@ -476,7 +476,7 @@ export async function approveUGC(
         await db.update(ugcresearch).set({ accepted: true }).where(eq(ugcresearch.id, ugcId));
     } catch (e) {
         console.error(`Error approving ugc`, e);
-        throw new Error("Error approving UGC");
+        throw new Error(e instanceof Error ? `Error approving UGC: ${e.message}` : "Error approving UGC");
     }
 }
 
