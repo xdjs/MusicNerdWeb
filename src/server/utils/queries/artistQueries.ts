@@ -1,17 +1,18 @@
 import { db } from "@/server/db/drizzle";
 import { getSpotifyHeaders, getSpotifyArtist } from "@/server/utils/queries/externalApiQueries";
 import { eq, sql, inArray, and, arrayContains } from "drizzle-orm";
-import { artists, ugcresearch, aiprompts } from "@/server/db/schema";
+import { artists, ugcresearch } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { PgColumn } from "drizzle-orm/pg-core";
 import { headers } from "next/headers";
-import { openai } from "@/server/lib/openai";
 
 import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQueries";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier";
+import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
+import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 
 // ----------------------------------
 // Types
@@ -424,12 +425,10 @@ export async function approveUGC(
     siteName: string,
     artistUrlOrId: string
 ) {
-    // Sanitize siteName to match column naming convention (remove dots and other non-alphanumerics)
-    const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
     try {
         // Normalise values for certain platforms before storing on the artist record
         let valueToStore = artistUrlOrId;
-        
+
         // For most platforms, artistUrlOrId is now the extracted username/ID
         // Only do URL parsing for platforms that need special handling
         if (siteName === "youtubechannel") {
@@ -462,29 +461,16 @@ export async function approveUGC(
                 /* ignore */
             }
         }
+
         if (siteName === "wallets" || siteName === "wallet") {
+            // Wallets stay inline — array_append logic unchanged
             await db.execute(sql`
                 UPDATE artists
                 SET wallets = array_append(wallets, ${artistUrlOrId})
                 WHERE id = ${artistId} AND NOT wallets @> ARRAY[${artistUrlOrId}]
             `);
-        } else if (siteName === "ens") {
-            await db.execute(sql`
-                UPDATE artists
-                SET ens = ${artistUrlOrId}
-                WHERE id = ${artistId}
-            `);
         } else {
-            await db.execute(sql`
-                UPDATE artists
-                SET ${sql.identifier(columnName)} = ${valueToStore}
-                WHERE id = ${artistId}`);
-        }
-
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
-            await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
-            await generateArtistBio(artistId);
+            await setArtistLink(artistId, siteName, valueToStore);
         }
 
         await db.update(ugcresearch).set({ accepted: true }).where(eq(ugcresearch.id, ugcId));
@@ -617,57 +603,6 @@ export async function getAllSpotifyIds(): Promise<string[]> {
     }
 }
 
-// Whitelist of allowed platform column names that can be nulled via removeArtistData.
-// Derived from the artists table schema — only platform/social columns are included.
-// System columns (id, name, lcname, addedBy, createdAt, updatedAt, bio, etc.) are intentionally excluded.
-const ALLOWED_PLATFORM_COLUMNS = new Set([
-    "bandcamp",
-    "facebook",
-    "x",
-    "soundcloud",
-    "patreon",
-    "instagram",
-    "youtube",
-    "youtubechannel",
-    "spotify",
-    "twitch",
-    "imdb",
-    "musicbrainz",
-    "wikidata",
-    "mixcloud",
-    "facebookID",
-    "discogs",
-    "tiktok",
-    "tiktokID",
-    "jaxsta",
-    "famousbirthdays",
-    "songexploder",
-    "colorsxstudios",
-    "bandsintown",
-    "linktree",
-    "onlyfans",
-    "wikipedia",
-    "audius",
-    "zora",
-    "catalog",
-    "opensea",
-    "foundation",
-    "lastfm",
-    "linkedin",
-    "soundxyz",
-    "mirror",
-    "glassnode",
-    "spotifyusername",
-    "bandcampfan",
-    "tellie",
-    "lens",
-    "cameo",
-    "farcaster",
-    "supercollector",
-    "wallets",
-    "ens",
-]);
-
 export async function removeArtistData(artistId: string, siteName: string): Promise<RemoveArtistDataResp> {
     const session = await getServerAuthSession();
     if (!session) {
@@ -682,23 +617,15 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
     }
 
     try {
-        const columnName = siteName.replace(/[^a-zA-Z0-9_]/g, "");
-        if (!ALLOWED_PLATFORM_COLUMNS.has(columnName)) {
-            return { status: "error", message: "Invalid platform column" };
-        }
-        if (columnName === "wallets" || columnName === "wallet") {
+        if (siteName === "wallets" || siteName === "wallet") {
+            // FIXME: Bug — uses artistId as the value to remove instead of the wallet address.
+            // The caller should pass the wallet address, not the artist ID.
             await db.execute(sql`
                 UPDATE artists
                 SET wallets = array_remove(wallets, ${artistId})
                 WHERE id = ${artistId}`);
         } else {
-            await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);
-        }
-
-        const promptRelevantColumns = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
-        if (promptRelevantColumns.includes(columnName)) {
-            await db.execute(sql`UPDATE artists SET bio = NULL WHERE id = ${artistId}`);
-            await generateArtistBio(artistId);
+            await clearArtistLink(artistId, siteName);
         }
 
         // NOTE: We no longer delete the UGC record so that the original contribution
@@ -711,6 +638,9 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
         return { status: "success", message: "Artist data removed" };
     } catch (e) {
         console.error("Error removing artist data", e);
+        if (e instanceof Error && e.message.startsWith("Column not in writable whitelist")) {
+            return { status: "error", message: "Invalid platform column" };
+        }
         return { status: "error", message: "Error removing artist data" };
     }
 }
@@ -738,59 +668,6 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
         return { status: "error", message: "Error updating bio" };
     }
 }
-
-// ----------------------------------
-// Prompt helpers
-// ----------------------------------
-
-export async function getActivePrompt() {
-    return await db.query.aiprompts.findFirst({ where: eq(aiprompts.isActive, true) });
-}
-
-export async function setActivePrompt() {
-    // TODO: implement if necessary
-}
-
-
-// Helper to (re)generate an artist bio immediately using OpenAI and store it
-export async function generateArtistBio(artistId: string): Promise<string | null> {
-    try {
-        const artist = await getArtistById(artistId);
-        if (!artist) return null;
-        const promptRow = await getActivePrompt();
-        if (!promptRow) return null;
-
-        const promptParts: string[] = [promptRow.promptBeforeName ?? "", artist.name ?? "", promptRow.promptAfterName ?? ""];
-        if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
-        if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
-        if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
-        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
-        if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
-        if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
-        promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "You are an artifical intelligence whose sole purpose is to follow the provided prompt." +
-                        promptParts.join("\n"),
-                },
-            ],
-            temperature: 0.8,
-        });
-        const bio = completion.choices[0]?.message?.content?.trim() ?? "";
-        if (bio) {
-            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
-        }
-        return bio;
-    } catch (e) {
-        console.error("[generateArtistBio] Error generating bio", e);
-        return null;
-    }
-} 
 
 // Helper to remove accents/diacritics and optionally lowercase the result
 function normaliseText(input: string): string {

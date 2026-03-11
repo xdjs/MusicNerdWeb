@@ -4,6 +4,11 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 // mocks will be set before importing module under test
 
 // Mock dependencies
+jest.mock('@/server/utils/artistLinkService', () => ({
+  setArtistLink: jest.fn().mockResolvedValue(undefined),
+  clearArtistLink: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/server/db/drizzle', () => {
   return {
     db: {
@@ -35,6 +40,7 @@ const { getServerAuthSession } = require('../../auth') as { getServerAuthSession
 
 // Import the function under test after mocks are in place
 const { removeArtistData } = require('../queries');
+const { clearArtistLink } = require('@/server/utils/artistLinkService') as { clearArtistLink: jest.Mock };
 
 const ARTIST_ID = 'artist-123';
 const SITE_NAME = 'spotify';
@@ -74,6 +80,18 @@ describe('removeArtistData', () => {
     const resp = await removeArtistData(ARTIST_ID, SITE_NAME);
 
     expect(resp.status).toBe('success');
-    expect(db.execute).toHaveBeenCalledWith(expect.anything());
+    expect(clearArtistLink).toHaveBeenCalledWith(ARTIST_ID, SITE_NAME);
   });
-}); 
+
+  it('returns error for invalid platform column', async () => {
+    (getServerAuthSession as any).mockResolvedValue({ user: { id: 'user-2' } });
+    (db.query.users.findFirst as jest.Mock).mockImplementation(async () => ({ isWhiteListed: true, isAdmin: false }));
+
+    const { clearArtistLink: mockClear } = require('@/server/utils/artistLinkService');
+    mockClear.mockRejectedValue(new Error('Column not in writable whitelist: unknown_platform'));
+
+    const resp = await removeArtistData(ARTIST_ID, 'unknown_platform');
+    expect(resp.status).toBe('error');
+    expect(resp.message).toBe('Invalid platform column');
+  });
+});

@@ -5,7 +5,7 @@
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
 import { artists } from "@/server/db/schema";
-import { generateArtistBio } from "./queries/artistQueries";
+import { generateArtistBio } from "./queries/artistBioQuery";
 
 export const BIO_RELEVANT_COLUMNS = ["spotify", "instagram", "x", "soundcloud", "youtube", "youtubechannel"];
 
@@ -43,13 +43,13 @@ export async function setArtistLink(
   artistId: string,
   siteName: string,
   value: string
-): Promise<void> {
+): Promise<{ oldValue: string | null }> {
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  // Fetch full row to capture oldValue for audit trail (MCP callers use the return value)
   const artist = await db.query.artists.findFirst({
     where: eq(artists.id, artistId),
-    columns: { id: true },
   });
   if (!artist) {
     throw new Error(`Artist not found: ${artistId}`);
@@ -59,6 +59,8 @@ export async function setArtistLink(
     throw new Error("Value must not be empty");
   }
 
+  const oldValue = (artist as Record<string, unknown>)[columnName] as string | null ?? null;
+
   // For bio-relevant columns, set value and null bio in a single statement
   if (BIO_RELEVANT_COLUMNS.includes(columnName)) {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value}, bio = NULL WHERE id = ${artistId}`);
@@ -66,22 +68,26 @@ export async function setArtistLink(
   } else {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value} WHERE id = ${artistId}`);
   }
+
+  return { oldValue };
 }
 
 export async function clearArtistLink(
   artistId: string,
   siteName: string
-): Promise<void> {
+): Promise<{ oldValue: string | null }> {
   const columnName = sanitizeColumnName(siteName);
   assertWritable(columnName);
 
+  // Fetch full row to capture oldValue for audit trail (MCP callers use the return value)
   const artist = await db.query.artists.findFirst({
     where: eq(artists.id, artistId),
-    columns: { id: true },
   });
   if (!artist) {
     throw new Error(`Artist not found: ${artistId}`);
   }
+
+  const oldValue = (artist as Record<string, unknown>)[columnName] as string | null ?? null;
 
   if (BIO_RELEVANT_COLUMNS.includes(columnName)) {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL, bio = NULL WHERE id = ${artistId}`);
@@ -89,4 +95,6 @@ export async function clearArtistLink(
   } else {
     await db.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);
   }
+
+  return { oldValue };
 }
