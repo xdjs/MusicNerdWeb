@@ -1,5 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { server } from "./server";
+import { validateMcpApiKey } from "./auth";
+import { mcpRequestContext } from "./request-context";
 
 // Create a stateless transport for handling requests
 // In stateless mode, each request is handled independently without session management
@@ -29,6 +31,17 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     console.log("[MCP] POST request received");
+
+    // Validate API key if Authorization header is present
+    const apiKeyHash = await validateMcpApiKey(req);
+
+    // Wrap request handling in auth context if authenticated
+    if (apiKeyHash) {
+      const response = await mcpRequestContext.run({ apiKeyHash }, () => handleMcpRequest(req));
+      return response;
+    }
+
+    // No auth header — still allow request (read-only tools don't require auth)
     const response = await handleMcpRequest(req);
     return response;
   } catch (error) {
