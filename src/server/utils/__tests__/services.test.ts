@@ -199,7 +199,7 @@ describe("utils/services", () => {
       expect(res).toEqual({
         siteName: "youtube",
         cardPlatformName: "YouTube",
-        id: "@artistname",
+        id: "artistname",
       });
     });
 
@@ -208,7 +208,7 @@ describe("utils/services", () => {
       expect(res).toEqual({
         siteName: "youtube",
         cardPlatformName: "YouTube",
-        id: "@artistname",
+        id: "artistname",
       });
     });
 
@@ -218,7 +218,7 @@ describe("utils/services", () => {
       expect(res).toEqual({
         siteName: "youtube",
         cardPlatformName: "YouTube",
-        id: "@artistname",
+        id: "artistname",
       });
     });
 
@@ -227,7 +227,7 @@ describe("utils/services", () => {
       expect(res).toEqual({
         siteName: "youtube",
         cardPlatformName: "YouTube",
-        id: "@artistname",
+        id: "artistname",
       });
     });
 
@@ -237,7 +237,7 @@ describe("utils/services", () => {
       expect(res).toEqual({
         siteName: "youtube",
         cardPlatformName: "YouTube",
-        id: "@fkj",
+        id: "fkj",
       });
     });
 

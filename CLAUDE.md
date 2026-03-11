@@ -40,6 +40,7 @@ src/
 │   ├── auth.ts                  # NextAuth configuration
 │   ├── db/                      # Database schema and client
 │   └── utils/                   # Server utilities and queries
+│       ├── artistLinkService.ts # Shared helpers for platform link writes
 ├── hooks/                       # Custom React hooks
 ├── lib/                         # Client-side utilities
 └── types/                       # TypeScript type definitions
@@ -56,6 +57,8 @@ Key entities in the PostgreSQL database:
 - **featured**: Featured artists and collectors
 - **aiPrompts**: AI prompt templates for content generation
 - **funFacts**: AI-generated fun facts about artists
+- **mcp_api_keys**: API keys for MCP write tool authentication (SHA-256 hashed, revocable)
+- **mcp_audit_log**: Append-only audit trail for MCP write operations
 
 ### Important Relationships
 - Artists are linked to users via `addedBy` (foreign key to users.id)
@@ -87,6 +90,39 @@ API rate limiting is implemented in `src/middleware.ts` (in-memory, applied to a
 
 Use these when writing new API endpoints that need auth/role checks.
 
+## MCP Server (Model Context Protocol)
+
+The MCP server at `/api/mcp` exposes tools for AI assistants to read and modify artist data via the Streamable HTTP transport.
+
+### Tools
+- **`search_artists`** — Search by name (read-only, no auth)
+- **`get_artist`** — Get artist detail by UUID (read-only, no auth)
+- **`set_artist_link`** — Set a platform link from a URL. Platform is auto-inferred via `extractArtistId()`. Requires auth.
+- **`delete_artist_link`** — Remove a platform link by `siteName`. Requires auth.
+
+Write tools share the same code path as UGC submissions (`setArtistLink`/`clearArtistLink` in `artistLinkService.ts`), ensuring consistent validation and bio regeneration.
+
+### Authentication
+Write tools require a Bearer token in the `Authorization` header. Keys are SHA-256 hashed and stored in `mcp_api_keys`. Invalid/revoked keys receive a 401 response. Read-only tools are accessible without auth.
+
+Auth context is threaded to tool handlers via `AsyncLocalStorage` (`request-context.ts`). Write tools call `requireMcpAuth()` as their first operation.
+
+### API Key Provisioning
+Keys are managed via SQL (no admin UI yet):
+
+```bash
+# Generate and insert a new key
+export MCP_KEY=$(openssl rand -hex 32)
+echo "Store securely — cannot be retrieved: $MCP_KEY"
+echo "INSERT INTO mcp_api_keys (key_hash, label) VALUES (encode(sha256('$MCP_KEY'::bytea), 'hex'), 'agent-name');" | psql $SUPABASE_DB_CONNECTION
+
+# Revoke a key
+psql $SUPABASE_DB_CONNECTION -c "UPDATE mcp_api_keys SET revoked_at = now() WHERE label = 'agent-name';"
+```
+
+### Audit Logging
+All write operations are logged to `mcp_audit_log` (append-only — no UPDATE/DELETE). Audit is best-effort; a failed audit insert does not roll back the mutation. Each entry records `artist_id`, `field`, `action`, `old_value`, `new_value`, `submitted_url`, and `api_key_hash`.
+
 ## API Endpoints
 Key API routes in `src/app/api/`:
 - `/searchArtists` - Artist search with Spotify integration
@@ -97,6 +133,8 @@ Key API routes in `src/app/api/`:
 - `/admin/*` - Admin management endpoints
 - `/auth/*` - Privy authentication routes
 - `/mcp/*` - MCP server for exposing artist data to AI assistants
+  - Read-only tools: `search_artists`, `get_artist` (no auth required)
+  - Write tools: `set_artist_link`, `delete_artist_link` (require API key auth)
 - `/user` - User profile and wallet operations
 
 ### API Route Conventions
@@ -230,6 +268,14 @@ Environment variables are validated via `src/env.ts` — review before adding ne
 ### Search Functionality
 - `src/app/_components/nav/components/SearchBar.tsx` - Search interface
 - `src/app/api/searchArtists/route.ts` - Combined DB + Spotify search
+
+### MCP Server
+- `src/app/api/mcp/server.ts` - Tool registration (search, get, set, delete)
+- `src/app/api/mcp/route.ts` - HTTP transport + auth context threading
+- `src/app/api/mcp/auth.ts` - API key validation + requireMcpAuth()
+- `src/app/api/mcp/audit.ts` - Audit log helper
+- `src/app/api/mcp/request-context.ts` - AsyncLocalStorage for auth threading
+- `src/server/utils/artistLinkService.ts` - setArtistLink/clearArtistLink helpers
 
 ## Git Workflow
 - **Branching**: Feature branches off `staging` → PR to `staging` → PR from `staging` to `main`

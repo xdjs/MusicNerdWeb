@@ -14,7 +14,11 @@ export async function toArtistDetail(artist: Artist): Promise<ArtistDetail> {
     // Extract the handle from the artist object using siteName as the key
     // Handle the special case where siteName is "facebookID" but artist property is "facebookId"
     const artistPropertyName = link.siteName === "facebookID" ? "facebookId" : link.siteName;
-    const handle = (artist as Record<string, unknown>)[artistPropertyName]?.toString() ?? "";
+    let handle = (artist as Record<string, unknown>)[artistPropertyName]?.toString() ?? "";
+    // Normalize YouTube handles — strip leading @ for consistency
+    if ((platformName === "youtube" || platformName === "youtubechannel") && handle.startsWith("@")) {
+      handle = handle.substring(1);
+    }
 
     socialLinks[platformName] = {
       handle,

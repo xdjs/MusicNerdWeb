@@ -276,6 +276,65 @@ describe("toArtistDetail", () => {
     });
   });
 
+  describe("normalizes YouTube handles", () => {
+    it("strips leading @ from youtube handle", async () => {
+      const artist = createMockArtist({
+        id: "yt-artist",
+        name: "YT Artist",
+        youtube: "@legacyhandle",
+      });
+
+      mockedGetArtistLinks.mockResolvedValue([
+        createMockArtistLink({
+          siteName: "youtube",
+          artistUrl: "https://youtube.com/@legacyhandle",
+        }),
+      ]);
+
+      const result = await toArtistDetail(artist);
+
+      expect(result.socialLinks.youtube.handle).toBe("legacyhandle");
+    });
+
+    it("passes through youtube handle without @", async () => {
+      const artist = createMockArtist({
+        id: "yt-artist-2",
+        name: "YT Artist 2",
+        youtube: "cleanhandle",
+      });
+
+      mockedGetArtistLinks.mockResolvedValue([
+        createMockArtistLink({
+          siteName: "youtube",
+          artistUrl: "https://youtube.com/@cleanhandle",
+        }),
+      ]);
+
+      const result = await toArtistDetail(artist);
+
+      expect(result.socialLinks.youtube.handle).toBe("cleanhandle");
+    });
+
+    it("strips leading @ from youtubechannel handle", async () => {
+      const artist = createMockArtist({
+        id: "ytc-artist",
+        name: "YTC Artist",
+        youtubechannel: "@legacychannel",
+      });
+
+      mockedGetArtistLinks.mockResolvedValue([
+        createMockArtistLink({
+          siteName: "youtubechannel",
+          artistUrl: "https://youtube.com/@legacychannel",
+        }),
+      ]);
+
+      const result = await toArtistDetail(artist);
+
+      expect(result.socialLinks.youtubechannel.handle).toBe("legacychannel");
+    });
+  });
+
   describe("maps spotifyId from artist.spotify", () => {
     it("returns spotifyId from the spotify column", async () => {
       const artist = createMockArtist({
