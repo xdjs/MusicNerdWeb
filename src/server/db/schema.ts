@@ -284,6 +284,41 @@ export const urlmap = pgTable("urlmap", {
 	pgPolicy("mnweb_update_urlmap", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
+export const mcpApiKeys = pgTable("mcp_api_keys", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	keyHash: text("key_hash").notNull().unique(),
+	label: text().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	revokedAt: timestamp("revoked_at", { withTimezone: true, mode: 'string' }),
+}, (table) => [
+	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"] }),
+	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"] }),
+	pgPolicy("mnweb_delete_mcp_api_keys", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
+]);
+
+// Append-only audit log — no UPDATE or DELETE policies granted to application role.
+export const mcpAuditLog = pgTable("mcp_audit_log", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	artistId: uuid("artist_id").notNull(),
+	field: text().notNull(),
+	action: text().notNull(),
+	submittedUrl: text("submitted_url"),
+	oldValue: text("old_value"),
+	newValue: text("new_value"),
+	apiKeyHash: text("api_key_hash").notNull(), // Intentionally not a FK — audit records survive key deletion
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+	foreignKey({
+		columns: [table.artistId],
+		foreignColumns: [artists.id],
+		name: "mcp_audit_log_artist_id_fkey"
+	}),
+	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
+	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"] }),
+]);
+
 // Relations
 export const artistsRelations = relations(artists, ({one, many}) => ({
 	user: one(users, {
