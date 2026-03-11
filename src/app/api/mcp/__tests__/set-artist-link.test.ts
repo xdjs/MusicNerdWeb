@@ -6,8 +6,8 @@ jest.mock("@/server/utils/services", () => ({
   extractArtistId: jest.fn(),
 }));
 jest.mock("@/server/utils/artistLinkService", () => ({
-  setArtistLink: jest.fn().mockResolvedValue(undefined),
-  clearArtistLink: jest.fn().mockResolvedValue(undefined),
+  setArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
+  clearArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
 }));
 jest.mock("../audit", () => ({
   logMcpAudit: jest.fn().mockResolvedValue(undefined),
@@ -23,12 +23,6 @@ describe("set_artist_link MCP tool", () => {
   beforeEach(() => { jest.resetModules(); });
 
   async function setup() {
-    const { db } = await import("@/server/db/drizzle");
-    (db as any).query.artists = { findFirst: jest.fn() };
-    if (!(db as any).query.urlmap) {
-      (db as any).query.urlmap = { findFirst: jest.fn(), findMany: jest.fn() };
-    }
-
     const { extractArtistId } = await import("@/server/utils/services");
     const { setArtistLink } = await import("@/server/utils/artistLinkService");
     const { logMcpAudit } = await import("../audit");
@@ -37,7 +31,7 @@ describe("set_artist_link MCP tool", () => {
     // Import server to get the registered tools
     const { server } = await import("../server");
 
-    return { db, extractArtistId, setArtistLink, logMcpAudit, requireMcpAuth, McpAuthError, server };
+    return { extractArtistId, setArtistLink, logMcpAudit, requireMcpAuth, McpAuthError, server };
   }
 
   // Helper to call the set_artist_link tool handler directly via _registeredTools
@@ -50,7 +44,8 @@ describe("set_artist_link MCP tool", () => {
   it("returns error when artist ID does not exist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue(null);
+    (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "test", cardPlatformName: "Instagram" });
+    (s.setArtistLink as jest.Mock).mockRejectedValue(new Error("Artist not found: 00000000-0000-0000-0000-000000000000"));
 
     const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000000", url: "https://instagram.com/test" });
     const parsed = JSON.parse(result.content[0].text);
@@ -61,7 +56,6 @@ describe("set_artist_link MCP tool", () => {
   it("returns error when URL does not match any platform", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", instagram: null });
     (s.extractArtistId as jest.Mock).mockResolvedValue(null);
 
     const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://unknown.com/test" });
@@ -72,7 +66,6 @@ describe("set_artist_link MCP tool", () => {
   it("returns error when extractArtistId returns object with empty id", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1" });
     (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "" });
 
     const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://instagram.com/" });
@@ -83,7 +76,7 @@ describe("set_artist_link MCP tool", () => {
   it("sets instagram link for artist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", instagram: null });
+    (s.setArtistLink as jest.Mock).mockResolvedValue({ oldValue: null });
     (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "testuser", cardPlatformName: "Instagram" });
 
     const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://instagram.com/testuser" });
@@ -96,7 +89,7 @@ describe("set_artist_link MCP tool", () => {
   it("returns old value when overwriting existing link", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", instagram: "old-user" });
+    (s.setArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-user" });
     (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "new-user", cardPlatformName: "Instagram" });
 
     const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://instagram.com/new-user" });
@@ -107,7 +100,7 @@ describe("set_artist_link MCP tool", () => {
   it("writes audit log entry with correct fields", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", instagram: "old-user" });
+    (s.setArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-user" });
     (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "new-user", cardPlatformName: "Instagram" });
 
     await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://instagram.com/new-user" });
@@ -120,6 +113,18 @@ describe("set_artist_link MCP tool", () => {
       newValue: "new-user",
       apiKeyHash: "test-hash",
     });
+  });
+
+  it("returns success even when audit log fails", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.setArtistLink as jest.Mock).mockResolvedValue({ oldValue: null });
+    (s.extractArtistId as jest.Mock).mockResolvedValue({ siteName: "instagram", id: "testuser", cardPlatformName: "Instagram" });
+    (s.logMcpAudit as jest.Mock).mockRejectedValue(new Error("DB connection failed"));
+
+    const result = await callSetArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", url: "https://instagram.com/testuser" });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
   });
 
   it("returns error when no auth context", async () => {

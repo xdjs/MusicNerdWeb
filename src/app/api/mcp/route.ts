@@ -32,8 +32,21 @@ export async function POST(req: Request): Promise<Response> {
   try {
     console.log("[MCP] POST request received");
 
-    // Validate API key if Authorization header is present
-    const apiKeyHash = await validateMcpApiKey(req);
+    // Check if Authorization header is present
+    const authHeader = req.headers.get("authorization");
+    const apiKeyHash = authHeader ? await validateMcpApiKey(req) : null;
+
+    // If auth header was provided but key is invalid/revoked, reject at transport level
+    if (authHeader && !apiKeyHash) {
+      return new Response(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Invalid or revoked API key" },
+          id: null,
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Wrap request handling in auth context if authenticated
     if (apiKeyHash) {

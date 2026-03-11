@@ -2,8 +2,8 @@
 import { jest } from "@jest/globals";
 
 jest.mock("@/server/utils/artistLinkService", () => ({
-  setArtistLink: jest.fn().mockResolvedValue(undefined),
-  clearArtistLink: jest.fn().mockResolvedValue(undefined),
+  setArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
+  clearArtistLink: jest.fn().mockResolvedValue({ oldValue: null }),
 }));
 jest.mock("../audit", () => ({
   logMcpAudit: jest.fn().mockResolvedValue(undefined),
@@ -22,18 +22,12 @@ describe("delete_artist_link MCP tool", () => {
   beforeEach(() => { jest.resetModules(); });
 
   async function setup() {
-    const { db } = await import("@/server/db/drizzle");
-    (db as any).query.artists = { findFirst: jest.fn() };
-    if (!(db as any).query.urlmap) {
-      (db as any).query.urlmap = { findFirst: jest.fn(), findMany: jest.fn() };
-    }
-
     const { clearArtistLink } = await import("@/server/utils/artistLinkService");
     const { logMcpAudit } = await import("../audit");
     const { requireMcpAuth, McpAuthError } = await import("../auth");
     const { server } = await import("../server");
 
-    return { db, clearArtistLink, logMcpAudit, requireMcpAuth, McpAuthError, server };
+    return { clearArtistLink, logMcpAudit, requireMcpAuth, McpAuthError, server };
   }
 
   async function callDeleteArtistLink(setup_result: any, args: { artistId: string; siteName: string }) {
@@ -45,29 +39,28 @@ describe("delete_artist_link MCP tool", () => {
   it("returns error when artist does not exist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue(null);
+    (s.clearArtistLink as jest.Mock).mockRejectedValue(new Error("Artist not found: 00000000-0000-0000-0000-000000000000"));
 
     const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000000", siteName: "instagram" });
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.error).toBe("Artist not found");
   });
 
-  it("returns error when siteName is not in urlmap", async () => {
+  it("returns error when siteName is not in writable whitelist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1" });
-    (s.db as any).query.urlmap.findFirst.mockResolvedValue(null);
+    (s.clearArtistLink as jest.Mock).mockRejectedValue(new Error("Column not in writable whitelist: fakePlatform"));
 
     const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "fakePlatform" });
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.error).toBe("Invalid platform name");
+    expect(parsed.code).toBe("INVALID_PLATFORM");
   });
 
   it("returns error when link is already null", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", x: null });
-    (s.db as any).query.urlmap.findFirst.mockResolvedValue({ siteName: "x" });
+    (s.clearArtistLink as jest.Mock).mockResolvedValue({ oldValue: null });
 
     const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "x" });
     const parsed = JSON.parse(result.content[0].text);
@@ -77,8 +70,7 @@ describe("delete_artist_link MCP tool", () => {
   it("deletes x link and calls clearArtistLink", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", x: "old-handle" });
-    (s.db as any).query.urlmap.findFirst.mockResolvedValue({ siteName: "x" });
+    (s.clearArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-handle" });
 
     const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "x" });
     expect(s.clearArtistLink).toHaveBeenCalledWith("00000000-0000-0000-0000-000000000001", "x");
@@ -89,8 +81,7 @@ describe("delete_artist_link MCP tool", () => {
   it("returns old value in response", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", x: "old-handle" });
-    (s.db as any).query.urlmap.findFirst.mockResolvedValue({ siteName: "x" });
+    (s.clearArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-handle" });
 
     const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "x" });
     const parsed = JSON.parse(result.content[0].text);
@@ -100,8 +91,7 @@ describe("delete_artist_link MCP tool", () => {
   it("writes audit log entry", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-1", x: "old-handle" });
-    (s.db as any).query.urlmap.findFirst.mockResolvedValue({ siteName: "x" });
+    (s.clearArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-handle" });
 
     await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "x" });
     expect(s.logMcpAudit).toHaveBeenCalledWith({
@@ -111,6 +101,17 @@ describe("delete_artist_link MCP tool", () => {
       oldValue: "old-handle",
       apiKeyHash: "test-hash",
     });
+  });
+
+  it("returns success even when audit log fails", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.clearArtistLink as jest.Mock).mockResolvedValue({ oldValue: "old-handle" });
+    (s.logMcpAudit as jest.Mock).mockRejectedValue(new Error("DB connection failed"));
+
+    const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName: "x" });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
   });
 
   it("returns error when no auth context", async () => {

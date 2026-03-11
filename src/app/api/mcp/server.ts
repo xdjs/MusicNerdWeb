@@ -8,9 +8,6 @@ import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
-import { db } from "@/server/db/drizzle";
-import { artists, urlmap } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
 
 // Create the MCP server instance
 const server = new McpServer({
@@ -183,17 +180,6 @@ server.registerTool(
     try {
       const apiKeyHash = requireMcpAuth();
 
-      // Validate artist exists
-      const artist = await db.query.artists.findFirst({
-        where: eq(artists.id, artistId),
-      });
-      if (!artist) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
-          isError: true,
-        };
-      }
-
       // Extract platform and ID from URL
       const extracted = await extractArtistId(url);
       if (!extracted || !extracted.id) {
@@ -205,22 +191,23 @@ server.registerTool(
 
       const { siteName, id: extractedId } = extracted;
 
-      // Read current value for audit log
-      const oldValue = (artist as Record<string, unknown>)[siteName] as string | null ?? null;
+      // Set the link (validates artist exists, returns old value)
+      const { oldValue } = await setArtistLink(artistId, siteName, extractedId);
 
-      // Set the link
-      await setArtistLink(artistId, siteName, extractedId);
-
-      // Write audit log
-      await logMcpAudit({
-        artistId,
-        field: siteName,
-        action: "set",
-        submittedUrl: url,
-        oldValue,
-        newValue: extractedId,
-        apiKeyHash,
-      });
+      // Audit is best-effort — mutation succeeded, log failure shouldn't hide that
+      try {
+        await logMcpAudit({
+          artistId,
+          field: siteName,
+          action: "set",
+          submittedUrl: url,
+          oldValue,
+          newValue: extractedId,
+          apiKeyHash,
+        });
+      } catch (auditError) {
+        console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+      }
 
       return {
         content: [{
@@ -237,6 +224,12 @@ server.registerTool(
       if (error instanceof McpAuthError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "AUTH_REQUIRED" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof Error && error.message.startsWith("Artist not found")) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
           isError: true,
         };
       }
@@ -266,30 +259,9 @@ server.registerTool(
     try {
       const apiKeyHash = requireMcpAuth();
 
-      // Validate artist exists
-      const artist = await db.query.artists.findFirst({
-        where: eq(artists.id, artistId),
-      });
-      if (!artist) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
-          isError: true,
-        };
-      }
+      // Clear the link (validates artist exists + column whitelist, returns old value)
+      const { oldValue } = await clearArtistLink(artistId, siteName);
 
-      // Validate siteName exists in urlmap
-      const platform = await db.query.urlmap.findFirst({
-        where: eq(urlmap.siteName, siteName),
-      });
-      if (!platform) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: "Invalid platform name", code: "INVALID_PLATFORM" }) }],
-          isError: true,
-        };
-      }
-
-      // Check current value
-      const oldValue = (artist as Record<string, unknown>)[siteName] as string | null ?? null;
       if (oldValue === null) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: "Link is not set", code: "NOT_SET" }) }],
@@ -297,17 +269,18 @@ server.registerTool(
         };
       }
 
-      // Clear the link
-      await clearArtistLink(artistId, siteName);
-
-      // Write audit log
-      await logMcpAudit({
-        artistId,
-        field: siteName,
-        action: "delete",
-        oldValue,
-        apiKeyHash,
-      });
+      // Audit is best-effort — mutation succeeded, log failure shouldn't hide that
+      try {
+        await logMcpAudit({
+          artistId,
+          field: siteName,
+          action: "delete",
+          oldValue,
+          apiKeyHash,
+        });
+      } catch (auditError) {
+        console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+      }
 
       return {
         content: [{
@@ -323,6 +296,18 @@ server.registerTool(
       if (error instanceof McpAuthError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "AUTH_REQUIRED" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof Error && error.message.startsWith("Artist not found")) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof Error && error.message.startsWith("Column not in writable whitelist")) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Invalid platform name", code: "INVALID_PLATFORM" }) }],
           isError: true,
         };
       }
