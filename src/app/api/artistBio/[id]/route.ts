@@ -19,8 +19,10 @@ export async function OPTIONS() {
 
 
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const url = new URL(request.url);
+  const forceRegenerate = url.searchParams.get("regenerate") === "true";
 
   // Set a timeout for the entire operation to prevent Vercel timeouts
   const timeoutPromise = new Promise<NextResponse>((_, reject) =>
@@ -35,13 +37,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     }
 
     //If the artist lacks vital info (instagram, X, Youtube etc), then display a generic message from the aiprompts table
-    if (!artist.bio && !artist.youtubechannel && !artist.instagram && !artist.x && !artist.soundcloud) {
+    if (!forceRegenerate && !artist.bio && !artist.youtubechannel && !artist.instagram && !artist.x && !artist.soundcloud) {
       const testBio = "MusicNerd needs artist data to generate a summary. Try adding some to get started!";
       return NextResponse.json({ bio: testBio }, { headers: CORS_HEADERS });
     }
 
-    // If bio already exists in the database, return cached
-    if (artist.bio && artist.bio.trim().length > 0) {
+    // If bio already exists in the database and not forcing regeneration, return cached
+    if (!forceRegenerate && artist.bio && artist.bio.trim().length > 0) {
       return NextResponse.json({ bio: artist.bio }, { headers: CORS_HEADERS });
     }
 

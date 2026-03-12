@@ -58,3 +58,9 @@ certificates
 
 # claude code local settings
 .claude/settings.local.json
+
+# vault uploaded files (keep directory, ignore contents)
+public/vault-uploads/*
+!public/vault-uploads/.gitkeep
+public/artist-images/*
+!public/artist-images/.gitkeep

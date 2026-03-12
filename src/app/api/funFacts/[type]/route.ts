@@ -4,6 +4,7 @@ import { openai } from "@/server/lib/openai";
 import { funfacts } from "@/server/db/schema";
 import { db } from "@/server/db/drizzle";
 import { eq } from "drizzle-orm";
+import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 
 async function getPrompts() {
   try {
@@ -63,6 +64,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     let finalPrompt = basePrompt.replace("ARTIST_NAME", artist.name ?? "");
     if (artist.spotify) {
       finalPrompt = finalPrompt.replace("SPOTIFY_ID", artist.spotify);
+    }
+
+    // Append approved vault sources as additional context
+    try {
+      const vaultSources = await getVaultSourcesByArtistId(id, "approved");
+      if (vaultSources.length > 0) {
+        const vaultContext = vaultSources.map(s => {
+          const parts = [`Source: ${s.title ?? s.url}`];
+          if (s.snippet) parts.push(s.snippet);
+          if (s.extractedText) parts.push(s.extractedText.slice(0, 1000));
+          return parts.join(" — ");
+        }).join("\n");
+        finalPrompt += `\n\nAdditional context provided by the artist:\n${vaultContext}`;
+      }
+    } catch (e) {
+      console.error("Error fetching vault sources for fun facts:", e);
     }
 
     // Check if OpenAI API key is configured

@@ -1,11 +1,12 @@
 "use server"
 
 import { getServerAuthSession } from "@/server/auth";
+import { getDevSession } from "@/server/utils/dev-auth";
 import { getSpotifyHeaders, getSpotifyArtist } from '@/server/utils/queries/externalApiQueries';
 import { addArtist as dbAddArtist, type AddArtistResp } from "@/server/utils/queries/artistQueries";
 
 export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
-    const session = await getServerAuthSession();
+    const session = await getServerAuthSession() ?? await getDevSession();
 
     if (!session) {
         throw new Error("Not authenticated");

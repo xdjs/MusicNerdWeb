@@ -7,7 +7,7 @@ interface BioCache {
   };
 }
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 0; // TEMP: force re-generation on every page load (was 5 * 60 * 1000)
 const CACHE_KEY = 'musicnerd_bio_cache';
 
 // Get cache from localStorage or initialize empty
@@ -111,11 +111,8 @@ export function useArtistBio(artistId: string, initialBio?: string | null): UseA
   };
 
   useEffect(() => {
-    // Skip fetch if we have a server-provided initialBio (use != null to allow empty strings)
-    if (initialBio != null) {
-      setLoading(false);
-      return;
-    }
+    // TEMP: Always regenerate for demo — skip initialBio check
+    // Original: if (initialBio != null) { setLoading(false); return; }
 
     // Check cache - if valid, we already have the bio from initialization
     const cache = getCache();

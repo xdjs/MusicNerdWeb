@@ -29,6 +29,13 @@
       "when": 1773266314987,
       "tag": "0003_careless_maginty",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773186129177,
+      "tag": "0003_worried_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

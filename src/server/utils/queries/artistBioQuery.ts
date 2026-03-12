@@ -6,6 +6,7 @@ import { artists, aiprompts } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
 import { OPENAI_TIMEOUT_MS, OPENAI_MODEL } from "@/env";
+import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 
 //Helper function that generates a bio using OpenAI with data drawn from Spotify
 //Params:
@@ -76,6 +77,25 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
     if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
 
+    // Include approved vault sources as additional context
+    let hasVaultContext = false;
+    try {
+      const vaultSources = await getVaultSourcesByArtistId(artistId, "approved");
+      console.log(`[bio] Found ${vaultSources.length} approved vault sources for artist ${artistId}`);
+      if (vaultSources.length > 0) {
+        hasVaultContext = true;
+        const vaultContext = vaultSources.map(s => {
+          const parts = [`Source: ${s.title ?? s.url}`];
+          if (s.snippet) parts.push(s.snippet);
+          if (s.extractedText) parts.push(s.extractedText.slice(0, 2000));
+          return parts.join(" — ");
+        }).join("\n");
+        promptParts.push(`\n--- ARTIST-PROVIDED VAULT CONTEXT (USE THIS AS PRIMARY SOURCE) ---\n${vaultContext}\n--- END VAULT CONTEXT ---`);
+      }
+    } catch (e) {
+      console.error("Error fetching vault sources for bio:", e);
+    }
+
     //build prompt from parts generated and parts from the aiprompts table
   try {
     // Set timeout for OpenAI API call from environment variable
@@ -84,26 +104,49 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
     console.debug("OpenAI artistData:", JSON.stringify(artistData, null, 2));
     
     const openaiStartTime = Date.now();
-    const openaiRequest: any = {
-      prompt: {
-          id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
-          variables: {
-              artist_name: artist.name!,
-              artist_data: artistData
-          }
-      }
-    };
+    // Try stored prompt first, fall back to direct prompt for local dev
+    let openaiRequest: any;
+    const useStoredPrompt = process.env.NODE_ENV !== 'development';
 
-    // Only include model parameter if OPENAI_MODEL environment variable is explicitly set
-    if (OPENAI_MODEL) {
+    if (useStoredPrompt) {
+      openaiRequest = {
+        prompt: {
+            id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
+            variables: {
+                artist_name: artist.name!,
+                artist_data: artistData
+            }
+        }
+      };
+    } else {
+      const systemPrompt = hasVaultContext
+        ? "You are a knowledgeable music journalist. Write a concise, engaging 2-3 paragraph bio for a music artist. IMPORTANT: The artist has provided vault context containing their own documents, credits, biography details, and verified information. This vault context is the MOST RELIABLE and DETAILED source — prioritize it heavily over generic Spotify data. Incorporate specific details from the vault (credits, collaborations, timeline events, roles) to make the bio rich and accurate. Be factual and avoid speculation."
+        : "You are a knowledgeable music journalist. Write a concise, engaging 2-3 paragraph bio for a music artist based on the data provided. Be factual and avoid speculation. If limited data is available, focus on what you know and keep it brief.";
+      openaiRequest = {
+        model: OPENAI_MODEL || "gpt-4o-mini",
+        input: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`
+          }
+        ]
+      };
+    }
+
+    // Only include model parameter if OPENAI_MODEL environment variable is explicitly set (for stored prompt mode)
+    if (OPENAI_MODEL && useStoredPrompt) {
       openaiRequest.model = OPENAI_MODEL;
     }
 
     console.debug("OpenAI request:", JSON.stringify(openaiRequest, null, 2));
-    
+
     const completion = await Promise.race([
       openai.responses.create(openaiRequest),
-      new Promise<never>((_, reject) => 
+      new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('OpenAI timeout')), openaiTimeout)
       )
     ]);

@@ -3,8 +3,11 @@ import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import ArtistLinks from "@/app/_components/ArtistLinks";
 import BookmarkButton from "@/app/_components/BookmarkButton";
+import ClaimButton from "./_components/ClaimButton";
 import { getArtistDetailsText } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
+import { getDevSession } from "@/server/utils/dev-auth";
+import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
 import EditModeToggle from "@/app/_components/EditModeToggle";
@@ -34,7 +37,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 
     const headers = await getSpotifyHeaders();
     const spotifyImg = await getSpotifyImage(artist.spotify ?? "", undefined, headers);
-    const imageUrl = spotifyImg.artistImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
+    const imageUrl = artist.customImage
+        ? `https://www.musicnerd.xyz${artist.customImage}`
+        : spotifyImg.artistImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
     const artistName = artist.name ?? "Unknown Artist";
 
     return {
@@ -65,7 +70,7 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 
 export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
-    const session = await getServerAuthSession();
+    const session = await getServerAuthSession() ?? await getDevSession();
     const canEdit = !!session;
 
     const artist = await getArtistById(id);
@@ -74,11 +79,15 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     }
     const headers = await getSpotifyHeaders();
 
-    const [spotifyImg, numReleases, urlMapList] = await Promise.all([
+    const [spotifyImg, numReleases, urlMapList, existingClaim] = await Promise.all([
         getSpotifyImage(artist.spotify ?? "", undefined, headers),
         getNumberOfSpotifyReleases(artist.spotify ?? "", headers),
         getAllLinks(),
+        getClaimByArtistId(id),
     ]);
+
+    const isClaimed = !!existingClaim && existingClaim.status === "approved";
+    const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
 
 
 
@@ -93,7 +102,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                         {/* Left Column: Image and Song */}
                         <div className="flex flex-col items-center md:items-end">
                             <AspectRatio ratio={1 / 1} className="flex items-center place-content-center bg-muted rounded-md overflow-hidden w-full mb-4">
-                                <img src={spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
+                                <img src={artist.customImage || spotifyImg.artistImage || "/default_pfp_pink.png"} alt="Artist Image" className="object-cover w-full h-full" />
                             </AspectRatio>
                         </div>
                         {/* Right Column: Name and Description */}
@@ -103,6 +112,11 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                                     {artist.name}
                                 </strong>
                                 <div className="flex items-center gap-2">
+                                    <ClaimButton
+                                        artistId={artist.id}
+                                        isClaimed={isClaimed}
+                                        isClaimedByUser={isClaimedByUser}
+                                    />
                                     {session && (
                                         <BookmarkButton
                                             artistId={artist.id}

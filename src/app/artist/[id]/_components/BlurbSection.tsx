@@ -5,6 +5,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
+import { RefreshCw } from "lucide-react";
 
 interface BlurbSectionProps {
   artistName: string;
@@ -80,20 +81,28 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
     if (isRegenerating) return;
     setIsRegenerating(true);
     try {
+      // First try PUT (admin regeneration) - falls back to GET with regenerate param
       const resp = await fetch(`/api/artistBio/${artistId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ regenerate: true }),
       });
-      const data = await resp.json();
       if (resp.ok) {
+        const data = await resp.json();
         setEditText(data.bio);
-        // Don't update aiBlurb or originalBio - keep them so Discard can restore the previous bio
+        refetch(); // Update the hook's displayed bio
         toast({ title: "Bio regenerated" });
       } else {
-        toast({ title: "Error regenerating bio", description: data?.message ?? "Please try again." });
+        // PUT failed (not admin) — use GET with force-regenerate param
+        const getResp = await fetch(`/api/artistBio/${artistId}?regenerate=true`);
+        const getData = await getResp.json();
+        if (getResp.ok && getData.bio) {
+          setEditText(getData.bio);
+          refetch(); // Update the hook's displayed bio
+          toast({ title: "Bio regenerated" });
+        } else {
+          toast({ title: "Error regenerating bio", description: getData?.error ?? "Please try again." });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -191,6 +200,14 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
           </div>
         )}
       </div>
+      <button
+        onClick={handleRegenerate}
+        disabled={isRegenerating}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors mt-1.5 ml-1"
+      >
+        <RefreshCw size={11} className={isRegenerating ? "animate-spin" : ""} />
+        {isRegenerating ? "Regenerating..." : "Regenerate summary"}
+      </button>
     </div>
   );
 }
