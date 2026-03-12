@@ -2,14 +2,8 @@
 
 import { jest } from '@jest/globals';
 
-// Mock modules at the top level
-jest.mock('@/server/auth', () => ({
-  getServerAuthSession: jest.fn(),
-}));
-
-jest.mock('@/server/utils/queries/userQueries', () => ({
-  getUserById: jest.fn(),
-}));
+// Mock dependencies BEFORE dynamic imports
+jest.mock('@/lib/auth-helpers', () => ({ requireAdmin: jest.fn() }));
 
 jest.mock('@/server/db/drizzle', () => {
   const mockReturning = jest.fn().mockResolvedValue([]);
@@ -34,9 +28,10 @@ if (!('json' in Response)) {
     });
 }
 
-const adminSession = {
-  user: { id: 'admin-uuid', email: 'admin@test.com' },
-  expires: '2025-12-31',
+const adminAuth = {
+  authenticated: true,
+  session: { user: { id: 'admin-uuid' } },
+  userId: 'admin-uuid',
 };
 
 describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
@@ -45,15 +40,13 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
   });
 
   async function setup() {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getUserById } = await import('@/server/utils/queries/userQueries');
+    const { requireAdmin } = await import('@/lib/auth-helpers');
     const { db } = await import('@/server/db/drizzle');
     const { POST } = await import('../route');
     return {
       POST,
       db,
-      mockGetSession: getServerAuthSession as jest.Mock,
-      mockGetUserById: getUserById as jest.Mock,
+      mockRequireAdmin: requireAdmin as jest.Mock,
     };
   }
 
@@ -65,8 +58,11 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
     });
 
   it('returns 401 when not authenticated', async () => {
-    const { POST, mockGetSession } = await setup();
-    mockGetSession.mockResolvedValue(null);
+    const { POST, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: 'Not authenticated' }, { status: 401 }),
+    });
 
     const response = await POST(createRequest(), { params: paramsPromise });
     expect(response.status).toBe(401);
@@ -74,10 +70,12 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
     expect(data.error).toBe('Not authenticated');
   });
 
-  it('returns 403 when non-admin tries to revoke', async () => {
-    const { POST, mockGetSession, mockGetUserById } = await setup();
-    mockGetSession.mockResolvedValue({ user: { id: 'user-uuid' }, expires: '2025-12-31' });
-    mockGetUserById.mockResolvedValue({ id: 'user-uuid', isAdmin: false });
+  it('returns 403 when non-admin', async () => {
+    const { POST, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: 'Forbidden' }, { status: 403 }),
+    });
 
     const response = await POST(createRequest(), { params: paramsPromise });
     expect(response.status).toBe(403);
@@ -86,11 +84,9 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
   });
 
   it('returns 404 when key does not exist', async () => {
-    const { POST, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin, db } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
-    // Chain: db.update().set().where().returning() => []
     const mockReturning = jest.fn().mockResolvedValue([]);
     const mockWhere = jest.fn().mockReturnValue({ returning: mockReturning });
     const mockSet = jest.fn().mockReturnValue({ where: mockWhere });
@@ -103,11 +99,9 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
   });
 
   it('returns 200 on successful revoke', async () => {
-    const { POST, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin, db } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
-    // Chain: db.update().set().where().returning() => [{ id: 'key-uuid-123' }]
     const mockReturning = jest.fn().mockResolvedValue([{ id: 'key-uuid-123' }]);
     const mockWhere = jest.fn().mockReturnValue({ returning: mockReturning });
     const mockSet = jest.fn().mockReturnValue({ where: mockWhere });
@@ -120,9 +114,8 @@ describe('POST /api/admin/mcp-keys/[id]/revoke', () => {
   });
 
   it('returns 500 on unexpected error', async () => {
-    const { POST, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin, db } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
     db.update.mockImplementation(() => { throw new Error('DB down'); });
 

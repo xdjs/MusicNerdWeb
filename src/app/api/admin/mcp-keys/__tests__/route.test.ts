@@ -2,34 +2,21 @@
 
 import { jest } from '@jest/globals';
 
-// Mock modules at the top level
-jest.mock('@/server/auth', () => ({
-  getServerAuthSession: jest.fn(),
-}));
+// Mock dependencies BEFORE dynamic imports
+jest.mock('@/lib/auth-helpers', () => ({ requireAdmin: jest.fn() }));
 
-jest.mock('@/server/utils/queries/userQueries', () => ({
-  getUserById: jest.fn(),
+jest.mock('@/server/utils/queries/mcpKeyQueries', () => ({
+  getAllMcpKeys: jest.fn(),
 }));
 
 jest.mock('@/server/db/drizzle', () => {
-  const mockInsert = jest.fn();
   const mockValues = jest.fn().mockResolvedValue(undefined);
-  mockInsert.mockReturnValue({ values: mockValues });
-
-  const mockSelect = jest.fn();
-  const mockFrom = jest.fn();
-  const mockOrderBy = jest.fn();
-  mockSelect.mockReturnValue({ from: mockFrom });
-  mockFrom.mockReturnValue({ orderBy: mockOrderBy });
-  mockOrderBy.mockResolvedValue([]);
+  const mockInsert = jest.fn().mockReturnValue({ values: mockValues });
 
   return {
     db: {
       insert: mockInsert,
-      select: mockSelect,
-      query: {
-        mcpApiKeys: { findFirst: jest.fn(), findMany: jest.fn() },
-      },
+      query: {},
     },
   };
 });
@@ -47,32 +34,28 @@ if (!('json' in Response)) {
     });
 }
 
-const adminSession = {
-  user: { id: 'admin-uuid', email: 'admin@test.com' },
-  expires: '2025-12-31',
-};
-
 describe('GET /api/admin/mcp-keys', () => {
   beforeEach(() => {
     jest.resetModules();
   });
 
   async function setup() {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getUserById } = await import('@/server/utils/queries/userQueries');
-    const { db } = await import('@/server/db/drizzle');
+    const { requireAdmin } = await import('@/lib/auth-helpers');
+    const { getAllMcpKeys } = await import('@/server/utils/queries/mcpKeyQueries');
     const { GET } = await import('../route');
     return {
       GET,
-      db,
-      mockGetSession: getServerAuthSession as jest.Mock,
-      mockGetUserById: getUserById as jest.Mock,
+      mockRequireAdmin: requireAdmin as jest.Mock,
+      mockGetAllMcpKeys: getAllMcpKeys as jest.Mock,
     };
   }
 
   it('returns 401 when not authenticated', async () => {
-    const { GET, mockGetSession } = await setup();
-    mockGetSession.mockResolvedValue(null);
+    const { GET, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: 'Not authenticated' }, { status: 401 }),
+    });
 
     const response = await GET();
     expect(response.status).toBe(401);
@@ -80,10 +63,12 @@ describe('GET /api/admin/mcp-keys', () => {
     expect(data.error).toBe('Not authenticated');
   });
 
-  it('returns 403 when non-admin tries to list keys', async () => {
-    const { GET, mockGetSession, mockGetUserById } = await setup();
-    mockGetSession.mockResolvedValue({ user: { id: 'user-uuid' }, expires: '2025-12-31' });
-    mockGetUserById.mockResolvedValue({ id: 'user-uuid', isAdmin: false });
+  it('returns 403 when non-admin', async () => {
+    const { GET, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: 'Forbidden' }, { status: 403 }),
+    });
 
     const response = await GET();
     expect(response.status).toBe(403);
@@ -91,25 +76,24 @@ describe('GET /api/admin/mcp-keys', () => {
     expect(data.error).toBe('Forbidden');
   });
 
-  it('returns list of keys with truncated hash prefixes', async () => {
-    const { GET, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+  it('returns list of keys', async () => {
+    const { GET, mockRequireAdmin, mockGetAllMcpKeys } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: true,
+      session: { user: { id: 'admin-uuid' } },
+      userId: 'admin-uuid',
+    });
 
     const mockKeys = [
       {
         id: 'key-1',
         label: 'test-agent',
-        keyHashPrefix: 'abcdef1234567890fullhashvalue',
+        keyHashPrefix: 'abcdef12',
         createdAt: '2025-01-01T00:00:00Z',
         revokedAt: null,
       },
     ];
-
-    // Chain: db.select().from().orderBy()
-    const mockOrderBy = jest.fn().mockResolvedValue(mockKeys);
-    const mockFrom = jest.fn().mockReturnValue({ orderBy: mockOrderBy });
-    db.select.mockReturnValue({ from: mockFrom });
+    mockGetAllMcpKeys.mockResolvedValue(mockKeys);
 
     const response = await GET();
     expect(response.status).toBe(200);
@@ -126,17 +110,21 @@ describe('POST /api/admin/mcp-keys', () => {
   });
 
   async function setup() {
-    const { getServerAuthSession } = await import('@/server/auth');
-    const { getUserById } = await import('@/server/utils/queries/userQueries');
+    const { requireAdmin } = await import('@/lib/auth-helpers');
     const { db } = await import('@/server/db/drizzle');
     const { POST } = await import('../route');
     return {
       POST,
       db,
-      mockGetSession: getServerAuthSession as jest.Mock,
-      mockGetUserById: getUserById as jest.Mock,
+      mockRequireAdmin: requireAdmin as jest.Mock,
     };
   }
+
+  const adminAuth = {
+    authenticated: true,
+    session: { user: { id: 'admin-uuid' } },
+    userId: 'admin-uuid',
+  };
 
   const createRequest = (body: any) =>
     new Request('http://localhost/api/admin/mcp-keys', {
@@ -146,17 +134,19 @@ describe('POST /api/admin/mcp-keys', () => {
     });
 
   it('returns 401 when not authenticated', async () => {
-    const { POST, mockGetSession } = await setup();
-    mockGetSession.mockResolvedValue(null);
+    const { POST, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: 'Not authenticated' }, { status: 401 }),
+    });
 
     const response = await POST(createRequest({ label: 'test' }));
     expect(response.status).toBe(401);
   });
 
   it('returns 400 when label is missing', async () => {
-    const { POST, mockGetSession, mockGetUserById } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
     const response = await POST(createRequest({}));
     expect(response.status).toBe(400);
@@ -165,9 +155,8 @@ describe('POST /api/admin/mcp-keys', () => {
   });
 
   it('returns 400 when label is empty string', async () => {
-    const { POST, mockGetSession, mockGetUserById } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
     const response = await POST(createRequest({ label: '   ' }));
     expect(response.status).toBe(400);
@@ -176,9 +165,8 @@ describe('POST /api/admin/mcp-keys', () => {
   });
 
   it('returns 201 with raw key on success', async () => {
-    const { POST, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin, db } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
     const mockValues = jest.fn().mockResolvedValue(undefined);
     db.insert.mockReturnValue({ values: mockValues });
@@ -193,9 +181,8 @@ describe('POST /api/admin/mcp-keys', () => {
   });
 
   it('calls db.insert with hashed key', async () => {
-    const { POST, mockGetSession, mockGetUserById, db } = await setup();
-    mockGetSession.mockResolvedValue(adminSession);
-    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    const { POST, mockRequireAdmin, db } = await setup();
+    mockRequireAdmin.mockResolvedValue(adminAuth);
 
     const mockValues = jest.fn().mockResolvedValue(undefined);
     db.insert.mockReturnValue({ values: mockValues });

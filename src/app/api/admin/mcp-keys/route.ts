@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth-helpers';
 import { db } from '@/server/db/drizzle';
 import { mcpApiKeys } from '@/server/db/schema';
-import { desc } from 'drizzle-orm';
+import { getAllMcpKeys } from '@/server/utils/queries/mcpKeyQueries';
 import crypto from 'crypto';
 import { hashApiKey } from '@/app/api/mcp/auth';
 
@@ -12,24 +12,8 @@ export async function GET() {
     const auth = await requireAdmin();
     if (!auth.authenticated) return auth.response;
 
-    const keys = await db
-      .select({
-        id: mcpApiKeys.id,
-        label: mcpApiKeys.label,
-        keyHashPrefix: mcpApiKeys.keyHash,
-        createdAt: mcpApiKeys.createdAt,
-        revokedAt: mcpApiKeys.revokedAt,
-      })
-      .from(mcpApiKeys)
-      .orderBy(desc(mcpApiKeys.createdAt));
-
-    // Only expose first 8 chars of hash for identification
-    const sanitized = keys.map((k) => ({
-      ...k,
-      keyHashPrefix: k.keyHashPrefix.slice(0, 8),
-    }));
-
-    return Response.json(sanitized);
+    const keys = await getAllMcpKeys();
+    return Response.json(keys);
   } catch (e) {
     console.error('[mcp-keys] GET error', e);
     return Response.json({ error: 'Internal server error' }, { status: 500 });

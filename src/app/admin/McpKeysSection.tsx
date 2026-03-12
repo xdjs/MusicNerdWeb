@@ -121,9 +121,13 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
   }
 
   async function copyToClipboard() {
-    await navigator.clipboard.writeText(generatedKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(generatedKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Copy failed — please select and copy the key manually");
+    }
   }
 
   return (
@@ -132,7 +136,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
         <h2 className="text-xl font-semibold text-[#9b83a0]">
           MCP API Keys ({keys.length})
         </h2>
-        <Button onClick={() => setIsCreateOpen(true)}>Create Key</Button>
+        <Button onClick={() => { setError(""); setIsCreateOpen(true); }}>Create Key</Button>
       </div>
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -174,6 +178,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
                         variant="destructive"
                         size="sm"
                         onClick={() => {
+                          setError("");
                           setRevokeTarget(key);
                           setIsRevokeOpen(true);
                         }}

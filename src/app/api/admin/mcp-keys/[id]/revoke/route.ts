@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth-helpers';
 import { db } from '@/server/db/drizzle';
 import { mcpApiKeys } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 
 export async function POST(
   _request: Request,
@@ -16,7 +16,7 @@ export async function POST(
     const result = await db
       .update(mcpApiKeys)
       .set({ revokedAt: new Date().toISOString() })
-      .where(eq(mcpApiKeys.id, id))
+      .where(and(eq(mcpApiKeys.id, id), isNull(mcpApiKeys.revokedAt)))
       .returning({ id: mcpApiKeys.id });
 
     if (result.length === 0) {
