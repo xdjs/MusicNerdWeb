@@ -1,4 +1,4 @@
-import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique, pgView } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -319,12 +319,38 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]);
 
+export const confidenceLevel = pgEnum("confidence_level", ["high", "medium", "low", "manual"]);
+
+export const artistIdMappings = pgTable("artist_id_mappings", {
+  id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+  artistId: uuid("artist_id").notNull(),
+  platform: text().notNull(),
+  platformId: text("platform_id").notNull(),
+  confidence: confidenceLevel().notNull(),
+  source: text().notNull(),
+  reasoning: text(),
+  apiKeyHash: text("api_key_hash"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+  unique("artist_id_mappings_artist_platform_uniq").on(table.artistId, table.platform),
+  unique("artist_id_mappings_platform_id_uniq").on(table.platform, table.platformId),
+  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_id_mappings_artist_id_fkey" }),
+  index("idx_artist_id_mappings_platform_artist").using("btree", table.platform.asc().nullsLast(), table.artistId.asc().nullsLast()),
+  index("idx_artist_id_mappings_confidence").using("btree", table.confidence.asc().nullsLast()),
+  pgPolicy("mnweb_select_artist_id_mappings", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_id_mappings", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_id_mappings", { as: "permissive", for: "update", to: ["mnweb"] }),
+]);
+
 // Relations
 export const artistsRelations = relations(artists, ({one, many}) => ({
 	user: one(users, {
 		fields: [artists.addedBy],
 		references: [users.id]
 	}),
+	idMappings: many(artistIdMappings),
 	ugcresearches: many(ugcresearch),
 	featureds_featuredArtist: many(featured, {
 		relationName: "featured_featuredArtist_artists_id"
@@ -360,5 +386,12 @@ export const featuredRelations = relations(featured, ({one}) => ({
 		fields: [featured.featuredCollector],
 		references: [artists.id],
 		relationName: "featured_featuredCollector_artists_id"
+	}),
+}));
+
+export const artistIdMappingsRelations = relations(artistIdMappings, ({one}) => ({
+	artist: one(artists, {
+		fields: [artistIdMappings.artistId],
+		references: [artists.id],
 	}),
 }));
