@@ -55,6 +55,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [revokeError, setRevokeError] = useState("");
 
   async function createKey() {
     if (!newLabel.trim()) return;
@@ -88,21 +89,21 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
   async function revokeKey() {
     if (!revokeTarget) return;
     setLoading(true);
-    setError("");
+    setRevokeError("");
     try {
       const res = await fetch(`/api/admin/mcp-keys/${revokeTarget.id}/revoke`, {
         method: "POST",
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to revoke key");
+        setRevokeError(data.error || "Failed to revoke key");
         return;
       }
       setIsRevokeOpen(false);
       setRevokeTarget(null);
       await refreshKeys();
     } catch {
-      setError("Failed to revoke key");
+      setRevokeError("Failed to revoke key");
     } finally {
       setLoading(false);
     }
@@ -179,6 +180,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
                         size="sm"
                         onClick={() => {
                           setError("");
+                          setRevokeError("");
                           setRevokeTarget(key);
                           setIsRevokeOpen(true);
                         }}
@@ -214,7 +216,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") createKey();
+              if (e.key === "Enter" && !loading) createKey();
             }}
           />
           <DialogFooter>
@@ -264,7 +266,10 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
       </Dialog>
 
       {/* Revoke Confirmation Dialog */}
-      <Dialog open={isRevokeOpen} onOpenChange={setIsRevokeOpen}>
+      <Dialog open={isRevokeOpen} onOpenChange={(open) => {
+        setIsRevokeOpen(open);
+        if (!open) setRevokeTarget(null);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Revoke API Key</DialogTitle>
@@ -273,6 +278,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
               This action is permanent and cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          {revokeError && <p className="text-red-500 text-sm">{revokeError}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRevokeOpen(false)}>
               Cancel
