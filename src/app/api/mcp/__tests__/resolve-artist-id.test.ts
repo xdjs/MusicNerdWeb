@@ -1,6 +1,17 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
 
+// Typed error classes for mock — must match the real ones
+class MappingNotFoundError extends Error {
+  constructor(msg) { super(msg); this.name = "MappingNotFoundError"; }
+}
+class MappingConflictError extends Error {
+  constructor(msg) { super(msg); this.name = "MappingConflictError"; }
+}
+class MappingValidationError extends Error {
+  constructor(msg) { super(msg); this.name = "MappingValidationError"; }
+}
+
 // Mock dependencies
 jest.mock("@/server/utils/idMappingService", () => ({
   getUnmappedArtists: jest.fn(),
@@ -9,6 +20,9 @@ jest.mock("@/server/utils/idMappingService", () => ({
   getArtistMappings: jest.fn(),
   VALID_MAPPING_PLATFORMS: new Set(["deezer", "apple_music", "musicbrainz", "wikidata", "tidal", "amazon_music", "youtube_music"]),
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "manual"]),
+  MappingNotFoundError,
+  MappingConflictError,
+  MappingValidationError,
 }));
 jest.mock("@/server/utils/services", () => ({
   extractArtistId: jest.fn(),
@@ -65,7 +79,7 @@ describe("resolve_artist_id MCP tool", () => {
   it("returns NOT_FOUND for nonexistent artist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new Error("Artist not found: 00000000-0000-0000-0000-000000000001"));
+    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new MappingNotFoundError("Artist not found: 00000000-0000-0000-0000-000000000001"));
 
     const result = await callTool(s, validArgs);
     const parsed = JSON.parse(result.content[0].text);
@@ -83,12 +97,12 @@ describe("resolve_artist_id MCP tool", () => {
     expect(result.isError).toBe(true);
   });
 
-  it("returns INVALID_INPUT for bad source", async () => {
+  it("returns INVALID_INPUT for validation errors", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new Error("Invalid source: badsource"));
+    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new MappingValidationError("platformId cannot be empty"));
 
-    const result = await callTool(s, { ...validArgs, source: "badsource" });
+    const result = await callTool(s, { ...validArgs, platformId: "" });
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.code).toBe("INVALID_INPUT");
     expect(result.isError).toBe(true);
@@ -97,7 +111,7 @@ describe("resolve_artist_id MCP tool", () => {
   it("returns CONFLICT when platformId belongs to different artist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
-    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new Error("Conflict: platformId 12345 on deezer is already mapped to artist other-id"));
+    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new MappingConflictError("platformId 12345 on deezer is already mapped to a different artist"));
 
     const result = await callTool(s, validArgs);
     const parsed = JSON.parse(result.content[0].text);

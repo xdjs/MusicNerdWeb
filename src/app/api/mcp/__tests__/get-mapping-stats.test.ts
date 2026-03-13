@@ -9,6 +9,9 @@ jest.mock("@/server/utils/idMappingService", () => ({
   getArtistMappings: jest.fn(),
   VALID_MAPPING_PLATFORMS: new Set(["deezer", "apple_music", "musicbrainz", "wikidata", "tidal", "amazon_music", "youtube_music"]),
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "manual"]),
+  MappingNotFoundError: class extends Error { constructor(msg) { super(msg); this.name = "MappingNotFoundError"; } },
+  MappingConflictError: class extends Error { constructor(msg) { super(msg); this.name = "MappingConflictError"; } },
+  MappingValidationError: class extends Error { constructor(msg) { super(msg); this.name = "MappingValidationError"; } },
 }));
 jest.mock("@/server/utils/services", () => ({
   extractArtistId: jest.fn(),

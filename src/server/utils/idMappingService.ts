@@ -6,6 +6,18 @@ import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
 import { artists, artistIdMappings } from "@/server/db/schema";
 
+export class MappingNotFoundError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingNotFoundError"; }
+}
+
+export class MappingConflictError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingConflictError"; }
+}
+
+export class MappingValidationError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingValidationError"; }
+}
+
 export const VALID_MAPPING_PLATFORMS = new Set([
   "deezer", "apple_music", "musicbrainz", "wikidata",
   "tidal", "amazon_music", "youtube_music",
@@ -25,7 +37,7 @@ export async function getUnmappedArtists(
   offset: number,
 ): Promise<{ artists: { id: string; name: string | null; spotify: string | null }[]; totalUnmapped: number }> {
   if (!VALID_MAPPING_PLATFORMS.has(platform)) {
-    throw new Error(`Invalid platform: ${platform}`);
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
   }
 
   const [countResult, result] = await Promise.all([
@@ -69,16 +81,16 @@ export async function resolveArtistMapping(params: {
   const { artistId, platform, platformId, confidence, source, reasoning, apiKeyHash } = params;
 
   if (!VALID_MAPPING_PLATFORMS.has(platform)) {
-    throw new Error(`Invalid platform: ${platform}`);
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
   }
   if (!VALID_SOURCES.has(source)) {
-    throw new Error(`Invalid source: ${source}`);
+    throw new MappingValidationError(`Invalid source: ${source}`);
   }
   if (!(confidence in CONFIDENCE_PRIORITY)) {
-    throw new Error(`Invalid confidence level: ${confidence}`);
+    throw new MappingValidationError(`Invalid confidence level: ${confidence}`);
   }
   if (!platformId.trim()) {
-    throw new Error("platformId cannot be empty");
+    throw new MappingValidationError("platformId cannot be empty");
   }
 
   // Verify artist exists
@@ -87,21 +99,13 @@ export async function resolveArtistMapping(params: {
     columns: { id: true },
   });
   if (!artist) {
-    throw new Error(`Artist not found: ${artistId}`);
+    throw new MappingNotFoundError(`Artist not found: ${artistId}`);
   }
 
   // Check for existing mapping on this artist+platform
   const existing = await db.query.artistIdMappings.findFirst({
     where: and(eq(artistIdMappings.artistId, artistId), eq(artistIdMappings.platform, platform)),
   });
-
-  // Check if platformId is already claimed by a different artist (UNIQUE constraint)
-  const conflicting = await db.query.artistIdMappings.findFirst({
-    where: and(eq(artistIdMappings.platform, platform), eq(artistIdMappings.platformId, platformId)),
-  });
-  if (conflicting && conflicting.artistId !== artistId) {
-    throw new Error(`Conflict: platformId ${platformId} on ${platform} is already mapped to artist ${conflicting.artistId}`);
-  }
 
   if (existing) {
     const existingPriority = CONFIDENCE_PRIORITY[existing.confidence] ?? 0;
@@ -117,18 +121,25 @@ export async function resolveArtistMapping(params: {
       };
     }
 
-    // Update existing mapping
-    await db.execute(sql`
-      UPDATE artist_id_mappings
-      SET platform_id = ${platformId},
-          confidence = ${confidence}::confidence_level,
-          source = ${source},
-          reasoning = ${reasoning ?? null},
-          api_key_hash = ${apiKeyHash ?? null},
-          resolved_at = now(),
-          updated_at = now()
-      WHERE artist_id = ${artistId} AND platform = ${platform}
-    `);
+    // Update existing mapping — use ON CONFLICT to handle races atomically
+    try {
+      await db.execute(sql`
+        UPDATE artist_id_mappings
+        SET platform_id = ${platformId},
+            confidence = ${confidence}::confidence_level,
+            source = ${source},
+            reasoning = ${reasoning ?? null},
+            api_key_hash = ${apiKeyHash ?? null},
+            resolved_at = now(),
+            updated_at = now()
+        WHERE artist_id = ${artistId} AND platform = ${platform}
+      `);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+        throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
+      }
+      throw err;
+    }
 
     return {
       created: false,
@@ -138,11 +149,18 @@ export async function resolveArtistMapping(params: {
     };
   }
 
-  // Insert new mapping
-  await db.execute(sql`
-    INSERT INTO artist_id_mappings (artist_id, platform, platform_id, confidence, source, reasoning, api_key_hash)
-    VALUES (${artistId}, ${platform}, ${platformId}, ${confidence}::confidence_level, ${source}, ${reasoning ?? null}, ${apiKeyHash ?? null})
-  `);
+  // Insert new mapping — ON CONFLICT on (platform, platform_id) to catch races
+  try {
+    await db.execute(sql`
+      INSERT INTO artist_id_mappings (artist_id, platform, platform_id, confidence, source, reasoning, api_key_hash)
+      VALUES (${artistId}, ${platform}, ${platformId}, ${confidence}::confidence_level, ${source}, ${reasoning ?? null}, ${apiKeyHash ?? null})
+    `);
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+      throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
+    }
+    throw err;
+  }
 
   return { created: true, updated: false, skipped: false };
 }
@@ -190,7 +208,7 @@ export async function getArtistMappings(artistId: string): Promise<{
     columns: { id: true },
   });
   if (!artist) {
-    throw new Error(`Artist not found: ${artistId}`);
+    throw new MappingNotFoundError(`Artist not found: ${artistId}`);
   }
 
   const result = await db.execute<{ id: string; platform: string; platform_id: string; confidence: string; source: string; reasoning: string | null; resolved_at: string }>(sql`

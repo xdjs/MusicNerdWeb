@@ -78,27 +78,31 @@ describe("idMappingService", () => {
     ).rejects.toThrow("Artist not found");
   });
 
-  it("throws conflict when platformId is already mapped to a different artist", async () => {
+  it("throws MappingConflictError on unique constraint violation during insert", async () => {
     const { db, resolveArtistMapping } = await setup();
-    // No existing mapping for this artist+platform
-    (db as any).query.artistIdMappings.findFirst
-      .mockResolvedValueOnce(null) // artist+platform check
-      .mockResolvedValueOnce({ artistId: "other-artist", platform: "deezer", platformId: "456" }); // conflict check
+    const { MappingConflictError } = await import("../idMappingService");
+    // No existing mapping, but INSERT hits unique constraint (race with another request)
+    const dbError = new Error("duplicate key value violates unique constraint");
+    (dbError as any).code = "23505";
+    db.execute = jest.fn().mockRejectedValue(dbError);
     await expect(
       resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
-    ).rejects.toThrow("Conflict: platformId 456 on deezer is already mapped to artist other-artist");
+    ).rejects.toThrow(MappingConflictError);
   });
 
-  it("allows same platformId when mapped to the same artist", async () => {
+  it("throws MappingConflictError on unique constraint violation during update", async () => {
     const { db, resolveArtistMapping } = await setup();
-    // Existing mapping for this artist+platform
-    (db as any).query.artistIdMappings.findFirst
-      .mockResolvedValueOnce({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "low" }) // artist+platform check
-      .mockResolvedValueOnce({ artistId: "artist-123", platform: "deezer", platformId: "456" }); // conflict check — same artist, no conflict
-    const result = await resolveArtistMapping({
-      artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual",
+    const { MappingConflictError } = await import("../idMappingService");
+    // Existing mapping found, but UPDATE hits unique constraint on (platform, platform_id)
+    (db as any).query.artistIdMappings.findFirst.mockResolvedValueOnce({
+      artistId: "artist-123", platformId: "old-id", confidence: "low",
     });
-    expect(result.updated).toBe(true);
+    const dbError = new Error("duplicate key value violates unique constraint");
+    (dbError as any).code = "23505";
+    db.execute = jest.fn().mockRejectedValue(dbError);
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "taken-id", confidence: "high", source: "manual" })
+    ).rejects.toThrow(MappingConflictError);
   });
 
   it("creates new mapping", async () => {

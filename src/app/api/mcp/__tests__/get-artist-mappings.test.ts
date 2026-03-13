@@ -1,6 +1,10 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
 
+class MappingNotFoundError extends Error {
+  constructor(msg) { super(msg); this.name = "MappingNotFoundError"; }
+}
+
 // Mock dependencies
 jest.mock("@/server/utils/idMappingService", () => ({
   getUnmappedArtists: jest.fn(),
@@ -9,6 +13,9 @@ jest.mock("@/server/utils/idMappingService", () => ({
   getArtistMappings: jest.fn().mockResolvedValue([]),
   VALID_MAPPING_PLATFORMS: new Set(["deezer", "apple_music", "musicbrainz", "wikidata", "tidal", "amazon_music", "youtube_music"]),
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "manual"]),
+  MappingNotFoundError,
+  MappingConflictError: class MappingConflictError extends Error { constructor(msg) { super(msg); this.name = "MappingConflictError"; } },
+  MappingValidationError: class MappingValidationError extends Error { constructor(msg) { super(msg); this.name = "MappingValidationError"; } },
 }));
 jest.mock("@/server/utils/services", () => ({
   extractArtistId: jest.fn(),
@@ -58,7 +65,7 @@ describe("get_artist_mappings MCP tool", () => {
 
   it("returns NOT_FOUND for nonexistent artist", async () => {
     const s = await setup();
-    (s.getArtistMappings as jest.Mock).mockRejectedValue(new Error("Artist not found: 00000000-0000-0000-0000-000000000099"));
+    (s.getArtistMappings as jest.Mock).mockRejectedValue(new MappingNotFoundError("Artist not found: 00000000-0000-0000-0000-000000000099"));
 
     const result = await callTool(s, { artistId: "00000000-0000-0000-0000-000000000099" });
     const parsed = JSON.parse(result.content[0].text);

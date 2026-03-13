@@ -6,7 +6,7 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, VALID_MAPPING_PLATFORMS } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingValidationError } from "@/server/utils/idMappingService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -428,7 +428,7 @@ server.registerTool(
         }],
       };
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith("Artist not found")) {
+      if (error instanceof MappingNotFoundError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
           isError: true,
@@ -513,19 +513,19 @@ server.registerTool(
           isError: true,
         };
       }
-      if (error instanceof Error && error.message.startsWith("Artist not found")) {
+      if (error instanceof MappingNotFoundError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
           isError: true,
         };
       }
-      if (error instanceof Error && error.message.startsWith("Conflict:")) {
+      if (error instanceof MappingConflictError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "CONFLICT" }) }],
           isError: true,
         };
       }
-      if (error instanceof Error && (error.message.startsWith("Invalid platform") || error.message.startsWith("Invalid source") || error.message.startsWith("Invalid confidence") || error.message.startsWith("platformId cannot"))) {
+      if (error instanceof MappingValidationError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
           isError: true,
