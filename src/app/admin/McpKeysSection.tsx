@@ -31,7 +31,8 @@ interface McpKey {
 // Helper to format dates in local timezone without seconds
 const formatDate = (value: string | null | undefined): string => {
   if (!value) return "";
-  const hasExplicitTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(value);
+  // PG timestamptz strings may use short offsets like +00 or +05
+  const hasExplicitTZ = /Z$|[+-]\d{2}(:\d{2})?$/.test(value);
   const dateObj = new Date(hasExplicitTZ ? value : `${value}Z`);
   const datePart = dateObj.toLocaleDateString();
   const timePart = dateObj
