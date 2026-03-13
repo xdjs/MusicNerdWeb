@@ -11,8 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { LogIn } from 'lucide-react';
+import { LogIn, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/app/_components/ThemeProvider';
 import { LegacyAccountModal } from './LegacyAccountModal';
 import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
 
@@ -33,6 +34,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const { identityToken } = useIdentityToken();
     const { data: session, status } = useSession();
     const { toast } = useToast();
+    const { theme, setTheme } = useTheme();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
     const [hasPendingUGC, setHasPendingUGC] = useState(false);
     const [ugcCount, setUgcCount] = useState<number>(0);
@@ -360,6 +362,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 User Profile
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleLogin}>Log In</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -431,6 +436,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 Link Wallet
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault();

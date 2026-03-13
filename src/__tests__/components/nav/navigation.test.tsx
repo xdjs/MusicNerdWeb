@@ -90,9 +90,9 @@ describe('NavContent', () => {
         expect(screen.getByTestId('login-component')).toBeInTheDocument();
     });
 
-    it('renders the theme toggle', () => {
+    it('does not render a standalone theme toggle (moved to profile menu)', () => {
         render(<NavContent />);
-        expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
+        expect(screen.queryByTestId('theme-toggle')).not.toBeInTheDocument();
     });
 
     it('renders a <nav> element', () => {
