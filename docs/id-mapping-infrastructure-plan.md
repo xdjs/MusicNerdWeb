@@ -30,7 +30,7 @@ New table with provenance tracking. Platform is free text (validated at app laye
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
-Constraints: `UNIQUE(artist_id, platform)`. Indexes on `artist_id`, `platform`, `confidence`.
+Constraints: `UNIQUE(artist_id, platform)`, `UNIQUE(platform, platform_id)`. Indexes on `(platform, artist_id)` composite, `confidence`.
 
 ### MCP Tools (4 new tools)
 
@@ -70,9 +70,41 @@ Reuse existing `logMcpAudit()`. Field format: `"mapping:deezer"`, `"mapping:appl
 | `src/server/db/DbTypes.ts` | Modify | Add `ArtistIdMapping` type export |
 | `src/server/utils/idMappingService.ts` | **Create** | Service layer: `getUnmappedArtists()`, `resolveArtistMapping()`, `getMappingStats()`, `getArtistMappings()` + validation constants (`VALID_MAPPING_PLATFORMS`, `VALID_SOURCES`, `CONFIDENCE_PRIORITY`) |
 | `src/app/api/mcp/server.ts` | Modify | Register 4 new tools at bottom, import from idMappingService |
-| Migration file | **Generated** | Via `npm run db:generate` after schema changes |
+| Migration SQL | **Manual** | Apply manually to dev/staging/prod DBs, then run `npm run db:generate` to sync Drizzle ORM |
 
 ## Implementation Details
+
+### Migration SQL (apply manually)
+
+```sql
+CREATE TYPE confidence_level AS ENUM ('high', 'medium', 'low', 'manual');
+
+CREATE TABLE artist_id_mappings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  artist_id UUID NOT NULL REFERENCES artists(id),
+  platform TEXT NOT NULL,
+  platform_id TEXT NOT NULL,
+  confidence confidence_level NOT NULL,
+  source TEXT NOT NULL,
+  reasoning TEXT,
+  api_key_hash TEXT,
+  resolved_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  UNIQUE(artist_id, platform),
+  UNIQUE(platform, platform_id)
+);
+
+CREATE INDEX idx_artist_id_mappings_platform_artist ON artist_id_mappings(platform, artist_id);
+CREATE INDEX idx_artist_id_mappings_confidence ON artist_id_mappings(confidence);
+
+ALTER TABLE artist_id_mappings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY mnweb_select_artist_id_mappings ON artist_id_mappings FOR SELECT TO mnweb USING (true);
+CREATE POLICY mnweb_insert_artist_id_mappings ON artist_id_mappings FOR INSERT TO mnweb WITH CHECK (true);
+CREATE POLICY mnweb_update_artist_id_mappings ON artist_id_mappings FOR UPDATE TO mnweb USING (true);
+```
+
+After applying, run `npm run db:generate` to sync the Drizzle schema.
 
 ### Schema (in `schema.ts`)
 
@@ -95,9 +127,9 @@ export const artistIdMappings = pgTable("artist_id_mappings", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
 }, (table) => [
   unique("artist_id_mappings_artist_platform_uniq").on(table.artistId, table.platform),
+  unique("artist_id_mappings_platform_id_uniq").on(table.platform, table.platformId),
   foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_id_mappings_artist_id_fkey" }),
-  index("idx_artist_id_mappings_artist_id").using("btree", table.artistId.asc().nullsLast()),
-  index("idx_artist_id_mappings_platform").using("btree", table.platform.asc().nullsLast()),
+  index("idx_artist_id_mappings_platform_artist").using("btree", table.platform.asc().nullsLast(), table.artistId.asc().nullsLast()),
   index("idx_artist_id_mappings_confidence").using("btree", table.confidence.asc().nullsLast()),
   pgPolicy("mnweb_select_artist_id_mappings", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
   pgPolicy("mnweb_insert_artist_id_mappings", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
@@ -122,10 +154,12 @@ export async function getUnmappedArtists(platform, limit, offset)
 
 export async function resolveArtistMapping({ artistId, platform, platformId, confidence, source, reasoning, apiKeyHash })
   // Validate platform, source. Verify artist exists. Check existing. Upsert with confidence comparison.
+  // On UPDATE: explicitly set updated_at = now() and resolved_at = now()
   // Returns { created, updated, skipped, previousMapping? }
 
 export async function getMappingStats()
-  // Aggregate: total artists with spotify, per-platform counts by confidence/source
+  // Single grouped query: SELECT platform, confidence, source, count(*) GROUP BY platform, confidence, source
+  // Plus total artists with spotify count. Reshape in application code.
 
 export async function getArtistMappings(artistId)
   // Simple SELECT * FROM artist_id_mappings WHERE artist_id = $1

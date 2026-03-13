@@ -1,0 +1,238 @@
+/**
+ * Service layer for cross-platform artist ID mappings.
+ * Maps Spotify artist IDs to Deezer, Apple Music, MusicBrainz, etc.
+ */
+import { db } from "@/server/db/drizzle";
+import { eq, and, sql, asc } from "drizzle-orm";
+import { artists, artistIdMappings } from "@/server/db/schema";
+
+export class MappingNotFoundError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingNotFoundError"; }
+}
+
+export class MappingConflictError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingConflictError"; }
+}
+
+export class MappingConcurrentWriteError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingConcurrentWriteError"; }
+}
+
+export class MappingValidationError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingValidationError"; }
+}
+
+export const VALID_MAPPING_PLATFORMS = new Set([
+  "deezer", "apple_music", "musicbrainz", "wikidata",
+  "tidal", "amazon_music", "youtube_music",
+]);
+
+export const VALID_SOURCES = new Set([
+  "wikidata", "musicbrainz", "name_search", "manual",
+]);
+
+const CONFIDENCE_PRIORITY: Record<string, number> = {
+  manual: 4, high: 3, medium: 2, low: 1,
+};
+
+function handleUniqueViolation(err: unknown, platform: string, platformId: string): never {
+  if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+    const constraint = "constraint" in err && typeof err.constraint === "string" ? err.constraint : "";
+    if (constraint === "artist_id_mappings_platform_id_uniq") {
+      throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
+    }
+    // artist_id_mappings_artist_platform_uniq — concurrent insert race for same artist+platform
+    throw new MappingConcurrentWriteError(`A mapping for ${platform} already exists for this artist (concurrent write)`);
+  }
+  throw err;
+}
+
+export async function getUnmappedArtists(
+  platform: string,
+  limit: number,
+  offset: number,
+): Promise<{ artists: { id: string; name: string | null; spotify: string | null }[]; totalUnmapped: number }> {
+  if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
+  }
+
+  const [countResult, result] = await Promise.all([
+    db.execute<{ total: number }>(sql`
+      SELECT COUNT(*)::int AS total
+      FROM artists a
+      WHERE a.spotify IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_id_mappings m
+          WHERE m.artist_id = a.id AND m.platform = ${platform}
+        )
+    `),
+    db.execute<{ id: string; name: string | null; spotify: string | null }>(sql`
+      SELECT a.id, a.name, a.spotify
+      FROM artists a
+      WHERE a.spotify IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_id_mappings m
+          WHERE m.artist_id = a.id AND m.platform = ${platform}
+        )
+      ORDER BY a.name ASC NULLS LAST
+      LIMIT ${limit} OFFSET ${offset}
+    `),
+  ]);
+
+  return {
+    artists: [...result],
+    totalUnmapped: countResult[0]?.total ?? 0,
+  };
+}
+
+export async function resolveArtistMapping(params: {
+  artistId: string;
+  platform: string;
+  platformId: string;
+  confidence: string;
+  source: string;
+  reasoning?: string;
+  apiKeyHash?: string;
+}): Promise<{ created: boolean; updated: boolean; skipped: boolean; previousMapping?: { platformId: string; confidence: string } }> {
+  const { artistId, platform, platformId, confidence, source, reasoning, apiKeyHash } = params;
+
+  if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
+  }
+  if (!VALID_SOURCES.has(source)) {
+    throw new MappingValidationError(`Invalid source: ${source}`);
+  }
+  if (!(confidence in CONFIDENCE_PRIORITY)) {
+    throw new MappingValidationError(`Invalid confidence level: ${confidence}`);
+  }
+  if (!platformId.trim()) {
+    throw new MappingValidationError("platformId cannot be empty");
+  }
+
+  // Verify artist exists
+  const artist = await db.query.artists.findFirst({
+    where: eq(artists.id, artistId),
+    columns: { id: true },
+  });
+  if (!artist) {
+    throw new MappingNotFoundError(`Artist not found: ${artistId}`);
+  }
+
+  // Check for existing mapping on this artist+platform
+  const existing = await db.query.artistIdMappings.findFirst({
+    where: and(eq(artistIdMappings.artistId, artistId), eq(artistIdMappings.platform, platform)),
+  });
+
+  if (existing) {
+    const existingPriority = CONFIDENCE_PRIORITY[existing.confidence] ?? 0;
+    const newPriority = CONFIDENCE_PRIORITY[confidence] ?? 0;
+
+    // Equal confidence overwrites intentionally — latest submission wins at the same tier
+    if (newPriority < existingPriority) {
+      return {
+        created: false,
+        updated: false,
+        skipped: true,
+        previousMapping: { platformId: existing.platformId, confidence: existing.confidence },
+      };
+    }
+
+    try {
+      await db.execute(sql`
+        UPDATE artist_id_mappings
+        SET platform_id = ${platformId},
+            confidence = ${confidence}::confidence_level,
+            source = ${source},
+            reasoning = ${reasoning ?? null},
+            api_key_hash = ${apiKeyHash ?? null},
+            resolved_at = now(),
+            updated_at = now()
+        WHERE artist_id = ${artistId} AND platform = ${platform}
+      `);
+    } catch (err: unknown) {
+      handleUniqueViolation(err, platform, platformId);
+    }
+
+    return {
+      created: false,
+      updated: true,
+      skipped: false,
+      previousMapping: { platformId: existing.platformId, confidence: existing.confidence },
+    };
+  }
+
+  try {
+    await db.execute(sql`
+      INSERT INTO artist_id_mappings (artist_id, platform, platform_id, confidence, source, reasoning, api_key_hash)
+      VALUES (${artistId}, ${platform}, ${platformId}, ${confidence}::confidence_level, ${source}, ${reasoning ?? null}, ${apiKeyHash ?? null})
+    `);
+  } catch (err: unknown) {
+    handleUniqueViolation(err, platform, platformId);
+  }
+
+  return { created: true, updated: false, skipped: false };
+}
+
+export async function getMappingStats(): Promise<{
+  totalArtistsWithSpotify: number;
+  platformStats: { platform: string; mappedCount: number; percentage: number }[];
+}> {
+  const [totalResult, statsResult] = await Promise.all([
+    db.execute<{ total: number }>(sql`
+      SELECT COUNT(*)::int AS total FROM artists WHERE spotify IS NOT NULL
+    `),
+    db.execute<{ platform: string; mapped_count: number }>(sql`
+      SELECT platform, COUNT(*)::int AS mapped_count
+      FROM artist_id_mappings
+      GROUP BY platform
+      ORDER BY mapped_count DESC
+    `),
+  ]);
+
+  const totalArtistsWithSpotify = totalResult[0]?.total ?? 0;
+
+  // Build a map of DB results, then ensure all valid platforms are represented
+  const dbStats = new Map([...statsResult].map(row => [row.platform, row.mapped_count]));
+  const platformStats = [...VALID_MAPPING_PLATFORMS].map(platform => {
+    const mappedCount = dbStats.get(platform) ?? 0;
+    return {
+      platform,
+      mappedCount,
+      percentage: totalArtistsWithSpotify > 0
+        ? Math.round((mappedCount / totalArtistsWithSpotify) * 10000) / 100
+        : 0,
+    };
+  });
+
+  return { totalArtistsWithSpotify, platformStats };
+}
+
+export async function getArtistMappings(artistId: string) {
+  // Single query — FK constraint means results imply artist exists.
+  // Empty result could mean no mappings or unknown artist, so check the artist table only on empty.
+  const mappings = await db.query.artistIdMappings.findMany({
+    where: eq(artistIdMappings.artistId, artistId),
+    orderBy: [asc(artistIdMappings.platform)],
+    columns: {
+      id: true,
+      platform: true,
+      platformId: true,
+      confidence: true,
+      source: true,
+      reasoning: true,
+      resolvedAt: true,
+    },
+  });
+
+  if (mappings.length === 0) {
+    const artist = await db.query.artists.findFirst({
+      where: eq(artists.id, artistId),
+      columns: { id: true },
+    });
+    if (!artist) {
+      throw new MappingNotFoundError(`Artist not found: ${artistId}`);
+    }
+  }
+
+  return mappings;
+}

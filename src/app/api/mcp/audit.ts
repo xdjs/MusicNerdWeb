@@ -4,7 +4,7 @@ import { mcpAuditLog } from "@/server/db/schema";
 export async function logMcpAudit(entry: {
   artistId: string;
   field: string;
-  action: "set" | "delete";
+  action: "set" | "delete" | "resolve";
   submittedUrl?: string;
   oldValue?: string | null;
   newValue?: string | null;
