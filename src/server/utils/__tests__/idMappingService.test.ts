@@ -78,27 +78,37 @@ describe("idMappingService", () => {
     ).rejects.toThrow("Artist not found");
   });
 
-  it("throws MappingConflictError on unique constraint violation during insert", async () => {
+  it("reports cross-artist conflict when platform_id_uniq constraint is violated", async () => {
     const { db, resolveArtistMapping } = await setup();
-    const { MappingConflictError } = await import("../idMappingService");
-    // No existing mapping, but INSERT hits unique constraint (race with another request)
     const dbError = new Error("duplicate key value violates unique constraint");
     (dbError as any).code = "23505";
+    (dbError as any).constraint = "artist_id_mappings_platform_id_uniq";
     db.execute = jest.fn().mockRejectedValue(dbError);
     await expect(
       resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
-    ).rejects.toThrow(MappingConflictError);
+    ).rejects.toThrow("already mapped to a different artist");
+  });
+
+  it("reports concurrent write when artist_platform_uniq constraint is violated", async () => {
+    const { db, resolveArtistMapping } = await setup();
+    const dbError = new Error("duplicate key value violates unique constraint");
+    (dbError as any).code = "23505";
+    (dbError as any).constraint = "artist_id_mappings_artist_platform_uniq";
+    db.execute = jest.fn().mockRejectedValue(dbError);
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
+    ).rejects.toThrow("concurrent write");
   });
 
   it("throws MappingConflictError on unique constraint violation during update", async () => {
     const { db, resolveArtistMapping } = await setup();
     const { MappingConflictError } = await import("../idMappingService");
-    // Existing mapping found, but UPDATE hits unique constraint on (platform, platform_id)
     (db as any).query.artistIdMappings.findFirst.mockResolvedValueOnce({
       artistId: "artist-123", platformId: "old-id", confidence: "low",
     });
     const dbError = new Error("duplicate key value violates unique constraint");
     (dbError as any).code = "23505";
+    (dbError as any).constraint = "artist_id_mappings_platform_id_uniq";
     db.execute = jest.fn().mockRejectedValue(dbError);
     await expect(
       resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "taken-id", confidence: "high", source: "manual" })
@@ -120,8 +130,7 @@ describe("idMappingService", () => {
   it("updates existing mapping with equal confidence", async () => {
     const { db, resolveArtistMapping } = await setup();
     (db as any).query.artistIdMappings.findFirst
-      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "medium" })
-      .mockResolvedValueOnce(null); // no conflict
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "medium" });
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "medium", source: "musicbrainz",
@@ -134,8 +143,7 @@ describe("idMappingService", () => {
   it("updates existing mapping with higher confidence", async () => {
     const { db, resolveArtistMapping } = await setup();
     (db as any).query.artistIdMappings.findFirst
-      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "low" })
-      .mockResolvedValueOnce(null); // no conflict
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "low" });
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "high", source: "wikidata",
@@ -147,8 +155,7 @@ describe("idMappingService", () => {
   it("skips update when existing has higher confidence", async () => {
     const { db, resolveArtistMapping } = await setup();
     (db as any).query.artistIdMappings.findFirst
-      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "existing-id", confidence: "manual" })
-      .mockResolvedValueOnce(null); // no conflict
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "existing-id", confidence: "manual" });
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "high", source: "wikidata",

@@ -33,8 +33,8 @@ const CONFIDENCE_PRIORITY: Record<string, number> = {
 
 function handleUniqueViolation(err: unknown, platform: string, platformId: string): never {
   if (err && typeof err === "object" && "code" in err && err.code === "23505") {
-    const detail = "detail" in err && typeof err.detail === "string" ? err.detail : "";
-    if (detail.includes("artist_id_mappings_platform_id_uniq")) {
+    const constraint = "constraint" in err && typeof err.constraint === "string" ? err.constraint : "";
+    if (constraint === "artist_id_mappings_platform_id_uniq") {
       throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
     }
     // artist_id_mappings_artist_platform_uniq — concurrent insert race for same artist+platform
