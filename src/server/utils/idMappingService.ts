@@ -3,7 +3,7 @@
  * Maps Spotify artist IDs to Deezer, Apple Music, MusicBrainz, etc.
  */
 import { db } from "@/server/db/drizzle";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { artists, artistIdMappings } from "@/server/db/schema";
 
 export const VALID_MAPPING_PLATFORMS = new Set([
@@ -28,32 +28,32 @@ export async function getUnmappedArtists(
     throw new Error(`Invalid platform: ${platform}`);
   }
 
-  const countResult = await db.execute<{ total: number }>(sql`
-    SELECT COUNT(*)::int AS total
-    FROM artists a
-    WHERE a.spotify IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM artist_id_mappings m
-        WHERE m.artist_id = a.id AND m.platform = ${platform}
-      )
-  `);
-  const totalUnmapped = countResult[0]?.total ?? 0;
-
-  const result = await db.execute<{ id: string; name: string | null; spotify: string | null }>(sql`
-    SELECT a.id, a.name, a.spotify
-    FROM artists a
-    WHERE a.spotify IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM artist_id_mappings m
-        WHERE m.artist_id = a.id AND m.platform = ${platform}
-      )
-    ORDER BY a.name ASC NULLS LAST
-    LIMIT ${limit} OFFSET ${offset}
-  `);
+  const [countResult, result] = await Promise.all([
+    db.execute<{ total: number }>(sql`
+      SELECT COUNT(*)::int AS total
+      FROM artists a
+      WHERE a.spotify IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_id_mappings m
+          WHERE m.artist_id = a.id AND m.platform = ${platform}
+        )
+    `),
+    db.execute<{ id: string; name: string | null; spotify: string | null }>(sql`
+      SELECT a.id, a.name, a.spotify
+      FROM artists a
+      WHERE a.spotify IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_id_mappings m
+          WHERE m.artist_id = a.id AND m.platform = ${platform}
+        )
+      ORDER BY a.name ASC NULLS LAST
+      LIMIT ${limit} OFFSET ${offset}
+    `),
+  ]);
 
   return {
     artists: [...result],
-    totalUnmapped,
+    totalUnmapped: countResult[0]?.total ?? 0,
   };
 }
 
@@ -74,8 +74,11 @@ export async function resolveArtistMapping(params: {
   if (!VALID_SOURCES.has(source)) {
     throw new Error(`Invalid source: ${source}`);
   }
-  if (!CONFIDENCE_PRIORITY[confidence]) {
+  if (!(confidence in CONFIDENCE_PRIORITY)) {
     throw new Error(`Invalid confidence level: ${confidence}`);
+  }
+  if (!platformId.trim()) {
+    throw new Error("platformId cannot be empty");
   }
 
   // Verify artist exists
@@ -89,7 +92,7 @@ export async function resolveArtistMapping(params: {
 
   // Check for existing mapping
   const existing = await db.query.artistIdMappings.findFirst({
-    where: sql`${artistIdMappings.artistId} = ${artistId} AND ${artistIdMappings.platform} = ${platform}`,
+    where: and(eq(artistIdMappings.artistId, artistId), eq(artistIdMappings.platform, platform)),
   });
 
   if (existing) {
@@ -139,17 +142,19 @@ export async function getMappingStats(): Promise<{
   totalArtistsWithSpotify: number;
   platformStats: { platform: string; mappedCount: number; percentage: number }[];
 }> {
-  const totalResult = await db.execute<{ total: number }>(sql`
-    SELECT COUNT(*)::int AS total FROM artists WHERE spotify IS NOT NULL
-  `);
-  const totalArtistsWithSpotify = totalResult[0]?.total ?? 0;
+  const [totalResult, statsResult] = await Promise.all([
+    db.execute<{ total: number }>(sql`
+      SELECT COUNT(*)::int AS total FROM artists WHERE spotify IS NOT NULL
+    `),
+    db.execute<{ platform: string; mapped_count: number }>(sql`
+      SELECT platform, COUNT(*)::int AS mapped_count
+      FROM artist_id_mappings
+      GROUP BY platform
+      ORDER BY mapped_count DESC
+    `),
+  ]);
 
-  const statsResult = await db.execute<{ platform: string; mapped_count: number }>(sql`
-    SELECT platform, COUNT(*)::int AS mapped_count
-    FROM artist_id_mappings
-    GROUP BY platform
-    ORDER BY mapped_count DESC
-  `);
+  const totalArtistsWithSpotify = totalResult[0]?.total ?? 0;
 
   const platformStats = [...statsResult].map(row => ({
     platform: row.platform,

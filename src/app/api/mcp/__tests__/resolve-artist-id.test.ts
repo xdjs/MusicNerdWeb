@@ -135,6 +135,18 @@ describe("resolve_artist_id MCP tool", () => {
     expect(parsed.skipped).toBe(true);
   });
 
+  it("does not write audit log when mapping is skipped", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.resolveArtistMapping as jest.Mock).mockResolvedValue({
+      created: false, updated: false, skipped: true,
+      previousMapping: { platformId: "existing-id", confidence: "manual" },
+    });
+
+    await callTool(s, validArgs);
+    expect(s.logMcpAudit).not.toHaveBeenCalled();
+  });
+
   it("returns success even when audit log fails", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");

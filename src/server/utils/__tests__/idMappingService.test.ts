@@ -60,6 +60,16 @@ describe("idMappingService", () => {
     ).rejects.toThrow("Invalid confidence level: invalid");
   });
 
+  it("rejects empty platformId", async () => {
+    const { resolveArtistMapping } = await setup();
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "", confidence: "high", source: "manual" })
+    ).rejects.toThrow("platformId cannot be empty");
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "   ", confidence: "high", source: "manual" })
+    ).rejects.toThrow("platformId cannot be empty");
+  });
+
   it("throws for non-existent artist", async () => {
     const { db, resolveArtistMapping } = await setup();
     (db as any).query.artists.findFirst.mockResolvedValue(null);

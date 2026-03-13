@@ -1,4 +1,4 @@
-import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique, pgView } from "drizzle-orm/pg-core"
+import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])

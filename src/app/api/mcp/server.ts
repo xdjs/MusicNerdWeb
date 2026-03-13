@@ -481,18 +481,20 @@ server.registerTool(
         apiKeyHash,
       });
 
-      // Audit is best-effort
-      try {
-        await logMcpAudit({
-          artistId,
-          field: `mapping:${platform}`,
-          action: "resolve",
-          oldValue: result.previousMapping?.platformId ?? null,
-          newValue: platformId,
-          apiKeyHash,
-        });
-      } catch (auditError) {
-        console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+      // Audit is best-effort — only log when a mutation actually occurred
+      if (!result.skipped) {
+        try {
+          await logMcpAudit({
+            artistId,
+            field: `mapping:${platform}`,
+            action: "resolve",
+            oldValue: result.previousMapping?.platformId ?? null,
+            newValue: platformId,
+            apiKeyHash,
+          });
+        } catch (auditError) {
+          console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+        }
       }
 
       return {
