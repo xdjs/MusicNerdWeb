@@ -43,19 +43,26 @@ export async function login(page: Page, email: string, otp: string) {
     await otpInputs.first().press('Enter');
   }
 
-  // Wait for authenticated session by polling /api/auth/session
-  const deadline = Date.now() + 30_000;
+  // Wait for authenticated session by polling /api/auth/session.
+  // Privy may trigger a page navigation after OTP verification, which destroys
+  // the execution context mid-evaluate — catch and retry in that case.
+  const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    const session = await page.evaluate(async () => {
-      try {
-        const res = await fetch('/api/auth/session');
-        return await res.json();
-      } catch { return {}; }
-    });
-    if (session?.user?.id) return;
+    try {
+      const session = await page.evaluate(async () => {
+        try {
+          const res = await fetch('/api/auth/session');
+          return await res.json();
+        } catch { return {}; }
+      });
+      if (session?.user?.id) return;
+    } catch {
+      // Execution context destroyed by navigation — wait for the page to settle
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+    }
     await page.waitForTimeout(1_000);
   }
-  throw new Error('Login failed: session not established within 30 seconds');
+  throw new Error('Login failed: session not established within 60 seconds');
 }
 
 export async function fetchAsUser(
