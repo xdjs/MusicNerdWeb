@@ -11,6 +11,9 @@ class MappingConflictError extends Error {
 class MappingValidationError extends Error {
   constructor(msg) { super(msg); this.name = "MappingValidationError"; }
 }
+class MappingConcurrentWriteError extends Error {
+  constructor(msg) { super(msg); this.name = "MappingConcurrentWriteError"; }
+}
 
 // Mock dependencies
 jest.mock("@/server/utils/idMappingService", () => ({
@@ -22,6 +25,7 @@ jest.mock("@/server/utils/idMappingService", () => ({
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "manual"]),
   MappingNotFoundError,
   MappingConflictError,
+  MappingConcurrentWriteError,
   MappingValidationError,
 }));
 jest.mock("@/server/utils/services", () => ({
@@ -106,6 +110,19 @@ describe("resolve_artist_id MCP tool", () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.code).toBe("INVALID_INPUT");
     expect(result.isError).toBe(true);
+  });
+
+  it("returns skipped with concurrent_write on race condition", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new MappingConcurrentWriteError("concurrent write"));
+
+    const result = await callTool(s, validArgs);
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
+    expect(parsed.skipped).toBe(true);
+    expect(parsed.reason).toBe("concurrent_write");
+    expect(result.isError).toBeUndefined();
   });
 
   it("returns CONFLICT when platformId belongs to different artist", async () => {

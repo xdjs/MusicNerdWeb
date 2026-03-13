@@ -14,6 +14,10 @@ export class MappingConflictError extends Error {
   constructor(message: string) { super(message); this.name = "MappingConflictError"; }
 }
 
+export class MappingConcurrentWriteError extends Error {
+  constructor(message: string) { super(message); this.name = "MappingConcurrentWriteError"; }
+}
+
 export class MappingValidationError extends Error {
   constructor(message: string) { super(message); this.name = "MappingValidationError"; }
 }
@@ -38,7 +42,7 @@ function handleUniqueViolation(err: unknown, platform: string, platformId: strin
       throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
     }
     // artist_id_mappings_artist_platform_uniq — concurrent insert race for same artist+platform
-    throw new MappingConflictError(`A mapping for ${platform} already exists for this artist (concurrent write)`);
+    throw new MappingConcurrentWriteError(`A mapping for ${platform} already exists for this artist (concurrent write)`);
   }
   throw err;
 }
@@ -204,14 +208,8 @@ export async function getMappingStats(): Promise<{
 }
 
 export async function getArtistMappings(artistId: string) {
-  const artist = await db.query.artists.findFirst({
-    where: eq(artists.id, artistId),
-    columns: { id: true },
-  });
-  if (!artist) {
-    throw new MappingNotFoundError(`Artist not found: ${artistId}`);
-  }
-
+  // Single query — FK constraint means results imply artist exists.
+  // Empty result could mean no mappings or unknown artist, so check the artist table only on empty.
   const mappings = await db.query.artistIdMappings.findMany({
     where: eq(artistIdMappings.artistId, artistId),
     orderBy: [asc(artistIdMappings.platform)],
@@ -225,6 +223,16 @@ export async function getArtistMappings(artistId: string) {
       resolvedAt: true,
     },
   });
+
+  if (mappings.length === 0) {
+    const artist = await db.query.artists.findFirst({
+      where: eq(artists.id, artistId),
+      columns: { id: true },
+    });
+    if (!artist) {
+      throw new MappingNotFoundError(`Artist not found: ${artistId}`);
+    }
+  }
 
   return mappings;
 }

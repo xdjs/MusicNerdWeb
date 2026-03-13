@@ -89,15 +89,16 @@ describe("idMappingService", () => {
     ).rejects.toThrow("already mapped to a different artist");
   });
 
-  it("reports concurrent write when artist_platform_uniq constraint is violated", async () => {
+  it("throws MappingConcurrentWriteError when artist_platform_uniq constraint is violated", async () => {
     const { db, resolveArtistMapping } = await setup();
+    const { MappingConcurrentWriteError } = await import("../idMappingService");
     const dbError = new Error("duplicate key value violates unique constraint");
     (dbError as any).code = "23505";
     (dbError as any).constraint = "artist_id_mappings_artist_platform_uniq";
     db.execute = jest.fn().mockRejectedValue(dbError);
     await expect(
       resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
-    ).rejects.toThrow("concurrent write");
+    ).rejects.toThrow(MappingConcurrentWriteError);
   });
 
   it("throws MappingConflictError on unique constraint violation during update", async () => {
@@ -205,7 +206,7 @@ describe("idMappingService", () => {
   });
 
   // getArtistMappings
-  it("returns mappings for valid artist", async () => {
+  it("returns mappings without artist existence check on happy path", async () => {
     const { db, getArtistMappings } = await setup();
     (db as any).query.artistIdMappings.findMany.mockResolvedValue([
       { id: "m1", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata", reasoning: null, resolvedAt: "2026-01-01" },
@@ -215,11 +216,23 @@ describe("idMappingService", () => {
     expect(mappings).toHaveLength(1);
     expect(mappings[0].platform).toBe("deezer");
     expect(mappings[0].platformId).toBe("456");
+    // Should not have checked artist existence since mappings were found
+    expect((db as any).query.artists.findFirst).not.toHaveBeenCalled();
   });
 
-  it("throws for non-existent artist in getArtistMappings", async () => {
+  it("throws for non-existent artist when no mappings found", async () => {
     const { db, getArtistMappings } = await setup();
+    (db as any).query.artistIdMappings.findMany.mockResolvedValue([]);
     (db as any).query.artists.findFirst.mockResolvedValue(null);
     await expect(getArtistMappings("nonexistent")).rejects.toThrow("Artist not found");
+  });
+
+  it("returns empty array for valid artist with no mappings", async () => {
+    const { db, getArtistMappings } = await setup();
+    (db as any).query.artistIdMappings.findMany.mockResolvedValue([]);
+    // Artist exists but has no mappings
+    (db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-123" });
+    const mappings = await getArtistMappings("artist-123");
+    expect(mappings).toEqual([]);
   });
 });

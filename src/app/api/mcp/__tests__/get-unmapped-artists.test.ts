@@ -11,6 +11,7 @@ jest.mock("@/server/utils/idMappingService", () => ({
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "manual"]),
   MappingNotFoundError: class extends Error { constructor(msg) { super(msg); this.name = "MappingNotFoundError"; } },
   MappingConflictError: class extends Error { constructor(msg) { super(msg); this.name = "MappingConflictError"; } },
+  MappingConcurrentWriteError: class extends Error { constructor(msg) { super(msg); this.name = "MappingConcurrentWriteError"; } },
   MappingValidationError: class extends Error { constructor(msg) { super(msg); this.name = "MappingValidationError"; } },
 }));
 jest.mock("@/server/utils/services", () => ({

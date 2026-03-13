@@ -6,7 +6,7 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingValidationError } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -522,6 +522,15 @@ server.registerTool(
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "CONFLICT" }) }],
           isError: true,
+        };
+      }
+      if (error instanceof MappingConcurrentWriteError) {
+        // Race condition — another request already wrote this mapping. Not an error for the caller.
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, created: false, updated: false, skipped: true, reason: "concurrent_write" }, null, 2),
+          }],
         };
       }
       if (error instanceof MappingValidationError) {
