@@ -178,7 +178,7 @@ describe("idMappingService", () => {
   });
 
   // getMappingStats
-  it("returns stats structure", async () => {
+  it("returns stats for all platforms including unmapped ones", async () => {
     const { db, getMappingStats } = await setup();
     (db as any).execute = jest.fn()
       .mockResolvedValueOnce([{ total: 100 }])
@@ -186,17 +186,22 @@ describe("idMappingService", () => {
 
     const stats = await getMappingStats();
     expect(stats.totalArtistsWithSpotify).toBe(100);
-    expect(stats.platformStats).toHaveLength(1);
-    expect(stats.platformStats[0].platform).toBe("deezer");
-    expect(stats.platformStats[0].mappedCount).toBe(50);
-    expect(stats.platformStats[0].percentage).toBe(50);
+    // All 7 valid platforms should be present
+    expect(stats.platformStats).toHaveLength(7);
+    const deezer = stats.platformStats.find(s => s.platform === "deezer");
+    expect(deezer.mappedCount).toBe(50);
+    expect(deezer.percentage).toBe(50);
+    // Unmapped platforms should show 0
+    const tidal = stats.platformStats.find(s => s.platform === "tidal");
+    expect(tidal.mappedCount).toBe(0);
+    expect(tidal.percentage).toBe(0);
   });
 
   // getArtistMappings
   it("returns mappings for valid artist", async () => {
     const { db, getArtistMappings } = await setup();
-    (db as any).execute = jest.fn().mockResolvedValue([
-      { id: "m1", platform: "deezer", platform_id: "456", confidence: "high", source: "wikidata", reasoning: null, resolved_at: "2026-01-01" },
+    (db as any).query.artistIdMappings.findMany.mockResolvedValue([
+      { id: "m1", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata", reasoning: null, resolvedAt: "2026-01-01" },
     ]);
 
     const mappings = await getArtistMappings("artist-123");

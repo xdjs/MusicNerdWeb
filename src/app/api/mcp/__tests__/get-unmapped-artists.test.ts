@@ -61,6 +61,8 @@ describe("get_unmapped_artists MCP tool", () => {
 
   it("returns INVALID_INPUT for bad platform", async () => {
     const s = await setup();
+    const { MappingValidationError } = await import("@/server/utils/idMappingService");
+    (s.getUnmappedArtists as jest.Mock).mockRejectedValue(new MappingValidationError("Invalid platform: invalid_platform"));
 
     const result = await callTool(s, { platform: "invalid_platform", limit: 10, offset: 0 });
     const parsed = JSON.parse(result.content[0].text);

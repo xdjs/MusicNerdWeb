@@ -337,13 +337,6 @@ server.registerTool(
     console.log(`[MCP] get_unmapped_artists called with platform="${platform}", limit=${limit}, offset=${offset}`);
 
     try {
-      if (!VALID_MAPPING_PLATFORMS.has(platform)) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: `Invalid platform. Valid platforms: ${[...VALID_MAPPING_PLATFORMS].join(", ")}`, code: "INVALID_INPUT" }) }],
-          isError: true,
-        };
-      }
-
       const effectiveLimit = Math.min(Math.max(limit ?? 50, 1), 200);
       const effectiveOffset = Math.max(offset ?? 0, 0);
 
@@ -362,6 +355,12 @@ server.registerTool(
         }],
       };
     } catch (error) {
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
       console.error("[MCP] get_unmapped_artists error:", error);
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get unmapped artists", code: "INTERNAL_ERROR" }) }],
