@@ -341,7 +341,7 @@ export const artistIdMappings = pgTable("artist_id_mappings", {
   index("idx_artist_id_mappings_confidence").using("btree", table.confidence.asc().nullsLast()),
   pgPolicy("mnweb_select_artist_id_mappings", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
   pgPolicy("mnweb_insert_artist_id_mappings", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-  pgPolicy("mnweb_update_artist_id_mappings", { as: "permissive", for: "update", to: ["mnweb"] }),
+  pgPolicy("mnweb_update_artist_id_mappings", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 ]);
 
 // Relations

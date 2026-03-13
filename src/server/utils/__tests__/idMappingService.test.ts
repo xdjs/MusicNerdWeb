@@ -78,6 +78,29 @@ describe("idMappingService", () => {
     ).rejects.toThrow("Artist not found");
   });
 
+  it("throws conflict when platformId is already mapped to a different artist", async () => {
+    const { db, resolveArtistMapping } = await setup();
+    // No existing mapping for this artist+platform
+    (db as any).query.artistIdMappings.findFirst
+      .mockResolvedValueOnce(null) // artist+platform check
+      .mockResolvedValueOnce({ artistId: "other-artist", platform: "deezer", platformId: "456" }); // conflict check
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
+    ).rejects.toThrow("Conflict: platformId 456 on deezer is already mapped to artist other-artist");
+  });
+
+  it("allows same platformId when mapped to the same artist", async () => {
+    const { db, resolveArtistMapping } = await setup();
+    // Existing mapping for this artist+platform
+    (db as any).query.artistIdMappings.findFirst
+      .mockResolvedValueOnce({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "low" }) // artist+platform check
+      .mockResolvedValueOnce({ artistId: "artist-123", platform: "deezer", platformId: "456" }); // conflict check — same artist, no conflict
+    const result = await resolveArtistMapping({
+      artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual",
+    });
+    expect(result.updated).toBe(true);
+  });
+
   it("creates new mapping", async () => {
     const { db, resolveArtistMapping } = await setup();
     const result = await resolveArtistMapping({
@@ -92,9 +115,9 @@ describe("idMappingService", () => {
 
   it("updates existing mapping with equal confidence", async () => {
     const { db, resolveArtistMapping } = await setup();
-    (db as any).query.artistIdMappings.findFirst.mockResolvedValue({
-      platformId: "old-id", confidence: "medium",
-    });
+    (db as any).query.artistIdMappings.findFirst
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "medium" })
+      .mockResolvedValueOnce(null); // no conflict
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "medium", source: "musicbrainz",
@@ -106,9 +129,9 @@ describe("idMappingService", () => {
 
   it("updates existing mapping with higher confidence", async () => {
     const { db, resolveArtistMapping } = await setup();
-    (db as any).query.artistIdMappings.findFirst.mockResolvedValue({
-      platformId: "old-id", confidence: "low",
-    });
+    (db as any).query.artistIdMappings.findFirst
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "old-id", confidence: "low" })
+      .mockResolvedValueOnce(null); // no conflict
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "high", source: "wikidata",
@@ -118,11 +141,10 @@ describe("idMappingService", () => {
   });
 
   it("skips update when existing has higher confidence", async () => {
-    const { resolveArtistMapping } = await setup();
-    const { db } = await import("@/server/db/drizzle");
-    (db as any).query.artistIdMappings.findFirst.mockResolvedValue({
-      platformId: "existing-id", confidence: "manual",
-    });
+    const { db, resolveArtistMapping } = await setup();
+    (db as any).query.artistIdMappings.findFirst
+      .mockResolvedValueOnce({ artistId: "artist-123", platformId: "existing-id", confidence: "manual" })
+      .mockResolvedValueOnce(null); // no conflict
     const result = await resolveArtistMapping({
       artistId: "artist-123", platform: "deezer", platformId: "new-id",
       confidence: "high", source: "wikidata",

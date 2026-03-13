@@ -454,7 +454,7 @@ server.registerTool(
       platform: z.string().describe("The target platform (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
       platformId: z.string().describe("The artist's ID on the target platform"),
       confidence: z.enum(["high", "medium", "low", "manual"]).describe("Confidence level of the mapping (manual > high > medium > low)"),
-      source: z.string().describe("How the mapping was determined (wikidata, musicbrainz, name_search, manual)"),
+      source: z.enum(["wikidata", "musicbrainz", "name_search", "manual"]).describe("How the mapping was determined"),
       reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
     },
   },
@@ -519,7 +519,13 @@ server.registerTool(
           isError: true,
         };
       }
-      if (error instanceof Error && (error.message.startsWith("Invalid platform") || error.message.startsWith("Invalid source") || error.message.startsWith("Invalid confidence"))) {
+      if (error instanceof Error && error.message.startsWith("Conflict:")) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "CONFLICT" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof Error && (error.message.startsWith("Invalid platform") || error.message.startsWith("Invalid source") || error.message.startsWith("Invalid confidence") || error.message.startsWith("platformId cannot"))) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
           isError: true,

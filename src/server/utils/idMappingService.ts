@@ -90,15 +90,24 @@ export async function resolveArtistMapping(params: {
     throw new Error(`Artist not found: ${artistId}`);
   }
 
-  // Check for existing mapping
+  // Check for existing mapping on this artist+platform
   const existing = await db.query.artistIdMappings.findFirst({
     where: and(eq(artistIdMappings.artistId, artistId), eq(artistIdMappings.platform, platform)),
   });
+
+  // Check if platformId is already claimed by a different artist (UNIQUE constraint)
+  const conflicting = await db.query.artistIdMappings.findFirst({
+    where: and(eq(artistIdMappings.platform, platform), eq(artistIdMappings.platformId, platformId)),
+  });
+  if (conflicting && conflicting.artistId !== artistId) {
+    throw new Error(`Conflict: platformId ${platformId} on ${platform} is already mapped to artist ${conflicting.artistId}`);
+  }
 
   if (existing) {
     const existingPriority = CONFIDENCE_PRIORITY[existing.confidence] ?? 0;
     const newPriority = CONFIDENCE_PRIORITY[confidence] ?? 0;
 
+    // Equal confidence overwrites intentionally — latest submission wins at the same tier
     if (newPriority < existingPriority) {
       return {
         created: false,

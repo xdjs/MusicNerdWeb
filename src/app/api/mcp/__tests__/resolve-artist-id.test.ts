@@ -94,6 +94,17 @@ describe("resolve_artist_id MCP tool", () => {
     expect(result.isError).toBe(true);
   });
 
+  it("returns CONFLICT when platformId belongs to different artist", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.resolveArtistMapping as jest.Mock).mockRejectedValue(new Error("Conflict: platformId 12345 on deezer is already mapped to artist other-id"));
+
+    const result = await callTool(s, validArgs);
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.code).toBe("CONFLICT");
+    expect(result.isError).toBe(true);
+  });
+
   it("creates mapping successfully", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
