@@ -6,7 +6,7 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, VALID_EXCLUSION_REASONS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -542,6 +542,126 @@ server.registerTool(
       console.error("[MCP] resolve_artist_id error:", error);
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to resolve artist ID", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the exclude_artist_mapping tool
+server.registerTool(
+  "exclude_artist_mapping",
+  {
+    title: "Exclude Artist Mapping",
+    description: "Mark an artist as excluded from future mapping batches for a given platform. Use this when an artist cannot be confidently mapped due to name mismatches, conflicts, or ambiguity.",
+    inputSchema: {
+      artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+      platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+      reason: z.enum(["conflict", "name_mismatch", "too_ambiguous"]).describe("Why the artist is being excluded"),
+      details: z.string().optional().describe("Human-readable explanation (e.g. \"MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)\")"),
+    },
+  },
+  async ({ artistId, platform, reason, details }) => {
+    console.log(`[MCP] exclude_artist_mapping called with artistId="${artistId}", platform="${platform}", reason="${reason}"`);
+
+    try {
+      const apiKeyHash = requireMcpAuth();
+
+      const result = await excludeArtistMapping({
+        artistId,
+        platform,
+        reason,
+        details,
+        apiKeyHash,
+      });
+
+      // Audit is best-effort
+      try {
+        await logMcpAudit({
+          artistId,
+          field: `mapping:${platform}`,
+          action: "exclude",
+          newValue: reason,
+          apiKeyHash,
+        });
+      } catch (auditError) {
+        console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: true,
+            ...result,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof McpAuthError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "AUTH_REQUIRED" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof MappingNotFoundError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] exclude_artist_mapping error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to exclude artist mapping", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the get_mapping_exclusions tool
+server.registerTool(
+  "get_mapping_exclusions",
+  {
+    title: "Get Mapping Exclusions",
+    description: "List artists that have been excluded from mapping for a given platform. Useful for reviewing skipped artists and deciding whether to clear exclusions after fixing the underlying issue.",
+    inputSchema: {
+      platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+      limit: z.number().optional().default(100).describe("Maximum number of results to return (default 100, max 500)"),
+    },
+  },
+  async ({ platform, limit }) => {
+    console.log(`[MCP] get_mapping_exclusions called with platform="${platform}", limit=${limit}`);
+
+    try {
+      const result = await getMappingExclusions(platform, limit);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            platform,
+            exclusions: result.exclusions,
+            total: result.total,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] get_mapping_exclusions error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get mapping exclusions", code: "INTERNAL_ERROR" }) }],
         isError: true,
       };
     }

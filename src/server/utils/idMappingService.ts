@@ -4,7 +4,7 @@
  */
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql, asc } from "drizzle-orm";
-import { artists, artistIdMappings } from "@/server/db/schema";
+import { artists, artistIdMappings, artistMappingExclusions } from "@/server/db/schema";
 
 export class MappingNotFoundError extends Error {
   constructor(message: string) { super(message); this.name = "MappingNotFoundError"; }
@@ -29,6 +29,10 @@ export const VALID_MAPPING_PLATFORMS = new Set([
 
 export const VALID_SOURCES = new Set([
   "wikidata", "musicbrainz", "name_search", "web_search", "manual",
+]);
+
+export const VALID_EXCLUSION_REASONS = new Set([
+  "conflict", "name_mismatch", "too_ambiguous",
 ]);
 
 const CONFIDENCE_PRIORITY: Record<string, number> = {
@@ -79,6 +83,10 @@ export async function getUnmappedArtists(
           SELECT 1 FROM artist_id_mappings m
           WHERE m.artist_id = a.id AND m.platform = ${platform}
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_mapping_exclusions e
+          WHERE e.artist_id = a.id AND e.platform = ${platform}
+        )
     `),
     db.execute<{ id: string; name: string | null; spotify: string | null }>(sql`
       SELECT a.id, a.name, a.spotify
@@ -87,6 +95,10 @@ export async function getUnmappedArtists(
         AND NOT EXISTS (
           SELECT 1 FROM artist_id_mappings m
           WHERE m.artist_id = a.id AND m.platform = ${platform}
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM artist_mapping_exclusions e
+          WHERE e.artist_id = a.id AND e.platform = ${platform}
         )
       ORDER BY a.name ASC NULLS LAST
       LIMIT ${limit} OFFSET ${offset}
@@ -249,4 +261,84 @@ export async function getArtistMappings(artistId: string) {
   }
 
   return mappings;
+}
+
+export async function excludeArtistMapping(params: {
+  artistId: string;
+  platform: string;
+  reason: string;
+  details?: string;
+  apiKeyHash?: string;
+}): Promise<{ created: boolean; updated: boolean }> {
+  const { artistId, platform, reason, details, apiKeyHash } = params;
+
+  if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
+  }
+  if (!VALID_EXCLUSION_REASONS.has(reason)) {
+    throw new MappingValidationError(`Invalid exclusion reason: ${reason}`);
+  }
+
+  const artist = await db.query.artists.findFirst({
+    where: eq(artists.id, artistId),
+    columns: { id: true },
+  });
+  if (!artist) {
+    throw new MappingNotFoundError(`Artist not found: ${artistId}`);
+  }
+
+  const result = await db.execute<{ xmax: string }>(sql`
+    INSERT INTO artist_mapping_exclusions (artist_id, platform, reason, details, api_key_hash)
+    VALUES (${artistId}, ${platform}, ${reason}::exclusion_reason, ${details ?? null}, ${apiKeyHash ?? null})
+    ON CONFLICT (artist_id, platform) DO UPDATE SET
+      reason = EXCLUDED.reason,
+      details = EXCLUDED.details,
+      api_key_hash = EXCLUDED.api_key_hash
+    RETURNING xmax
+  `);
+
+  // xmax = '0' means INSERT, non-zero means UPDATE
+  const wasInsert = result[0]?.xmax === "0";
+  return { created: wasInsert, updated: !wasInsert };
+}
+
+export async function getMappingExclusions(
+  platform: string,
+  limit: number = 100,
+): Promise<{ exclusions: { id: string; artistId: string; artistName: string | null; spotify: string | null; platform: string; reason: string; details: string | null; createdAt: string }[]; total: number }> {
+  if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+    throw new MappingValidationError(`Invalid platform: ${platform}`);
+  }
+
+  const effectiveLimit = Math.min(Math.max(limit, 1), 500);
+
+  const [countResult, result] = await Promise.all([
+    db.execute<{ total: number }>(sql`
+      SELECT COUNT(*)::int AS total
+      FROM artist_mapping_exclusions
+      WHERE platform = ${platform}
+    `),
+    db.execute<{ id: string; artist_id: string; artist_name: string | null; spotify: string | null; platform: string; reason: string; details: string | null; created_at: string }>(sql`
+      SELECT e.id, e.artist_id, a.name AS artist_name, a.spotify, e.platform, e.reason, e.details, e.created_at
+      FROM artist_mapping_exclusions e
+      JOIN artists a ON a.id = e.artist_id
+      WHERE e.platform = ${platform}
+      ORDER BY e.created_at DESC
+      LIMIT ${effectiveLimit}
+    `),
+  ]);
+
+  return {
+    exclusions: [...result].map(row => ({
+      id: row.id,
+      artistId: row.artist_id,
+      artistName: row.artist_name,
+      spotify: row.spotify,
+      platform: row.platform,
+      reason: row.reason,
+      details: row.details,
+      createdAt: row.created_at,
+    })),
+    total: countResult[0]?.total ?? 0,
+  };
 }
