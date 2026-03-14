@@ -116,6 +116,18 @@ describe("idMappingService", () => {
     ).rejects.toThrow(MappingConflictError);
   });
 
+  it("accepts web_search as a valid source", async () => {
+    const { db, resolveArtistMapping } = await setup();
+    const result = await resolveArtistMapping({
+      artistId: "artist-123", platform: "deezer", platformId: "456",
+      confidence: "high", source: "web_search", reasoning: "Google search returned deezer.com/us/artist/456",
+    });
+    expect(result.created).toBe(true);
+    expect(result.updated).toBe(false);
+    expect(result.skipped).toBe(false);
+    expect(db.execute).toHaveBeenCalled();
+  });
+
   it("creates new mapping", async () => {
     const { db, resolveArtistMapping } = await setup();
     const result = await resolveArtistMapping({

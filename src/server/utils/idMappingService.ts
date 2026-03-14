@@ -28,7 +28,7 @@ export const VALID_MAPPING_PLATFORMS = new Set([
 ]);
 
 export const VALID_SOURCES = new Set([
-  "wikidata", "musicbrainz", "name_search", "manual",
+  "wikidata", "musicbrainz", "name_search", "web_search", "manual",
 ]);
 
 const CONFIDENCE_PRIORITY: Record<string, number> = {
