@@ -48,11 +48,27 @@ stream_filter() {
     cat
   else
     python3 -u -c '
-import sys, json
+import sys, json, time
+from datetime import datetime, timezone
+
+start = time.monotonic()
+
+def ts():
+    return datetime.now(timezone.utc).strftime("%H:%M:%S")
+
+def stamp(text):
+    """Prepend timestamp to first line, indent continuation lines."""
+    lines = text.rstrip("\n").split("\n")
+    out = f"[{ts()}] {lines[0]}"
+    for l in lines[1:]:
+        out += f"\n         {l}"
+    return out
+
 for line in sys.stdin:
     line = line.strip()
     if not line or not line.startswith("{"):
-        print(line, flush=True)
+        if line:
+            print(stamp(line), flush=True)
         continue
     try:
         obj = json.loads(line)
@@ -60,11 +76,17 @@ for line in sys.stdin:
         if t == "assistant":
             for block in obj.get("message", {}).get("content", []):
                 if block.get("type") == "text" and block.get("text"):
-                    print(block["text"], flush=True)
+                    print(stamp(block["text"]), flush=True)
         elif t == "result":
+            elapsed = time.monotonic() - start
+            mins, secs = divmod(int(elapsed), 60)
             result = obj.get("result", "")
             if result:
-                print(result, flush=True)
+                print(stamp(result), flush=True)
+            dur_ms = obj.get("duration_ms", 0)
+            api_ms = obj.get("duration_api_ms", 0)
+            turns = obj.get("num_turns", 0)
+            print(f"\n[{ts()}] Batch complete: {mins}m{secs:02d}s wall, {dur_ms/1000:.0f}s claude, {api_ms/1000:.0f}s api, {turns} turns", flush=True)
     except (json.JSONDecodeError, KeyError):
         pass
 '
