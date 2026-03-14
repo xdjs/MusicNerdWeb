@@ -58,12 +58,18 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
   completed_runs=$i
   echo "--- Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
+  echo "[loop] Logfile: $logfile"
+  echo "[loop] Launching claude-runner.sh (timeout: ${BATCH_TIMEOUT}s)..."
 
   # Run the batch with a timeout, capturing output
+  # Use stdbuf to disable buffering so tee gets output in real-time
   set +e
-  timeout "$BATCH_TIMEOUT" bash "$RUNNER" 2>&1 | tee "$logfile"
+  stdbuf -oL timeout "$BATCH_TIMEOUT" bash "$RUNNER" 2>&1 | tee "$logfile"
   exit_code=${PIPESTATUS[0]}
   set -e
+
+  logsize=$(stat --printf="%s" "$logfile" 2>/dev/null || stat -f%z "$logfile" 2>/dev/null || echo "?")
+  echo "[loop] Claude exited with code $exit_code, log size: ${logsize} bytes"
 
   # Failure detection
   failed=false

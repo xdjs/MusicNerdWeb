@@ -19,10 +19,24 @@ envsubst < "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
 # Read the system prompt from file
 SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
 
-# Run the agent (echo provides stdin to prevent hang in non-TTY contexts)
+# Debug logging
+echo "[claude-runner] $(date -u '+%H:%M:%S') Starting claude CLI..."
+echo "[claude-runner] MCP URL: $MCP_URL"
+echo "[claude-runner] Batch size: $BATCH_SIZE"
+echo "[claude-runner] Config: $(cat "$CONFIG_FILE" | sed 's/Bearer [^"]*/Bearer ***/')"
+echo ""
+
+# Run the agent with streaming JSON output for real-time visibility
+# --output-format stream-json emits one JSON event per line as the agent works
 echo "" | claude \
   --system-prompt "$SYSTEM_PROMPT" \
   --mcp-config "$CONFIG_FILE" \
   --allowedTools "mcp__music-nerd__*" \
+  --output-format stream-json \
+  --verbose \
   -p \
-  "Resolve Deezer IDs for unmapped artists. Batch size: ${BATCH_SIZE}."
+  "Resolve Deezer IDs for unmapped artists. Batch size: ${BATCH_SIZE}." \
+  2>&1
+
+echo ""
+echo "[claude-runner] $(date -u '+%H:%M:%S') Claude CLI exited with code $?"
