@@ -20,11 +20,12 @@ envsubst < "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
 # Read the system prompt from file
 SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
 
-# Build claude CLI args
+# Build claude CLI args — always use stream-json for real-time output
 CLAUDE_ARGS=(
   --system-prompt "$SYSTEM_PROMPT"
   --mcp-config "$CONFIG_FILE"
   --allowedTools "mcp__music-nerd__*,WebFetch,WebSearch,Bash"
+  --output-format stream-json
   -p
 )
 
@@ -34,18 +35,48 @@ if [[ "$VERBOSE" == "1" ]]; then
   echo "[claude-runner] Batch size: $BATCH_SIZE"
   echo "[claude-runner] Config: $(cat "$CONFIG_FILE" | sed 's/Bearer [^"]*/Bearer ***/')"
   echo ""
-  CLAUDE_ARGS+=(--output-format stream-json --verbose)
+  CLAUDE_ARGS+=(--verbose)
 else
   echo "[claude-runner] $(date -u '+%H:%M:%S') Starting batch (size=$BATCH_SIZE)..."
-  CLAUDE_ARGS+=(--output-format text)
 fi
+
+# Stream filter: extract assistant text content in real-time
+# VERBOSE=1: raw stream-json (every event)
+# Default: only assistant text + errors + final result
+stream_filter() {
+  if [[ "$VERBOSE" == "1" ]]; then
+    cat
+  else
+    python3 -u -c '
+import sys, json
+for line in sys.stdin:
+    line = line.strip()
+    if not line or not line.startswith("{"):
+        print(line, flush=True)
+        continue
+    try:
+        obj = json.loads(line)
+        t = obj.get("type")
+        if t == "assistant":
+            for block in obj.get("message", {}).get("content", []):
+                if block.get("type") == "text" and block.get("text"):
+                    print(block["text"], flush=True)
+        elif t == "result":
+            result = obj.get("result", "")
+            if result:
+                print(result, flush=True)
+    except (json.JSONDecodeError, KeyError):
+        pass
+'
+  fi
+}
 
 # Run the agent (echo provides stdin to prevent hang in non-TTY contexts)
 echo "" | claude "${CLAUDE_ARGS[@]}" \
   "Resolve Deezer IDs for unmapped artists. Batch size: ${BATCH_SIZE}." \
-  2>&1
+  2>&1 | stream_filter
 
-exit_code=$?
+exit_code=${PIPESTATUS[0]}
 echo ""
 echo "[claude-runner] $(date -u '+%H:%M:%S') Claude CLI exited with code $exit_code"
 exit $exit_code
