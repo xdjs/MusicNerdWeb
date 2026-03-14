@@ -11,9 +11,15 @@ if [[ ! -d "$LOG_DIR" ]]; then
   exit 1
 fi
 
-total_runs=$(find "$LOG_DIR" -name 'run-*.log' -type f | wc -l | tr -d ' ')
+total_runs=$(find "$LOG_DIR" -name '*-run-*.log' -type f | wc -l | tr -d ' ')
 successful_runs=$(grep -rl '=== ID Mapping Session Report ===' "$LOG_DIR" 2>/dev/null | wc -l | tr -d ' ')
 failed_runs=$((total_runs - successful_runs))
+
+# Count active workers (tmux sessions with recent log activity in last 10 min)
+active_workers=0
+for logfile in $(find "$LOG_DIR" -name '*-run-*.log' -type f -mmin -10 2>/dev/null); do
+  active_workers=$((active_workers + 1))
+done
 
 echo "========================================"
 echo " ID Mapping — Progress Report"
@@ -22,19 +28,26 @@ echo " Log dir:         $LOG_DIR"
 echo " Total runs:      $total_runs"
 echo " Successful:      $successful_runs"
 echo " Failed:          $failed_runs"
+echo " Active (10min):  $active_workers"
 echo ""
 
 # Sum resolved across all runs
 if [[ $successful_runs -gt 0 ]]; then
   total_resolved=$(grep -roh 'Resolved: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
+  total_excluded=$(grep -roh 'Excluded: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
   total_conflicts=$(grep -roh 'Conflicts: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
+  total_name_mismatches=$(grep -roh 'Name mismatches: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
+  total_ambiguous=$(grep -roh 'Too ambiguous: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
   total_errors=$(grep -roh 'Errors: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
-  total_skipped=$(grep -roh 'Skipped: [0-9]*' "$LOG_DIR" 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
+  total_skipped=$(grep -roh 'Skipped/Unresolved[^:]*: [0-9]*' "$LOG_DIR" 2>/dev/null | grep -o '[0-9]*$' | awk '{s+=$1} END {print s+0}')
 
   echo " Total resolved:  $total_resolved"
-  echo " Total conflicts: $total_conflicts"
-  echo " Total errors:    $total_errors"
+  echo " Total excluded:  $total_excluded"
+  echo "   Conflicts:     $total_conflicts"
+  echo "   Name mismatch: $total_name_mismatches"
+  echo "   Too ambiguous: $total_ambiguous"
   echo " Total skipped:   $total_skipped"
+  echo " Total errors:    $total_errors"
   echo ""
 
   # Estimate completion
@@ -57,8 +70,28 @@ fi
 
 echo ""
 
+# Per-worker breakdown
+worker_ids=$(find "$LOG_DIR" -name '*-run-*.log' -type f -printf '%f\n' 2>/dev/null | sed 's/-run-.*//' | sort -u)
+if [[ -n "$worker_ids" ]] && [[ $(echo "$worker_ids" | wc -l) -gt 1 ]]; then
+  echo "--- Per-Worker Breakdown ---"
+  for wid in $worker_ids; do
+    w_total=$(find "$LOG_DIR" -name "${wid}-run-*.log" -type f | wc -l | tr -d ' ')
+    w_success=$(grep -rl '=== ID Mapping Session Report ===' "$LOG_DIR"/${wid}-run-*.log 2>/dev/null | wc -l | tr -d ' ')
+    w_last=$(find "$LOG_DIR" -name "${wid}-run-*.log" -type f | sort | tail -1)
+    w_time=""
+    if [[ -n "$w_last" ]]; then
+      w_time=$(stat -c '%Y' "$w_last" 2>/dev/null || stat -f '%m' "$w_last" 2>/dev/null || echo "")
+      if [[ -n "$w_time" ]]; then
+        w_time=$(date -d "@$w_time" '+%H:%M:%S' 2>/dev/null || date -r "$w_time" '+%H:%M:%S' 2>/dev/null || echo "")
+      fi
+    fi
+    echo "  $wid: $w_success/$w_total runs${w_time:+ (last: $w_time)}"
+  done
+  echo ""
+fi
+
 # Last run details
-last_log=$(find "$LOG_DIR" -name 'run-*.log' -type f | sort | tail -1)
+last_log=$(find "$LOG_DIR" -name '*-run-*.log' -type f | sort | tail -1)
 if [[ -n "$last_log" ]]; then
   echo "--- Last Run: $(basename "$last_log") ---"
 

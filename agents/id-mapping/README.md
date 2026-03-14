@@ -1,6 +1,6 @@
 # Cross-Platform Artist ID Mapping Agent
 
-Automated agent that resolves Deezer IDs for artists in the MusicNerd database using a tiered lookup strategy: Wikidata SPARQL → MusicBrainz → Deezer name search. Runs as a Claude Code session with MCP tools for database access.
+Automated agent that resolves Deezer IDs for artists in the MusicNerd database using a tiered lookup strategy: Wikidata SPARQL → MusicBrainz → Google Search → Deezer name search. Artists that can't be mapped (name mismatches, conflicts, ambiguous names) are excluded from future batches to prevent wasted turns. Runs as a Claude Code session with MCP tools for database access.
 
 ## Prerequisites
 
@@ -56,8 +56,10 @@ BATCH_SIZE=5 \
 2. Calls `get_unmapped_artists("deezer", limit=BATCH_SIZE)` to get a work batch
 3. **Tier 1 — Wikidata SPARQL:** Batch-queries Spotify IDs against Wikidata for verified cross-platform mappings. Highest confidence, covers ~40-60% of well-known artists.
 4. **Tier 2 — MusicBrainz:** Looks up remaining artists via MusicBrainz relationships (by MBID or name search). 1 req/sec rate limit. Covers ~20-30% of remaining.
-5. **Tier 3 — Deezer name search:** Direct search with agent judgment on match quality. Assigns high or medium confidence based on name uniqueness, fan count, and album count.
-6. Reports session summary with per-tier and per-confidence breakdowns
+5. **Tier 2.5 — Google Search:** Searches for Deezer artist pages via Google. Also cross-verifies Tier 1/2 results (conflicts cause exclusion).
+6. **Tier 3 — Deezer name search:** Direct search with agent judgment on match quality. Assigns high or medium confidence based on name uniqueness, fan count, and album count.
+7. **Exclusions:** Artists that fail verification (name mismatch), have conflicting IDs, or are too ambiguous are excluded via `exclude_artist_mapping` so they don't reappear in future batches.
+8. Reports session summary with per-tier, per-confidence, and exclusion breakdowns
 
 ## Monitoring
 
@@ -97,13 +99,10 @@ export MCP_URL="https://musicnerd.xyz/api/mcp"
 ### tmux Workflow
 
 ```bash
-# Start a named tmux session
+# Single worker
 tmux new -s id-mapping
-
-# Start the full catalog run
 ./agents/id-mapping/run-full-catalog.sh
-
-# Detach: Ctrl-b d (process keeps running)
+# Detach: Ctrl-b d
 
 # Reattach later:
 tmux attach -t id-mapping
@@ -111,6 +110,21 @@ tmux attach -t id-mapping
 # Check progress without reattaching:
 ./agents/id-mapping/check-status.sh
 ```
+
+### Parallel Workers
+
+For faster processing, run multiple workers in separate tmux sessions. Workers naturally diverge as each resolves/excludes different artists from the shared pool. No offset coordination needed — upserts and unique constraints handle overlap safely.
+
+```bash
+# Source env vars, then launch 2 workers
+tmux new-session -d -s w1 'source .env.mapping && BATCH_SIZE=50 MAX_ITERATIONS=400 ./agents/id-mapping/run-full-catalog.sh'
+tmux new-session -d -s w2 'source .env.mapping && BATCH_SIZE=50 MAX_ITERATIONS=400 ./agents/id-mapping/run-full-catalog.sh'
+
+# check-status.sh shows per-worker breakdown automatically
+./agents/id-mapping/check-status.sh
+```
+
+**Resource requirements:** Each worker runs a `claude` CLI process (~200-400MB RAM). On a 4GB droplet, 2 workers is the practical max.
 
 ### Full Catalog Runner Configuration
 
@@ -140,7 +154,7 @@ LOG_DIR=/tmp/id-mapping ./agents/id-mapping/check-status.sh
 
 - **Auth expiry**: Claude Code OAuth tokens expire. If you see 3 consecutive failures, reattach tmux and run `claude login` to re-authenticate, then restart the loop.
 - **Rate limits**: The agent already respects MusicBrainz's 1 req/sec limit. If the MCP server rate-limits, increase `SLEEP_BETWEEN`.
-- **Restarting mid-run**: Safe to restart at any point. `get_unmapped_artists` skips already-resolved artists, so no work is duplicated.
+- **Restarting mid-run**: Safe to restart at any point. `get_unmapped_artists` skips already-resolved and excluded artists, so no work is duplicated.
 - **Disk space**: Each log file is ~50-200KB. 800 runs ≈ 40-160MB. Monitor with `du -sh $LOG_DIR`.
 
 ## Architecture
