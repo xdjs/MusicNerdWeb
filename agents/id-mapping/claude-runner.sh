@@ -26,6 +26,7 @@ CLAUDE_ARGS=(
   --mcp-config "$CONFIG_FILE"
   --allowedTools "mcp__music-nerd__*,WebFetch,WebSearch,Bash"
   --output-format stream-json
+  --verbose
   -p
 )
 
@@ -35,7 +36,6 @@ if [[ "$VERBOSE" == "1" ]]; then
   echo "[claude-runner] Batch size: $BATCH_SIZE"
   echo "[claude-runner] Config: $(cat "$CONFIG_FILE" | sed 's/Bearer [^"]*/Bearer ***/')"
   echo ""
-  CLAUDE_ARGS+=(--verbose)
 else
   echo "[claude-runner] $(date -u '+%H:%M:%S') Starting batch (size=$BATCH_SIZE)..."
 fi
