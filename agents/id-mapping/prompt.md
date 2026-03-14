@@ -46,10 +46,14 @@ Wikidata stores verified cross-platform ID mappings. A Spotify ID match is unamb
 
 ### How to query
 
-Send a POST request to `https://query.wikidata.org/sparql` with:
-- Header: `Accept: application/json`
-- Header: `User-Agent: MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)`
-- Body: `query=<SPARQL>` (URL-encoded form data)
+**Use `Bash` + `curl` (not WebFetch)** — Wikidata requires a custom `User-Agent` header that WebFetch cannot set.
+
+```bash
+curl -s -X POST 'https://query.wikidata.org/sparql' \
+  -H 'Accept: application/json' \
+  -H 'User-Agent: MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)' \
+  --data-urlencode 'query=<SPARQL>'
+```
 
 **IMPORTANT:** Wikidata returns 403 without the `User-Agent` header.
 
