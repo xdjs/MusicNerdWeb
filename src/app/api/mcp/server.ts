@@ -6,7 +6,8 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, VALID_EXCLUSION_REASONS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+import type { ExclusionReason } from "@/server/utils/idMappingService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -570,7 +571,7 @@ server.registerTool(
       const result = await excludeArtistMapping({
         artistId,
         platform,
-        reason,
+        reason: reason as ExclusionReason,
         details,
         apiKeyHash,
       });
@@ -581,7 +582,7 @@ server.registerTool(
           artistId,
           field: `mapping:${platform}`,
           action: "exclude",
-          newValue: reason,
+          newValue: details ? `${reason}: ${details}` : reason,
           apiKeyHash,
         });
       } catch (auditError) {

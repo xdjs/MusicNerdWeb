@@ -129,7 +129,7 @@ describe("exclude_artist_mapping MCP tool", () => {
       artistId: validArgs.artistId,
       field: "mapping:deezer",
       action: "exclude",
-      newValue: "name_mismatch",
+      newValue: "name_mismatch: MusicNerd 'X' vs Deezer 'Y' (id=123)",
       apiKeyHash: "test-hash",
     });
   });

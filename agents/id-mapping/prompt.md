@@ -344,7 +344,7 @@ exclude_artist_mapping(artistId, "deezer", "too_ambiguous", "Name 'Aurora' retur
 | Wikidata query fails / times out | Log error, fall through to Tier 2 for affected artists |
 | MusicBrainz rate limit (503) | Wait 2 seconds, retry once. If still failing, skip to Tier 3 |
 | MusicBrainz name search returns 0 results | Skip to Tier 3 |
-| Deezer search returns 0 results | Call `exclude_artist_mapping` with reason `"too_ambiguous"` if name is generic, otherwise skip (unresolved) |
+| Deezer search returns 0 results | Skip artist (unresolved) — 0 results means the artist likely isn't on Deezer yet, not that the name is ambiguous. Do NOT exclude. |
 | Deezer API error | Log error, skip artist |
 | `resolve_artist_id` returns `skipped: true` | Normal — higher-confidence mapping already exists. Move on |
 | `resolve_artist_id` fails | Log error, continue with next artist |

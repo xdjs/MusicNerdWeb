@@ -31,7 +31,9 @@ export const VALID_SOURCES = new Set([
   "wikidata", "musicbrainz", "name_search", "web_search", "manual",
 ]);
 
-export const VALID_EXCLUSION_REASONS = new Set([
+export type ExclusionReason = "conflict" | "name_mismatch" | "too_ambiguous";
+
+export const VALID_EXCLUSION_REASONS = new Set<ExclusionReason>([
   "conflict", "name_mismatch", "too_ambiguous",
 ]);
 
@@ -266,7 +268,7 @@ export async function getArtistMappings(artistId: string) {
 export async function excludeArtistMapping(params: {
   artistId: string;
   platform: string;
-  reason: string;
+  reason: ExclusionReason;
   details?: string;
   apiKeyHash?: string;
 }): Promise<{ created: boolean; updated: boolean }> {
