@@ -19,7 +19,8 @@ Every session follows this exact sequence:
 3. **Resolve each artist** — For each artist in the batch, attempt resolution through the tiers in order:
    - **Tier 1:** Wikidata SPARQL (batch all artists at once)
    - **Tier 2:** MusicBrainz (for artists unresolved after Tier 1)
-   - **Tier 3:** Deezer name search (for artists unresolved after Tier 2)
+   - **Tier 2.5:** Google Search (per-artist) — discovery for unresolved artists + cross-verification for Tier 1/2 results
+   - **Tier 3:** Deezer name search (for artists unresolved after Tier 2.5)
    - If all tiers fail, skip the artist.
 4. **Report progress** — Call `get_mapping_stats` again and print a summary.
 
@@ -136,6 +137,47 @@ If MusicBrainz confirms the artist's identity (MBID found) but has no Deezer lin
 
 - **503 (rate limited):** Wait 2 seconds, retry once. If still failing, skip to Tier 3 for this artist.
 - **0 search results:** Skip to Tier 3.
+
+---
+
+## Tier 2.5 — Google Search (Discovery + Cross-Verification)
+
+Google search reliably surfaces direct Deezer artist page URLs, even for obscure artists that Wikidata and MusicBrainz miss. This tier serves a dual role:
+
+- **Discovery** — for artists unresolved after Tier 2, find Deezer IDs from Google results
+- **Cross-verification** — for artists already resolved by Tier 1/2, check whether Google surfaces the same Deezer ID
+
+### Method
+
+1. Web search: `"{artist name}" deezer`
+2. Scan results for URLs matching `deezer.com/artist/{id}` or `deezer.com/{locale}/artist/{id}`
+3. Extract the numeric Deezer ID from the URL
+
+### As discovery (unresolved artists)
+
+- **Deezer artist URL found** + name verified via Deezer API → `confidence: "high"`, `source: "web_search"`
+- **Only album/track URLs found** (not an artist page) → `confidence: "medium"`, `source: "web_search"`
+- **No Deezer URLs found** → fall through to Tier 3
+- Reasoning is required. Example: `"Google search returned deezer.com/us/artist/13638503, verified name match '$horty DuWop'"`
+
+### As cross-verification (already resolved by Tier 1/2)
+
+Run Google search for **every** artist resolved by Tier 1 or Tier 2, then compare:
+
+- Google surfaces **same** Deezer ID → confirms the mapping, proceed normally
+- Google surfaces **different** Deezer ID → **conflict: skip the artist entirely, do not save** the Tier 1/2 mapping. Log: `"Conflict: Tier {N} found Deezer ID {X}, Google search found Deezer ID {Y} for '{artist name}'"`
+- Google surfaces **no** Deezer URLs → not a problem, proceed with the Tier 1/2 mapping (absence of evidence ≠ evidence of absence)
+
+### On match (discovery)
+
+Call `resolve_artist_id` with:
+- `confidence: "high"` or `"medium"` (see above)
+- `source: "web_search"`
+- **Reasoning is REQUIRED.** Explain the Google result and verification. Example: `"Google search returned deezer.com/us/artist/13638503, verified name match '$horty DuWop' via Deezer API"`
+
+### Error handling
+
+- If web search fails or returns no results, fall through to Tier 3.
 
 ---
 
@@ -295,10 +337,12 @@ Batch size: N
 Resolved: X total
   Tier 1 (Wikidata): A
   Tier 2 (MusicBrainz): B
+  Tier 2.5 (Google Search): G
   Tier 3 (Name Search): C
 Confidence breakdown:
   High: H
   Medium: M
+Conflicts (skipped): F
 Verification failures: V (list each: "MusicNerd 'X' vs Deezer 'Y', id=Z, source=S")
 Skipped/Unresolved: S
 Errors: E
