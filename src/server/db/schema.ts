@@ -360,12 +360,12 @@ export const artistMappingExclusions = pgTable("artist_mapping_exclusions", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
 }, (table) => [
   unique("artist_mapping_exclusions_artist_platform_uniq").on(table.artistId, table.platform),
-  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_mapping_exclusions_artist_id_fkey" }),
+  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_mapping_exclusions_artist_id_fkey" }).onDelete("cascade"),
   index("idx_artist_mapping_exclusions_platform").using("btree", table.platform.asc().nullsLast()),
   pgPolicy("mnweb_select_artist_mapping_exclusions", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
   pgPolicy("mnweb_insert_artist_mapping_exclusions", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
   pgPolicy("mnweb_update_artist_mapping_exclusions", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
-  pgPolicy("mnweb_delete_artist_mapping_exclusions", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
+  // No DELETE policy for mnweb — exclusions are cleared via direct DB access, not the app role
 ]);
 
 // Relations
