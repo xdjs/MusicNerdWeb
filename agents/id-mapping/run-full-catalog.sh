@@ -20,7 +20,7 @@ MAX_ITERATIONS="${MAX_ITERATIONS:-800}"
 LOG_DIR="${LOG_DIR:-/var/log/id-mapping}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-10}"
 BATCH_TIMEOUT="${BATCH_TIMEOUT:-600}"
-WORKER_ID="${WORKER_ID:-w1}"
+WORKER_ID="${WORKER_ID:-$$}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUNNER="$SCRIPT_DIR/claude-runner.sh"
