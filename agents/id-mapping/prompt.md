@@ -156,7 +156,7 @@ Google search reliably surfaces direct Deezer artist page URLs, even for obscure
 ### As discovery (unresolved artists)
 
 - **Deezer artist URL found** + name verified via Deezer API → `confidence: "high"`, `source: "web_search"`
-- **Only album/track URLs found** (not an artist page) → `confidence: "medium"`, `source: "web_search"`
+- **Only album/track URLs found** (not an artist page) → do NOT extract an ID from the URL (it's an album/track ID, not an artist ID). Fall through to Tier 3
 - **No Deezer URLs found** → fall through to Tier 3
 - Reasoning is required. Example: `"Google search returned deezer.com/us/artist/13638503, verified name match '$horty DuWop'"`
 
@@ -167,6 +167,8 @@ Run Google search for **every** artist resolved by Tier 1 or Tier 2, then compar
 - Google surfaces **same** Deezer ID → confirms the mapping, proceed normally
 - Google surfaces **different** Deezer ID → **conflict: skip the artist entirely, do not save** the Tier 1/2 mapping. Log: `"Conflict: Tier {N} found Deezer ID {X}, Google search found Deezer ID {Y} for '{artist name}'"`
 - Google surfaces **no** Deezer URLs → not a problem, proceed with the Tier 1/2 mapping (absence of evidence ≠ evidence of absence)
+
+**Note:** Conflict skipping only prevents saving the mapping in the current session. It does not affect existing mappings already stored in the database (e.g., prior manual or high-confidence mappings).
 
 ### On match (discovery)
 
