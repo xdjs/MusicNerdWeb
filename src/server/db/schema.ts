@@ -319,6 +319,12 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]);
 
+export const exclusionReason = pgEnum("exclusion_reason", [
+  "conflict",       // platform ID already mapped to different artist
+  "name_mismatch",  // Deezer name doesn't match MusicNerd name
+  "too_ambiguous",  // name too generic, can't confidently match
+]);
+
 export const confidenceLevel = pgEnum("confidence_level", ["high", "medium", "low", "manual"]);
 
 export const artistIdMappings = pgTable("artist_id_mappings", {
@@ -344,6 +350,24 @@ export const artistIdMappings = pgTable("artist_id_mappings", {
   pgPolicy("mnweb_update_artist_id_mappings", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 ]);
 
+export const artistMappingExclusions = pgTable("artist_mapping_exclusions", {
+  id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+  artistId: uuid("artist_id").notNull(),
+  platform: text().notNull(),
+  reason: exclusionReason().notNull(),
+  details: text(),
+  apiKeyHash: text("api_key_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+  unique("artist_mapping_exclusions_artist_platform_uniq").on(table.artistId, table.platform),
+  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_mapping_exclusions_artist_id_fkey" }).onDelete("cascade"),
+  index("idx_artist_mapping_exclusions_platform").using("btree", table.platform.asc().nullsLast()),
+  pgPolicy("mnweb_select_artist_mapping_exclusions", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_mapping_exclusions", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_mapping_exclusions", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
+  // No DELETE policy for mnweb — exclusions are cleared via direct DB access, not the app role
+]);
+
 // Relations
 export const artistsRelations = relations(artists, ({one, many}) => ({
 	user: one(users, {
@@ -351,6 +375,7 @@ export const artistsRelations = relations(artists, ({one, many}) => ({
 		references: [users.id]
 	}),
 	idMappings: many(artistIdMappings),
+	mappingExclusions: many(artistMappingExclusions),
 	ugcresearches: many(ugcresearch),
 	featureds_featuredArtist: many(featured, {
 		relationName: "featured_featuredArtist_artists_id"
@@ -392,6 +417,13 @@ export const featuredRelations = relations(featured, ({one}) => ({
 export const artistIdMappingsRelations = relations(artistIdMappings, ({one}) => ({
 	artist: one(artists, {
 		fields: [artistIdMappings.artistId],
+		references: [artists.id],
+	}),
+}));
+
+export const artistMappingExclusionsRelations = relations(artistMappingExclusions, ({one}) => ({
+	artist: one(artists, {
+		fields: [artistMappingExclusions.artistId],
 		references: [artists.id],
 	}),
 }));

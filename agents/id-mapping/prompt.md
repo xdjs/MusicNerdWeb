@@ -183,10 +183,8 @@ Google search reliably surfaces direct Deezer artist page URLs, even for obscure
 Run Google search for **every** artist resolved by Tier 1 or Tier 2, then compare:
 
 - Google surfaces **same** Deezer ID → confirms the mapping, proceed normally
-- Google surfaces **different** Deezer ID → **conflict: skip the artist entirely, do not save** the Tier 1/2 mapping. Log: `"Conflict: Tier {N} found Deezer ID {X}, Google search found Deezer ID {Y} for '{artist name}'"`
+- Google surfaces **different** Deezer ID → **conflict: do not save the Tier 1/2 mapping.** Call `exclude_artist_mapping(artistId, platform, "conflict", "Tier {N} deezer:{X} vs Google deezer:{Y} for '{artist name}'")` to prevent reprocessing.
 - Google surfaces **no** Deezer URLs → not a problem, proceed with the Tier 1/2 mapping (absence of evidence ≠ evidence of absence)
-
-**Note:** Conflict skipping only prevents saving the mapping in the current session. It does not affect existing mappings already stored in the database (e.g., prior manual or high-confidence mappings).
 
 ### On match (discovery)
 
@@ -278,8 +276,8 @@ GET https://api.deezer.com/artist/{deezer_id}
 Compare the returned `name` field against the MusicNerd artist name using the name normalization rules below. If the names do not match:
 
 1. **Do NOT call `resolve_artist_id`** — the mapping is wrong.
-2. Log the mismatch: `"Verification failed: MusicNerd '{mn_name}' vs Deezer '{dz_name}' (id={dz_id})"`
-3. Continue to the next tier or skip the artist.
+2. If this is the **last tier** (no more tiers to try), call `exclude_artist_mapping(artistId, platform, "name_mismatch", "MusicNerd '{mn_name}' vs Deezer '{dz_name}' (id={dz_id})")` so the artist is excluded from future batches.
+3. If there are remaining tiers, continue to the next tier. Only exclude after all tiers have been exhausted.
 
 A mismatch means the Deezer ID belongs to a different artist (e.g., "Jack $hirak" vs "$hirak"). This catches errors in Wikidata, MusicBrainz, and name search alike.
 
@@ -315,11 +313,27 @@ You have these tools available via the MCP server:
 | `get_artist` | Get artist details (name, Spotify ID, existing links) | No |
 | `search_artists` | Search artists by name (rarely needed in this workflow) | No |
 | `resolve_artist_id` | Write a resolved mapping. Args: `artistId`, `platform`, `platformId`, `confidence`, `source`, `reasoning` | Yes |
+| `exclude_artist_mapping` | Exclude an artist from future mapping batches. Args: `artistId`, `platform`, `reason`, `details` | Yes |
+| `get_mapping_exclusions` | List excluded artists for a platform. Args: `platform`, `limit` | No |
 
 ### Key behaviors
 
 - `resolve_artist_id` only updates if new confidence >= existing. If a higher-confidence mapping already exists, it returns `{ skipped: true }` — this is normal, not an error.
-- `get_unmapped_artists` only returns artists with a Spotify ID and no mapping for the specified platform, so re-running is naturally idempotent.
+- `get_unmapped_artists` only returns artists with a Spotify ID, no mapping, **and no exclusion** for the specified platform, so re-running is naturally idempotent.
+- When verification fails (name mismatch), a conflict is detected, or a name is too ambiguous to match, **always call `exclude_artist_mapping`** so the artist is removed from future batches. This prevents wasted turns on artists that will always fail.
+
+### Exclusion examples
+
+```
+# Name mismatch
+exclude_artist_mapping(artistId, "deezer", "name_mismatch", "MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)")
+
+# Conflict — platform ID already mapped to a different artist
+exclude_artist_mapping(artistId, "deezer", "conflict", "Deezer 456 already mapped to artist abc-123, Google found different ID 789")
+
+# Too ambiguous — generic name with multiple plausible candidates
+exclude_artist_mapping(artistId, "deezer", "too_ambiguous", "Name 'Aurora' returned 5 Deezer candidates, none conclusive")
+```
 
 ---
 
@@ -330,7 +344,7 @@ You have these tools available via the MCP server:
 | Wikidata query fails / times out | Log error, fall through to Tier 2 for affected artists |
 | MusicBrainz rate limit (503) | Wait 2 seconds, retry once. If still failing, skip to Tier 3 |
 | MusicBrainz name search returns 0 results | Skip to Tier 3 |
-| Deezer search returns 0 results | Skip artist (unresolved) |
+| Deezer search returns 0 results | Skip artist (unresolved) — 0 results means the artist likely isn't on Deezer yet, not that the name is ambiguous. Do NOT exclude. |
 | Deezer API error | Log error, skip artist |
 | `resolve_artist_id` returns `skipped: true` | Normal — higher-confidence mapping already exists. Move on |
 | `resolve_artist_id` fails | Log error, continue with next artist |
@@ -362,9 +376,11 @@ Resolved: X total
 Confidence breakdown:
   High: H
   Medium: M
-Conflicts (skipped): F
-Verification failures: V (list each: "MusicNerd 'X' vs Deezer 'Y', id=Z, source=S")
-Skipped/Unresolved: S
+Excluded: X total
+  Conflicts: F
+  Name mismatches: V (list each: "MusicNerd 'X' vs Deezer 'Y', id=Z, source=S")
+  Too ambiguous: A
+Skipped/Unresolved (not excluded): S
 Errors: E
 Updated stats: [output of get_mapping_stats]
 ```

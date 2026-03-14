@@ -23,8 +23,11 @@ describe("idMappingService", () => {
       resolveArtistMapping,
       getMappingStats,
       getArtistMappings,
+      excludeArtistMapping,
+      getMappingExclusions,
       VALID_MAPPING_PLATFORMS,
       VALID_SOURCES,
+      VALID_EXCLUSION_REASONS,
     } = await import("../idMappingService");
 
     return {
@@ -33,8 +36,11 @@ describe("idMappingService", () => {
       resolveArtistMapping,
       getMappingStats,
       getArtistMappings,
+      excludeArtistMapping,
+      getMappingExclusions,
       VALID_MAPPING_PLATFORMS,
       VALID_SOURCES,
+      VALID_EXCLUSION_REASONS,
     };
   }
 
@@ -259,5 +265,74 @@ describe("idMappingService", () => {
     (db as any).query.artists.findFirst.mockResolvedValue({ id: "artist-123" });
     const mappings = await getArtistMappings("artist-123");
     expect(mappings).toEqual([]);
+  });
+
+  // excludeArtistMapping
+  it("rejects invalid platform for excludeArtistMapping", async () => {
+    const { excludeArtistMapping } = await setup();
+    await expect(
+      excludeArtistMapping({ artistId: "artist-123", platform: "badplatform", reason: "conflict" })
+    ).rejects.toThrow("Invalid platform: badplatform");
+  });
+
+  it("rejects invalid reason for excludeArtistMapping", async () => {
+    const { excludeArtistMapping } = await setup();
+    await expect(
+      excludeArtistMapping({ artistId: "artist-123", platform: "deezer", reason: "badreason" })
+    ).rejects.toThrow("Invalid exclusion reason: badreason");
+  });
+
+  it("throws for non-existent artist in excludeArtistMapping", async () => {
+    const { db, excludeArtistMapping } = await setup();
+    (db as any).query.artists.findFirst.mockResolvedValue(null);
+    await expect(
+      excludeArtistMapping({ artistId: "nonexistent", platform: "deezer", reason: "conflict" })
+    ).rejects.toThrow("Artist not found");
+  });
+
+  it("creates exclusion record", async () => {
+    const { db, excludeArtistMapping } = await setup();
+    db.execute = jest.fn().mockResolvedValue([{ xmax: "0" }]);
+    const result = await excludeArtistMapping({
+      artistId: "artist-123", platform: "deezer", reason: "name_mismatch",
+      details: "MusicNerd 'X' vs Deezer 'Y'",
+    });
+    expect(result.created).toBe(true);
+    expect(result.updated).toBe(false);
+    expect(db.execute).toHaveBeenCalled();
+  });
+
+  it("upserts exclusion on duplicate", async () => {
+    const { db, excludeArtistMapping } = await setup();
+    db.execute = jest.fn().mockResolvedValue([{ xmax: "12345" }]);
+    const result = await excludeArtistMapping({
+      artistId: "artist-123", platform: "deezer", reason: "conflict",
+      details: "updated details",
+    });
+    expect(result.created).toBe(false);
+    expect(result.updated).toBe(true);
+  });
+
+  // getMappingExclusions
+  it("returns exclusions with artist info", async () => {
+    const { db, getMappingExclusions } = await setup();
+    db.execute = jest.fn()
+      .mockResolvedValueOnce([{ total: 1 }])
+      .mockResolvedValueOnce([{
+        id: "excl-1", artist_id: "a1", artist_name: "Artist 1", spotify: "sp1",
+        platform: "deezer", reason: "name_mismatch", details: "name mismatch details",
+        created_at: "2026-01-01T00:00:00Z",
+      }]);
+
+    const result = await getMappingExclusions("deezer");
+    expect(result.total).toBe(1);
+    expect(result.exclusions).toHaveLength(1);
+    expect(result.exclusions[0].artistName).toBe("Artist 1");
+    expect(result.exclusions[0].reason).toBe("name_mismatch");
+  });
+
+  it("rejects invalid platform for getMappingExclusions", async () => {
+    const { getMappingExclusions } = await setup();
+    await expect(getMappingExclusions("invalid")).rejects.toThrow("Invalid platform: invalid");
   });
 });
