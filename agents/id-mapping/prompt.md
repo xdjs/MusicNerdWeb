@@ -16,7 +16,21 @@ Every session follows this exact sequence:
 
 1. **Check current state** — Call `get_mapping_stats` to understand overall coverage.
 2. **Get work batch** — Call `get_unmapped_artists("deezer", limit=BATCH_SIZE)` to get artists that need Deezer IDs.
-3. **Resolve each artist** — For each artist in the batch, attempt resolution through the tiers in order:
+3. **Resolve each artist** — For each artist in the batch, print a progress line and attempt resolution through the tiers in order.
+
+   **Progress output:** Before starting each artist, print a single line:
+   ```
+   [N/TOTAL] Artist Name (spotify:SPOTIFY_ID) ...
+   ```
+   After resolution, append the outcome on the next line:
+   ```
+     → Resolved via Tier 1 (Wikidata), deezer:123456, confidence: high
+     → Skipped (no match found)
+     → Conflict: Tier 1 deezer:111 vs Google deezer:222
+     → Verification failed: MusicNerd 'X' vs Deezer 'Y'
+   ```
+
+   Tiers:
    - **Tier 1:** Wikidata SPARQL (batch all artists at once)
    - **Tier 2:** MusicBrainz (for artists unresolved after Tier 1)
    - **Tier 2.5:** Google Search (per-artist) — discovery for unresolved artists + cross-verification for Tier 1/2 results
