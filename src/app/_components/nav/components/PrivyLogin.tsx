@@ -437,6 +437,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 Link Wallet
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+              {theme === 'dark' ? <Sun size={14} className="mr-1.5" /> : <Moon size={14} className="mr-1.5" />}
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault();
@@ -444,10 +448,6 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               }}
             >
               Log Out
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-              {theme === 'dark' ? <Sun size={14} className="mr-1.5" /> : <Moon size={14} className="mr-1.5" />}
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
