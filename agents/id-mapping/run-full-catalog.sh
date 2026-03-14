@@ -30,7 +30,13 @@ consecutive_failures=0
 completed_runs=0
 stop_reason=""
 
-trap 'echo ""; echo "Interrupted."; exit 130' INT TERM
+cleanup() {
+  echo ""
+  echo "Interrupted — killing child processes..."
+  kill 0 2>/dev/null
+  exit 130
+}
+trap cleanup INT TERM
 
 echo "========================================"
 echo " ID Mapping — Full Catalog Run"
