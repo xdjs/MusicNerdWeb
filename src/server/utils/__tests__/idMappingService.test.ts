@@ -123,6 +123,8 @@ describe("idMappingService", () => {
       confidence: "high", source: "web_search", reasoning: "Google search returned deezer.com/us/artist/456",
     });
     expect(result.created).toBe(true);
+    expect(result.updated).toBe(false);
+    expect(result.skipped).toBe(false);
     expect(db.execute).toHaveBeenCalled();
   });
 

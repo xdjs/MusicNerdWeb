@@ -173,7 +173,7 @@ Run Google search for **every** artist resolved by Tier 1 or Tier 2, then compar
 ### On match (discovery)
 
 Call `resolve_artist_id` with:
-- `confidence: "high"` or `"medium"` (see above)
+- `confidence: "high"`
 - `source: "web_search"`
 - **Reasoning is REQUIRED.** Explain the Google result and verification. Example: `"Google search returned deezer.com/us/artist/13638503, verified name match '$horty DuWop' via Deezer API"`
 
