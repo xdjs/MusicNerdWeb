@@ -7,7 +7,7 @@ import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
 import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, EXCLUSION_REASON_VALUES, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
-import type { ExclusionReason } from "@/server/utils/idMappingService";
+
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -571,7 +571,7 @@ server.registerTool(
       const result = await excludeArtistMapping({
         artistId,
         platform,
-        reason: reason as ExclusionReason,
+        reason,
         details,
         apiKeyHash,
       });
@@ -634,7 +634,7 @@ server.registerTool(
     description: "List artists that have been excluded from mapping for a given platform. Useful for reviewing skipped artists. Clearing exclusions requires direct database access.",
     inputSchema: {
       platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
-      limit: z.number().optional().default(100).describe("Maximum number of results to return (default 100, max 500)"),
+      limit: z.number().int().min(1).max(500).optional().default(100).describe("Maximum number of results to return (default 100, max 500)"),
     },
   },
   async ({ platform, limit }) => {
