@@ -5,6 +5,7 @@ Automated agent that resolves Deezer IDs for artists in the MusicNerd database u
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed
+- `envsubst` (from GNU gettext — pre-installed on most Linux; on macOS: `brew install gettext`)
 - An MCP API key for the MusicNerd server (provision via admin UI at `/admin/mcp-keys` or [SQL](../../CLAUDE.md#api-key-provisioning))
 
 ## Setup
