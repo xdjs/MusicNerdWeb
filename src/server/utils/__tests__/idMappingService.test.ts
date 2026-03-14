@@ -116,6 +116,19 @@ describe("idMappingService", () => {
     ).rejects.toThrow(MappingConflictError);
   });
 
+  it("detects unique violation in Drizzle-wrapped error (err.cause)", async () => {
+    const { db, resolveArtistMapping } = await setup();
+    const pgError = new Error("duplicate key value violates unique constraint");
+    (pgError as any).code = "23505";
+    (pgError as any).constraint_name = "artist_id_mappings_platform_id_uniq";
+    const wrapperError = new Error("Failed query");
+    (wrapperError as any).cause = pgError;
+    db.execute = jest.fn().mockRejectedValue(wrapperError);
+    await expect(
+      resolveArtistMapping({ artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "manual" })
+    ).rejects.toThrow("already mapped to a different artist");
+  });
+
   it("accepts web_search as a valid source", async () => {
     const { db, resolveArtistMapping } = await setup();
     const result = await resolveArtistMapping({

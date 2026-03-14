@@ -35,10 +35,24 @@ const CONFIDENCE_PRIORITY: Record<string, number> = {
   manual: 4, high: 3, medium: 2, low: 1,
 };
 
+function extractPgError(err: unknown): { code: string; constraint: string } | null {
+  // Check the error itself, then err.cause (Drizzle wraps Postgres errors)
+  for (const obj of [err, err && typeof err === "object" && "cause" in err ? (err as { cause: unknown }).cause : null]) {
+    if (obj && typeof obj === "object" && "code" in obj && typeof (obj as { code: unknown }).code === "string") {
+      return {
+        code: (obj as { code: string }).code,
+        constraint: "constraint_name" in obj ? String((obj as { constraint_name: unknown }).constraint_name) :
+                    "constraint" in obj ? String((obj as { constraint: unknown }).constraint) : "",
+      };
+    }
+  }
+  return null;
+}
+
 function handleUniqueViolation(err: unknown, platform: string, platformId: string): never {
-  if (err && typeof err === "object" && "code" in err && err.code === "23505") {
-    const constraint = "constraint" in err && typeof err.constraint === "string" ? err.constraint : "";
-    if (constraint === "artist_id_mappings_platform_id_uniq") {
+  const pg = extractPgError(err);
+  if (pg && pg.code === "23505") {
+    if (pg.constraint === "artist_id_mappings_platform_id_uniq") {
       throw new MappingConflictError(`platformId ${platformId} on ${platform} is already mapped to a different artist`);
     }
     // artist_id_mappings_artist_platform_uniq — concurrent insert race for same artist+platform

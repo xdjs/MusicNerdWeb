@@ -453,7 +453,7 @@ server.registerTool(
       platform: z.string().describe("The target platform (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
       platformId: z.string().describe("The artist's ID on the target platform"),
       confidence: z.enum(["high", "medium", "low", "manual"]).describe("Confidence level of the mapping (manual > high > medium > low)"),
-      source: z.enum(["wikidata", "musicbrainz", "name_search", "manual"]).describe("How the mapping was determined"),
+      source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).describe("How the mapping was determined"),
       reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
     },
   },
