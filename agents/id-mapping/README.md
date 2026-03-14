@@ -75,10 +75,80 @@ psql $SUPABASE_DB_CONNECTION -c "
 "
 ```
 
+## Running at Scale
+
+For processing the full catalog (~38k artists), run unattended on a DigitalOcean droplet (or any Ubuntu/Debian server).
+
+### Droplet Setup
+
+```bash
+# SSH into your droplet and run the provisioning script
+sudo ./agents/id-mapping/setup-droplet.sh
+
+# Authenticate Claude Code (OAuth — uses your Max/Pro subscription)
+claude login
+
+# Set env vars (add to ~/.bashrc for persistence)
+export MCP_API_KEY="your-key-here"
+export MCP_URL="https://musicnerd.xyz/api/mcp"
+```
+
+### tmux Workflow
+
+```bash
+# Start a named tmux session
+tmux new -s id-mapping
+
+# Start the full catalog run
+./agents/id-mapping/run-full-catalog.sh
+
+# Detach: Ctrl-b d (process keeps running)
+
+# Reattach later:
+tmux attach -t id-mapping
+
+# Check progress without reattaching:
+./agents/id-mapping/check-status.sh
+```
+
+### Full Catalog Runner Configuration
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `MCP_API_KEY` | (required) | MCP API key for write operations |
+| `MCP_URL` | (required) | MCP server endpoint |
+| `BATCH_SIZE` | `50` | Artists per batch |
+| `MAX_ITERATIONS` | `800` | Maximum number of batch runs |
+| `LOG_DIR` | `/var/log/id-mapping` | Where to write per-run log files |
+| `SLEEP_BETWEEN` | `10` | Seconds between successful runs |
+| `BATCH_TIMEOUT` | `600` | Timeout per batch in seconds (10 min) |
+
+### Local Testing
+
+```bash
+# Quick test with 2 iterations of 5 artists
+MAX_ITERATIONS=2 BATCH_SIZE=5 LOG_DIR=/tmp/id-mapping \
+  MCP_API_KEY=your-key MCP_URL=https://staging.musicnerd.xyz/api/mcp \
+  ./agents/id-mapping/run-full-catalog.sh
+
+# Check the logs
+LOG_DIR=/tmp/id-mapping ./agents/id-mapping/check-status.sh
+```
+
+### Troubleshooting
+
+- **Auth expiry**: Claude Code OAuth tokens expire. If you see 3 consecutive failures, reattach tmux and run `claude login` to re-authenticate, then restart the loop.
+- **Rate limits**: The agent already respects MusicBrainz's 1 req/sec limit. If the MCP server rate-limits, increase `SLEEP_BETWEEN`.
+- **Restarting mid-run**: Safe to restart at any point. `get_unmapped_artists` skips already-resolved artists, so no work is duplicated.
+- **Disk space**: Each log file is ~50-200KB. 800 runs ≈ 40-160MB. Monitor with `du -sh $LOG_DIR`.
+
 ## Architecture
 
 - `prompt.md` — Full system prompt with the tiered resolution strategy
 - `mcp-config.json` — MCP server connection template (env vars substituted at runtime)
 - `claude-runner.sh` — Shell wrapper that substitutes env vars and invokes Claude Code CLI
+- `run-full-catalog.sh` — Durable loop runner for processing the full catalog
+- `check-status.sh` — Quick progress checker (run from any SSH session)
+- `setup-droplet.sh` — One-time droplet provisioning script
 
 The agent makes no application code changes. All reads/writes go through MCP tools, which share the same validation and audit logging as the web app.
