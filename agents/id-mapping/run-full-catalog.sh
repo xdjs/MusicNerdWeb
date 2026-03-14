@@ -20,6 +20,7 @@ MAX_ITERATIONS="${MAX_ITERATIONS:-800}"
 LOG_DIR="${LOG_DIR:-/var/log/id-mapping}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-10}"
 BATCH_TIMEOUT="${BATCH_TIMEOUT:-600}"
+WORKER_ID="${WORKER_ID:-w1}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUNNER="$SCRIPT_DIR/claude-runner.sh"
@@ -46,6 +47,7 @@ echo " Batch size:     $BATCH_SIZE"
 echo " Batch timeout:  ${BATCH_TIMEOUT}s"
 echo " Sleep between:  ${SLEEP_BETWEEN}s"
 echo " Log dir:        $LOG_DIR"
+echo " Worker ID:      $WORKER_ID"
 echo " MCP URL:        $MCP_URL"
 echo " Started:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo "========================================"
@@ -54,10 +56,10 @@ echo ""
 for i in $(seq 1 "$MAX_ITERATIONS"); do
   timestamp=$(date -u '+%Y%m%d-%H%M%S')
   run_num=$(printf "%04d" "$i")
-  logfile="$LOG_DIR/run-${run_num}-${timestamp}.log"
+  logfile="$LOG_DIR/${WORKER_ID}-run-${run_num}-${timestamp}.log"
 
   completed_runs=$i
-  echo "--- Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
+  echo "--- [$WORKER_ID] Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
   echo "[loop] Logfile: $logfile"
   echo "[loop] Launching claude-runner.sh (timeout: ${BATCH_TIMEOUT}s)..."
 
