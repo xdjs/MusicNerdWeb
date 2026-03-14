@@ -30,6 +30,8 @@ consecutive_failures=0
 completed_runs=0
 stop_reason=""
 
+trap 'echo ""; echo "Interrupted."; exit 130' INT TERM
+
 echo "========================================"
 echo " ID Mapping — Full Catalog Run"
 echo "========================================"
