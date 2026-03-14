@@ -11,10 +11,10 @@ BATCH_SIZE="${BATCH_SIZE:-50}"
 # Generate MCP config with env vars substituted
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE=$(mktemp)
-trap "rm -f $CONFIG_FILE" EXIT
+trap 'rm -f "$CONFIG_FILE"' EXIT
 
-sed "s|\${MCP_API_KEY}|${MCP_API_KEY}|g; s|\${MCP_URL}|${MCP_URL}|g" \
-  "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
+export MCP_API_KEY MCP_URL
+envsubst < "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
 
 # Read the system prompt from file
 SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
