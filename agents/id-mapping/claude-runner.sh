@@ -31,7 +31,7 @@ echo ""
 echo "" | claude \
   --system-prompt "$SYSTEM_PROMPT" \
   --mcp-config "$CONFIG_FILE" \
-  --allowedTools "mcp__music-nerd__*,WebFetch,Bash" \
+  --allowedTools "mcp__music-nerd__*,WebFetch,WebSearch,Bash" \
   --output-format stream-json \
   --verbose \
   -p \
