@@ -46,7 +46,7 @@ if [[ $successful_runs -gt 0 ]]; then
     last_log=$(grep -rl '=== ID Mapping Session Report ===' "$LOG_DIR" 2>/dev/null | sort | tail -1)
     if [[ -n "$last_log" ]]; then
       remaining=$(grep -oE 'totalUnmapped.*?[0-9]+' "$last_log" 2>/dev/null | grep -oE '[0-9]+' | tail -1 || true)
-      if [[ -n "$remaining" && "$remaining" -gt 0 && "$rate" != "?" ]]; then
+      if [[ -n "$remaining" && "$remaining" =~ ^[0-9]+$ && "$remaining" -gt 0 && "$rate" != "?" ]]; then
         runs_left=$(echo "$remaining / $rate" | bc -l 2>/dev/null | xargs printf "%.0f" 2>/dev/null || echo "?")
         echo " Remaining:        ~$remaining artists"
         echo " Est. runs left:   ~$runs_left"

@@ -4,6 +4,11 @@ set -euo pipefail
 # One-time provisioning for a DigitalOcean droplet (Ubuntu/Debian)
 # to run the ID mapping agent at scale.
 
+if [[ $EUID -ne 0 ]]; then
+  echo "Error: This script must be run as root (use sudo)"
+  exit 1
+fi
+
 echo "=== ID Mapping Agent — Droplet Setup ==="
 echo ""
 

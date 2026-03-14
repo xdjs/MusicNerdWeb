@@ -27,6 +27,7 @@ RUNNER="$SCRIPT_DIR/claude-runner.sh"
 mkdir -p "$LOG_DIR"
 
 consecutive_failures=0
+completed_runs=0
 stop_reason=""
 
 echo "========================================"
@@ -47,6 +48,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   run_num=$(printf "%04d" "$i")
   logfile="$LOG_DIR/run-${run_num}-${timestamp}.log"
 
+  completed_runs=$i
   echo "--- Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
 
   # Run the batch with a timeout, capturing output
@@ -111,9 +113,9 @@ echo "========================================"
 echo " Finished:  $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 if [[ -n "$stop_reason" ]]; then
   echo " Reason:    $stop_reason"
-elif [[ $i -ge $MAX_ITERATIONS ]]; then
+elif [[ $completed_runs -ge $MAX_ITERATIONS ]]; then
   echo " Reason:    reached max iterations ($MAX_ITERATIONS)"
 fi
-echo " Total runs: $i"
+echo " Total runs: $completed_runs"
 echo " Log dir:    $LOG_DIR"
 echo "========================================"
