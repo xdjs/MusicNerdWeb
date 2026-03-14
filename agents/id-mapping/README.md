@@ -48,6 +48,7 @@ BATCH_SIZE=5 \
 | `MCP_API_KEY` | (required) | MCP API key for write operations |
 | `MCP_URL` | `https://musicnerd.xyz/api/mcp` | MCP server endpoint |
 | `BATCH_SIZE` | `50` | Number of artists to process per session |
+| `VERBOSE` | `0` | Set to `1` for stream-json + verbose debug output |
 
 ## How It Works
 
