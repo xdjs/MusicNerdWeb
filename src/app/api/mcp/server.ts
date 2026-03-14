@@ -6,7 +6,7 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, EXCLUSION_REASON_VALUES, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
 import type { ExclusionReason } from "@/server/utils/idMappingService";
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
@@ -558,7 +558,7 @@ server.registerTool(
     inputSchema: {
       artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
       platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
-      reason: z.enum(["conflict", "name_mismatch", "too_ambiguous"]).describe("Why the artist is being excluded"),
+      reason: z.enum(EXCLUSION_REASON_VALUES).describe("Why the artist is being excluded"),
       details: z.string().optional().describe("Human-readable explanation (e.g. \"MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)\")"),
     },
   },
@@ -631,7 +631,7 @@ server.registerTool(
   "get_mapping_exclusions",
   {
     title: "Get Mapping Exclusions",
-    description: "List artists that have been excluded from mapping for a given platform. Useful for reviewing skipped artists and deciding whether to clear exclusions after fixing the underlying issue.",
+    description: "List artists that have been excluded from mapping for a given platform. Useful for reviewing skipped artists. Clearing exclusions requires direct database access.",
     inputSchema: {
       platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
       limit: z.number().optional().default(100).describe("Maximum number of results to return (default 100, max 500)"),

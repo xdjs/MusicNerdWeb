@@ -31,11 +31,9 @@ export const VALID_SOURCES = new Set([
   "wikidata", "musicbrainz", "name_search", "web_search", "manual",
 ]);
 
-export type ExclusionReason = "conflict" | "name_mismatch" | "too_ambiguous";
-
-export const VALID_EXCLUSION_REASONS = new Set<ExclusionReason>([
-  "conflict", "name_mismatch", "too_ambiguous",
-]);
+export const EXCLUSION_REASON_VALUES = ["conflict", "name_mismatch", "too_ambiguous"] as const;
+export type ExclusionReason = typeof EXCLUSION_REASON_VALUES[number];
+export const VALID_EXCLUSION_REASONS = new Set<ExclusionReason>(EXCLUSION_REASON_VALUES);
 
 const CONFIDENCE_PRIORITY: Record<string, number> = {
   manual: 4, high: 3, medium: 2, low: 1,
