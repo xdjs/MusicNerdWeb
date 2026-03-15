@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { openai } from "@/server/lib/openai";
+import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { funfacts } from "@/server/db/schema";
 import { db } from "@/server/db/drizzle";
 import { eq } from "drizzle-orm";
@@ -82,42 +82,29 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       console.error("Error fetching vault sources for fun facts:", e);
     }
 
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured");
-      return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });
-    }
-
     try {
-      // Set timeout for OpenAI API call
-      const openaiTimeout = 15000; // 15 seconds
-      
-      const completion = await Promise.race([
-        openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an intelligent assistant. Follow the user prompt closely and do not fabricate information.",
-            },
-            {
-              role: "user",
-              content: finalPrompt,
-            },
-          ],
-          temperature: 0.8,
+      // Set timeout for Gemini API call
+      const geminiTimeout = 15000; // 15 seconds
+
+      const response = await Promise.race([
+        gemini.models.generateContent({
+          model: GEMINI_MODEL_FLASH,
+          contents: finalPrompt,
+          config: {
+            systemInstruction: "You are an intelligent assistant. Follow the user prompt closely and do not fabricate information.",
+            temperature: 0.8,
+          },
         }),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('OpenAI timeout')), openaiTimeout)
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini timeout')), geminiTimeout)
         )
       ]);
-      
-      const text = completion.choices[0]?.message?.content?.trim() ?? "";
+
+      const text = response.text ?? "";
       return NextResponse.json({ text });
     } catch (err: any) {
-      console.error("OpenAI error generating fun fact", err);
-      if (err.message === 'OpenAI timeout') {
+      console.error("Gemini error generating fun fact", err);
+      if (err.message === 'Gemini timeout') {
         return NextResponse.json({ error: "Fun fact generation timed out" }, { status: 408 });
       }
       return NextResponse.json({ error: "Failed to generate fun fact" }, { status: 500 });
@@ -129,14 +116,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     return await Promise.race([funFactOperation(), timeoutPromise]);
   } catch (error: any) {
     console.error('Error in fun fact generation:', error);
-    
+
     if (error instanceof Error && error.message === 'Fun fact generation timeout') {
       return NextResponse.json(
         { error: "Fun fact generation timed out. Please try again later." },
         { status: 408 }
       );
     }
-    
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

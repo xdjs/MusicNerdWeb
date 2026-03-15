@@ -213,6 +213,15 @@ jest.mock('openai', () => {
     };
 });
 
+// Mock the Google GenAI SDK to avoid real API calls
+jest.mock('@google/genai', () => ({
+    GoogleGenAI: class {
+        models = {
+            generateContent: jest.fn().mockResolvedValue({ text: 'mocked gemini response' })
+        };
+    }
+}));
+
 // Mock server actions to prevent function not found errors
 jest.mock('@/app/actions/serverActions', () => ({
     getUgcStatsInRangeAction: jest.fn().mockResolvedValue({ ugcCount: 0, artistsCount: 0 }),

@@ -8,12 +8,21 @@ import {
     getApprovedClaimByUserId,
     getVaultSourcesByArtistId,
     updateVaultSourceStatus,
+    updateVaultSourceType,
     seedMockVaultSources,
     insertVaultSource,
     deleteVaultSource,
     deleteVaultSources,
 } from "@/server/utils/queries/dashboardQueries";
+import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
+import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
+import { fetchPageContent } from "@/server/utils/fetchPageContent";
+import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
+
+// Best-effort debounce for bio regen (same serverless caveat as rate limiting)
+const bioRegenTimestamps = new Map<string, number>();
+const BIO_REGEN_DEBOUNCE_MS = 30_000;
 
 export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean }> {
     const session = await getServerAuthSession() ?? await getDevSession();
@@ -83,6 +92,21 @@ export async function updateSourceStatus(
         if (!claim) return { success: false, error: "No claimed artist profile" };
 
         await updateVaultSourceStatus(sourceId, status);
+
+        // Regenerate bio in the background when a source is approved (debounced)
+        if (status === "approved" && claim.artistId) {
+            const now = Date.now();
+            const lastRegen = bioRegenTimestamps.get(claim.artistId) ?? 0;
+            if (now - lastRegen > BIO_REGEN_DEBOUNCE_MS) {
+                bioRegenTimestamps.set(claim.artistId, now);
+                generateArtistBio(claim.artistId).catch(e =>
+                    console.error("[updateSourceStatus] Background bio regeneration failed:", e)
+                );
+            } else {
+                console.log(`[updateSourceStatus] Skipping bio regen for ${claim.artistId} — debounced`);
+            }
+        }
+
         return { success: true };
     } catch (error) {
         console.error("[updateSourceStatus] Error:", error);
@@ -140,23 +164,61 @@ export async function addVaultSource(
             return { success: false, error: "Not authorized for this artist" };
         }
 
-        // Extract a title from the URL domain
+        // Insert immediately with domain-based title, then fetch content in background
         let title = "Untitled Source";
         try {
             const parsed = new URL(url);
             title = `Source from ${parsed.hostname.replace("www.", "")}`;
-        } catch { /* keep default */ }
+        } catch {
+            // malformed URL — use default title
+        }
 
-        await insertVaultSource({
+        const source = await insertVaultSource({
             artistId,
             url,
             title,
+            type: inferTypeFromUrl(url),
             status: "pending",
         });
+
+        // Fire background content fetch to populate real title/snippet/extractedText
+        if (source?.id) {
+            fetchPageContent(url).then(content => {
+                updateVaultSourceContent(source.id, {
+                    title: content.title,
+                    snippet: content.snippet,
+                    extractedText: content.extractedText,
+                }).catch(e => console.error("[addVaultSource] Background content update failed:", e));
+            }).catch(e => console.error("[addVaultSource] Background fetch failed:", e));
+        }
+
         return { success: true };
     } catch (error) {
         console.error("[addVaultSource] Error:", error);
         return { success: false, error: "Failed to add source" };
+    }
+}
+
+export async function updateSourceType(
+    sourceId: string,
+    type: string
+): Promise<{ success: boolean; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: "Not authenticated" };
+
+    if (!SOURCE_TYPES.includes(type as typeof SOURCE_TYPES[number])) {
+        return { success: false, error: "Invalid source type" };
+    }
+
+    try {
+        const claim = await getApprovedClaimByUserId(session.user.id);
+        if (!claim) return { success: false, error: "No claimed artist profile" };
+
+        await updateVaultSourceType(sourceId, type);
+        return { success: true };
+    } catch (error) {
+        console.error("[updateSourceType] Error:", error);
+        return { success: false, error: "Failed to update source type" };
     }
 }
 

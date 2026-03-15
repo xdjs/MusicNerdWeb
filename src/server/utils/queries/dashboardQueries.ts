@@ -133,6 +133,23 @@ export async function deleteVaultSource(sourceId: string) {
     }
 }
 
+export async function updateVaultSourceType(sourceId: string, type: string) {
+    try {
+        const [updated] = await db
+            .update(artistVaultSources)
+            .set({
+                type,
+                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
+            })
+            .where(eq(artistVaultSources.id, sourceId))
+            .returning();
+        return updated;
+    } catch (e) {
+        console.error("[updateVaultSourceType] Error:", e);
+        throw e;
+    }
+}
+
 export async function deleteVaultSources(sourceIds: string[]) {
     try {
         const { inArray } = await import("drizzle-orm");
@@ -143,6 +160,29 @@ export async function deleteVaultSources(sourceIds: string[]) {
         return deleted;
     } catch (e) {
         console.error("[deleteVaultSources] Error:", e);
+        throw e;
+    }
+}
+
+export async function updateVaultSourceContent(sourceId: string, data: {
+    title?: string;
+    snippet?: string;
+    extractedText?: string | null;
+}) {
+    try {
+        const [updated] = await db
+            .update(artistVaultSources)
+            .set({
+                ...(data.title !== undefined ? { title: data.title } : {}),
+                ...(data.snippet !== undefined ? { snippet: data.snippet } : {}),
+                ...(data.extractedText !== undefined ? { extractedText: data.extractedText } : {}),
+                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
+            })
+            .where(eq(artistVaultSources.id, sourceId))
+            .returning();
+        return updated;
+    } catch (e) {
+        console.error("[updateVaultSourceContent] Error:", e);
         throw e;
     }
 }

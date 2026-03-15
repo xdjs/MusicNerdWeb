@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { getOpenAIBio } from "@/server/utils/queries/artistBioQuery";
+import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 import { requireAdmin } from "@/lib/auth-helpers";
 
 // CORS configuration for this route
@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   // Set a timeout for the entire operation to prevent Vercel timeouts
   const timeoutPromise = new Promise<NextResponse>((_, reject) =>
-    setTimeout(() => reject(new Error('Bio generation timeout')), 25000) // 25 second timeout
+    setTimeout(() => reject(new Error('Bio generation timeout')), 45000) // 45 second timeout for Gemini + Google Search grounding
   );
 
   const bioOperation = async (): Promise<NextResponse> => {
@@ -49,7 +49,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     //generate a bio and return it
     try {
-      const response = await getOpenAIBio(id);
+      const response = await generateArtistBio(id);
       Object.entries(CORS_HEADERS).forEach(([key, value]) => response.headers.set(key, String(value)));
       return response;
     //Error Handling

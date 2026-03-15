@@ -1,6 +1,19 @@
-import { openai } from "@/server/lib/openai";
-import { insertVaultSource } from "./dashboardQueries";
+import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { insertVaultSource, getVaultSourcesByArtistId, updateVaultSourceContent } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
+import { SOURCE_TYPES, type SourceType } from "@/lib/sourceTypes";
+import { fetchPageContent } from "@/server/utils/fetchPageContent";
+
+const TYPE_ALIASES: Record<string, SourceType> = {
+    news: "article",
+};
+
+function normalizeSourceType(raw: string): SourceType {
+    const lower = raw.toLowerCase();
+    if (SOURCE_TYPES.includes(lower as SourceType)) return lower as SourceType;
+    if (TYPE_ALIASES[lower]) return TYPE_ALIASES[lower];
+    return "article";
+}
 
 interface WebSearchResult {
     url: string;
@@ -9,9 +22,22 @@ interface WebSearchResult {
     type: string;
 }
 
+/** Normalize a URL for dedup comparison: lowercase, strip protocol/www/trailing slash */
+function normalizeUrl(raw: string): string {
+    try {
+        const u = new URL(raw);
+        const host = u.hostname.replace(/^www\./, "").toLowerCase();
+        const path = u.pathname.replace(/\/+$/, "").toLowerCase();
+        return `${host}${path}`;
+    } catch {
+        // Fallback for malformed URLs
+        return raw.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
+    }
+}
+
 /**
- * Uses OpenAI web search to find articles/interviews/reviews about an artist,
- * then inserts them as pending vault sources.
+ * Uses Gemini Flash with Google Search grounding to find articles/interviews/reviews
+ * about an artist, then inserts them as pending vault sources.
  */
 export async function searchAndPopulateVault(artistId: string): Promise<number> {
     const artist = await getArtistById(artistId);
@@ -19,7 +45,7 @@ export async function searchAndPopulateVault(artistId: string): Promise<number> 
 
     const artistName = artist.name ?? "Unknown Artist";
 
-    // Build identity context so OpenAI knows exactly who this artist is
+    // Build identity context so Gemini knows exactly who this artist is
     const identityParts: string[] = [];
     if (artist.spotify) identityParts.push(`Spotify artist ID: ${artist.spotify}`);
     if (artist.instagram) identityParts.push(`Instagram: @${artist.instagram}`);
@@ -33,17 +59,9 @@ export async function searchAndPopulateVault(artistId: string): Promise<number> 
         : "";
 
     try {
-        const response = await openai.responses.create({
-            model: "gpt-4o",
-            tools: [{ type: "web_search_preview" }],
-            input: [
-                {
-                    role: "system",
-                    content: "You are a music research assistant. You search the web for articles, interviews, reviews, and content specifically about a given music artist. You must be precise — only return results that are directly about the specified artist, not about other artists or people with similar names."
-                },
-                {
-                    role: "user",
-                    content: `Search the web for articles, interviews, reviews, profiles, and notable content specifically about the music artist "${artistName}".${identityContext}
+        const response = await gemini.models.generateContent({
+            model: GEMINI_MODEL_FLASH,
+            contents: `Search the web for articles, interviews, reviews, profiles, and notable content specifically about the music artist "${artistName}".${identityContext}
 
 IMPORTANT: Every result MUST be specifically about "${artistName}" the music artist. Do NOT include results about other people, bands, or websites that happen to share a similar name.
 
@@ -62,12 +80,14 @@ Find up to 8 high-quality results. For each result, provide:
 Return ONLY a JSON array in this format, no other text:
 [{"url": "...", "title": "...", "snippet": "...", "type": "..."}]
 
-If you cannot find any results specifically about this artist, return an empty array: []`
-                }
-            ],
+If you cannot find any results specifically about this artist, return an empty array: []`,
+            config: {
+                systemInstruction: "You are a music research assistant. You search the web for articles, interviews, reviews, and content specifically about a given music artist. You must be precise — only return results that are directly about the specified artist, not about other artists or people with similar names.",
+                tools: [{ googleSearch: {} }],
+            },
         });
 
-        const outputText = response.output_text ?? "";
+        const outputText = response.text ?? "";
         console.log(`[vaultWebSearch] Raw response for "${artistName}":`, outputText.slice(0, 500));
 
         // Extract JSON array from the response
@@ -87,23 +107,59 @@ If you cannot find any results specifically about this artist, return an empty a
 
         if (!Array.isArray(results) || results.length === 0) return 0;
 
-        // Insert each result as a pending vault source
+        // Only dedup against pending + approved sources (allow re-discovery of deleted/rejected URLs)
+        const [pendingSources, approvedSources] = await Promise.all([
+            getVaultSourcesByArtistId(artistId, "pending"),
+            getVaultSourcesByArtistId(artistId, "approved"),
+        ]);
+        const existingSources = [...pendingSources, ...approvedSources];
+        const existingUrls = new Set(
+            existingSources.map((s) => normalizeUrl(s.url))
+        );
+
+        // Insert each result as a pending vault source, skipping duplicates
         let inserted = 0;
+        let skipped = 0;
         for (const result of results) {
             if (!result.url || !result.title) continue;
+
+            const normalized = normalizeUrl(result.url);
+            if (existingUrls.has(normalized)) {
+                skipped++;
+                continue;
+            }
+
+            // Add to set so subsequent results in the same batch don't duplicate
+            existingUrls.add(normalized);
+
             try {
-                await insertVaultSource({
+                const source = await insertVaultSource({
                     artistId,
                     url: result.url,
                     title: result.title,
                     snippet: result.snippet ?? "",
-                    type: result.type ?? "article",
+                    type: normalizeSourceType(result.type ?? "article"),
                     status: "pending",
                 });
                 inserted++;
+
+                // Fire background content fetch to populate extractedText
+                if (source?.id) {
+                    fetchPageContent(result.url).then(content => {
+                        updateVaultSourceContent(source.id, {
+                            title: content.title,
+                            snippet: content.snippet,
+                            extractedText: content.extractedText,
+                        }).catch(e => console.error("[vaultWebSearch] Background content update failed:", e));
+                    }).catch(e => console.error("[vaultWebSearch] Background fetch failed:", e));
+                }
             } catch (e) {
                 console.error("[vaultWebSearch] Failed to insert source:", result.url, e);
             }
+        }
+
+        if (skipped > 0) {
+            console.log(`[vaultWebSearch] Skipped ${skipped} duplicate(s) for "${artistName}"`);
         }
 
         console.log(`[vaultWebSearch] Inserted ${inserted} sources for "${artistName}"`);
