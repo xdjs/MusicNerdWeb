@@ -17,10 +17,10 @@ export default async function Dashboard() {
 
     if (!claim) {
         return (
-            <section className="px-4 sm:px-10 py-5 space-y-6 max-w-[1000px] mx-auto">
+            <section className="px-4 py-5 space-y-6 max-w-[800px] mx-auto">
                 <h1 className="text-3xl font-bold text-center mb-8">Artist Dashboard</h1>
-                <div className="bg-white rounded-lg shadow-2xl p-10 text-center space-y-4">
-                    <p className="text-lg text-gray-600">
+                <div className="glass p-10 text-center space-y-4">
+                    <p className="text-lg text-gray-600 dark:text-gray-300">
                         You haven&apos;t claimed an artist profile yet.
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -48,8 +48,7 @@ export default async function Dashboard() {
     const currentImage = claim.artist?.customImage || spotifyImgUrl || "/default_pfp_pink.png";
 
     return (
-        <section className="px-4 sm:px-10 py-5 space-y-6 max-w-[1000px] mx-auto">
-            <h1 className="text-3xl font-bold text-center mb-8">Artist Dashboard</h1>
+        <section className="px-4 py-5 space-y-6 max-w-[800px] mx-auto">
             <DashboardContent
                 artistName={claim.artist?.name ?? "Unknown Artist"}
                 artistId={claim.artistId}

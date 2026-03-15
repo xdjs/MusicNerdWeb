@@ -30,7 +30,7 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock('@/app/_components/ArtistLinks', () => function ArtistLinks() { return <div data-testid="artist-links" />; });
+jest.mock('@/app/_components/ArtistLinksGrid', () => function ArtistLinksGrid() { return <div data-testid="artist-links" />; });
 jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
     EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
@@ -39,12 +39,19 @@ jest.mock('@/app/_components/EditModeToggle', () => function EditModeToggle() { 
 jest.mock('@/app/_components/AutoRefresh', () => function AutoRefresh() { return null; });
 jest.mock('@/app/artist/[id]/_components/BlurbSection', () => function BlurbSection() { return <div data-testid="blurb-section" />; });
 jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtistData() { return <div data-testid="add-artist-data" />; });
-jest.mock('@/app/artist/[id]/_components/FunFactsMobile', () => function FunFactsMobile() { return <div data-testid="fun-facts-mobile" />; });
-jest.mock('@/app/artist/[id]/_components/FunFactsDesktop', () => function FunFactsDesktop() { return <div data-testid="fun-facts-desktop" />; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName }: { artistName: string }) { return <div data-testid="hero-section"><img alt={artistName} src="test.jpg" /></div>; });
+jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
-jest.mock('@radix-ui/react-aspect-ratio', () => ({
-    AspectRatio: function AspectRatio({ children }: { children: React.ReactNode }) { return <div>{children}</div>; },
+jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButton() { return <div data-testid="claim-button" />; });
+jest.mock('@/app/artist/[id]/_components/PressAndFeatures', () => function PressAndFeatures() { return <div data-testid="press-features" />; });
+jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return <div data-testid="ask-about-artist" />; });
+jest.mock('@/server/utils/queries/dashboardQueries', () => ({
+    getClaimByArtistId: jest.fn().mockResolvedValue(null),
+    getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('@/server/utils/dev-auth', () => ({
+    getDevSession: jest.fn().mockResolvedValue(null),
 }));
 
 import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';
@@ -91,17 +98,9 @@ describe('ArtistProfile page', () => {
             expect(screen.getByText('Test Artist')).toBeInTheDocument();
         });
 
-        it('renders artist image with correct src', async () => {
+        it('renders hero section', async () => {
             await renderArtistPage();
-            const img = screen.getByAltText('Artist Image');
-            expect(img).toHaveAttribute('src', 'https://img.spotify.com/artist.jpg');
-        });
-
-        it('falls back to default image when Spotify returns no image', async () => {
-            setupMocks({ spotifyImg: { artistImage: null } });
-            await renderArtistPage();
-            const img = screen.getByAltText('Artist Image');
-            expect(img).toHaveAttribute('src', '/default_pfp_pink.png');
+            expect(screen.getByTestId('hero-section')).toBeInTheDocument();
         });
 
         it('renders artist links section', async () => {
@@ -114,10 +113,9 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('blurb-section')).toBeInTheDocument();
         });
 
-        it('renders fun facts on both mobile and desktop', async () => {
+        it('renders ask about artist section', async () => {
             await renderArtistPage();
-            expect(screen.getByTestId('fun-facts-desktop')).toBeInTheDocument();
-            expect(screen.getByTestId('fun-facts-mobile')).toBeInTheDocument();
+            expect(screen.getByTestId('ask-about-artist')).toBeInTheDocument();
         });
 
         it('does not render bookmark button when not authenticated', async () => {

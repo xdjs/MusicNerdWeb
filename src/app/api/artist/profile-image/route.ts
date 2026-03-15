@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getApprovedClaimByUserId } from "@/server/utils/queries/dashboardQueries";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { supabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -48,24 +47,35 @@ export async function POST(req: Request) {
             );
         }
 
-        const uploadDir = path.join(process.cwd(), "public", "artist-images");
-        await mkdir(uploadDir, { recursive: true });
-
-        const ext = path.extname(file.name) || `.${file.type.split("/")[1]}`;
-        const uniqueName = `${artistId}_${Date.now()}${ext}`;
-        const filePath = path.join(uploadDir, uniqueName);
-        const publicPath = `/artist-images/${uniqueName}`;
-
         const bytes = await file.arrayBuffer();
-        await writeFile(filePath, Buffer.from(bytes));
+        const buffer = Buffer.from(bytes);
 
-        // Update the artist record with the custom image path
+        const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : `.${file.type.split("/")[1]}`;
+        const storagePath = `profile-images/${artistId}_${Date.now()}${ext}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabaseAdmin.storage
+            .from(VAULT_BUCKET)
+            .upload(storagePath, buffer, { contentType: file.type });
+
+        if (uploadError) {
+            console.error("[artist/profile-image] Supabase upload error:", uploadError);
+            return NextResponse.json({ error: "Failed to upload image to storage" }, { status: 500 });
+        }
+
+        // Get public URL
+        const { data: urlData } = supabaseAdmin.storage
+            .from(VAULT_BUCKET)
+            .getPublicUrl(storagePath);
+        const publicUrl = urlData.publicUrl;
+
+        // Update the artist record with the Supabase image URL
         await db
             .update(artists)
-            .set({ customImage: publicPath })
+            .set({ customImage: publicUrl })
             .where(eq(artists.id, artistId));
 
-        return NextResponse.json({ success: true, imagePath: publicPath });
+        return NextResponse.json({ success: true, imagePath: publicUrl });
     } catch (error) {
         console.error("[artist/profile-image] Error:", error);
         return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });

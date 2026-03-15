@@ -3,8 +3,7 @@ import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getApprovedClaimByUserId } from "@/server/utils/queries/dashboardQueries";
 import { insertVaultSource } from "@/server/utils/queries/dashboardQueries";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { supabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -59,20 +58,30 @@ export async function POST(req: Request) {
             );
         }
 
-        // Create artist-specific upload directory
-        const uploadDir = path.join(process.cwd(), "public", "vault-uploads", artistId);
-        await mkdir(uploadDir, { recursive: true });
-
-        // Generate unique filename
-        const ext = path.extname(file.name);
-        const baseName = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
-        const uniqueName = `${baseName}_${Date.now()}${ext}`;
-        const filePath = path.join(uploadDir, uniqueName);
-        const publicPath = `/vault-uploads/${artistId}/${uniqueName}`;
-
-        // Write file
+        // Read file into buffer
         const bytes = await file.arrayBuffer();
-        await writeFile(filePath, Buffer.from(bytes));
+        const buffer = Buffer.from(bytes);
+
+        // Generate storage path
+        const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+        const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const storagePath = `${artistId}/${Date.now()}_${baseName}${ext}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabaseAdmin.storage
+            .from(VAULT_BUCKET)
+            .upload(storagePath, buffer, { contentType: file.type });
+
+        if (uploadError) {
+            console.error("[vault/upload] Supabase upload error:", uploadError);
+            return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 });
+        }
+
+        // Get public URL
+        const { data: urlData } = supabaseAdmin.storage
+            .from(VAULT_BUCKET)
+            .getPublicUrl(storagePath);
+        const publicUrl = urlData.publicUrl;
 
         // Extract text content for LLM access
         let extractedText: string | undefined;
@@ -85,14 +94,14 @@ export async function POST(req: Request) {
         // Insert vault source record
         const source = await insertVaultSource({
             artistId,
-            url: publicPath,
+            url: publicUrl,
             title: file.name,
             snippet: extractedText ? extractedText.slice(0, 300) : `Uploaded file: ${file.name} (${formatFileSize(file.size)})`,
             type: getSourceType(file.type),
             status: "approved",
             fileName: file.name,
             fileSize: file.size,
-            filePath: publicPath,
+            filePath: publicUrl,
             contentType: file.type,
             extractedText: extractedText ?? null,
         });
@@ -111,7 +120,7 @@ function getSourceType(mimeType: string): string {
     if (mimeType.includes("word")) return "document";
     if (mimeType === "text/plain" || mimeType === "text/markdown") return "document";
     if (mimeType === "text/csv" || mimeType === "application/json") return "data";
-    return "file";
+    return "document";
 }
 
 function formatFileSize(bytes: number): string {

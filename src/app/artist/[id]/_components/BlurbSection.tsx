@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ChevronDown } from "lucide-react";
 
 interface BlurbSectionProps {
   artistName: string;
@@ -13,12 +13,25 @@ interface BlurbSectionProps {
   initialBio?: string | null;
 }
 
+/** Convert **bold** and *italic* markdown to HTML. Input is AI-generated so only these two patterns occur. */
+function renderMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+}
+
+/** Height (px) of the collapsed bio box */
+const COLLAPSED_HEIGHT = 112;
+
 export default function BlurbSection({ artistName, artistId, initialBio }: BlurbSectionProps) {
   const { isEditing, canEdit } = useContext(EditModeContext);
   const { toast } = useToast();
   const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
 
-  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [expanded, setExpanded] = useState(false);
+  const [needsTruncation, setNeedsTruncation] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -39,6 +52,16 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
       setOriginalBio(aiBlurb ?? "");
     }
   }, [isEditing, aiBlurb]);
+
+  // Measure content to decide if truncation is needed
+  useEffect(() => {
+    if (contentRef.current && contentRef.current.scrollHeight > 0) {
+      setNeedsTruncation(contentRef.current.scrollHeight > COLLAPSED_HEIGHT);
+    } else if (aiBlurb && aiBlurb.length > 200) {
+      // Fallback for environments without layout (e.g. JSDOM)
+      setNeedsTruncation(true);
+    }
+  }, [aiBlurb]);
 
   async function handleSave() {
     // Prevent saving empty bios – restore original text instead
@@ -114,7 +137,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
 
   if (loadingAi) {
     return (
-      <div className="h-28 relative border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-3 overflow-hidden">
+      <div className="glass-subtle p-3" style={{ height: COLLAPSED_HEIGHT }}>
         <p className="text-gray-500 dark:text-gray-400 italic">Loading summary...</p>
       </div>
     );
@@ -122,92 +145,95 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
 
   if (isEditing) {
     return (
-      <div className="mb-4">
+      <div className="space-y-2">
         <textarea
-          className="w-full border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-black dark:text-white bg-white dark:bg-gray-800 h-40"
+          className="w-full glass-subtle p-3 text-black dark:text-white h-40"
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
         />
-                 <div className="flex justify-between items-center mt-2">
-           {canEdit && (
-             <Button
-               variant="outline"
-               size="sm"
-               onClick={handleRegenerate}
-               disabled={isRegenerating || isSaving}
-               className="text-gray-700"
-             >
-               {isRegenerating ? (
-                 <>
-                   <img src="/spinner.svg" className="h-3 w-3 mr-1" alt="regenerating" />
-                   Regenerating...
-                 </>
-               ) : (
-                 "Regenerate"
-               )}
-             </Button>
-           )}
-           <div className="flex gap-2">
-             <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
-               Discard
-             </Button>
-             <Button onClick={handleSave} disabled={isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
-               {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
-             </Button>
-           </div>
-         </div>
+        <div className="flex justify-between items-center">
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating || isSaving}
+              className="text-gray-700"
+            >
+              {isRegenerating ? (
+                <>
+                  <img src="/spinner.svg" className="h-3 w-3 mr-1" alt="regenerating" />
+                  Regenerating...
+                </>
+              ) : (
+                "Regenerate"
+              )}
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
+              Discard
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
+              {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Non-editing view
+  // Non-editing view — smooth expand/collapse
   return (
-    <div className="mb-4">
-      <div className="relative">
-        {/* Initial text box */}
-        <div className="h-28 relative border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-3 overflow-hidden">
+    <div className="space-y-1.5">
+      <div className="glass-subtle p-3 relative">
+        {/* Expandable content wrapper */}
+        <div
+          ref={contentRef}
+          className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+          style={{ maxHeight: expanded ? contentRef.current?.scrollHeight ?? "none" : COLLAPSED_HEIGHT }}
+        >
           {aiBlurb ? (
-            <>
-              <p className="text-black dark:text-white">{aiBlurb}</p>
-              {aiBlurb && aiBlurb.length > 200 && (
-                <>
-                  {/* Gradient overlay - dark mode compatible */}
-                  <div className="absolute bottom-0 right-2 w-32 h-8 bg-gradient-to-l from-white via-white/100 to-transparent dark:from-gray-800 dark:via-gray-800/100 dark:to-transparent pointer-events-none"></div>
-                  <button
-                    className="absolute bottom-1 right-2 bg-transparent text-blue-600 dark:text-blue-400 text-sm underline z-10"
-                    onClick={() => setOpenModal(true)}
-                  >
-                    Read More
-                  </button>
-                </>
-              )}
-            </>
+            <p
+              className="text-black dark:text-white text-sm leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(aiBlurb) }}
+            />
           ) : (
             <p className="text-gray-500 dark:text-gray-400 italic">No summary is available</p>
           )}
         </div>
-        {/* Expanded box */}
-        {openModal && (
-          <div className="absolute top-0 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-30 p-3 max-h-96 overflow-y-auto">
-            <p className="text-black dark:text-white mb-4">{aiBlurb}</p>
-            <button
-              className="absolute right-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 text-sm underline"
-              onClick={() => setOpenModal(false)}
-            >
-              Show less
-            </button>
-          </div>
+
+        {/* Fade gradient when collapsed */}
+        {needsTruncation && !expanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white/80 dark:from-[#1a1a1a]/80 to-transparent rounded-b-xl pointer-events-none" />
         )}
       </div>
-      <button
-        onClick={handleRegenerate}
-        disabled={isRegenerating}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors mt-1.5 ml-1"
-      >
-        <RefreshCw size={11} className={isRegenerating ? "animate-spin" : ""} />
-        {isRegenerating ? "Regenerating..." : "Regenerate summary"}
-      </button>
+
+      {/* Controls row: Read More / Show Less + Regenerate */}
+      <div className="flex items-center justify-between px-1">
+        <button
+          onClick={handleRegenerate}
+          disabled={isRegenerating}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors"
+        >
+          <RefreshCw size={11} className={isRegenerating ? "animate-spin" : ""} />
+          {isRegenerating ? "Regenerating..." : "Regenerate summary"}
+        </button>
+
+        {needsTruncation && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-pastypink transition-colors"
+          >
+            {expanded ? "Show less" : "Read more"}
+            <ChevronDown
+              size={13}
+              className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

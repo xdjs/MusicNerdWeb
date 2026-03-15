@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { updateSourceStatus, seedMockSources, addVaultSource, searchWebForSources, removeVaultSource, removeVaultSources } from "@/app/actions/dashboardActions";
+import { updateSourceStatus, seedMockSources, addVaultSource, searchWebForSources, removeVaultSource, removeVaultSources, updateSourceType } from "@/app/actions/dashboardActions";
 import SourceCard from "./SourceCard";
 import Link from "next/link";
 import { Plus, Database, Upload, FileText, Globe, CheckCircle2, XCircle, Loader2, Trash2, ExternalLink, Camera } from "lucide-react";
+import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 
 interface FileUploadStatus {
@@ -47,6 +48,24 @@ export default function DashboardContent({
     const imageInputRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [typeFilter, setTypeFilter] = useState<string | null>(null);
+
+    // Derive unique types and counts from approved sources
+    const typeCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        for (const s of approvedSources) {
+            const t = s.type ?? "article";
+            counts[t] = (counts[t] ?? 0) + 1;
+        }
+        return counts;
+    }, [approvedSources]);
+
+    const uniqueTypes = useMemo(() => Object.keys(typeCounts).sort(), [typeCounts]);
+
+    const filteredApproved = useMemo(
+        () => typeFilter ? approvedSources.filter(s => (s.type ?? "article") === typeFilter) : approvedSources,
+        [approvedSources, typeFilter]
+    );
 
     const handleApprove = async (sourceId: string) => {
         const result = await updateSourceStatus(sourceId, "approved");
@@ -102,10 +121,19 @@ export default function DashboardContent({
     };
 
     const selectAllApproved = () => {
-        if (selectedIds.size === approvedSources.length) {
+        if (selectedIds.size === filteredApproved.length) {
             setSelectedIds(new Set());
         } else {
-            setSelectedIds(new Set(approvedSources.map(s => s.id)));
+            setSelectedIds(new Set(filteredApproved.map(s => s.id)));
+        }
+    };
+
+    const handleTypeChange = async (sourceId: string, type: string) => {
+        const result = await updateSourceType(sourceId, type);
+        if (result.success) {
+            router.refresh();
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
         }
     };
 
@@ -239,73 +267,86 @@ export default function DashboardContent({
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <div className="flex items-center gap-4">
-                    {/* Profile image with upload overlay */}
-                    <div
-                        className="relative group w-16 h-16 rounded-full overflow-hidden shrink-0 cursor-pointer border-2 border-gray-200 dark:border-gray-600"
-                        onClick={() => imageInputRef.current?.click()}
-                    >
-                        <img
-                            src={currentImage}
-                            alt={artistName}
-                            className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            {uploadingImage ? (
-                                <Loader2 size={18} className="animate-spin text-white" />
-                            ) : (
-                                <Camera size={18} className="text-white" />
-                            )}
+            {/* Hero Header */}
+            <div className="relative w-full h-44 md:h-52 rounded-2xl overflow-hidden">
+                {/* Blurred background */}
+                <img
+                    src={currentImage}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
+                {/* Foreground content */}
+                <div className="absolute inset-0 flex items-center px-6 md:px-8">
+                    <div className="flex items-center gap-5">
+                        {/* Profile image with upload overlay */}
+                        <div
+                            className="relative group shrink-0 cursor-pointer rounded-full p-1 backdrop-blur-md bg-white/20 border border-white/30"
+                            onClick={() => imageInputRef.current?.click()}
+                        >
+                            <img
+                                src={currentImage}
+                                alt={artistName}
+                                className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover"
+                            />
+                            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {uploadingImage ? (
+                                    <Loader2 size={20} className="animate-spin text-white" />
+                                ) : (
+                                    <Camera size={20} className="text-white" />
+                                )}
+                            </div>
+                            <input
+                                ref={imageInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(e) => handleProfileImageUpload(e.target.files)}
+                                className="hidden"
+                            />
                         </div>
-                        <input
-                            ref={imageInputRef}
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp"
-                            onChange={(e) => handleProfileImageUpload(e.target.files)}
-                            className="hidden"
-                        />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm text-muted-foreground">Managing</p>
-                        <h2 className="text-2xl font-bold text-black dark:text-white">
-                            {artistName}
-                        </h2>
-                        <Link
-                            href={`/artist/${artistId}`}
-                            className="inline-flex items-center gap-1 text-xs text-pastypink hover:underline mt-0.5"
-                        >
-                            <ExternalLink size={11} />
-                            View Profile
-                        </Link>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                            size="sm"
-                            onClick={handleWebSearch}
-                            disabled={searching}
-                            className="bg-pastypink hover:bg-pastypink/80 text-white text-xs"
-                        >
-                            <Globe size={14} className="mr-1.5" />
-                            {searching ? "Searching..." : "Search Web"}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSeed}
-                            disabled={loading}
-                            className="text-xs"
-                        >
-                            <Database size={14} className="mr-1.5" />
-                            {loading ? "Seeding..." : "Seed Mock Data"}
-                        </Button>
+                        <div>
+                            <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Managing</p>
+                            <h2 className="text-2xl md:text-3xl font-bold text-white mt-0.5">
+                                {artistName}
+                            </h2>
+                            <Link
+                                href={`/artist/${artistId}`}
+                                className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white mt-1 transition-colors"
+                            >
+                                <ExternalLink size={12} />
+                                View Profile
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Action buttons — always below hero */}
+            <div className="flex gap-2">
+                <Button
+                    size="sm"
+                    onClick={handleWebSearch}
+                    disabled={searching}
+                    className="bg-pastypink hover:bg-pastypink/80 text-white text-xs"
+                >
+                    <Globe size={14} className="mr-1.5" />
+                    {searching ? "Searching..." : "Search Web"}
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSeed}
+                    disabled={loading}
+                    className="text-xs"
+                >
+                    <Database size={14} className="mr-1.5" />
+                    {loading ? "Seeding..." : "Seed Mock Data"}
+                </Button>
+            </div>
+
             {/* Add Source: URL + File Upload */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 space-y-4">
+            <div className="glass p-5 space-y-4">
                 {/* URL input */}
                 <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-2">Add a source URL</p>
@@ -333,10 +374,10 @@ export default function DashboardContent({
                 {/* Divider */}
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-gray-200 dark:border-gray-700" />
+                        <span className="w-full border-t border-white/20 dark:border-white/10" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                        <span className="bg-white dark:bg-gray-800 px-2 text-muted-foreground">or</span>
+                        <span className="glass-subtle px-3 py-0.5 text-muted-foreground">or</span>
                     </div>
                 </div>
 
@@ -348,10 +389,10 @@ export default function DashboardContent({
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
                         className={`
-                            border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+                            border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
                             ${dragOver
-                                ? "border-pastypink bg-pastypink/5"
-                                : "border-gray-300 dark:border-gray-600 hover:border-pastypink/50"
+                                ? "border-pastypink bg-pastypink/10 backdrop-blur-sm"
+                                : "border-white/30 dark:border-white/15 hover:border-pastypink/50 hover:bg-white/10"
                             }
                         `}
                         onClick={() => uploadFiles.length === 0 && fileInputRef.current?.click()}
@@ -367,7 +408,7 @@ export default function DashboardContent({
                         {uploadFiles.length > 0 ? (
                             <div className="w-full space-y-2 text-left" onClick={(e) => e.stopPropagation()}>
                                 {uploadFiles.map((f, i) => (
-                                    <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-700/50">
+                                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg glass-subtle">
                                         {f.status === "uploading" && (
                                             <Loader2 size={16} className="animate-spin text-pastypink shrink-0" />
                                         )}
@@ -408,18 +449,18 @@ export default function DashboardContent({
 
             {/* Tabs */}
             <Tabs defaultValue="pending">
-                <TabsList className="w-full justify-start">
-                    <TabsTrigger value="pending" className="flex-1 sm:flex-none">
+                <TabsList className="w-full justify-start backdrop-blur-sm bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-lg">
+                    <TabsTrigger value="pending" className="flex-1 sm:flex-none data-[state=active]:bg-white/60 dark:data-[state=active]:bg-white/10">
                         Pending ({pendingSources.length})
                     </TabsTrigger>
-                    <TabsTrigger value="approved" className="flex-1 sm:flex-none">
+                    <TabsTrigger value="approved" className="flex-1 sm:flex-none data-[state=active]:bg-white/60 dark:data-[state=active]:bg-white/10">
                         Approved ({approvedSources.length})
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="pending" className="space-y-3 mt-4">
                     {pendingSources.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+                        <div className="glass p-8 text-center">
                             <p className="text-muted-foreground">No pending sources to review.</p>
                             <p className="text-xs text-muted-foreground mt-1">Add a URL, upload files, or seed mock data to get started.</p>
                         </div>
@@ -431,6 +472,7 @@ export default function DashboardContent({
                                 onApprove={handleApprove}
                                 onReject={handleReject}
                                 onDelete={handleDelete}
+                                onTypeChange={handleTypeChange}
                                 showActions
                             />
                         ))
@@ -439,22 +481,55 @@ export default function DashboardContent({
 
                 <TabsContent value="approved" className="space-y-3 mt-4">
                     {approvedSources.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+                        <div className="glass p-8 text-center">
                             <p className="text-muted-foreground">
                                 No approved sources yet. Review pending sources to build your vault.
                             </p>
                         </div>
                     ) : (
                         <>
+                            {/* Filter chips */}
+                            {uniqueTypes.length > 1 && (
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => setTypeFilter(null)}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                            typeFilter === null
+                                                ? "bg-pastypink text-white"
+                                                : "glass-subtle text-muted-foreground hover:text-black dark:hover:text-white"
+                                        }`}
+                                    >
+                                        All ({approvedSources.length})
+                                    </button>
+                                    {uniqueTypes.map((t) => {
+                                        const colors = SOURCE_TYPE_COLORS[t as SourceType] ?? SOURCE_TYPE_COLORS.article;
+                                        const isActive = typeFilter === t;
+                                        return (
+                                            <button
+                                                key={t}
+                                                onClick={() => setTypeFilter(isActive ? null : t)}
+                                                className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors border ${
+                                                    isActive
+                                                        ? `${colors.bg} ${colors.text} ${colors.border}`
+                                                        : "glass-subtle text-muted-foreground hover:text-black dark:hover:text-white border-transparent"
+                                                }`}
+                                            >
+                                                {t} ({typeCounts[t]})
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between">
                                 <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        checked={selectedIds.size === approvedSources.length && approvedSources.length > 0}
+                                        checked={selectedIds.size === filteredApproved.length && filteredApproved.length > 0}
                                         onChange={selectAllApproved}
                                         className="h-4 w-4 rounded border-gray-300 text-pastypink focus:ring-pastypink"
                                     />
-                                    Select all
+                                    Select all{typeFilter ? ` (${typeFilter})` : ""}
                                 </label>
                                 {selectedIds.size > 0 && (
                                     <Button
@@ -469,12 +544,13 @@ export default function DashboardContent({
                                     </Button>
                                 )}
                             </div>
-                            {approvedSources.map((source) => (
+                            {filteredApproved.map((source) => (
                                 <SourceCard
                                     key={source.id}
                                     source={source}
                                     showActions={false}
                                     onDelete={handleDelete}
+                                    onTypeChange={handleTypeChange}
                                     selected={selectedIds.has(source.id)}
                                     onSelect={toggleSelect}
                                 />

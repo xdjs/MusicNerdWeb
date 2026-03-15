@@ -2,7 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, FileText, Image, Music, File, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check, X, ExternalLink, FileText, Image as ImageIcon, Music, File, Trash2 } from "lucide-react";
+import { SOURCE_TYPES, SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 
 interface SourceCardProps {
@@ -10,6 +12,7 @@ interface SourceCardProps {
     onApprove?: (id: string) => void;
     onReject?: (id: string) => void;
     onDelete?: (id: string) => void;
+    onTypeChange?: (id: string, type: string) => void;
     showActions: boolean;
     selected?: boolean;
     onSelect?: (id: string) => void;
@@ -17,7 +20,7 @@ interface SourceCardProps {
 
 function getFileIcon(contentType?: string | null) {
     if (!contentType) return null;
-    if (contentType.startsWith("image/")) return <Image size={14} className="text-blue-500" />;
+    if (contentType.startsWith("image/")) return <ImageIcon size={14} className="text-blue-500" />;
     if (contentType.startsWith("audio/")) return <Music size={14} className="text-purple-500" />;
     if (contentType === "application/pdf" || contentType.includes("word") || contentType.startsWith("text/"))
         return <FileText size={14} className="text-orange-500" />;
@@ -31,11 +34,47 @@ function formatFileSize(bytes?: number | null): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function SourceCard({ source, onApprove, onReject, onDelete, showActions, selected, onSelect }: SourceCardProps) {
+function TypeBadge({ type, sourceId, onTypeChange }: { type: string; sourceId: string; onTypeChange?: (id: string, type: string) => void }) {
+    const colors = SOURCE_TYPE_COLORS[type as SourceType] ?? SOURCE_TYPE_COLORS.article;
+
+    if (onTypeChange) {
+        return (
+            <Select value={type} onValueChange={(val) => onTypeChange(sourceId, val)}>
+                <SelectTrigger
+                    className={`h-auto py-0.5 px-2 text-[10px] capitalize border rounded-full min-w-0 w-auto gap-1 ${colors.bg} ${colors.text} ${colors.border}`}
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {SOURCE_TYPES.map((t) => {
+                        const c = SOURCE_TYPE_COLORS[t];
+                        return (
+                            <SelectItem key={t} value={t} className="text-xs capitalize">
+                                <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${c.bg} ${c.border} border`} />
+                                {t}
+                            </SelectItem>
+                        );
+                    })}
+                </SelectContent>
+            </Select>
+        );
+    }
+
+    return (
+        <Badge
+            variant="secondary"
+            className={`text-[10px] px-2 py-0.5 capitalize border ${colors.bg} ${colors.text} ${colors.border}`}
+        >
+            {type}
+        </Badge>
+    );
+}
+
+export default function SourceCard({ source, onApprove, onReject, onDelete, onTypeChange, showActions, selected, onSelect }: SourceCardProps) {
     const isFile = !!source.fileName;
 
     return (
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transition-shadow hover:shadow-xl ${selected ? "ring-2 ring-pastypink" : ""}`}>
+        <div className={`glass-subtle p-5 transition-all hover:shadow-lg ${selected ? "ring-2 ring-pastypink" : ""}`}>
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                     {onSelect && (
@@ -93,9 +132,7 @@ export default function SourceCard({ source, onApprove, onReject, onDelete, show
                         </Badge>
                     )}
                     {source.type && (
-                        <Badge variant="secondary" className="text-[10px] px-2 py-0.5 capitalize">
-                            {source.type}
-                        </Badge>
+                        <TypeBadge type={source.type} sourceId={source.id} onTypeChange={onTypeChange} />
                     )}
                     {onDelete && (
                         <Button
@@ -120,7 +157,7 @@ export default function SourceCard({ source, onApprove, onReject, onDelete, show
                 </p>
             )}
             {showActions && (
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/20 dark:border-white/10">
                     <Button
                         size="sm"
                         onClick={() => onApprove?.(source.id)}
