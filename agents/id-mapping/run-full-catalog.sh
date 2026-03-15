@@ -21,11 +21,22 @@ LOG_DIR="${LOG_DIR:-/var/log/id-mapping}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-10}"
 BATCH_TIMEOUT="${BATCH_TIMEOUT:-600}"
 WORKER_ID="${WORKER_ID:-$$}"
+RATE_LIMIT_BACKOFF="${RATE_LIMIT_BACKOFF:-300}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUNNER="$SCRIPT_DIR/claude-runner.sh"
 
 mkdir -p "$LOG_DIR"
+
+# Runner log — captures loop-level events (failures, restarts, stop reason)
+# separate from per-batch logs so you can see the full history in one place
+RUNNER_LOG="$LOG_DIR/${WORKER_ID}-runner.log"
+
+log() {
+  local msg="[$(date -u '+%Y-%m-%d %H:%M:%S UTC')] $*"
+  echo "$msg"
+  echo "$msg" >> "$RUNNER_LOG"
+}
 
 consecutive_failures=0
 completed_runs=0
@@ -33,25 +44,112 @@ stop_reason=""
 
 cleanup() {
   echo ""
-  echo "Interrupted — killing child processes..."
+  log "Interrupted — killing child processes..."
   kill 0 2>/dev/null
   exit 130
 }
 trap cleanup INT TERM
 
-echo "========================================"
-echo " ID Mapping — Full Catalog Run"
-echo "========================================"
-echo " Max iterations: $MAX_ITERATIONS"
-echo " Batch size:     $BATCH_SIZE"
-echo " Batch timeout:  ${BATCH_TIMEOUT}s"
-echo " Sleep between:  ${SLEEP_BETWEEN}s"
-echo " Log dir:        $LOG_DIR"
-echo " Worker ID:      $WORKER_ID"
-echo " MCP URL:        $MCP_URL"
-echo " Started:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-echo "========================================"
+log "========================================"
+log " ID Mapping — Full Catalog Run"
+log "========================================"
+log " Max iterations: $MAX_ITERATIONS"
+log " Batch size:     $BATCH_SIZE"
+log " Batch timeout:  ${BATCH_TIMEOUT}s"
+log " Sleep between:  ${SLEEP_BETWEEN}s"
+log " Rate backoff:   ${RATE_LIMIT_BACKOFF}s"
+log " Log dir:        $LOG_DIR"
+log " Worker ID:      $WORKER_ID"
+log " MCP URL:        $MCP_URL"
+log " Started:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+log "========================================"
 echo ""
+
+# Classify failure from exit code and log content.
+# Sets fail_reason and fail_category (transient, rate_limit, auth, fatal).
+classify_failure() {
+  local exit_code="$1"
+  local logfile="$2"
+
+  fail_reason=""
+  fail_category="transient"
+
+  # Exit code classification
+  if [[ $exit_code -eq 124 ]]; then
+    fail_reason="timeout (exceeded ${BATCH_TIMEOUT}s)"
+    fail_category="transient"
+    return
+  fi
+
+  if [[ $exit_code -eq 137 ]]; then
+    fail_reason="killed by signal (SIGKILL — possible OOM)"
+    fail_category="fatal"
+    return
+  fi
+
+  if [[ $exit_code -eq 130 ]]; then
+    fail_reason="interrupted (SIGINT)"
+    fail_category="fatal"
+    return
+  fi
+
+  # Log content classification — check for known error patterns
+  local log_tail
+  log_tail=$(tail -50 "$logfile" 2>/dev/null || echo "")
+
+  # Rate limit / usage limit
+  if echo "$log_tail" | grep -qiE '(rate.limit|too many requests|429|usage.limit|quota|capacity|overloaded)'; then
+    local matched
+    matched=$(echo "$log_tail" | grep -oiE '(rate.limit|too many requests|429|usage.limit|quota|capacity|overloaded)' | head -1)
+    fail_reason="rate/usage limit (exit $exit_code, pattern: '$matched')"
+    fail_category="rate_limit"
+    return
+  fi
+
+  # Auth errors
+  if echo "$log_tail" | grep -qiE '(auth.*expir|token.*expir|unauthorized|401|invalid.*api.key|auth.*fail)'; then
+    local matched
+    matched=$(echo "$log_tail" | grep -oiE '(auth.*expir|token.*expir|unauthorized|401|invalid.*api.key|auth.*fail)' | head -1)
+    fail_reason="auth error (exit $exit_code, pattern: '$matched')"
+    fail_category="auth"
+    return
+  fi
+
+  # Context / token limit
+  if echo "$log_tail" | grep -qiE '(context.*length|token.*limit|max.*tokens|context.*window|too.long)'; then
+    local matched
+    matched=$(echo "$log_tail" | grep -oiE '(context.*length|token.*limit|max.*tokens|context.*window|too.long)' | head -1)
+    fail_reason="context/token limit (exit $exit_code, pattern: '$matched')"
+    fail_category="transient"
+    return
+  fi
+
+  # Network errors
+  if echo "$log_tail" | grep -qiE '(ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network.*error|connection.*reset|socket.*hang)'; then
+    local matched
+    matched=$(echo "$log_tail" | grep -oiE '(ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network.*error|connection.*reset|socket.*hang)' | head -1)
+    fail_reason="network error (exit $exit_code, pattern: '$matched')"
+    fail_category="transient"
+    return
+  fi
+
+  # No session report (agent started but didn't finish)
+  if [[ $exit_code -eq 0 ]] && ! grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+    fail_reason="no session report in output (agent didn't complete workflow)"
+    fail_category="transient"
+    return
+  fi
+
+  # Generic non-zero exit
+  if [[ $exit_code -ne 0 ]]; then
+    # Capture last few lines for context
+    local last_lines
+    last_lines=$(tail -3 "$logfile" 2>/dev/null | tr '\n' ' ' | cut -c1-200)
+    fail_reason="non-zero exit code ($exit_code) — last output: $last_lines"
+    fail_category="transient"
+    return
+  fi
+}
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
   timestamp=$(date -u '+%Y%m%d-%H%M%S')
@@ -73,65 +171,80 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   logsize=$(stat --printf="%s" "$logfile" 2>/dev/null || stat -f%z "$logfile" 2>/dev/null || echo "?")
   echo "[loop] Claude exited with code $exit_code, log size: ${logsize} bytes"
 
-  # Failure detection
-  failed=false
-  fail_reason=""
+  # Classify the failure
+  classify_failure "$exit_code" "$logfile"
 
-  if [[ $exit_code -eq 124 ]]; then
-    failed=true
-    fail_reason="timeout (exceeded ${BATCH_TIMEOUT}s)"
-  elif [[ $exit_code -ne 0 ]]; then
-    failed=true
-    fail_reason="non-zero exit code ($exit_code)"
-  elif ! grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
-    failed=true
-    fail_reason="no session report in output (agent didn't complete workflow)"
-  fi
+  # Check for success
+  if [[ -z "$fail_reason" ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+    # Success
+    consecutive_failures=0
 
-  if $failed; then
-    consecutive_failures=$((consecutive_failures + 1))
-    echo "*** FAILED: $fail_reason (consecutive: $consecutive_failures/3) ***"
-
-    if [[ $consecutive_failures -ge 3 ]]; then
-      stop_reason="3 consecutive failures — likely systemic issue (auth expired? endpoint down?)"
+    # Check if all artists are mapped
+    if grep -q '"totalUnmapped":.*0\b' "$logfile" 2>/dev/null || \
+       grep -q 'totalUnmapped.*: 0\b' "$logfile" 2>/dev/null; then
+      stop_reason="all artists mapped"
+      log "STOP: $stop_reason"
       break
     fi
 
-    echo "Sleeping 30s before retry..."
-    sleep 30
+    # Check if batch returned 0 artists (nothing left to process)
+    if grep -qE '(No unmapped artists|unmapped.*found: 0|Batch size: 0)' "$logfile" 2>/dev/null; then
+      stop_reason="no unmapped artists remaining"
+      log "STOP: $stop_reason"
+      break
+    fi
+
+    echo "Sleeping ${SLEEP_BETWEEN}s..."
+    sleep "$SLEEP_BETWEEN"
     continue
   fi
 
-  # Success
-  consecutive_failures=0
+  # Handle failure
+  consecutive_failures=$((consecutive_failures + 1))
+  log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/3]"
 
-  # Check if all artists are mapped
-  if grep -q '"totalUnmapped":.*0\b' "$logfile" 2>/dev/null || \
-     grep -q 'totalUnmapped.*: 0\b' "$logfile" 2>/dev/null; then
-    stop_reason="all artists mapped"
+  # Fatal errors — stop immediately
+  if [[ "$fail_category" == "fatal" ]]; then
+    stop_reason="fatal error: $fail_reason"
+    log "STOP: $stop_reason"
     break
   fi
 
-  # Check if batch returned 0 artists (nothing left to process)
-  if grep -qE '(No unmapped artists|unmapped.*found: 0|Batch size: 0)' "$logfile" 2>/dev/null; then
-    stop_reason="no unmapped artists remaining"
+  # Auth errors — stop immediately (manual intervention needed)
+  if [[ "$fail_category" == "auth" ]]; then
+    stop_reason="auth error: $fail_reason — run 'claude login' to re-authenticate"
+    log "STOP: $stop_reason"
     break
   fi
 
-  echo "Sleeping ${SLEEP_BETWEEN}s..."
-  sleep "$SLEEP_BETWEEN"
+  # 3 consecutive failures — stop
+  if [[ $consecutive_failures -ge 3 ]]; then
+    stop_reason="3 consecutive failures — last: $fail_reason"
+    log "STOP: $stop_reason"
+    break
+  fi
+
+  # Rate limit — longer backoff
+  if [[ "$fail_category" == "rate_limit" ]]; then
+    log "Rate limited — backing off ${RATE_LIMIT_BACKOFF}s..."
+    sleep "$RATE_LIMIT_BACKOFF"
+    continue
+  fi
+
+  # Transient failure — standard retry
+  log "Retrying in 30s..."
+  sleep 30
 done
 
-echo ""
-echo "========================================"
-echo " Run Complete"
-echo "========================================"
-echo " Finished:  $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+log "========================================"
+log " Run Complete"
+log "========================================"
+log " Finished:  $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 if [[ -n "$stop_reason" ]]; then
-  echo " Reason:    $stop_reason"
+  log " Reason:    $stop_reason"
 elif [[ $completed_runs -ge $MAX_ITERATIONS ]]; then
-  echo " Reason:    reached max iterations ($MAX_ITERATIONS)"
+  log " Reason:    reached max iterations ($MAX_ITERATIONS)"
 fi
-echo " Total runs: $completed_runs"
-echo " Log dir:    $LOG_DIR"
-echo "========================================"
+log " Total runs: $completed_runs"
+log " Log dir:    $LOG_DIR"
+log "========================================"
