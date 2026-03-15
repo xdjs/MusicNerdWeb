@@ -139,13 +139,11 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                     />
                 </section>
 
-                {/* 4. Press & Features (vault sources) */}
-                {approvedSources.length > 0 && (
-                    <section className="glass p-5 space-y-3">
-                        <h2 className="text-black dark:text-white text-xl font-bold">Press & Features</h2>
-                        <PressAndFeatures sources={approvedSources} artistName={artist.name ?? ""} />
-                    </section>
-                )}
+                {/* 4. Ask About Artist (AI Q&A) */}
+                <section className="glass p-5 space-y-3">
+                    <h2 className="text-black dark:text-white text-xl font-bold">Ask About {artist.name}</h2>
+                    <AskAboutArtist artistId={artist.id} artistName={artist.name ?? "this artist"} />
+                </section>
 
                 {/* 5. Social Links (icon grid) */}
                 <section className="glass p-5 space-y-3">
@@ -161,7 +159,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                     <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} />
                 </section>
 
-                {/* 5. Support the Artist (icon grid) */}
+                {/* 6. Support the Artist (icon grid) */}
                 <section className="glass p-5 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="text-black dark:text-white text-xl font-bold">Support the Artist</h2>
@@ -175,11 +173,13 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} />
                 </section>
 
-                {/* 6. Ask About Artist (AI Q&A) */}
-                <section className="glass p-5 space-y-3">
-                    <h2 className="text-black dark:text-white text-xl font-bold">Ask About {artist.name}</h2>
-                    <AskAboutArtist artistId={artist.id} artistName={artist.name ?? "this artist"} />
-                </section>
+                {/* 7. Press & Features (vault sources) */}
+                {approvedSources.length > 0 && (
+                    <section className="glass p-5 space-y-3">
+                        <h2 className="text-black dark:text-white text-xl font-bold">Press & Features</h2>
+                        <PressAndFeatures sources={approvedSources} artistName={artist.name ?? ""} />
+                    </section>
+                )}
 
                 {/* Old Fun Facts — preserved but hidden (replaced by Ask About section) */}
                 {/* <section className="glass p-5 space-y-3">

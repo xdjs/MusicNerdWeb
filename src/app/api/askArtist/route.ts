@@ -55,7 +55,6 @@ export async function POST(req: Request) {
         }
 
         const artistContext = contextParts.join("\n");
-        const useGrounding = vaultUrls.length > 0;
 
         const response = await Promise.race([
             gemini.models.generateContent({
@@ -66,7 +65,8 @@ export async function POST(req: Request) {
 
 RULES:
 - Answer concisely (2-4 sentences unless the question requires more detail).
-- Use the verified sources and artist context below as your primary information.
+- PRIORITIZE the verified sources below — treat them as ground truth.
+- When your answer includes facts NOT found in the verified sources, prefix that part with "According to public sources, " or similar phrasing so the reader knows it came from elsewhere.
 - Be specific — name songs, projects, dates, collaborators when you know them.
 - If you don't have enough information to answer confidently, say so briefly rather than guessing.
 - Do NOT include social media links in your answers.
@@ -74,7 +74,7 @@ RULES:
 
 ARTIST CONTEXT:
 ${artistContext}`,
-                    ...(useGrounding ? { tools: [{ googleSearch: {} }] } : {}),
+                    tools: [{ googleSearch: {} }],
                     temperature: 0.5,
                 },
             }),
@@ -114,6 +114,12 @@ function generateFollowUps(artistName: string, question: string, answer: string)
         `Where is ${artistName} from?`,
         `What are ${artistName}'s biggest songs?`,
         `Tell me something surprising about ${artistName}`,
+        `What awards has ${artistName} won?`,
+        `What influences ${artistName}'s sound?`,
+        `Has ${artistName} toured recently?`,
+        `What labels has ${artistName} worked with?`,
+        `What's ${artistName}'s creative process like?`,
+        `How has ${artistName}'s style evolved?`,
     ];
 
     // Filter out suggestions similar to the question already asked
@@ -127,7 +133,7 @@ function generateFollowUps(artistName: string, question: string, answer: string)
         return overlap / sWords.length < 0.5;
     });
 
-    // Return 3 random suggestions
+    // Return 4 random suggestions
     const shuffled = filtered.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
+    return shuffled.slice(0, 4);
 }

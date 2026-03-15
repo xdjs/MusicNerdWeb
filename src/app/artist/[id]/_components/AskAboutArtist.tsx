@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, X, Loader2, CornerDownLeft } from "lucide-react";
+import { Search, X, CornerDownLeft } from "lucide-react";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -22,6 +22,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS(artistName));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
 
     const ask = async (q: string) => {
@@ -33,6 +34,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         setAnswer(null);
         setAskedQuestion(trimmed);
         setQuestion("");
+        askedQuestions.current.add(trimmed.toLowerCase());
 
         try {
             const res = await fetch("/api/askArtist", {
@@ -49,7 +51,11 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
             setAnswer(data.answer);
             if (data.suggestions?.length) {
-                setSuggestions(data.suggestions);
+                // Filter out any suggestions the user has already asked
+                const fresh = data.suggestions.filter(
+                    (s: string) => !askedQuestions.current.has(s.toLowerCase())
+                );
+                setSuggestions(fresh.length > 0 ? fresh : data.suggestions);
             }
         } catch {
             setError("Failed to get an answer. Try again.");
@@ -62,7 +68,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         setAnswer(null);
         setAskedQuestion(null);
         setError(null);
-        setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        // Keep current suggestions instead of reverting to defaults
         setTimeout(() => inputRef.current?.focus(), 50);
     };
 
@@ -98,12 +104,6 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                         <CornerDownLeft size={16} />
                     </button>
                 )}
-                {loading && (
-                    <Loader2
-                        size={16}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-pastypink animate-spin"
-                    />
-                )}
             </form>
 
             {/* Answer area */}
@@ -129,8 +129,8 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
                     {/* Loading */}
                     {loading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 size={14} className="animate-spin" />
+                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                            <img src="/music_nerd_logo_sm.png" alt="Loading" className="h-7 animate-pulse" />
                             <span>Thinking...</span>
                         </div>
                     )}
