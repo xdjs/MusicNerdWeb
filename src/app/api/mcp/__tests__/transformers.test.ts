@@ -73,6 +73,7 @@ function createMockArtist(overrides: Partial<Artist> = {}): Artist {
     supercollector: null,
     webmapdata: null,
     nodePfp: null,
+    customImage: null,
     ...overrides,
   };
 }

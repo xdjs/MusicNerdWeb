@@ -118,7 +118,8 @@ export const createMockArtist = (id: string, name: string, spotify: string): Art
     farcaster: null,
     bio: null,
     webmapdata: null,
-    nodePfp: null
+    nodePfp: null,
+    customImage: null,
 });
 
 // Basic tests to verify mock functionality

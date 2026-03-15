@@ -77,6 +77,7 @@ const mockArtist: Artist = {
     supercollector: null,
     webmapdata: null,
     nodePfp: null,
+    customImage: null,
 };
 
 // Session removed - authentication disabled
