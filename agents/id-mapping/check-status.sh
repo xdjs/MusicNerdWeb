@@ -88,18 +88,20 @@ if [[ -n "$worker_ids" ]] && [[ $(echo "$worker_ids" | wc -l) -gt 1 ]]; then
   echo ""
 fi
 
-# Last run details
-last_log=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f | sort | tail -1)
-if [[ -n "$last_log" ]]; then
-  echo "--- Last Run: $(basename "$last_log") ---"
+# Last run details per worker
+for wid in $(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f | xargs -I{} basename {} | sed 's/-run-.*//' | sort -u); do
+  last_log=$(find "$LOG_DIR" -maxdepth 1 -name "${wid}-run-*.log" -type f | sort | tail -1)
+  if [[ -n "$last_log" ]]; then
+    echo "--- Last Run ($wid): $(basename "$last_log") ---"
 
-  # Show session report if present
-  if grep -q '=== ID Mapping Session Report ===' "$last_log" 2>/dev/null; then
-    sed -n '/=== ID Mapping Session Report ===/,/===/p' "$last_log" | head -30
-  else
-    echo "(no session report — run may have failed)"
-    tail -5 "$last_log"
+    if grep -q '=== ID Mapping Session Report ===' "$last_log" 2>/dev/null; then
+      sed -n '/=== ID Mapping Session Report ===/,/===/p' "$last_log" | head -30
+    else
+      echo "(no session report — run may have failed)"
+      tail -5 "$last_log"
+    fi
+    echo ""
   fi
-fi
+done
 
 echo "========================================"
