@@ -43,11 +43,11 @@ export default async function ArtistLinksGrid({ isMonetized, artist }: ArtistLin
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1.5 group"
                 >
-                    <div className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/15 shadow-sm flex items-center justify-center overflow-hidden transition-all group-hover:scale-110 group-hover:shadow-md group-hover:bg-white/90 dark:group-hover:bg-white/20">
+                    <div className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/15 shadow-sm flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(239,149,255,0.45)] group-hover:bg-white/90 dark:group-hover:bg-white/20">
                         <img
                             src="/siteIcons/spotify_icon.svg"
                             alt="Spotify"
-                            className="w-8 h-8 object-contain"
+                            className="w-7 h-7 object-contain"
                         />
                     </div>
                     <span className="text-xs text-center text-muted-foreground leading-tight truncate w-full">
@@ -63,11 +63,11 @@ export default async function ArtistLinksGrid({ isMonetized, artist }: ArtistLin
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-1.5 group"
                 >
-                    <div className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/15 shadow-sm flex items-center justify-center overflow-hidden transition-all group-hover:scale-110 group-hover:shadow-md group-hover:bg-white/90 dark:group-hover:bg-white/20">
+                    <div className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/15 shadow-sm flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(239,149,255,0.45)] group-hover:bg-white/90 dark:group-hover:bg-white/20">
                         <img
                             src={el.siteImage ?? ""}
                             alt={el.cardPlatformName ?? el.siteName}
-                            className="w-8 h-8 object-contain"
+                            className="w-7 h-7 object-contain"
                         />
                     </div>
                     <span className="text-xs text-center text-muted-foreground leading-tight truncate w-full">

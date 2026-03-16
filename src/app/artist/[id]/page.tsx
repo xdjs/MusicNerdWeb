@@ -13,10 +13,9 @@ import EditModeToggle from "@/app/_components/EditModeToggle";
 import BlurbSection from "./_components/BlurbSection";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import HeroSection from "./_components/HeroSection";
-// import FunFacts from "./_components/FunFacts";
-// import GrapevineIframe from "./_components/GrapevineIframe";
 import PressAndFeatures from "./_components/PressAndFeatures";
 import AskAboutArtist from "./_components/AskAboutArtist";
+import RevealSection from "./_components/RevealSection";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
@@ -130,23 +129,24 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                 </div>
 
                 {/* 3. Bio */}
-                <section className="glass p-5">
+                <RevealSection className="glass p-5 space-y-3">
+                    <h2 className="text-black dark:text-white text-xl font-bold">Artist Summary</h2>
                     <BlurbSection
                         key={artist.bio ?? ""}
                         artistName={artist.name ?? ""}
                         artistId={artist.id}
                         initialBio={artist.bio ?? null}
                     />
-                </section>
+                </RevealSection>
 
                 {/* 4. Ask About Artist (AI Q&A) */}
-                <section className="glass p-5 space-y-3">
+                <RevealSection className="glass p-5 space-y-3">
                     <h2 className="text-black dark:text-white text-xl font-bold">Ask About {artist.name}</h2>
                     <AskAboutArtist artistId={artist.id} artistName={artist.name ?? "this artist"} />
-                </section>
+                </RevealSection>
 
                 {/* 5. Social Links (icon grid) */}
-                <section className="glass p-5 space-y-3">
+                <RevealSection className="glass p-5 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="text-black dark:text-white text-xl font-bold">Social Links</h2>
                         <AddArtistData
@@ -157,10 +157,10 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                         />
                     </div>
                     <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} />
-                </section>
+                </RevealSection>
 
                 {/* 6. Support the Artist (icon grid) */}
-                <section className="glass p-5 space-y-3">
+                <RevealSection className="glass p-5 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="text-black dark:text-white text-xl font-bold">Support the Artist</h2>
                         <AddArtistData
@@ -171,31 +171,18 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                         />
                     </div>
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} />
-                </section>
+                </RevealSection>
 
                 {/* 7. Press & Features (vault sources) */}
                 {approvedSources.length > 0 && (
-                    <section className="glass p-5 space-y-3">
+                    <RevealSection className="glass p-5 space-y-3">
                         <h2 className="text-black dark:text-white text-xl font-bold">Press & Features</h2>
                         <PressAndFeatures sources={approvedSources} artistName={artist.name ?? ""} />
-                    </section>
+                    </RevealSection>
                 )}
-
-                {/* Old Fun Facts — preserved but hidden (replaced by Ask About section) */}
-                {/* <section className="glass p-5 space-y-3">
-                    <h2 className="text-black dark:text-white text-xl font-bold">Fun Facts</h2>
-                    <FunFacts artistId={artist.id} />
-                </section> */}
-
-                {/* 7. Grapevine — hidden until configured */}
-                {/* <section className="glass p-5 space-y-3">
-                    <h2 className="text-black dark:text-white text-xl font-bold">Grapevine</h2>
-                    <GrapevineIframe artistId={artist.id} />
-                </section> */}
 
             </div>
             </EditModeProvider>
-            {/* SEO-only links rendered outside client boundary for crawler visibility */}
             <SeoArtistLinks artist={artist} />
         </>
     );
