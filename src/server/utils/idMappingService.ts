@@ -323,7 +323,7 @@ export type ResolveBatchResult = {
 
 export async function resolveArtistMappingBatch(
   items: ResolveItem[],
-  apiKeyHash?: string,
+  apiKeyHash: string,
 ): Promise<{ results: ResolveBatchResult[] }> {
   const results: ResolveBatchResult[] = [];
 
@@ -364,7 +364,7 @@ export type ExcludeBatchResult = {
 
 export async function excludeArtistMappingBatch(
   items: ExcludeItem[],
-  apiKeyHash?: string,
+  apiKeyHash: string,
 ): Promise<{ results: ExcludeBatchResult[] }> {
   const results: ExcludeBatchResult[] = [];
 

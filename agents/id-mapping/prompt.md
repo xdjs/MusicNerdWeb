@@ -326,7 +326,7 @@ Both `resolve_artist_id` and `exclude_artist_mapping` accept either a single obj
 1. Process all artists through all tiers, collecting results in memory
 2. At the end, batch all `resolve_artist_id` calls into one array call (group by confidence/source is NOT required — mix freely)
 3. Batch all `exclude_artist_mapping` calls into one array call
-4. This means you make exactly **2 write calls** per session (one resolve, one exclude) instead of 30+
+4. This means you make at most **2 write calls** per session (one resolve, one exclude) instead of 30+. Omit either call if there's nothing to write.
 
 **Example — batch resolve:**
 ```

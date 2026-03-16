@@ -466,7 +466,7 @@ server.registerTool(
       confidence: z.enum(["high", "medium", "low", "manual"]).optional().describe("Confidence level (single-item mode)"),
       source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).optional().describe("How the mapping was determined (single-item mode)"),
       reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
-      items: z.array(resolveItemSchema).optional().describe("Array of items for batch mode. When provided, the individual fields above are ignored."),
+      items: z.array(resolveItemSchema).max(100).optional().describe("Array of items for batch mode (max 100). When provided, the individual fields above are ignored."),
     },
   },
   async ({ artistId, platform, platformId, confidence, source, reasoning, items }) => {
@@ -608,7 +608,7 @@ server.registerTool(
       platform: z.string().optional().describe(`The target platform (single-item mode, e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
       reason: z.enum(EXCLUSION_REASON_VALUES).optional().describe("Why the artist is being excluded (single-item mode)"),
       details: z.string().optional().describe("Human-readable explanation"),
-      items: z.array(excludeItemSchema).optional().describe("Array of items for batch mode. When provided, the individual fields above are ignored."),
+      items: z.array(excludeItemSchema).max(100).optional().describe("Array of items for batch mode (max 100). When provided, the individual fields above are ignored."),
     },
   },
   async ({ artistId, platform, reason, details, items }) => {

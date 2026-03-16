@@ -273,6 +273,19 @@ describe("resolve_artist_id MCP tool", () => {
     expect(parsed.results[1].error).toContain("Artist not found");
   });
 
+  it("handles empty items array", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.resolveArtistMappingBatch as jest.Mock).mockResolvedValue({ results: [] });
+
+    const result = await callTool(s, { items: [] });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results).toHaveLength(0);
+    expect(result.isError).toBeUndefined();
+    expect(s.logMcpAudit).not.toHaveBeenCalled();
+  });
+
   it("batch audit log only includes successful mutations", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
