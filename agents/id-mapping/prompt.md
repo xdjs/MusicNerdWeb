@@ -312,9 +312,54 @@ You have these tools available via the MCP server:
 | `get_artist_mappings` | Check what mappings an artist already has | No |
 | `get_artist` | Get artist details (name, Spotify ID, existing links) | No |
 | `search_artists` | Search artists by name (rarely needed in this workflow) | No |
-| `resolve_artist_id` | Write a resolved mapping. Args: `artistId`, `platform`, `platformId`, `confidence`, `source`, `reasoning` | Yes |
-| `exclude_artist_mapping` | Exclude an artist from future mapping batches. Args: `artistId`, `platform`, `reason`, `details` | Yes |
+| `resolve_artist_id` | Write a resolved mapping. Accepts a single item OR an array. Args per item: `artistId`, `platform`, `platformId`, `confidence`, `source`, `reasoning` | Yes |
+| `exclude_artist_mapping` | Exclude an artist from future mapping batches. Accepts a single item OR an array. Args per item: `artistId`, `platform`, `reason`, `details` | Yes |
 | `get_mapping_exclusions` | List excluded artists for a platform. Args: `platform`, `limit` | No |
+
+### Batch support (IMPORTANT — use this!)
+
+Both `resolve_artist_id` and `exclude_artist_mapping` accept either a single object or an **array of objects**. When given an array, each item is processed independently — partial failures do not roll back successful items. The response includes a `results` array with per-item outcomes.
+
+**You MUST batch all writes of the same type into a single call.** This dramatically reduces session time by collapsing ~30 sequential round trips into 1.
+
+**Batching strategy:**
+1. Process all artists through all tiers, collecting results in memory
+2. At the end, batch all `resolve_artist_id` calls into one array call (group by confidence/source is NOT required — mix freely)
+3. Batch all `exclude_artist_mapping` calls into one array call
+4. This means you make at most **2 write calls** per session (one resolve, one exclude) instead of 30+. Omit either call if there's nothing to write.
+
+**Example — batch resolve:**
+```
+resolve_artist_id({
+  items: [
+    { artistId: "aaa", platform: "deezer", platformId: "123", confidence: "high", source: "wikidata" },
+    { artistId: "bbb", platform: "deezer", platformId: "456", confidence: "high", source: "musicbrainz", reasoning: "exact match via MBID" },
+    { artistId: "ccc", platform: "deezer", platformId: "789", confidence: "medium", source: "name_search", reasoning: "exact name, 500K fans" },
+  ]
+})
+```
+
+**Example — batch exclude:**
+```
+exclude_artist_mapping({
+  items: [
+    { artistId: "ddd", platform: "deezer", reason: "name_mismatch", details: "MusicNerd 'X' vs Deezer 'Y' (id=123)" },
+    { artistId: "eee", platform: "deezer", reason: "too_ambiguous", details: "5 candidates, none conclusive" },
+  ]
+})
+```
+
+**Response format for batch calls:**
+```json
+{
+  "success": true,
+  "results": [
+    { "artistId": "aaa", "created": true, "updated": false, "skipped": false },
+    { "artistId": "bbb", "created": true, "updated": false, "skipped": false },
+    { "artistId": "ccc", "created": false, "updated": false, "skipped": false, "error": "Artist not found: ccc" }
+  ]
+}
+```
 
 ### Key behaviors
 

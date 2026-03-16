@@ -36,6 +36,9 @@ export const EXCLUSION_REASON_VALUES = ["conflict", "name_mismatch", "too_ambigu
 export type ExclusionReason = typeof EXCLUSION_REASON_VALUES[number];
 export const VALID_EXCLUSION_REASONS = new Set<ExclusionReason>(EXCLUSION_REASON_VALUES);
 
+export type MappingConfidence = "high" | "medium" | "low" | "manual";
+export type MappingSource = "wikidata" | "musicbrainz" | "name_search" | "web_search" | "manual";
+
 const CONFIDENCE_PRIORITY: Record<string, number> = {
   manual: 4, high: 3, medium: 2, low: 1,
 };
@@ -301,6 +304,91 @@ export async function excludeArtistMapping(params: {
   // xmax = '0' means INSERT, non-zero means UPDATE
   const wasInsert = result[0]?.xmax === "0";
   return { created: wasInsert, updated: !wasInsert };
+}
+
+export type ResolveItem = {
+  artistId: string;
+  platform: string;
+  platformId: string;
+  confidence: MappingConfidence;
+  source: MappingSource;
+  reasoning?: string;
+};
+
+export type ResolveBatchResult = {
+  artistId: string;
+  created: boolean;
+  updated: boolean;
+  skipped: boolean;
+  previousMapping?: { platformId: string; confidence: string };
+  error?: string;
+};
+
+export async function resolveArtistMappingBatch(
+  items: ResolveItem[],
+  apiKeyHash: string,
+): Promise<{ results: ResolveBatchResult[] }> {
+  const results: ResolveBatchResult[] = [];
+
+  for (const item of items) {
+    try {
+      const result = await resolveArtistMapping({ ...item, apiKeyHash });
+      results.push({
+        artistId: item.artistId,
+        ...result,
+      });
+    } catch (err: unknown) {
+      results.push({
+        artistId: item.artistId,
+        created: false,
+        updated: false,
+        skipped: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { results };
+}
+
+export type ExcludeItem = {
+  artistId: string;
+  platform: string;
+  reason: ExclusionReason;
+  details?: string;
+};
+
+export type ExcludeBatchResult = {
+  artistId: string;
+  created: boolean;
+  updated: boolean;
+  error?: string;
+};
+
+export async function excludeArtistMappingBatch(
+  items: ExcludeItem[],
+  apiKeyHash: string,
+): Promise<{ results: ExcludeBatchResult[] }> {
+  const results: ExcludeBatchResult[] = [];
+
+  for (const item of items) {
+    try {
+      const result = await excludeArtistMapping({ ...item, apiKeyHash });
+      results.push({
+        artistId: item.artistId,
+        ...result,
+      });
+    } catch (err: unknown) {
+      results.push({
+        artistId: item.artistId,
+        created: false,
+        updated: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { results };
 }
 
 export async function getMappingExclusions(

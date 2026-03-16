@@ -17,7 +17,7 @@ usage() {
   echo ""
   echo "Example:"
   echo "  $0 ~/.env.mapping -n 2 -s mapping"
-  echo "  # Creates tmux sessions: mapping-w1, mapping-w2"
+  echo "  # Creates tmux sessions: mapping-a3f1, mapping-9cb2"
   exit 1
 }
 
@@ -52,9 +52,15 @@ if [[ ! -x "$RUNNER" ]]; then
   exit 1
 fi
 
-# Check for existing sessions
+# Generate random 4-char hex suffixes upfront
+SUFFIXES=()
 for w in $(seq 1 "$NUM_WORKERS"); do
-  session="${SESSION_PREFIX}-w${w}"
+  SUFFIXES+=("$(openssl rand -hex 2)")
+done
+
+# Check for existing sessions
+for w in $(seq 0 $((NUM_WORKERS - 1))); do
+  session="${SESSION_PREFIX}-${SUFFIXES[$w]}"
   if tmux has-session -t "$session" 2>/dev/null; then
     echo "Error: tmux session '$session' already exists. Kill it first:"
     echo "  tmux kill-session -t $session"
@@ -65,15 +71,15 @@ done
 echo "Launching $NUM_WORKERS worker(s)..."
 echo ""
 
-for w in $(seq 1 "$NUM_WORKERS"); do
-  session="${SESSION_PREFIX}-w${w}"
+for w in $(seq 0 $((NUM_WORKERS - 1))); do
+  session="${SESSION_PREFIX}-${SUFFIXES[$w]}"
   tmux new-session -d -s "$session" "source $ENV_FILE && $RUNNER; echo '[worker exited with code \$?]'; exec bash"
   # remain-on-exit keeps the pane visible if the script crashes
   tmux set-option -t "$session" remain-on-exit on
   echo "  Started: $session (tmux attach -t $session)"
 
   # Stagger starts to reduce initial overlap
-  if [[ $w -lt $NUM_WORKERS ]]; then
+  if [[ $w -lt $((NUM_WORKERS - 1)) ]]; then
     sleep 5
   fi
 done
@@ -82,4 +88,4 @@ echo ""
 echo "Monitor:"
 echo "  tmux ls"
 echo "  $SCRIPT_DIR/check-status.sh"
-echo "  tmux attach -t ${SESSION_PREFIX}-w1"
+echo "  tmux attach -t ${SESSION_PREFIX}-${SUFFIXES[0]}"
