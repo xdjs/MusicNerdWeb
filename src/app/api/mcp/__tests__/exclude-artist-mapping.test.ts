@@ -11,13 +11,16 @@ class MappingValidationError extends Error {
 jest.mock("@/server/utils/idMappingService", () => ({
   getUnmappedArtists: jest.fn(),
   resolveArtistMapping: jest.fn(),
+  resolveArtistMappingBatch: jest.fn(),
   getMappingStats: jest.fn(),
   getArtistMappings: jest.fn(),
   excludeArtistMapping: jest.fn().mockResolvedValue({ created: true, updated: false }),
+  excludeArtistMappingBatch: jest.fn().mockResolvedValue({ results: [] }),
   getMappingExclusions: jest.fn().mockResolvedValue({ exclusions: [], total: 0 }),
   VALID_MAPPING_PLATFORMS: new Set(["deezer", "apple_music", "musicbrainz", "wikidata", "tidal", "amazon_music", "youtube_music"]),
   VALID_SOURCES: new Set(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]),
   VALID_EXCLUSION_REASONS: new Set(["conflict", "name_mismatch", "too_ambiguous"]),
+  EXCLUSION_REASON_VALUES: ["conflict", "name_mismatch", "too_ambiguous"],
   MappingNotFoundError,
   MappingConflictError: class extends Error {},
   MappingConcurrentWriteError: class extends Error {},
@@ -44,11 +47,11 @@ describe("exclude_artist_mapping MCP tool", () => {
   beforeEach(() => { jest.resetModules(); });
 
   async function setup() {
-    const { excludeArtistMapping } = await import("@/server/utils/idMappingService");
+    const { excludeArtistMapping, excludeArtistMappingBatch } = await import("@/server/utils/idMappingService");
     const { logMcpAudit } = await import("../audit");
     const { requireMcpAuth, McpAuthError } = await import("../auth");
     const { server } = await import("../server");
-    return { excludeArtistMapping, logMcpAudit, requireMcpAuth, McpAuthError, server };
+    return { excludeArtistMapping, excludeArtistMappingBatch, logMcpAudit, requireMcpAuth, McpAuthError, server };
   }
 
   async function callTool(s, args) {
@@ -132,6 +135,77 @@ describe("exclude_artist_mapping MCP tool", () => {
       newValue: "name_mismatch: MusicNerd 'X' vs Deezer 'Y' (id=123)",
       apiKeyHash: "test-hash",
     });
+  });
+
+  // Batch tests
+  it("processes batch input via items field", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.excludeArtistMappingBatch as jest.Mock).mockResolvedValue({
+      results: [
+        { artistId: "00000000-0000-0000-0000-000000000001", created: true, updated: false },
+        { artistId: "00000000-0000-0000-0000-000000000002", created: true, updated: false },
+      ],
+    });
+
+    const batchArgs = {
+      items: [
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000001" },
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000002" },
+      ],
+    };
+    const result = await callTool(s, batchArgs);
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results).toHaveLength(2);
+    expect(parsed.results[0].created).toBe(true);
+    expect(result.isError).toBeUndefined();
+  });
+
+  it("returns per-item errors in batch mode", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.excludeArtistMappingBatch as jest.Mock).mockResolvedValue({
+      results: [
+        { artistId: "00000000-0000-0000-0000-000000000001", created: true, updated: false },
+        { artistId: "00000000-0000-0000-0000-000000000002", created: false, updated: false, error: "Artist not found" },
+      ],
+    });
+
+    const batchArgs = {
+      items: [
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000001" },
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000002" },
+      ],
+    };
+    const result = await callTool(s, batchArgs);
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results[0].error).toBeUndefined();
+    expect(parsed.results[1].error).toContain("Artist not found");
+  });
+
+  it("batch audit log only includes successful items", async () => {
+    const s = await setup();
+    (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
+    (s.excludeArtistMappingBatch as jest.Mock).mockResolvedValue({
+      results: [
+        { artistId: "00000000-0000-0000-0000-000000000001", created: true, updated: false },
+        { artistId: "00000000-0000-0000-0000-000000000002", created: false, updated: false, error: "Artist not found" },
+      ],
+    });
+
+    const batchArgs = {
+      items: [
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000001" },
+        { ...validArgs, artistId: "00000000-0000-0000-0000-000000000002" },
+      ],
+    };
+    await callTool(s, batchArgs);
+    expect(s.logMcpAudit).toHaveBeenCalledTimes(1);
+    const auditArg = (s.logMcpAudit as jest.Mock).mock.calls[0][0];
+    expect(auditArg).toHaveLength(1);
+    expect(auditArg[0].artistId).toBe("00000000-0000-0000-0000-000000000001");
   });
 });
 

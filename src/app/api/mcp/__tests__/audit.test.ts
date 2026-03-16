@@ -26,7 +26,7 @@ describe("MCP audit logging", () => {
       apiKeyHash: "hash-123",
     });
     expect(db.insert).toHaveBeenCalled();
-    expect(mockValues).toHaveBeenCalledWith({
+    expect(mockValues).toHaveBeenCalledWith([{
       artistId: "artist-uuid",
       field: "instagram",
       action: "set",
@@ -34,7 +34,7 @@ describe("MCP audit logging", () => {
       oldValue: "old-user",
       newValue: "test",
       apiKeyHash: "hash-123",
-    });
+    }]);
   });
 
   it("handles nullable fields", async () => {
@@ -46,7 +46,7 @@ describe("MCP audit logging", () => {
       oldValue: "old-handle",
       apiKeyHash: "hash-456",
     });
-    expect(mockValues).toHaveBeenCalledWith({
+    expect(mockValues).toHaveBeenCalledWith([{
       artistId: "artist-uuid",
       field: "x",
       action: "delete",
@@ -54,6 +54,6 @@ describe("MCP audit logging", () => {
       oldValue: "old-handle",
       newValue: null,
       apiKeyHash: "hash-456",
-    });
+    }]);
   });
 });

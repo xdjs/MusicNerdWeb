@@ -6,7 +6,7 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { getUnmappedArtists, resolveArtistMapping, getMappingStats, getArtistMappings, excludeArtistMapping, getMappingExclusions, VALID_MAPPING_PLATFORMS, EXCLUSION_REASON_VALUES, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+import { getUnmappedArtists, resolveArtistMapping, resolveArtistMappingBatch, getMappingStats, getArtistMappings, excludeArtistMapping, excludeArtistMappingBatch, getMappingExclusions, VALID_MAPPING_PLATFORMS, EXCLUSION_REASON_VALUES, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
 
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
@@ -443,67 +443,107 @@ server.registerTool(
   }
 );
 
+// Shared schema for a single resolve_artist_id item (used by batch items array)
+const resolveItemSchema = z.object({
+  artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+  platform: z.string().describe("The target platform (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
+  platformId: z.string().describe("The artist's ID on the target platform"),
+  confidence: z.enum(["high", "medium", "low", "manual"]).describe("Confidence level of the mapping (manual > high > medium > low)"),
+  source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).describe("How the mapping was determined"),
+  reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
+});
+
 // Register the resolve_artist_id tool
 server.registerTool(
   "resolve_artist_id",
   {
     title: "Resolve Artist ID",
-    description: "Store a cross-platform ID mapping for an artist. Maps a MusicNerd artist to their ID on another platform (e.g. Deezer, Apple Music). Higher confidence mappings take priority over lower ones.",
+    description: "Store cross-platform ID mapping(s) for artist(s). For a single item, provide the fields directly. For batch mode, provide an 'items' array instead. Each batch item is processed independently — partial failures do not roll back successful items.",
     inputSchema: {
-      artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
-      platform: z.string().describe("The target platform (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
-      platformId: z.string().describe("The artist's ID on the target platform"),
-      confidence: z.enum(["high", "medium", "low", "manual"]).describe("Confidence level of the mapping (manual > high > medium > low)"),
-      source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).describe("How the mapping was determined"),
+      artistId: z.string().uuid().optional().describe("The UUID of the artist (single-item mode)"),
+      platform: z.string().optional().describe("The target platform (single-item mode)"),
+      platformId: z.string().optional().describe("The artist's ID on the target platform (single-item mode)"),
+      confidence: z.enum(["high", "medium", "low", "manual"]).optional().describe("Confidence level (single-item mode)"),
+      source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).optional().describe("How the mapping was determined (single-item mode)"),
       reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
+      items: z.array(resolveItemSchema).optional().describe("Array of items for batch mode. When provided, the individual fields above are ignored."),
     },
   },
-  async ({ artistId, platform, platformId, confidence, source, reasoning }) => {
-    console.log(`[MCP] resolve_artist_id called with artistId="${artistId}", platform="${platform}", platformId="${platformId}"`);
+  async ({ artistId, platform, platformId, confidence, source, reasoning, items }) => {
+    const isBatch = items !== undefined && items !== null;
+
+    console.log(`[MCP] resolve_artist_id called with ${isBatch ? items!.length + " item(s) (batch)" : "1 item(s)"}`);
 
     try {
       const apiKeyHash = requireMcpAuth();
 
-      if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+      if (!isBatch) {
+        // Single-item path — preserve original behavior exactly
+        if (!artistId || !platform || !platformId || !confidence || !source) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: "Missing required fields: artistId, platform, platformId, confidence, source", code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
+
+        if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: `Invalid platform. Valid platforms: ${[...VALID_MAPPING_PLATFORMS].join(", ")}`, code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
+
+        const result = await resolveArtistMapping({
+          artistId, platform, platformId, confidence, source, reasoning, apiKeyHash,
+        });
+
+        if (!result.skipped) {
+          try {
+            await logMcpAudit({
+              artistId, field: `mapping:${platform}`, action: "resolve",
+              oldValue: result.previousMapping?.platformId ?? null, newValue: platformId, apiKeyHash,
+            });
+          } catch (auditError) {
+            console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+          }
+        }
+
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: `Invalid platform. Valid platforms: ${[...VALID_MAPPING_PLATFORMS].join(", ")}`, code: "INVALID_INPUT" }) }],
-          isError: true,
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, ...result }, null, 2),
+          }],
         };
       }
 
-      const result = await resolveArtistMapping({
-        artistId,
-        platform,
-        platformId,
-        confidence,
-        source,
-        reasoning,
-        apiKeyHash,
-      });
+      // Batch path
+      const batchResult = await resolveArtistMappingBatch(items!, apiKeyHash);
 
-      // Audit is best-effort — only log when a mutation actually occurred
-      if (!result.skipped) {
+      // Batch audit for all successful mutations
+      const auditEntries = batchResult.results
+        .map((r, i) => ({ r, item: items![i] }))
+        .filter(({ r }) => !r.skipped && !r.error)
+        .map(({ r, item }) => ({
+          artistId: item.artistId,
+          field: `mapping:${item.platform}`,
+          action: "resolve" as const,
+          oldValue: r.previousMapping?.platformId ?? null,
+          newValue: item.platformId,
+          apiKeyHash,
+        }));
+
+      if (auditEntries.length > 0) {
         try {
-          await logMcpAudit({
-            artistId,
-            field: `mapping:${platform}`,
-            action: "resolve",
-            oldValue: result.previousMapping?.platformId ?? null,
-            newValue: platformId,
-            apiKeyHash,
-          });
+          await logMcpAudit(auditEntries);
         } catch (auditError) {
-          console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+          console.error("[MCP] Batch audit log failed (mutations succeeded):", auditError);
         }
       }
 
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            ...result,
-          }, null, 2),
+          text: JSON.stringify({ success: true, results: batchResult.results }, null, 2),
         }],
       };
     } catch (error) {
@@ -513,6 +553,7 @@ server.registerTool(
           isError: true,
         };
       }
+      // Single-item error handling (batch errors are captured per-item)
       if (error instanceof MappingNotFoundError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
@@ -526,7 +567,6 @@ server.registerTool(
         };
       }
       if (error instanceof MappingConcurrentWriteError) {
-        // Race condition — another request already wrote this mapping. Not an error for the caller.
         return {
           content: [{
             type: "text" as const,
@@ -549,53 +589,93 @@ server.registerTool(
   }
 );
 
+// Shared schema for a single exclude_artist_mapping item (used by batch items array)
+const excludeItemSchema = z.object({
+  artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+  platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+  reason: z.enum(EXCLUSION_REASON_VALUES).describe("Why the artist is being excluded"),
+  details: z.string().optional().describe("Human-readable explanation (e.g. \"MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)\")"),
+});
+
 // Register the exclude_artist_mapping tool
 server.registerTool(
   "exclude_artist_mapping",
   {
     title: "Exclude Artist Mapping",
-    description: "Mark an artist as excluded from future mapping batches for a given platform. Use this when an artist cannot be confidently mapped due to name mismatches, conflicts, or ambiguity.",
+    description: "Mark artist(s) as excluded from future mapping batches for a given platform. For a single item, provide the fields directly. For batch mode, provide an 'items' array instead. Each batch item is processed independently — partial failures do not roll back successful items.",
     inputSchema: {
-      artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
-      platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
-      reason: z.enum(EXCLUSION_REASON_VALUES).describe("Why the artist is being excluded"),
-      details: z.string().optional().describe("Human-readable explanation (e.g. \"MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)\")"),
+      artistId: z.string().uuid().optional().describe("The UUID of the artist (single-item mode)"),
+      platform: z.string().optional().describe(`The target platform (single-item mode, e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+      reason: z.enum(EXCLUSION_REASON_VALUES).optional().describe("Why the artist is being excluded (single-item mode)"),
+      details: z.string().optional().describe("Human-readable explanation"),
+      items: z.array(excludeItemSchema).optional().describe("Array of items for batch mode. When provided, the individual fields above are ignored."),
     },
   },
-  async ({ artistId, platform, reason, details }) => {
-    console.log(`[MCP] exclude_artist_mapping called with artistId="${artistId}", platform="${platform}", reason="${reason}"`);
+  async ({ artistId, platform, reason, details, items }) => {
+    const isBatch = items !== undefined && items !== null;
+
+    console.log(`[MCP] exclude_artist_mapping called with ${isBatch ? items!.length + " item(s) (batch)" : "1 item(s)"}`);
 
     try {
       const apiKeyHash = requireMcpAuth();
 
-      const result = await excludeArtistMapping({
-        artistId,
-        platform,
-        reason,
-        details,
-        apiKeyHash,
-      });
+      if (!isBatch) {
+        // Single-item path — preserve original behavior exactly
+        if (!artistId || !platform || !reason) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: "Missing required fields: artistId, platform, reason", code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
 
-      // Audit is best-effort
-      try {
-        await logMcpAudit({
-          artistId,
-          field: `mapping:${platform}`,
-          action: "exclude",
-          newValue: details ? `${reason}: ${details}` : reason,
-          apiKeyHash,
+        const result = await excludeArtistMapping({
+          artistId, platform, reason, details, apiKeyHash,
         });
-      } catch (auditError) {
-        console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+
+        try {
+          await logMcpAudit({
+            artistId, field: `mapping:${platform}`, action: "exclude",
+            newValue: details ? `${reason}: ${details}` : reason, apiKeyHash,
+          });
+        } catch (auditError) {
+          console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+        }
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, ...result }, null, 2),
+          }],
+        };
+      }
+
+      // Batch path
+      const batchResult = await excludeArtistMappingBatch(items!, apiKeyHash);
+
+      // Batch audit for all successful items
+      const auditEntries = batchResult.results
+        .map((r, i) => ({ r, item: items![i] }))
+        .filter(({ r }) => !r.error)
+        .map(({ item }) => ({
+          artistId: item.artistId,
+          field: `mapping:${item.platform}`,
+          action: "exclude" as const,
+          newValue: item.details ? `${item.reason}: ${item.details}` : item.reason,
+          apiKeyHash,
+        }));
+
+      if (auditEntries.length > 0) {
+        try {
+          await logMcpAudit(auditEntries);
+        } catch (auditError) {
+          console.error("[MCP] Batch audit log failed (mutations succeeded):", auditError);
+        }
       }
 
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            ...result,
-          }, null, 2),
+          text: JSON.stringify({ success: true, results: batchResult.results }, null, 2),
         }],
       };
     } catch (error) {
@@ -605,6 +685,7 @@ server.registerTool(
           isError: true,
         };
       }
+      // Single-item error handling (batch errors are captured per-item)
       if (error instanceof MappingNotFoundError) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],

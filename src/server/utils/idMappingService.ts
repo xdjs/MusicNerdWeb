@@ -303,6 +303,91 @@ export async function excludeArtistMapping(params: {
   return { created: wasInsert, updated: !wasInsert };
 }
 
+export type ResolveItem = {
+  artistId: string;
+  platform: string;
+  platformId: string;
+  confidence: string;
+  source: string;
+  reasoning?: string;
+};
+
+export type ResolveBatchResult = {
+  artistId: string;
+  created: boolean;
+  updated: boolean;
+  skipped: boolean;
+  previousMapping?: { platformId: string; confidence: string };
+  error?: string;
+};
+
+export async function resolveArtistMappingBatch(
+  items: ResolveItem[],
+  apiKeyHash?: string,
+): Promise<{ results: ResolveBatchResult[] }> {
+  const results: ResolveBatchResult[] = [];
+
+  for (const item of items) {
+    try {
+      const result = await resolveArtistMapping({ ...item, apiKeyHash });
+      results.push({
+        artistId: item.artistId,
+        ...result,
+      });
+    } catch (err: unknown) {
+      results.push({
+        artistId: item.artistId,
+        created: false,
+        updated: false,
+        skipped: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { results };
+}
+
+export type ExcludeItem = {
+  artistId: string;
+  platform: string;
+  reason: ExclusionReason;
+  details?: string;
+};
+
+export type ExcludeBatchResult = {
+  artistId: string;
+  created: boolean;
+  updated: boolean;
+  error?: string;
+};
+
+export async function excludeArtistMappingBatch(
+  items: ExcludeItem[],
+  apiKeyHash?: string,
+): Promise<{ results: ExcludeBatchResult[] }> {
+  const results: ExcludeBatchResult[] = [];
+
+  for (const item of items) {
+    try {
+      const result = await excludeArtistMapping({ ...item, apiKeyHash });
+      results.push({
+        artistId: item.artistId,
+        ...result,
+      });
+    } catch (err: unknown) {
+      results.push({
+        artistId: item.artistId,
+        created: false,
+        updated: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { results };
+}
+
 export async function getMappingExclusions(
   platform: string,
   limit: number = 100,

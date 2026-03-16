@@ -21,9 +21,11 @@ describe("idMappingService", () => {
     const {
       getUnmappedArtists,
       resolveArtistMapping,
+      resolveArtistMappingBatch,
       getMappingStats,
       getArtistMappings,
       excludeArtistMapping,
+      excludeArtistMappingBatch,
       getMappingExclusions,
       VALID_MAPPING_PLATFORMS,
       VALID_SOURCES,
@@ -34,9 +36,11 @@ describe("idMappingService", () => {
       db,
       getUnmappedArtists,
       resolveArtistMapping,
+      resolveArtistMappingBatch,
       getMappingStats,
       getArtistMappings,
       excludeArtistMapping,
+      excludeArtistMappingBatch,
       getMappingExclusions,
       VALID_MAPPING_PLATFORMS,
       VALID_SOURCES,
@@ -334,5 +338,70 @@ describe("idMappingService", () => {
   it("rejects invalid platform for getMappingExclusions", async () => {
     const { getMappingExclusions } = await setup();
     await expect(getMappingExclusions("invalid")).rejects.toThrow("Invalid platform: invalid");
+  });
+
+  // resolveArtistMappingBatch
+  it("processes multiple items in batch, returns per-item results", async () => {
+    const { db, resolveArtistMappingBatch } = await setup();
+    const result = await resolveArtistMappingBatch([
+      { artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata" },
+      { artistId: "artist-123", platform: "apple_music", platformId: "789", confidence: "high", source: "wikidata" },
+    ]);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].created).toBe(true);
+    expect(result.results[1].created).toBe(true);
+  });
+
+  it("batch continues on individual failures", async () => {
+    const { db, resolveArtistMappingBatch } = await setup();
+    // First item: artist exists, second item: artist not found
+    let callCount = 0;
+    (db as any).query.artists.findFirst.mockImplementation(() => {
+      callCount++;
+      if (callCount === 2) return Promise.resolve(null);
+      return Promise.resolve({ id: "artist-123" });
+    });
+
+    const result = await resolveArtistMappingBatch([
+      { artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata" },
+      { artistId: "nonexistent", platform: "deezer", platformId: "789", confidence: "high", source: "wikidata" },
+    ]);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].created).toBe(true);
+    expect(result.results[0].error).toBeUndefined();
+    expect(result.results[1].error).toContain("Artist not found");
+  });
+
+  // excludeArtistMappingBatch
+  it("processes multiple exclusions in batch", async () => {
+    const { db, excludeArtistMappingBatch } = await setup();
+    db.execute = jest.fn().mockResolvedValue([{ xmax: "0" }]);
+    const result = await excludeArtistMappingBatch([
+      { artistId: "artist-123", platform: "deezer", reason: "name_mismatch", details: "test 1" },
+      { artistId: "artist-123", platform: "apple_music", reason: "conflict", details: "test 2" },
+    ]);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].created).toBe(true);
+    expect(result.results[1].created).toBe(true);
+  });
+
+  it("exclude batch continues on individual failures", async () => {
+    const { db, excludeArtistMappingBatch } = await setup();
+    db.execute = jest.fn().mockResolvedValue([{ xmax: "0" }]);
+    let callCount = 0;
+    (db as any).query.artists.findFirst.mockImplementation(() => {
+      callCount++;
+      if (callCount === 2) return Promise.resolve(null);
+      return Promise.resolve({ id: "artist-123" });
+    });
+
+    const result = await excludeArtistMappingBatch([
+      { artistId: "artist-123", platform: "deezer", reason: "name_mismatch" },
+      { artistId: "nonexistent", platform: "deezer", reason: "conflict" },
+    ]);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].created).toBe(true);
+    expect(result.results[0].error).toBeUndefined();
+    expect(result.results[1].error).toContain("Artist not found");
   });
 });
