@@ -98,18 +98,18 @@ classify_failure() {
   log_tail=$(tail -50 "$logfile" 2>/dev/null || echo "")
 
   # Rate limit / usage limit
-  if echo "$log_tail" | grep -qiE '(rate.limit|too many requests|429|usage.limit|quota|capacity|overloaded)'; then
+  if echo "$log_tail" | grep -qiE '(rate.limit|too many requests|[^0-9]429[^0-9]|usage.limit|quota|capacity|overloaded)'; then
     local matched
-    matched=$(echo "$log_tail" | grep -oiE '(rate.limit|too many requests|429|usage.limit|quota|capacity|overloaded)' | head -1)
+    matched=$(echo "$log_tail" | grep -oiE '(rate.limit|too many requests|[^0-9]429[^0-9]|usage.limit|quota|capacity|overloaded)' | head -1)
     fail_reason="rate/usage limit (exit $exit_code, pattern: '$matched')"
     fail_category="rate_limit"
     return
   fi
 
-  # Auth errors
-  if echo "$log_tail" | grep -qiE '(auth.*expir|token.*expir|unauthorized|401|invalid.*api.key|auth.*fail)'; then
+  # Auth errors — match 401 only as standalone status code (not inside numbers like 38,401)
+  if echo "$log_tail" | grep -qiE '(auth.*expir|token.*expir|unauthorized|[^0-9,]401[^0-9]|invalid.*api.key|auth.*fail)'; then
     local matched
-    matched=$(echo "$log_tail" | grep -oiE '(auth.*expir|token.*expir|unauthorized|401|invalid.*api.key|auth.*fail)' | head -1)
+    matched=$(echo "$log_tail" | grep -oiE '(auth.*expir|token.*expir|unauthorized|[^0-9,]401[^0-9]|invalid.*api.key|auth.*fail)' | head -1)
     fail_reason="auth error (exit $exit_code, pattern: '$matched')"
     fail_category="auth"
     return
