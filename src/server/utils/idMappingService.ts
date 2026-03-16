@@ -36,6 +36,9 @@ export const EXCLUSION_REASON_VALUES = ["conflict", "name_mismatch", "too_ambigu
 export type ExclusionReason = typeof EXCLUSION_REASON_VALUES[number];
 export const VALID_EXCLUSION_REASONS = new Set<ExclusionReason>(EXCLUSION_REASON_VALUES);
 
+export type MappingConfidence = "high" | "medium" | "low" | "manual";
+export type MappingSource = "wikidata" | "musicbrainz" | "name_search" | "web_search" | "manual";
+
 const CONFIDENCE_PRIORITY: Record<string, number> = {
   manual: 4, high: 3, medium: 2, low: 1,
 };
@@ -307,8 +310,8 @@ export type ResolveItem = {
   artistId: string;
   platform: string;
   platformId: string;
-  confidence: string;
-  source: string;
+  confidence: MappingConfidence;
+  source: MappingSource;
   reasoning?: string;
 };
 

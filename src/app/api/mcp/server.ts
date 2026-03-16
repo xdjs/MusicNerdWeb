@@ -470,14 +470,12 @@ server.registerTool(
     },
   },
   async ({ artistId, platform, platformId, confidence, source, reasoning, items }) => {
-    const isBatch = items !== undefined && items !== null;
-
-    console.log(`[MCP] resolve_artist_id called with ${isBatch ? items!.length + " item(s) (batch)" : "1 item(s)"}`);
+    console.log(`[MCP] resolve_artist_id called with ${items !== undefined ? items.length + " item(s) (batch)" : "1 item(s)"}`);
 
     try {
       const apiKeyHash = requireMcpAuth();
 
-      if (!isBatch) {
+      if (items === undefined) {
         // Single-item path — preserve original behavior exactly
         if (!artistId || !platform || !platformId || !confidence || !source) {
           return {
@@ -517,11 +515,11 @@ server.registerTool(
       }
 
       // Batch path
-      const batchResult = await resolveArtistMappingBatch(items!, apiKeyHash);
+      const batchResult = await resolveArtistMappingBatch(items, apiKeyHash);
 
       // Batch audit for all successful mutations
       const auditEntries = batchResult.results
-        .map((r, i) => ({ r, item: items![i] }))
+        .map((r, i) => ({ r, item: items[i] }))
         .filter(({ r }) => !r.skipped && !r.error)
         .map(({ r, item }) => ({
           artistId: item.artistId,
@@ -613,14 +611,12 @@ server.registerTool(
     },
   },
   async ({ artistId, platform, reason, details, items }) => {
-    const isBatch = items !== undefined && items !== null;
-
-    console.log(`[MCP] exclude_artist_mapping called with ${isBatch ? items!.length + " item(s) (batch)" : "1 item(s)"}`);
+    console.log(`[MCP] exclude_artist_mapping called with ${items !== undefined ? items.length + " item(s) (batch)" : "1 item(s)"}`);
 
     try {
       const apiKeyHash = requireMcpAuth();
 
-      if (!isBatch) {
+      if (items === undefined) {
         // Single-item path — preserve original behavior exactly
         if (!artistId || !platform || !reason) {
           return {
@@ -651,11 +647,11 @@ server.registerTool(
       }
 
       // Batch path
-      const batchResult = await excludeArtistMappingBatch(items!, apiKeyHash);
+      const batchResult = await excludeArtistMappingBatch(items, apiKeyHash);
 
       // Batch audit for all successful items
       const auditEntries = batchResult.results
-        .map((r, i) => ({ r, item: items![i] }))
+        .map((r, i) => ({ r, item: items[i] }))
         .filter(({ r }) => !r.error)
         .map(({ item }) => ({
           artistId: item.artistId,
