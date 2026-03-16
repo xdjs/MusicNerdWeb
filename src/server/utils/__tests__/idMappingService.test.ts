@@ -346,7 +346,7 @@ describe("idMappingService", () => {
     const result = await resolveArtistMappingBatch([
       { artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata" },
       { artistId: "artist-123", platform: "apple_music", platformId: "789", confidence: "high", source: "wikidata" },
-    ]);
+    ], "test-key-hash");
     expect(result.results).toHaveLength(2);
     expect(result.results[0].created).toBe(true);
     expect(result.results[1].created).toBe(true);
@@ -365,7 +365,7 @@ describe("idMappingService", () => {
     const result = await resolveArtistMappingBatch([
       { artistId: "artist-123", platform: "deezer", platformId: "456", confidence: "high", source: "wikidata" },
       { artistId: "nonexistent", platform: "deezer", platformId: "789", confidence: "high", source: "wikidata" },
-    ]);
+    ], "test-key-hash");
     expect(result.results).toHaveLength(2);
     expect(result.results[0].created).toBe(true);
     expect(result.results[0].error).toBeUndefined();
@@ -379,7 +379,7 @@ describe("idMappingService", () => {
     const result = await excludeArtistMappingBatch([
       { artistId: "artist-123", platform: "deezer", reason: "name_mismatch", details: "test 1" },
       { artistId: "artist-123", platform: "apple_music", reason: "conflict", details: "test 2" },
-    ]);
+    ], "test-key-hash");
     expect(result.results).toHaveLength(2);
     expect(result.results[0].created).toBe(true);
     expect(result.results[1].created).toBe(true);
@@ -398,7 +398,7 @@ describe("idMappingService", () => {
     const result = await excludeArtistMappingBatch([
       { artistId: "artist-123", platform: "deezer", reason: "name_mismatch" },
       { artistId: "nonexistent", platform: "deezer", reason: "conflict" },
-    ]);
+    ], "test-key-hash");
     expect(result.results).toHaveLength(2);
     expect(result.results[0].created).toBe(true);
     expect(result.results[0].error).toBeUndefined();

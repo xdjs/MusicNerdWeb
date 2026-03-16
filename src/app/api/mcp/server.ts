@@ -566,6 +566,7 @@ server.registerTool(
           isError: true,
         };
       }
+      // Race condition — another request already wrote this mapping. Not an error for the caller.
       if (error instanceof MappingConcurrentWriteError) {
         return {
           content: [{
