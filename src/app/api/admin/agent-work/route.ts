@@ -4,6 +4,7 @@ import { getAgentWorkData } from '@/server/utils/queries/agentWorkQueries';
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const t0 = performance.now();
   try {
     const auth = await requireAdmin();
     if (!auth.authenticated) return auth.response;
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     const auditLimit = parseInt(url.searchParams.get('auditLimit') ?? '50', 10) || 50;
 
     const data = await getAgentWorkData(auditPage, auditLimit);
+    console.debug(`[agent-work] GET ${Math.round(performance.now() - t0)}ms`);
     return Response.json(data);
   } catch (e) {
     console.error('[agent-work] GET error', e);

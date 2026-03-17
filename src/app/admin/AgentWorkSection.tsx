@@ -268,21 +268,22 @@ function ExclusionsSection({ exclusions }: { exclusions: AgentWorkData["exclusio
 export default function AgentWorkSection() {
   const [data, setData] = useState<AgentWorkData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paginatingAudit, setPaginatingAudit] = useState(false);
   const [error, setError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
 
-  const fetchData = useCallback(async (page: number) => {
+  // Initial fetch — loads all sections
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`/api/admin/agent-work?auditPage=${page}&auditLimit=50`);
+      const res = await fetch(`/api/admin/agent-work?auditPage=1&auditLimit=50`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body.error || `Failed to load (${res.status})`);
         return;
       }
-      const result = await res.json();
-      setData(result);
+      setData(await res.json());
     } catch {
       setError("Failed to load agent work data");
     } finally {
@@ -290,13 +291,26 @@ export default function AgentWorkSection() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchData(auditPage);
-  }, [auditPage, fetchData]);
+  // Pagination fetch — only updates the audit log section
+  const fetchAuditPage = useCallback(async (page: number) => {
+    try {
+      setPaginatingAudit(true);
+      const res = await fetch(`/api/admin/agent-work?auditPage=${page}&auditLimit=50`);
+      if (!res.ok) return;
+      const result = await res.json();
+      setData((prev) => prev ? { ...prev, auditLog: result.auditLog } : result);
+    } catch {
+      // Silently fail — stale audit page is acceptable
+    } finally {
+      setPaginatingAudit(false);
+    }
+  }, []);
 
-  const handlePageChange = (page: number) => {
-    setAuditPage(page);
-  };
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    if (auditPage > 1) fetchAuditPage(auditPage);
+  }, [auditPage, fetchAuditPage]);
 
   if (loading && !data) {
     return (
@@ -310,7 +324,7 @@ export default function AgentWorkSection() {
     return (
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
-        <Button variant="outline" className="mt-3" onClick={() => fetchData(auditPage)}>
+        <Button variant="outline" className="mt-3" onClick={() => fetchAll()}>
           Retry
         </Button>
       </div>
@@ -323,7 +337,9 @@ export default function AgentWorkSection() {
     <div className="space-y-8">
       <PlatformStatsSection stats={data.stats} />
       <AgentBreakdownSection agents={data.agentBreakdown.agents} />
-      <AuditLogSection auditLog={data.auditLog} onPageChange={handlePageChange} />
+      <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
+        <AuditLogSection auditLog={data.auditLog} onPageChange={setAuditPage} />
+      </div>
       <ExclusionsSection exclusions={data.exclusions} />
     </div>
   );

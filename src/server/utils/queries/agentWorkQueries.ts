@@ -74,7 +74,7 @@ export async function getAuditLog(page: number = 1, limit: number = 50): Promise
         al.old_value, al.new_value,
         k.label AS agent_label, al.created_at
       FROM mcp_audit_log al
-      JOIN artists a ON a.id = al.artist_id
+      LEFT JOIN artists a ON a.id = al.artist_id
       LEFT JOIN mcp_api_keys k ON k.key_hash = al.api_key_hash
       ORDER BY al.created_at DESC
       LIMIT ${effectiveLimit} OFFSET ${offset}
