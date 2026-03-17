@@ -277,6 +277,7 @@ export default function AgentWorkSection() {
     try {
       setLoading(true);
       setError("");
+      setAuditPage(1);
       const res = await fetch(`/api/admin/agent-work?auditPage=1&auditLimit=50`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
