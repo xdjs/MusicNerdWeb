@@ -8,6 +8,7 @@ import { ugcColumns, whitelistedColumns } from "./columns";
 import UsersSection from "./UsersSection";
 import AdminTabs from "./AdminTabs";
 import McpKeysSection from "./McpKeysSection";
+import AgentWorkSection from "./AgentWorkSection";
 
 export default async function Admin() {
   const session = await getServerAuthSession();
@@ -48,6 +49,9 @@ export default async function Admin() {
         }
         mcpKeysContent={
           <McpKeysSection initialKeys={mcpKeys} />
+        }
+        agentWorkContent={
+          <AgentWorkSection />
         }
       />
     </section>
