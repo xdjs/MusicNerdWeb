@@ -60,5 +60,8 @@ certificates
 # claude code local settings
 .claude/settings.local.json
 
+# mcp config
+.mcp.json
+
 # scratch files
 wikidata_query.py
