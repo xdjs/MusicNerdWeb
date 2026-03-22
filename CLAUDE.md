@@ -22,8 +22,9 @@ MusicNerdWeb is a Next.js web application that serves as a crowd-sourced directo
 4. **AI-Powered Content**: Auto-generated artist biographies and fun facts
 5. **User-Generated Content (UGC)**: Community-driven artist data collection with admin moderation
 6. **Leaderboard System**: Track user contributions and rankings
-7. **Admin Dashboard**: Manage users, whitelist contributors, and moderate UGC
+7. **Admin Dashboard**: Manage users, whitelist contributors, moderate UGC, manage MCP keys, and view agent work
 8. **Spotify Integration**: Rich artist data, images, and music embeds
+9. **Cross-Platform ID Mapping**: Agent-driven mapping of artist IDs across Deezer, Apple Music, MusicBrainz, Wikidata, Tidal, Amazon Music, YouTube Music
 
 ## Project Structure
 ```
@@ -31,8 +32,10 @@ src/
 ├── app/                          # Next.js app router pages
 │   ├── _components/             # Global shared components
 │   ├── api/                     # API route handlers
+│   │   ├── mcp/                 # MCP server (tools, auth, audit, transformers)
+│   │   └── admin/               # Admin API routes (agent-work, mcp-keys, whitelist-user)
 │   ├── artist/[id]/             # Dynamic artist pages
-│   ├── admin/                   # Admin dashboard
+│   ├── admin/                   # Admin dashboard (UGC, Users, MCP Keys, Agent Work tabs)
 │   ├── profile/                 # User profile pages
 │   └── add-artist/              # Artist addition flow
 ├── components/ui/               # Reusable UI components (Radix-based)
@@ -41,9 +44,19 @@ src/
 │   ├── db/                      # Database schema and client
 │   └── utils/                   # Server utilities and queries
 │       ├── artistLinkService.ts # Shared helpers for platform link writes
+│       └── idMappingService.ts  # Cross-platform ID mapping (resolve, exclude, stats)
 ├── hooks/                       # Custom React hooks
 ├── lib/                         # Client-side utilities
 └── types/                       # TypeScript type definitions
+
+agents/
+└── id-mapping/                  # Claude-powered agent for cross-platform ID mapping
+    ├── prompt.md                # Agent prompt template
+    ├── claude-runner.sh         # Streams Claude API responses
+    ├── run-full-catalog.sh      # Orchestrates full catalog processing
+    ├── start-workers.sh         # Parallel worker launcher
+    ├── check-status.sh          # Worker monitoring + failure classification
+    └── mcp-config.json          # MCP server configuration for agents
 ```
 
 ## Database Schema
@@ -59,11 +72,19 @@ Key entities in the PostgreSQL database:
 - **funFacts**: AI-generated fun facts about artists
 - **mcp_api_keys**: API keys for MCP write tool authentication (SHA-256 hashed, revocable)
 - **mcp_audit_log**: Append-only audit trail for MCP write operations
+- **artist_id_mappings**: Cross-platform artist ID mappings (Deezer, Apple Music, MusicBrainz, Wikidata, Tidal, Amazon Music, YouTube Music). Tracks `confidence_level` (high/medium/low/manual) and `source` (wikidata/musicbrainz/name_search/web_search/manual).
+- **artist_mapping_exclusions**: Tracks artists that cannot be mapped to a platform. Uses `exclusion_reason` enum: conflict, name_mismatch, too_ambiguous. Supports soft-deletion.
+
+### Enums
+- **platform_type**: 'social', 'web3', 'listen'
+- **confidence_level**: 'high', 'medium', 'low', 'manual'
+- **exclusion_reason**: 'conflict', 'name_mismatch', 'too_ambiguous'
 
 ### Important Relationships
 - Artists are linked to users via `addedBy` (foreign key to users.id)
 - UGC submissions reference both artist and user
 - Platform links are validated against urlmap regex patterns
+- ID mappings reference artists via `artist_id` (UUID FK to artists)
 
 ## Authentication System
 - **Privy Email-First**: Users authenticate via Privy (email login as primary method)
@@ -95,10 +116,20 @@ Use these when writing new API endpoints that need auth/role checks.
 The MCP server at `/api/mcp` exposes tools for AI assistants to read and modify artist data via the Streamable HTTP transport.
 
 ### Tools
+
+**Artist data (original):**
 - **`search_artists`** — Search by name (read-only, no auth)
 - **`get_artist`** — Get artist detail by UUID (read-only, no auth)
 - **`set_artist_link`** — Set a platform link from a URL. Platform is auto-inferred via `extractArtistId()`. Requires auth.
 - **`delete_artist_link`** — Remove a platform link by `siteName`. Requires auth.
+
+**Cross-platform ID mapping (agent-focused):**
+- **`get_unmapped_artists`** — Retrieves artists with Spotify ID but missing mappings for a given platform (read-only, no auth)
+- **`get_mapping_stats`** — Returns platform coverage statistics (read-only, no auth)
+- **`get_artist_mappings`** — Returns all cross-platform ID mappings for an artist (read-only, no auth)
+- **`resolve_artist_id`** — Stores cross-platform ID mappings. Supports single-item or batch mode (up to 100 items). Requires auth.
+- **`exclude_artist_mapping`** — Marks an artist+platform combo as unmappable (with reason). Supports single or batch (up to 100). Requires auth.
+- **`get_mapping_exclusions`** — Retrieves exclusion records for analysis (read-only, no auth)
 
 Write tools share the same code path as UGC submissions (`setArtistLink`/`clearArtistLink` in `artistLinkService.ts`), ensuring consistent validation and bio regeneration.
 
@@ -108,7 +139,7 @@ Write tools require a Bearer token in the `Authorization` header. Keys are SHA-2
 Auth context is threaded to tool handlers via `AsyncLocalStorage` (`request-context.ts`). Write tools call `requireMcpAuth()` as their first operation.
 
 ### API Key Provisioning
-Keys are managed via SQL (no admin UI yet):
+Keys can be managed via the Admin Dashboard → MCP Keys tab (create/revoke), or via SQL:
 
 ```bash
 # Generate and insert a new key
@@ -130,11 +161,14 @@ Key API routes in `src/app/api/`:
 - `/artistBio/[id]` - AI-generated artist biographies
 - `/funFacts/[type]` - AI-generated fun facts
 - `/leaderboard` - User contribution rankings
-- `/admin/*` - Admin management endpoints
+- `/admin/whitelist-user/[id]` - Whitelist user management
+- `/admin/mcp-keys` - MCP key CRUD (GET list, POST create)
+- `/admin/mcp-keys/[id]/revoke` - Revoke an MCP API key
+- `/admin/agent-work` - Agent activity data (coverage stats, per-agent breakdown, audit log, exclusions)
 - `/auth/*` - Privy authentication routes
 - `/mcp/*` - MCP server for exposing artist data to AI assistants
-  - Read-only tools: `search_artists`, `get_artist` (no auth required)
-  - Write tools: `set_artist_link`, `delete_artist_link` (require API key auth)
+  - Read-only tools: `search_artists`, `get_artist`, `get_unmapped_artists`, `get_mapping_stats`, `get_artist_mappings`, `get_mapping_exclusions`
+  - Write tools: `set_artist_link`, `delete_artist_link`, `resolve_artist_id`, `exclude_artist_mapping` (require API key auth)
 - `/user` - User profile and wallet operations
 
 ### API Route Conventions
@@ -217,10 +251,12 @@ describe('GET /api/example', () => {
 npm run dev          # Start development server with HTTPS
 npm run build        # Production build
 npm run test         # Run Jest tests
+npm run test:watch   # Jest in watch mode
 npm run test:coverage # Test coverage report
+npm run test:ci      # Jest with --ci --coverage (used in CI)
 npm run lint         # ESLint
 npm run type-check   # TypeScript checking
-npm run ci           # Full CI pipeline (type-check + lint + test + build)
+npm run ci           # Full CI pipeline (type-check + lint + test:ci + build)
 ```
 
 ### Database Commands
@@ -270,12 +306,27 @@ Environment variables are validated via `src/env.ts` — review before adding ne
 - `src/app/api/searchArtists/route.ts` - Combined DB + Spotify search
 
 ### MCP Server
-- `src/app/api/mcp/server.ts` - Tool registration (search, get, set, delete)
+- `src/app/api/mcp/server.ts` - Tool registration (10 tools: artist data + ID mapping)
 - `src/app/api/mcp/route.ts` - HTTP transport + auth context threading
 - `src/app/api/mcp/auth.ts` - API key validation + requireMcpAuth()
 - `src/app/api/mcp/audit.ts` - Audit log helper
 - `src/app/api/mcp/request-context.ts` - AsyncLocalStorage for auth threading
+- `src/app/api/mcp/transformers/` - Response formatting (artist-summary.ts, artist-detail.ts)
 - `src/server/utils/artistLinkService.ts` - setArtistLink/clearArtistLink helpers
+- `src/server/utils/idMappingService.ts` - Cross-platform ID mapping service (resolve, exclude, stats, batch operations)
+
+### Admin Dashboard
+- `src/app/admin/page.tsx` - Admin page with tab layout (AdminTabs)
+- `src/app/admin/AdminTabs.tsx` - Tab navigation: UGC, Users, MCP Keys, Agent Work
+- `src/app/admin/McpKeysSection.tsx` - Create/revoke MCP API keys (replaces manual SQL)
+- `src/app/admin/AgentWorkSection.tsx` - Agent activity: coverage stats, per-agent breakdown, paginated audit log, exclusions by platform
+- `src/server/utils/queries/agentWorkQueries.ts` - Queries for agent work data (audit log, agent breakdown, exclusions)
+- `src/server/utils/queries/mcpKeyQueries.ts` - MCP key CRUD queries
+
+### ID Mapping Agent
+- `agents/id-mapping/` - Complete agent framework for cross-platform ID mapping at scale
+- Uses Claude API + MCP tools to map Spotify artist IDs to other platforms
+- Supports parallel workers, failure classification, and progress monitoring
 
 ## Git Workflow
 - **Branching**: Feature branches off `staging` → PR to `staging` → PR from `staging` to `main`
