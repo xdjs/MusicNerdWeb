@@ -104,7 +104,7 @@ export async function getUnmappedArtists(
           SELECT 1 FROM artist_mapping_exclusions e
           WHERE e.artist_id = a.id AND e.platform = ${platform}
         )
-      ORDER BY a.name ASC NULLS LAST
+      ORDER BY MD5(a.id || CURRENT_DATE::text)
       LIMIT ${limit} OFFSET ${offset}
     `),
   ]);
