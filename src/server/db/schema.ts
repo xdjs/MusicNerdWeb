@@ -316,6 +316,7 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 	}),
 	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
 	index("idx_mcp_audit_log_created_at").using("btree", table.createdAt.desc().nullsLast()),
+	index("idx_mcp_audit_log_api_key_hash_created_at").using("btree", table.apiKeyHash.asc().nullsLast(), table.createdAt.desc().nullsLast()),
 	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]);
