@@ -80,9 +80,6 @@ for line in sys.stdin:
         elif t == "result":
             elapsed = time.monotonic() - start
             mins, secs = divmod(int(elapsed), 60)
-            result = obj.get("result", "")
-            if result:
-                print(stamp(result), flush=True)
             dur_ms = obj.get("duration_ms", 0)
             api_ms = obj.get("duration_api_ms", 0)
             turns = obj.get("num_turns", 0)
