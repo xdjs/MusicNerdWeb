@@ -42,6 +42,30 @@ consecutive_failures=0
 completed_runs=0
 stop_reason=""
 
+# Best-effort heartbeat — never blocks or fails the main loop
+heartbeat() {
+  local hb_status="$1"
+  local hb_message="${2:-}"
+  local heartbeat_url="${HEARTBEAT_URL:-${MCP_URL%/mcp}/agent/heartbeat}"
+  curl -s -X POST "$heartbeat_url" \
+    -H "Authorization: Bearer $MCP_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"workerId\": $(printf '%s' "$WORKER_ID" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+      \"status\": \"$hb_status\",
+      \"currentRun\": $completed_runs,
+      \"batchPlatform\": \"deezer\",
+      \"batchSize\": $BATCH_SIZE,
+      \"message\": $(printf '%s' "$hb_message" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+      \"config\": {
+        \"batchSize\": $BATCH_SIZE,
+        \"maxIterations\": $MAX_ITERATIONS,
+        \"sleepBetween\": $SLEEP_BETWEEN,
+        \"batchTimeout\": $BATCH_TIMEOUT
+      }
+    }" >/dev/null 2>&1 || true
+}
+
 cleanup() {
   echo ""
   log "Interrupted — killing child processes..."
@@ -64,6 +88,8 @@ log " MCP URL:        $MCP_URL"
 log " Started:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 log "========================================"
 echo ""
+
+heartbeat "starting" "Worker starting"
 
 # Classify failure from exit code and log content.
 # Sets fail_reason and fail_category (transient, rate_limit, auth, fatal).
@@ -161,6 +187,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   echo "--- [$WORKER_ID] Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
   echo "[loop] Logfile: $logfile"
   echo "[loop] Launching claude-runner.sh (timeout: ${BATCH_TIMEOUT}s)..."
+  heartbeat "running" "Starting run $run_num"
 
   # Run the batch with a timeout, capturing output
   # Use stdbuf to disable buffering so tee gets output in real-time
@@ -195,12 +222,15 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
       break
     fi
 
+    heartbeat "running" "Run $run_num complete"
     echo "Sleeping ${SLEEP_BETWEEN}s..."
+    heartbeat "idle" "Sleeping ${SLEEP_BETWEEN}s between batches"
     sleep "$SLEEP_BETWEEN"
     continue
   fi
 
   # Handle failure
+  heartbeat "error" "$fail_reason"
   consecutive_failures=$((consecutive_failures + 1))
   log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/3]"
 
@@ -228,6 +258,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   # Rate limit — longer backoff
   if [[ "$fail_category" == "rate_limit" ]]; then
     log "Rate limited — backing off ${RATE_LIMIT_BACKOFF}s..."
+    heartbeat "idle" "Rate limited, backing off ${RATE_LIMIT_BACKOFF}s"
     sleep "$RATE_LIMIT_BACKOFF"
     continue
   fi
@@ -236,6 +267,8 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   log "Retrying in 30s..."
   sleep 30
 done
+
+heartbeat "stopping" "Finished: ${stop_reason:-reached max iterations}"
 
 log "========================================"
 log " Run Complete"

@@ -17,8 +17,15 @@ describe("agentWorkQueries", () => {
   async function setup() {
     const { db } = await import("@/server/db/drizzle");
     const { getMappingStats, getMappingExclusions } = await import("@/server/utils/idMappingService");
-    const { getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData } = await import("../agentWorkQueries");
-    return { db, getMappingStats, getMappingExclusions, getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData };
+    const {
+      getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData,
+      getActivityPulse, getHourlyActivity, getTodayCounts,
+    } = await import("../agentWorkQueries");
+    return {
+      db, getMappingStats, getMappingExclusions,
+      getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData,
+      getActivityPulse, getHourlyActivity, getTodayCounts,
+    };
   }
 
   describe("getAuditLog", () => {
@@ -71,6 +78,9 @@ describe("agentWorkQueries", () => {
         ])
         .mockResolvedValueOnce([
           { api_key_hash: "hash1", agent_label: "agent-1", total: 5 },
+        ])
+        .mockResolvedValueOnce([
+          { api_key_hash: "hash1", last_active_at: "2026-03-16T12:00:00Z" },
         ]);
 
       const result = await getAgentBreakdown();
@@ -79,6 +89,7 @@ describe("agentWorkQueries", () => {
       expect(result.agents[0].excludedCount).toBe(5);
       expect(result.agents[0].byConfidence.high).toBe(40);
       expect(result.agents[0].bySource.wikidata).toBe(10);
+      expect(result.agents[0].lastActiveAt).toBe("2026-03-16T12:00:00Z");
     });
 
     it("handles agent with mappings but no exclusions", async () => {
@@ -87,7 +98,10 @@ describe("agentWorkQueries", () => {
         .mockResolvedValueOnce([
           { api_key_hash: "hash1", agent_label: "agent-1", total: 30, high: 30, medium: 0, low: 0, manual: 0, src_wikidata: 30, src_musicbrainz: 0, src_name_search: 0, src_web_search: 0, src_manual: 0 },
         ])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { api_key_hash: "hash1", last_active_at: "2026-03-16T12:00:00Z" },
+        ]);
 
       const result = await getAgentBreakdown();
       expect(result.agents).toHaveLength(1);
@@ -100,12 +114,16 @@ describe("agentWorkQueries", () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
           { api_key_hash: "hash2", agent_label: "agent-2", total: 10 },
+        ])
+        .mockResolvedValueOnce([
+          { api_key_hash: "hash2", last_active_at: "2026-03-16T11:00:00Z" },
         ]);
 
       const result = await getAgentBreakdown();
       expect(result.agents).toHaveLength(1);
       expect(result.agents[0].resolvedCount).toBe(0);
       expect(result.agents[0].excludedCount).toBe(10);
+      expect(result.agents[0].lastActiveAt).toBe("2026-03-16T11:00:00Z");
     });
   });
 
@@ -136,6 +154,68 @@ describe("agentWorkQueries", () => {
     });
   });
 
+  describe("getActivityPulse", () => {
+    it("returns last write time and hourly rate", async () => {
+      const { db, getActivityPulse } = await setup();
+      (db.execute as jest.Mock).mockResolvedValueOnce([
+        { last_write_at: "2026-03-16T15:30:00Z", rate_last_hour: 42 },
+      ]);
+
+      const result = await getActivityPulse();
+      expect(result.lastWriteAt).toBe("2026-03-16T15:30:00Z");
+      expect(result.rateLastHour).toBe(42);
+    });
+
+    it("returns nulls/zeros when no audit entries exist", async () => {
+      const { db, getActivityPulse } = await setup();
+      (db.execute as jest.Mock).mockResolvedValueOnce([
+        { last_write_at: null, rate_last_hour: 0 },
+      ]);
+
+      const result = await getActivityPulse();
+      expect(result.lastWriteAt).toBeNull();
+      expect(result.rateLastHour).toBe(0);
+    });
+  });
+
+  describe("getHourlyActivity", () => {
+    it("returns hourly buckets with resolve and exclude counts", async () => {
+      const { db, getHourlyActivity } = await setup();
+      (db.execute as jest.Mock).mockResolvedValueOnce([
+        { hour: "2026-03-16T14:00:00Z", resolve_count: 20, exclude_count: 3 },
+        { hour: "2026-03-16T15:00:00Z", resolve_count: 35, exclude_count: 1 },
+      ]);
+
+      const result = await getHourlyActivity();
+      expect(result).toHaveLength(2);
+      expect(result[0].hour).toBe("2026-03-16T14:00:00Z");
+      expect(result[0].resolveCount).toBe(20);
+      expect(result[0].excludeCount).toBe(3);
+      expect(result[1].resolveCount).toBe(35);
+    });
+  });
+
+  describe("getTodayCounts", () => {
+    it("returns a map of platform to today count", async () => {
+      const { db, getTodayCounts } = await setup();
+      (db.execute as jest.Mock).mockResolvedValueOnce([
+        { platform: "deezer", today: 15 },
+        { platform: "tidal", today: 8 },
+      ]);
+
+      const result = await getTodayCounts();
+      expect(result).toEqual({ deezer: 15, tidal: 8 });
+    });
+
+    it("returns empty map when no mappings today", async () => {
+      const { db, getTodayCounts } = await setup();
+      (db.execute as jest.Mock).mockResolvedValueOnce([]);
+
+      const result = await getTodayCounts();
+      expect(result).toEqual({});
+    });
+  });
+
   describe("getAgentWorkData", () => {
     it("orchestrates all queries and returns combined shape", async () => {
       const { db, getMappingStats, getMappingExclusions, getAgentWorkData } = await setup();
@@ -147,17 +227,31 @@ describe("agentWorkQueries", () => {
       (db.execute as jest.Mock)
         .mockResolvedValueOnce([{ total: 10 }])
         .mockResolvedValueOnce([])
-        // getAgentBreakdown: mappings + exclusions
+        // getAgentBreakdown: mappings + exclusions + lastActive
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         // getExclusionsByPlatform: counts
+        .mockResolvedValueOnce([])
+        // getActivityPulse
+        .mockResolvedValueOnce([{ last_write_at: "2026-03-16T15:00:00Z", rate_last_hour: 10 }])
+        // getHourlyActivity
+        .mockResolvedValueOnce([])
+        // getTodayCounts
+        .mockResolvedValueOnce([{ platform: "deezer", today: 5 }])
+        // getActiveWorkers
         .mockResolvedValueOnce([]);
 
       const result = await getAgentWorkData(1, 50);
       expect(result.stats.totalArtistsWithSpotify).toBe(1000);
+      expect(result.stats.platformStats[0].todayCount).toBe(5);
       expect(result.auditLog.total).toBe(10);
       expect(result.agentBreakdown.agents).toHaveLength(0);
       expect(result.exclusions.platforms).toEqual({});
+      expect(result.activityPulse.lastWriteAt).toBe("2026-03-16T15:00:00Z");
+      expect(result.activityPulse.rateLastHour).toBe(10);
+      expect(result.hourlyActivity).toEqual([]);
+      expect(result.workers).toEqual([]);
     });
   });
 });
