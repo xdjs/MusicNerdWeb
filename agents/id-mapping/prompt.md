@@ -408,7 +408,7 @@ exclude_artist_mapping(artistId, "deezer", "too_ambiguous", "Name 'Aurora' retur
 
 ## Session Report
 
-At the end of each session, print a summary:
+At the end of each session, print the summary **exactly once** (do not duplicate it):
 
 ```
 === ID Mapping Session Report ===
