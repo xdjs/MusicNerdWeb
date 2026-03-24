@@ -2,7 +2,7 @@
 
 ## Context
 
-The id-mapping agents run on a remote droplet, calling the MCP API on Vercel. Currently the only way to check status is SSH + `check-status.sh`. The admin UI's Agent Work tab shows historical data but nothing about live activity or worker health. After the first 8-hour run surfaced issues (zombie re-processing, undetected token expiry), we need better observability.
+The id-mapping agents run on a remote droplet, calling the MCP API on Vercel. Currently the only way to check status is SSH + `check-status.sh`. The admin UI's Agent Work tab shows historical data but nothing about live activity or worker health. Production runs (13h, 80 batches, ~1,100 Deezer mappings) confirmed the need for better observability — issues like false-positive auth detection and timeout-killed workers went unnoticed until manual log analysis.
 
 **Scope:** Tier 1 (activity indicators from existing data) + Tier 2 (worker heartbeats via new endpoint).
 
@@ -22,9 +22,12 @@ Add to `schema.ts` alongside existing indexes.
 
 ### 1.2 New queries in `agentWorkQueries.ts`
 
-- **`getActivityPulse()`** — returns `{ lastWriteAt, rateLastHour }`
-  - `SELECT MAX(created_at) FROM mcp_audit_log`
-  - `SELECT COUNT(*) FROM mcp_audit_log WHERE created_at > NOW() - INTERVAL '1 hour'`
+- **`getActivityPulse()`** — returns `{ lastWriteAt, rateLastHour }` in a single query:
+  ```sql
+  SELECT MAX(created_at) AS last_write_at,
+         COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS rate_last_hour
+  FROM mcp_audit_log
+  ```
 
 - **`getHourlyActivity()`** — returns 24 hourly buckets
   ```sql
@@ -127,7 +130,7 @@ Add to `schema.ts` as `agentHeartbeats` table. `worker_id` has UNIQUE constraint
 }
 ```
 
-**Logic:** Upsert into `agent_heartbeats` on `worker_id`. Set `updated_at = now()`. On first insert, also set `started_at = now()`.
+**Logic:** Upsert into `agent_heartbeats` on `worker_id`. Set `updated_at = now()`. The `ON CONFLICT DO UPDATE` must **exclude `started_at`** from the SET clause so it's only set on initial insert, not overwritten on every heartbeat.
 
 ### 2.3 New queries: `src/server/utils/queries/heartbeatQueries.ts`
 
@@ -136,8 +139,11 @@ Add to `schema.ts` as `agentHeartbeats` table. `worker_id` has UNIQUE constraint
   ```sql
   SELECT *,
     CASE
-      WHEN status IN ('stopping', 'error') THEN 'stopped'
-      WHEN updated_at < NOW() - INTERVAL '11 minutes' THEN 'dead'
+      WHEN status = 'error' THEN 'error'
+      WHEN status = 'stopping' THEN 'stopped'
+      WHEN updated_at < NOW() - MAKE_INTERVAL(secs =>
+        COALESCE((config->>'batchTimeout')::int, 900) + 120
+      ) THEN 'dead'
       WHEN status = 'idle' THEN 'idle'
       ELSE 'running'
     END AS computed_status
@@ -152,7 +158,7 @@ Add `workers` to `AgentWorkData`:
 workers: {
   workerId: string;
   status: string;
-  computedStatus: "running" | "idle" | "stopped" | "dead";
+  computedStatus: "running" | "idle" | "stopped" | "error" | "dead";
   currentRun: number | null;
   batchPlatform: string | null;
   batchSize: number | null;
@@ -175,7 +181,7 @@ heartbeat() {
     -H "Authorization: Bearer $MCP_API_KEY" \
     -H "Content-Type: application/json" \
     -d "{
-      \"workerId\": \"$WORKER_ID\",
+      \"workerId\": $(printf '%s' "$WORKER_ID" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
       \"status\": \"$status\",
       \"currentRun\": $completed_runs,
       \"batchPlatform\": \"deezer\",
@@ -203,7 +209,7 @@ heartbeat() {
 ### 2.6 UI: WorkerStatusPanel in `AgentWorkSection.tsx`
 
 New component at top of Agent Work tab (above the activity pulse):
-- Card per worker: worker ID, status badge (green running / yellow idle / red dead / gray stopped), current run #, batch platform, uptime, last heartbeat relative time, message text
+- Card per worker: worker ID, status badge (green running / yellow idle / red error / red dead / gray stopped), current run #, batch platform, uptime, last heartbeat relative time, message text
 - Workers dead >24h hidden behind "Show inactive" toggle
 
 ### Files
