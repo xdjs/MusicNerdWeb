@@ -472,10 +472,9 @@ export default function AgentWorkSection() {
   return (
     <div className="space-y-8">
       {/* Eager: above the fold */}
-      <div className="flex items-center justify-between">
-        <div />
-        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading}>
-          {loading ? "Refreshing..." : "Refresh"}
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading || loadingDetails}>
+          {(loading || loadingDetails) ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
       <WorkerStatusPanel workers={summary.workers} />
