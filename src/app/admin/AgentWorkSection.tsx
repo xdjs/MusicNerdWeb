@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { AgentWorkData } from "@/server/utils/queries/agentWorkQueries";
+import type { AgentWorkSummary, AgentWorkDetails } from "@/server/utils/queries/agentWorkQueries";
 
 const formatDate = (value: string | null | undefined): string => {
   if (!value) return "";
@@ -26,13 +26,6 @@ const formatDate = (value: string | null | undefined): string => {
     })
     .replace(/\s([AP]M)$/i, "\u00A0$1");
   return `${datePart} ${timePart}`;
-};
-
-const ACTION_COLORS: Record<string, string> = {
-  resolve: "bg-green-500/20 text-green-400",
-  exclude: "bg-yellow-500/20 text-yellow-400",
-  set: "bg-blue-500/20 text-blue-400",
-  delete: "bg-red-500/20 text-red-400",
 };
 
 function timeAgo(dateStr: string | null | undefined): string {
@@ -50,6 +43,13 @@ function timeAgo(dateStr: string | null | undefined): string {
   return `${days}d ago`;
 }
 
+const ACTION_COLORS: Record<string, string> = {
+  resolve: "bg-green-500/20 text-green-400",
+  exclude: "bg-yellow-500/20 text-yellow-400",
+  set: "bg-blue-500/20 text-blue-400",
+  delete: "bg-red-500/20 text-red-400",
+};
+
 const STATUS_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
   running: { dot: "bg-green-500", bg: "border-green-500/30", text: "text-green-400" },
   idle: { dot: "bg-yellow-500", bg: "border-yellow-500/30", text: "text-yellow-400" },
@@ -58,17 +58,18 @@ const STATUS_STYLES: Record<string, { dot: string; bg: string; text: string }> =
   stopped: { dot: "bg-zinc-500", bg: "border-zinc-500/30", text: "text-zinc-400" },
 };
 
-function WorkerStatusPanel({ workers }: { workers: AgentWorkData["workers"] }) {
+// --- Eager components (above the fold) ---
+
+function WorkerStatusPanel({ workers }: { workers: AgentWorkSummary["workers"] }) {
   const [showInactive, setShowInactive] = useState(false);
   const dayMs = 24 * 60 * 60 * 1000;
-  const active = workers.filter(w => {
+  const activeSet = new Set(workers.filter(w => {
     if (w.computedStatus === "running" || w.computedStatus === "idle" || w.computedStatus === "error") return true;
     const age = Date.now() - new Date(w.updatedAt.endsWith("Z") ? w.updatedAt : `${w.updatedAt}Z`).getTime();
     return age < dayMs;
-  });
-  const inactive = workers.filter(w => !active.includes(w));
-
-  const visibleWorkers = showInactive ? workers : active;
+  }));
+  const inactive = workers.filter(w => !activeSet.has(w));
+  const visibleWorkers = showInactive ? workers : [...activeSet];
 
   if (workers.length === 0) return null;
 
@@ -110,7 +111,7 @@ function WorkerStatusPanel({ workers }: { workers: AgentWorkData["workers"] }) {
   );
 }
 
-function ActivityPulseBar({ pulse }: { pulse: AgentWorkData["activityPulse"] }) {
+function ActivityPulseBar({ pulse }: { pulse: AgentWorkSummary["activityPulse"] }) {
   const ago = timeAgo(pulse.lastWriteAt);
   const ms = pulse.lastWriteAt
     ? Date.now() - new Date(pulse.lastWriteAt.endsWith("Z") ? pulse.lastWriteAt : `${pulse.lastWriteAt}Z`).getTime()
@@ -131,7 +132,7 @@ function ActivityPulseBar({ pulse }: { pulse: AgentWorkData["activityPulse"] }) 
   );
 }
 
-function HourlySparkline({ data }: { data: AgentWorkData["hourlyActivity"] }) {
+function HourlySparkline({ data }: { data: AgentWorkSummary["hourlyActivity"] }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map(d => d.resolveCount + d.excludeCount), 1);
 
@@ -157,16 +158,7 @@ function HourlySparkline({ data }: { data: AgentWorkData["hourlyActivity"] }) {
   );
 }
 
-function ActionBadge({ action }: { action: string }) {
-  const colorClass = ACTION_COLORS[action] ?? "bg-muted text-muted-foreground";
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
-      {action}
-    </span>
-  );
-}
-
-function PlatformStatsSection({ stats }: { stats: AgentWorkData["stats"] }) {
+function PlatformStatsSection({ stats }: { stats: AgentWorkSummary["stats"] }) {
   return (
     <div>
       <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
@@ -194,7 +186,18 @@ function PlatformStatsSection({ stats }: { stats: AgentWorkData["stats"] }) {
   );
 }
 
-function AgentBreakdownSection({ agents }: { agents: AgentWorkData["agentBreakdown"]["agents"] }) {
+// --- Lazy components (loaded on demand) ---
+
+function ActionBadge({ action }: { action: string }) {
+  const colorClass = ACTION_COLORS[action] ?? "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+      {action}
+    </span>
+  );
+}
+
+function AgentBreakdownSection({ agents }: { agents: AgentWorkDetails["agentBreakdown"]["agents"] }) {
   if (agents.length === 0) {
     return <p className="text-muted-foreground text-sm">No agent activity yet.</p>;
   }
@@ -246,7 +249,7 @@ function AuditLogSection({
   auditLog,
   onPageChange,
 }: {
-  auditLog: AgentWorkData["auditLog"];
+  auditLog: AgentWorkDetails["auditLog"];
   onPageChange: (page: number) => void;
 }) {
   const totalPages = Math.ceil(auditLog.total / auditLog.limit);
@@ -265,7 +268,7 @@ function AuditLogSection({
               <TableHead>Action</TableHead>
               <TableHead>Field</TableHead>
               <TableHead>Artist</TableHead>
-              <TableHead>Old → New</TableHead>
+              <TableHead>{"Old → New"}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -327,7 +330,7 @@ function AuditLogSection({
   );
 }
 
-function ExclusionsSection({ exclusions }: { exclusions: AgentWorkData["exclusions"] }) {
+function ExclusionsSection({ exclusions }: { exclusions: AgentWorkDetails["exclusions"] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const platforms = Object.entries(exclusions.platforms);
 
@@ -392,26 +395,28 @@ function ExclusionsSection({ exclusions }: { exclusions: AgentWorkData["exclusio
   );
 }
 
+// --- Main component ---
+
 export default function AgentWorkSection() {
-  const [data, setData] = useState<AgentWorkData | null>(null);
+  const [summary, setSummary] = useState<AgentWorkSummary | null>(null);
+  const [details, setDetails] = useState<AgentWorkDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [paginatingAudit, setPaginatingAudit] = useState(false);
   const [error, setError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
 
-  // Initial fetch — loads all sections
-  const fetchAll = useCallback(async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      setAuditPage(1);
-      const res = await fetch(`/api/admin/agent-work?auditPage=1&auditLimit=50`);
+      const res = await fetch("/api/admin/agent-work");
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body.error || `Failed to load (${res.status})`);
         return;
       }
-      setData(await res.json());
+      setSummary(await res.json());
     } catch {
       setError("Failed to load agent work data");
     } finally {
@@ -419,28 +424,26 @@ export default function AgentWorkSection() {
     }
   }, []);
 
-  // Pagination fetch — only updates the audit log section
-  const fetchAuditPage = useCallback(async (page: number) => {
+  const fetchDetails = useCallback(async (page = 1) => {
     try {
-      setPaginatingAudit(true);
-      const res = await fetch(`/api/admin/agent-work?auditPage=${page}&auditLimit=50`);
+      if (page === 1) setLoadingDetails(true);
+      else setPaginatingAudit(true);
+      const res = await fetch(`/api/admin/agent-work?sections=details&auditPage=${page}&auditLimit=50`);
       if (!res.ok) return;
-      const result = await res.json();
-      setData((prev) => prev ? { ...prev, auditLog: result.auditLog } : result);
+      const data = await res.json();
+      setDetails(data);
+      setAuditPage(page);
     } catch {
-      // Silently fail — stale audit page is acceptable
+      // Silently fail — stale details are acceptable
     } finally {
+      setLoadingDetails(false);
       setPaginatingAudit(false);
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
-  useEffect(() => {
-    if (auditPage > 1) fetchAuditPage(auditPage);
-  }, [auditPage, fetchAuditPage]);
-
-  if (loading && !data) {
+  if (loading && !summary) {
     return (
       <div className="flex items-center justify-center h-48">
         <div className="animate-spin h-8 w-8 border-2 border-[#9b83a0] border-t-transparent rounded-full" />
@@ -448,30 +451,51 @@ export default function AgentWorkSection() {
     );
   }
 
-  if (error && !data) {
+  if (error && !summary) {
     return (
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
-        <Button variant="outline" className="mt-3" onClick={() => fetchAll()}>
+        <Button variant="outline" className="mt-3" onClick={() => fetchSummary()}>
           Retry
         </Button>
       </div>
     );
   }
 
-  if (!data) return null;
+  if (!summary) return null;
 
   return (
     <div className="space-y-8">
-      <WorkerStatusPanel workers={data.workers} />
-      <ActivityPulseBar pulse={data.activityPulse} />
-      <HourlySparkline data={data.hourlyActivity} />
-      <PlatformStatsSection stats={data.stats} />
-      <AgentBreakdownSection agents={data.agentBreakdown.agents} />
-      <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
-        <AuditLogSection auditLog={data.auditLog} onPageChange={setAuditPage} />
-      </div>
-      <ExclusionsSection exclusions={data.exclusions} />
+      {/* Eager: above the fold */}
+      <WorkerStatusPanel workers={summary.workers} />
+      <ActivityPulseBar pulse={summary.activityPulse} />
+      <HourlySparkline data={summary.hourlyActivity} />
+      <PlatformStatsSection stats={summary.stats} />
+
+      {/* Lazy: loaded on demand */}
+      {!details && !loadingDetails && (
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" onClick={() => fetchDetails()}>
+            Show Details
+          </Button>
+        </div>
+      )}
+
+      {loadingDetails && (
+        <div className="flex items-center justify-center h-24">
+          <div className="animate-spin h-6 w-6 border-2 border-[#9b83a0] border-t-transparent rounded-full" />
+        </div>
+      )}
+
+      {details && (
+        <>
+          <AgentBreakdownSection agents={details.agentBreakdown.agents} />
+          <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
+            <AuditLogSection auditLog={details.auditLog} onPageChange={(p) => fetchDetails(p)} />
+          </div>
+          <ExclusionsSection exclusions={details.exclusions} />
+        </>
+      )}
     </div>
   );
 }

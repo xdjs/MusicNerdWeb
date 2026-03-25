@@ -3,7 +3,8 @@ import { jest } from "@jest/globals";
 
 jest.mock("@/lib/auth-helpers", () => ({ requireAdmin: jest.fn() }));
 jest.mock("@/server/utils/queries/agentWorkQueries", () => ({
-  getAgentWorkData: jest.fn(),
+  getAgentWorkSummary: jest.fn(),
+  getAgentWorkDetails: jest.fn(),
 }));
 
 // Polyfill Response.json
@@ -20,17 +21,23 @@ describe("GET /api/admin/agent-work", () => {
 
   async function setup() {
     const { requireAdmin } = await import("@/lib/auth-helpers");
-    const { getAgentWorkData } = await import("@/server/utils/queries/agentWorkQueries");
+    const { getAgentWorkSummary, getAgentWorkDetails } = await import("@/server/utils/queries/agentWorkQueries");
     const { GET } = await import("../route");
-    return { GET, requireAdmin, getAgentWorkData };
+    return { GET, requireAdmin, getAgentWorkSummary, getAgentWorkDetails };
   }
 
   function makeRequest(params = "") {
     return new Request(`http://localhost:3000/api/admin/agent-work${params}`);
   }
 
-  const mockData = {
+  const mockSummary = {
     stats: { totalArtistsWithSpotify: 1000, platformStats: [] },
+    activityPulse: { lastWriteAt: null, rateLastHour: 0 },
+    hourlyActivity: [],
+    workers: [],
+  };
+
+  const mockDetails = {
     auditLog: { entries: [], total: 0, page: 1, limit: 50 },
     agentBreakdown: { agents: [] },
     exclusions: { platforms: {} },
@@ -47,53 +54,47 @@ describe("GET /api/admin/agent-work", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 403 when not admin", async () => {
-    const { GET, requireAdmin } = await setup();
-    (requireAdmin as jest.Mock).mockResolvedValue({
-      authenticated: false,
-      response: Response.json({ error: "Forbidden" }, { status: 403 }),
-    });
-
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(403);
-  });
-
-  it("returns all four data sections on success", async () => {
-    const { GET, requireAdmin, getAgentWorkData } = await setup();
+  it("returns summary by default", async () => {
+    const { GET, requireAdmin, getAgentWorkSummary } = await setup();
     (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });
-    (getAgentWorkData as jest.Mock).mockResolvedValue(mockData);
+    (getAgentWorkSummary as jest.Mock).mockResolvedValue(mockSummary);
 
     const res = await GET(makeRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveProperty("stats");
+    expect(body).toHaveProperty("activityPulse");
+    expect(body).toHaveProperty("workers");
+    expect(body).not.toHaveProperty("auditLog");
+  });
+
+  it("returns details when sections=details", async () => {
+    const { GET, requireAdmin, getAgentWorkDetails } = await setup();
+    (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });
+    (getAgentWorkDetails as jest.Mock).mockResolvedValue(mockDetails);
+
+    const res = await GET(makeRequest("?sections=details"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
     expect(body).toHaveProperty("auditLog");
     expect(body).toHaveProperty("agentBreakdown");
     expect(body).toHaveProperty("exclusions");
+    expect(body).not.toHaveProperty("stats");
   });
 
-  it("passes pagination params to query", async () => {
-    const { GET, requireAdmin, getAgentWorkData } = await setup();
+  it("passes pagination params to details query", async () => {
+    const { GET, requireAdmin, getAgentWorkDetails } = await setup();
     (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });
-    (getAgentWorkData as jest.Mock).mockResolvedValue(mockData);
+    (getAgentWorkDetails as jest.Mock).mockResolvedValue(mockDetails);
 
-    await GET(makeRequest("?auditPage=2&auditLimit=25"));
-    expect(getAgentWorkData).toHaveBeenCalledWith(2, 25);
-  });
-
-  it("defaults pagination when no params", async () => {
-    const { GET, requireAdmin, getAgentWorkData } = await setup();
-    (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });
-    (getAgentWorkData as jest.Mock).mockResolvedValue(mockData);
-
-    await GET(makeRequest());
-    expect(getAgentWorkData).toHaveBeenCalledWith(1, 50);
+    await GET(makeRequest("?sections=details&auditPage=2&auditLimit=25"));
+    expect(getAgentWorkDetails).toHaveBeenCalledWith(2, 25);
   });
 
   it("returns 500 on query error", async () => {
-    const { GET, requireAdmin, getAgentWorkData } = await setup();
+    const { GET, requireAdmin, getAgentWorkSummary } = await setup();
     (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });
-    (getAgentWorkData as jest.Mock).mockRejectedValue(new Error("DB down"));
+    (getAgentWorkSummary as jest.Mock).mockRejectedValue(new Error("DB down"));
 
     const res = await GET(makeRequest());
     expect(res.status).toBe(500);

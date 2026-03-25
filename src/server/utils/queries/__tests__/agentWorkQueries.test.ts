@@ -18,12 +18,13 @@ describe("agentWorkQueries", () => {
     const { db } = await import("@/server/db/drizzle");
     const { getMappingStats, getMappingExclusions } = await import("@/server/utils/idMappingService");
     const {
-      getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData,
+      getAuditLog, getAgentBreakdown, getExclusionsByPlatform,
+      getAgentWorkSummary, getAgentWorkDetails,
       getActivityPulse, getHourlyActivity, getTodayCounts,
     } = await import("../agentWorkQueries");
     return {
       db, getMappingStats, getMappingExclusions,
-      getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkData,
+      getAuditLog, getAgentBreakdown, getExclusionsByPlatform, getAgentWorkSummary, getAgentWorkDetails,
       getActivityPulse, getHourlyActivity, getTodayCounts,
     };
   }
@@ -216,23 +217,14 @@ describe("agentWorkQueries", () => {
     });
   });
 
-  describe("getAgentWorkData", () => {
-    it("orchestrates all queries and returns combined shape", async () => {
-      const { db, getMappingStats, getMappingExclusions, getAgentWorkData } = await setup();
+  describe("getAgentWorkSummary", () => {
+    it("returns stats with todayCounts, pulse, sparkline, and workers", async () => {
+      const { db, getMappingStats, getAgentWorkSummary } = await setup();
       (getMappingStats as jest.Mock).mockResolvedValueOnce({
         totalArtistsWithSpotify: 1000,
         platformStats: [{ platform: "deezer", mappedCount: 50, percentage: 5 }],
       });
-      // getAuditLog: count + rows
       (db.execute as jest.Mock)
-        .mockResolvedValueOnce([{ total: 10 }])
-        .mockResolvedValueOnce([])
-        // getAgentBreakdown: mappings + exclusions + lastActive
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        // getExclusionsByPlatform: counts
-        .mockResolvedValueOnce([])
         // getActivityPulse
         .mockResolvedValueOnce([{ last_write_at: "2026-03-16T15:00:00Z", rate_last_hour: 10 }])
         // getHourlyActivity
@@ -242,16 +234,34 @@ describe("agentWorkQueries", () => {
         // getActiveWorkers
         .mockResolvedValueOnce([]);
 
-      const result = await getAgentWorkData(1, 50);
+      const result = await getAgentWorkSummary();
       expect(result.stats.totalArtistsWithSpotify).toBe(1000);
       expect(result.stats.platformStats[0].todayCount).toBe(5);
-      expect(result.auditLog.total).toBe(10);
-      expect(result.agentBreakdown.agents).toHaveLength(0);
-      expect(result.exclusions.platforms).toEqual({});
       expect(result.activityPulse.lastWriteAt).toBe("2026-03-16T15:00:00Z");
       expect(result.activityPulse.rateLastHour).toBe(10);
       expect(result.hourlyActivity).toEqual([]);
       expect(result.workers).toEqual([]);
+    });
+  });
+
+  describe("getAgentWorkDetails", () => {
+    it("returns audit log, agent breakdown, and exclusions", async () => {
+      const { db, getAgentWorkDetails } = await setup();
+      (db.execute as jest.Mock)
+        // getAuditLog: count + rows
+        .mockResolvedValueOnce([{ total: 10 }])
+        .mockResolvedValueOnce([])
+        // getAgentBreakdown: mappings + exclusions + lastActive
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        // getExclusionsByPlatform: counts
+        .mockResolvedValueOnce([]);
+
+      const result = await getAgentWorkDetails(1, 50);
+      expect(result.auditLog.total).toBe(10);
+      expect(result.agentBreakdown.agents).toHaveLength(0);
+      expect(result.exclusions.platforms).toEqual({});
     });
   });
 });

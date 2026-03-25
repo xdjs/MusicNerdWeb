@@ -49,11 +49,17 @@ export interface PlatformStat {
   todayCount: number;
 }
 
-export interface AgentWorkData {
+export interface AgentWorkSummary {
   stats: {
     totalArtistsWithSpotify: number;
     platformStats: PlatformStat[];
   };
+  activityPulse: ActivityPulse;
+  hourlyActivity: HourlyActivityBucket[];
+  workers: WorkerHeartbeat[];
+}
+
+export interface AgentWorkDetails {
   auditLog: {
     entries: AuditLogEntry[];
     total: number;
@@ -67,10 +73,10 @@ export interface AgentWorkData {
       total: number;
     }>;
   };
-  activityPulse: ActivityPulse;
-  hourlyActivity: HourlyActivityBucket[];
-  workers: WorkerHeartbeat[];
 }
+
+// Combined type for backward compat
+export type AgentWorkData = AgentWorkSummary & AgentWorkDetails;
 
 // --- Queries ---
 
@@ -250,7 +256,7 @@ export async function getAgentBreakdown(): Promise<{ agents: AgentBreakdownRow[]
   return { agents: [...agentMap.values()] };
 }
 
-export async function getExclusionsByPlatform(): Promise<AgentWorkData["exclusions"]> {
+export async function getExclusionsByPlatform(): Promise<AgentWorkDetails["exclusions"]> {
   // First, get counts per platform to skip empty ones
   const countRows = await db.execute<{ platform: string; total: number }>(sql`
     SELECT platform, COUNT(*)::int AS total
@@ -271,7 +277,7 @@ export async function getExclusionsByPlatform(): Promise<AgentWorkData["exclusio
     platformsWithData.map(({ platform }) => getMappingExclusions(platform, 500))
   );
 
-  const platforms: AgentWorkData["exclusions"]["platforms"] = {};
+  const platforms: AgentWorkDetails["exclusions"]["platforms"] = {};
   platformsWithData.forEach(({ platform }, i) => {
     platforms[platform] = results[i];
   });
@@ -279,20 +285,10 @@ export async function getExclusionsByPlatform(): Promise<AgentWorkData["exclusio
   return { platforms };
 }
 
-export async function getAgentWorkData(
-  auditPage = 1,
-  auditLimit = 50,
-): Promise<AgentWorkData> {
-  // Split into two waves to avoid saturating the connection pool
-  // Wave 1: core data (getMappingStats=2, getAuditLog=2, getAgentBreakdown=3, getExclusionsByPlatform=1+ = ~8 connections)
-  const [stats, auditLog, agentBreakdown, exclusions] = await Promise.all([
+// Lightweight summary — loaded eagerly on tab open (~6 concurrent connections)
+export async function getAgentWorkSummary(): Promise<AgentWorkSummary> {
+  const [stats, activityPulse, hourlyActivity, todayCounts, workers] = await Promise.all([
     getMappingStats(),
-    getAuditLog(auditPage, auditLimit),
-    getAgentBreakdown(),
-    getExclusionsByPlatform(),
-  ]);
-  // Wave 2: monitoring data (4 lightweight queries)
-  const [activityPulse, hourlyActivity, todayCounts, workers] = await Promise.all([
     getActivityPulse(),
     getHourlyActivity(),
     getTodayCounts(),
@@ -307,5 +303,19 @@ export async function getAgentWorkData(
     })),
   };
 
-  return { stats: statsWithToday, auditLog, agentBreakdown, exclusions, activityPulse, hourlyActivity, workers };
+  return { stats: statsWithToday, activityPulse, hourlyActivity, workers };
+}
+
+// Heavy details — loaded on demand via "Show Details" click (~7 concurrent connections)
+export async function getAgentWorkDetails(
+  auditPage = 1,
+  auditLimit = 50,
+): Promise<AgentWorkDetails> {
+  const [auditLog, agentBreakdown, exclusions] = await Promise.all([
+    getAuditLog(auditPage, auditLimit),
+    getAgentBreakdown(),
+    getExclusionsByPlatform(),
+  ]);
+
+  return { auditLog, agentBreakdown, exclusions };
 }
