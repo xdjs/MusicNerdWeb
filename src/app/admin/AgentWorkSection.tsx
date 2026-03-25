@@ -482,6 +482,7 @@ export default function AgentWorkSection() {
   const [paginatingAudit, setPaginatingAudit] = useState(false);
   const [error, setError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
+  const [autoPoll, setAutoPoll] = useState(true);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -525,6 +526,12 @@ export default function AgentWorkSection() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  useEffect(() => {
+    if (!autoPoll) return;
+    const interval = setInterval(() => { fetchSummary(); }, 15_000);
+    return () => clearInterval(interval);
+  }, [autoPoll, fetchSummary]);
+
   if (loading && !summary) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -549,9 +556,18 @@ export default function AgentWorkSection() {
   return (
     <div className="space-y-8">
       {/* Eager: above the fold */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading || loadingDetails}>
           {(loading || loadingDetails) ? "Refreshing..." : "Refresh"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={autoPoll ? "text-green-400" : "text-muted-foreground"}
+          onClick={() => setAutoPoll(p => !p)}
+        >
+          <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${autoPoll ? "bg-green-500" : "bg-zinc-500"}`} />
+          {autoPoll ? "Live" : "Paused"}
         </Button>
       </div>
       <WorkerStatusPanel workers={summary.workers} />
