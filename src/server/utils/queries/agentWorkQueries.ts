@@ -6,6 +6,7 @@ import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { getMappingStats, getMappingExclusions, VALID_MAPPING_PLATFORMS } from "@/server/utils/idMappingService";
 import { getActiveWorkers, type WorkerHeartbeat } from "./heartbeatQueries";
+import { getRunHistory, type AgentRun } from "./runQueries";
 
 // --- Types ---
 
@@ -73,6 +74,7 @@ export interface AgentWorkDetails {
       total: number;
     }>;
   };
+  runHistory: { runs: AgentRun[]; total: number };
 }
 
 // Combined type for backward compat
@@ -311,11 +313,12 @@ export async function getAgentWorkDetails(
   auditPage = 1,
   auditLimit = 50,
 ): Promise<AgentWorkDetails> {
-  const [auditLog, agentBreakdown, exclusions] = await Promise.all([
+  const [auditLog, agentBreakdown, exclusions, runHistory] = await Promise.all([
     getAuditLog(auditPage, auditLimit),
     getAgentBreakdown(),
     getExclusionsByPlatform(),
+    getRunHistory(),
   ]);
 
-  return { auditLog, agentBreakdown, exclusions };
+  return { auditLog, agentBreakdown, exclusions, runHistory };
 }

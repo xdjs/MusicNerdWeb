@@ -90,6 +90,7 @@ const mockDetails = {
       },
     },
   },
+  runHistory: { runs: [], total: 0 },
 };
 
 // Import component statically to avoid React duplication from resetModules

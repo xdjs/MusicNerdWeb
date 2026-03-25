@@ -68,6 +68,80 @@ heartbeat() {
     }" >/dev/null 2>&1 || true
 }
 
+# Best-effort run report — parses log file and POSTs metrics
+report_run() {
+  local rr_status="$1"
+  local logfile="$2"
+  local started_iso="$3"
+  local report_url="${REPORT_URL:-${MCP_URL%/mcp}/agent/run-report}"
+
+  # Base payload (always sent)
+  local payload="{
+    \"workerId\": $(printf '%s' "$WORKER_ID" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+    \"runNumber\": $completed_runs,
+    \"platform\": \"deezer\",
+    \"status\": \"$rr_status\",
+    \"startedAt\": \"$started_iso\",
+    \"batchSize\": $BATCH_SIZE"
+
+  # Parse metrics from log file (only on completion)
+  if [[ "$rr_status" != "running" ]] && [[ -f "$logfile" ]]; then
+    local ended_iso
+    ended_iso=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+    # Timing from "Batch complete:" line
+    local batch_line wall_secs claude_secs api_secs run_turns
+    batch_line=$(grep "Batch complete:" "$logfile" 2>/dev/null | tail -1)
+    if [[ -n "$batch_line" ]]; then
+      wall_secs=$(echo "$batch_line" | grep -oE '[0-9]+m[0-9]+s wall' | head -1 | sed 's/m/*60+/;s/s wall//' | bc 2>/dev/null || echo "")
+      claude_secs=$(echo "$batch_line" | grep -oE '[0-9]+s claude' | head -1 | grep -oE '[0-9]+')
+      api_secs=$(echo "$batch_line" | grep -oE '[0-9]+s api' | head -1 | grep -oE '[0-9]+')
+      run_turns=$(echo "$batch_line" | grep -oE '[0-9]+ turns' | head -1 | grep -oE '[0-9]+')
+    fi
+
+    # Session report metrics
+    local resolved excluded skipped errors
+    local high medium conflicts mismatches ambiguous
+    resolved=$(grep -oh 'Resolved: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    excluded=$(grep -oh 'Excluded: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    skipped=$(grep -oh 'Skipped/Unresolved[^:]*: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
+    errors=$(grep -oh 'Errors: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    high=$(grep -oh 'High: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    medium=$(grep -oh 'Medium: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    conflicts=$(grep -oh 'Conflicts: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    mismatches=$(grep -oh 'Name mismatches: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    ambiguous=$(grep -oh 'Too ambiguous: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+
+    payload="$payload,
+    \"endedAt\": \"$ended_iso\""
+    [[ -n "$wall_secs" ]] && payload="$payload, \"wallTimeSecs\": $wall_secs"
+    [[ -n "$claude_secs" ]] && payload="$payload, \"claudeTimeSecs\": $claude_secs"
+    [[ -n "$api_secs" ]] && payload="$payload, \"apiTimeSecs\": $api_secs"
+    [[ -n "$run_turns" ]] && payload="$payload, \"turns\": $run_turns"
+    payload="$payload,
+    \"resolved\": ${resolved:-0},
+    \"excluded\": ${excluded:-0},
+    \"skipped\": ${skipped:-0},
+    \"errors\": ${errors:-0},
+    \"highConfidence\": ${high:-0},
+    \"mediumConfidence\": ${medium:-0},
+    \"conflicts\": ${conflicts:-0},
+    \"nameMismatches\": ${mismatches:-0},
+    \"tooAmbiguous\": ${ambiguous:-0}"
+
+    [[ -n "$exit_code" ]] && payload="$payload, \"exitCode\": $exit_code"
+    [[ -n "$fail_category" ]] && payload="$payload, \"failCategory\": \"$fail_category\""
+    [[ -n "$fail_reason" ]] && payload="$payload, \"failReason\": $(printf '%s' "$fail_reason" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')"
+  fi
+
+  payload="$payload }"
+
+  curl -s -X POST "$report_url" \
+    -H "Authorization: Bearer $MCP_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "$payload" >/dev/null 2>&1 || true
+}
+
 cleanup() {
   echo ""
   log "Interrupted — killing child processes..."
@@ -190,7 +264,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   echo "--- [$WORKER_ID] Run $run_num / $MAX_ITERATIONS  [$timestamp] ---"
   echo "[loop] Logfile: $logfile"
   echo "[loop] Launching claude-runner.sh (timeout: ${BATCH_TIMEOUT}s)..."
+  batch_start_iso=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
   heartbeat "running" "Starting run $run_num"
+  report_run "running" "" "$batch_start_iso"
 
   # Run the batch with a timeout, capturing output
   # Use stdbuf to disable buffering so tee gets output in real-time
@@ -213,6 +289,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     # Check if all artists are mapped
     if grep -q '"totalUnmapped":.*0\b' "$logfile" 2>/dev/null || \
        grep -q 'totalUnmapped.*: 0\b' "$logfile" 2>/dev/null; then
+      report_run "success" "$logfile" "$batch_start_iso"
       stop_reason="all artists mapped"
       log "STOP: $stop_reason"
       break
@@ -220,11 +297,13 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     # Check if batch returned 0 artists (nothing left to process)
     if grep -qE '(No unmapped artists|unmapped.*found: 0|Batch size: 0)' "$logfile" 2>/dev/null; then
+      report_run "success" "$logfile" "$batch_start_iso"
       stop_reason="no unmapped artists remaining"
       log "STOP: $stop_reason"
       break
     fi
 
+    report_run "success" "$logfile" "$batch_start_iso"
     heartbeat "running" "Run $run_num complete"
     echo "Sleeping ${SLEEP_BETWEEN}s..."
     heartbeat "idle" "Sleeping ${SLEEP_BETWEEN}s between batches"
@@ -233,6 +312,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   fi
 
   # Handle failure
+  report_run "failed" "$logfile" "$batch_start_iso"
   heartbeat "error" "$fail_reason"
   consecutive_failures=$((consecutive_failures + 1))
   log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/3]"
