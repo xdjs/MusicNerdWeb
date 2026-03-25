@@ -442,8 +442,8 @@ export default function AgentWorkSection() {
     }
   }, []);
 
-  const handleRefresh = useCallback(() => {
-    fetchSummary();
+  const handleRefresh = useCallback(async () => {
+    await fetchSummary();
     if (details) fetchDetails(auditPage);
   }, [fetchSummary, fetchDetails, details, auditPage]);
 
