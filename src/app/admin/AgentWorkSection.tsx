@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -482,22 +482,28 @@ export default function AgentWorkSection() {
   const [paginatingAudit, setPaginatingAudit] = useState(false);
   const [error, setError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
+  const [autoPoll, setAutoPoll] = useState(true);
+  const fetchInFlight = useRef(false);
 
-  const fetchSummary = useCallback(async () => {
+  const fetchSummary = useCallback(async (background = false) => {
+    if (fetchInFlight.current) return;
+    fetchInFlight.current = true;
     try {
-      setLoading(true);
-      setError("");
+      if (!background) { setLoading(true); setError(""); }
       const res = await fetch("/api/admin/agent-work");
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || `Failed to load (${res.status})`);
+        if (!background) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || `Failed to load (${res.status})`);
+        }
         return;
       }
       setSummary(await res.json());
     } catch {
-      setError("Failed to load agent work data");
+      if (!background) setError("Failed to load agent work data");
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
+      fetchInFlight.current = false;
     }
   }, []);
 
@@ -525,6 +531,12 @@ export default function AgentWorkSection() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  useEffect(() => {
+    if (!autoPoll) return;
+    const interval = setInterval(() => { fetchSummary(true); }, 15_000);
+    return () => clearInterval(interval);
+  }, [autoPoll, fetchSummary]);
+
   if (loading && !summary) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -549,9 +561,18 @@ export default function AgentWorkSection() {
   return (
     <div className="space-y-8">
       {/* Eager: above the fold */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading || loadingDetails}>
           {(loading || loadingDetails) ? "Refreshing..." : "Refresh"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={autoPoll ? "text-green-400" : "text-muted-foreground"}
+          onClick={() => setAutoPoll(p => !p)}
+        >
+          <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${autoPoll ? "bg-green-500" : "bg-zinc-500"}`} />
+          {autoPoll ? "Live" : "Paused"}
         </Button>
       </div>
       <WorkerStatusPanel workers={summary.workers} />
