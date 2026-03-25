@@ -7,6 +7,7 @@ set -euo pipefail
 # Optional config
 MCP_URL="${MCP_URL:-https://musicnerd.xyz/api/mcp}"
 BATCH_SIZE="${BATCH_SIZE:-50}"
+MODEL="${MODEL:-sonnet}"
 VERBOSE="${VERBOSE:-0}"
 
 # Generate MCP config with env vars substituted
@@ -22,6 +23,7 @@ SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
 
 # Build claude CLI args — always use stream-json for real-time output
 CLAUDE_ARGS=(
+  --model "$MODEL"
   --system-prompt "$SYSTEM_PROMPT"
   --mcp-config "$CONFIG_FILE"
   --allowedTools "mcp__music-nerd__*,WebFetch,WebSearch,Bash"
@@ -33,6 +35,7 @@ CLAUDE_ARGS=(
 if [[ "$VERBOSE" == "1" ]]; then
   echo "[claude-runner] $(date -u '+%H:%M:%S') Starting claude CLI (VERBOSE)..."
   echo "[claude-runner] MCP URL: $MCP_URL"
+  echo "[claude-runner] Model: $MODEL"
   echo "[claude-runner] Batch size: $BATCH_SIZE"
   echo "[claude-runner] Config: $(cat "$CONFIG_FILE" | sed 's/Bearer [^"]*/Bearer ***/')"
   echo ""
