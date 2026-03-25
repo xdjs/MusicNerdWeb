@@ -442,6 +442,11 @@ export default function AgentWorkSection() {
     }
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    fetchSummary();
+    if (details) fetchDetails(auditPage);
+  }, [fetchSummary, fetchDetails, details, auditPage]);
+
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
   if (loading && !summary) {
@@ -468,6 +473,11 @@ export default function AgentWorkSection() {
   return (
     <div className="space-y-8">
       {/* Eager: above the fold */}
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading || loadingDetails}>
+          {(loading || loadingDetails) ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
       <WorkerStatusPanel workers={summary.workers} />
       <ActivityPulseBar pulse={summary.activityPulse} />
       <HourlySparkline data={summary.hourlyActivity} />
