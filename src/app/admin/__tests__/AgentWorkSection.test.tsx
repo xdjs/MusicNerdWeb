@@ -14,8 +14,8 @@ const mockData = {
   stats: {
     totalArtistsWithSpotify: 38401,
     platformStats: [
-      { platform: "deezer", mappedCount: 1127, percentage: 2.93 },
-      { platform: "apple_music", mappedCount: 257, percentage: 0.67 },
+      { platform: "deezer", mappedCount: 1127, percentage: 2.93, todayCount: 42 },
+      { platform: "apple_music", mappedCount: 257, percentage: 0.67, todayCount: 5 },
     ],
   },
   auditLog: {
@@ -54,6 +54,7 @@ const mockData = {
         apiKeyHash: "85eabcee",
         resolvedCount: 847,
         excludedCount: 73,
+        lastActiveAt: "2026-03-16T20:00:00Z",
         byConfidence: { high: 700, medium: 130, low: 17, manual: 0 },
         bySource: { wikidata: 200, musicbrainz: 150, name_search: 400, web_search: 97, manual: 0 },
       },
@@ -77,6 +78,15 @@ const mockData = {
       },
     },
   },
+  activityPulse: {
+    lastWriteAt: "2026-03-16T20:00:00Z",
+    rateLastHour: 42,
+  },
+  hourlyActivity: [
+    { hour: "2026-03-16T19:00:00Z", resolveCount: 30, excludeCount: 5 },
+    { hour: "2026-03-16T20:00:00Z", resolveCount: 25, excludeCount: 3 },
+  ],
+  workers: [],
 };
 
 // Import component statically to avoid React duplication from resetModules

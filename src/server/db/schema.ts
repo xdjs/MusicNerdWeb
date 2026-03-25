@@ -315,6 +315,8 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 		name: "mcp_audit_log_artist_id_fkey"
 	}),
 	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
+	index("idx_mcp_audit_log_created_at").using("btree", table.createdAt.desc().nullsLast()),
+	index("idx_mcp_audit_log_api_key_hash_created_at").using("btree", table.apiKeyHash.asc().nullsLast(), table.createdAt.desc().nullsLast()),
 	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]);
@@ -366,6 +368,25 @@ export const artistMappingExclusions = pgTable("artist_mapping_exclusions", {
   pgPolicy("mnweb_insert_artist_mapping_exclusions", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
   pgPolicy("mnweb_update_artist_mapping_exclusions", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
   // No DELETE policy for mnweb — exclusions are cleared via direct DB access, not the app role
+]);
+
+export const agentHeartbeats = pgTable("agent_heartbeats", {
+	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+	workerId: text("worker_id").notNull().unique(),
+	apiKeyHash: text("api_key_hash").notNull(),
+	status: text().notNull().default('starting'),
+	currentRun: integer("current_run"),
+	batchPlatform: text("batch_platform"),
+	batchSize: integer("batch_size"),
+	message: text(),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	config: jsonb(),
+}, (table) => [
+	index("idx_agent_heartbeats_updated_at").using("btree", table.updatedAt.desc().nullsLast()),
+	pgPolicy("mnweb_select_agent_heartbeats", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_agent_heartbeats", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_agent_heartbeats", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 ]);
 
 // Relations

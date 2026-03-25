@@ -35,6 +35,128 @@ const ACTION_COLORS: Record<string, string> = {
   delete: "bg-red-500/20 text-red-400",
 };
 
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return "never";
+  const hasExplicitTZ = /Z$|[+-]\d{2}(:\d{2})?$/.test(dateStr);
+  const ms = Date.now() - new Date(hasExplicitTZ ? dateStr : `${dateStr}Z`).getTime();
+  if (ms < 0) return "just now";
+  const secs = Math.floor(ms / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+const STATUS_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
+  running: { dot: "bg-green-500", bg: "border-green-500/30", text: "text-green-400" },
+  idle: { dot: "bg-yellow-500", bg: "border-yellow-500/30", text: "text-yellow-400" },
+  error: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-400" },
+  dead: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-400" },
+  stopped: { dot: "bg-zinc-500", bg: "border-zinc-500/30", text: "text-zinc-400" },
+};
+
+function WorkerStatusPanel({ workers }: { workers: AgentWorkData["workers"] }) {
+  const [showInactive, setShowInactive] = useState(false);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const active = workers.filter(w => {
+    if (w.computedStatus === "running" || w.computedStatus === "idle" || w.computedStatus === "error") return true;
+    const age = Date.now() - new Date(w.updatedAt.endsWith("Z") ? w.updatedAt : `${w.updatedAt}Z`).getTime();
+    return age < dayMs;
+  });
+  const inactive = workers.filter(w => !active.includes(w));
+
+  const visibleWorkers = showInactive ? workers : active;
+
+  if (workers.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">Workers</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {visibleWorkers.map((w) => {
+          const s = STATUS_STYLES[w.computedStatus] ?? STATUS_STYLES.stopped;
+          return (
+            <div key={w.workerId} className={`rounded-md border ${s.bg} bg-card p-3`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`inline-block w-2 h-2 rounded-full ${s.dot}`} />
+                <span className="font-mono text-sm font-medium">{w.workerId}</span>
+                <span className={`text-xs font-medium ${s.text}`}>{w.computedStatus}</span>
+              </div>
+              {w.message && (
+                <p className="text-xs text-muted-foreground truncate mb-1">{w.message}</p>
+              )}
+              <div className="flex gap-3 text-xs text-muted-foreground">
+                {w.currentRun != null && <span>Run #{w.currentRun}</span>}
+                {w.batchPlatform && <span>{w.batchPlatform}</span>}
+                <span>Heartbeat: {timeAgo(w.updatedAt)}</span>
+                <span>Up: {timeAgo(w.startedAt)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {inactive.length > 0 && (
+        <button
+          className="text-xs text-muted-foreground mt-2 hover:underline"
+          onClick={() => setShowInactive(!showInactive)}
+        >
+          {showInactive ? "Hide" : "Show"} {inactive.length} inactive worker{inactive.length !== 1 ? "s" : ""}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ActivityPulseBar({ pulse }: { pulse: AgentWorkData["activityPulse"] }) {
+  const ago = timeAgo(pulse.lastWriteAt);
+  const ms = pulse.lastWriteAt
+    ? Date.now() - new Date(pulse.lastWriteAt.endsWith("Z") ? pulse.lastWriteAt : `${pulse.lastWriteAt}Z`).getTime()
+    : Infinity;
+  const dotColor = ms < 5 * 60 * 1000 ? "bg-green-500" : ms < 30 * 60 * 1000 ? "bg-yellow-500" : "bg-red-500";
+
+  return (
+    <div className="flex items-center gap-3 rounded-md border bg-card px-4 py-2">
+      <span className={`inline-block w-2.5 h-2.5 rounded-full ${dotColor}`} />
+      <span className="text-sm">
+        Last write: <span className="font-medium">{ago}</span>
+      </span>
+      <span className="text-sm text-muted-foreground">|</span>
+      <span className="text-sm">
+        Rate: <span className="font-medium">{pulse.rateLastHour}/hr</span>
+      </span>
+    </div>
+  );
+}
+
+function HourlySparkline({ data }: { data: AgentWorkData["hourlyActivity"] }) {
+  if (data.length === 0) return null;
+  const max = Math.max(...data.map(d => d.resolveCount + d.excludeCount), 1);
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">Activity (last 24h)</h3>
+      <div className="flex items-end gap-px h-16 rounded-md border bg-card p-2">
+        {data.map((d) => {
+          const total = d.resolveCount + d.excludeCount;
+          const pct = (total / max) * 100;
+          const hour = new Date(d.hour.endsWith("Z") ? d.hour : `${d.hour}Z`).toLocaleTimeString(undefined, { hour: "numeric", hour12: true });
+          return (
+            <div
+              key={d.hour}
+              className="flex-1 bg-[#9b83a0] rounded-t-sm min-h-[2px] relative group"
+              style={{ height: `${Math.max(pct, 3)}%` }}
+              title={`${hour}: ${d.resolveCount} resolved, ${d.excludeCount} excluded`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ActionBadge({ action }: { action: string }) {
   const colorClass = ACTION_COLORS[action] ?? "bg-muted text-muted-foreground";
   return (
@@ -61,7 +183,10 @@ function PlatformStatsSection({ stats }: { stats: AgentWorkData["stats"] }) {
                 style={{ width: `${Math.min(p.percentage, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-muted-foreground mt-1">{p.percentage}%</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {p.percentage}%
+              {p.todayCount > 0 && <span className="ml-1 text-green-400">+{p.todayCount} today</span>}
+            </div>
           </div>
         ))}
       </div>
@@ -91,6 +216,7 @@ function AgentBreakdownSection({ agents }: { agents: AgentWorkData["agentBreakdo
               <TableHead className="text-right">MusicBrainz</TableHead>
               <TableHead className="text-right">Name Search</TableHead>
               <TableHead className="text-right">Web Search</TableHead>
+              <TableHead className="text-right">Last Active</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -106,6 +232,7 @@ function AgentBreakdownSection({ agents }: { agents: AgentWorkData["agentBreakdo
                 <TableCell className="text-right">{agent.bySource.musicbrainz}</TableCell>
                 <TableCell className="text-right">{agent.bySource.name_search}</TableCell>
                 <TableCell className="text-right">{agent.bySource.web_search}</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">{timeAgo(agent.lastActiveAt)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -336,6 +463,9 @@ export default function AgentWorkSection() {
 
   return (
     <div className="space-y-8">
+      <WorkerStatusPanel workers={data.workers} />
+      <ActivityPulseBar pulse={data.activityPulse} />
+      <HourlySparkline data={data.hourlyActivity} />
       <PlatformStatsSection stats={data.stats} />
       <AgentBreakdownSection agents={data.agentBreakdown.agents} />
       <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>

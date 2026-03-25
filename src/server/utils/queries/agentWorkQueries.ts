@@ -5,6 +5,7 @@
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { getMappingStats, getMappingExclusions, VALID_MAPPING_PLATFORMS } from "@/server/utils/idMappingService";
+import { getActiveWorkers, type WorkerHeartbeat } from "./heartbeatQueries";
 
 // --- Types ---
 
@@ -20,17 +21,39 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface ActivityPulse {
+  lastWriteAt: string | null;
+  rateLastHour: number;
+}
+
+export interface HourlyActivityBucket {
+  hour: string;
+  resolveCount: number;
+  excludeCount: number;
+}
+
 export interface AgentBreakdownRow {
   label: string | null;
   apiKeyHash: string;
   resolvedCount: number;
   excludedCount: number;
+  lastActiveAt: string | null;
   byConfidence: { high: number; medium: number; low: number; manual: number };
   bySource: { wikidata: number; musicbrainz: number; name_search: number; web_search: number; manual: number };
 }
 
+export interface PlatformStat {
+  platform: string;
+  mappedCount: number;
+  percentage: number;
+  todayCount: number;
+}
+
 export interface AgentWorkData {
-  stats: Awaited<ReturnType<typeof getMappingStats>>;
+  stats: {
+    totalArtistsWithSpotify: number;
+    platformStats: PlatformStat[];
+  };
   auditLog: {
     entries: AuditLogEntry[];
     total: number;
@@ -44,11 +67,54 @@ export interface AgentWorkData {
       total: number;
     }>;
   };
+  activityPulse: ActivityPulse;
+  hourlyActivity: HourlyActivityBucket[];
+  workers: WorkerHeartbeat[];
 }
 
 // --- Queries ---
 
-export async function getAuditLog(page: number = 1, limit: number = 50): Promise<{
+export async function getActivityPulse(): Promise<ActivityPulse> {
+  const result = await db.execute<{ last_write_at: string | null; rate_last_hour: number }>(sql`
+    SELECT MAX(created_at) AS last_write_at,
+           COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS rate_last_hour
+    FROM mcp_audit_log
+  `);
+  return {
+    lastWriteAt: result[0]?.last_write_at ?? null,
+    rateLastHour: result[0]?.rate_last_hour ?? 0,
+  };
+}
+
+export async function getHourlyActivity(): Promise<HourlyActivityBucket[]> {
+  const rows = await db.execute<{ hour: string; resolve_count: number; exclude_count: number }>(sql`
+    SELECT date_trunc('hour', created_at) AS hour,
+           COUNT(*) FILTER (WHERE action = 'resolve')::int AS resolve_count,
+           COUNT(*) FILTER (WHERE action = 'exclude')::int AS exclude_count
+    FROM mcp_audit_log
+    WHERE created_at > NOW() - INTERVAL '24 hours'
+    GROUP BY 1 ORDER BY 1
+  `);
+  return [...rows].map(r => ({
+    hour: r.hour,
+    resolveCount: r.resolve_count,
+    excludeCount: r.exclude_count,
+  }));
+}
+
+export async function getTodayCounts(): Promise<Record<string, number>> {
+  const rows = await db.execute<{ platform: string; today: number }>(sql`
+    SELECT platform, COUNT(*)::int AS today
+    FROM artist_id_mappings
+    WHERE created_at >= CURRENT_DATE
+    GROUP BY platform
+  `);
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.platform] = r.today;
+  return map;
+}
+
+export async function getAuditLog(page = 1, limit = 50): Promise<{
   entries: AuditLogEntry[];
   total: number;
   page: number;
@@ -100,7 +166,7 @@ export async function getAuditLog(page: number = 1, limit: number = 50): Promise
 }
 
 export async function getAgentBreakdown(): Promise<{ agents: AgentBreakdownRow[] }> {
-  const [mappingRows, exclusionRows] = await Promise.all([
+  const [mappingRows, exclusionRows, lastActiveRows] = await Promise.all([
     db.execute<{
       api_key_hash: string; agent_label: string | null;
       total: number;
@@ -136,7 +202,18 @@ export async function getAgentBreakdown(): Promise<{ agents: AgentBreakdownRow[]
       WHERE e.api_key_hash IS NOT NULL
       GROUP BY e.api_key_hash, k.label
     `),
+    db.execute<{ api_key_hash: string; last_active_at: string | null }>(sql`
+      SELECT api_key_hash, MAX(created_at) AS last_active_at
+      FROM mcp_audit_log
+      GROUP BY api_key_hash
+    `),
   ]);
+
+  // Build a lookup for last active times
+  const lastActiveMap = new Map<string, string | null>();
+  for (const row of lastActiveRows) {
+    lastActiveMap.set(row.api_key_hash, row.last_active_at);
+  }
 
   // Merge mappings and exclusions by api_key_hash
   const agentMap = new Map<string, AgentBreakdownRow>();
@@ -147,6 +224,7 @@ export async function getAgentBreakdown(): Promise<{ agents: AgentBreakdownRow[]
       apiKeyHash: row.api_key_hash,
       resolvedCount: row.total,
       excludedCount: 0,
+      lastActiveAt: lastActiveMap.get(row.api_key_hash) ?? null,
       byConfidence: { high: row.high, medium: row.medium, low: row.low, manual: row.manual },
       bySource: { wikidata: row.src_wikidata, musicbrainz: row.src_musicbrainz, name_search: row.src_name_search, web_search: row.src_web_search, manual: row.src_manual },
     });
@@ -162,6 +240,7 @@ export async function getAgentBreakdown(): Promise<{ agents: AgentBreakdownRow[]
         apiKeyHash: row.api_key_hash,
         resolvedCount: 0,
         excludedCount: row.total,
+        lastActiveAt: lastActiveMap.get(row.api_key_hash) ?? null,
         byConfidence: { high: 0, medium: 0, low: 0, manual: 0 },
         bySource: { wikidata: 0, musicbrainz: 0, name_search: 0, web_search: 0, manual: 0 },
       });
@@ -201,15 +280,27 @@ export async function getExclusionsByPlatform(): Promise<AgentWorkData["exclusio
 }
 
 export async function getAgentWorkData(
-  auditPage: number = 1,
-  auditLimit: number = 50,
+  auditPage = 1,
+  auditLimit = 50,
 ): Promise<AgentWorkData> {
-  const [stats, auditLog, agentBreakdown, exclusions] = await Promise.all([
+  const [stats, auditLog, agentBreakdown, exclusions, activityPulse, hourlyActivity, todayCounts, workers] = await Promise.all([
     getMappingStats(),
     getAuditLog(auditPage, auditLimit),
     getAgentBreakdown(),
     getExclusionsByPlatform(),
+    getActivityPulse(),
+    getHourlyActivity(),
+    getTodayCounts(),
+    getActiveWorkers(),
   ]);
 
-  return { stats, auditLog, agentBreakdown, exclusions };
+  const statsWithToday = {
+    ...stats,
+    platformStats: stats.platformStats.map(p => ({
+      ...p,
+      todayCount: todayCounts[p.platform] ?? 0,
+    })),
+  };
+
+  return { stats: statsWithToday, auditLog, agentBreakdown, exclusions, activityPulse, hourlyActivity, workers };
 }
