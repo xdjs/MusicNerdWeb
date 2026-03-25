@@ -308,17 +308,16 @@ export async function getAgentWorkSummary(): Promise<AgentWorkSummary> {
   return { stats: statsWithToday, activityPulse, hourlyActivity, workers };
 }
 
-// Heavy details — loaded on demand via "Show Details" click (~7 concurrent connections)
+// Heavy details — loaded on demand via "Show Details" click.
+// Sequentialized to avoid saturating the Supabase connection pool.
 export async function getAgentWorkDetails(
   auditPage = 1,
   auditLimit = 50,
 ): Promise<AgentWorkDetails> {
-  const [auditLog, agentBreakdown, exclusions, runHistory] = await Promise.all([
-    getAuditLog(auditPage, auditLimit),
-    getAgentBreakdown(),
-    getExclusionsByPlatform(),
-    getRunHistory(),
-  ]);
+  const auditLog = await getAuditLog(auditPage, auditLimit);
+  const agentBreakdown = await getAgentBreakdown();
+  const exclusions = await getExclusionsByPlatform();
+  const runHistory = await getRunHistory();
 
   return { auditLog, agentBreakdown, exclusions, runHistory };
 }
