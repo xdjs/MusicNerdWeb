@@ -289,6 +289,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     # Check if all artists are mapped
     if grep -q '"totalUnmapped":.*0\b' "$logfile" 2>/dev/null || \
        grep -q 'totalUnmapped.*: 0\b' "$logfile" 2>/dev/null; then
+      report_run "success" "$logfile" "$batch_start_iso"
       stop_reason="all artists mapped"
       log "STOP: $stop_reason"
       break
@@ -296,6 +297,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
 
     # Check if batch returned 0 artists (nothing left to process)
     if grep -qE '(No unmapped artists|unmapped.*found: 0|Batch size: 0)' "$logfile" 2>/dev/null; then
+      report_run "success" "$logfile" "$batch_start_iso"
       stop_reason="no unmapped artists remaining"
       log "STOP: $stop_reason"
       break

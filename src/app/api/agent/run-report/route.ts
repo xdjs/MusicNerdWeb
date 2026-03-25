@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!workerId || typeof workerId !== "string") {
       return Response.json({ error: "workerId is required" }, { status: 400 });
     }
-    if (typeof runNumber !== "number" || runNumber < 1) {
+    if (!Number.isInteger(runNumber) || runNumber < 1) {
       return Response.json({ error: "runNumber must be a positive integer" }, { status: 400 });
     }
     if (!status || !VALID_STATUSES.includes(status)) {
