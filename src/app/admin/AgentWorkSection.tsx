@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -483,22 +483,27 @@ export default function AgentWorkSection() {
   const [error, setError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
   const [autoPoll, setAutoPoll] = useState(true);
+  const fetchInFlight = useRef(false);
 
-  const fetchSummary = useCallback(async () => {
+  const fetchSummary = useCallback(async (background = false) => {
+    if (fetchInFlight.current) return;
+    fetchInFlight.current = true;
     try {
-      setLoading(true);
-      setError("");
+      if (!background) { setLoading(true); setError(""); }
       const res = await fetch("/api/admin/agent-work");
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error || `Failed to load (${res.status})`);
+        if (!background) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || `Failed to load (${res.status})`);
+        }
         return;
       }
       setSummary(await res.json());
     } catch {
-      setError("Failed to load agent work data");
+      if (!background) setError("Failed to load agent work data");
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
+      fetchInFlight.current = false;
     }
   }, []);
 
@@ -528,7 +533,7 @@ export default function AgentWorkSection() {
 
   useEffect(() => {
     if (!autoPoll) return;
-    const interval = setInterval(() => { fetchSummary(); }, 15_000);
+    const interval = setInterval(() => { fetchSummary(true); }, 15_000);
     return () => clearInterval(interval);
   }, [autoPoll, fetchSummary]);
 
