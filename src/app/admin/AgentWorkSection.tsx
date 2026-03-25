@@ -92,6 +92,7 @@ function WorkerStatusPanel({ workers }: { workers: AgentWorkSummary["workers"] }
               <div className="flex gap-3 text-xs text-muted-foreground">
                 {w.currentRun != null && <span>Run #{w.currentRun}</span>}
                 {w.batchPlatform && <span>{w.batchPlatform}</span>}
+                {typeof w.config?.model === "string" && <span>{w.config.model}</span>}
                 <span>Heartbeat: {timeAgo(w.updatedAt)}</span>
                 <span>Up: {timeAgo(w.startedAt)}</span>
               </div>

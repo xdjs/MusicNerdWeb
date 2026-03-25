@@ -20,6 +20,7 @@ MAX_ITERATIONS="${MAX_ITERATIONS:-800}"
 LOG_DIR="${LOG_DIR:-/var/log/id-mapping}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-10}"
 BATCH_TIMEOUT="${BATCH_TIMEOUT:-600}"
+MODEL="${MODEL:-sonnet}"
 WORKER_ID="${WORKER_ID:-$$}"
 RATE_LIMIT_BACKOFF="${RATE_LIMIT_BACKOFF:-300}"
 
@@ -61,7 +62,8 @@ heartbeat() {
         \"batchSize\": $BATCH_SIZE,
         \"maxIterations\": $MAX_ITERATIONS,
         \"sleepBetween\": $SLEEP_BETWEEN,
-        \"batchTimeout\": $BATCH_TIMEOUT
+        \"batchTimeout\": $BATCH_TIMEOUT,
+        \"model\": \"$MODEL\"
       }
     }" >/dev/null 2>&1 || true
 }
