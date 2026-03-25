@@ -532,10 +532,10 @@ export default function AgentWorkSection() {
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
   useEffect(() => {
-    if (!autoPoll) return;
+    if (!autoPoll || loadingDetails) return;
     const interval = setInterval(() => { fetchSummary(true); }, 15_000);
     return () => clearInterval(interval);
-  }, [autoPoll, fetchSummary]);
+  }, [autoPoll, loadingDetails, fetchSummary]);
 
   if (loading && !summary) {
     return (
