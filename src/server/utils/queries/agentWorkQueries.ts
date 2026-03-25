@@ -283,11 +283,16 @@ export async function getAgentWorkData(
   auditPage = 1,
   auditLimit = 50,
 ): Promise<AgentWorkData> {
-  const [stats, auditLog, agentBreakdown, exclusions, activityPulse, hourlyActivity, todayCounts, workers] = await Promise.all([
+  // Split into two waves to avoid saturating the connection pool
+  // Wave 1: core data (getMappingStats=2, getAuditLog=2, getAgentBreakdown=3, getExclusionsByPlatform=1+ = ~8 connections)
+  const [stats, auditLog, agentBreakdown, exclusions] = await Promise.all([
     getMappingStats(),
     getAuditLog(auditPage, auditLimit),
     getAgentBreakdown(),
     getExclusionsByPlatform(),
+  ]);
+  // Wave 2: monitoring data (4 lightweight queries)
+  const [activityPulse, hourlyActivity, todayCounts, workers] = await Promise.all([
     getActivityPulse(),
     getHourlyActivity(),
     getTodayCounts(),
