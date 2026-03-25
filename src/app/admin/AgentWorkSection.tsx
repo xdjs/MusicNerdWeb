@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AgentWorkSummary, AgentWorkDetails } from "@/server/utils/queries/agentWorkQueries";
+import type { AgentRun } from "@/server/utils/queries/runQueries";
 
 const formatDate = (value: string | null | undefined): string => {
   if (!value) return "";
@@ -188,6 +189,81 @@ function PlatformStatsSection({ stats }: { stats: AgentWorkSummary["stats"] }) {
 }
 
 // --- Lazy components (loaded on demand) ---
+
+const RUN_STATUS_STYLES: Record<string, string> = {
+  success: "bg-green-500/20 text-green-400",
+  failed: "bg-red-500/20 text-red-400",
+  running: "bg-blue-500/20 text-blue-400",
+};
+
+function formatDuration(secs: number | null): string {
+  if (secs == null) return "—";
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m${s.toString().padStart(2, "0")}s`;
+}
+
+function RunHistorySection({ runHistory }: { runHistory: AgentWorkDetails["runHistory"] }) {
+  if (runHistory.runs.length === 0) {
+    return (
+      <div>
+        <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">Run History</h3>
+        <p className="text-muted-foreground text-sm">No runs recorded yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
+        Run History ({runHistory.total.toLocaleString()} runs)
+      </h3>
+      <div className="rounded-md border bg-card overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Worker</TableHead>
+              <TableHead className="text-right">Run</TableHead>
+              <TableHead>Started</TableHead>
+              <TableHead className="text-right">Duration</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Resolved</TableHead>
+              <TableHead className="text-right">Excluded</TableHead>
+              <TableHead className="text-right">Skipped</TableHead>
+              <TableHead className="text-right">Errors</TableHead>
+              <TableHead className="text-right">Turns</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {runHistory.runs.map((run: AgentRun) => {
+              const statusClass = RUN_STATUS_STYLES[run.status] ?? "bg-muted text-muted-foreground";
+              return (
+                <TableRow key={`${run.workerId}-${run.runNumber}`}>
+                  <TableCell className="font-mono text-sm">{run.workerId}</TableCell>
+                  <TableCell className="text-right">{run.runNumber}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">{formatDate(run.startedAt)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatDuration(run.wallTimeSecs)}</TableCell>
+                  <TableCell>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusClass}`}
+                      title={run.failReason ?? undefined}
+                    >
+                      {run.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">{run.resolved}</TableCell>
+                  <TableCell className="text-right">{run.excluded}</TableCell>
+                  <TableCell className="text-right">{run.skipped}</TableCell>
+                  <TableCell className="text-right">{run.errors}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{run.turns ?? "—"}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
 
 function ActionBadge({ action }: { action: string }) {
   const colorClass = ACTION_COLORS[action] ?? "bg-muted text-muted-foreground";
@@ -500,6 +576,7 @@ export default function AgentWorkSection() {
 
       {details && (
         <>
+          <RunHistorySection runHistory={details.runHistory} />
           <AgentBreakdownSection agents={details.agentBreakdown.agents} />
           <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
             <AuditLogSection auditLog={details.auditLog} onPageChange={(p) => fetchDetails(p)} />

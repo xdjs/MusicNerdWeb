@@ -256,12 +256,17 @@ describe("agentWorkQueries", () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         // getExclusionsByPlatform: counts
+        .mockResolvedValueOnce([])
+        // getRunHistory: count + rows
+        .mockResolvedValueOnce([{ total: 0 }])
         .mockResolvedValueOnce([]);
 
       const result = await getAgentWorkDetails(1, 50);
       expect(result.auditLog.total).toBe(10);
       expect(result.agentBreakdown.agents).toHaveLength(0);
       expect(result.exclusions.platforms).toEqual({});
+      expect(result.runHistory.total).toBe(0);
+      expect(result.runHistory.runs).toHaveLength(0);
     });
   });
 });

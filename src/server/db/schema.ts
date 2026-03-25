@@ -389,6 +389,41 @@ export const agentHeartbeats = pgTable("agent_heartbeats", {
 	pgPolicy("mnweb_update_agent_heartbeats", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 ]);
 
+export const agentRuns = pgTable("agent_runs", {
+	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+	workerId: text("worker_id").notNull(),
+	apiKeyHash: text("api_key_hash").notNull(),
+	runNumber: integer("run_number").notNull(),
+	platform: text().notNull().default('deezer'),
+	status: text().notNull().default('running'),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	endedAt: timestamp("ended_at", { withTimezone: true, mode: 'string' }),
+	wallTimeSecs: integer("wall_time_secs"),
+	claudeTimeSecs: integer("claude_time_secs"),
+	apiTimeSecs: integer("api_time_secs"),
+	turns: integer(),
+	batchSize: integer("batch_size"),
+	resolved: integer().default(0),
+	excluded: integer().default(0),
+	skipped: integer().default(0),
+	errors: integer().default(0),
+	highConfidence: integer("high_confidence").default(0),
+	mediumConfidence: integer("medium_confidence").default(0),
+	conflicts: integer().default(0),
+	nameMismatches: integer("name_mismatches").default(0),
+	tooAmbiguous: integer("too_ambiguous").default(0),
+	exitCode: integer("exit_code"),
+	failCategory: text("fail_category"),
+	failReason: text("fail_reason"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+	uniqueIndex("idx_agent_runs_worker_run").using("btree", table.workerId.asc().nullsLast(), table.runNumber.asc().nullsLast()),
+	index("idx_agent_runs_started_at").using("btree", table.startedAt.desc().nullsLast()),
+	pgPolicy("mnweb_select_agent_runs", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_agent_runs", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_agent_runs", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
+]);
+
 // Relations
 export const artistsRelations = relations(artists, ({one, many}) => ({
 	user: one(users, {
