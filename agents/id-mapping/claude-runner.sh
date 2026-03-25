@@ -35,6 +35,7 @@ CLAUDE_ARGS=(
 if [[ "$VERBOSE" == "1" ]]; then
   echo "[claude-runner] $(date -u '+%H:%M:%S') Starting claude CLI (VERBOSE)..."
   echo "[claude-runner] MCP URL: $MCP_URL"
+  echo "[claude-runner] Model: $MODEL"
   echo "[claude-runner] Batch size: $BATCH_SIZE"
   echo "[claude-runner] Config: $(cat "$CONFIG_FILE" | sed 's/Bearer [^"]*/Bearer ***/')"
   echo ""
