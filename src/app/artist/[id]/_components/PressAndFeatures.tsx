@@ -54,7 +54,7 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
                             href={source.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group glass-subtle p-4 rounded-xl flex flex-col gap-2 hover:scale-[1.02] transition-transform duration-200"
+                            className="group glass-subtle p-4 rounded-xl flex flex-col gap-2 hover:scale-[1.02] transition-all duration-300 hover:shadow-[0_0_20px_rgba(239,149,255,0.4)]"
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <span
