@@ -7,6 +7,7 @@ set -euo pipefail
 # Optional config
 MCP_URL="${MCP_URL:-https://musicnerd.xyz/api/mcp}"
 BATCH_SIZE="${BATCH_SIZE:-50}"
+MODEL="${MODEL:-sonnet}"
 VERBOSE="${VERBOSE:-0}"
 
 # Generate MCP config with env vars substituted
@@ -22,6 +23,7 @@ SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
 
 # Build claude CLI args — always use stream-json for real-time output
 CLAUDE_ARGS=(
+  --model "$MODEL"
   --system-prompt "$SYSTEM_PROMPT"
   --mcp-config "$CONFIG_FILE"
   --allowedTools "mcp__music-nerd__*,WebFetch,WebSearch,Bash"
