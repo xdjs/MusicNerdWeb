@@ -102,15 +102,16 @@ report_run() {
     # Session report metrics
     local resolved excluded skipped errors
     local high medium conflicts mismatches ambiguous
-    resolved=$(grep -oh 'Resolved: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    excluded=$(grep -oh 'Excluded: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    skipped=$(grep -oh 'Skipped/Unresolved[^:]*: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
-    errors=$(grep -oh 'Errors: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    high=$(grep -oh 'High: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    medium=$(grep -oh 'Medium: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    conflicts=$(grep -oh 'Conflicts: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    mismatches=$(grep -oh 'Name mismatches: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    ambiguous=$(grep -oh 'Too ambiguous: [0-9]*' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    # Note: session report uses variable whitespace for alignment, so [[:space:]]+ not literal space
+    resolved=$(grep -ohE 'Resolved:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    excluded=$(grep -ohE 'Excluded:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    skipped=$(grep -ohE 'Skipped/Unresolved[^:]*:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
+    errors=$(grep -ohE 'Errors:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    high=$(grep -ohE 'High:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    medium=$(grep -ohE 'Medium:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    conflicts=$(grep -ohE 'Conflicts:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    mismatches=$(grep -ohE 'Name mismatches:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    ambiguous=$(grep -ohE 'Too ambiguous:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
 
     payload="$payload,
     \"endedAt\": \"$ended_iso\""
