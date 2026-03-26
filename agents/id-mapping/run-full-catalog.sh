@@ -278,11 +278,12 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   logsize=$(stat --printf="%s" "$logfile" 2>/dev/null || stat -f%z "$logfile" 2>/dev/null || echo "?")
   echo "[loop] Claude exited with code $exit_code, log size: ${logsize} bytes"
 
-  # Classify the failure
-  classify_failure "$exit_code" "$logfile"
-
-  # Check for success
-  if [[ -z "$fail_reason" ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+  # Check for success first — exit 0 + session report = success, skip failure classification
+  # This prevents agent output text (e.g. "unauthenticated MCP initialization request failed")
+  # from being misclassified as an auth error by the log content patterns.
+  if [[ $exit_code -eq 0 ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+    fail_reason=""
+    fail_category=""
     # Success
     consecutive_failures=0
 
@@ -310,6 +311,9 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     sleep "$SLEEP_BETWEEN"
     continue
   fi
+
+  # Classify the failure (only reached if success check above didn't match)
+  classify_failure "$exit_code" "$logfile"
 
   # Handle failure
   report_run "failed" "$logfile" "$batch_start_iso"
