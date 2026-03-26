@@ -98,7 +98,7 @@ echo "" | claude "${CLAUDE_ARGS[@]}" \
   "Resolve Deezer IDs for unmapped artists. Batch size: ${BATCH_SIZE}." \
   2>&1 | stream_filter
 
-exit_code=${PIPESTATUS[0]}
+exit_code=${PIPESTATUS[1]}  # [0]=echo, [1]=claude, [2]=stream_filter
 echo ""
 echo "[claude-runner] $(date -u '+%H:%M:%S') Claude CLI exited with code $exit_code"
 exit $exit_code
