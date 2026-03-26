@@ -6,6 +6,8 @@ import { toArtistSummary } from "./transformers/artist-summary";
 import { toArtistDetail } from "./transformers/artist-detail";
 import { extractArtistId } from "@/server/utils/services";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
+import { getUnmappedArtists, resolveArtistMapping, resolveArtistMappingBatch, getMappingStats, getArtistMappings, excludeArtistMapping, excludeArtistMappingBatch, getMappingExclusions, VALID_MAPPING_PLATFORMS, EXCLUSION_REASON_VALUES, MappingNotFoundError, MappingConflictError, MappingConcurrentWriteError, MappingValidationError } from "@/server/utils/idMappingService";
+
 import { requireMcpAuth, McpAuthError } from "./auth";
 import { logMcpAudit } from "./audit";
 
@@ -314,6 +316,431 @@ server.registerTool(
       console.error("[MCP] delete_artist_link error:", error);
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to delete artist link", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the get_unmapped_artists tool
+server.registerTool(
+  "get_unmapped_artists",
+  {
+    title: "Get Unmapped Artists",
+    description: "Get artists that have a Spotify ID but no mapping for a given platform. Use this to find artists that need cross-platform ID resolution.",
+    inputSchema: {
+      platform: z.string().describe("The target platform to check for missing mappings (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
+      limit: z.number().optional().default(50).describe("Maximum number of results to return (default 50, max 200)"),
+      offset: z.number().optional().default(0).describe("Offset for pagination (default 0)"),
+    },
+  },
+  async ({ platform, limit, offset }) => {
+    console.log(`[MCP] get_unmapped_artists called with platform="${platform}", limit=${limit}, offset=${offset}`);
+
+    try {
+      const effectiveLimit = Math.min(Math.max(limit ?? 50, 1), 200);
+      const effectiveOffset = Math.max(offset ?? 0, 0);
+
+      const result = await getUnmappedArtists(platform, effectiveLimit, effectiveOffset);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            platform,
+            artists: result.artists,
+            totalUnmapped: result.totalUnmapped,
+            limit: effectiveLimit,
+            offset: effectiveOffset,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] get_unmapped_artists error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get unmapped artists", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the get_mapping_stats tool
+server.registerTool(
+  "get_mapping_stats",
+  {
+    title: "Get Mapping Stats",
+    description: "Get statistics about cross-platform artist ID mapping coverage across all platforms.",
+    inputSchema: {},
+  },
+  async () => {
+    console.log("[MCP] get_mapping_stats called");
+
+    try {
+      const stats = await getMappingStats();
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify(stats, null, 2),
+        }],
+      };
+    } catch (error) {
+      console.error("[MCP] get_mapping_stats error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get mapping stats", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the get_artist_mappings tool
+server.registerTool(
+  "get_artist_mappings",
+  {
+    title: "Get Artist Mappings",
+    description: "Get all cross-platform ID mappings for a specific artist.",
+    inputSchema: {
+      artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+    },
+  },
+  async ({ artistId }) => {
+    console.log(`[MCP] get_artist_mappings called with artistId="${artistId}"`);
+
+    try {
+      const mappings = await getArtistMappings(artistId);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            artistId,
+            mappings,
+            totalMappings: mappings.length,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof MappingNotFoundError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] get_artist_mappings error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get artist mappings", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Shared schema for a single resolve_artist_id item (used by batch items array)
+const resolveItemSchema = z.object({
+  artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+  platform: z.string().describe("The target platform (e.g. deezer, apple_music, musicbrainz, wikidata, tidal, amazon_music, youtube_music)"),
+  platformId: z.string().describe("The artist's ID on the target platform"),
+  confidence: z.enum(["high", "medium", "low", "manual"]).describe("Confidence level of the mapping (manual > high > medium > low)"),
+  source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).describe("How the mapping was determined"),
+  reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
+});
+
+// Register the resolve_artist_id tool
+server.registerTool(
+  "resolve_artist_id",
+  {
+    title: "Resolve Artist ID",
+    description: "Store cross-platform ID mapping(s) for artist(s). For a single item, provide the fields directly. For batch mode, provide an 'items' array instead. Each batch item is processed independently — partial failures do not roll back successful items.",
+    inputSchema: {
+      artistId: z.string().uuid().optional().describe("The UUID of the artist (single-item mode)"),
+      platform: z.string().optional().describe("The target platform (single-item mode)"),
+      platformId: z.string().optional().describe("The artist's ID on the target platform (single-item mode)"),
+      confidence: z.enum(["high", "medium", "low", "manual"]).optional().describe("Confidence level (single-item mode)"),
+      source: z.enum(["wikidata", "musicbrainz", "name_search", "web_search", "manual"]).optional().describe("How the mapping was determined (single-item mode)"),
+      reasoning: z.string().optional().describe("Optional explanation of how the mapping was determined"),
+      items: z.array(resolveItemSchema).max(100).optional().describe("Array of items for batch mode (max 100). When provided, the individual fields above are ignored."),
+    },
+  },
+  async ({ artistId, platform, platformId, confidence, source, reasoning, items }) => {
+    console.log(`[MCP] resolve_artist_id called with ${items !== undefined ? items.length + " item(s) (batch)" : "1 item(s)"}`);
+
+    try {
+      const apiKeyHash = requireMcpAuth();
+
+      if (items === undefined) {
+        // Single-item path — preserve original behavior exactly
+        if (!artistId || !platform || !platformId || !confidence || !source) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: "Missing required fields: artistId, platform, platformId, confidence, source", code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
+
+        if (!VALID_MAPPING_PLATFORMS.has(platform)) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: `Invalid platform. Valid platforms: ${[...VALID_MAPPING_PLATFORMS].join(", ")}`, code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
+
+        const result = await resolveArtistMapping({
+          artistId, platform, platformId, confidence, source, reasoning, apiKeyHash,
+        });
+
+        if (!result.skipped) {
+          try {
+            await logMcpAudit({
+              artistId, field: `mapping:${platform}`, action: "resolve",
+              oldValue: result.previousMapping?.platformId ?? null, newValue: platformId, apiKeyHash,
+            });
+          } catch (auditError) {
+            console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+          }
+        }
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, ...result }, null, 2),
+          }],
+        };
+      }
+
+      // Batch path
+      const batchResult = await resolveArtistMappingBatch(items, apiKeyHash);
+
+      // Batch audit for all successful mutations
+      const auditEntries = batchResult.results
+        .map((r, i) => ({ r, item: items[i] }))
+        .filter(({ r }) => !r.skipped && !r.error)
+        .map(({ r, item }) => ({
+          artistId: item.artistId,
+          field: `mapping:${item.platform}`,
+          action: "resolve" as const,
+          oldValue: r.previousMapping?.platformId ?? null,
+          newValue: item.platformId,
+          apiKeyHash,
+        }));
+
+      if (auditEntries.length > 0) {
+        try {
+          await logMcpAudit(auditEntries);
+        } catch (auditError) {
+          console.error("[MCP] Batch audit log failed (mutations succeeded):", auditError);
+        }
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({ success: true, results: batchResult.results }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof McpAuthError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "AUTH_REQUIRED" }) }],
+          isError: true,
+        };
+      }
+      // Single-item error handling (batch errors are captured per-item)
+      if (error instanceof MappingNotFoundError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof MappingConflictError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "CONFLICT" }) }],
+          isError: true,
+        };
+      }
+      // Race condition — another request already wrote this mapping. Not an error for the caller.
+      if (error instanceof MappingConcurrentWriteError) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, created: false, updated: false, skipped: true, reason: "concurrent_write" }, null, 2),
+          }],
+        };
+      }
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] resolve_artist_id error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to resolve artist ID", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Shared schema for a single exclude_artist_mapping item (used by batch items array)
+const excludeItemSchema = z.object({
+  artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
+  platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+  reason: z.enum(EXCLUSION_REASON_VALUES).describe("Why the artist is being excluded"),
+  details: z.string().optional().describe("Human-readable explanation (e.g. \"MusicNerd '1010 Benja SL' vs Deezer '1010benja' (id=12029768)\")"),
+});
+
+// Register the exclude_artist_mapping tool
+server.registerTool(
+  "exclude_artist_mapping",
+  {
+    title: "Exclude Artist Mapping",
+    description: "Mark artist(s) as excluded from future mapping batches for a given platform. For a single item, provide the fields directly. For batch mode, provide an 'items' array instead. Each batch item is processed independently — partial failures do not roll back successful items.",
+    inputSchema: {
+      artistId: z.string().uuid().optional().describe("The UUID of the artist (single-item mode)"),
+      platform: z.string().optional().describe(`The target platform (single-item mode, e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+      reason: z.enum(EXCLUSION_REASON_VALUES).optional().describe("Why the artist is being excluded (single-item mode)"),
+      details: z.string().optional().describe("Human-readable explanation"),
+      items: z.array(excludeItemSchema).max(100).optional().describe("Array of items for batch mode (max 100). When provided, the individual fields above are ignored."),
+    },
+  },
+  async ({ artistId, platform, reason, details, items }) => {
+    console.log(`[MCP] exclude_artist_mapping called with ${items !== undefined ? items.length + " item(s) (batch)" : "1 item(s)"}`);
+
+    try {
+      const apiKeyHash = requireMcpAuth();
+
+      if (items === undefined) {
+        // Single-item path — preserve original behavior exactly
+        if (!artistId || !platform || !reason) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ error: "Missing required fields: artistId, platform, reason", code: "INVALID_INPUT" }) }],
+            isError: true,
+          };
+        }
+
+        const result = await excludeArtistMapping({
+          artistId, platform, reason, details, apiKeyHash,
+        });
+
+        try {
+          await logMcpAudit({
+            artistId, field: `mapping:${platform}`, action: "exclude",
+            newValue: details ? `${reason}: ${details}` : reason, apiKeyHash,
+          });
+        } catch (auditError) {
+          console.error("[MCP] Audit log failed (mutation succeeded):", auditError);
+        }
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ success: true, ...result }, null, 2),
+          }],
+        };
+      }
+
+      // Batch path
+      const batchResult = await excludeArtistMappingBatch(items, apiKeyHash);
+
+      // Batch audit for all successful items
+      const auditEntries = batchResult.results
+        .map((r, i) => ({ r, item: items[i] }))
+        .filter(({ r }) => !r.error)
+        .map(({ item }) => ({
+          artistId: item.artistId,
+          field: `mapping:${item.platform}`,
+          action: "exclude" as const,
+          newValue: item.details ? `${item.reason}: ${item.details}` : item.reason,
+          apiKeyHash,
+        }));
+
+      if (auditEntries.length > 0) {
+        try {
+          await logMcpAudit(auditEntries);
+        } catch (auditError) {
+          console.error("[MCP] Batch audit log failed (mutations succeeded):", auditError);
+        }
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({ success: true, results: batchResult.results }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof McpAuthError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "AUTH_REQUIRED" }) }],
+          isError: true,
+        };
+      }
+      // Single-item error handling (batch errors are captured per-item)
+      if (error instanceof MappingNotFoundError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "Artist not found", code: "NOT_FOUND" }) }],
+          isError: true,
+        };
+      }
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] exclude_artist_mapping error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to exclude artist mapping", code: "INTERNAL_ERROR" }) }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register the get_mapping_exclusions tool
+server.registerTool(
+  "get_mapping_exclusions",
+  {
+    title: "Get Mapping Exclusions",
+    description: "List artists that have been excluded from mapping for a given platform. Useful for reviewing skipped artists. Clearing exclusions requires direct database access.",
+    inputSchema: {
+      platform: z.string().describe(`The target platform (e.g. ${[...VALID_MAPPING_PLATFORMS].join(", ")})`),
+      limit: z.number().int().min(1).max(500).optional().default(100).describe("Maximum number of results to return (default 100, max 500)"),
+    },
+  },
+  async ({ platform, limit }) => {
+    console.log(`[MCP] get_mapping_exclusions called with platform="${platform}", limit=${limit}`);
+
+    try {
+      const result = await getMappingExclusions(platform, limit);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            platform,
+            exclusions: result.exclusions,
+            total: result.total,
+          }, null, 2),
+        }],
+      };
+    } catch (error) {
+      if (error instanceof MappingValidationError) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: error.message, code: "INVALID_INPUT" }) }],
+          isError: true,
+        };
+      }
+      console.error("[MCP] get_mapping_exclusions error:", error);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "Failed to get mapping exclusions", code: "INTERNAL_ERROR" }) }],
         isError: true,
       };
     }

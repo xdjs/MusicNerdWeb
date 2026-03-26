@@ -156,7 +156,7 @@ try {
         // top-level functions
         ['insert', 'update', 'delete', 'select', 'from', 'where', 'limit', 'execute'].forEach(k => ensureFn(db, k));
 
-        const tables = ['urlmap', 'artists', 'users', 'ugcresearch'];
+        const tables = ['urlmap', 'artists', 'users', 'ugcresearch', 'artistIdMappings'];
         tables.forEach(t => {
             if (!db.query[t]) db.query[t] = {};
             ['findFirst', 'findMany', 'update', 'insert', 'delete'].forEach(k => ensureFn(db.query[t], k));

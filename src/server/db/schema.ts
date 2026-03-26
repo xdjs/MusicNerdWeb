@@ -293,7 +293,7 @@ export const mcpApiKeys = pgTable("mcp_api_keys", {
 }, (table) => [
 	pgPolicy("mnweb_select_mcp_api_keys", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_api_keys", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
-	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"] }),
+	pgPolicy("mnweb_update_mcp_api_keys", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 	// No DELETE policy for mnweb — keys are soft-deleted via revoked_at UPDATE, not hard-deleted
 ]);
 
@@ -315,8 +315,113 @@ export const mcpAuditLog = pgTable("mcp_audit_log", {
 		name: "mcp_audit_log_artist_id_fkey"
 	}),
 	index("idx_mcp_audit_log_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
+	index("idx_mcp_audit_log_created_at").using("btree", table.createdAt.desc().nullsLast()),
+	index("idx_mcp_audit_log_api_key_hash_created_at").using("btree", table.apiKeyHash.asc().nullsLast(), table.createdAt.desc().nullsLast()),
 	pgPolicy("mnweb_select_mcp_audit_log", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_mcp_audit_log", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]);
+
+export const exclusionReason = pgEnum("exclusion_reason", [
+  "conflict",       // platform ID already mapped to different artist
+  "name_mismatch",  // Deezer name doesn't match MusicNerd name
+  "too_ambiguous",  // name too generic, can't confidently match
+]);
+
+export const confidenceLevel = pgEnum("confidence_level", ["high", "medium", "low", "manual"]);
+
+export const artistIdMappings = pgTable("artist_id_mappings", {
+  id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+  artistId: uuid("artist_id").notNull(),
+  platform: text().notNull(),
+  platformId: text("platform_id").notNull(),
+  confidence: confidenceLevel().notNull(),
+  source: text().notNull(),
+  reasoning: text(),
+  apiKeyHash: text("api_key_hash"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+  unique("artist_id_mappings_artist_platform_uniq").on(table.artistId, table.platform),
+  unique("artist_id_mappings_platform_id_uniq").on(table.platform, table.platformId),
+  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_id_mappings_artist_id_fkey" }),
+  index("idx_artist_id_mappings_platform_artist").using("btree", table.platform.asc().nullsLast(), table.artistId.asc().nullsLast()),
+  index("idx_artist_id_mappings_confidence").using("btree", table.confidence.asc().nullsLast()),
+  pgPolicy("mnweb_select_artist_id_mappings", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_id_mappings", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_id_mappings", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
+]);
+
+export const artistMappingExclusions = pgTable("artist_mapping_exclusions", {
+  id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+  artistId: uuid("artist_id").notNull(),
+  platform: text().notNull(),
+  reason: exclusionReason().notNull(),
+  details: text(),
+  apiKeyHash: text("api_key_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+  unique("artist_mapping_exclusions_artist_platform_uniq").on(table.artistId, table.platform),
+  foreignKey({ columns: [table.artistId], foreignColumns: [artists.id], name: "artist_mapping_exclusions_artist_id_fkey" }).onDelete("cascade"),
+  index("idx_artist_mapping_exclusions_platform").using("btree", table.platform.asc().nullsLast()),
+  pgPolicy("mnweb_select_artist_mapping_exclusions", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_mapping_exclusions", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_mapping_exclusions", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
+  // No DELETE policy for mnweb — exclusions are cleared via direct DB access, not the app role
+]);
+
+export const agentHeartbeats = pgTable("agent_heartbeats", {
+	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+	workerId: text("worker_id").notNull().unique(),
+	apiKeyHash: text("api_key_hash").notNull(),
+	status: text().notNull().default('starting'),
+	currentRun: integer("current_run"),
+	batchPlatform: text("batch_platform"),
+	batchSize: integer("batch_size"),
+	message: text(),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	config: jsonb(),
+}, (table) => [
+	index("idx_agent_heartbeats_updated_at").using("btree", table.updatedAt.desc().nullsLast()),
+	pgPolicy("mnweb_select_agent_heartbeats", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_agent_heartbeats", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_agent_heartbeats", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
+]);
+
+export const agentRuns = pgTable("agent_runs", {
+	id: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+	workerId: text("worker_id").notNull(),
+	apiKeyHash: text("api_key_hash").notNull(),
+	runNumber: integer("run_number").notNull(),
+	platform: text().notNull().default('deezer'),
+	status: text().notNull().default('running'),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+	endedAt: timestamp("ended_at", { withTimezone: true, mode: 'string' }),
+	wallTimeSecs: integer("wall_time_secs"),
+	claudeTimeSecs: integer("claude_time_secs"),
+	apiTimeSecs: integer("api_time_secs"),
+	turns: integer(),
+	batchSize: integer("batch_size"),
+	resolved: integer().default(0),
+	excluded: integer().default(0),
+	skipped: integer().default(0),
+	errors: integer().default(0),
+	highConfidence: integer("high_confidence").default(0),
+	mediumConfidence: integer("medium_confidence").default(0),
+	conflicts: integer().default(0),
+	nameMismatches: integer("name_mismatches").default(0),
+	tooAmbiguous: integer("too_ambiguous").default(0),
+	exitCode: integer("exit_code"),
+	failCategory: text("fail_category"),
+	failReason: text("fail_reason"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`now()`).notNull(),
+}, (table) => [
+	uniqueIndex("idx_agent_runs_worker_run").using("btree", table.workerId.asc().nullsLast(), table.runNumber.asc().nullsLast()),
+	index("idx_agent_runs_started_at").using("btree", table.startedAt.desc().nullsLast()),
+	pgPolicy("mnweb_select_agent_runs", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_agent_runs", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_agent_runs", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true` }),
 ]);
 
 // Relations
@@ -325,6 +430,8 @@ export const artistsRelations = relations(artists, ({one, many}) => ({
 		fields: [artists.addedBy],
 		references: [users.id]
 	}),
+	idMappings: many(artistIdMappings),
+	mappingExclusions: many(artistMappingExclusions),
 	ugcresearches: many(ugcresearch),
 	featureds_featuredArtist: many(featured, {
 		relationName: "featured_featuredArtist_artists_id"
@@ -360,5 +467,19 @@ export const featuredRelations = relations(featured, ({one}) => ({
 		fields: [featured.featuredCollector],
 		references: [artists.id],
 		relationName: "featured_featuredCollector_artists_id"
+	}),
+}));
+
+export const artistIdMappingsRelations = relations(artistIdMappings, ({one}) => ({
+	artist: one(artists, {
+		fields: [artistIdMappings.artistId],
+		references: [artists.id],
+	}),
+}));
+
+export const artistMappingExclusionsRelations = relations(artistMappingExclusions, ({one}) => ({
+	artist: one(artists, {
+		fields: [artistMappingExclusions.artistId],
+		references: [artists.id],
 	}),
 }));
