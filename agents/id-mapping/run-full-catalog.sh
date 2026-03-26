@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Durable loop runner for processing the full artist catalog.
 # Each iteration invokes claude-runner.sh (one batch), logs output,
-# and stops after 3 consecutive failures.
+# and stops after 5 consecutive failures.
 #
 # Usage:
 #   tmux new -s id-mapping
@@ -325,7 +325,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   report_run "failed" "$logfile" "$batch_start_iso"
   heartbeat "error" "$fail_reason"
   consecutive_failures=$((consecutive_failures + 1))
-  log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/3]"
+  log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/5]"
 
   # Fatal errors — stop immediately
   if [[ "$fail_category" == "fatal" ]]; then
