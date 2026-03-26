@@ -128,7 +128,7 @@ function ActivityPulseBar({ pulse }: { pulse: AgentWorkSummary["activityPulse"] 
       </span>
       <span className="text-sm text-muted-foreground">|</span>
       <span className="text-sm">
-        Rate: <span className="font-medium">{pulse.rateLastHour}/hr</span>
+        Artists: <span className="font-medium">{pulse.rateLastHour}/hr</span>
       </span>
     </div>
   );

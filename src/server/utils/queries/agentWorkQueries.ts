@@ -85,7 +85,7 @@ export type AgentWorkData = AgentWorkSummary & AgentWorkDetails;
 export async function getActivityPulse(): Promise<ActivityPulse> {
   const result = await db.execute<{ last_write_at: string | null; rate_last_hour: number }>(sql`
     SELECT MAX(created_at) AS last_write_at,
-           COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS rate_last_hour
+           COUNT(DISTINCT artist_id) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS rate_last_hour
     FROM mcp_audit_log
   `);
   return {
