@@ -145,6 +145,12 @@ report_run() {
 cleanup() {
   echo ""
   log "Interrupted — killing child processes..."
+  heartbeat "stopping" "Interrupted (SIGINT/SIGTERM)"
+  if [[ -n "${batch_start_iso:-}" ]]; then
+    fail_reason="interrupted (SIGINT/SIGTERM)"
+    fail_category="fatal"
+    report_run "failed" "${logfile:-}" "$batch_start_iso"
+  fi
   kill 0 2>/dev/null
   exit 130
 }
