@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Durable loop runner for processing the full artist catalog.
 # Each iteration invokes claude-runner.sh (one batch), logs output,
-# and stops after 3 consecutive failures.
+# and stops after 5 consecutive failures.
 #
 # Usage:
 #   tmux new -s id-mapping
@@ -145,6 +145,12 @@ report_run() {
 cleanup() {
   echo ""
   log "Interrupted — killing child processes..."
+  heartbeat "stopping" "Interrupted (SIGINT/SIGTERM)"
+  if [[ -n "${batch_start_iso:-}" ]]; then
+    fail_reason="interrupted (SIGINT/SIGTERM)"
+    fail_category="fatal"
+    report_run "failed" "${logfile:-}" "$batch_start_iso"
+  fi
   kill 0 2>/dev/null
   exit 130
 }
@@ -278,11 +284,12 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   logsize=$(stat --printf="%s" "$logfile" 2>/dev/null || stat -f%z "$logfile" 2>/dev/null || echo "?")
   echo "[loop] Claude exited with code $exit_code, log size: ${logsize} bytes"
 
-  # Classify the failure
-  classify_failure "$exit_code" "$logfile"
-
-  # Check for success
-  if [[ -z "$fail_reason" ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+  # Check for success first — exit 0 + session report = success, skip failure classification
+  # This prevents agent output text (e.g. "unauthenticated MCP initialization request failed")
+  # from being misclassified as an auth error by the log content patterns.
+  if [[ $exit_code -eq 0 ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+    fail_reason=""
+    fail_category=""
     # Success
     consecutive_failures=0
 
@@ -311,11 +318,14 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
     continue
   fi
 
+  # Classify the failure (only reached if success check above didn't match)
+  classify_failure "$exit_code" "$logfile"
+
   # Handle failure
   report_run "failed" "$logfile" "$batch_start_iso"
   heartbeat "error" "$fail_reason"
   consecutive_failures=$((consecutive_failures + 1))
-  log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/3]"
+  log "FAILED run $run_num: $fail_reason [category=$fail_category, consecutive=$consecutive_failures/5]"
 
   # Fatal errors — stop immediately
   if [[ "$fail_category" == "fatal" ]]; then

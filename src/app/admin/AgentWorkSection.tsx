@@ -357,7 +357,7 @@ function AuditLogSection({
                   <TableCell><ActionBadge action={entry.action} /></TableCell>
                   <TableCell className="text-sm font-mono">{entry.field}</TableCell>
                   <TableCell>
-                    <Link href={`/artist/${entry.artistId}`} className="text-sm text-blue-400 hover:underline">
+                    <Link href={`/artist/${entry.artistId}`} target="_blank" className="text-sm text-blue-400 hover:underline">
                       {entry.artistName ?? entry.artistId.slice(0, 8)}
                     </Link>
                   </TableCell>
