@@ -154,7 +154,7 @@ export default function ActivityFeed() {
 
             // Mark new events as fresh for 3s
             const newKeys = newEvents.map(
-                (e) => `${e.type}-${e.artistId}-${e.createdAt}`,
+                (e) => `${e.type}-${e.artistId}-${e.platform}-${e.createdAt}`,
             );
             setFreshIds((prev) => {
                 const next = new Set(prev);
@@ -211,7 +211,7 @@ export default function ActivityFeed() {
                     ) : (
                         <ul aria-live="polite" aria-label="Recent activity">
                             {events.map((e, i) => {
-                                const key = `${e.type}-${e.artistId}-${e.createdAt}`;
+                                const key = `${e.type}-${e.artistId}-${e.platform}-${e.createdAt}`;
                                 const isFresh = freshIds.has(key);
                                 const opacity = Math.max(0.45, 1 - i * 0.035);
 
