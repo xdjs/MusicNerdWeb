@@ -7,7 +7,11 @@ export async function GET(request: NextRequest | Request) {
     const start = performance.now();
     try {
         const { searchParams } = new URL(request.url);
-        const since = searchParams.get("since") ?? undefined;
+        const sinceRaw = searchParams.get("since");
+        if (sinceRaw !== null && isNaN(Date.parse(sinceRaw))) {
+            return NextResponse.json({ error: "Invalid since parameter" }, { status: 400 });
+        }
+        const since = sinceRaw ?? undefined;
 
         const events = await getRecentActivity(since);
 
@@ -22,7 +26,7 @@ export async function GET(request: NextRequest | Request) {
         return NextResponse.json(response, { status: 200 });
     } catch (error) {
         return NextResponse.json(
-            { error: "Failed to fetch activity", details: error instanceof Error ? error.message : "Unknown error" },
+            { error: "Failed to fetch activity" },
             { status: 500 },
         );
     } finally {

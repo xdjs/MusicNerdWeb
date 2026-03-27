@@ -79,7 +79,18 @@ describe("GET /api/activity", () => {
         expect(data).toEqual([]);
     });
 
-    it("returns 500 on query failure", async () => {
+    it("returns 400 for invalid since parameter", async () => {
+        const { GET } = await setup();
+
+        const request = new Request("http://localhost/api/activity?since=not-a-date");
+        const response = await GET(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.error).toBe("Invalid since parameter");
+    });
+
+    it("returns 500 on query failure without leaking details", async () => {
         const { GET, getRecentActivity } = await setup();
         getRecentActivity.mockRejectedValueOnce(new Error("DB connection failed"));
 
@@ -89,5 +100,6 @@ describe("GET /api/activity", () => {
 
         expect(response.status).toBe(500);
         expect(data.error).toBe("Failed to fetch activity");
+        expect(data.details).toBeUndefined();
     });
 });
