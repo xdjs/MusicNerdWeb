@@ -2,53 +2,68 @@
 
 ## Context
 
-The MusicNerdWeb homepage is currently a static hero page with rotating subtitle text. With agents actively mapping thousands of artists and human contributors adding links, there's a compelling story to tell on the homepage — a live feed showing the site is alive and actively growing. This replaces the rotating subtitles with a real-time stream of activity that links visitors directly to artist pages.
+The MusicNerdWeb homepage currently shows a static subtitle list ("Music Nerd", "Mindful Listener", etc.) rendered in static mode. With agents actively mapping thousands of artists and human contributors adding links, there's a compelling story to tell on the homepage — a live feed showing the site is alive and actively growing. This replaces the subtitle list with a polling activity feed that links visitors directly to artist pages.
 
 ## Requirements (from brainstorm)
 
 - **Feed content**: Agent mappings, human UGC submissions, new artists added (no exclusions)
 - **Visibility**: Public, no auth required
-- **Layout**: Remove rotating subtitles. Keep logo, profile avatar, search, footer. Feed goes below search.
+- **Layout**: Remove subtitle list. Keep logo, profile avatar, search. Uncomment footer. Feed goes below search.
 - **Clickable**: Each item links to the artist page
-- **Updates**: SSE/streaming for real-time push
-- **Size**: 10-15 most recent items visible
+- **Updates**: Client-side polling every 30s (not SSE — avoids holding function instances open on Vercel)
+- **Size**: 15 most recent items visible
 
 ## Data sources
 
 | Source | Table | Join | Example text |
 |---|---|---|---|
-| Agent mapping | `mcp_audit_log` WHERE action='resolve' | LEFT JOIN artists ON artist_id | "Deezer ID mapped for **Mogwai**" |
+| Agent mapping | `mcp_audit_log` WHERE action='resolve' | INNER JOIN artists ON artist_id | "Deezer ID mapped for **Mogwai**" |
 | Human UGC | `ugcresearch` WHERE accepted=true | Has `name` field directly | "YouTube link added for **SENTO**" |
-| New artist | `artists` | Has `name` field, JOIN users for addedBy | "**Taylor Swift** added to the directory" |
+| New artist | `artists` | Has `name` field | "**Taylor Swift** added to the directory" |
 
-All three have `created_at` with DESC indexes — efficient for recent-activity queries.
+### Index status
+
+- `mcp_audit_log.created_at` — has DESC index (`idx_mcp_audit_log_created_at`). Ready.
+- `ugcresearch.date_processed` — **no index exists**. Needs a migration to add `idx_ugcresearch_date_processed DESC`.
+- `artists.created_at` — only exists as trailing column in composite index `(addedBy, createdAt)`. Needs a standalone `idx_artists_created_at DESC` index.
+
+Both new indexes should be added in a Drizzle migration before or alongside this feature.
 
 ## Architecture
 
-### API: `GET /api/activity/stream`
+### API: `GET /api/activity`
 
-SSE endpoint that streams activity events. Public, no auth.
+JSON endpoint returning the most recent activity events. Public, no auth. Must include `export const dynamic = "force-dynamic"` since it reads from the database.
 
-**Initial load**: Query the 3 sources for recent events (last 24h), merge and sort by `created_at DESC`, return the 15 most recent as an initial batch.
+**Initial load** (no `since` param): Returns the 15 most recent events across all sources with no time filter. This ensures the feed always has content even during quiet periods.
 
-**Streaming**: Keep the connection alive. Poll the DB every 10 seconds for new events since the last seen timestamp. Push any new events via SSE. Vercel Fluid Compute supports long-running streaming functions (up to 300s on Pro). Client auto-reconnects with `EventSource` using `Last-Event-ID` header.
+**Polling updates** (`?since=<ISO timestamp>`): Returns events newer than the given timestamp, up to 15. Used by the client on subsequent polls.
 
-**Event format**:
+**Response format**:
+```json
+[
+  {
+    "type": "agent_mapping",
+    "artistId": "uuid",
+    "artistName": "Mogwai",
+    "platform": "deezer",
+    "createdAt": "2025-03-27T12:00:00Z"
+  },
+  {
+    "type": "ugc_approved",
+    "artistId": "uuid",
+    "artistName": "SENTO",
+    "platform": "youtube",
+    "createdAt": "2025-03-27T11:55:00Z"
+  },
+  {
+    "type": "artist_added",
+    "artistId": "uuid",
+    "artistName": "Taylor Swift",
+    "createdAt": "2025-03-27T11:00:00Z"
+  }
+]
 ```
-id: <timestamp_ms>
-event: activity
-data: {"type":"agent_mapping","artistId":"...","artistName":"Mogwai","platform":"deezer","createdAt":"..."}
-
-id: <timestamp_ms>
-event: activity
-data: {"type":"ugc_approved","artistId":"...","artistName":"SENTO","platform":"youtube","createdAt":"..."}
-
-id: <timestamp_ms>
-event: activity
-data: {"type":"artist_added","artistId":"...","artistName":"Taylor Swift","addedBy":"clt","createdAt":"..."}
-```
-
-**Fallback**: Also support `GET /api/activity` (no stream) that returns JSON array of the 15 most recent events. Used as initial fetch and for browsers without SSE.
 
 ### Query: `src/server/utils/queries/activityQueries.ts`
 
@@ -64,9 +79,9 @@ Uses a UNION ALL query across the 3 sources, sorted by `created_at DESC`:
 (SELECT 'agent_mapping' AS type, al.artist_id, a.name AS artist_name,
         al.field AS platform, al.created_at
  FROM mcp_audit_log al
- LEFT JOIN artists a ON a.id = al.artist_id
+ INNER JOIN artists a ON a.id = al.artist_id
  WHERE al.action = 'resolve' AND al.field LIKE 'mapping:%'
-   AND al.created_at > $since
+   AND ($since IS NULL OR al.created_at > $since)
  ORDER BY al.created_at DESC LIMIT $limit)
 
 UNION ALL
@@ -75,7 +90,7 @@ UNION ALL
         u.site_name AS platform, u.date_processed AS created_at
  FROM ugcresearch u
  WHERE u.accepted = true AND u.date_processed IS NOT NULL
-   AND u.date_processed > $since
+   AND ($since IS NULL OR u.date_processed > $since)
  ORDER BY u.date_processed DESC LIMIT $limit)
 
 UNION ALL
@@ -83,16 +98,21 @@ UNION ALL
 (SELECT 'artist_added' AS type, ar.id AS artist_id, ar.name AS artist_name,
         NULL AS platform, ar.created_at
  FROM artists ar
- WHERE ar.created_at > $since
+ WHERE ($since IS NULL OR ar.created_at > $since)
  ORDER BY ar.created_at DESC LIMIT $limit)
 
 ORDER BY created_at DESC
 LIMIT $limit
 ```
 
-Single query, no N+1. Uses existing indexes.
+Single query, no N+1. Uses INNER JOIN for audit log entries to filter out orphaned records (deleted artists). The `$since` filter is NULL on initial load (returns most recent N items regardless of age) and set on polling updates.
 
 ### UI: Updated `HomePageSplash.tsx`
+
+**Changes**:
+- Remove the `titles` array, `SlidingText`/`TypewriterText` imports, and all subtitle rendering logic
+- Uncomment the footer (currently commented out at bottom of file)
+- Add `<ActivityFeed />` between search bar and footer
 
 **Layout** (top to bottom):
 ```
@@ -117,40 +137,46 @@ Single query, no N+1. Uses existing indexes.
 ```
 
 **New component**: `ActivityFeed.tsx` (client component)
-- Uses `EventSource` to connect to `/api/activity/stream`
-- Falls back to polling `/api/activity` if SSE fails
-- New items animate in from the top (slide-down)
-- Each item is a link to `/artist/<id>`
-- Shows relative time ("2m ago", "1h ago")
+- Fetches `/api/activity` on mount (no `since` param — gets latest 15)
+- Polls every 30s with `?since=<newest createdAt>` — merges new items into state
+- New items animate in from the top using CSS transitions (`translateY` + opacity, no extra dependencies)
+- Each item is a `<Link>` to `/artist/<id>`
+- Shows relative time ("2m ago", "1h ago") — update display every 60s
 - Icon prefix: 🤖 for agent, 👤 for human UGC, ✨ for new artist
 - Compact single-line items, muted styling, artist name is the bold/highlighted part
-- Dedupes: if the same artist has multiple agent mappings within 1 minute, collapse to one entry ("3 platforms mapped for **Mogwai**")
+- Caps displayed items at 15 (oldest items drop off as new ones arrive)
+- Empty state: "No recent activity" with muted styling
 
 ### Connection pool safety
 
-The SSE endpoint polls every 10s with a single lightweight query (UNION ALL with LIMIT 15). Each poll opens 1 connection. Even with 100 concurrent homepage visitors, this is just 1 query per visitor every 10s = ~10 queries/sec at peak. Well within the 50-connection pool.
+Client polls every 30s. Each poll runs 1 lightweight query (UNION ALL with LIMIT 15, single DB connection). Even with 100 concurrent homepage visitors, worst case is ~3 queries/sec. Well within the connection pool.
 
 ## Files
 
 ### New files
-- `src/app/api/activity/stream/route.ts` — SSE endpoint
-- `src/app/api/activity/route.ts` — JSON fallback endpoint
+- `src/app/api/activity/route.ts` — JSON endpoint (`force-dynamic`)
 - `src/server/utils/queries/activityQueries.ts` — UNION ALL query
 - `src/app/_components/ActivityFeed.tsx` — client component
 
 ### Modified files
-- `src/app/_components/HomePageSplash.tsx` — remove rotating subtitles, add ActivityFeed
+- `src/app/_components/HomePageSplash.tsx` — remove subtitle list, uncomment footer, add ActivityFeed
 - `src/app/page.tsx` — may need adjustment if layout changes
+
+### Migration
+- Add `idx_ugcresearch_date_processed` (DESC) on `ugcresearch.date_processed`
+- Add `idx_artists_created_at` (DESC) on `artists.created_at`
 
 ### Test files
 - `src/server/utils/queries/__tests__/activityQueries.test.ts`
 - `src/app/api/activity/__tests__/route.test.ts`
+- `src/app/_components/__tests__/ActivityFeed.test.tsx`
 
 ## Verification
 
-1. Open homepage — feed loads with recent activity (initial JSON fetch)
-2. SSE connects — new events appear without refresh as agents work
+1. Open homepage — feed loads with 15 most recent items (even if activity is days old)
+2. Wait 30s — new events appear with slide-in animation as polling picks them up
 3. Click an artist name — navigates to artist page
-4. Agent writes a mapping — appears in feed within 10s
-5. No connection pool errors under normal load
-6. Feed is empty-state friendly ("No recent activity" when DB is fresh)
+4. Agent writes a mapping — appears in feed within ~30s
+5. No "null" artist names in the feed (INNER JOIN filters orphaned audit entries)
+6. Feed shows "No recent activity" on a fresh database with no data
+7. Relative timestamps update periodically ("2m ago" → "3m ago")
