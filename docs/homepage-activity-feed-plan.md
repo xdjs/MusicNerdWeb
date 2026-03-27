@@ -111,41 +111,85 @@ Single query, no N+1. Uses INNER JOIN for audit log entries to filter out orphan
 
 **Changes**:
 - Remove the `titles` array, `SlidingText`/`TypewriterText` imports, and all subtitle rendering logic
-- Uncomment the footer (currently commented out at bottom of file)
-- Add `<ActivityFeed />` between search bar and footer
+- Remove the "Ask Music Nerd about an artist" text and the inline `<SearchBar>` (the nav bar already has one)
+- Remove the inline `<Login>` button (the nav bar already has one)
+- Remove the commented-out footer (the root layout's `<Footer />` handles it)
+- Replace all of the above with a "music nerd" title + `<ActivityFeed />`
+
+**Prototype**: `src/app/prototype/page.tsx` — live reference with mock data and simulated streaming. Run `npm run dev` and visit `/prototype`.
 
 **Layout** (top to bottom):
 ```
 ┌─────────────────────────────────────────────────┐
-│ [logo]                              [profile]    │
+│ [logo]  [ Search for an artist... ] [+] [avatar] │  ← nav bar (unchanged)
 │                                                   │
-│              Ask Music Nerd about an artist        │
-│              [ Search for an artist... ]           │
+│                 music nerd                         │  ← brand pink, fluid 32-84px
+│                  ● LIVE                            │  ← pulsing green dot
 │                                                   │
-│              ── Live Activity ──                   │
-│                                                   │
-│  🤖 Deezer ID mapped for Mogwai           2m ago  │
-│  🤖 Apple Music mapped for Mogwai         2m ago  │
-│  👤 YouTube link added for SENTO          5m ago  │
-│  🤖 Deezer ID mapped for Jodeci         12m ago  │
-│  ✨ Taylor Swift added to directory      1h ago  │
-│  🤖 Deezer ID mapped for Lethal Bizzle  1h ago  │
+│  ▌ Tidal ID mapped for Amon Tobin           now   │  ← cyan bar (agent)
+│  ▌ Deezer ID mapped for Mogwai               2m   │  ← cyan bar (agent)
+│  ▌ YouTube link added for SENTO              5m   │  ← pink bar (human UGC)
+│  ▌ Taylor Swift added to directory           1h   │  ← green bar (new artist)
+│  ▌ Deezer ID mapped for Lethal Bizzle        1h   │
 │  ...                                              │
 │                                                   │
-│  Made in Seattle by @cxy @clt and friends         │
+│  Made in Seattle by @cxy @clt and friends         │  ← root layout <Footer />
 └─────────────────────────────────────────────────┘
 ```
+
+### Design details
+
+**Title**: "music nerd" in brand pink (`#ff9ce3`), lowercase, bold, fluid clamp 32-84px with tight letter-spacing. Subtle pink text-shadow glow in both themes.
+
+**Live indicator**: Pulsing green dot (Tailwind `animate-ping`) + "LIVE" label in small uppercase tracking. Replaces the old "LIVE ACTIVITY" divider with horizontal rules.
+
+**Feed items**: Each row is a `<Link>` to `/artist/<id>` with three elements:
+1. **Type indicator bar** — 3px-wide rounded pill on the left edge, color-coded by event type. Grows from h-4 to h-5 on hover.
+2. **Event text** — 13px, truncated. Artist name rendered as `<strong>` in brand pink (`#ff9ce3`) in both themes.
+3. **Timestamp** — 11px, right-aligned, compact format: `now`, `2m`, `1h`, `3d` (no "ago" suffix). Refreshes every 30s.
+
+**Opacity cascade**: Items fade from `opacity: 1` (newest) to `opacity: 0.45` (oldest) via `1 - index * 0.035`, giving visual depth.
+
+**Fresh item highlight**: Newly polled items get a green-tinted background (`--feed-fresh-bg`) and green timestamp for 3 seconds, then settle to default.
+
+**Entry animation**: `fadeSlideIn` keyframe (defined in `tailwind.config.ts`) — `translateY(-8px)` + `opacity: 0` to settled position. Staggered with `animationDelay: index * 30ms`.
+
+### Theme colors (CSS custom properties)
+
+Colors are defined as CSS custom properties on a `.feed-root` wrapper, toggled via `.dark .feed-root`. This keeps all theme logic in one place with zero runtime cost.
+
+| Variable | Light mode | Dark mode | Usage |
+|---|---|---|---|
+| `--feed-title` | `#ff9ce3` | `#ff9ce3` | "music nerd" title |
+| `--feed-title-glow` | `rgba(255,156,227,0.2)` | `rgba(255,156,227,0.3)` | Title text-shadow |
+| `--feed-body` | `#5a4d5e` | `#c6bfc7` | Event description text |
+| `--feed-body-hover` | `#3d2f42` | `#e0d8e2` | Event text on hover |
+| `--feed-artist` | `#ff9ce3` | `#ff9ce3` | Artist name (`<strong>`) |
+| `--feed-timestamp` | `#9b8a9f` | `rgba(198,191,199,0.35)` | Timestamp text |
+| `--feed-timestamp-dim` | `rgba(155,138,159,0.4)` | `rgba(198,191,199,0.25)` | Timestamp at rest |
+| `--feed-live-dot` | `#059669` | `#19ffb8` | Pulsing live dot |
+| `--feed-live-label` | `rgba(90,77,94,0.6)` | `rgba(198,191,199,0.6)` | "LIVE" label |
+| `--feed-bar-agent` | `#0891b2` | `#2ad4fc` | Agent mapping type bar |
+| `--feed-bar-ugc` | `#c44a8c` | `#ff9ce3` | Human UGC type bar |
+| `--feed-bar-new` | `#059669` | `#19ffb8` | New artist type bar |
+| `--feed-hover-bg` | `rgba(90,77,94,0.07)` | `rgba(198,191,199,0.08)` | Row hover background |
+| `--feed-fresh-bg` | `rgba(5,150,105,0.06)` | `rgba(25,255,184,0.06)` | Fresh item background |
+| `--feed-fresh-time` | `rgba(5,150,105,0.7)` | `rgba(25,255,184,0.7)` | Fresh item timestamp |
+
+Light mode uses the same brand pink for title and artist names. Body text and type bars use deeper, saturated variants for contrast on white backgrounds.
 
 **New component**: `ActivityFeed.tsx` (client component)
 - Fetches `/api/activity` on mount (no `since` param — gets latest 15)
 - Polls every 30s with `?since=<newest createdAt>` — merges new items into state
-- New items animate in from the top using CSS transitions (`translateY` + opacity, no extra dependencies)
+- New items animate in via `fadeSlideIn` keyframe (already in `tailwind.config.ts`)
 - Each item is a `<Link>` to `/artist/<id>`
-- Shows relative time ("2m ago", "1h ago") — update display every 60s
-- Icon prefix: 🤖 for agent, 👤 for human UGC, ✨ for new artist
-- Compact single-line items, muted styling, artist name is the bold/highlighted part
+- Relative timestamps (`now`, `2m`, `1h`, `3d`) — re-rendered every 30s
+- Type indicator bars instead of emoji icons (color-coded, see theme table above)
+- Opacity cascade: newest items bright, oldest items faded
+- Fresh item highlight: green-tinted bg for 3s on new arrivals
 - Caps displayed items at 15 (oldest items drop off as new ones arrive)
-- Empty state: "No recent activity" with muted styling
+- Empty state: "Waiting for activity..." with muted styling
+- **Accessibility**: The feed `<ul>` must have `aria-live="polite"` and `aria-label="Recent activity"` so screen readers announce new items. Use `aria-live="polite"` (not `"assertive"`) since the feed updates are informational, not urgent.
 
 ### Connection pool safety
 
@@ -159,8 +203,9 @@ Client polls every 30s. Each poll runs 1 lightweight query (UNION ALL with LIMIT
 - `src/app/_components/ActivityFeed.tsx` — client component
 
 ### Modified files
-- `src/app/_components/HomePageSplash.tsx` — remove subtitle list, uncomment footer, add ActivityFeed
+- `src/app/_components/HomePageSplash.tsx` — gut the subtitle/search/login/footer content, replace with "music nerd" title + `<ActivityFeed />`
 - `src/app/page.tsx` — may need adjustment if layout changes
+- `tailwind.config.ts` — already has `fadeSlideIn` keyframe/animation (added during prototype)
 
 ### Migration
 - Add `idx_ugcresearch_date_processed` (DESC) on `ugcresearch.date_processed`
@@ -174,9 +219,15 @@ Client polls every 30s. Each poll runs 1 lightweight query (UNION ALL with LIMIT
 ## Verification
 
 1. Open homepage — feed loads with 15 most recent items (even if activity is days old)
-2. Wait 30s — new events appear with slide-in animation as polling picks them up
+2. Wait 30s — new events appear with slide-in animation and green highlight, then settle
 3. Click an artist name — navigates to artist page
 4. Agent writes a mapping — appears in feed within ~30s
 5. No "null" artist names in the feed (INNER JOIN filters orphaned audit entries)
-6. Feed shows "No recent activity" on a fresh database with no data
-7. Relative timestamps update periodically ("2m ago" → "3m ago")
+6. Feed shows "Waiting for activity..." on a fresh database with no data
+7. Relative timestamps update every 30s (`now` → `1m` → `2m`)
+8. Type bars are color-coded: cyan (agent), pink (human UGC), green (new artist)
+9. Older items fade via opacity cascade — newest bright, oldest dim
+10. Light mode: pink title/artist names pop on white, body text is dark mauve, type bars use saturated variants
+11. Dark mode: neon pink/cyan/green palette with subtle glow on title
+12. Pulsing green "LIVE" dot animates continuously
+13. Footer ("Made in Seattle...") is above the fold on both desktop and mobile
