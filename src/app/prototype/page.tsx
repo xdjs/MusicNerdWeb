@@ -125,12 +125,12 @@ const feedThemeVars = `
         font-weight: 600;
     }
 
-    .feed-root .group:hover > span:nth-child(2) {
+    .feed-root .group:hover .feed-text {
         color: var(--feed-body-hover);
     }
 
-    .feed-root .group:hover > span:last-child {
-        color: var(--feed-timestamp) !important;
+    .feed-root .group:hover .feed-ts {
+        color: var(--feed-timestamp);
     }
 
     .dark .feed-root {
@@ -281,14 +281,14 @@ export default function PrototypePage() {
                                                         style={{ backgroundColor: typeBarVar[e.type] }}
                                                     />
                                                     {/* Event text */}
-                                                    <span className="text-[13px] truncate flex-1
+                                                    <span className="feed-text text-[13px] truncate flex-1
                                                                      transition-colors duration-300"
                                                         style={{ color: 'var(--feed-body)' }}
                                                     >
                                                         {eventText(e)}
                                                     </span>
                                                     {/* Timestamp */}
-                                                    <span className="text-[11px] flex-shrink-0 tabular-nums transition-colors duration-300"
+                                                    <span className="feed-ts text-[11px] flex-shrink-0 tabular-nums transition-colors duration-300"
                                                         style={{
                                                             color: isFresh
                                                                 ? 'var(--feed-fresh-time)'

@@ -189,6 +189,7 @@ Light mode uses the same brand pink for title and artist names. Body text and ty
 - Fresh item highlight: green-tinted bg for 3s on new arrivals
 - Caps displayed items at 15 (oldest items drop off as new ones arrive)
 - Empty state: "Waiting for activity..." with muted styling
+- **Accessibility**: The feed `<ul>` must have `aria-live="polite"` and `aria-label="Recent activity"` so screen readers announce new items. Use `aria-live="polite"` (not `"assertive"`) since the feed updates are informational, not urgent.
 
 ### Connection pool safety
 
