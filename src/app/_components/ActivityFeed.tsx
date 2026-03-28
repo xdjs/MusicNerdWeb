@@ -59,6 +59,10 @@ function eventText(e: ActivityEvent): React.ReactNode {
     }
 }
 
+function eventKey(e: ActivityEvent): string {
+    return `${e.type}-${e.artistId}-${e.platform}-${e.createdAt}`;
+}
+
 // --- Theme CSS custom properties ------------------------------------------
 
 const feedThemeVars = `
@@ -73,6 +77,7 @@ const feedThemeVars = `
         --feed-bar-agent: #0891b2;
         --feed-bar-ugc: #c44a8c;
         --feed-bar-new: #059669;
+        --feed-hover-bg: rgba(90, 77, 94, 0.07);
         --feed-fresh-bg: rgba(5, 150, 105, 0.06);
         --feed-fresh-time: rgba(5, 150, 105, 0.7);
         --feed-empty: rgba(90, 77, 94, 0.35);
@@ -102,6 +107,7 @@ const feedThemeVars = `
         --feed-bar-agent: #2ad4fc;
         --feed-bar-ugc: #ff9ce3;
         --feed-bar-new: #19ffb8;
+        --feed-hover-bg: rgba(198, 191, 199, 0.08);
         --feed-fresh-bg: rgba(25, 255, 184, 0.06);
         --feed-fresh-time: rgba(25, 255, 184, 0.7);
         --feed-empty: rgba(198, 191, 199, 0.3);
@@ -120,6 +126,8 @@ export default function ActivityFeed() {
     const [events, setEvents] = useState<ActivityEvent[]>([]);
     const [, setTick] = useState(0);
     const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+    // Track initial load so we can animate the first batch in with stagger
+    const [initialLoad, setInitialLoad] = useState(true);
     const latestTimestamp = useRef<string | null>(null);
 
     const fetchEvents = useCallback(async (since?: string) => {
@@ -142,6 +150,8 @@ export default function ActivityFeed() {
             if (!data?.length) return;
             setEvents(data);
             latestTimestamp.current = data[0].createdAt;
+            // Clear initial load flag after stagger animation completes
+            setTimeout(() => setInitialLoad(false), data.length * 30 + 300);
         });
     }, [fetchEvents]);
 
@@ -152,10 +162,7 @@ export default function ActivityFeed() {
             const newEvents = await fetchEvents(since);
             if (!newEvents?.length) return;
 
-            // Mark new events as fresh for 3s
-            const newKeys = newEvents.map(
-                (e) => `${e.type}-${e.artistId}-${e.platform}-${e.createdAt}`,
-            );
+            const newKeys = newEvents.map(eventKey);
             setFreshIds((prev) => {
                 const next = new Set(prev);
                 newKeys.forEach((k) => next.add(k));
@@ -203,31 +210,35 @@ export default function ActivityFeed() {
                         </span>
                     </div>
 
-                    {events.length === 0 ? (
-                        <div className="text-sm text-center py-6"
-                            style={{ color: 'var(--feed-empty)' }}>
-                            Waiting for activity...
-                        </div>
-                    ) : (
-                        <ul aria-live="polite" aria-label="Recent activity">
-                            {events.map((e, i) => {
-                                const key = `${e.type}-${e.artistId}-${e.platform}-${e.createdAt}`;
+                    {/* Always render <ul> so aria-live is present from mount */}
+                    <ul aria-live="polite" aria-label="Recent activity">
+                        {events.length === 0 ? (
+                            <li className="text-sm text-center py-6 list-none"
+                                style={{ color: 'var(--feed-empty)' }}>
+                                Waiting for activity...
+                            </li>
+                        ) : (
+                            events.map((e, i) => {
+                                const key = eventKey(e);
                                 const isFresh = freshIds.has(key);
+                                const shouldAnimate = initialLoad || isFresh;
                                 const opacity = Math.max(0.45, 1 - i * 0.035);
 
                                 return (
                                     <li
                                         key={key}
-                                        className="animate-fadeSlideIn"
+                                        className={shouldAnimate ? "animate-fadeSlideIn" : ""}
                                         style={{
-                                            animationDelay: `${i * 30}ms`,
+                                            ...(shouldAnimate && initialLoad
+                                                ? { animationDelay: `${i * 30}ms` }
+                                                : {}),
                                             opacity,
                                         }}
                                     >
                                         <Link
                                             href={`/artist/${e.artistId}`}
                                             className="group flex items-center gap-2.5 py-[5px] px-2 sm:px-3 rounded-md
-                                                       transition-all duration-300"
+                                                       transition-all duration-300 hover:bg-[var(--feed-hover-bg)]"
                                             style={{
                                                 backgroundColor: isFresh
                                                     ? 'var(--feed-fresh-bg)'
@@ -257,9 +268,9 @@ export default function ActivityFeed() {
                                         </Link>
                                     </li>
                                 );
-                            })}
-                        </ul>
-                    )}
+                            })
+                        )}
+                    </ul>
                 </div>
             </div>
         </>
