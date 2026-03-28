@@ -124,6 +124,13 @@ src/app/api/admin/artist-data/route.ts     # API endpoint
 
 Single endpoint: `GET /api/admin/artist-data`
 
+**Required conventions (per CLAUDE.md):**
+- `export const dynamic = "force-dynamic"` — reads from DB, must not be statically cached
+- `requireAdmin()` from `@/lib/auth-helpers` — admin-only access
+- Response cached server-side for 60s (uniform across all sections) to avoid heavy polling on the completeness distribution query
+
+**"Today" definition:** `todayCount` uses `created_at >= CURRENT_DATE` (UTC midnight), consistent with the existing `getTodayCounts()` in `agentWorkQueries.ts`. This means the counter resets at UTC midnight, not rolling 24h.
+
 Returns all four sections in one response (all queries are simple `COUNT` aggregations — fast even on 43k rows):
 
 ```typescript
@@ -181,11 +188,14 @@ FROM artist_id_mappings
 GROUP BY platform;
 
 -- Section 2: Artist link coverage (one query, multiple COUNTs)
+-- Total populated + today's additions (using updated_at for columns that lack individual created_at)
 SELECT
   COUNT(*) FILTER (WHERE spotify IS NOT NULL AND spotify != '')::int AS spotify,
   COUNT(*) FILTER (WHERE instagram IS NOT NULL AND instagram != '')::int AS instagram,
   COUNT(*) FILTER (WHERE x IS NOT NULL AND x != '')::int AS x,
   -- ...etc for each column
+  -- todayCount: approximate via updated_at >= CURRENT_DATE for columns that changed today
+  -- (artists table has updated_at but no per-column created_at, so this is best-effort)
 FROM artists;
 
 -- Section 3: Completeness distribution

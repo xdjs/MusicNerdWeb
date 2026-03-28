@@ -64,6 +64,14 @@ Phase 2: existing Claude agent (Haiku, reduced prompt)
 
 6. **No overwriting existing data.** Only writes to empty columns. If a user already submitted an Instagram handle via UGC, the Wikidata value is skipped. UGC takes precedence.
 
+## Prerequisites
+
+Before running the import step, these code changes must land:
+
+1. **Update `VALID_MAPPING_PLATFORMS`** in `src/server/utils/idMappingService.ts` to include the new platforms: `genius`, `allmusic`, `billboard`, `rolling_stone`. Without this, `get_unmapped_artists` won't recognize them and the MCP tools won't surface the new platform data.
+
+2. **Update `WRITABLE_LINK_COLUMNS`** in `src/server/utils/artistLinkService.ts` if any new artist table columns are added (not needed for this plan — all target columns already exist).
+
 ## Deliverables
 
 ```
@@ -193,7 +201,9 @@ WHERE {
 | Rolling Stone | P3017 | `artist_id_mappings` | bulk insert |
 | Official website | P856 | (logged in JSONL only) | skip import |
 
-**Note on new platform values:** The `platform` column in `artist_id_mappings` is freeform `text()` — no enum or check constraint. New values like `genius`, `allmusic`, `billboard`, `rolling_stone` can be inserted without a schema migration. The `VALID_MAPPING_PLATFORMS` set in `idMappingService.ts` will need updating to include these platforms so `get_unmapped_artists` recognizes them.
+**Note on new platform values:** The `platform` column in `artist_id_mappings` is freeform `text()` — no enum or check constraint. New values like `genius`, `allmusic`, `billboard`, `rolling_stone` can be inserted without a schema migration. The `VALID_MAPPING_PLATFORMS` set in `idMappingService.ts` must be updated before import (see Prerequisites).
+
+**Note on ID types:** `genius`, `allmusic`, `billboard`, and `rolling_stone` return URL slugs from Wikidata (e.g., `"beyonce"`), not stable numeric IDs like Deezer (`"145"`) or Apple Music (`"1419227"`). This is fine for storage in `artist_id_mappings` — the `platform_id` column is `text()` — but worth noting that these slugs may change if the platform renames an artist's URL.
 
 ### Collect step flow
 
@@ -264,16 +274,7 @@ WHERE {
 4. WRITE CONFLICTS FILE
    Write all conflicts to data/wikidata-conflicts.json (see Conflict handling).
 
-5. WRITE IMPORT SUMMARY TO DB
-   Insert a single row into mcp_audit_log (or a dedicated batch_imports table) recording:
-   - action: "bulk_import"
-   - source file name and line count
-   - mappings inserted/skipped per platform
-   - columns updated/skipped/conflicted
-   - timestamp
-   This is a permanent record of what the import did, in case the local JSONL file is lost.
-
-6. SUMMARY
+5. SUMMARY
    Print counts: mappings inserted, columns updated, conflicts found, skipped.
 ```
 
@@ -306,6 +307,22 @@ When the import step finds an artist column that already has a value **different
 - For ambiguous cases, leave as-is — the current value stays
 
 The conflicts file is informational. The import step never overwrites — it only writes to empty columns.
+
+### User-Agent strings
+
+Both Wikidata and MusicBrainz require a descriptive User-Agent or requests get throttled/blocked. Use the same string the agent prompt specifies:
+
+```
+MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)
+```
+
+This must be set on every request to `query.wikidata.org` and `musicbrainz.org`.
+
+### Rate limiting
+
+- **Wikidata SPARQL:** No hard documented limit, but the public endpoint enforces soft limits (~60 req/min). Add a `sleep(1000)` between batches as a safety measure.
+- **MusicBrainz:** 1 request per second, non-negotiable. IP gets blocked if exceeded. Use `await sleep(1000)` between every request.
+- **Deezer API:** ~50 requests per 5 seconds. Unlikely to be hit during verification since each batch only has a few Deezer IDs to verify.
 
 ### Name normalization (match existing agent logic)
 
@@ -356,7 +373,7 @@ The JSONL approach is essential given the 7-hour MusicBrainz phase — a crash a
 ### Progress output
 
 ```
-$ npx tsx programmatic-resolver.ts collect --out data/wikidata-enrichment.json
+$ npx tsx programmatic-resolver.ts collect --out data/wikidata-enrichment.jsonl
 
 [15:30:01] Loaded 39,454 artists with Spotify IDs
 [15:30:01] Tier 1: Wikidata SPARQL — 494 batches of 80
@@ -368,8 +385,8 @@ $ npx tsx programmatic-resolver.ts collect --out data/wikidata-enrichment.json
 [15:40:01] Tier 2: [100/27054] 34 deezer resolved
 ...
 [23:10:00] Tier 2 complete: 8,200 deezer resolved
-[23:10:01] Writing data/wikidata-enrichment.json (39,454 artists)...
-[23:10:03] Done. File size: 42MB
+[23:10:01] Writing summary line to data/wikidata-enrichment.jsonl...
+[23:10:01] Done. 39,454 lines, 42MB
 
 === Collect Summary ===
 Duration:          7h 40m
@@ -377,9 +394,9 @@ Wikidata matches:  22,000 / 39,454 (55.8%)
 Deezer resolved:   20,600 (Wikidata: 12,400 + MusicBrainz: 8,200)
 Remaining for Claude: ~15,354 artists
 
-$ npx tsx programmatic-resolver.ts import --file data/wikidata-enrichment.json
+$ npx tsx programmatic-resolver.ts import --file data/wikidata-enrichment.jsonl
 
-[23:15:00] Reading data/wikidata-enrichment.json — 39,454 artists
+[23:15:00] Reading data/wikidata-enrichment.jsonl — 39,454 artists
 [23:15:01] Inserting platform ID mappings...
 [23:15:08] Inserted 95,200 mappings (42,300 new, 52,900 skipped — already existed)
 [23:15:08] Updating artist columns...
@@ -459,6 +476,6 @@ MusicBrainz is the bottleneck. Could be parallelized with multiple IPs but not w
 - **No exclusions.** The script only writes high-confidence matches. If it can't resolve, it silently leaves the artist for Phase 2. Only Claude (with judgment) should decide an artist is unmappable.
 - **No Tier 2.5/3.** Web search and fuzzy name matching require LLM judgment.
 - **No overwriting existing data.** Only writes to empty columns. Conflicts (DB value differs from Wikidata) are logged to `data/wikidata-conflicts.json` for manual review.
-- **No audit logging.** The JSON file is the audit trail. Avoids flooding `mcp_audit_log` with 100k+ bulk rows that would drown out agent activity in the admin dashboard.
+- **No audit logging to DB.** The JSONL file is the sole audit trail — it contains every data point collected and is more detailed than any DB summary row would be. `mcp_audit_log` is designed for per-field MCP writes and is the wrong shape for bulk import summaries. Keep the JSONL file archived after import.
 - **No admin UI integration.** Runs locally in tmux. Admin UI trigger/progress could be added later but is not needed for a one-time run.
 - **No metadata (genres, awards, labels).** The SPARQL query could fetch these, but there are no columns on the `artists` table. Future enrichment could add metadata after schema changes.
