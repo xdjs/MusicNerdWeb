@@ -94,6 +94,18 @@ describe("ActivityFeed", () => {
         });
     });
 
+    it("has aria-live region even when empty", async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => [],
+        });
+
+        await act(async () => { render(<ActivityFeed />); });
+
+        const list = screen.getByRole("list");
+        expect(list.getAttribute("aria-live")).toBe("polite");
+    });
+
     it("handles fetch failure gracefully", async () => {
         (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("Network error"));
 
