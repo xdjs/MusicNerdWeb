@@ -184,6 +184,7 @@ export const artists = pgTable("artists", {
 	index("idx_artists_added_by").using("btree", table.addedBy.asc().nullsLast().op("uuid_ops")),
 	index("idx_artists_name").using("btree", table.name.asc().nullsLast().op("text_ops")),
 	index("idx_artists_name_gin").using("gin", sql`to_tsvector('english'::regconfig, name)`),
+	index("idx_artists_created_at").using("btree", table.createdAt.desc().nullsLast()),
 	foreignKey({
 			columns: [table.addedBy],
 			foreignColumns: [users.id],
@@ -213,6 +214,7 @@ export const ugcresearch = pgTable("ugcresearch", {
 }, (table) => [
 	index("idx_ugcresearch_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
 	index("ugcresearch_user_created_at_idx").using("btree", table.userId.asc().nullsLast().op("timestamp_ops"), table.createdAt.asc().nullsLast().op("timestamp_ops")),
+	index("idx_ugcresearch_date_processed").using("btree", table.dateProcessed.desc().nullsLast()),
 	foreignKey({
 			columns: [table.artistId],
 			foreignColumns: [artists.id],
