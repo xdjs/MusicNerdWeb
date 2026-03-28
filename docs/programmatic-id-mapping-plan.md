@@ -79,15 +79,15 @@ Single TypeScript file, run with `npx tsx`. No build step. No new dependencies b
 ### Entry point
 
 ```bash
-# Step 1: Collect data from external APIs → JSON file
+# Step 1: Collect data from external APIs → JSONL file
 npx tsx agents/id-mapping/programmatic-resolver.ts collect \
-  --out data/wikidata-enrichment.json
+  --out data/wikidata-enrichment.jsonl
 
-# (Review the JSON file here)
+# (Review the JSONL file here — e.g. wc -l, spot-check entries, grep for warnings)
 
-# Step 2: Import JSON into DB
+# Step 2: Import JSONL into DB
 npx tsx agents/id-mapping/programmatic-resolver.ts import \
-  --file data/wikidata-enrichment.json
+  --file data/wikidata-enrichment.jsonl
 ```
 
 ### Config (env vars)
@@ -100,52 +100,30 @@ npx tsx agents/id-mapping/programmatic-resolver.ts import \
 
 No `MCP_API_KEY` or `MCP_URL` needed — the script accesses the DB directly via Drizzle.
 
-### JSON file format
+### JSONL file format
 
-The collect step outputs a single JSON file — one entry per artist, containing everything Wikidata and MusicBrainz returned:
+The collect step outputs a JSONL file (one JSON object per line). Each artist is appended as it's processed, so partial progress survives crashes. A summary line is written last.
 
-```json
-{
-  "collectedAt": "2026-03-28T22:00:00Z",
-  "stats": {
-    "totalArtists": 39454,
-    "wikidataMatches": 22000,
-    "musicbrainzMatches": 8200,
-    "deezerVerified": 20600
-  },
-  "artists": [
-    {
-      "artistId": "uuid-from-musicnerd",
-      "name": "Beyoncé",
-      "spotifyId": "6vWDO969PvNqNYHIOW5v0m",
-      "source": "wikidata",
-      "wikidataId": "Q36153",
-      "mappings": {
-        "deezer": { "id": "145", "verified": true },
-        "apple_music": { "id": "1419227" },
-        "tidal": { "id": "1566" },
-        "amazon_music": { "id": "B001GCXIFK" },
-        "youtube_music": { "id": "UCuHzBCaKmtaLcRAOoaWEfQ" },
-        "musicbrainz": { "id": "859d0860-d480-4efd-970c-c05d5f1776b8" },
-        "genius": { "id": "568" },
-        "allmusic": { "id": "mn0000761179" },
-        "billboard": { "id": "beyonce" },
-        "rolling_stone": { "id": "beyonce" }
-      },
-      "artistLinks": {
-        "wikidata": "Q36153",
-        "discogs": "26063",
-        "lastfm": "Beyonc%C3%A9",
-        "soundcloud": "beyonce",
-        "imdb": "nm0461498",
-        "youtubechannel": "UCuHzBCaKmtaLcRAOoaWEfQ",
-        "x": "Beyonce",
-        "instagram": "beyonce",
-        "facebook": "beyonce"
-      }
-    }
-  ]
-}
+```jsonl
+{"artistId":"uuid-from-musicnerd","name":"Beyoncé","spotifyId":"6vWDO969PvNqNYHIOW5v0m","source":"wikidata","wikidataId":"Q36153","mappings":{"deezer":{"id":"145","verified":true},"apple_music":{"id":"1419227"},"tidal":{"id":"1566"},"amazon_music":{"id":"B001GCXIFK"},"youtube_music":{"id":"UCuHzBCaKmtaLcRAOoaWEfQ"},"musicbrainz":{"id":"859d0860-d480-4efd-970c-c05d5f1776b8"},"genius":{"id":"568"},"allmusic":{"id":"mn0000761179"},"billboard":{"id":"beyonce"},"rolling_stone":{"id":"beyonce"}},"artistLinks":{"wikidata":"Q36153","discogs":"26063","lastfm":"Beyonc%C3%A9","soundcloud":"beyonce","imdb":"nm0461498","youtubechannel":"UCuHzBCaKmtaLcRAOoaWEfQ","x":"Beyonce","instagram":"beyonce","facebookID":"beyonce"}}
+{"artistId":"uuid-2","name":"Another Artist","spotifyId":"xxx",...}
+...
+{"_summary":true,"collectedAt":"2026-03-28T22:00:00Z","totalArtists":39454,"wikidataMatches":22000,"musicbrainzMatches":8200,"deezerVerified":20600}
+```
+
+**Per-artist line fields:**
+
+| Field | Description |
+|-------|-------------|
+| `artistId` | MusicNerd UUID |
+| `name` | Artist name |
+| `spotifyId` | Spotify ID (used for dedup on restart) |
+| `source` | `"wikidata"`, `"musicbrainz"`, or `"both"` |
+| `wikidataId` | Wikidata entity ID (e.g., `"Q36153"`) |
+| `mappings` | Platform ID mappings → `artist_id_mappings` table |
+| `artistLinks` | Column values → `artists` table |
+
+The import step reads all lines, ignores the `_summary` line, and processes each artist line.
 ```
 
 The import step reads this file and writes:
@@ -208,12 +186,14 @@ WHERE {
 | YouTube channel | P2397 | `artists.youtubechannel` | column update (if empty) |
 | X/Twitter | P2002 | `artists.x` | column update (if empty) |
 | Instagram | P2003 | `artists.instagram` | column update (if empty) |
-| Facebook | P2013 | `artists.facebookID` | column update (if empty) |
+| Facebook | P2013 | `artists.facebookID` (Drizzle field: `facebookId`) | column update (if empty) |
 | Genius | P2373 | `artist_id_mappings` | bulk insert |
 | AllMusic | P1728 | `artist_id_mappings` | bulk insert |
 | Billboard | P4208 | `artist_id_mappings` | bulk insert |
 | Rolling Stone | P3017 | `artist_id_mappings` | bulk insert |
-| Official website | P856 | (logged in JSON only) | skip import |
+| Official website | P856 | (logged in JSONL only) | skip import |
+
+**Note on new platform values:** The `platform` column in `artist_id_mappings` is freeform `text()` — no enum or check constraint. New values like `genius`, `allmusic`, `billboard`, `rolling_stone` can be inserted without a schema migration. The `VALID_MAPPING_PLATFORMS` set in `idMappingService.ts` will need updating to include these platforms so `get_unmapped_artists` recognizes them.
 
 ### Collect step flow
 
@@ -284,7 +264,16 @@ WHERE {
 4. WRITE CONFLICTS FILE
    Write all conflicts to data/wikidata-conflicts.json (see Conflict handling).
 
-5. SUMMARY
+5. WRITE IMPORT SUMMARY TO DB
+   Insert a single row into mcp_audit_log (or a dedicated batch_imports table) recording:
+   - action: "bulk_import"
+   - source file name and line count
+   - mappings inserted/skipped per platform
+   - columns updated/skipped/conflicted
+   - timestamp
+   This is a permanent record of what the import did, in case the local JSONL file is lost.
+
+6. SUMMARY
    Print counts: mappings inserted, columns updated, conflicts found, skipped.
 ```
 
@@ -335,11 +324,22 @@ function namesMatch(a: string, b: string): boolean {
 }
 ```
 
+### Wikidata multi-match deduplication
+
+A Spotify ID could match multiple Wikidata entities (data quality issues, band/solo artist overlap, etc.). When the SPARQL query returns multiple rows for the same `spotifyId`:
+
+- **Drop all rows for that Spotify ID** — don't guess which entity is correct.
+- **Log a warning:** `[WARN] Spotify ID xxx matched 2 Wikidata entities (Q123, Q456) — skipping`
+- The artist falls through to Phase 2 where Claude can evaluate the ambiguity.
+
+In practice this should be very rare — Wikidata's Spotify ID property (P1902) has uniqueness constraints. But the script must handle it defensively.
+
 ### Error handling
 
 | Scenario | Behavior |
 |----------|----------|
 | Wikidata 403/timeout | Retry once after 5s, then skip batch (log warning) |
+| Wikidata multi-match (same Spotify ID) | Skip artist, log warning (see above) |
 | MusicBrainz 503 (rate limit) | Wait 2s, retry once. If still failing, skip artist |
 | Deezer API error | Skip verification for that artist (don't resolve without verify) |
 | Network error | Retry once, then skip |
@@ -347,9 +347,11 @@ function namesMatch(a: string, b: string): boolean {
 
 ### Resumability
 
-**Collect step:** If the script crashes mid-collection, re-run it. The JSON file is overwritten from scratch. Wikidata/MusicBrainz queries are idempotent. The MusicBrainz tier is the slow part (~7h) — to make this more robust, the collect step could append to a JSONL file (one line per artist) so partial progress is preserved. On restart, it skips artists already in the file.
+**Collect step:** Uses JSONL format (one JSON object per line) instead of a single JSON file. Each artist's results are appended as they're processed, so a crash preserves all prior progress. On restart, the script reads the existing JSONL file, builds a set of already-processed Spotify IDs, and skips them. The header/stats line is written last.
 
-**Import step:** Naturally idempotent. `ON CONFLICT DO NOTHING` for mappings, only-if-empty for artist columns. Re-running the import on the same JSON file is a no-op.
+The JSONL approach is essential given the 7-hour MusicBrainz phase — a crash at hour 6 without it would lose everything.
+
+**Import step:** Naturally idempotent. `ON CONFLICT DO NOTHING` for mappings, only-if-empty for artist columns. Re-running the import on the same JSONL file is a no-op.
 
 ### Progress output
 

@@ -72,7 +72,7 @@ Coverage of direct columns on the `artists` table. Shows how many artists have e
 | twitch | social |
 | patreon | social |
 
-**Card contents:** Same as Section 1 — count, progress bar, percentage. Grouped by category (social, listen, reference, content).
+**Card contents:** Same as Section 1 — count, progress bar, percentage, "+N today". Grouped by category (social, listen, reference, content). The `todayCount` is important here — most enrichment activity shows up in artist link columns, so this section needs growth indicators during enrichment runs.
 
 ### 3. Data Completeness Distribution
 
@@ -145,6 +145,7 @@ interface ArtistDataSummary {
     category: "social" | "listen" | "reference" | "content";
     count: number;
     percentage: number;
+    todayCount: number;
   }[];
 
   // Section 3
@@ -189,25 +190,34 @@ FROM artists;
 
 -- Section 3: Completeness distribution
 -- Compute per-artist field count, then bucket
-SELECT
-  CASE
-    WHEN field_count <= 1 THEN '0-1'
-    WHEN field_count <= 3 THEN '2-3'
-    WHEN field_count <= 6 THEN '4-6'
-    WHEN field_count <= 10 THEN '7-10'
-    ELSE '11+'
-  END AS bucket,
-  COUNT(*)::int AS count
-FROM (
-  SELECT id,
-    (CASE WHEN spotify IS NOT NULL AND spotify != '' THEN 1 ELSE 0 END +
-     CASE WHEN instagram IS NOT NULL AND instagram != '' THEN 1 ELSE 0 END +
-     -- ...etc
-    ) AS field_count
-  FROM artists
-) sub
-GROUP BY 1
-ORDER BY MIN(field_count);
+SELECT bucket, count FROM (
+  SELECT
+    CASE
+      WHEN field_count <= 1 THEN '0-1'
+      WHEN field_count <= 3 THEN '2-3'
+      WHEN field_count <= 6 THEN '4-6'
+      WHEN field_count <= 10 THEN '7-10'
+      ELSE '11+'
+    END AS bucket,
+    CASE
+      WHEN field_count <= 1 THEN 1
+      WHEN field_count <= 3 THEN 2
+      WHEN field_count <= 6 THEN 3
+      WHEN field_count <= 10 THEN 4
+      ELSE 5
+    END AS sort_order,
+    COUNT(*)::int AS count
+  FROM (
+    SELECT id,
+      (CASE WHEN spotify IS NOT NULL AND spotify != '' THEN 1 ELSE 0 END +
+       CASE WHEN instagram IS NOT NULL AND instagram != '' THEN 1 ELSE 0 END +
+       -- ...etc
+      ) AS field_count
+    FROM artists
+  ) sub
+  GROUP BY 1, 2
+) bucketed
+ORDER BY sort_order;
 
 -- Section 4: Enrichment readiness
 SELECT
@@ -225,4 +235,4 @@ Follow the existing admin tab patterns:
 - Group Section 2 cards by category with subtle sub-headings
 - Section 3 as horizontal bars or a simple table
 - Section 4 as 3 large stat cards
-- Auto-poll every 30 seconds (useful during enrichment runs to watch numbers climb)
+- Manual refresh button as default. Opt-in auto-poll toggle (like the Agent Work tab's Live/Paused button) for active enrichment runs — polls every 30 seconds when enabled. Section 3 (completeness distribution) is the heaviest query, so consider caching server-side for 60s.
