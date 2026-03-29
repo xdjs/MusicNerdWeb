@@ -209,7 +209,7 @@ Both `resolve_artist_id` and `exclude_artist_mapping` accept either a single obj
 
 - `resolve_artist_id` only updates if new confidence >= existing. If a higher-confidence mapping already exists, it returns `{ skipped: true }` — this is normal, not an error.
 - `get_unmapped_artists` only returns artists with a Spotify ID, no mapping, **and no exclusion** for the specified platform, so re-running is naturally idempotent.
-- When verification fails (name mismatch), a conflict is detected, or a name is too ambiguous to match, **always call `exclude_artist_mapping`** so the artist is removed from future batches.
+- When verification fails after all tiers are exhausted, or a name is too ambiguous to match, call `exclude_artist_mapping` so the artist is removed from future batches.
 
 ### Exclusion examples
 
