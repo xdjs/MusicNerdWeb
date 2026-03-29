@@ -235,19 +235,39 @@ npx tsx agents/id-mapping/programmatic-resolver.ts import \
 4. Writes conflicts (DB value differs from Wikidata) to a separate `*-conflicts.json` file for manual review
 5. Idempotent — re-running is a no-op
 
-### After the programmatic resolver
+### After the programmatic resolver — Phase 2
 
-Restart the Claude agent with `MODEL=haiku` for the remaining artists that need LLM judgment (Tier 2.5 + 3):
+The remaining ~15k artists need LLM judgment (Google search + Deezer name matching). Use the Phase 2 prompt which strips Tiers 1 and 2 (already handled by the programmatic resolver) and switches to Haiku (~12x cheaper than Sonnet).
 
 ```bash
-MODEL=haiku ./agents/id-mapping/run-full-catalog.sh
+# Single worker
+MODEL=haiku \
+PROMPT_FILE=agents/id-mapping/prompt-phase2.md \
+./agents/id-mapping/run-full-catalog.sh
+
+# Two parallel workers
+MODEL=haiku \
+PROMPT_FILE=agents/id-mapping/prompt-phase2.md \
+./agents/id-mapping/start-workers.sh ~/.env.mapping -n 2
 ```
+
+| Env Var | Value | Why |
+|---------|-------|-----|
+| `MODEL` | `haiku` | ~12x cheaper than Sonnet, sufficient for name matching |
+| `PROMPT_FILE` | `agents/id-mapping/prompt-phase2.md` | Stripped to Tiers 2.5 + 3 only, reduces input tokens |
+
+The Phase 2 prompt:
+- Removes Tier 1 (Wikidata) and Tier 2 (MusicBrainz) — already done programmatically
+- Removes cross-verification (Tier 2.5 was only needed to verify Tier 1/2 results)
+- Keeps Google search as discovery (Tier 1 in Phase 2) and Deezer name search (Tier 2 in Phase 2)
+- Same batching, exclusion, and verification rules
 
 ## Architecture
 
-- `prompt.md` — Full system prompt with the tiered resolution strategy
+- `prompt.md` — Full system prompt (all 4 tiers, used by Phase 1 agents)
+- `prompt-phase2.md` — Simplified prompt (Google search + Deezer name search only, used after programmatic resolver)
 - `mcp-config.json` — MCP server connection template (env vars substituted at runtime)
-- `claude-runner.sh` — Shell wrapper that substitutes env vars and invokes Claude Code CLI
+- `claude-runner.sh` — Shell wrapper that substitutes env vars and invokes Claude Code CLI. Supports `PROMPT_FILE` env var to override the default prompt.
 - `run-full-catalog.sh` — Durable loop runner with failure classification and rate limit backoff
 - `start-workers.sh` — Launches workers in crash-resilient tmux sessions
 - `check-status.sh` — Quick progress checker with per-worker breakdown
