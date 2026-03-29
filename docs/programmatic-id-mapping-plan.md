@@ -253,8 +253,8 @@ WHERE {
 ### Import step flow
 
 ```
-1. READ JSON file + current DB state
-   Parse JSON. Query artists table for current column values (needed for conflict detection).
+1. READ JSONL file + current DB state
+   Parse JSONL (one artist per line, skip `_summary` line). Query artists table for current column values (needed for conflict detection).
 
 2. BULK INSERT — artist_id_mappings
    For all mappings across all artists:
@@ -263,6 +263,10 @@ WHERE {
    ON CONFLICT (artist_id, platform) DO NOTHING
    → Existing mappings (from v1 agent) are untouched.
    → Also respects (platform, platform_id) unique constraint.
+   → Log skips caused by platform_id collisions separately (two different artists
+     sharing the same platform slug, e.g., two artists both mapped to billboard:"aurora").
+     This catches Wikidata data quality issues and is especially relevant for slug-based
+     platforms (genius, allmusic, billboard, rolling_stone).
 
 3. COLUMN UPDATES — artists table
    For each artist with artistLinks data, compare Wikidata value vs current DB value:
@@ -308,15 +312,19 @@ When the import step finds an artist column that already has a value **different
 
 The conflicts file is informational. The import step never overwrites — it only writes to empty columns.
 
-### User-Agent strings
+### HTTP conventions
 
-Both Wikidata and MusicBrainz require a descriptive User-Agent or requests get throttled/blocked. Use the same string the agent prompt specifies:
+**User-Agent:** Both Wikidata and MusicBrainz require a descriptive User-Agent or requests get throttled/blocked. Use the same string the agent prompt specifies:
 
 ```
 MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)
 ```
 
 This must be set on every request to `query.wikidata.org` and `musicbrainz.org`.
+
+**SPARQL via POST:** The Wikidata SPARQL endpoint must be called via POST (not GET). With 80 Spotify IDs in a `VALUES` clause plus 20 `OPTIONAL` clauses, the query exceeds GET URL length limits. Use `Content-Type: application/x-www-form-urlencoded` with the query in the `query` parameter body.
+
+**Wikidata Q-ID format:** Store Wikidata entity IDs as Q-prefixed strings (e.g., `Q36153`). Confirmed: all 29 existing values in `artists.wikidata` use this format.
 
 ### Rate limiting
 
@@ -343,13 +351,26 @@ function namesMatch(a: string, b: string): boolean {
 
 ### Wikidata multi-match deduplication
 
-A Spotify ID could match multiple Wikidata entities (data quality issues, band/solo artist overlap, etc.). When the SPARQL query returns multiple rows for the same `spotifyId`:
+Two distinct dedup cases must be handled:
+
+**Case 1: Multiple Wikidata entities for the same Spotify ID.** A Spotify ID could match multiple Wikidata entities (data quality issues, band/solo artist overlap). When the SPARQL query returns rows with different `?item` values for the same `spotifyId`:
 
 - **Drop all rows for that Spotify ID** — don't guess which entity is correct.
 - **Log a warning:** `[WARN] Spotify ID xxx matched 2 Wikidata entities (Q123, Q456) — skipping`
 - The artist falls through to Phase 2 where Claude can evaluate the ambiguity.
 
 In practice this should be very rare — Wikidata's Spotify ID property (P1902) has uniqueness constraints. But the script must handle it defensively.
+
+**Case 2: Multiple values for the same property on a single entity.** An artist can have multiple Instagram handles, multiple Deezer IDs, etc. listed in Wikidata. This produces duplicate rows in the SPARQL results (same `?item`, same `spotifyId`, different values for one property). Handle this in the SPARQL query by using `SAMPLE()` to pick one value per property:
+
+```sparql
+SELECT ?spotifyId (SAMPLE(?item) AS ?item)
+       (SAMPLE(?deezer) AS ?deezer) (SAMPLE(?apple) AS ?apple) ...
+WHERE { ... }
+GROUP BY ?spotifyId
+```
+
+For Deezer specifically (where multiple IDs are a known issue), the agent prompt's multi-value strategy applies: fetch each candidate from the Deezer API, pick the one with the most fans. But for simplicity in the programmatic script, `SAMPLE()` (pick one arbitrarily) is acceptable — the value is still from a curated source and is verified via the Deezer API anyway.
 
 ### Error handling
 

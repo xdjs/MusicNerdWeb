@@ -17,7 +17,7 @@ With the programmatic enrichment script about to populate 20+ data points across
 
 Coverage of cross-platform ID mappings from the `artist_id_mappings` table. Same card grid style as the Agent Work tab's Platform Coverage section, but expanded to include all platforms.
 
-**Data source:** `artist_id_mappings` grouped by platform, denominator = total artists with Spotify ID.
+**Data source:** `artist_id_mappings` grouped by platform, denominator = total artists with Spotify ID. Can reuse the existing `getMappingStats()` from `idMappingService.ts` for base counts, but needs a separate `todayCount` query (e.g., extend `getTodayCounts()` from `agentWorkQueries.ts` or add a parallel query in `artistDataQueries.ts`).
 
 **Platforms:**
 
@@ -127,9 +127,9 @@ Single endpoint: `GET /api/admin/artist-data`
 **Required conventions (per CLAUDE.md):**
 - `export const dynamic = "force-dynamic"` — reads from DB, must not be statically cached
 - `requireAdmin()` from `@/lib/auth-helpers` — admin-only access
-- Response cached server-side for 60s (uniform across all sections) to avoid heavy polling on the completeness distribution query
+- Response cached server-side for 30s using in-memory TTL map (same pattern as `searchArtists` cache in the codebase). All sections share the same cache entry. This aligns with the opt-in auto-poll interval (30s) so each poll gets fresh data.
 
-**"Today" definition:** `todayCount` uses `created_at >= CURRENT_DATE` (UTC midnight), consistent with the existing `getTodayCounts()` in `agentWorkQueries.ts`. This means the counter resets at UTC midnight, not rolling 24h.
+**"Today" definition:** `todayCount` uses `created_at >= CURRENT_DATE` (UTC midnight) for `artist_id_mappings` (Section 1), consistent with the existing `getTodayCounts()` in `agentWorkQueries.ts`. For `artists` table columns (Section 2), there's no per-column `created_at`, so we use `updated_at >= CURRENT_DATE` as a best-effort proxy. Label these as **"updated today"** (not "added today") in the UI to set accurate expectations — updating any column on an artist bumps `updated_at`, so counts may include unrelated edits.
 
 Returns all four sections in one response (all queries are simple `COUNT` aggregations — fast even on 43k rows):
 
