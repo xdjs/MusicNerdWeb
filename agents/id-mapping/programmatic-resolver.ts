@@ -131,7 +131,7 @@ function ensureDir(filePath: string): void {
 
 async function queryWikidata(
   spotifyIds: string[],
-): Promise<Map<string, Record<string, string[]>>> {
+): Promise<{ results: Map<string, Record<string, string[]>>; skippedMultiEntity: number }> {
   const values = spotifyIds.map((id) => `"${id}"`).join(" ");
   const optionals = Object.entries(WIKIDATA_PROPS)
     .map(([code, { sparqlVar }]) => `  OPTIONAL { ?item wdt:${code} ?${sparqlVar} }`)
@@ -155,6 +155,7 @@ ${optionals}
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: `query=${encodeURIComponent(sparql)}`,
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!res.ok) {
@@ -196,22 +197,24 @@ ${optionals}
   }
 
   // Filter: skip multi-entity matches (Case 1), pick first value for multi-value (Case 2)
-  const result = new Map<string, Record<string, string[]>>();
+  const results = new Map<string, Record<string, string[]>>();
+  let skippedMultiEntity = 0;
   for (const [spotifyId, entry] of grouped) {
     if (entry.entities.size > 1) {
       warn(
         `Spotify ID ${spotifyId} matched ${entry.entities.size} Wikidata entities (${[...entry.entities].join(", ")}) — skipping`,
       );
+      skippedMultiEntity++;
       continue;
     }
     const values: Record<string, string[]> = {};
     for (const [key, valSet] of Object.entries(entry.values)) {
       values[key] = [...valSet];
     }
-    result.set(spotifyId, values);
+    results.set(spotifyId, values);
   }
 
-  return result;
+  return { results, skippedMultiEntity };
 }
 
 async function verifyDeezer(
@@ -219,7 +222,9 @@ async function verifyDeezer(
   expectedName: string,
 ): Promise<boolean> {
   try {
-    const res = await fetch(`https://api.deezer.com/artist/${deezerId}`);
+    const res = await fetch(`https://api.deezer.com/artist/${deezerId}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return false;
     const data = await res.json();
     if (data.error) return false;
@@ -239,7 +244,7 @@ async function queryMusicBrainzByMbid(
 ): Promise<MusicBrainzResult> {
   const res = await fetch(
     `https://musicbrainz.org/ws/2/artist/${mbid}?inc=url-rels&fmt=json`,
-    { headers: { "User-Agent": USER_AGENT } },
+    { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(10_000) },
   );
   if (!res.ok) throw new Error(`MusicBrainz ${res.status}`);
   const data = await res.json();
@@ -251,7 +256,7 @@ async function queryMusicBrainzByName(
 ): Promise<{ mbid: string } | null> {
   const res = await fetch(
     `https://musicbrainz.org/ws/2/artist/?query=artist:"${encodeURIComponent(name)}"&fmt=json&limit=5`,
-    { headers: { "User-Agent": USER_AGENT } },
+    { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(10_000) },
   );
   if (!res.ok) throw new Error(`MusicBrainz search ${res.status}`);
   const data = await res.json();
@@ -305,13 +310,14 @@ async function collect(outFile: string): Promise<void> {
   ensureDir(outFile);
 
   // Load already-processed spotify IDs for resumability
+  // Skip artists with source "error" so they get retried on resume
   const processed = new Set<string>();
   if (existsSync(outFile)) {
     const lines = readFileSync(outFile, "utf-8").split("\n").filter(Boolean);
     for (const line of lines) {
       try {
         const obj = JSON.parse(line);
-        if (obj.spotifyId) processed.add(obj.spotifyId);
+        if (obj.spotifyId && obj.source !== "error") processed.add(obj.spotifyId);
       } catch {
         // skip malformed lines
       }
@@ -373,9 +379,10 @@ async function collect(outFile: string): Promise<void> {
     let batchLinks = 0;
 
     try {
-      const wikidataResults = await queryWikidata(
+      const { results: wikidataResults, skippedMultiEntity } = await queryWikidata(
         batch.map((a) => a.spotifyId),
       );
+      stats.skippedMultiEntity += skippedMultiEntity;
 
       for (const artist of batch) {
         const wdValues = wikidataResults.get(artist.spotifyId);
@@ -428,11 +435,12 @@ async function collect(outFile: string): Promise<void> {
                 needsDeezer.delete(artist.spotifyId);
                 stats.wikidataDeezerVerified++;
                 batchDeezer++;
+                batchMappings++;
               }
             } else {
               collected.mappings[prop.platform] = { id: val };
+              batchMappings++;
             }
-            batchMappings++;
           }
 
           // Artist table column
@@ -545,7 +553,7 @@ async function collect(outFile: string): Promise<void> {
         }
       }
     } catch (err) {
-      if (String(err).includes("503")) {
+      if (String(err).includes("503") || String(err).includes("429")) {
         warn(`MusicBrainz rate limited on ${artist.name}, waiting 2s...`);
         await sleep(2000);
       } else {
@@ -710,10 +718,8 @@ async function importData(inFile: string): Promise<void> {
         "rolling_stone",
       ]);
       const insertedKeys = new Set(
-        result.map(
-          (r: { artist_id: string; platform: string }) =>
-            `${r.artist_id}:${r.platform}`,
-        ),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result.map((r: any) => `${r.artist_id}:${r.platform}`),
       );
       for (const row of chunk) {
         if (
@@ -735,19 +741,6 @@ async function importData(inFile: string): Promise<void> {
 
   // Load current artist data for conflict detection
   const artistIds = [...artistMap.keys()];
-  const LINK_COLUMNS = [
-    "wikidata",
-    "musicbrainz",
-    "discogs",
-    "lastfm",
-    "soundcloud",
-    "imdb",
-    "youtubechannel",
-    "x",
-    "instagram",
-  ] as const;
-  // facebookID has a different column name in the DB
-  const ALL_COLUMNS = [...LINK_COLUMNS, "\"facebookID\""] as const;
 
   const currentData = new Map<
     string,
@@ -826,16 +819,8 @@ async function importData(inFile: string): Promise<void> {
     }
 
     if (Object.keys(updates).length > 0 && !DRY_RUN) {
-      // Build dynamic UPDATE
-      const setClauses = Object.entries(updates)
-        .map(([col, val]) => {
-          const safeCol = col === "facebookID" ? `"facebookID"` : col;
-          return `${safeCol} = '${val.replace(/'/g, "''")}'`;
-        })
-        .join(", ");
-      await sql.unsafe(
-        `UPDATE artists SET ${setClauses}, updated_at = NOW() WHERE id = '${artist.artistId}'`,
-      );
+      // Use parameterized query via postgres tagged template
+      await sql`UPDATE artists SET ${sql(updates)}, updated_at = NOW() WHERE id = ${artist.artistId}::uuid`;
       columnsUpdated += Object.keys(updates).length;
     } else if (DRY_RUN) {
       columnsUpdated += Object.keys(updates).length;
