@@ -488,25 +488,39 @@ async function collect(outFile: string): Promise<void> {
   );
 
   // --- TIER 2: MusicBrainz ---
-  const mbArtists = artists.filter((a) => needsDeezer.has(a.spotifyId));
-  log(
-    `Tier 2: MusicBrainz — ${mbArtists.length} artists (est. ~${Math.ceil(mbArtists.length / 3600)}h at 1 req/s, may be longer if name searches needed)`,
-  );
-
-  // Build MBID lookup from JSONL (written by Tier 1)
+  // Re-scan JSONL to find artists that still need Deezer (including resumed ones)
+  // and build MBID lookup for Path A
   const mbidLookup = new Map<string, string>();
   if (existsSync(outFile)) {
     const existingLines = readFileSync(outFile, "utf-8").split("\n").filter(Boolean);
     for (const line of existingLines) {
       try {
         const obj = JSON.parse(line);
+        if (!obj.spotifyId || obj._summary) continue;
         const mbid = obj.mappings?.musicbrainz?.id || obj.artistLinks?.musicbrainz;
-        if (obj.spotifyId && mbid) mbidLookup.set(obj.spotifyId, mbid);
+        if (mbid) mbidLookup.set(obj.spotifyId, mbid);
+        // If this artist has a Deezer mapping already, remove from needsDeezer
+        if (obj.mappings?.deezer?.id) needsDeezer.delete(obj.spotifyId);
+        // If this artist was processed but has no Deezer, ensure it's in needsDeezer
+        if (!obj.mappings?.deezer?.id && obj.source !== "error") {
+          needsDeezer.add(obj.spotifyId);
+        }
       } catch {
         // skip
       }
     }
   }
+
+  // Build Tier 2 artist list from all artists needing Deezer (including resumed source:"none" ones)
+  const allArtistLookup = new Map(allArtists.map((a) => [a.spotify, a]));
+  const mbArtists: Artist[] = [];
+  for (const spotifyId of needsDeezer) {
+    const dbArtist = allArtistLookup.get(spotifyId);
+    if (dbArtist) mbArtists.push({ id: dbArtist.id, name: dbArtist.name, spotifyId });
+  }
+  log(
+    `Tier 2: MusicBrainz — ${mbArtists.length} artists (est. ~${Math.ceil(mbArtists.length / 3600)}h at 1 req/s, may be longer if name searches needed)`,
+  );
 
   // We write a second JSONL line with source="musicbrainz" for artists that get data.
   // The import step merges lines for the same artistId.
@@ -633,7 +647,14 @@ async function importData(inFile: string): Promise<void> {
       const existing = artistMap.get(obj.artistId);
       if (existing) {
         existing.source = "both";
-        Object.assign(existing.mappings, obj.mappings);
+        // Merge mappings, tagging new ones with their source
+        for (const [platform, mapping] of Object.entries(obj.mappings ?? {})) {
+          if (!existing.mappings[platform]) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (mapping as any)._source = obj.source;
+            existing.mappings[platform] = mapping as { id: string; verified?: boolean };
+          }
+        }
         // Don't overwrite existing artistLinks — Tier 1 (wikidata) is more comprehensive
         for (const [k, v] of Object.entries(obj.artistLinks ?? {})) {
           if (!existing.artistLinks[k]) existing.artistLinks[k] = v as string;
@@ -675,12 +696,15 @@ async function importData(inFile: string): Promise<void> {
   for (const artist of artistMap.values()) {
     for (const [platform, mapping] of Object.entries(artist.mappings)) {
       if (!mapping.id) continue;
+      // Use per-mapping source if tagged during merge, otherwise derive from artist source
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mappingSource = (mapping as any)._source ?? artist.source;
       mappingRows.push({
         artistId: artist.artistId,
         platform,
         platformId: mapping.id,
         confidence: "high",
-        source: artist.source === "musicbrainz" ? "musicbrainz" : "wikidata",
+        source: mappingSource === "both" ? "wikidata" : mappingSource === "none" ? "wikidata" : mappingSource,
       });
     }
   }
