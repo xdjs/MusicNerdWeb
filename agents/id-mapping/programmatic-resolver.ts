@@ -724,7 +724,7 @@ async function importData(inFile: string): Promise<void> {
       SELECT artist_id::uuid, platform, platform_id, confidence::confidence_level, source FROM (VALUES
         ${sql(chunk.map((r) => [r.artistId, r.platform, r.platformId, r.confidence, r.source]))}
       ) AS v(artist_id, platform, platform_id, confidence, source)
-      ON CONFLICT (artist_id, platform) DO NOTHING
+      ON CONFLICT DO NOTHING
       RETURNING artist_id, platform
     `;
     mappingsInserted += result.length;
