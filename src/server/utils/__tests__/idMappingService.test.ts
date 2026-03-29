@@ -229,8 +229,8 @@ describe("idMappingService", () => {
 
     const stats = await getMappingStats();
     expect(stats.totalArtistsWithSpotify).toBe(100);
-    // All 7 valid platforms should be present
-    expect(stats.platformStats).toHaveLength(7);
+    // All valid platforms should be present
+    expect(stats.platformStats).toHaveLength(11);
     const deezer = stats.platformStats.find(s => s.platform === "deezer");
     expect(deezer.mappedCount).toBe(50);
     expect(deezer.percentage).toBe(50);

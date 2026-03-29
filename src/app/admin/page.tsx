@@ -9,6 +9,7 @@ import UsersSection from "./UsersSection";
 import AdminTabs from "./AdminTabs";
 import McpKeysSection from "./McpKeysSection";
 import AgentWorkSection from "./AgentWorkSection";
+import ArtistDataSection from "./ArtistDataSection";
 
 export default async function Admin() {
   const session = await getServerAuthSession();
@@ -52,6 +53,9 @@ export default async function Admin() {
         }
         agentWorkContent={
           <AgentWorkSection />
+        }
+        artistDataContent={
+          <ArtistDataSection />
         }
       />
     </section>
