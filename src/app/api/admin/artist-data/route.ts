@@ -3,8 +3,9 @@ import { getArtistDataSummary, type ArtistDataSummary } from '@/server/utils/que
 
 export const dynamic = "force-dynamic";
 
-// In-memory cache with 30s TTL
+// In-memory cache with 30s TTL + promise reuse to prevent concurrent DB hits
 let cached: { data: ArtistDataSummary; timestamp: number } | null = null;
+let inflight: Promise<ArtistDataSummary> | null = null;
 const CACHE_TTL = 30_000;
 
 export async function GET() {
@@ -18,7 +19,10 @@ export async function GET() {
       return Response.json(cached.data);
     }
 
-    const data = await getArtistDataSummary();
+    if (!inflight) {
+      inflight = getArtistDataSummary().finally(() => { inflight = null; });
+    }
+    const data = await inflight;
     cached = { data, timestamp: Date.now() };
     console.debug(`[artist-data] GET ${Math.round(performance.now() - t0)}ms`);
     return Response.json(data);

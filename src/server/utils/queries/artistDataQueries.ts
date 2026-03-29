@@ -8,8 +8,9 @@ import { sql } from "drizzle-orm";
 
 // --- Column config ---
 
+// Spotify is excluded — it's already shown as the denominator in Platform ID Coverage
+// and in totalWithSpotify. Including it here would double-count across sections.
 const TRACKED_COLUMNS = [
-  { column: "spotify", category: "listen" },
   { column: "instagram", category: "social" },
   { column: "x", category: "social" },
   { column: "facebook", category: "social" },
@@ -150,7 +151,11 @@ async function getPlatformIdTodayCounts(): Promise<Map<string, number>> {
   return new Map([...rows].map(r => [r.platform, r.today]));
 }
 
-/** Section 2: Today counts for artist link columns (from audit log). */
+/**
+ * Section 2: Today counts for artist link columns (from audit log).
+ * Only captures MCP-driven writes (set_artist_link via MCP tools).
+ * Manual edits, UGC approvals, and direct DB writes are not tracked.
+ */
 async function getLinkTodayCounts(): Promise<Map<string, number>> {
   const rows = await db.execute<{ field: string; today: number }>(sql`
     SELECT field, COUNT(DISTINCT artist_id)::int AS today
@@ -213,6 +218,8 @@ async function getCompletenessDistribution() {
 
   const allRows = [...rows];
   const totalArtists = allRows.reduce((sum, r) => sum + r.count, 0);
+  // median_fields and avg_fields are identical across all rows because the
+  // `stats` CTE is cross-joined — safe to read from any row.
   const medianFields = parseFloat(allRows[0]?.median_fields ?? "0");
   const averageFields = parseFloat(allRows[0]?.avg_fields ?? "0");
 
