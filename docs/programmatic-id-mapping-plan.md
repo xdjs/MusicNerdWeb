@@ -473,7 +473,7 @@ MODEL=haiku ./agents/id-mapping/run-full-catalog.sh
 | Phase | Bottleneck | Estimated duration |
 |-------|------------|--------------------|
 | Collect: Tier 1 (Wikidata) | Network I/O, ~1s per batch of 80 | ~8 min |
-| Collect: Tier 2 (MusicBrainz) | 1 req/s rate limit | ~6-7 hours |
+| Collect: Tier 2 (MusicBrainz) | 1 req/s rate limit | ~7-11 hours (see note) |
 | Import | Bulk SQL | ~30 seconds |
 | **Total Phase 1** | | **~7 hours** |
 | Phase 2 (Claude Haiku) | LLM throughput | ~3-5 days (2 workers) |

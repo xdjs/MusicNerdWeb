@@ -181,6 +181,68 @@ cat ~/tmp/id-mapping/12345-runner.log
 - **Restarting mid-run**: Safe at any point. `get_unmapped_artists` skips already-resolved and excluded artists, so no work is duplicated.
 - **Disk space**: Each log file is ~50-200KB. 800 runs ≈ 40-160MB. Monitor with `du -sh $LOG_DIR`.
 
+## Programmatic Resolver (Tier 1 + 2)
+
+A standalone script that replaces the LLM-driven Wikidata and MusicBrainz lookups with deterministic API calls. Runs as a two-step process: collect data from external APIs into a JSONL file, then import into the DB.
+
+See `docs/programmatic-id-mapping-plan.md` for the full design.
+
+### Why
+
+The Claude agent costs ~$0.227/artist. Tiers 1 and 2 (Wikidata SPARQL + MusicBrainz) are fully deterministic — no LLM judgment needed. The programmatic resolver handles these at near-zero cost, leaving only the harder cases (Tier 2.5 Google search + Tier 3 name matching) for the Claude agent.
+
+Additionally, the script expands the Wikidata SPARQL query from 4 to 20 properties, harvesting social links (X, Instagram, Facebook), platform handles (Discogs, Last.fm, SoundCloud, IMDb, YouTube), and additional platform IDs (Genius, AllMusic, Billboard, Rolling Stone) in the same pass.
+
+### Usage
+
+```bash
+# Set up env (needs DB connection string from .env.local)
+set -a && source .env.local && set +a
+
+# Step 1: Collect data from Wikidata + MusicBrainz → JSONL file
+npx tsx agents/id-mapping/programmatic-resolver.ts collect \
+  --out data/wikidata-enrichment.jsonl
+
+# Review the output
+wc -l data/wikidata-enrichment.jsonl
+head -1 data/wikidata-enrichment.jsonl | python3 -m json.tool
+
+# Step 2: Import into DB
+npx tsx agents/id-mapping/programmatic-resolver.ts import \
+  --file data/wikidata-enrichment.jsonl
+```
+
+### Configuration
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `SUPABASE_DB_CONNECTION` | (required) | Postgres connection string |
+| `WIKIDATA_BATCH` | `80` | Spotify IDs per SPARQL query |
+| `DRY_RUN` | `0` | Set to `1` to skip writes in import step |
+
+### Collect step
+
+1. Loads all artists with Spotify IDs from the DB (~39k)
+2. **Tier 1 — Wikidata SPARQL:** Batches of 80 Spotify IDs, fetching 20 properties (platform IDs, social handles, Wikidata entity ID). Deezer IDs are verified via the Deezer API (name match). ~8 min for the full catalog.
+3. **Tier 2 — MusicBrainz:** For artists still missing a Deezer ID after Wikidata. Fetches relationships by MBID (if known from Wikidata) or name search. 1 req/s rate limit. ~7-11 hours.
+4. Outputs a JSONL file (one artist per line) with crash-safe append semantics. On restart, skips already-processed artists.
+
+### Import step
+
+1. Reads the JSONL file
+2. Bulk inserts platform IDs into `artist_id_mappings` (`ON CONFLICT DO NOTHING`)
+3. Updates `artists` table columns (wikidata, discogs, instagram, x, etc.) — only empty columns, never overwrites existing data
+4. Writes conflicts (DB value differs from Wikidata) to a separate `*-conflicts.json` file for manual review
+5. Idempotent — re-running is a no-op
+
+### After the programmatic resolver
+
+Restart the Claude agent with `MODEL=haiku` for the remaining artists that need LLM judgment (Tier 2.5 + 3):
+
+```bash
+MODEL=haiku ./agents/id-mapping/run-full-catalog.sh
+```
+
 ## Architecture
 
 - `prompt.md` — Full system prompt with the tiered resolution strategy
@@ -190,5 +252,6 @@ cat ~/tmp/id-mapping/12345-runner.log
 - `start-workers.sh` — Launches workers in crash-resilient tmux sessions
 - `check-status.sh` — Quick progress checker with per-worker breakdown
 - `setup-droplet.sh` — One-time droplet provisioning script
+- `programmatic-resolver.ts` — Deterministic Tier 1+2 script (collect + import)
 
-The agent makes no application code changes. All reads/writes go through MCP tools, which share the same validation and audit logging as the web app.
+The agent makes no application code changes. All reads/writes go through MCP tools, which share the same validation and audit logging as the web app. The programmatic resolver writes directly to the DB (no MCP, no audit logging — the JSONL file is the audit trail).
