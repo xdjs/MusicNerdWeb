@@ -132,7 +132,9 @@ function ensureDir(filePath: string): void {
 async function queryWikidata(
   spotifyIds: string[],
 ): Promise<{ results: Map<string, Record<string, string[]>>; skippedMultiEntity: number }> {
-  const values = spotifyIds.map((id) => `"${id}"`).join(" ");
+  // Validate Spotify IDs before embedding in SPARQL (defense against malformed DB data)
+  const safeIds = spotifyIds.filter((id) => /^[A-Za-z0-9]+$/.test(id));
+  const values = safeIds.map((id) => `"${id}"`).join(" ");
   const optionals = Object.entries(WIKIDATA_PROPS)
     .map(([code, { sparqlVar }]) => `  OPTIONAL { ?item wdt:${code} ?${sparqlVar} }`)
     .join("\n");
@@ -143,7 +145,6 @@ SELECT ?item ?spotifyId
 WHERE {
   VALUES ?spotifyId { ${values} }
   ?item wdt:P1902 ?spotifyId .
-  BIND(REPLACE(STR(?item), "http://www.wikidata.org/entity/", "") AS ?wikidata)
 ${optionals}
 }`;
 
@@ -254,8 +255,10 @@ async function queryMusicBrainzByMbid(
 async function queryMusicBrainzByName(
   name: string,
 ): Promise<{ mbid: string } | null> {
+  // Escape Lucene special characters in artist name before embedding in query
+  const escapedName = name.replace(/([+\-!(){}[\]^"~*?:\\\/])/g, "\\$1");
   const res = await fetch(
-    `https://musicbrainz.org/ws/2/artist/?query=artist:"${encodeURIComponent(name)}"&fmt=json&limit=5`,
+    `https://musicbrainz.org/ws/2/artist/?query=artist:"${encodeURIComponent(escapedName)}"&fmt=json&limit=10`,
     { headers: { "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(10_000) },
   );
   if (!res.ok) throw new Error(`MusicBrainz search ${res.status}`);
@@ -572,9 +575,7 @@ async function collect(outFile: string): Promise<void> {
         await sleep(2000);
       } else {
         stats.errors++;
-        if (mbProcessed % 100 === 0) {
-          warn(`MusicBrainz error for ${artist.name}: ${err}`);
-        }
+        warn(`MusicBrainz error for ${artist.name}: ${err}`);
       }
     }
 
@@ -682,7 +683,6 @@ async function importData(inFile: string): Promise<void> {
 
   let mappingsInserted = 0;
   let mappingsSkipped = 0;
-  let slugCollisions = 0;
 
   // Collect all mapping rows
   const mappingRows: {
@@ -704,7 +704,7 @@ async function importData(inFile: string): Promise<void> {
         platform,
         platformId: mapping.id,
         confidence: "high",
-        source: mappingSource === "both" ? "wikidata" : mappingSource === "none" ? "wikidata" : mappingSource,
+        source: mappingSource === "both" ? "wikidata" : mappingSource,
       });
     }
   }
@@ -728,36 +728,11 @@ async function importData(inFile: string): Promise<void> {
       RETURNING artist_id, platform
     `;
     mappingsInserted += result.length;
-    const skipped = chunk.length - result.length;
-    mappingsSkipped += skipped;
-
-    // Check for platform_id collisions (separate constraint)
-    // These are silent with ON CONFLICT DO NOTHING — detect by trying individually
-    // for the slug-based platforms
-    if (skipped > 0) {
-      const slugPlatforms = new Set([
-        "genius",
-        "allmusic",
-        "billboard",
-        "rolling_stone",
-      ]);
-      const insertedKeys = new Set(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        result.map((r: any) => `${r.artist_id}:${r.platform}`),
-      );
-      for (const row of chunk) {
-        if (
-          slugPlatforms.has(row.platform) &&
-          !insertedKeys.has(`${row.artistId}:${row.platform}`)
-        ) {
-          slugCollisions++;
-        }
-      }
-    }
+    mappingsSkipped += chunk.length - result.length;
   }
 
   log(
-    `Mappings: ${mappingsInserted} inserted, ${mappingsSkipped} skipped (${slugCollisions} slug collisions)`,
+    `Mappings: ${mappingsInserted} inserted, ${mappingsSkipped} skipped`,
   );
 
   // --- Update artists table columns ---
@@ -873,7 +848,7 @@ async function importData(inFile: string): Promise<void> {
   log("");
   log("=== Import Summary ===");
   log(`Mappings inserted:     ${mappingsInserted}`);
-  log(`Mappings skipped:      ${mappingsSkipped} (${slugCollisions} slug collisions)`);
+  log(`Mappings skipped:      ${mappingsSkipped}`);
   log(`Columns updated:       ${columnsUpdated}`);
   log(`Columns skipped:       ${columnsSkippedMatch} (already match) + ${columnsSkippedPopulated} (conflicts)`);
   if (DRY_RUN) log("(DRY RUN — no writes performed)");
