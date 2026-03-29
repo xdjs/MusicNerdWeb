@@ -20,6 +20,10 @@ envsubst < "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
 
 # Read the system prompt from file (PROMPT_FILE env var overrides default)
 PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompt.md}"
+if [[ ! -f "$PROMPT_FILE" ]]; then
+  echo "Error: PROMPT_FILE not found: $PROMPT_FILE" >&2
+  exit 1
+fi
 SYSTEM_PROMPT="$(cat "$PROMPT_FILE")"
 
 # Build claude CLI args — always use stream-json for real-time output
