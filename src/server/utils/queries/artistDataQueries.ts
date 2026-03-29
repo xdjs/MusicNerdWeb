@@ -129,26 +129,17 @@ async function getArtistTotalsAndCoverage() {
   };
 }
 
-/** Section 1: Platform ID mapping counts. */
-async function getPlatformIdCounts(): Promise<Map<string, number>> {
-  const rows = await db.execute<{ platform: string; count: number }>(sql`
-    SELECT platform, COUNT(*)::int AS count
+/** Section 1: Platform ID mapping counts + today counts in a single query. */
+async function getPlatformIdStats(): Promise<Map<string, { count: number; todayCount: number }>> {
+  const rows = await db.execute<{ platform: string; count: number; today_count: number }>(sql`
+    SELECT platform,
+           COUNT(*)::int AS count,
+           COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today_count
     FROM artist_id_mappings
     GROUP BY platform
     ORDER BY count DESC
   `);
-  return new Map([...rows].map(r => [r.platform, r.count]));
-}
-
-/** Section 1: Today counts for platform ID mappings. */
-async function getPlatformIdTodayCounts(): Promise<Map<string, number>> {
-  const rows = await db.execute<{ platform: string; today: number }>(sql`
-    SELECT platform, COUNT(*)::int AS today
-    FROM artist_id_mappings
-    WHERE created_at >= CURRENT_DATE
-    GROUP BY platform
-  `);
-  return new Map([...rows].map(r => [r.platform, r.today]));
+  return new Map([...rows].map(r => [r.platform, { count: r.count, todayCount: r.today_count }]));
 }
 
 /**
@@ -239,29 +230,27 @@ async function getCompletenessDistribution() {
 export async function getArtistDataSummary(): Promise<ArtistDataSummary> {
   const [
     totalsAndCoverage,
-    platformCounts,
-    platformTodayCounts,
+    platformStats,
     linkTodayCounts,
     completeness,
   ] = await Promise.all([
     getArtistTotalsAndCoverage(),
-    getPlatformIdCounts(),
-    getPlatformIdTodayCounts(),
+    getPlatformIdStats(),
     getLinkTodayCounts(),
     getCompletenessDistribution(),
   ]);
 
   const { totalArtists, totalWithSpotify, columnCounts, enrichment } = totalsAndCoverage;
 
-  // Section 1: Platform ID coverage
-  const platformIdCoverage: PlatformIdCoverageItem[] = [...platformCounts.entries()].map(
-    ([platform, count]) => ({
+  // Section 1: Platform ID coverage (mapped IDs from artist_id_mappings)
+  const platformIdCoverage: PlatformIdCoverageItem[] = [...platformStats.entries()].map(
+    ([platform, stats]) => ({
       platform,
-      count,
+      count: stats.count,
       percentage: totalWithSpotify > 0
-        ? Math.round((count / totalWithSpotify) * 10000) / 100
+        ? Math.round((stats.count / totalWithSpotify) * 10000) / 100
         : 0,
-      todayCount: platformTodayCounts.get(platform) ?? 0,
+      todayCount: stats.todayCount,
     })
   );
 

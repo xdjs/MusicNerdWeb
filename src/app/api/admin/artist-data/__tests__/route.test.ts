@@ -47,6 +47,17 @@ describe("GET /api/admin/artist-data", () => {
     expect(res.status).toBe(401);
   });
 
+  it("returns 403 when authenticated but not admin", async () => {
+    const { GET, requireAdmin } = await setup();
+    (requireAdmin as jest.Mock).mockResolvedValue({
+      authenticated: false,
+      response: Response.json({ error: "Forbidden" }, { status: 403 }),
+    });
+
+    const res = await GET();
+    expect(res.status).toBe(403);
+  });
+
   it("returns 200 with all sections when authenticated as admin", async () => {
     const { GET, requireAdmin, getArtistDataSummary } = await setup();
     (requireAdmin as jest.Mock).mockResolvedValue({ authenticated: true });

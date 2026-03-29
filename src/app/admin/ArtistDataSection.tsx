@@ -62,9 +62,12 @@ function PlatformIdCoverageSection({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
+      <h3 className="text-lg font-semibold text-[#9b83a0] mb-1">
         Platform ID Coverage ({totalWithSpotify.toLocaleString()} artists with Spotify)
       </h3>
+      <p className="text-xs text-muted-foreground mb-3">
+        Mapped IDs in <span className="font-mono">artist_id_mappings</span> table
+      </p>
       <CoverageGrid items={items} />
     </div>
   );
@@ -101,9 +104,12 @@ function ArtistLinkCoverageSection({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
+      <h3 className="text-lg font-semibold text-[#9b83a0] mb-1">
         Artist Link Coverage ({totalArtists.toLocaleString()} artists)
       </h3>
+      <p className="text-xs text-muted-foreground mb-3">
+        Direct columns on <span className="font-mono">artists</span> table
+      </p>
       <div className="space-y-4">
         {sortedCategories.map(([category, items]) => (
           <div key={category}>
