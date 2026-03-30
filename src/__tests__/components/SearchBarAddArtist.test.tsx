@@ -113,15 +113,24 @@ describe('SearchBar Add Artist Flow', () => {
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('calls login() and stores pending ID + timestamp when unauthenticated user clicks a Spotify-only result', async () => {
+    it('triggers login and stores pending ID + timestamp when unauthenticated user clicks a Spotify-only result', async () => {
+        // The SearchBar code clicks #login-btn to trigger Privy login
+        const loginBtn = document.createElement('button');
+        loginBtn.id = 'login-btn';
+        const loginClickSpy = jest.fn();
+        loginBtn.addEventListener('click', loginClickSpy);
+        document.body.appendChild(loginBtn);
+
         await renderAndSearch([spotifyOnlyResult]);
 
         fireEvent.click(screen.getByText('New Artist'));
 
-        expect(mockLogin).toHaveBeenCalled();
+        expect(loginClickSpy).toHaveBeenCalled();
         expect(mockAddArtist).not.toHaveBeenCalled();
         expect(mockSessionStorage['pendingAddArtistSpotifyId']).toBe('6abc123');
         expect(mockSessionStorage['pendingAddArtistTimestamp']).toBeDefined();
+
+        document.body.removeChild(loginBtn);
     });
 
     it('completes pending add on mount when session exists and pending ID is fresh', async () => {
