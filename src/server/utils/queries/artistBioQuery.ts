@@ -1,47 +1,43 @@
 import { NextResponse } from "next/server";
-import { openai } from "@/server/lib/openai";
+import { gemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { db } from "@/server/db/drizzle";
-import { artists, aiprompts } from "@/server/db/schema";
+import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
-import { OPENAI_TIMEOUT_MS, OPENAI_MODEL } from "@/env";
+import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 
-//Helper function that generates a bio using OpenAI with data drawn from Spotify
-//Params:
-    //artistID: The ID of the artist the bio should be generated for. 
-            // Spotify data is pulled from the row associated with this ID.
-export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
-  // Fetch artist row from database
+/**
+ * Generate an artist bio using Gemini Pro with Google Search grounding.
+ * Unified function — used by the bio API route, dashboard actions, and artistLinkService.
+ */
+export async function generateArtistBio(artistId: string): Promise<NextResponse> {
   const artist = await getArtistById(artistId);
   if (!artist) {
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
 
-  let spotifyBioData = ""; //empty string for spotify data
+  let spotifyBioData = "";
 
-  //Compile Spotify Data
+  // Compile Spotify Data
   if (artist.spotify) {
     try {
-      //grab headers, get artist
       const headers = await getSpotifyHeaders();
       const {data} = await getSpotifyArtist(artist.spotify, headers);
 
-      //if artist exists, get releases and top track
       if (data) {
-        // Set timeout for individual Spotify API calls
-        const spotifyTimeout = 8000; // 8 seconds per call
-        
+        const spotifyTimeout = 8000;
+
         const [releases, topTrack] = await Promise.allSettled([
           Promise.race([
             getNumberOfSpotifyReleases(artist.spotify, headers),
-            new Promise<number>((_, reject) => 
+            new Promise<number>((_, reject) =>
               setTimeout(() => reject(new Error('Spotify releases timeout')), spotifyTimeout)
             )
           ]),
           Promise.race([
             getArtistTopTrackName(artist.spotify, headers),
-            new Promise<string | null>((_, reject) => 
+            new Promise<string | null>((_, reject) =>
               setTimeout(() => reject(new Error('Spotify top track timeout')), spotifyTimeout)
             )
           ])
@@ -50,7 +46,6 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
         const releasesCount = releases.status === 'fulfilled' ? releases.value : 0;
         const topTrackName = topTrack.status === 'fulfilled' ? topTrack.value : null;
 
-        //build spotify bio data
         spotifyBioData = [
           `Spotify name: ${data.name}`,
           `Followers: ${data.followers.total}`,
@@ -61,122 +56,116 @@ export async function getOpenAIBio(artistId: string): Promise<NextResponse> {
       }
     } catch (error) {
       console.error("Error fetching Spotify data for bio generation:", error);
-      // Continue without Spotify data rather than failing entirely
     }
   }
 
-    // Put all informational sections of prompt together
+  // Put all informational sections of prompt together
   const promptParts: string[] = [];
-    if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
-    if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
-    if (artist.x) promptParts.push(`X: https://x.com/${artist.x}`);
-    if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
-    if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
-    if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
-    if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
-    if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
+  if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
+  if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
+  if (artist.x) promptParts.push(`X: https://x.com/${artist.x}`);
+  if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
+  if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
+  if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
+  if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
+  if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
 
-    //build prompt from parts generated and parts from the aiprompts table
+  // Include approved vault sources as additional context
+  let hasVaultContext = false;
+  const vaultUrls: string[] = [];
   try {
-    // Set timeout for OpenAI API call from environment variable
-    const openaiTimeout = OPENAI_TIMEOUT_MS;
-    const artistData = promptParts.join("\n");    
-    console.debug("OpenAI artistData:", JSON.stringify(artistData, null, 2));
-    
-    const openaiStartTime = Date.now();
-    const openaiRequest: any = {
-      prompt: {
-          id: "pmpt_68ae36812ef48193b07eb66e07bea5e8009423aa3140ae26",
-          variables: {
-              artist_name: artist.name!,
-              artist_data: artistData
-          }
-      }
-    };
-
-    // Only include model parameter if OPENAI_MODEL environment variable is explicitly set
-    if (OPENAI_MODEL) {
-      openaiRequest.model = OPENAI_MODEL;
+    const vaultSources = await getVaultSourcesByArtistId(artistId, "approved");
+    console.log(`[bio] Found ${vaultSources.length} approved vault sources for artist ${artistId}`);
+    if (vaultSources.length > 0) {
+      hasVaultContext = true;
+      const vaultContext = vaultSources.map(s => {
+        if (s.url) vaultUrls.push(s.url);
+        const parts = [`Source: ${s.title ?? s.url}`];
+        if (s.snippet) parts.push(s.snippet);
+        if (s.extractedText) parts.push(s.extractedText.slice(0, 2000));
+        return parts.join(" — ");
+      }).join("\n");
+      promptParts.push(`\n--- ARTIST-PROVIDED VAULT CONTEXT (USE THIS AS PRIMARY SOURCE) ---\n${vaultContext}\n--- END VAULT CONTEXT ---`);
     }
+  } catch (e) {
+    console.error("Error fetching vault sources for bio:", e);
+  }
 
-    console.debug("OpenAI request:", JSON.stringify(openaiRequest, null, 2));
-    
-    const completion = await Promise.race([
-      openai.responses.create(openaiRequest),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('OpenAI timeout')), openaiTimeout)
+  try {
+    const artistData = promptParts.join("\n");
+    console.debug("Gemini artistData:", JSON.stringify(artistData, null, 2));
+
+    const geminiStartTime = Date.now();
+
+    const systemPrompt = hasVaultContext
+      ? `You are a sharp, opinionated music journalist writing for a platform like Pitchfork or The FADER. Write a 2-3 paragraph bio for a music artist.
+
+RULES:
+- The vault context below is ARTIST-PROVIDED and your PRIMARY source. Extract specific facts: real names, locations, labels, collaborators, credits, timeline events, roles.
+- Use Spotify data only for stats (follower count, release count, top track). Do NOT let Spotify genres drive the narrative.
+- Write with personality and specificity. Name actual songs, projects, collaborators, and moments. Avoid filler phrases like "emerging force", "pushing boundaries", "sonic territories", or "artist to watch".
+- If the vault mentions a label, collective, nonprofit, or side project, include it.
+- End with a forward-looking line about what they're working on IF the vault provides that info. Otherwise just end strong.
+- Do NOT include social media links in the bio text. Platform links are shown separately on the page.
+- Be factual. Never speculate or fabricate credits/collabs.`
+      : `You are a sharp, opinionated music journalist writing for a platform like Pitchfork or The FADER. Write a 2-3 paragraph bio for a music artist based on the data provided.
+
+RULES:
+- Write with specificity. Name actual songs, projects, and stats from the data.
+- Avoid generic filler: no "emerging force", "pushing boundaries", "sonic territories", or "artist to watch".
+- If data is limited, keep it short (1-2 paragraphs) rather than padding with vague praise.
+- Do NOT include social media links in the bio text. Platform links are shown separately on the page.
+- Be factual. Never speculate or fabricate.`;
+
+    // Use Google Search grounding when vault sources exist (allows Gemini to visit those URLs)
+    const useGrounding = hasVaultContext && vaultUrls.length > 0;
+
+    const response = await Promise.race([
+      gemini.models.generateContent({
+        model: GEMINI_MODEL_PRO,
+        contents: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
+        config: {
+          systemInstruction: systemPrompt,
+          ...(useGrounding ? { tools: [{ googleSearch: {} }] } : {}),
+        },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini timeout')), 45000)
       )
     ]);
-    const openaiEndTime = Date.now();
-    const openaiDurationMs = openaiEndTime - openaiStartTime;
-    
-    const bio = completion.output_text ?? "";
-    console.debug("OpenAI bio:", JSON.stringify(bio, null, 2));
-    console.debug("OpenAI call duration:", `${openaiDurationMs}ms`);
-    //If bio generation is successful, overwrite existing bio in the artist row/object
+
+    const geminiEndTime = Date.now();
+    const geminiDurationMs = geminiEndTime - geminiStartTime;
+
+    const bio = response.text ?? "";
+    console.debug("Gemini bio:", JSON.stringify(bio, null, 2));
+    console.debug("Gemini call duration:", `${geminiDurationMs}ms`);
+
     if (bio) {
       await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
     }
 
-    //Error handling
     return NextResponse.json({ bio });
   } catch (err: any) {
-    console.error("OpenAI error generating bio", err);
-    if (err.message === 'OpenAI timeout') {
+    console.error("Gemini error generating bio", err);
+    if (err.message === 'Gemini timeout') {
       return NextResponse.json({ error: "Bio generation timed out" }, { status: 408 });
     }
     return NextResponse.json({ error: "Failed to generate bio" }, { status: 500 });
   }
 }
 
-// ----------------------------------
-// Prompt helpers
-// ----------------------------------
-
-export async function getActivePrompt() {
-    return await db.query.aiprompts.findFirst({ where: eq(aiprompts.isActive, true) });
-}
-
-export async function setActivePrompt() {
-    // TODO: implement if necessary
-}
-
-// Helper to (re)generate an artist bio immediately using OpenAI and store it
-export async function generateArtistBio(artistId: string): Promise<string | null> {
-    try {
-        const artist = await getArtistById(artistId);
-        if (!artist) return null;
-        const promptRow = await getActivePrompt();
-        if (!promptRow) return null;
-
-        const promptParts: string[] = [promptRow.promptBeforeName ?? "", artist.name ?? "", promptRow.promptAfterName ?? ""];
-        if (artist.spotify) promptParts.push(`Spotify ID: ${artist.spotify}`);
-        if (artist.instagram) promptParts.push(`Instagram: https://instagram.com/${artist.instagram}`);
-        if (artist.x) promptParts.push(`Twitter: https://twitter.com/${artist.x}`);
-        if (artist.soundcloud) promptParts.push(`SoundCloud: ${artist.soundcloud}`);
-        if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
-        if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
-        promptParts.push("Focus on genre, key achievements, and unique traits; avoid speculation.");
-
-        const completion = await openai.chat.completions.create({
-            model: OPENAI_MODEL || "gpt-4o",
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "You are an artifical intelligence whose sole purpose is to follow the provided prompt." +
-                        promptParts.join("\n"),
-                },
-            ],
-            temperature: 0.8,
-        });
-        const bio = completion.choices[0]?.message?.content?.trim() ?? "";
-        if (bio) {
-            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
-        }
-        return bio;
-    } catch (e) {
-        console.error("[generateArtistBio] Error generating bio", e);
-        return null;
-    }
+/**
+ * Simplified wrapper that returns just the bio string.
+ * Used by artistLinkService for background bio regeneration.
+ */
+export async function regenerateArtistBio(artistId: string): Promise<string | null> {
+  try {
+    const response = await generateArtistBio(artistId);
+    const data = await response.json();
+    return data.bio ?? null;
+  } catch (e) {
+    console.error("[regenerateArtistBio] Error:", e);
+    return null;
+  }
 }

@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from "next-auth/react";
-import { useLogin } from "@privy-io/react-auth";
 import { addArtist } from "@/app/actions/addArtist";
+import { isDevMode } from "@/lib/dev-mode";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -52,7 +52,6 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const search = searchParams.get('search');
     const blurTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const { data: session } = useSession();
-    const { login } = useLogin();
     const [addingSpotifyId, setAddingSpotifyId] = useState<string | null>(null);
 
     const handleAddArtist = useCallback(async (spotifyId: string) => {
@@ -166,10 +165,16 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         if (result.isSpotifyOnly) {
             if (!result.spotify) return;
 
-            if (!session) {
-                sessionStorage.setItem(PENDING_ADD_KEY, result.spotify);
-                sessionStorage.setItem(PENDING_ADD_TS_KEY, String(Date.now()));
-                login();
+            if (!session && !isDevMode) {
+                // Privy login required — dynamically import to avoid crash when Privy isn't configured
+                try {
+                    sessionStorage.setItem(PENDING_ADD_KEY, result.spotify);
+                    sessionStorage.setItem(PENDING_ADD_TS_KEY, String(Date.now()));
+                    const loginBtn = document.getElementById('login-btn');
+                    loginBtn?.click();
+                } catch (e) {
+                    console.error("[SearchBar] Login trigger failed:", e);
+                }
                 return;
             }
 

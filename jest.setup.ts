@@ -129,6 +129,9 @@ jest.mock('@/server/db/drizzle', () => {
             artists: makeTable(),
             users: makeTable(),
             ugcresearch: makeTable(),
+            artistClaims: makeTable(),
+            artistVaultSources: makeTable(),
+            artistIdMappings: makeTable(),
         },
         insert: jest.fn(),
         update: jest.fn(),
@@ -156,7 +159,7 @@ try {
         // top-level functions
         ['insert', 'update', 'delete', 'select', 'from', 'where', 'limit', 'execute'].forEach(k => ensureFn(db, k));
 
-        const tables = ['urlmap', 'artists', 'users', 'ugcresearch', 'artistIdMappings'];
+        const tables = ['urlmap', 'artists', 'users', 'ugcresearch', 'artistClaims', 'artistVaultSources', 'artistIdMappings'];
         tables.forEach(t => {
             if (!db.query[t]) db.query[t] = {};
             ['findFirst', 'findMany', 'update', 'insert', 'delete'].forEach(k => ensureFn(db.query[t], k));
@@ -210,6 +213,15 @@ jest.mock('openai', () => {
         }
     };
 });
+
+// Mock the Google GenAI SDK to avoid real API calls
+jest.mock('@google/genai', () => ({
+    GoogleGenAI: class {
+        models = {
+            generateContent: jest.fn().mockResolvedValue({ text: 'mocked gemini response' })
+        };
+    }
+}));
 
 // Mock server actions to prevent function not found errors
 jest.mock('@/app/actions/serverActions', () => ({

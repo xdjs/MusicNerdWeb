@@ -41,7 +41,15 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [hasNewUGC, setHasNewUGC] = useState(false);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [pendingNextAuthLogin, setPendingNextAuthLogin] = useState(false);
+    const [hasDashboardClaim, setHasDashboardClaim] = useState(false);
     const reloadingRef = useRef(false);
+
+    // Check localStorage for dashboard claim
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        setHasDashboardClaim(localStorage.getItem('dashboard_claimed') === 'true');
+      }
+    }, []);
 
     const { login } = useLogin({
       onComplete: async (params) => {
@@ -425,6 +433,13 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 )}
               </Link>
             </DropdownMenuItem>
+            {hasDashboardClaim && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard" prefetch>
+                  Dashboard
+                </Link>
+              </DropdownMenuItem>
+            )}
             {session?.user?.isAdmin && (
               <DropdownMenuItem asChild className="flex items-center gap-2">
                 <Link href="/admin" prefetch>

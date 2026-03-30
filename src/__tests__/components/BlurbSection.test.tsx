@@ -17,7 +17,7 @@ describe('BlurbSection', () => {
         artistId: 'test-artist-id'
     };
 
-    const longContent = 'This is a very long content that should be more than 200 characters to trigger the Read More functionality. It needs to be long enough to test the character limit check. This should definitely be over 200 characters now.';
+    const longContent = 'This is a very long content that should be more than 200 characters to trigger the Read more functionality. It needs to be long enough to test the character limit check. This should definitely be over 200 characters now.';
 
     const mockUseArtistBio = useArtistBio as jest.Mock;
 
@@ -77,8 +77,8 @@ describe('BlurbSection', () => {
         });
     });
 
-    describe('Read More Functionality', () => {
-        it('shows Read More button for long content', async () => {
+    describe('Read more Functionality', () => {
+        it('shows Read more button for long content', async () => {
             mockUseArtistBio.mockReturnValue({
                 bio: longContent,
                 loading: false,
@@ -89,11 +89,11 @@ describe('BlurbSection', () => {
             render(<BlurbSection {...defaultProps} />);
             
             await waitFor(() => {
-                expect(screen.getByText('Read More')).toBeInTheDocument();
+                expect(screen.getByText('Read more')).toBeInTheDocument();
             });
         });
 
-        it('does not show Read More button for short content', async () => {
+        it('does not show Read more button for short content', async () => {
             mockUseArtistBio.mockReturnValue({
                 bio: 'Short content',
                 loading: false,
@@ -104,11 +104,11 @@ describe('BlurbSection', () => {
             render(<BlurbSection {...defaultProps} />);
             
             await waitFor(() => {
-                expect(screen.queryByText('Read More')).not.toBeInTheDocument();
+                expect(screen.queryByText('Read more')).not.toBeInTheDocument();
             });
         });
 
-        it('opens modal when Read More is clicked', async () => {
+        it('expands when Read more is clicked', async () => {
             mockUseArtistBio.mockReturnValue({
                 bio: longContent,
                 loading: false,
@@ -119,17 +119,17 @@ describe('BlurbSection', () => {
             render(<BlurbSection {...defaultProps} />);
             
             await waitFor(() => {
-                expect(screen.getByText('Read More')).toBeInTheDocument();
+                expect(screen.getByText('Read more')).toBeInTheDocument();
             });
 
-            fireEvent.click(screen.getByText('Read More'));
+            fireEvent.click(screen.getByText('Read more'));
 
             await waitFor(() => {
                 expect(screen.getByText('Show less')).toBeInTheDocument();
             });
         });
 
-        it('closes modal when Show less is clicked', async () => {
+        it('collapses when Show less is clicked', async () => {
             mockUseArtistBio.mockReturnValue({
                 bio: longContent,
                 loading: false,
@@ -138,12 +138,12 @@ describe('BlurbSection', () => {
             });
 
             render(<BlurbSection {...defaultProps} />);
-            
+
             await waitFor(() => {
-                expect(screen.getByText('Read More')).toBeInTheDocument();
+                expect(screen.getByText('Read more')).toBeInTheDocument();
             });
 
-            fireEvent.click(screen.getByText('Read More'));
+            fireEvent.click(screen.getByText('Read more'));
 
             await waitFor(() => {
                 expect(screen.getByText('Show less')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('BlurbSection', () => {
             fireEvent.click(screen.getByText('Show less'));
 
             await waitFor(() => {
-                expect(screen.queryByText('Show less')).not.toBeInTheDocument();
+                expect(screen.getByText('Read more')).toBeInTheDocument();
             });
         });
     });

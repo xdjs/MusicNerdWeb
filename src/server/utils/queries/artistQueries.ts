@@ -12,7 +12,7 @@ import { getUserById, getUserDisplayName } from "@/server/utils/queries/userQuer
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { maybePingDiscordForPendingUGC } from "@/server/utils/ugcDiscordNotifier";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
-import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
+import { regenerateArtistBio } from "@/server/utils/queries/artistBioQuery";
 
 // ----------------------------------
 // Types
@@ -651,8 +651,8 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
     try {
         if (regenerate) {
-            // Generate new bio using OpenAI
-            const generatedBio = await generateArtistBio(artistId);
+            // Generate new bio using Gemini
+            const generatedBio = await regenerateArtistBio(artistId);
             if (generatedBio) {
                 return { status: "success", message: "Bio regenerated", data: generatedBio };
             } else {

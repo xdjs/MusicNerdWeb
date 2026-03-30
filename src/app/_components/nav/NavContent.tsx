@@ -13,7 +13,9 @@ export default function NavContent() {
                 <Link href={"/"}>
                     <img
                         src="/icon.ico"
-                        className="w-16 hover:animate-[spin_3s_linear_infinite]"
+                        width={64}
+                        height={64}
+                        className="w-16 h-16 hover:animate-[spin_3s_linear_infinite]"
                         alt="logo"
                     />
                 </Link>
