@@ -40,4 +40,10 @@ describe("isUnsafeUrl", () => {
         expect(isUnsafeUrl("http://172.15.0.1/ok")).toBe(false);
         expect(isUnsafeUrl("http://172.32.0.1/ok")).toBe(false);
     });
+
+    it("blocks IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)", () => {
+        expect(isUnsafeUrl("http://[fc00::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[fd12::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[fe80::1]/internal")).toBe(true);
+    });
 });

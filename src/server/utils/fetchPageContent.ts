@@ -31,7 +31,10 @@ export function isUnsafeUrl(url: string): boolean {
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
         const host = parsed.hostname.toLowerCase();
         if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "[::1]") return true;
-        // Block private/link-local ranges
+        // Block IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)
+        const bare = host.replace(/^\[|\]$/g, "").toLowerCase();
+        if (bare.startsWith("fc") || bare.startsWith("fd") || bare.startsWith("fe80")) return true;
+        // Block private/link-local IPv4 ranges
         const parts = host.split(".");
         if (parts[0] === "10") return true;
         if (parts[0] === "172" && Number(parts[1]) >= 16 && Number(parts[1]) <= 31) return true;

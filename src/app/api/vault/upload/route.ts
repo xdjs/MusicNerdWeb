@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
-import { getApprovedClaimByUserId } from "@/server/utils/queries/dashboardQueries";
-import { insertVaultSource } from "@/server/utils/queries/dashboardQueries";
+import { getApprovedClaimByUserId, insertVaultSource } from "@/server/utils/queries/dashboardQueries";
 import { supabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -62,8 +61,35 @@ export async function POST(req: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Generate storage path
-        const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+        // Validate magic bytes for binary formats to prevent MIME type spoofing
+        const magicSignatures: Record<string, number[]> = {
+            "application/pdf": [0x25, 0x50, 0x44, 0x46],         // %PDF
+            "image/png": [0x89, 0x50, 0x4E, 0x47],               // .PNG
+            "image/jpeg": [0xFF, 0xD8, 0xFF],                     // JFIF
+            "image/webp": [0x52, 0x49, 0x46, 0x46],               // RIFF
+            "audio/mpeg": [0x49, 0x44, 0x33],                     // ID3 (MP3)
+            "audio/wav": [0x52, 0x49, 0x46, 0x46],                // RIFF
+        };
+        const expected = magicSignatures[file.type];
+        if (expected) {
+            const header = Array.from(new Uint8Array(buffer.slice(0, expected.length)));
+            if (!expected.every((b, i) => header[i] === b)) {
+                return NextResponse.json(
+                    { error: "File content does not match declared type" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Generate storage path — derive extension from MIME type for binary formats
+        const mimeExtMap: Record<string, string> = {
+            "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md",
+            "text/csv": ".csv", "application/json": ".json", "application/msword": ".doc",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+            "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
+            "audio/mpeg": ".mp3", "audio/wav": ".wav",
+        };
+        const ext = mimeExtMap[file.type] ?? (file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "");
         const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
         const storagePath = `${artistId}/${Date.now()}_${baseName}${ext}`;
 

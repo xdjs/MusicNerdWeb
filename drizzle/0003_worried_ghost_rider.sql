@@ -5,6 +5,7 @@ CREATE TABLE "artist_claims" (
 	"user_id" uuid NOT NULL,
 	"artist_id" uuid NOT NULL,
 	"status" "claim_status" DEFAULT 'pending' NOT NULL,
+	"reference_code" text,
 	"created_at" timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text) NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text) NOT NULL,
 	CONSTRAINT "artist_claims_artist_id_key" UNIQUE("artist_id")
