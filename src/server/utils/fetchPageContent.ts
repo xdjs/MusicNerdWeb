@@ -24,6 +24,25 @@ function decodeEntities(str: string): string {
         .replace(/&hellip;/g, "…");
 }
 
+/** Block SSRF: reject internal/private network URLs */
+function isUnsafeUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
+        const host = parsed.hostname.toLowerCase();
+        if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "[::1]") return true;
+        // Block private/link-local ranges
+        const parts = host.split(".");
+        if (parts[0] === "10") return true;
+        if (parts[0] === "172" && Number(parts[1]) >= 16 && Number(parts[1]) <= 31) return true;
+        if (parts[0] === "192" && parts[1] === "168") return true;
+        if (parts[0] === "169" && parts[1] === "254") return true; // cloud metadata
+        return false;
+    } catch {
+        return true;
+    }
+}
+
 /**
  * Fetch a URL and extract title, meta description, and body text.
  * Returns domain-based fallback title on failure.
@@ -32,6 +51,10 @@ export async function fetchPageContent(url: string): Promise<PageContent> {
     let title = "Untitled Source";
     let snippet: string | undefined;
     let extractedText: string | null = null;
+
+    if (isUnsafeUrl(url)) {
+        return { title, extractedText: null };
+    }
 
     try {
         const parsed = new URL(url);

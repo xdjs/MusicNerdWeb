@@ -34,10 +34,11 @@ export async function claimArtistProfile(artistId: string): Promise<{ success: b
     try {
         const existing = await getClaimByArtistId(artistId);
         if (existing) {
-            // Allow re-claim if previously rejected (delete old claim first due to UNIQUE constraint)
             if (existing.status === "rejected") {
+                // Rejected claims are dead — remove to allow new claim (UNIQUE constraint on artistId)
                 await deleteClaim(existing.id);
             } else {
+                // Pending or approved — block new claims
                 return { success: false, alreadyClaimed: true, error: "This artist profile has already been claimed" };
             }
         }
@@ -88,6 +89,18 @@ export async function getArtistDashboardData() {
     }
 }
 
+/** Verify a source belongs to the user's claimed artist */
+async function verifySourceOwnership(userId: string, sourceId: string) {
+    const claim = await getApprovedClaimByUserId(userId);
+    if (!claim) return { authorized: false as const, error: "No claimed artist profile" };
+
+    const sources = await getVaultSourcesByArtistId(claim.artistId);
+    const sourceExists = sources.some(s => s.id === sourceId);
+    if (!sourceExists) return { authorized: false as const, error: "Source does not belong to your artist" };
+
+    return { authorized: true as const, claim };
+}
+
 export async function updateSourceStatus(
     sourceId: string,
     status: "approved" | "rejected"
@@ -96,9 +109,9 @@ export async function updateSourceStatus(
     if (!session) return { success: false, error: "Not authenticated" };
 
     try {
-        // Verify the source belongs to the user's claimed artist
-        const claim = await getApprovedClaimByUserId(session.user.id);
-        if (!claim) return { success: false, error: "No claimed artist profile" };
+        const ownership = await verifySourceOwnership(session.user.id, sourceId);
+        if (!ownership.authorized) return { success: false, error: ownership.error };
+        const claim = ownership.claim;
 
         await updateVaultSourceStatus(sourceId, status);
 
@@ -220,8 +233,8 @@ export async function updateSourceType(
     }
 
     try {
-        const claim = await getApprovedClaimByUserId(session.user.id);
-        if (!claim) return { success: false, error: "No claimed artist profile" };
+        const ownership = await verifySourceOwnership(session.user.id, sourceId);
+        if (!ownership.authorized) return { success: false, error: ownership.error };
 
         await updateVaultSourceType(sourceId, type);
         return { success: true };
@@ -238,8 +251,8 @@ export async function removeVaultSource(
     if (!session) return { success: false, error: "Not authenticated" };
 
     try {
-        const claim = await getApprovedClaimByUserId(session.user.id);
-        if (!claim) return { success: false, error: "No claimed artist profile" };
+        const ownership = await verifySourceOwnership(session.user.id, sourceId);
+        if (!ownership.authorized) return { success: false, error: ownership.error };
 
         await deleteVaultSource(sourceId);
         return { success: true };
@@ -258,6 +271,14 @@ export async function removeVaultSources(
     try {
         const claim = await getApprovedClaimByUserId(session.user.id);
         if (!claim) return { success: false, error: "No claimed artist profile" };
+
+        // Verify all sources belong to this artist
+        const sources = await getVaultSourcesByArtistId(claim.artistId);
+        const ownedIds = new Set(sources.map(s => s.id));
+        const unauthorized = sourceIds.filter(id => !ownedIds.has(id));
+        if (unauthorized.length > 0) {
+            return { success: false, error: "Some sources do not belong to your artist" };
+        }
 
         const deleted = await deleteVaultSources(sourceIds);
         return { success: true, count: deleted.length };

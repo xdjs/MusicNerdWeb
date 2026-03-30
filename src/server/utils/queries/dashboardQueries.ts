@@ -242,6 +242,7 @@ export async function updateVaultSourceType(sourceId: string, type: string) {
 }
 
 export async function deleteVaultSources(sourceIds: string[]) {
+    if (sourceIds.length === 0) return [];
     try {
         const { inArray } = await import("drizzle-orm");
         const deleted = await db
