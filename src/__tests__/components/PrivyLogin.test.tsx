@@ -92,6 +92,12 @@ jest.mock('next/link', () => {
   };
 });
 
+const mockSetTheme = jest.fn();
+let mockTheme = 'light';
+jest.mock('@/app/_components/ThemeProvider', () => ({
+  useTheme: () => ({ theme: mockTheme, setTheme: mockSetTheme }),
+}));
+
 jest.mock('@/server/utils/privyConstants', () => ({
   TOKEN_PREFIXES: {
     PRIVY_ID: 'privyid:',
@@ -107,6 +113,7 @@ describe('PrivyLogin', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTheme = 'light';
     loginCallbacks = {};
     logoutCallbacks = {};
     mockPrivyState = {
@@ -162,6 +169,40 @@ describe('PrivyLogin', () => {
       expect(screen.getByText('Leaderboard')).toBeInTheDocument();
       expect(screen.getByText('User Profile')).toBeInTheDocument();
       expect(screen.getByText('Log In')).toBeInTheDocument();
+    });
+  });
+
+  describe('Theme toggle', () => {
+    it('shows "Dark Mode" menu item when in light mode (unauthenticated)', () => {
+      mockTheme = 'light';
+      render(<PrivyLogin />);
+      expect(screen.getByText('Dark Mode')).toBeInTheDocument();
+    });
+
+    it('shows "Light Mode" menu item when in dark mode (unauthenticated)', () => {
+      mockTheme = 'dark';
+      render(<PrivyLogin />);
+      expect(screen.getByText('Light Mode')).toBeInTheDocument();
+    });
+
+    it('calls setTheme when theme menu item is clicked (unauthenticated)', () => {
+      mockTheme = 'light';
+      render(<PrivyLogin />);
+      fireEvent.click(screen.getByText('Dark Mode'));
+      expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    });
+
+    it('shows theme toggle in authenticated dropdown', () => {
+      mockPrivyState.authenticated = true;
+      mockSessionData = {
+        user: { id: 'user-uuid', isAdmin: false, needsLegacyLink: false },
+        expires: '2025-12-31',
+      };
+      mockSessionStatus = 'authenticated';
+      mockTheme = 'dark';
+
+      render(<PrivyLogin />);
+      expect(screen.getByText('Light Mode')).toBeInTheDocument();
     });
   });
 

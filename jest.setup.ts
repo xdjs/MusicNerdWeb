@@ -131,6 +131,7 @@ jest.mock('@/server/db/drizzle', () => {
             ugcresearch: makeTable(),
             artistClaims: makeTable(),
             artistVaultSources: makeTable(),
+            artistIdMappings: makeTable(),
         },
         insert: jest.fn(),
         update: jest.fn(),
@@ -158,7 +159,7 @@ try {
         // top-level functions
         ['insert', 'update', 'delete', 'select', 'from', 'where', 'limit', 'execute'].forEach(k => ensureFn(db, k));
 
-        const tables = ['urlmap', 'artists', 'users', 'ugcresearch', 'artistClaims', 'artistVaultSources'];
+        const tables = ['urlmap', 'artists', 'users', 'ugcresearch', 'artistClaims', 'artistVaultSources', 'artistIdMappings'];
         tables.forEach(t => {
             if (!db.query[t]) db.query[t] = {};
             ['findFirst', 'findMany', 'update', 'insert', 'delete'].forEach(k => ensureFn(db.query[t], k));

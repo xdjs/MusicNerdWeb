@@ -211,9 +211,11 @@ describe("artistQueries", () => {
 
       await approveUGC("ugc-1", "artist-1", "instagram", "testuser");
 
-      // db.update is called to set accepted = true
+      // db.update is called to set accepted = true and date_processed
       expect(db.update).toHaveBeenCalled();
-      expect(mockSet).toHaveBeenCalledWith({ accepted: true });
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({ accepted: true, dateProcessed: expect.any(String) })
+      );
     });
 
     it("throws on DB error", async () => {

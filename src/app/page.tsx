@@ -13,6 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomePageSplash animation="static" />;
+  return <HomePageSplash />;
 }
 

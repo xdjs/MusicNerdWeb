@@ -1,146 +1,28 @@
 "use client"
 
-import { Suspense } from "react";
-import SearchBar from "./nav/components/SearchBar";
-import Login from "./nav/components/Login";
-import SlidingText from "./SlidingText";
-import TypewriterText from "./TypeWriter";
-import { ThemeToggle } from "@/app/_components/ThemeToggle";
+import ActivityFeed from "./ActivityFeed";
 
-export default function HomePage({ animation }: { animation: string }) {
-
-    const titles = [
-        {
-            label: ["Music", "Nerd"],
-            color: "#ff9ce3",
-        },
-        {
-            label: ["Mindful", "Listener"],
-            color: "var(--subtitle-color)",
-        },
-        {
-            label: ["Curious", "Researcher"],
-            color: "var(--subtitle-color)",
-        },
-        {
-            label: ["Obsessive", "Collector"],
-            color: "var(--subtitle-color)",
-        },
-        {
-            label: ["Enthusiastic", "Curator"],
-            color: "var(--subtitle-color)",
-        },
-        {
-            label: ["Executive", "Producer"],
-            color: "var(--subtitle-color)",
-        },
-    ]
-
-    const titleNodes = titles.map((title, index) => (
-        <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-            <h2 className="w-1/2 text-right pr-[0.4rem]">
-                {title.label[0]}
-            </h2>
-            <h2 className="w-1/2 pl-[0.4rem]">
-                {title.label[1]}
-            </h2>
-        </div>
-    ))
-
-    const slidingNodes = titles.map((title, index) => (
-        <div key={index} style={{ color: title.color }} className="lowercase w-full justify-center flex home-text-h2">
-            <h2 className="">
-                {title.label[0]} {" "} {title.label[1]}
-            </h2>
-        </div>
-    ))
-
-    function getTypewriterNodes(titles: { label: string[], color: string }[]) {
-        let prevCharCount = 0;
-        return titles.map((title, index) => {
-            const charCount = title.label[1].length;
-            const delay = 80 * (charCount + prevCharCount) + index * 100;
-            prevCharCount += charCount;
-            return (
-                <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-                    <h2 className="w-1/2 text-right pr-[0.4rem]">
-                        {title.label[0]}
-                    </h2>
-                    <h2 className="w-1/2 pl-[0.4rem]">
-                        <TypewriterText text={title.label[1]} startDelay={delay} />
-                    </h2>
-                </div>
-            )
-        })
-    }
-
-    // const typeWriterNodes = titles.map((title, index) => (
-    //     <div key={index} style={{ color: title.color }} className="lowercase w-full flex home-text-h2">
-    //     <h2 className="w-1/2 text-right pr-[0.4rem]">
-    //         {title.label[0]}
-    //     </h2>
-    //     <h2 className="w-1/2 pl-[0.4rem]">
-    //         <TypewriterText texts={[...title.label[1]]} delay={100} />
-    //     </h2>
-    // </div>
-    // ))
-
-    const animations = {
-        static: titleNodes,
-        slide: <SlidingText items={slidingNodes} interval={800} />,
-        typewriter: getTypewriterNodes(titles),
-    }
-
-    function getAnimation(animation: string) {
-        return animations[animation as keyof typeof animations];
-    }
-
+export default function HomePage() {
     return (
-        <div className="p-6 sm:p-8 flex flex-col justify-center flex-grow h-full w-full">
-            <div className="absolute top-6 right-6 flex flex-row gap-4 items-center">
-                <ThemeToggle />
-                <Login buttonStyles="" />
-            </div>
-
-            <div className="w-full">
-                <div className="flex flex-col items-center md:fixed md:left-8 md:top-8 mb-4">
-                    <img
-                        src="/icon.ico"
-                        className="w-auto"
+        <div className="px-6 sm:px-8 pt-0 pb-4 flex flex-col items-center w-full !flex-grow-0">
+            <div className="w-full max-w-2xl">
+                {/* Title */}
+                <div className="flex justify-center w-full px-4 -mt-2 mb-5">
+                    <h1 className="lowercase font-bold"
                         style={{
-                            width: 'clamp(68px, calc(68px + (94 - 68) * ((100vw - 360px) / (1440 - 360))), 94px)'
-                        }}
-                        alt="logo"
-                    />
-                </div>
-
-                <div className="grow mb-8">
-                    <div className="font-bold w-full"
-                        style={{
-                            fontSize: 'clamp(28px, calc(28px + (78 - 28) * ((100vw - 360px) / (1440 - 360))), 78px)',
-                            letterSpacing: 'clamp(-1px, calc(-1px + (-3 - -1) * ((100vw - 360px) / (1440 - 360))), -3px)',
-                            lineHeight: 'clamp(36px, calc(36px + (78 - 36) * ((100vw - 360px) / (1440 - 360))), 78px)'
+                            fontSize: 'clamp(32px, calc(32px + (84 - 32) * ((100vw - 360px) / (1440 - 360))), 84px)',
+                            letterSpacing: 'clamp(-1px, calc(-1px + (-4 - -1) * ((100vw - 360px) / (1440 - 360))), -4px)',
+                            lineHeight: '1',
+                            color: '#ff9ce3',
+                            textShadow: '0 0 40px rgba(255, 156, 227, 0.25)',
                         }}
                     >
-                        {getAnimation(animation)}
-                    </div>
+                        music nerd
+                    </h1>
                 </div>
-                <div className="flex flex-col items-center w-full px-4">
-                    <div className="text-[#c6bfc7] text-[20px] tracking-[-0.4px] md:text-[35px] md:tracking-[-1.1px] font-bold mb-3">
-                        Ask Music Nerd about an artist
-                    </div>
-                    <Suspense fallback={<div>Loading...</div>}>
-                        <SearchBar isTopSide={true} />
-                    </Suspense>
-                </div>
+
+                <ActivityFeed />
             </div>
-            {/* <div className="flex flex-col items-center">
-          <p className="text-maroon text-[14px] sm:text-[25px] tracking[-0.5px] font-bold">
-              Made in Seattle by <a href="https://x.com/cxy" target="blank" className='link'>@<span className='underline'>cxy</span> </a>
-              <a href="https://x.com/clt" target="blank" className='link'>@<span className='underline'>clt</span></a> and friends
-          </p>
-        </div> */}
         </div>
     );
-};
-
+}

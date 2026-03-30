@@ -30,10 +30,10 @@ describe('Nav', () => {
         jest.clearAllMocks();
     });
 
-    it('renders null on the home page ("/")', () => {
+    it('renders navigation on the home page ("/")', () => {
         mockPathname = '/';
-        const { container } = render(<Nav />);
-        expect(container.firstChild).toBeNull();
+        render(<Nav />);
+        expect(screen.getByTestId('search-bar')).toBeInTheDocument();
     });
 
     it('renders navigation on artist pages', () => {
@@ -90,9 +90,9 @@ describe('NavContent', () => {
         expect(screen.getByTestId('login-component')).toBeInTheDocument();
     });
 
-    it('renders the theme toggle', () => {
+    it('does not render a standalone theme toggle (moved to profile menu)', () => {
         render(<NavContent />);
-        expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
+        expect(screen.queryByTestId('theme-toggle')).not.toBeInTheDocument();
     });
 
     it('renders a <nav> element', () => {
