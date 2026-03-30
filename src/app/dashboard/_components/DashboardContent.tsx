@@ -11,7 +11,9 @@ import SourceCard from "./SourceCard";
 import Link from "next/link";
 import { Plus, Database, Upload, FileText, Globe, CheckCircle2, XCircle, Loader2, Trash2, ExternalLink, Camera } from "lucide-react";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
-import type { ArtistVaultSource } from "@/server/db/DbTypes";
+import type { ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
+import type { ArtistLink } from "@/server/utils/queries/artistQueries";
+import DashboardLinksSection from "./DashboardLinksSection";
 
 interface FileUploadStatus {
     name: string;
@@ -23,16 +25,22 @@ interface DashboardContentProps {
     artistName: string;
     artistId: string;
     artistImage: string;
+    artistSpotify?: string | null;
     pendingSources: ArtistVaultSource[];
     approvedSources: ArtistVaultSource[];
+    artistLinks: ArtistLink[];
+    availableLinks: UrlMap[];
 }
 
 export default function DashboardContent({
     artistName,
     artistId,
     artistImage,
+    artistSpotify,
     pendingSources,
     approvedSources,
+    artistLinks,
+    availableLinks,
 }: DashboardContentProps) {
     const router = useRouter();
     const { toast } = useToast();
@@ -322,7 +330,21 @@ export default function DashboardContent({
                 </div>
             </div>
 
-            {/* Action buttons — always below hero */}
+            {/* Two-column layout on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Left column: Manage Links */}
+            <DashboardLinksSection
+                artistId={artistId}
+                artistSpotify={artistSpotify}
+                artistLinks={artistLinks}
+                availableLinks={availableLinks}
+            />
+
+            {/* Right column: Vault Sources */}
+            <div className="space-y-6">
+
+            {/* Vault action buttons */}
             <div className="flex gap-2">
                 <Button
                     size="sm"
@@ -333,16 +355,18 @@ export default function DashboardContent({
                     <Globe size={14} className="mr-1.5" />
                     {searching ? "Searching..." : "Search Web"}
                 </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSeed}
-                    disabled={loading}
-                    className="text-xs"
-                >
-                    <Database size={14} className="mr-1.5" />
-                    {loading ? "Seeding..." : "Seed Mock Data"}
-                </Button>
+                {process.env.NODE_ENV === "development" && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSeed}
+                        disabled={loading}
+                        className="text-xs"
+                    >
+                        <Database size={14} className="mr-1.5" />
+                        {loading ? "Seeding..." : "Seed Mock Data"}
+                    </Button>
+                )}
             </div>
 
             {/* Add Source: URL + File Upload */}
@@ -559,6 +583,9 @@ export default function DashboardContent({
                     )}
                 </TabsContent>
             </Tabs>
+
+            </div>{/* end right column */}
+            </div>{/* end two-column grid */}
         </div>
     );
 }

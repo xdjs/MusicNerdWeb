@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-export default function AddArtistData({ artist, spotifyImg, availableLinks, isOpenOnLoad = false, label }: { artist: Artist, spotifyImg: string, availableLinks: UrlMap[], isOpenOnLoad: boolean, label?: string }) {
+export default function AddArtistData({ artist, spotifyImg, availableLinks, isOpenOnLoad = false, label, directEdit = false }: { artist: Artist, spotifyImg: string, availableLinks: UrlMap[], isOpenOnLoad: boolean, label?: string, directEdit?: boolean }) {
     const { data: session } = useSession();
     const [isModalOpen, setIsModalOpen] = useState(isOpenOnLoad);
     const [selectedOption, setSelectedOption] = useState("");
@@ -155,6 +155,26 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
             setIsLoading(false);
             return;
         }
+        if (directEdit) {
+            try {
+                const res = await fetch("/api/directEditLink", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ artistId: artist.id, action: "set", url: formattedUrl }),
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    toast({ title: `${artist.name}'s ${data.platformName ?? data.siteName ?? "link"} saved` });
+                    setAddArtistResp({ status: "success", message: "Link saved successfully." });
+                } else {
+                    setAddArtistResp({ status: "error", message: data.error ?? "Failed to save link." });
+                }
+            } catch {
+                setAddArtistResp({ status: "error", message: "Failed to save link." });
+            }
+            setIsLoading(false);
+            return;
+        }
         const resp = await addArtistData(formattedUrl, artist);
         if (resp.status === "success") {
             toast({
@@ -244,9 +264,11 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                     )}
                                 />
                             </div>
-                            <p>
-                                Once you submit the link we&apos;ll look it over to make sure it all checks out!
-                            </p>
+                            {!directEdit && (
+                                <p>
+                                    Once you submit the link we&apos;ll look it over to make sure it all checks out!
+                                </p>
+                            )}
                             <DialogFooter className="flex sm:flex-col gap-4">
                                 {addArtistResp && addArtistResp.status === "error" ?
                                     <Label className="text-red-600">{addArtistResp.message}</Label> : null
@@ -254,7 +276,7 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                 <Button type="submit" className="bg-pastyblue hover:bg-gray-400 text-white">
                                     {isLoading ?
                                         <img className="max-h-6" src="/spinner.svg" alt="whyyyyy" />
-                                        : <span>Add Artist Data</span>
+                                        : <span>{directEdit ? "Save Link" : "Add Artist Data"}</span>
                                     }
                                 </Button>
                                 {addArtistResp && addArtistResp.status === "success" ?

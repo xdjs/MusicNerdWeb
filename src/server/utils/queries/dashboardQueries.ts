@@ -28,20 +28,111 @@ export async function getApprovedClaimByUserId(userId: string) {
     }
 }
 
-export async function createClaim(userId: string, artistId: string) {
+export async function createClaim(userId: string, artistId: string, referenceCode: string) {
     try {
         const [claim] = await db
             .insert(artistClaims)
             .values({
                 userId,
                 artistId,
-                status: "approved", // auto-approve for prototype
+                status: "pending",
+                referenceCode,
             })
             .returning();
         return claim;
     } catch (e) {
         console.error("[createClaim] Error:", e);
         throw e;
+    }
+}
+
+export async function getPendingClaims() {
+    try {
+        return await db.query.artistClaims.findMany({
+            where: eq(artistClaims.status, "pending"),
+            with: { user: true, artist: true },
+            orderBy: (claims, { desc }) => [desc(claims.createdAt)],
+        });
+    } catch (e) {
+        console.error("[getPendingClaims] Error:", e);
+        return [];
+    }
+}
+
+export async function approveClaim(claimId: string) {
+    try {
+        const [updated] = await db
+            .update(artistClaims)
+            .set({
+                status: "approved",
+                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
+            })
+            .where(eq(artistClaims.id, claimId))
+            .returning();
+        return updated;
+    } catch (e) {
+        console.error("[approveClaim] Error:", e);
+        throw e;
+    }
+}
+
+export async function rejectClaim(claimId: string) {
+    try {
+        const [updated] = await db
+            .update(artistClaims)
+            .set({
+                status: "rejected",
+                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
+            })
+            .where(eq(artistClaims.id, claimId))
+            .returning();
+        return updated;
+    } catch (e) {
+        console.error("[rejectClaim] Error:", e);
+        throw e;
+    }
+}
+
+export async function deleteClaim(claimId: string) {
+    try {
+        const [deleted] = await db
+            .delete(artistClaims)
+            .where(eq(artistClaims.id, claimId))
+            .returning();
+        return deleted;
+    } catch (e) {
+        console.error("[deleteClaim] Error:", e);
+        throw e;
+    }
+}
+
+export async function getApprovedClaimForArtistByUserId(userId: string, artistId: string) {
+    try {
+        return await db.query.artistClaims.findFirst({
+            where: and(
+                eq(artistClaims.userId, userId),
+                eq(artistClaims.artistId, artistId),
+                eq(artistClaims.status, "approved"),
+            ),
+        });
+    } catch (e) {
+        console.error("[getApprovedClaimForArtistByUserId] Error:", e);
+        return undefined;
+    }
+}
+
+export async function getPendingClaimByUserId(userId: string) {
+    try {
+        return await db.query.artistClaims.findFirst({
+            where: and(
+                eq(artistClaims.userId, userId),
+                eq(artistClaims.status, "pending"),
+            ),
+            with: { artist: true },
+        });
+    } catch (e) {
+        console.error("[getPendingClaimByUserId] Error:", e);
+        return undefined;
     }
 }
 

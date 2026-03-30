@@ -55,6 +55,10 @@ jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArti
 jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButton() { return null; });
 jest.mock('@/app/artist/[id]/_components/PressAndFeatures', () => function PressAndFeatures() { return null; });
 jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return null; });
+jest.mock('@/server/utils/queries/userQueries', () => ({
+    getUserById: jest.fn().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false }),
+    getAllUsers: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getClaimByArtistId: jest.fn().mockResolvedValue(null),
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
@@ -143,7 +147,9 @@ describe('Protected routes', () => {
             expect(mockRedirect).not.toHaveBeenCalled();
         });
 
-        it('shows edit controls only when authenticated', async () => {
+        it('shows edit controls only when admin', async () => {
+            const { getUserById } = await import('@/server/utils/queries/userQueries');
+            (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: true, isWhiteListed: true });
             (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
             const jsx = await ArtistProfile({ params: Promise.resolve({ id: 'artist-uuid' }) });
             render(jsx as React.ReactElement);

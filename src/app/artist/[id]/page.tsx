@@ -6,6 +6,7 @@ import ClaimButton from "./_components/ClaimButton";
 import { getArtistDetailsText } from "@/server/utils/services";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
+import { getUserById } from "@/server/utils/queries/userQueries";
 import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
@@ -72,7 +73,8 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const { id } = await params;
     const session = await getServerAuthSession() ?? await getDevSession();
-    const canEdit = !!session;
+    const dbUser = session ? await getUserById(session.user.id) : null;
+    const isAdmin = !!dbUser?.isAdmin;
 
     const artist = await getArtistById(id);
     if (!artist) {
@@ -89,7 +91,10 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     ]);
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
+    const isPending = !!existingClaim && existingClaim.status === "pending";
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
+    const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
+    const canEdit = isClaimedByUser || isAdmin;
 
     const imageUrl = artist.customImage || spotifyImg.artistImage || "/default_pfp_pink.png";
 
@@ -115,6 +120,9 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                             artistId={artist.id}
                             isClaimed={isClaimed}
                             isClaimedByUser={isClaimedByUser}
+                            isPending={isPending}
+                            isPendingByUser={isPendingByUser}
+                            artistInstagram={artist.instagram}
                         />
                         {session && (
                             <BookmarkButton
@@ -154,9 +162,10 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                             spotifyImg={spotifyImg.artistImage ?? ""}
                             availableLinks={urlMapList}
                             isOpenOnLoad={false}
+                            directEdit={canEdit}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} />
+                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
 
                 {/* 6. Support the Artist (icon grid) */}
@@ -168,9 +177,10 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                             spotifyImg={spotifyImg.artistImage ?? ""}
                             availableLinks={urlMapList}
                             isOpenOnLoad={false}
+                            directEdit={canEdit}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} />
+                    <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
 
                 {/* 7. Press & Features (vault sources) */}

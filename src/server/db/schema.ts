@@ -2,7 +2,7 @@ import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, jsonb, numer
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
-export const claimStatus = pgEnum("claim_status", ['pending', 'approved'])
+export const claimStatus = pgEnum("claim_status", ['pending', 'approved', 'rejected'])
 export const sourceStatus = pgEnum("source_status", ['pending', 'approved', 'rejected'])
 
 
@@ -327,6 +327,7 @@ export const artistClaims = pgTable("artist_claims", {
 	userId: uuid("user_id").notNull(),
 	artistId: uuid("artist_id").notNull(),
 	status: claimStatus().default('pending').notNull(),
+	referenceCode: text("reference_code"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [

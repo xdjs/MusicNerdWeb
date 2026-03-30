@@ -46,6 +46,9 @@ jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArti
 jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButton() { return <div data-testid="claim-button" />; });
 jest.mock('@/app/artist/[id]/_components/PressAndFeatures', () => function PressAndFeatures() { return <div data-testid="press-features" />; });
 jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return <div data-testid="ask-about-artist" />; });
+jest.mock('@/server/utils/queries/userQueries', () => ({
+    getUserById: jest.fn().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false }),
+}));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getClaimByArtistId: jest.fn().mockResolvedValue(null),
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
@@ -144,7 +147,9 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('bookmark-button')).toBeInTheDocument();
         });
 
-        it('renders edit mode toggle when authenticated', async () => {
+        it('renders edit mode toggle when admin', async () => {
+            const { getUserById } = await import('@/server/utils/queries/userQueries');
+            (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: true, isWhiteListed: true });
             await renderArtistPage();
             expect(screen.getByTestId('edit-mode-toggle')).toBeInTheDocument();
         });

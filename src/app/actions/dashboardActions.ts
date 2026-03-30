@@ -13,35 +13,44 @@ import {
     insertVaultSource,
     deleteVaultSource,
     deleteVaultSources,
+    deleteClaim,
 } from "@/server/utils/queries/dashboardQueries";
 import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 import { fetchPageContent } from "@/server/utils/fetchPageContent";
 import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
+import { generateReferenceCode } from "@/lib/referenceCode";
+import { sendDiscordMessage } from "@/server/utils/queries/discord";
 
 // Best-effort debounce for bio regen (same serverless caveat as rate limiting)
 const bioRegenTimestamps = new Map<string, number>();
 const BIO_REGEN_DEBOUNCE_MS = 30_000;
 
-export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean }> {
+export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean; referenceCode?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
 
     try {
         const existing = await getClaimByArtistId(artistId);
         if (existing) {
-            return { success: false, alreadyClaimed: true, error: "This artist profile has already been claimed" };
+            // Allow re-claim if previously rejected (delete old claim first due to UNIQUE constraint)
+            if (existing.status === "rejected") {
+                await deleteClaim(existing.id);
+            } else {
+                return { success: false, alreadyClaimed: true, error: "This artist profile has already been claimed" };
+            }
         }
 
-        await createClaim(session.user.id, artistId);
+        const referenceCode = generateReferenceCode();
+        await createClaim(session.user.id, artistId, referenceCode);
 
-        // Fire web search in background to populate pending vault sources
-        searchAndPopulateVault(artistId).catch(e =>
-            console.error("[claimArtistProfile] Background web search failed:", e)
-        );
+        // Notify admins via Discord
+        sendDiscordMessage(
+            `New claim request: ${referenceCode} | Artist ID: ${artistId} | User: ${session.user.email ?? session.user.id}`
+        ).catch(e => console.error("[claimArtistProfile] Discord notify failed:", e));
 
-        return { success: true };
+        return { success: true, referenceCode };
     } catch (error) {
         console.error("[claimArtistProfile] Error:", error);
         return { success: false, error: "Failed to claim artist profile" };

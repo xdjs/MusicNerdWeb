@@ -22,6 +22,33 @@ interface WebSearchResult {
     type: string;
 }
 
+/**
+ * Resolve vertexaisearch redirect URLs to their actual destination.
+ * Gemini with Google Search grounding sometimes returns URLs like:
+ * https://vertexaisearch.cloud.google.com/grounding-api-redirect/...
+ * This follows the redirect chain to get the real URL.
+ */
+async function resolveRedirectUrl(url: string): Promise<string> {
+    if (!url.includes("vertexaisearch.cloud.google.com")) return url;
+    try {
+        // Follow the full redirect chain — vertexaisearch requires GET
+        const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(5000) });
+        // The final URL after all redirects is the real destination
+        if (res.url && !res.url.includes("vertexaisearch.cloud.google.com")) {
+            return res.url;
+        }
+        // Fallback: check Location header from a manual redirect
+        const manualRes = await fetch(url, { method: "GET", redirect: "manual" });
+        const location = manualRes.headers.get("location");
+        if (location && !location.includes("vertexaisearch.cloud.google.com")) {
+            return location;
+        }
+    } catch {
+        // If redirect resolution fails, return original
+    }
+    return url;
+}
+
 /** Normalize a URL for dedup comparison: lowercase, strip protocol/www/trailing slash */
 function normalizeUrl(raw: string): string {
     try {
@@ -122,6 +149,9 @@ If you cannot find any results specifically about this artist, return an empty a
         let skipped = 0;
         for (const result of results) {
             if (!result.url || !result.title) continue;
+
+            // Resolve vertexaisearch redirect URLs to actual destinations
+            result.url = await resolveRedirectUrl(result.url);
 
             const normalized = normalizeUrl(result.url);
             if (existingUrls.has(normalized)) {
