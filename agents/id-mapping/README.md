@@ -245,9 +245,9 @@ MODEL=haiku \
 PROMPT_FILE=agents/id-mapping/prompt-phase2.md \
 ./agents/id-mapping/run-full-catalog.sh
 
-# Two parallel workers
-MODEL=haiku \
-PROMPT_FILE=agents/id-mapping/prompt-phase2.md \
+# Two parallel workers (add MODEL and PROMPT_FILE to ~/.env.mapping first)
+# echo 'MODEL=haiku' >> ~/.env.mapping
+# echo 'PROMPT_FILE=agents/id-mapping/prompt-phase2.md' >> ~/.env.mapping
 ./agents/id-mapping/start-workers.sh ~/.env.mapping -n 2
 ```
 

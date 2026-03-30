@@ -22,7 +22,7 @@ Do NOT use `Bash` or `curl`. Use `WebSearch` and `WebFetch` for all HTTP operati
 Every session follows this exact sequence:
 
 1. **Check current state** — Call `get_mapping_stats` to understand overall coverage.
-2. **Get work batch** — Call `get_unmapped_artists("deezer", limit=BATCH_SIZE)` to get artists that need Deezer IDs.
+2. **Get work batch** — Call `get_unmapped_artists("deezer", limit=30)` to get artists that need Deezer IDs.
 3. **Resolve each artist** — For each artist in the batch, print a progress line and attempt resolution through the tiers in order.
 
    **Progress output:** Before starting each artist, print a single line:
