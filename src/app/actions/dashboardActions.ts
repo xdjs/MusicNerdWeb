@@ -7,6 +7,7 @@ import {
     getClaimByArtistId,
     getApprovedClaimByUserId,
     getVaultSourcesByArtistId,
+    getVaultSourceByIdAndArtist,
     updateVaultSourceStatus,
     updateVaultSourceType,
     seedMockVaultSources,
@@ -89,14 +90,13 @@ export async function getArtistDashboardData() {
     }
 }
 
-/** Verify a source belongs to the user's claimed artist */
+/** Verify a source belongs to the user's claimed artist (single query, O(1)) */
 async function verifySourceOwnership(userId: string, sourceId: string) {
     const claim = await getApprovedClaimByUserId(userId);
     if (!claim) return { authorized: false as const, error: "No claimed artist profile" };
 
-    const sources = await getVaultSourcesByArtistId(claim.artistId);
-    const sourceExists = sources.some(s => s.id === sourceId);
-    if (!sourceExists) return { authorized: false as const, error: "Source does not belong to your artist" };
+    const source = await getVaultSourceByIdAndArtist(sourceId, claim.artistId);
+    if (!source) return { authorized: false as const, error: "Source does not belong to your artist" };
 
     return { authorized: true as const, claim };
 }

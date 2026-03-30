@@ -5,8 +5,13 @@ const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function generateReferenceCode(): string {
     const bytes = randomBytes(4);
+    // Rejection sampling to eliminate modulo bias
     const code = Array.from(bytes)
-        .map(b => CHARS[b % CHARS.length])
+        .map(b => {
+            const limit = 256 - (256 % CHARS.length); // 256 - (256 % 28) = 252
+            if (b >= limit) return CHARS[randomBytes(1)[0] % CHARS.length]; // re-roll
+            return CHARS[b % CHARS.length];
+        })
         .join("");
     return `MN-${code}`;
 }
