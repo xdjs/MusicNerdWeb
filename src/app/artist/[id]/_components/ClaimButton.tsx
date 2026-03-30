@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { ShieldCheck, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export default function ClaimButton({
     isPendingByUser = false,
     artistInstagram,
 }: ClaimButtonProps) {
+    const { data: session } = useSession();
     const [modalOpen, setModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [referenceCode, setReferenceCode] = useState<string | null>(null);
@@ -105,7 +107,15 @@ export default function ClaimButton({
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setModalOpen(true)}
+                onClick={() => {
+                    if (!session) {
+                        // Trigger login via the nav login button
+                        const loginBtn = document.getElementById('login-btn');
+                        if (loginBtn) loginBtn.click();
+                        return;
+                    }
+                    setModalOpen(true);
+                }}
                 className={cn(
                     "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200",
                     "bg-white text-pastypink border border-pastypink/50 hover:bg-pastypink hover:text-white"

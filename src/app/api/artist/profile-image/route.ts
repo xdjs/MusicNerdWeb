@@ -50,7 +50,8 @@ export async function POST(req: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : `.${file.type.split("/")[1]}`;
+        const extByMime: Record<string, string> = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" };
+        const ext = extByMime[file.type] ?? ".bin";
         const storagePath = `profile-images/${artistId}_${Date.now()}${ext}`;
 
         // Upload to Supabase Storage

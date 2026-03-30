@@ -189,7 +189,10 @@ export default function DashboardLinksSection({
 
     return (
         <div className="glass p-5 space-y-5">
-            <h3 className="text-lg font-bold text-foreground">Manage Links</h3>
+            <div>
+                <h3 className="text-lg font-bold text-foreground">Manage Links</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Links are automatically sorted into Social or Support based on platform type.</p>
+            </div>
 
             {/* Social Links */}
             <div className="space-y-2">

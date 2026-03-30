@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // low-traffic site. For stronger guarantees, swap to @upstash/ratelimit + @upstash/redis.
 
 const STRICT_PATHS = ['/api/funFacts', '/api/artistBio', '/api/askArtist'];
-const MEDIUM_PATHS = ['/api/validateLink'];
+const MEDIUM_PATHS = ['/api/validateLink', '/api/directEditLink'];
 
 type Tier = 'strict' | 'medium' | 'default';
 

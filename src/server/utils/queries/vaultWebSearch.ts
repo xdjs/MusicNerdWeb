@@ -2,7 +2,7 @@ import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { insertVaultSource, getVaultSourcesByArtistId, updateVaultSourceContent } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
 import { SOURCE_TYPES, type SourceType } from "@/lib/sourceTypes";
-import { fetchPageContent } from "@/server/utils/fetchPageContent";
+import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 
 const TYPE_ALIASES: Record<string, SourceType> = {
     news: "article",
@@ -34,13 +34,13 @@ async function resolveRedirectUrl(url: string): Promise<string> {
         // Follow the full redirect chain — vertexaisearch requires GET
         const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(5000) });
         // The final URL after all redirects is the real destination
-        if (res.url && !res.url.includes("vertexaisearch.cloud.google.com")) {
+        if (res.url && !res.url.includes("vertexaisearch.cloud.google.com") && !isUnsafeUrl(res.url)) {
             return res.url;
         }
         // Fallback: check Location header from a manual redirect
         const manualRes = await fetch(url, { method: "GET", redirect: "manual" });
         const location = manualRes.headers.get("location");
-        if (location && !location.includes("vertexaisearch.cloud.google.com")) {
+        if (location && !location.includes("vertexaisearch.cloud.google.com") && !isUnsafeUrl(location)) {
             return location;
         }
     } catch {

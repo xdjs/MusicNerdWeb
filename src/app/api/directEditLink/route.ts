@@ -55,6 +55,8 @@ export async function POST(req: Request) {
             await clearArtistLink(artistId, siteName);
             return Response.json({ success: true });
         }
+
+        return Response.json({ error: "Invalid action" }, { status: 400 });
     } catch (error) {
         console.error("[directEditLink] Error:", error);
         return Response.json({ error: "Internal server error" }, { status: 500 });

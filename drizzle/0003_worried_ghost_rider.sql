@@ -1,4 +1,4 @@
-CREATE TYPE "public"."claim_status" AS ENUM('pending', 'approved');--> statement-breakpoint
+CREATE TYPE "public"."claim_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."source_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TABLE "artist_claims" (
 	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,

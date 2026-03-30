@@ -25,7 +25,7 @@ function decodeEntities(str: string): string {
 }
 
 /** Block SSRF: reject internal/private network URLs */
-function isUnsafeUrl(url: string): boolean {
+export function isUnsafeUrl(url: string): boolean {
     try {
         const parsed = new URL(url);
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
