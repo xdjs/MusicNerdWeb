@@ -18,8 +18,13 @@ trap 'rm -f "$CONFIG_FILE"' EXIT
 export MCP_API_KEY MCP_URL
 envsubst < "$SCRIPT_DIR/mcp-config.json" > "$CONFIG_FILE"
 
-# Read the system prompt from file
-SYSTEM_PROMPT="$(cat "$SCRIPT_DIR/prompt.md")"
+# Read the system prompt from file (PROMPT_FILE env var overrides default)
+PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/prompt.md}"
+if [[ ! -f "$PROMPT_FILE" ]]; then
+  echo "Error: PROMPT_FILE not found: $PROMPT_FILE" >&2
+  exit 1
+fi
+SYSTEM_PROMPT="$(cat "$PROMPT_FILE")"
 
 # Build claude CLI args — always use stream-json for real-time output
 CLAUDE_ARGS=(
