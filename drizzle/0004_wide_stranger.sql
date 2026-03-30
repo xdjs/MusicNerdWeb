@@ -1,0 +1,1 @@
+ALTER POLICY "mnweb_update_mcp_api_keys" ON "mcp_api_keys" TO mnweb USING (true);
