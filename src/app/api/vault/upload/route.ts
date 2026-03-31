@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
-import { getApprovedClaimByUserId } from "@/server/utils/queries/dashboardQueries";
-import { insertVaultSource } from "@/server/utils/queries/dashboardQueries";
+import { getApprovedClaimByUserId, insertVaultSource } from "@/server/utils/queries/dashboardQueries";
 import { supabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
+import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,14 @@ const ALLOWED_TYPES = [
     "audio/mpeg",
     "audio/wav",
 ];
+
+const MIME_EXT_MAP: Record<string, string> = {
+    "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md",
+    "text/csv": ".csv", "application/json": ".json", "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
+    "audio/mpeg": ".mp3", "audio/wav": ".wav",
+};
 
 export async function POST(req: Request) {
     const session = await getServerAuthSession() ?? await getDevSession();
@@ -62,8 +70,16 @@ export async function POST(req: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Generate storage path
-        const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+        // Validate magic bytes for binary formats to prevent MIME type spoofing
+        if (!validateMagicBytes(buffer, file.type)) {
+            return NextResponse.json(
+                { error: "File content does not match declared type" },
+                { status: 400 }
+            );
+        }
+
+        // All ALLOWED_TYPES have entries in MIME_EXT_MAP; fallback is safety-net only
+        const ext = MIME_EXT_MAP[file.type] ?? "";
         const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
         const storagePath = `${artistId}/${Date.now()}_${baseName}${ext}`;
 

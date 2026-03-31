@@ -40,4 +40,31 @@ describe("isUnsafeUrl", () => {
         expect(isUnsafeUrl("http://172.15.0.1/ok")).toBe(false);
         expect(isUnsafeUrl("http://172.32.0.1/ok")).toBe(false);
     });
+
+    it("blocks IPv6 unique local (fc00::/7)", () => {
+        expect(isUnsafeUrl("http://[fc00::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[fd12::1]/internal")).toBe(true);
+    });
+
+    it("blocks full IPv6 link-local range (fe80::/10 = fe80::–febf::)", () => {
+        expect(isUnsafeUrl("http://[fe80::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[fe81::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[febf::1]/internal")).toBe(true);
+    });
+
+    it("blocks deprecated IPv6 site-local (fec0::/10)", () => {
+        expect(isUnsafeUrl("http://[fec0::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[feff::1]/internal")).toBe(true);
+    });
+
+    it("blocks IPv4-mapped IPv6 addresses (::ffff:x.x.x.x)", () => {
+        expect(isUnsafeUrl("http://[::ffff:127.0.0.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:10.0.0.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:192.168.1.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:169.254.169.254]/")).toBe(true);
+    });
+
+    it("allows IPv4-mapped IPv6 with public IPs", () => {
+        expect(isUnsafeUrl("http://[::ffff:8.8.8.8]/")).toBe(false);
+    });
 });

@@ -1,6 +1,27 @@
 import { GoogleGenAI } from "@google/genai";
 import { GEMINI_API_KEY } from "@/env";
 
-export const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+let _gemini: GoogleGenAI | null = null;
+
+/** Lazily initialized so builds don't crash when GEMINI_API_KEY is missing */
+export function getGemini(): GoogleGenAI {
+    if (!_gemini) {
+        if (!GEMINI_API_KEY) {
+            throw new Error("GEMINI_API_KEY must be set");
+        }
+        _gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    }
+    return _gemini;
+}
+
+/** @deprecated Use getGemini() instead — kept for existing imports */
+export const gemini = new Proxy({} as GoogleGenAI, {
+    get(_, prop) {
+        const instance = getGemini();
+        const val = (instance as unknown as Record<string | symbol, unknown>)[prop];
+        return typeof val === "function" ? (val as Function).bind(instance) : val;
+    },
+});
+
 export const GEMINI_MODEL_PRO = "gemini-2.5-pro";
 export const GEMINI_MODEL_FLASH = "gemini-2.5-flash";
