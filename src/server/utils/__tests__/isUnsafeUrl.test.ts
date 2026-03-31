@@ -41,9 +41,18 @@ describe("isUnsafeUrl", () => {
         expect(isUnsafeUrl("http://172.32.0.1/ok")).toBe(false);
     });
 
-    it("blocks IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)", () => {
+    it("blocks IPv6 unique local (fc00::/7)", () => {
         expect(isUnsafeUrl("http://[fc00::1]/internal")).toBe(true);
         expect(isUnsafeUrl("http://[fd12::1]/internal")).toBe(true);
+    });
+
+    it("blocks full IPv6 link-local range (fe80::/10 = fe80::–febf::)", () => {
         expect(isUnsafeUrl("http://[fe80::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[fe81::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[febf::1]/internal")).toBe(true);
+    });
+
+    it("allows IPv6 addresses outside link-local range", () => {
+        expect(isUnsafeUrl("http://[fec0::1]/ok")).toBe(false);
     });
 });

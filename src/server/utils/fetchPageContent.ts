@@ -33,7 +33,12 @@ export function isUnsafeUrl(url: string): boolean {
         if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "[::1]") return true;
         // Block IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)
         const bare = host.replace(/^\[|\]$/g, "").toLowerCase();
-        if (bare.startsWith("fc") || bare.startsWith("fd") || bare.startsWith("fe80")) return true;
+        if (bare.startsWith("fc") || bare.startsWith("fd")) return true;
+        // fe80::/10 spans fe80::–febf:: (first 10 bits = 1111 1110 10)
+        if (bare.startsWith("fe")) {
+            const nibbles = parseInt(bare.slice(2, 4), 16);
+            if (!isNaN(nibbles) && nibbles >= 0x80 && nibbles <= 0xbf) return true;
+        }
         // Block private/link-local IPv4 ranges
         const parts = host.split(".");
         if (parts[0] === "10") return true;
