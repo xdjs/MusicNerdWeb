@@ -84,7 +84,7 @@ describe("artistBioQuery", () => {
   });
 
   it("calls Gemini with constructed prompt and returns bio", async () => {
-    const { generateArtistBio, getArtistById, gemini } = await setup();
+    const { generateArtistBio, getArtistById } = await setup();
 
     getArtistById.mockResolvedValue({
       id: "artist-1",
@@ -136,7 +136,7 @@ describe("artistBioQuery", () => {
   });
 
   it("returns error on Gemini failure", async () => {
-    const { generateArtistBio, getArtistById, gemini } = await setup();
+    const { generateArtistBio, getArtistById } = await setup();
 
     getArtistById.mockResolvedValue({
       id: "artist-1",
@@ -166,7 +166,7 @@ describe("artistBioQuery", () => {
   });
 
   it("includes YouTube with @ prefix stripped in prompt", async () => {
-    const { generateArtistBio, getArtistById, gemini } = await setup();
+    const { generateArtistBio, getArtistById } = await setup();
 
     getArtistById.mockResolvedValue({
       id: "artist-1",
@@ -188,7 +188,7 @@ describe("artistBioQuery", () => {
   });
 
   it("includes prompt parts in correct order", async () => {
-    const { generateArtistBio, getArtistById, gemini } = await setup();
+    const { generateArtistBio, getArtistById } = await setup();
 
     getArtistById.mockResolvedValue({
       id: "artist-1",
