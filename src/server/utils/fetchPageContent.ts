@@ -32,7 +32,7 @@ export function isUnsafeUrl(url: string): boolean {
         const host = parsed.hostname.toLowerCase();
         if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "[::1]") return true;
         // Block IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)
-        const bare = host.replace(/^\[|\]$/g, "").toLowerCase();
+        const bare = host.replace(/^\[|\]$/g, ""); // host is already lowercased
         if (bare.startsWith("fc") || bare.startsWith("fd")) return true;
         // fe80::/10 spans fe80::–febf:: (first 10 bits = 1111 1110 10)
         if (bare.startsWith("fe")) {

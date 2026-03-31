@@ -1,11 +1,10 @@
-CREATE TYPE "public"."claim_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
+CREATE TYPE "public"."claim_status" AS ENUM('pending', 'approved');--> statement-breakpoint
 CREATE TYPE "public"."source_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TABLE "artist_claims" (
 	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"artist_id" uuid NOT NULL,
 	"status" "claim_status" DEFAULT 'pending' NOT NULL,
-	"reference_code" text,
 	"created_at" timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text) NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT (now() AT TIME ZONE 'utc'::text) NOT NULL,
 	CONSTRAINT "artist_claims_artist_id_key" UNIQUE("artist_id")

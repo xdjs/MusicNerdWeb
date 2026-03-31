@@ -40,6 +40,8 @@ export function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
     }
 
     // Text-based formats (text/plain, text/markdown, text/csv, application/json)
-    // have no reliable magic bytes — skip validation
+    // have no reliable magic bytes — skip validation.
+    // WARNING: If a new binary MIME type is added to ALLOWED_TYPES, add its
+    // signature here too — otherwise magic byte validation is silently skipped.
     return true;
 }
