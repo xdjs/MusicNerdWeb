@@ -3,6 +3,7 @@ import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getApprovedClaimByUserId, insertVaultSource } from "@/server/utils/queries/dashboardQueries";
 import { supabaseAdmin, VAULT_BUCKET } from "@/server/lib/supabase";
+import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 
 export const dynamic = "force-dynamic";
 
@@ -62,51 +63,11 @@ export async function POST(req: Request) {
         const buffer = Buffer.from(bytes);
 
         // Validate magic bytes for binary formats to prevent MIME type spoofing
-        const magicSignatures: Record<string, number[]> = {
-            "application/pdf": [0x25, 0x50, 0x44, 0x46],         // %PDF
-            "image/png": [0x89, 0x50, 0x4E, 0x47],               // .PNG
-            "image/jpeg": [0xFF, 0xD8, 0xFF],                     // JFIF
-        };
-        // RIFF-based formats need subtype check at bytes 8-11
-        const riffSubtypes: Record<string, number[]> = {
-            "image/webp": [0x57, 0x45, 0x42, 0x50],              // WEBP
-            "audio/wav":  [0x57, 0x41, 0x56, 0x45],              // WAVE
-        };
-        // MP3: ID3v2 tag (0x49 0x44 0x33) or raw sync word (0xFF 0xFB/FA/F3/F2)
-        const mp3Signatures = [[0x49, 0x44, 0x33], [0xFF, 0xFB], [0xFF, 0xFA], [0xFF, 0xF3], [0xFF, 0xF2]];
-
-        const headerBytes = Array.from(new Uint8Array(buffer.slice(0, 12)));
-
-        const expected = magicSignatures[file.type];
-        if (expected) {
-            if (!expected.every((b, i) => headerBytes[i] === b)) {
-                return NextResponse.json(
-                    { error: "File content does not match declared type" },
-                    { status: 400 }
-                );
-            }
-        }
-
-        const riffSubtype = riffSubtypes[file.type];
-        if (riffSubtype) {
-            const isRiff = [0x52, 0x49, 0x46, 0x46].every((b, i) => headerBytes[i] === b);
-            const subtypeBytes = headerBytes.slice(8, 12);
-            if (!isRiff || !riffSubtype.every((b, i) => subtypeBytes[i] === b)) {
-                return NextResponse.json(
-                    { error: "File content does not match declared type" },
-                    { status: 400 }
-                );
-            }
-        }
-
-        if (file.type === "audio/mpeg") {
-            const matches = mp3Signatures.some(sig => sig.every((b, i) => headerBytes[i] === b));
-            if (!matches) {
-                return NextResponse.json(
-                    { error: "File content does not match declared type" },
-                    { status: 400 }
-                );
-            }
+        if (!validateMagicBytes(buffer, file.type)) {
+            return NextResponse.json(
+                { error: "File content does not match declared type" },
+                { status: 400 }
+            );
         }
 
         // Generate storage path — derive extension from MIME type for binary formats
