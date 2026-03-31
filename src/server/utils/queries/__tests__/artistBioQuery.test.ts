@@ -49,7 +49,6 @@ describe("artistBioQuery", () => {
     const { getArtistById } = await import(
       "@/server/utils/queries/artistQueries"
     );
-    const { getGemini } = await import("@/server/lib/gemini");
     const { getVaultSourcesByArtistId } = await import(
       "@/server/utils/queries/dashboardQueries"
     );

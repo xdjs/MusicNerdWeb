@@ -92,7 +92,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     } as any;
 
     // Import mocked modules
-    const { getGemini } = await import('@/server/lib/gemini');
+
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
 
     // Setup mocks
@@ -135,7 +135,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
       text: 'Bio with vault context'
     } as any;
 
-    const { getGemini } = await import('@/server/lib/gemini');
+
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
     const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
 
