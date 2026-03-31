@@ -14,14 +14,5 @@ export function getGemini(): GoogleGenAI {
     return _gemini;
 }
 
-/** @deprecated Use getGemini() instead — kept for existing imports */
-export const gemini = new Proxy({} as GoogleGenAI, {
-    get(_, prop) {
-        const instance = getGemini();
-        const val = (instance as unknown as Record<string | symbol, unknown>)[prop];
-        return typeof val === "function" ? (val as Function).bind(instance) : val;
-    },
-});
-
 export const GEMINI_MODEL_PRO = "gemini-2.5-pro";
 export const GEMINI_MODEL_FLASH = "gemini-2.5-flash";

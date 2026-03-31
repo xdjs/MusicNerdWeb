@@ -24,11 +24,18 @@ const ALLOWED_TYPES = [
 ];
 
 const MIME_EXT_MAP: Record<string, string> = {
-    "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md",
-    "text/csv": ".csv", "application/json": ".json", "application/msword": ".doc",
+    "application/pdf": ".pdf",
+    "text/plain": ".txt",
+    "text/markdown": ".md",
+    "text/csv": ".csv",
+    "application/json": ".json",
+    "application/msword": ".doc",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
-    "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
-    "audio/mpeg": ".mp3", "audio/wav": ".wav",
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
 };
 
 export async function POST(req: Request) {

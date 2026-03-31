@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { funfacts } from "@/server/db/schema";
 import { db } from "@/server/db/drizzle";
 import { eq } from "drizzle-orm";
@@ -87,7 +87,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       const geminiTimeout = 15000; // 15 seconds
 
       const response = await Promise.race([
-        gemini.models.generateContent({
+        getGemini().models.generateContent({
           model: GEMINI_MODEL_FLASH,
           contents: finalPrompt,
           config: {

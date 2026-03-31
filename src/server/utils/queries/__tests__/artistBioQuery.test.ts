@@ -26,12 +26,13 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
   getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 
+const mockGenerateContent = jest.fn().mockResolvedValue({ text: "mocked gemini response" });
 jest.mock("@/server/lib/gemini", () => ({
-  gemini: {
+  getGemini: jest.fn(() => ({
     models: {
-      generateContent: jest.fn().mockResolvedValue({ text: "mocked gemini response" }),
+      generateContent: mockGenerateContent,
     },
-  },
+  })),
   GEMINI_MODEL_PRO: "gemini-2.5-pro",
   GEMINI_MODEL_FLASH: "gemini-2.5-flash",
 }));
@@ -39,6 +40,8 @@ jest.mock("@/server/lib/gemini", () => ({
 describe("artistBioQuery", () => {
   beforeEach(() => {
     jest.resetModules();
+    mockGenerateContent.mockClear();
+    mockGenerateContent.mockResolvedValue({ text: "mocked gemini response" });
   });
 
   async function setup() {
@@ -46,7 +49,7 @@ describe("artistBioQuery", () => {
     const { getArtistById } = await import(
       "@/server/utils/queries/artistQueries"
     );
-    const { gemini } = await import("@/server/lib/gemini");
+    const { getGemini } = await import("@/server/lib/gemini");
     const { getVaultSourcesByArtistId } = await import(
       "@/server/utils/queries/dashboardQueries"
     );
@@ -64,7 +67,6 @@ describe("artistBioQuery", () => {
     return {
       db,
       getArtistById: getArtistById as jest.Mock,
-      gemini,
       getVaultSourcesByArtistId: getVaultSourcesByArtistId as jest.Mock,
       generateArtistBio,
       regenerateArtistBio,
@@ -103,8 +105,8 @@ describe("artistBioQuery", () => {
     expect(data.bio).toBe("mocked gemini response");
 
     // Verify Gemini was called
-    expect(gemini.models.generateContent).toHaveBeenCalledTimes(1);
-    const callArgs = (gemini.models.generateContent as jest.Mock).mock.calls[0][0];
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
     expect(callArgs.model).toBe("gemini-2.5-pro");
     expect(callArgs.contents).toContain("Test Artist");
     expect(callArgs.contents).toContain("Spotify ID: spotify-123");
@@ -150,7 +152,7 @@ describe("artistBioQuery", () => {
     });
 
     // Override the mock to throw
-    (gemini.models.generateContent as jest.Mock).mockRejectedValueOnce(
+    (mockGenerateContent as jest.Mock).mockRejectedValueOnce(
       new Error("Gemini API error")
     );
 
@@ -181,7 +183,7 @@ describe("artistBioQuery", () => {
 
     await generateArtistBio("artist-1");
 
-    const callArgs = (gemini.models.generateContent as jest.Mock).mock.calls[0][0];
+    const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
     expect(callArgs.contents).toContain("YouTube: https://youtube.com/@TestChannel");
     expect(callArgs.contents).not.toContain("@@");
   });
@@ -203,7 +205,7 @@ describe("artistBioQuery", () => {
 
     await generateArtistBio("artist-1");
 
-    const callArgs = (gemini.models.generateContent as jest.Mock).mock.calls[0][0];
+    const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
     expect(callArgs.contents).toContain("Cool Band");
     expect(callArgs.contents).toContain("SoundCloud: sc-link");
     expect(callArgs.contents).toContain("YouTube Channel: yt-channel-id");
@@ -229,7 +231,7 @@ describe("artistBioQuery", () => {
 
     await generateArtistBio("artist-1");
 
-    const callArgs = (gemini.models.generateContent as jest.Mock).mock.calls[0][0];
+    const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
     expect(callArgs.config.tools).toEqual([{ googleSearch: {} }]);
     expect(callArgs.contents).toContain("VAULT CONTEXT");
   });

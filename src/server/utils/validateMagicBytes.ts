@@ -41,7 +41,11 @@ export function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
 
     // Text-based formats (text/plain, text/markdown, text/csv, application/json)
     // have no reliable magic bytes — skip validation.
-    // WARNING: If a new binary MIME type is added to ALLOWED_TYPES, add its
-    // signature here too — otherwise magic byte validation is silently skipped.
+    const knownTextTypes = new Set(["text/plain", "text/markdown", "text/csv", "application/json"]);
+    if (!knownTextTypes.has(mimeType)) {
+        // WARNING: If a new binary MIME type is added to ALLOWED_TYPES, add its
+        // signature here too — otherwise magic byte validation is silently skipped.
+        console.warn(`[validateMagicBytes] No signature check for "${mimeType}", passing through`);
+    }
     return true;
 }
