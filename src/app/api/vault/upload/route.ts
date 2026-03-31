@@ -117,7 +117,8 @@ export async function POST(req: Request) {
             "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
             "audio/mpeg": ".mp3", "audio/wav": ".wav",
         };
-        const ext = mimeExtMap[file.type] ?? (file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "");
+        // All ALLOWED_TYPES are in mimeExtMap; fallback is safety-net only
+        const ext = mimeExtMap[file.type] ?? "";
         const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
         const storagePath = `${artistId}/${Date.now()}_${baseName}${ext}`;
 

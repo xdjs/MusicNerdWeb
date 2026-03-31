@@ -55,4 +55,15 @@ describe("isUnsafeUrl", () => {
     it("allows IPv6 addresses outside link-local range", () => {
         expect(isUnsafeUrl("http://[fec0::1]/ok")).toBe(false);
     });
+
+    it("blocks IPv4-mapped IPv6 addresses (::ffff:x.x.x.x)", () => {
+        expect(isUnsafeUrl("http://[::ffff:127.0.0.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:10.0.0.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:192.168.1.1]/")).toBe(true);
+        expect(isUnsafeUrl("http://[::ffff:169.254.169.254]/")).toBe(true);
+    });
+
+    it("allows IPv4-mapped IPv6 with public IPs", () => {
+        expect(isUnsafeUrl("http://[::ffff:8.8.8.8]/")).toBe(false);
+    });
 });

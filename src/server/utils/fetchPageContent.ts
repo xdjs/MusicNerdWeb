@@ -39,6 +39,24 @@ export function isUnsafeUrl(url: string): boolean {
             const nibbles = parseInt(bare.slice(2, 4), 16);
             if (!isNaN(nibbles) && nibbles >= 0x80 && nibbles <= 0xbf) return true;
         }
+        // Block IPv4-mapped IPv6 (::ffff:x.x.x.x or ::ffff:HHHH:HHHH hex form)
+        if (bare.startsWith("::ffff:")) {
+            const mapped = bare.slice(7);
+            // Dotted form: ::ffff:127.0.0.1
+            if (mapped.includes(".")) {
+                if (isUnsafeUrl(`http://${mapped}/`)) return true;
+            }
+            // Hex form: ::ffff:7f00:1 — Node's URL parser normalizes to this
+            const hexParts = mapped.split(":");
+            if (hexParts.length === 2) {
+                const hi = parseInt(hexParts[0], 16);
+                const lo = parseInt(hexParts[1], 16);
+                if (!isNaN(hi) && !isNaN(lo)) {
+                    const ipv4 = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+                    if (isUnsafeUrl(`http://${ipv4}/`)) return true;
+                }
+            }
+        }
         // Block private/link-local IPv4 ranges
         const parts = host.split(".");
         if (parts[0] === "10") return true;
