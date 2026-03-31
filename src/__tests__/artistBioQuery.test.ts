@@ -66,6 +66,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     jest.clearAllMocks();
     jest.resetModules();
     mockNextResponseJson.mockClear();
+    mockGenerateContent.mockClear();
   });
 
   afterEach(() => {
@@ -92,7 +93,6 @@ describe('artistBioQuery - Gemini bio generation', () => {
     } as any;
 
     // Import mocked modules
-
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
 
     // Setup mocks
@@ -134,7 +134,6 @@ describe('artistBioQuery - Gemini bio generation', () => {
     const mockGeminiResponse = {
       text: 'Bio with vault context'
     } as any;
-
 
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
     const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
