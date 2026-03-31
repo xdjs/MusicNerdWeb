@@ -31,13 +31,13 @@ export function isUnsafeUrl(url: string): boolean {
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
         const host = parsed.hostname.toLowerCase();
         if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "[::1]") return true;
-        // Block IPv6 private ranges (unique local fc00::/7, link-local fe80::/10)
+        // Block IPv6 private ranges (unique local fc00::/7)
         const bare = host.replace(/^\[|\]$/g, ""); // host is already lowercased
         if (bare.startsWith("fc") || bare.startsWith("fd")) return true;
-        // fe80::/10 spans fe80::–febf:: (first 10 bits = 1111 1110 10)
+        // Block fe80::–feff:: (link-local fe80::/10 + deprecated site-local fec0::/10)
         if (bare.startsWith("fe")) {
             const nibbles = parseInt(bare.slice(2, 4), 16);
-            if (!isNaN(nibbles) && nibbles >= 0x80 && nibbles <= 0xbf) return true;
+            if (!isNaN(nibbles) && nibbles >= 0x80) return true;
         }
         // Block IPv4-mapped IPv6 (::ffff:x.x.x.x or ::ffff:HHHH:HHHH hex form)
         if (bare.startsWith("::ffff:")) {

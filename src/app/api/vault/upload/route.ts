@@ -23,6 +23,14 @@ const ALLOWED_TYPES = [
     "audio/wav",
 ];
 
+const MIME_EXT_MAP: Record<string, string> = {
+    "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md",
+    "text/csv": ".csv", "application/json": ".json", "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
+    "audio/mpeg": ".mp3", "audio/wav": ".wav",
+};
+
 export async function POST(req: Request) {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) {
@@ -70,16 +78,8 @@ export async function POST(req: Request) {
             );
         }
 
-        // Generate storage path — derive extension from MIME type for binary formats
-        const mimeExtMap: Record<string, string> = {
-            "application/pdf": ".pdf", "text/plain": ".txt", "text/markdown": ".md",
-            "text/csv": ".csv", "application/json": ".json", "application/msword": ".doc",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
-            "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
-            "audio/mpeg": ".mp3", "audio/wav": ".wav",
-        };
-        // All ALLOWED_TYPES are in mimeExtMap; fallback is safety-net only
-        const ext = mimeExtMap[file.type] ?? "";
+        // All ALLOWED_TYPES have entries in MIME_EXT_MAP; fallback is safety-net only
+        const ext = MIME_EXT_MAP[file.type] ?? "";
         const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
         const storagePath = `${artistId}/${Date.now()}_${baseName}${ext}`;
 

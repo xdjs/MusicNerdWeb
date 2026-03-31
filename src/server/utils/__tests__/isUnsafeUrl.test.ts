@@ -52,8 +52,9 @@ describe("isUnsafeUrl", () => {
         expect(isUnsafeUrl("http://[febf::1]/internal")).toBe(true);
     });
 
-    it("allows IPv6 addresses outside link-local range", () => {
-        expect(isUnsafeUrl("http://[fec0::1]/ok")).toBe(false);
+    it("blocks deprecated IPv6 site-local (fec0::/10)", () => {
+        expect(isUnsafeUrl("http://[fec0::1]/internal")).toBe(true);
+        expect(isUnsafeUrl("http://[feff::1]/internal")).toBe(true);
     });
 
     it("blocks IPv4-mapped IPv6 addresses (::ffff:x.x.x.x)", () => {
