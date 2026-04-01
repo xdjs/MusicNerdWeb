@@ -31,13 +31,13 @@ echo ""
 
 # Sum resolved across all runs (only top-level logs)
 if [[ $successful_runs -gt 0 ]]; then
-  total_resolved=$(grep -ohE '\*?\*?Resolved\*?\*?:[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
-  total_excluded=$(grep -ohE '\*?\*?Excluded\*?\*?:[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+  total_resolved=$(grep -ohE '\*?\*?Resolved\*?\*?:\*?\*?[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+  total_excluded=$(grep -ohE '\*?\*?Excluded\*?\*?:\*?\*?[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
   total_conflicts=$(grep -ohE 'Conflicts[^:]*:[[:space:]]+[0-9]+' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
   total_name_mismatches=$(grep -oh 'Name mismatches: [0-9]*' "$LOG_DIR"/*-run-*.log 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
   total_ambiguous=$(grep -oh 'Too ambiguous: [0-9]*' "$LOG_DIR"/*-run-*.log 2>/dev/null | awk -F': ' '{s+=$2} END {print s+0}')
-  total_errors=$(grep -ohE '\*?\*?Errors\*?\*?:[[:space:]]+[0-9]+' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
-  total_skipped=$(grep -ohE '\*?\*?Skipped/Unresolved[^:]*\*?\*?:[[:space:]]+[0-9]+' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+$' | awk '{s+=$1} END {print s+0}')
+  total_errors=$(grep -ohE '\*?\*?Errors\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+  total_skipped=$(grep -ohE '\*?\*?Skipped/Unresolved[^:]*\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$LOG_DIR"/*-run-*.log 2>/dev/null | grep -oE '[0-9]+$' | awk '{s+=$1} END {print s+0}')
 
   echo " Total resolved:  $total_resolved"
   echo " Total excluded:  $total_excluded"

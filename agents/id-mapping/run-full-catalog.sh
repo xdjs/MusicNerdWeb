@@ -103,10 +103,10 @@ report_run() {
     local resolved excluded skipped errors
     local high medium conflicts mismatches ambiguous
     # Note: session report uses variable whitespace for alignment, so [[:space:]]+ not literal space
-    resolved=$(grep -ohE '\*?\*?Resolved\*?\*?:[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    excluded=$(grep -ohE '\*?\*?Excluded\*?\*?:[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    skipped=$(grep -ohE '\*?\*?Skipped/Unresolved[^:]*\*?\*?:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
-    errors=$(grep -ohE '\*?\*?Errors\*?\*?:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    resolved=$(grep -ohE '\*?\*?Resolved\*?\*?:\*?\*?[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    excluded=$(grep -ohE '\*?\*?Excluded\*?\*?:\*?\*?[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    skipped=$(grep -ohE '\*?\*?Skipped/Unresolved[^:]*\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
+    errors=$(grep -ohE '\*?\*?Errors\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
     high=$(grep -ohE 'High:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
     medium=$(grep -ohE 'Medium:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
     conflicts=$(grep -ohE 'Conflicts[^:]*:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
