@@ -13,7 +13,7 @@ if [[ ! -d "$LOG_DIR" ]]; then
 fi
 
 total_runs=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f | wc -l | tr -d ' ')
-successful_runs=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f -exec grep -l '=== ID Mapping Session Report ===' {} + 2>/dev/null | wc -l | tr -d ' ')
+successful_runs=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f -exec grep -l 'ID Mapping Session Report' {} + 2>/dev/null | wc -l | tr -d ' ')
 failed_runs=$((total_runs - successful_runs))
 
 # Count active workers (log files with activity in last 10 min)
@@ -54,7 +54,7 @@ if [[ $successful_runs -gt 0 ]]; then
     echo " Avg resolved/run: $rate"
 
     # Try to find remaining count from last successful run
-    last_log=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f -exec grep -l '=== ID Mapping Session Report ===' {} + 2>/dev/null | sort | tail -1)
+    last_log=$(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f -exec grep -l 'ID Mapping Session Report' {} + 2>/dev/null | sort | tail -1)
     if [[ -n "$last_log" ]]; then
       remaining=$(grep -oE 'totalUnmapped.*?[0-9]+' "$last_log" 2>/dev/null | grep -oE '[0-9]+' | tail -1 || true)
       if [[ -n "$remaining" && "$remaining" =~ ^[0-9]+$ && "$remaining" -gt 0 && "$rate" != "?" ]]; then
@@ -74,7 +74,7 @@ if [[ -n "$worker_ids" ]] && [[ $(echo "$worker_ids" | wc -l) -gt 1 ]]; then
   echo "--- Per-Worker Breakdown ---"
   for wid in $worker_ids; do
     w_total=$(find "$LOG_DIR" -maxdepth 1 -name "${wid}-run-*.log" -type f | wc -l | tr -d ' ')
-    w_success=$(grep -l '=== ID Mapping Session Report ===' "$LOG_DIR"/${wid}-run-*.log 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+    w_success=$(grep -l 'ID Mapping Session Report' "$LOG_DIR"/${wid}-run-*.log 2>/dev/null | wc -l | tr -d ' ' || echo 0)
     w_last=$(find "$LOG_DIR" -maxdepth 1 -name "${wid}-run-*.log" -type f | sort | tail -1)
     w_time=""
     if [[ -n "$w_last" ]]; then
@@ -94,8 +94,8 @@ for wid in $(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f | xargs -I{
   if [[ -n "$last_log" ]]; then
     echo "--- Last Run ($wid): $(basename "$last_log") ---"
 
-    if grep -q '=== ID Mapping Session Report ===' "$last_log" 2>/dev/null; then
-      sed -n '/=== ID Mapping Session Report ===/,/===/p' "$last_log" | head -30
+    if grep -q 'ID Mapping Session Report' "$last_log" 2>/dev/null; then
+      sed -n '/ID Mapping Session Report/,/^$/p' "$last_log" | head -30
     else
       echo "(no session report — run may have failed)"
       tail -5 "$last_log"

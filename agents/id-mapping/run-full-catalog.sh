@@ -245,7 +245,7 @@ classify_failure() {
   fi
 
   # No session report (agent started but didn't finish)
-  if [[ $exit_code -eq 0 ]] && ! grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+  if [[ $exit_code -eq 0 ]] && ! grep -q 'ID Mapping Session Report' "$logfile" 2>/dev/null; then
     fail_reason="no session report in output (agent didn't complete workflow)"
     fail_category="transient"
     return
@@ -288,7 +288,7 @@ for i in $(seq 1 "$MAX_ITERATIONS"); do
   # Check for success first — exit 0 + session report = success, skip failure classification
   # This prevents agent output text (e.g. "unauthenticated MCP initialization request failed")
   # from being misclassified as an auth error by the log content patterns.
-  if [[ $exit_code -eq 0 ]] && grep -q '=== ID Mapping Session Report ===' "$logfile" 2>/dev/null; then
+  if [[ $exit_code -eq 0 ]] && grep -q 'ID Mapping Session Report' "$logfile" 2>/dev/null; then
     fail_reason=""
     fail_category=""
     # Success
