@@ -107,11 +107,11 @@ report_run() {
     excluded=$(grep -ohE '\*?\*?Excluded\*?\*?:\*?\*?[[:space:]]+\*?\*?[0-9]+\*?\*?[[:space:]]+total' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
     skipped=$(grep -ohE '\*?\*?Skipped/Unresolved[^:]*\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+$' || echo "0")
     errors=$(grep -ohE '\*?\*?Errors\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    high=$(grep -ohE 'High:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    medium=$(grep -ohE 'Medium:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    conflicts=$(grep -ohE 'Conflicts[^:]*:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    mismatches=$(grep -ohE 'Name mismatches:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
-    ambiguous=$(grep -ohE 'Too ambiguous:[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    high=$(grep -ohE '\*?\*?High\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    medium=$(grep -ohE '\*?\*?Medium\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    conflicts=$(grep -ohE '\*?\*?Conflicts[^:]*\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    mismatches=$(grep -ohE '\*?\*?Name mismatches\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
+    ambiguous=$(grep -ohE '\*?\*?Too ambiguous\*?\*?:\*?\*?[[:space:]]+[0-9]+' "$logfile" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo "0")
 
     payload="$payload,
     \"endedAt\": \"$ended_iso\""

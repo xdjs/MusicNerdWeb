@@ -95,7 +95,7 @@ for wid in $(find "$LOG_DIR" -maxdepth 1 -name '*-run-*.log' -type f | xargs -I{
     echo "--- Last Run ($wid): $(basename "$last_log") ---"
 
     if grep -q 'ID Mapping Session Report' "$last_log" 2>/dev/null; then
-      sed -n '/ID Mapping Session Report/,/^$/p' "$last_log" | head -30
+      grep -A 30 'ID Mapping Session Report' "$last_log" | head -30
     else
       echo "(no session report — run may have failed)"
       tail -5 "$last_log"
