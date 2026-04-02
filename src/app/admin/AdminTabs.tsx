@@ -33,17 +33,17 @@ export default function AdminTabs({
         <TabsTrigger value="claims">
           Claims ({claimsCount})
         </TabsTrigger>
+        <TabsTrigger value="artist-data">Artist Data</TabsTrigger>
         <TabsTrigger value="users">Users</TabsTrigger>
         <TabsTrigger value="mcp-keys">MCP Keys</TabsTrigger>
         <TabsTrigger value="agent-work">Agent Work</TabsTrigger>
-        <TabsTrigger value="artist-data">Artist Data</TabsTrigger>
       </TabsList>
       <TabsContent value="ugc">{ugcContent}</TabsContent>
       <TabsContent value="claims">{claimsContent}</TabsContent>
+      <TabsContent value="artist-data">{artistDataContent}</TabsContent>
       <TabsContent value="users">{usersContent}</TabsContent>
       <TabsContent value="mcp-keys">{mcpKeysContent}</TabsContent>
       <TabsContent value="agent-work">{agentWorkContent}</TabsContent>
-      <TabsContent value="artist-data">{artistDataContent}</TabsContent>
     </Tabs>
   );
 }
