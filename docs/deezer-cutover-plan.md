@@ -298,7 +298,7 @@ Existing tests must stay green throughout. Tests that mock Spotify internals are
 
 **Purpose**: Validate our assumptions about Deezer API response shapes before writing the provider. Hits real Deezer API (requires network). Not part of CI — run on-demand.
 
-**File**: `src/server/utils/musicPlatform/__tests__/deezerApiSmoke.test.ts`
+**File**: `src/server/utils/musicPlatform/__tests__/deezerApiSmoke.smoke.test.ts`
 
 **Test cases** (use known artist, Deezer ID `4738512` = FKJ):
 - `GET /artist/4738512` → response has `id` (number), `name` (string), `picture_xl` (non-empty URL), `nb_fan` (number > 0), `nb_album` (number > 0), `link` (string)
@@ -308,7 +308,7 @@ Existing tests must stay green throughout. Tests that mock Spotify internals are
 - `GET /artist/99999999999` → response has `error` object with `type` and `message` fields (HTTP 200, not 4xx)
 - Verify no auth headers needed (request succeeds with no Authorization header)
 
-**Run with**: `npx jest deezerApiSmoke --testTimeout=30000` (longer timeout for network calls)
+**Run with**: `npx jest --testPathIgnorePatterns='[]' --testPathPatterns=deezerApiSmoke` (excluded from CI via `.smoke.test.ts` pattern in `jest.config.ts`)
 
 **Results**: All 6 tests pass. All assumptions confirmed. Notable: Deezer returns errors as `{ error: { type, message } }` with HTTP 200 (not 4xx status codes). The DeezerProvider must check for `data.error` on every response, not rely on HTTP status.
 

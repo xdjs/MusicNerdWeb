@@ -8,9 +8,11 @@
  * Validates assumptions about Deezer API response shapes before building DeezerProvider.
  * Hits real Deezer API (requires network). Not part of CI — run on-demand:
  *
- *   npx jest deezerApiSmoke --testTimeout=30000
+ *   npx jest --testPathIgnorePatterns='[]' --testPathPatterns=deezerApiSmoke
  */
 import axios from 'axios';
+
+jest.setTimeout(30000);
 
 const DEEZER_BASE = 'https://api.deezer.com';
 const KNOWN_ARTIST_ID = 4738512; // FKJ
