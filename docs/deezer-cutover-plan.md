@@ -80,7 +80,7 @@ export class ArtistMusicPlatformDataProvider {
   /** Search — always uses primary provider (Deezer) */
   async searchArtists(query: string, limit: number): Promise<MusicPlatformArtist[]>
 
-  /** Batch image enrichment — routes each artist to correct provider, fetches in parallel */
+  /** Batch image enrichment — routes each artist to correct provider, fetches in parallel. Map keyed by artist.id (UUID). */
   async getArtistImages(artists: Artist[]): Promise<Map<string, string>>
 
   /** Which platform would provide data for this artist */
@@ -161,8 +161,10 @@ CREATE UNIQUE INDEX artists_deezer_uniq ON artists (deezer) WHERE deezer IS NOT 
 
 UPDATE artists a SET deezer = m.platform_id
 FROM artist_id_mappings m
-WHERE m.artist_id = a.id AND m.platform = 'deezer' AND m.confidence IN ('high', 'manual');
+WHERE m.artist_id = a.id AND m.platform = 'deezer' AND m.confidence IN ('high', 'medium', 'manual');
 ```
+
+**Why include `medium` confidence**: The agent marks many mappings as `medium` (typically name-search matches with strong fan-count correlation). Excluding them would drop coverage well below the 94.4% figure. The risk of a bad `medium` mapping is low — it would show the wrong artist's image, which is correctable via the admin dashboard. The alternative (excluding `medium`) would leave a significant number of artists on the Spotify fallback path indefinitely.
 
 ### Files to create/modify
 
@@ -175,16 +177,17 @@ WHERE m.artist_id = a.id AND m.platform = 'deezer' AND m.confidence IN ('high', 
 | `src/server/utils/musicPlatform/__tests__/deezerProvider.test.ts` | Unit tests |
 | `src/server/utils/musicPlatform/__tests__/artistMusicPlatformDataProvider.test.ts` | Verify fallback routing: Deezer ID → Deezer provider, Spotify only → Spotify provider, neither → null |
 | `src/server/utils/artistLinkService.ts` | Add `"deezer"` to `WRITABLE_LINK_COLUMNS` and `BIO_RELEVANT_COLUMNS` |
+| `urlmap` table (DB) | Add row for Deezer artist URLs so `extractArtistId()` can infer the `deezer` column from `deezer.com/artist/123` URLs. Without this, `set_artist_link` MCP tool won't route Deezer URLs correctly. |
 
 ### DeezerProvider implementation notes
 
 No auth. `axios.get` + `unstable_cache` (24h).
 
 - `getArtist(id)`: `GET https://api.deezer.com/artist/${id}` → maps `{ nb_fan → followerCount, nb_album → albumCount, picture_xl → imageUrl, [] → genres, platform: 'deezer' }`. Plus `GET /artist/${id}/top?limit=1` for `topTrackName`.
-- `getArtistImage(id)`: Same `/artist/${id}`, extract `picture_xl` (fallback `picture_big`).
+- `getArtistImage(id)`: Same `/artist/${id}`, extract `picture_medium` (250×250) for thumbnail contexts (search results, dashboard). `getArtist(id)` returns `picture_xl` (1000×1000) in `imageUrl` for hero/OG image use. Consumer code (`getArtistImage` vs `getArtist`) determines which size is fetched.
 - `getTopTrackName(id)`: `GET https://api.deezer.com/artist/${id}/top?limit=1` → `data[0].title`.
 - `searchArtists(query, limit)`: `GET https://api.deezer.com/search/artist?q=${query}&limit=${limit}` → maps `data[]`. `topTrackName: null` (search doesn't fetch it).
-- `getArtists(ids)`: `Promise.all(ids.map(id => this.getArtist(id)))`.
+- `getArtists(ids)`: `Promise.all` with `p-limit` concurrency cap of 10 to stay within Deezer's ~50 req/5s rate limit. No native batch endpoint.
 - Error handling: Deezer returns `{ error: { type, message, code } }` on failure. Return `null`/`[]`.
 
 ### ArtistMusicPlatformDataProvider implementation notes
@@ -241,11 +244,12 @@ const numReleases = data?.albumCount ?? 0;
 
 | File | Change |
 |------|--------|
-| `src/app/_components/nav/components/SearchBar.tsx` | Update `SearchResult` interface: `isExternalOnly`, `platform`, `platformId`. Render "View on Deezer" link. `handleAddArtist` passes Deezer ID. |
+| `src/app/_components/nav/components/SearchBar.tsx` | Update `SearchResult` interface: rename `isSpotifyOnly` → `isExternalOnly`, add `platform`, `platformId`. Render "View on Deezer" link. `handleAddArtist` passes Deezer ID. |
 | `src/app/_components/nav/components/AddArtist.tsx` | Accept both URL formats. Deezer: `/deezer\.com\/(?:\w+\/)?artist\/(\d+)/`. Spotify: existing regex. Detect format, call appropriate add flow. |
 | `src/app/actions/addArtist.ts` | Accept `{ deezerId?, spotifyId? }`. Validate via provider. Insert with appropriate column. |
 | `src/server/utils/queries/artistQueries.ts` | `addArtist`: support inserting with `deezer` or `spotify` as primary ID. Dedup on both columns. |
 | `src/app/add-artist/page.tsx` | Accept `?deezer=ID` (primary) or `?spotify=ID` (legacy) |
+| `package.json` | Audit `querystring` usage — if only used by Spotify token code, mark for removal in Phase 5 |
 | ~6 test files | Update |
 
 ---
@@ -258,12 +262,13 @@ const numReleases = data?.albumCount ?? 0;
 
 | File | Change |
 |------|--------|
-| `src/server/utils/queries/externalApiQueries.ts` | Remove all Spotify functions. Keep `getArtistWiki` only. |
+| `src/server/utils/queries/externalApiQueries.ts` | Delete entirely. |
+| `src/server/utils/queries/wikiQueries.ts` | **Create** — move `getArtistWiki` here from `externalApiQueries.ts`. Update all imports. |
 | `src/server/utils/musicPlatform/spotifyProvider.ts` | Delete |
 | `src/server/utils/musicPlatform/artistMusicPlatformDataProvider.ts` | Remove fallback paths (only DeezerProvider remains) |
 | `src/env.ts` | Remove `SPOTIFY_WEB_CLIENT_ID`, `SPOTIFY_WEB_CLIENT_SECRET` |
 | `src/app/api/getSpotifyData/route.ts` | Delete |
-| `package.json` | Remove `querystring` (check if still used elsewhere) |
+| `package.json` | Remove `querystring` (audit usage in Phase 4 so Phase 5 is purely mechanical) |
 | `CLAUDE.md` | Update tech stack, env vars, API docs |
 | ~10 test files | Remove Spotify mocks |
 
@@ -271,6 +276,7 @@ const numReleases = data?.albumCount ?? 0;
 - `artists.spotify` column — artist metadata (we know everything about an artist)
 - `artists.spotifyusername` — platform link field
 - `src/app/api/findArtistBySpotifyID/route.ts` — backwards compat
+- `src/app/api/findArtistByDeezerID/route.ts` — **Create** new route mirroring `findArtistBySpotifyID` but querying on `artists.deezer`. External tools/agents will need this since Deezer is now the primary platform.
 - MCP transformer: expose both `spotifyId` and `deezerId`
 
 ---
