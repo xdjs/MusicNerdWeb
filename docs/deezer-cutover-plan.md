@@ -294,21 +294,23 @@ Existing tests must stay green throughout. Tests that mock Spotify internals are
 
 ---
 
-### Deezer API Smoke Test (run once after Phase 1, before building DeezerProvider)
+### Deezer API Smoke Test ✅ (completed 2026-04-02)
 
 **Purpose**: Validate our assumptions about Deezer API response shapes before writing the provider. Hits real Deezer API (requires network). Not part of CI — run on-demand.
 
 **File**: `src/server/utils/musicPlatform/__tests__/deezerApiSmoke.test.ts`
 
-**Test cases** (use known artist, e.g. Deezer ID `4495513` = FKJ):
-- `GET /artist/4495513` → response has `id` (number), `name` (string), `picture_xl` (non-empty URL), `nb_fan` (number > 0), `nb_album` (number > 0), `link` (string)
-- `GET /artist/4495513` → response does NOT have `genres` field (confirming our "no artist genres" assumption)
-- `GET /artist/4495513/top?limit=1` → response has `data[0].title` (string), `data[0].id` (number)
+**Test cases** (use known artist, Deezer ID `4738512` = FKJ):
+- `GET /artist/4738512` → response has `id` (number), `name` (string), `picture_xl` (non-empty URL), `nb_fan` (number > 0), `nb_album` (number > 0), `link` (string)
+- `GET /artist/4738512` → response does NOT have `genres` field (confirming our "no artist genres" assumption)
+- `GET /artist/4738512/top?limit=1` → response has `data[0].title` (string), `data[0].id` (number)
 - `GET /search/artist?q=FKJ&limit=5` → response has `data` (array), each item has `id`, `name`, `picture_xl`, `nb_fan`
-- `GET /artist/99999999999` → response has `error` object (confirming error shape)
+- `GET /artist/99999999999` → response has `error` object with `type` and `message` fields (HTTP 200, not 4xx)
 - Verify no auth headers needed (request succeeds with no Authorization header)
 
 **Run with**: `npx jest deezerApiSmoke --testTimeout=30000` (longer timeout for network calls)
+
+**Results**: All 6 tests pass. All assumptions confirmed. Notable: Deezer returns errors as `{ error: { type, message } }` with HTTP 200 (not 4xx status codes). The DeezerProvider must check for `data.error` on every response, not rely on HTTP status.
 
 ---
 
