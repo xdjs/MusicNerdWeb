@@ -2,7 +2,7 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
-import { approveClaim, rejectClaim, getPendingClaims } from "@/server/utils/queries/dashboardQueries";
+import { approveClaim, rejectClaim, deleteClaim, getAllClaims } from "@/server/utils/queries/dashboardQueries";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 
@@ -14,10 +14,10 @@ async function requireAdminSession() {
     return session;
 }
 
-export async function getAdminPendingClaims() {
+export async function getAdminAllClaims() {
     const session = await requireAdminSession();
     if (!session) return [];
-    return getPendingClaims();
+    return getAllClaims();
 }
 
 export async function approveClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
@@ -28,7 +28,6 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
         const claim = await approveClaim(claimId);
         if (!claim) return { success: false, error: "Claim not found" };
 
-        // Trigger vault population in background
         searchAndPopulateVault(claim.artistId).catch(e =>
             console.error("[approveClaimAction] Background web search failed:", e)
         );
@@ -60,5 +59,24 @@ export async function rejectClaimAction(claimId: string): Promise<{ success: boo
     } catch (error) {
         console.error("[rejectClaimAction] Error:", error);
         return { success: false, error: "Failed to reject claim" };
+    }
+}
+
+export async function revokeClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
+    const session = await requireAdminSession();
+    if (!session) return { success: false, error: "Not authorized" };
+
+    try {
+        const claim = await deleteClaim(claimId);
+        if (!claim) return { success: false, error: "Claim not found" };
+
+        sendDiscordMessage(
+            `Claim REVOKED: ${claim.referenceCode} | Artist ID: ${claim.artistId} | Revoked by: ${session.user.email ?? session.user.id}`
+        ).catch(e => console.error("[revokeClaimAction] Discord notify failed:", e));
+
+        return { success: true };
+    } catch (error) {
+        console.error("[revokeClaimAction] Error:", error);
+        return { success: false, error: "Failed to revoke claim" };
     }
 }

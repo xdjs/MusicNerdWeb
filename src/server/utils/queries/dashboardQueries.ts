@@ -59,6 +59,18 @@ export async function getPendingClaims() {
     }
 }
 
+export async function getAllClaims() {
+    try {
+        return await db.query.artistClaims.findMany({
+            with: { user: true, artist: true },
+            orderBy: (claims, { desc }) => [desc(claims.createdAt)],
+        });
+    } catch (e) {
+        console.error("[getAllClaims] Error:", e);
+        return [];
+    }
+}
+
 export async function approveClaim(claimId: string) {
     try {
         const [updated] = await db
