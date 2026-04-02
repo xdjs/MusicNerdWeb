@@ -1,5 +1,7 @@
+export type MusicPlatform = 'spotify' | 'deezer';
+
 export interface MusicPlatformArtist {
-  platform: 'spotify' | 'deezer';
+  platform: MusicPlatform;
   platformId: string;
   name: string;
   imageUrl: string | null;
@@ -11,7 +13,7 @@ export interface MusicPlatformArtist {
 }
 
 export interface MusicPlatformProvider {
-  readonly platform: 'spotify' | 'deezer';
+  readonly platform: MusicPlatform;
 
   /** Full artist data including top track. */
   getArtist(id: string): Promise<MusicPlatformArtist | null>;

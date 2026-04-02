@@ -39,20 +39,26 @@ export class SpotifyProvider implements MusicPlatformProvider {
 
     async getArtist(id: string): Promise<MusicPlatformArtist | null> {
         const headers = await getSpotifyHeaders();
-        const [artistResponse, albumCount, topTrackName] = await Promise.all([
-            getSpotifyArtist(id, headers),
-            getNumberOfSpotifyReleases(id, headers),
-            getArtistTopTrackName(id, headers),
-        ]);
-
+        const artistResponse = await getSpotifyArtist(id, headers);
         if (artistResponse.error || !artistResponse.data) return null;
+
+        let albumCount = 0;
+        let topTrackName: string | null = null;
+        try {
+            [albumCount, topTrackName] = await Promise.all([
+                getNumberOfSpotifyReleases(id, headers),
+                getArtistTopTrackName(id, headers),
+            ]);
+        } catch (error) {
+            console.error('SpotifyProvider.getArtist enrichment failed:', error);
+        }
 
         return mapSpotifyArtist(artistResponse.data, albumCount, topTrackName);
     }
 
     async getArtistImage(id: string): Promise<string | null> {
         const headers = await getSpotifyHeaders();
-        const result = await getSpotifyImage(id, '', headers);
+        const result = await getSpotifyImage(id, undefined, headers);
         return result.artistImage || null;
     }
 
@@ -61,6 +67,8 @@ export class SpotifyProvider implements MusicPlatformProvider {
         return getArtistTopTrackName(id, headers);
     }
 
+    // Inline axios call: no search function exists in externalApiQueries.ts, and we
+    // don't modify that file in Phase 1. It gets deleted entirely in Phase 5.
     async searchArtists(query: string, limit: number): Promise<MusicPlatformArtist[]> {
         try {
             const headers = await getSpotifyHeaders();
@@ -83,8 +91,8 @@ export class SpotifyProvider implements MusicPlatformProvider {
         const headers = await getSpotifyHeaders();
         const artists = await getSpotifyArtists(ids, headers);
         return artists
-            .filter(Boolean)
-            .map((artist: SpotifyArtist) => mapSpotifyArtist(artist, 0, null));
+            .filter((a): a is SpotifyArtist => a != null)
+            .map((artist) => mapSpotifyArtist(artist, 0, null));
     }
 }
 

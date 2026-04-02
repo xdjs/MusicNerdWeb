@@ -83,11 +83,12 @@ describe('SpotifyProvider', () => {
         it('should return null when getSpotifyArtist returns error', async () => {
             const { provider, getSpotifyArtist, getNumberOfSpotifyReleases, getArtistTopTrackName } = await setup();
             getSpotifyArtist.mockResolvedValue({ data: null, error: 'Invalid Spotify ID' });
-            getNumberOfSpotifyReleases.mockResolvedValue(0);
-            getArtistTopTrackName.mockResolvedValue(null);
 
             const result = await provider.getArtist('bad-id');
             expect(result).toBeNull();
+            // Enrichment calls should not fire for invalid artists
+            expect(getNumberOfSpotifyReleases).not.toHaveBeenCalled();
+            expect(getArtistTopTrackName).not.toHaveBeenCalled();
         });
 
         it('should handle artist with no images', async () => {
@@ -103,23 +104,25 @@ describe('SpotifyProvider', () => {
             expect(result?.imageUrl).toBeNull();
         });
 
-        it('should default albumCount to 0 on failure', async () => {
+        it('should default albumCount to 0 when enrichment rejects', async () => {
             const { provider, getSpotifyArtist, getNumberOfSpotifyReleases, getArtistTopTrackName } = await setup();
             getSpotifyArtist.mockResolvedValue({ data: mockSpotifyArtist, error: null });
-            getNumberOfSpotifyReleases.mockResolvedValue(0);
+            getNumberOfSpotifyReleases.mockRejectedValue(new Error('Spotify rate limit'));
             getArtistTopTrackName.mockResolvedValue('Track');
 
             const result = await provider.getArtist('spotify-123');
             expect(result?.albumCount).toBe(0);
+            expect(result?.topTrackName).toBeNull();
         });
 
-        it('should default topTrackName to null on failure', async () => {
+        it('should default topTrackName to null when enrichment rejects', async () => {
             const { provider, getSpotifyArtist, getNumberOfSpotifyReleases, getArtistTopTrackName } = await setup();
             getSpotifyArtist.mockResolvedValue({ data: mockSpotifyArtist, error: null });
             getNumberOfSpotifyReleases.mockResolvedValue(5);
-            getArtistTopTrackName.mockResolvedValue(null);
+            getArtistTopTrackName.mockRejectedValue(new Error('Spotify error'));
 
             const result = await provider.getArtist('spotify-123');
+            expect(result?.albumCount).toBe(0);
             expect(result?.topTrackName).toBeNull();
         });
     });
