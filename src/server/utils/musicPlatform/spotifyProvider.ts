@@ -42,16 +42,12 @@ export class SpotifyProvider implements MusicPlatformProvider {
         const artistResponse = await getSpotifyArtist(id, headers);
         if (artistResponse.error || !artistResponse.data) return null;
 
-        let albumCount = 0;
-        let topTrackName: string | null = null;
-        try {
-            [albumCount, topTrackName] = await Promise.all([
-                getNumberOfSpotifyReleases(id, headers),
-                getArtistTopTrackName(id, headers),
-            ]);
-        } catch (error) {
-            console.error('SpotifyProvider.getArtist enrichment failed:', error);
-        }
+        const [releasesResult, trackResult] = await Promise.allSettled([
+            getNumberOfSpotifyReleases(id, headers),
+            getArtistTopTrackName(id, headers),
+        ]);
+        const albumCount = releasesResult.status === 'fulfilled' ? releasesResult.value : 0;
+        const topTrackName = trackResult.status === 'fulfilled' ? trackResult.value : null;
 
         return mapSpotifyArtist(artistResponse.data, albumCount, topTrackName);
     }

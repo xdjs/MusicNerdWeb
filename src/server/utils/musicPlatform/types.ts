@@ -5,7 +5,7 @@ export interface MusicPlatformArtist {
   platformId: string;
   name: string;
   imageUrl: string | null;
-  followerCount: number;
+  followerCount: number | null;
   albumCount: number;
   genres: string[];
   profileUrl: string;
