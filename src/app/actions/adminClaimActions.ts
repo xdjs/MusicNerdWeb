@@ -62,6 +62,8 @@ export async function rejectClaimAction(claimId: string): Promise<{ success: boo
     }
 }
 
+/** Hard-deletes the claim row. Intentional — allows the artist to be re-claimed.
+ *  Audit trail is preserved via Discord notification. */
 export async function revokeClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
     const session = await requireAdminSession();
     if (!session) return { success: false, error: "Not authorized" };

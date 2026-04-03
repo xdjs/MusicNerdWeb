@@ -59,11 +59,13 @@ export async function getPendingClaims() {
     }
 }
 
-export async function getAllClaims() {
+// TODO: Add cursor-based pagination when claims exceed ~500 rows
+export async function getAllClaims(limit = 200) {
     try {
         return await db.query.artistClaims.findMany({
             with: { user: true, artist: true },
             orderBy: (claims, { desc }) => [desc(claims.createdAt)],
+            limit,
         });
     } catch (e) {
         console.error("[getAllClaims] Error:", e);

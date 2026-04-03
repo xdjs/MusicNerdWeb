@@ -6,7 +6,6 @@ import {
     flexRender,
     getCoreRowModel,
     useReactTable,
-    getFilteredRowModel,
 } from "@tanstack/react-table";
 import {
     Table,
@@ -97,7 +96,6 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
         data: filteredData,
         columns: allColumns,
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
     });
 
     const handleAction = async (action: () => Promise<{ success: boolean; error?: string }>, claimId: string, label: string) => {
@@ -123,7 +121,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
 
     return (
         <div className="space-y-3">
-            {/* Status filter chips */}
+            {/* Status filter chips — all always visible for consistent layout */}
             <div className="flex flex-wrap gap-2">
                 <button
                     onClick={() => setStatusFilter(null)}
@@ -135,18 +133,16 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 >
                     All ({data.length})
                 </button>
-                {pendingCount > 0 && (
-                    <button
-                        onClick={() => setStatusFilter("pending")}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            statusFilter === "pending"
-                                ? "bg-amber-500 text-white"
-                                : "glass-subtle text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        Pending ({pendingCount})
-                    </button>
-                )}
+                <button
+                    onClick={() => setStatusFilter("pending")}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        statusFilter === "pending"
+                            ? "bg-amber-500 text-white"
+                            : "glass-subtle text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    Pending ({pendingCount})
+                </button>
                 <button
                     onClick={() => setStatusFilter("approved")}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
@@ -157,18 +153,16 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 >
                     Approved ({approvedCount})
                 </button>
-                {rejectedCount > 0 && (
-                    <button
-                        onClick={() => setStatusFilter("rejected")}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            statusFilter === "rejected"
-                                ? "bg-red-500 text-white"
-                                : "glass-subtle text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                        Rejected ({rejectedCount})
-                    </button>
-                )}
+                <button
+                    onClick={() => setStatusFilter("rejected")}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        statusFilter === "rejected"
+                            ? "bg-red-500 text-white"
+                            : "glass-subtle text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    Rejected ({rejectedCount})
+                </button>
             </div>
 
             {/* Table */}
