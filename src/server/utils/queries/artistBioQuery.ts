@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { gemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
+import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
@@ -121,7 +121,7 @@ RULES:
     const useGrounding = hasVaultContext && vaultUrls.length > 0;
 
     const response = await Promise.race([
-      gemini.models.generateContent({
+      getGemini().models.generateContent({
         model: GEMINI_MODEL_PRO,
         contents: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
         config: {

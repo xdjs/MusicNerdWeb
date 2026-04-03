@@ -1,4 +1,4 @@
-import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { insertVaultSource, getVaultSourcesByArtistId, updateVaultSourceContent } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
 import { SOURCE_TYPES, type SourceType } from "@/lib/sourceTypes";
@@ -78,7 +78,7 @@ export async function searchAndPopulateVault(artistId: string): Promise<number> 
         : "";
 
     try {
-        const response = await gemini.models.generateContent({
+        const response = await getGemini().models.generateContent({
             model: GEMINI_MODEL_FLASH,
             contents: `Search the web for articles, interviews, reviews, profiles, and notable content specifically about the music artist "${artistName}".${identityContext}
 

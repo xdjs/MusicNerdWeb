@@ -1,4 +1,4 @@
-import { gemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         const artistContext = contextParts.join("\n");
 
         const response = await Promise.race([
-            gemini.models.generateContent({
+            getGemini().models.generateContent({
                 model: GEMINI_MODEL_FLASH,
                 contents: `Question about the music artist "${artistName}": ${question.trim()}`,
                 config: {

@@ -1,3 +1,6 @@
+// Text-based formats with no reliable magic bytes — skip validation for these
+const KNOWN_TEXT_TYPES = new Set(["text/plain", "text/markdown", "text/csv", "application/json"]);
+
 /**
  * Validate that a file's binary header matches its declared MIME type.
  * Returns true if valid (or if no signature check exists for this type).
@@ -39,9 +42,12 @@ export function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
         return mp3Signatures.some(sig => sig.every((b, i) => headerBytes[i] === b));
     }
 
-    // Text-based formats (text/plain, text/markdown, text/csv, application/json)
-    // have no reliable magic bytes — skip validation.
-    // WARNING: If a new binary MIME type is added to ALLOWED_TYPES, add its
-    // signature here too — otherwise magic byte validation is silently skipped.
+    if (!KNOWN_TEXT_TYPES.has(mimeType)) {
+        // WARNING: If a new binary MIME type is added to ALLOWED_TYPES, add its
+        // signature here too — otherwise magic byte validation is silently skipped.
+        // Sanitize and truncate to prevent log injection from user-supplied MIME types
+        const sanitized = mimeType.replace(/[^\x20-\x7E]/g, "").slice(0, 100);
+        console.warn(`[validateMagicBytes] No signature check for "${sanitized}", passing through`);
+    }
     return true;
 }

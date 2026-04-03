@@ -15,12 +15,13 @@ jest.mock('next/server', () => ({
 }));
 
 // Mock dependencies
+const mockGenerateContent = jest.fn();
 jest.mock('@/server/lib/gemini', () => ({
-  gemini: {
+  getGemini: jest.fn(() => ({
     models: {
-      generateContent: jest.fn()
-    }
-  },
+      generateContent: mockGenerateContent,
+    },
+  })),
   GEMINI_MODEL_PRO: 'gemini-2.5-pro',
   GEMINI_MODEL_FLASH: 'gemini-2.5-flash',
 }));
@@ -65,6 +66,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     jest.clearAllMocks();
     jest.resetModules();
     mockNextResponseJson.mockClear();
+    mockGenerateContent.mockClear();
   });
 
   afterEach(() => {
@@ -91,19 +93,18 @@ describe('artistBioQuery - Gemini bio generation', () => {
     } as any;
 
     // Import mocked modules
-    const { gemini } = await import('@/server/lib/gemini');
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
 
     // Setup mocks
     (getArtistById as any).mockResolvedValue(mockArtist);
-    (gemini.models.generateContent as any).mockResolvedValue(mockGeminiResponse);
+    mockGenerateContent.mockResolvedValue(mockGeminiResponse);
 
     // Import and call the function
     const { generateArtistBio } = await import('@/server/utils/queries/artistBioQuery');
     await generateArtistBio('test-id');
 
     // Verify Gemini was called
-    expect(gemini.models.generateContent).toHaveBeenCalledWith(
+    expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'gemini-2.5-pro',
         contents: expect.stringContaining('Test Artist'),
@@ -134,12 +135,11 @@ describe('artistBioQuery - Gemini bio generation', () => {
       text: 'Bio with vault context'
     } as any;
 
-    const { gemini } = await import('@/server/lib/gemini');
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
     const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
 
     (getArtistById as any).mockResolvedValue(mockArtist);
-    (gemini.models.generateContent as any).mockResolvedValue(mockGeminiResponse);
+    mockGenerateContent.mockResolvedValue(mockGeminiResponse);
     (getVaultSourcesByArtistId as any).mockResolvedValue([
       { url: 'https://example.com/article', title: 'Test Article', snippet: 'A snippet', extractedText: 'Some text' },
     ]);
@@ -148,7 +148,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     await generateArtistBio('test-id');
 
     // Verify Gemini was called with google search tool
-    expect(gemini.models.generateContent).toHaveBeenCalledWith(
+    expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({
           tools: [{ googleSearch: {} }],
