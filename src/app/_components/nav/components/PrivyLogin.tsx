@@ -46,11 +46,16 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
 
     // Check for approved claim via API (replaces unreliable localStorage check)
     useEffect(() => {
-      if (!session) { setHasDashboardClaim(false); return; }
-      fetch("/api/user/has-claim")
+      if (!session) {
+        setHasDashboardClaim(false);
+        return;
+      }
+      const controller = new AbortController();
+      fetch("/api/user/has-claim", { signal: controller.signal })
         .then(r => r.json())
         .then(d => setHasDashboardClaim(!!d.hasClaim))
         .catch(() => setHasDashboardClaim(false));
+      return () => controller.abort();
     }, [session]);
 
     const { login } = useLogin({
