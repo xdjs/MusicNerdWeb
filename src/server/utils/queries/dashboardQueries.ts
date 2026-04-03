@@ -13,6 +13,17 @@ export async function getClaimByArtistId(artistId: string) {
     }
 }
 
+export async function getClaimById(claimId: string) {
+    try {
+        return await db.query.artistClaims.findFirst({
+            where: eq(artistClaims.id, claimId),
+        });
+    } catch (e) {
+        console.error("[getClaimById] Error:", e);
+        return undefined;
+    }
+}
+
 export async function getApprovedClaimByUserId(userId: string) {
     try {
         return await db.query.artistClaims.findFirst({

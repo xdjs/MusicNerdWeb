@@ -2,7 +2,7 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
-import { approveClaim, rejectClaim, deleteClaim, getAllClaims } from "@/server/utils/queries/dashboardQueries";
+import { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById } from "@/server/utils/queries/dashboardQueries";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { logMcpAudit } from "@/app/api/mcp/audit";
@@ -70,10 +70,17 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
     if (!session) return { success: false, error: "Not authorized" };
 
     try {
+        // Only approved claims can be revoked — guard against direct API calls
+        const existing = await getClaimById(claimId);
+        if (!existing) return { success: false, error: "Claim not found" };
+        if (existing.status !== "approved") return { success: false, error: "Can only revoke approved claims" };
+
         const claim = await deleteClaim(claimId);
-        if (!claim) return { success: false, error: "Claim not found" };
+        if (!claim) return { success: false, error: "Failed to delete claim" };
 
         // Persist audit before Discord (DB is more reliable than webhook)
+        // apiKeyHash uses "admin:<userId>" convention for admin-initiated actions
+        // (distinct from MCP SHA-256 key hashes which are hex strings)
         logMcpAudit({
             artistId: claim.artistId,
             field: "claim",

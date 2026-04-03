@@ -12,6 +12,7 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     rejectClaim: jest.fn(),
     deleteClaim: jest.fn(),
     getAllClaims: jest.fn(),
+    getClaimById: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
     searchAndPopulateVault: jest.fn().mockResolvedValue(0),
@@ -31,7 +32,7 @@ describe("adminClaimActions", () => {
     async function setup() {
         const { getServerAuthSession } = await import("@/server/auth");
         const { getUserById } = await import("@/server/utils/queries/userQueries");
-        const { approveClaim, rejectClaim, deleteClaim, getAllClaims } = await import("@/server/utils/queries/dashboardQueries");
+        const { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById } = await import("@/server/utils/queries/dashboardQueries");
         const { searchAndPopulateVault } = await import("@/server/utils/queries/vaultWebSearch");
         const { approveClaimAction, rejectClaimAction, revokeClaimAction, getAdminAllClaims } = await import("../adminClaimActions");
 
@@ -42,6 +43,7 @@ describe("adminClaimActions", () => {
             rejectClaim: rejectClaim as jest.Mock,
             deleteClaim: deleteClaim as jest.Mock,
             getAllClaims: getAllClaims as jest.Mock,
+            getClaimById: getClaimById as jest.Mock,
             searchAndPopulateVault: searchAndPopulateVault as jest.Mock,
             approveClaimAction,
             rejectClaimAction,
@@ -80,6 +82,16 @@ describe("adminClaimActions", () => {
             expect(result.success).toBe(false);
             expect(result.error).toBe("Not authorized");
         });
+
+        it("returns error when claim not found", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue(undefined);
+
+            const result = await m.approveClaimAction("nonexistent");
+            expect(result.success).toBe(false);
+            expect(result.error).toBe("Claim not found");
+        });
     });
 
     describe("rejectClaimAction", () => {
@@ -104,14 +116,27 @@ describe("adminClaimActions", () => {
     });
 
     describe("revokeClaimAction", () => {
-        it("hard-deletes a claim when admin", async () => {
+        it("hard-deletes an approved claim when admin", async () => {
             const m = await setup();
             mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
             m.deleteClaim.mockResolvedValue({ id: "c1", artistId: "a1", referenceCode: "MN-REVK" });
 
             const result = await m.revokeClaimAction("c1");
             expect(result.success).toBe(true);
+            expect(m.getClaimById).toHaveBeenCalledWith("c1");
             expect(m.deleteClaim).toHaveBeenCalledWith("c1");
+        });
+
+        it("rejects revoking a pending claim", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "pending" });
+
+            const result = await m.revokeClaimAction("c1");
+            expect(result.success).toBe(false);
+            expect(result.error).toBe("Can only revoke approved claims");
+            expect(m.deleteClaim).not.toHaveBeenCalled();
         });
 
         it("rejects non-admin", async () => {
@@ -126,7 +151,7 @@ describe("adminClaimActions", () => {
         it("returns error when claim not found", async () => {
             const m = await setup();
             mockAdmin(m);
-            m.deleteClaim.mockResolvedValue(undefined);
+            m.getClaimById.mockResolvedValue(undefined);
 
             const result = await m.revokeClaimAction("nonexistent");
             expect(result.success).toBe(false);
