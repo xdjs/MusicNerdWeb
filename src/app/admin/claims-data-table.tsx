@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
     ColumnDef,
     flexRender,
@@ -32,13 +32,38 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-    const filteredData = statusFilter
-        ? data.filter(c => c.status === statusFilter)
-        : data;
+    const { filteredData, pendingCount, approvedCount, rejectedCount } = useMemo(() => {
+        let pending = 0, approved = 0, rejected = 0;
+        const filtered: ClaimRow[] = [];
+        for (const c of data) {
+            if (c.status === "pending") pending++;
+            else if (c.status === "approved") approved++;
+            else rejected++;
+            if (!statusFilter || c.status === statusFilter) filtered.push(c);
+        }
+        return { filteredData: filtered, pendingCount: pending, approvedCount: approved, rejectedCount: rejected };
+    }, [data, statusFilter]);
 
-    const pendingCount = data.filter(c => c.status === "pending").length;
-    const approvedCount = data.filter(c => c.status === "approved").length;
-    const rejectedCount = data.filter(c => c.status === "rejected").length;
+    const handleAction = useCallback(async (action: () => Promise<{ success: boolean; error?: string }>, claimId: string, label: string) => {
+        setLoadingId(claimId);
+        try {
+            const result = await action();
+            if (result.success) {
+                toast({ title: `Claim ${label}` });
+                router.refresh();
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        } catch {
+            toast({ title: "Error", description: `Failed to ${label.toLowerCase()} claim`, variant: "destructive" });
+        } finally {
+            setLoadingId(null);
+        }
+    }, [toast, router]);
+
+    const handleApprove = useCallback((id: string) => handleAction(() => approveClaimAction(id), id, "approved"), [handleAction]);
+    const handleReject = useCallback((id: string) => handleAction(() => rejectClaimAction(id), id, "rejected"), [handleAction]);
+    const handleRevoke = useCallback((id: string) => handleAction(() => revokeClaimAction(id), id, "revoked"), [handleAction]);
 
     const allColumns = useMemo<ColumnDef<ClaimRow>[]>(() => [
         ...columns,
@@ -93,8 +118,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 return <span className="text-xs text-muted-foreground">—</span>;
             },
         },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    ], [columns, loadingId]);
+    ], [columns, loadingId, handleApprove, handleReject, handleRevoke]);
 
     const table = useReactTable({
         data: filteredData,
@@ -102,33 +126,13 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
         getCoreRowModel: getCoreRowModel(),
     });
 
-    const handleAction = async (action: () => Promise<{ success: boolean; error?: string }>, claimId: string, label: string) => {
-        setLoadingId(claimId);
-        try {
-            const result = await action();
-            if (result.success) {
-                toast({ title: `Claim ${label}` });
-                router.refresh();
-            } else {
-                toast({ title: "Error", description: result.error, variant: "destructive" });
-            }
-        } catch {
-            toast({ title: "Error", description: `Failed to ${label.toLowerCase()} claim`, variant: "destructive" });
-        } finally {
-            setLoadingId(null);
-        }
-    };
-
-    const handleApprove = (id: string) => handleAction(() => approveClaimAction(id), id, "approved");
-    const handleReject = (id: string) => handleAction(() => rejectClaimAction(id), id, "rejected");
-    const handleRevoke = (id: string) => handleAction(() => revokeClaimAction(id), id, "revoked");
-
     return (
         <div className="space-y-3">
             {/* Status filter chips — all always visible for consistent layout */}
             <div className="flex flex-wrap gap-2">
                 <button
                     onClick={() => setStatusFilter(null)}
+                    aria-pressed={statusFilter === null}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === null
                             ? "bg-pastypink text-white"
@@ -139,6 +143,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 </button>
                 <button
                     onClick={() => setStatusFilter("pending")}
+                    aria-pressed={statusFilter === "pending"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "pending"
                             ? "bg-amber-500 text-white"
@@ -149,6 +154,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 </button>
                 <button
                     onClick={() => setStatusFilter("approved")}
+                    aria-pressed={statusFilter === "approved"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "approved"
                             ? "bg-green-600 text-white"
@@ -159,6 +165,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 </button>
                 <button
                     onClick={() => setStatusFilter("rejected")}
+                    aria-pressed={statusFilter === "rejected"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "rejected"
                             ? "bg-red-500 text-white"
