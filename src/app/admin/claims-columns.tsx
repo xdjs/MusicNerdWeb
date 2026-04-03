@@ -37,7 +37,7 @@ export const claimsColumns: ColumnDef<ClaimRow>[] = [
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[row.original.status]}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[row.original.status] ?? ""}`}>
                 {row.original.status}
             </span>
         ),

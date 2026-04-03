@@ -61,7 +61,8 @@ export async function getPendingClaims() {
 
 // TODO: Add cursor-based pagination when claims exceed ~500 rows
 // Pending claims sort first so they're never crowded out by older approved/rejected ones
-export async function getAllClaims(limit = 200) {
+export async function getAllClaims() {
+    const limit = 200;
     try {
         return await db.query.artistClaims.findMany({
             with: { user: true, artist: true },

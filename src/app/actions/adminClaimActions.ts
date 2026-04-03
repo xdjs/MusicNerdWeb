@@ -5,6 +5,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, deleteClaim, getAllClaims } from "@/server/utils/queries/dashboardQueries";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
+import { logMcpAudit } from "@/app/api/mcp/audit";
 
 async function requireAdminSession() {
     const session = await getServerAuthSession();
@@ -63,7 +64,7 @@ export async function rejectClaimAction(claimId: string): Promise<{ success: boo
 }
 
 /** Hard-deletes the claim row. Intentional — allows the artist to be re-claimed.
- *  Audit trail is preserved via Discord notification. */
+ *  Audit persisted to mcp_audit_log + Discord notification. */
 export async function revokeClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
     const session = await requireAdminSession();
     if (!session) return { success: false, error: "Not authorized" };
@@ -71,6 +72,16 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
     try {
         const claim = await deleteClaim(claimId);
         if (!claim) return { success: false, error: "Claim not found" };
+
+        // Persist audit before Discord (DB is more reliable than webhook)
+        logMcpAudit({
+            artistId: claim.artistId,
+            field: "claim",
+            action: "delete",
+            oldValue: `${claim.status}|${claim.referenceCode}`,
+            newValue: null,
+            apiKeyHash: `admin:${session.user.id}`,
+        }).catch(e => console.error("[revokeClaimAction] Audit log failed:", e));
 
         sendDiscordMessage(
             `Claim REVOKED: ${claim.referenceCode} | Artist ID: ${claim.artistId} | Revoked by: ${session.user.email ?? session.user.id}`

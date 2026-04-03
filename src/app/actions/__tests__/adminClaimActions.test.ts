@@ -19,6 +19,9 @@ jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("@/app/api/mcp/audit", () => ({
+    logMcpAudit: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe("adminClaimActions", () => {
     beforeEach(() => {
