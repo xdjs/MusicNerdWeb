@@ -36,7 +36,7 @@ export default async function Admin() {
 
   const allClaims: ClaimRow[] = rawClaims.map((claim) => ({
     id: claim.id,
-    status: claim.status as "pending" | "approved" | "rejected",
+    status: claim.status,
     referenceCode: claim.referenceCode,
     artistName: claim.artist?.name ?? "Unknown Artist",
     artistId: claim.artistId,

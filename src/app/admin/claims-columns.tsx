@@ -1,6 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 
 export interface ClaimRow {
     id: string;
@@ -36,7 +37,7 @@ export const claimsColumns: ColumnDef<ClaimRow>[] = [
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[row.original.status] ?? ""}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[row.original.status]}`}>
                 {row.original.status}
             </span>
         ),
@@ -54,12 +55,12 @@ export const claimsColumns: ColumnDef<ClaimRow>[] = [
         accessorKey: "artistName",
         header: "Artist",
         cell: ({ row }) => (
-            <a
+            <Link
                 href={`/artist/${row.original.artistId}`}
                 className="text-pastypink hover:underline text-sm"
             >
                 {row.original.artistName}
-            </a>
+            </Link>
         ),
     },
     {

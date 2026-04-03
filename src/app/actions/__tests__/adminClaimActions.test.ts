@@ -86,6 +86,15 @@ describe("adminClaimActions", () => {
             expect(result.success).toBe(true);
             expect(m.rejectClaim).toHaveBeenCalledWith("c1");
         });
+
+        it("rejects non-admin", async () => {
+            const m = await setup();
+            mockNonAdmin(m);
+
+            const result = await m.rejectClaimAction("c1");
+            expect(result.success).toBe(false);
+            expect(result.error).toBe("Not authorized");
+        });
     });
 
     describe("revokeClaimAction", () => {
