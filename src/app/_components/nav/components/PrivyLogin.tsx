@@ -44,12 +44,19 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [hasDashboardClaim, setHasDashboardClaim] = useState(false);
     const reloadingRef = useRef(false);
 
-    // Check localStorage for dashboard claim
+    // Check for approved claim via API (replaces unreliable localStorage check)
     useEffect(() => {
-      if (typeof window !== 'undefined') {
-        setHasDashboardClaim(localStorage.getItem('dashboard_claimed') === 'true');
+      if (!session) {
+        setHasDashboardClaim(false);
+        return;
       }
-    }, []);
+      const controller = new AbortController();
+      fetch("/api/user/has-claim", { signal: controller.signal })
+        .then(r => r.json())
+        .then(d => setHasDashboardClaim(!!d.hasClaim))
+        .catch(() => setHasDashboardClaim(false));
+      return () => controller.abort();
+    }, [session]);
 
     const { login } = useLogin({
       onComplete: async (params) => {
