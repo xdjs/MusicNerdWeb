@@ -29,6 +29,7 @@ describe("adminClaimActions", () => {
         const { getServerAuthSession } = await import("@/server/auth");
         const { getUserById } = await import("@/server/utils/queries/userQueries");
         const { approveClaim, rejectClaim, deleteClaim, getAllClaims } = await import("@/server/utils/queries/dashboardQueries");
+        const { searchAndPopulateVault } = await import("@/server/utils/queries/vaultWebSearch");
         const { approveClaimAction, rejectClaimAction, revokeClaimAction, getAdminAllClaims } = await import("../adminClaimActions");
 
         return {
@@ -38,6 +39,7 @@ describe("adminClaimActions", () => {
             rejectClaim: rejectClaim as jest.Mock,
             deleteClaim: deleteClaim as jest.Mock,
             getAllClaims: getAllClaims as jest.Mock,
+            searchAndPopulateVault: searchAndPopulateVault as jest.Mock,
             approveClaimAction,
             rejectClaimAction,
             revokeClaimAction,
@@ -56,7 +58,7 @@ describe("adminClaimActions", () => {
     }
 
     describe("approveClaimAction", () => {
-        it("approves a claim when admin", async () => {
+        it("approves a claim and triggers vault population", async () => {
             const m = await setup();
             mockAdmin(m);
             m.approveClaim.mockResolvedValue({ id: "c1", artistId: "a1", referenceCode: "MN-TEST" });
@@ -64,6 +66,7 @@ describe("adminClaimActions", () => {
             const result = await m.approveClaimAction("c1");
             expect(result.success).toBe(true);
             expect(m.approveClaim).toHaveBeenCalledWith("c1");
+            expect(m.searchAndPopulateVault).toHaveBeenCalledWith("a1");
         });
 
         it("rejects non-admin", async () => {

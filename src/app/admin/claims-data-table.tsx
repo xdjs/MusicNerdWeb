@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
     ColumnDef,
     flexRender,
@@ -40,7 +40,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
     const approvedCount = data.filter(c => c.status === "approved").length;
     const rejectedCount = data.filter(c => c.status === "rejected").length;
 
-    const allColumns: ColumnDef<ClaimRow>[] = [
+    const allColumns = useMemo<ColumnDef<ClaimRow>[]>(() => [
         ...columns,
         {
             id: "actions",
@@ -93,7 +93,8 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 return <span className="text-xs text-muted-foreground">—</span>;
             },
         },
-    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [columns, loadingId]);
 
     const table = useReactTable({
         data: filteredData,
