@@ -1,5 +1,5 @@
 import type { Config } from "tailwindcss"
-import { createRequire } from "module"
+import { createRequire } from "node:module"
 const require = createRequire(import.meta.url)
 
 const config = {

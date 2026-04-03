@@ -58,7 +58,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                                 onClick={() => handleApprove(claim.id)}
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2"
                             >
-                                Approve
+                                {isLoading ? "..." : "Approve"}
                             </Button>
                             <Button
                                 size="sm"
@@ -67,7 +67,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                                 onClick={() => handleReject(claim.id)}
                                 className="text-xs h-7 px-2"
                             >
-                                Reject
+                                {isLoading ? "..." : "Reject"}
                             </Button>
                         </div>
                     );
@@ -79,10 +79,13 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                             size="sm"
                             variant="outline"
                             disabled={isLoading}
-                            onClick={() => handleRevoke(claim.id)}
+                            onClick={() => {
+                                if (!confirm(`Revoke claim for ${claim.artistName}? This is irreversible — the artist will lose dashboard access.`)) return;
+                                handleRevoke(claim.id);
+                            }}
                             className="text-xs h-7 px-2 text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
                         >
-                            Revoke
+                            {isLoading ? "..." : "Revoke"}
                         </Button>
                     );
                 }
