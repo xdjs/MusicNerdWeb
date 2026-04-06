@@ -220,6 +220,7 @@ describe('DeezerProvider', () => {
 
             expect(axiosGet).toHaveBeenCalledWith(
                 expect.stringContaining('q=FKJ%20%26%20Friends&limit=5'),
+                expect.objectContaining({ timeout: 5000 }),
             );
         });
     });

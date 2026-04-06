@@ -6,6 +6,7 @@ import pLimit from 'p-limit';
 const DEEZER_API = 'https://api.deezer.com';
 const CACHE_TTL = 86400; // 24 hours
 const BATCH_CONCURRENCY = 10;
+const REQUEST_TIMEOUT = 5000; // 5s per request
 
 interface DeezerArtistResponse {
     id: number;
@@ -40,7 +41,7 @@ function mapDeezerArtist(
         platform: 'deezer',
         platformId: String(artist.id),
         name: artist.name,
-        imageUrl: artist.picture_xl || null,
+        imageUrl: artist.picture_xl || null, // XL (1000x1000) for hero/OG contexts
         followerCount: artist.nb_fan,
         albumCount: artist.nb_album,
         genres: [], // Deezer only has genres on albums, not artists
@@ -52,7 +53,7 @@ function mapDeezerArtist(
 const fetchDeezerArtist = unstable_cache(
     async (id: string): Promise<DeezerArtistResponse | null> => {
         try {
-            const { data } = await axios.get<DeezerArtistResponse>(`${DEEZER_API}/artist/${id}`);
+            const { data } = await axios.get<DeezerArtistResponse>(`${DEEZER_API}/artist/${id}`, { timeout: REQUEST_TIMEOUT });
             if (isDeezerError(data)) {
                 console.error(`[DeezerProvider] Artist ${id} error:`, data.error);
                 return null;
@@ -70,7 +71,7 @@ const fetchDeezerArtist = unstable_cache(
 const fetchDeezerTopTrack = unstable_cache(
     async (id: string): Promise<string | null> => {
         try {
-            const { data } = await axios.get<DeezerTopTrackResponse>(`${DEEZER_API}/artist/${id}/top?limit=1`);
+            const { data } = await axios.get<DeezerTopTrackResponse>(`${DEEZER_API}/artist/${id}/top?limit=1`, { timeout: REQUEST_TIMEOUT });
             if (isDeezerError(data)) return null;
             return data.data?.[0]?.title ?? null;
         } catch {
@@ -96,7 +97,7 @@ export class DeezerProvider implements MusicPlatformProvider {
     async getArtistImage(id: string): Promise<string | null> {
         const artist = await fetchDeezerArtist(id);
         if (!artist) return null;
-        return artist.picture_medium || null;
+        return artist.picture_medium || null; // Medium (250x250) for thumbnails
     }
 
     async getTopTrackName(id: string): Promise<string | null> {
@@ -107,6 +108,7 @@ export class DeezerProvider implements MusicPlatformProvider {
         try {
             const { data } = await axios.get<DeezerSearchResponse>(
                 `${DEEZER_API}/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`,
+                { timeout: REQUEST_TIMEOUT },
             );
             if (isDeezerError(data)) {
                 console.error('[DeezerProvider] Search error:', data.error);

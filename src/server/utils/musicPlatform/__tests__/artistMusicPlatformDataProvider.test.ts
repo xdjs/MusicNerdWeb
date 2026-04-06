@@ -124,9 +124,11 @@ describe('ArtistMusicPlatformDataProvider', () => {
             primary.getArtist.mockRejectedValueOnce(new Error('Deezer down'));
             const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
 
-            // The current implementation doesn't catch provider errors in getArtist
-            // It will propagate. Test documents this behavior.
-            await expect(ampdp.getArtist(artist)).rejects.toThrow('Deezer down');
+            const result = await ampdp.getArtist(artist);
+
+            expect(result).toEqual(mockSpotifyResult);
+            expect(primary.getArtist).toHaveBeenCalledWith('4738512');
+            expect(fallback.getArtist).toHaveBeenCalledWith('spotify-123');
         });
 
         it('should treat empty string deezer ID as null', async () => {

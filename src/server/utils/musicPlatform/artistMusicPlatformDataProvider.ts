@@ -7,64 +7,52 @@ export class ArtistMusicPlatformDataProvider {
         private fallbackProvider: MusicPlatformProvider,
     ) {}
 
-    private getPlatformId(artist: Artist): { provider: MusicPlatformProvider; id: string } | null {
-        const deezer = artist.deezer?.trim() || null;
-        const spotify = artist.spotify?.trim() || null;
+    private resolveIds(artist: Artist): { primaryId: string | null; fallbackId: string | null } {
+        return {
+            primaryId: artist.deezer?.trim() || null,
+            fallbackId: artist.spotify?.trim() || null,
+        };
+    }
 
-        if (deezer) return { provider: this.primaryProvider, id: deezer };
-        if (spotify) return { provider: this.fallbackProvider, id: spotify };
+    // Try primary, fall back to fallback on null/error. Providers should return null
+    // on failure, but we catch throws defensively so fallback always triggers.
+    private async withFallback<T>(
+        primaryId: string | null,
+        fallbackId: string | null,
+        fn: (provider: MusicPlatformProvider, id: string) => Promise<T | null>,
+    ): Promise<T | null> {
+        if (primaryId) {
+            try {
+                const result = await fn(this.primaryProvider, primaryId);
+                if (result != null) return result;
+            } catch (error) {
+                console.error('[AMPDP] Primary provider error, trying fallback:', error);
+            }
+            if (fallbackId) return fn(this.fallbackProvider, fallbackId);
+            return null;
+        }
+
+        if (fallbackId) return fn(this.fallbackProvider, fallbackId);
         return null;
     }
 
     async getArtist(artist: Artist): Promise<MusicPlatformArtist | null> {
-        const deezer = artist.deezer?.trim() || null;
-        const spotify = artist.spotify?.trim() || null;
-
-        // Try primary (Deezer) first
-        if (deezer) {
-            const result = await this.primaryProvider.getArtist(deezer);
-            if (result) return result;
-            // Deezer failed, fall back to Spotify if available
-            if (spotify) return this.fallbackProvider.getArtist(spotify);
-            return null;
-        }
-
-        // No Deezer ID, try Spotify
-        if (spotify) return this.fallbackProvider.getArtist(spotify);
-
-        return null;
+        const { primaryId, fallbackId } = this.resolveIds(artist);
+        return this.withFallback(primaryId, fallbackId, (p, id) => p.getArtist(id));
     }
 
     async getArtistImage(artist: Artist): Promise<string | null> {
-        const deezer = artist.deezer?.trim() || null;
-        const spotify = artist.spotify?.trim() || null;
-
-        if (deezer) {
-            const result = await this.primaryProvider.getArtistImage(deezer);
-            if (result) return result;
-            if (spotify) return this.fallbackProvider.getArtistImage(spotify);
-            return null;
-        }
-
-        if (spotify) return this.fallbackProvider.getArtistImage(spotify);
-        return null;
+        const { primaryId, fallbackId } = this.resolveIds(artist);
+        return this.withFallback(primaryId, fallbackId, (p, id) => p.getArtistImage(id));
     }
 
     async getTopTrackName(artist: Artist): Promise<string | null> {
-        const deezer = artist.deezer?.trim() || null;
-        const spotify = artist.spotify?.trim() || null;
-
-        if (deezer) {
-            const result = await this.primaryProvider.getTopTrackName(deezer);
-            if (result) return result;
-            if (spotify) return this.fallbackProvider.getTopTrackName(spotify);
-            return null;
-        }
-
-        if (spotify) return this.fallbackProvider.getTopTrackName(spotify);
-        return null;
+        const { primaryId, fallbackId } = this.resolveIds(artist);
+        return this.withFallback(primaryId, fallbackId, (p, id) => p.getTopTrackName(id));
     }
 
+    // Search always uses primary provider (Deezer). No fallback: we want consistent
+    // search source, and Spotify search will be removed in Phase 5.
     async searchArtists(query: string, limit: number): Promise<MusicPlatformArtist[]> {
         return this.primaryProvider.searchArtists(query, limit);
     }
@@ -82,7 +70,9 @@ export class ArtistMusicPlatformDataProvider {
     }
 
     getActivePlatform(artist: Artist): 'deezer' | 'spotify' | null {
-        const resolved = this.getPlatformId(artist);
-        return resolved?.provider.platform ?? null;
+        const { primaryId, fallbackId } = this.resolveIds(artist);
+        if (primaryId) return this.primaryProvider.platform;
+        if (fallbackId) return this.fallbackProvider.platform;
+        return null;
     }
 }
