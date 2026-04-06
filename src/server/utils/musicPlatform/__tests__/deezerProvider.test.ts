@@ -194,14 +194,22 @@ describe('DeezerProvider', () => {
             expect(result[1].name).toBe('FKJ Clone');
         });
 
-        it('should return empty array on error response', async () => {
+        it('should return empty array on Deezer error response', async () => {
             const { provider, axiosGet } = await setup();
             axiosGet.mockResolvedValueOnce({
                 data: { error: { type: 'Exception', message: 'bad query' } },
             });
 
+            const result = await provider.searchArtists('test query', 10);
+            expect(result).toEqual([]);
+        });
+
+        it('should return empty array for empty query', async () => {
+            const { provider, axiosGet } = await setup();
+
             const result = await provider.searchArtists('', 10);
             expect(result).toEqual([]);
+            expect(axiosGet).not.toHaveBeenCalled();
         });
 
         it('should return empty array on network error', async () => {
