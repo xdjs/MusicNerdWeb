@@ -78,6 +78,7 @@ const mockArtist: Artist = {
     webmapdata: null,
     nodePfp: null,
     customImage: null,
+    deezer: null,
 };
 
 // Session removed - authentication disabled

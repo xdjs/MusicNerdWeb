@@ -43,6 +43,13 @@
       "when": 1775165400000,
       "tag": "0005_add_claim_rejected_and_reference_code",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775445241257,
+      "tag": "0006_careless_ravenous",
+      "breakpoints": true
     }
   ]
 }
