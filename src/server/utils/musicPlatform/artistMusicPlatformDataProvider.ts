@@ -1,5 +1,6 @@
 import type { Artist } from '@/server/db/DbTypes';
 import type { MusicPlatformArtist, MusicPlatformProvider } from './types';
+import pLimit from 'p-limit';
 
 export class ArtistMusicPlatformDataProvider {
     constructor(
@@ -14,8 +15,8 @@ export class ArtistMusicPlatformDataProvider {
         };
     }
 
-    // Try primary, fall back to fallback on null/error. Providers should return null
-    // on failure, but we catch throws defensively so fallback always triggers.
+    // Try primary, fall back to fallback on null/error. Both calls are wrapped
+    // so callers never need their own try/catch.
     private async withFallback<T>(
         primaryId: string | null,
         fallbackId: string | null,
@@ -28,11 +29,25 @@ export class ArtistMusicPlatformDataProvider {
             } catch (error) {
                 console.error('[AMPDP] Primary provider error, trying fallback:', error);
             }
-            if (fallbackId) return fn(this.fallbackProvider, fallbackId);
+            if (fallbackId) {
+                try {
+                    return await fn(this.fallbackProvider, fallbackId);
+                } catch (error) {
+                    console.error('[AMPDP] Fallback provider error:', error);
+                    return null;
+                }
+            }
             return null;
         }
 
-        if (fallbackId) return fn(this.fallbackProvider, fallbackId);
+        if (fallbackId) {
+            try {
+                return await fn(this.fallbackProvider, fallbackId);
+            } catch (error) {
+                console.error('[AMPDP] Fallback provider error:', error);
+                return null;
+            }
+        }
         return null;
     }
 
@@ -59,11 +74,12 @@ export class ArtistMusicPlatformDataProvider {
 
     async getArtistImages(artists: Artist[]): Promise<Map<string, string>> {
         const imageMap = new Map<string, string>();
+        const limit = pLimit(10);
 
-        const tasks = artists.map(async (artist) => {
+        const tasks = artists.map((artist) => limit(async () => {
             const image = await this.getArtistImage(artist);
             if (image) imageMap.set(artist.id, image);
-        });
+        }));
 
         await Promise.all(tasks);
         return imageMap;

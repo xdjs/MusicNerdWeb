@@ -50,8 +50,13 @@ function mapDeezerArtist(
     };
 }
 
+function isValidDeezerId(id: string): boolean {
+    return /^\d+$/.test(id);
+}
+
 const fetchDeezerArtist = unstable_cache(
     async (id: string): Promise<DeezerArtistResponse | null> => {
+        if (!isValidDeezerId(id)) return null;
         try {
             const { data } = await axios.get<DeezerArtistResponse>(`${DEEZER_API}/artist/${id}`, { timeout: REQUEST_TIMEOUT });
             if (isDeezerError(data)) {
@@ -70,6 +75,7 @@ const fetchDeezerArtist = unstable_cache(
 
 const fetchDeezerTopTrack = unstable_cache(
     async (id: string): Promise<string | null> => {
+        if (!isValidDeezerId(id)) return null;
         try {
             const { data } = await axios.get<DeezerTopTrackResponse>(`${DEEZER_API}/artist/${id}/top?limit=1`, { timeout: REQUEST_TIMEOUT });
             if (isDeezerError(data)) return null;
@@ -105,6 +111,7 @@ export class DeezerProvider implements MusicPlatformProvider {
     }
 
     async searchArtists(query: string, limit: number): Promise<MusicPlatformArtist[]> {
+        if (!query?.trim()) return [];
         try {
             const { data } = await axios.get<DeezerSearchResponse>(
                 `${DEEZER_API}/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`,

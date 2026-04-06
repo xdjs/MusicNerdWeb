@@ -1,8 +1,18 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+
+jest.mock('p-limit', () => ({
+    __esModule: true,
+    default: jest.fn(() => {
+        return (fn: () => Promise<unknown>) => fn();
+    }),
+}));
+
 import type { Artist } from '@/server/db/DbTypes';
 import type { MusicPlatformArtist, MusicPlatformProvider } from '../types';
-import { ArtistMusicPlatformDataProvider } from '../artistMusicPlatformDataProvider';
+
+// Dynamic import so p-limit mock takes effect before module loads
+let ArtistMusicPlatformDataProvider: typeof import('../artistMusicPlatformDataProvider').ArtistMusicPlatformDataProvider;
 
 function makeArtist(overrides: Partial<Artist> = {}): Artist {
     return {
@@ -61,9 +71,12 @@ function createMockProvider(platform: 'deezer' | 'spotify', defaultResult: Music
 describe('ArtistMusicPlatformDataProvider', () => {
     let primary: ReturnType<typeof createMockProvider>;
     let fallback: ReturnType<typeof createMockProvider>;
-    let ampdp: ArtistMusicPlatformDataProvider;
+    let ampdp: InstanceType<typeof ArtistMusicPlatformDataProvider>;
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        jest.resetModules();
+        const mod = await import('../artistMusicPlatformDataProvider');
+        ArtistMusicPlatformDataProvider = mod.ArtistMusicPlatformDataProvider;
         primary = createMockProvider('deezer', mockDeezerResult);
         fallback = createMockProvider('spotify', mockSpotifyResult);
         ampdp = new ArtistMusicPlatformDataProvider(primary, fallback);
