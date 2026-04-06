@@ -74,6 +74,7 @@ function createMockArtist(overrides: Partial<Artist> = {}): Artist {
     webmapdata: null,
     nodePfp: null,
     customImage: null,
+    deezer: null,
     ...overrides,
   };
 }

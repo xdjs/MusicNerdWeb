@@ -177,6 +177,7 @@ export const artists = pgTable("artists", {
 	customImage: text("custom_image"),
 	webmapdata: jsonb(),
 	nodePfp: jsonb("node_pfp"),
+	deezer: text(),
 }, (table) => [
 	index("artists_added_by_created_at_idx").using("btree", table.addedBy.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("timestamptz_ops")),
 	index("artists_lcname_btree_idx").using("btree", table.lcname.asc().nullsLast().op("text_ops")),
@@ -184,6 +185,7 @@ export const artists = pgTable("artists", {
 	index("artists_lcname_trgm_idx").using("gist", table.lcname.asc().nullsLast().op("gist_trgm_ops")),
 	index("artists_name_trgm_idx").using("gist", table.name.asc().nullsLast().op("gist_trgm_ops")),
 	uniqueIndex("artists_spotify_uniq").using("btree", table.spotify.asc().nullsLast().op("text_ops")).where(sql`(spotify IS NOT NULL)`),
+	uniqueIndex("artists_deezer_uniq").using("btree", table.deezer.asc().nullsLast().op("text_ops")).where(sql`(deezer IS NOT NULL)`),
 	index("idx_artists_added_by").using("btree", table.addedBy.asc().nullsLast().op("uuid_ops")),
 	index("idx_artists_name").using("btree", table.name.asc().nullsLast().op("text_ops")),
 	index("idx_artists_name_gin").using("gin", sql`to_tsvector('english'::regconfig, name)`),
