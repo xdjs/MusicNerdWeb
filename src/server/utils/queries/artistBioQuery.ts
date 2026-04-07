@@ -18,9 +18,13 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
   }
 
   // Compile platform data (Deezer primary, Spotify fallback)
+  const PLATFORM_TIMEOUT_MS = 8000;
   let platformBioData = "";
   try {
-    const platformArtist = await musicPlatformData.getArtist(artist);
+    const platformArtist = await Promise.race([
+      musicPlatformData.getArtist(artist),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), PLATFORM_TIMEOUT_MS)),
+    ]);
     if (platformArtist) {
       platformBioData = [
         `Name: ${platformArtist.name}`,
