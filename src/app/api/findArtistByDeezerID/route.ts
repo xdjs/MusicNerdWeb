@@ -1,6 +1,8 @@
 import { getArtistByProperty } from '@/server/utils/queries/artistQueries';
 import { artists } from '@/server/db/schema';
 
+export const dynamic = "force-dynamic";
+
 async function handler(req: Request) {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', {status : 405});
