@@ -99,4 +99,17 @@ describe("get_unmapped_artists MCP tool", () => {
     expect(parsed.artists).toEqual([]);
     expect(parsed.totalUnmapped).toBe(0);
   });
+
+  it("passes basePlatform 'deezer' to getUnmappedArtists", async () => {
+    const s = await setup();
+    (s.getUnmappedArtists as jest.Mock).mockResolvedValue({
+      artists: [{ id: "a1", name: "Test", spotify: null, deezer: "11600" }],
+      totalUnmapped: 1,
+    });
+
+    const result = await callTool(s, { platform: "apple_music", limit: 10, offset: 0, basePlatform: "deezer" });
+    expect(s.getUnmappedArtists).toHaveBeenCalledWith("apple_music", 10, 0, "deezer");
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.artists[0].deezer).toBe("11600");
+  });
 });
