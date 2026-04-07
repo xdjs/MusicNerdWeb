@@ -37,10 +37,10 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
         };
     }
 
-    const platformImage = await musicPlatformData.getArtistImage(artist);
+    const platformData = await musicPlatformData.getArtist(artist);
     const imageUrl = artist.customImage
         ? `https://www.musicnerd.xyz${artist.customImage}`
-        : platformImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
+        : platformData?.imageUrl || "https://www.musicnerd.xyz/default_pfp_pink.png";
     const artistName = artist.name ?? "Unknown Artist";
 
     return {

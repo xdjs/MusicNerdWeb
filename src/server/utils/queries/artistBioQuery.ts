@@ -77,7 +77,7 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
 
 RULES:
 - The vault context below is ARTIST-PROVIDED and your PRIMARY source. Extract specific facts: real names, locations, labels, collaborators, credits, timeline events, roles.
-- Use Spotify data only for stats (follower count, release count, top track). Do NOT let Spotify genres drive the narrative.
+- Use the music platform data only for stats (follower count, release count, top track). Do NOT let genres drive the narrative.
 - Write with personality and specificity. Name actual songs, projects, collaborators, and moments. Avoid filler phrases like "emerging force", "pushing boundaries", "sonic territories", or "artist to watch".
 - If the vault mentions a label, collective, nonprofit, or side project, include it.
 - End with a forward-looking line about what they're working on IF the vault provides that info. Otherwise just end strong.
