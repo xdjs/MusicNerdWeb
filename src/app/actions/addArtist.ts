@@ -2,10 +2,10 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
-import { getSpotifyHeaders, getSpotifyArtist } from '@/server/utils/queries/externalApiQueries';
 import { addArtist as dbAddArtist, type AddArtistResp } from "@/server/utils/queries/artistQueries";
+import type { MusicPlatform } from "@/server/utils/musicPlatform";
 
-export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
+export async function addArtist(platformId: string, platform: MusicPlatform = 'spotify'): Promise<AddArtistResp> {
     const session = await getServerAuthSession() ?? await getDevSession();
 
     if (!session) {
@@ -13,23 +13,7 @@ export async function addArtist(spotifyId: string): Promise<AddArtistResp> {
     }
 
     try {
-        const headers = await getSpotifyHeaders();
-        if (!headers?.headers?.Authorization) {
-            return { status: "error", message: "Failed to authenticate with Spotify" };
-        }
-
-        const spotifyArtist = await getSpotifyArtist(spotifyId, headers);
-
-        if (spotifyArtist.error) {
-            return { status: "error", message: spotifyArtist.error };
-        }
-
-        if (!spotifyArtist.data?.name) {
-            return { status: "error", message: "Invalid artist data received from Spotify" };
-        }
-
-        const result = await dbAddArtist(spotifyId);
-
+        const result = await dbAddArtist(platformId, platform);
         return result;
     } catch (e) {
         console.error("[addArtist] Error:", e);

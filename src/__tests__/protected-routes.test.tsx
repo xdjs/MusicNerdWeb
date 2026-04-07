@@ -13,6 +13,15 @@ jest.mock('@/server/utils/queries/externalApiQueries', () => ({
     getNumberOfSpotifyReleases: jest.fn(),
 }));
 
+jest.mock('@/server/utils/musicPlatform', () => ({
+    musicPlatformData: {
+        getArtist: jest.fn().mockResolvedValue(null),
+        getArtistImage: jest.fn().mockResolvedValue(null),
+    },
+    deezerProvider: { getArtist: jest.fn() },
+    spotifyProvider: { getArtist: jest.fn() },
+}));
+
 jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     getAllLinks: jest.fn(),
@@ -70,8 +79,8 @@ jest.mock('@/server/utils/dev-auth', () => ({
 import AddArtistPage from '@/app/add-artist/page';
 import ArtistProfile from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
-import { getSpotifyHeaders, getSpotifyArtist, getSpotifyImage, getNumberOfSpotifyReleases } from '@/server/utils/queries/externalApiQueries';
 import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
+import { spotifyProvider, musicPlatformData } from '@/server/utils/musicPlatform';
 
 const mockSession = {
     user: { id: 'user-uuid', email: 'test@test.com', isAdmin: false, isWhiteListed: true },
@@ -93,10 +102,10 @@ describe('Protected routes', () => {
 
     describe('/add-artist (requires authentication)', () => {
         beforeEach(() => {
-            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: { Authorization: 'Bearer token' } });
-            (getSpotifyArtist as jest.Mock).mockResolvedValue({
-                data: { name: 'New Artist', id: 'new-artist-id', images: [] },
-                error: null,
+            (spotifyProvider.getArtist as jest.Mock).mockResolvedValue({
+                platform: 'spotify', platformId: 'some-id', name: 'New Artist',
+                imageUrl: null, followerCount: 0, albumCount: 0, genres: [],
+                profileUrl: '', topTrackName: null,
             });
         });
 
@@ -121,11 +130,11 @@ describe('Protected routes', () => {
             expect(mockRedirect).not.toHaveBeenCalled();
         });
 
-        it('shows an error page (not a redirect) when spotify param is missing, even if authenticated', async () => {
+        it('shows an error page (not a redirect) when no platform param is present, even if authenticated', async () => {
             (getServerAuthSession as jest.Mock).mockResolvedValue(mockSession);
             const jsx = await AddArtistPage({ searchParams: Promise.resolve({}) });
             render(jsx as React.ReactElement);
-            expect(screen.getByText('No Spotify ID provided')).toBeInTheDocument();
+            expect(screen.getByText('No artist ID provided')).toBeInTheDocument();
             expect(mockRedirect).not.toHaveBeenCalled();
         });
     });
@@ -133,9 +142,12 @@ describe('Protected routes', () => {
     describe('/artist/[id] (publicly accessible)', () => {
         beforeEach(() => {
             (getArtistById as jest.Mock).mockResolvedValue(mockArtist);
-            (getSpotifyHeaders as jest.Mock).mockResolvedValue({ headers: { Authorization: 'Bearer token' } });
-            (getSpotifyImage as jest.Mock).mockResolvedValue({ artistImage: null });
-            (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(3);
+            (musicPlatformData.getArtist as jest.Mock).mockResolvedValue({
+                platform: 'spotify', platformId: 'spotify123', name: 'Test Artist',
+                imageUrl: null, followerCount: 0, albumCount: 3, genres: [],
+                profileUrl: '', topTrackName: null,
+            });
+            (musicPlatformData.getArtistImage as jest.Mock).mockResolvedValue(null);
             (getAllLinks as jest.Mock).mockResolvedValue([]);
         });
 
