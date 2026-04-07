@@ -1,5 +1,5 @@
 import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
-import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from "@/server/utils/queries/externalApiQueries";
+import { musicPlatformData } from "@/server/utils/musicPlatform";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
 import BookmarkButton from "@/app/_components/BookmarkButton";
 import ClaimButton from "./_components/ClaimButton";
@@ -37,11 +37,10 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
         };
     }
 
-    const headers = await getSpotifyHeaders();
-    const spotifyImg = await getSpotifyImage(artist.spotify ?? "", undefined, headers);
+    const platformImage = await musicPlatformData.getArtistImage(artist);
     const imageUrl = artist.customImage
         ? `https://www.musicnerd.xyz${artist.customImage}`
-        : spotifyImg.artistImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
+        : platformImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
     const artistName = artist.name ?? "Unknown Artist";
 
     return {
@@ -80,15 +79,15 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     if (!artist) {
         return notFound();
     }
-    const headers = await getSpotifyHeaders();
-
-    const [spotifyImg, numReleases, urlMapList, existingClaim, approvedSources] = await Promise.all([
-        getSpotifyImage(artist.spotify ?? "", undefined, headers),
-        getNumberOfSpotifyReleases(artist.spotify ?? "", headers),
+    const [platformData, urlMapList, existingClaim, approvedSources] = await Promise.all([
+        musicPlatformData.getArtist(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
     ]);
+
+    const platformImage = platformData?.imageUrl ?? null;
+    const numReleases = platformData?.albumCount ?? 0;
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";
@@ -96,7 +95,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
 
-    const imageUrl = artist.customImage || spotifyImg.artistImage || "/default_pfp_pink.png";
+    const imageUrl = artist.customImage || platformImage || "/default_pfp_pink.png";
 
     return (
         <>
@@ -128,7 +127,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                             <BookmarkButton
                                 artistId={artist.id}
                                 artistName={artist.name ?? ''}
-                                imageUrl={spotifyImg.artistImage ?? ''}
+                                imageUrl={platformImage ?? ''}
                                 userId={session.user.id}
                             />
                         )}
@@ -159,7 +158,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                         <h2 className="text-black dark:text-white text-xl font-bold">Social Links</h2>
                         <AddArtistData
                             artist={artist}
-                            spotifyImg={spotifyImg.artistImage ?? ""}
+                            spotifyImg={platformImage ?? ""}
                             availableLinks={urlMapList}
                             isOpenOnLoad={false}
                             directEdit={canEdit}
@@ -174,7 +173,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                         <h2 className="text-black dark:text-white text-xl font-bold">Support the Artist</h2>
                         <AddArtistData
                             artist={artist}
-                            spotifyImg={spotifyImg.artistImage ?? ""}
+                            spotifyImg={platformImage ?? ""}
                             availableLinks={urlMapList}
                             isOpenOnLoad={false}
                             directEdit={canEdit}
