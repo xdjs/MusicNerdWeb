@@ -295,30 +295,35 @@ const numReleases = data?.albumCount ?? 0;
 
 ---
 
-## Phase 5: Spotify API Removal
+## Phase 5: MCP + API Updates for Deezer Migration
 
-**Goal**: Delete Spotify API code. `ArtistMusicPlatformDataProvider` becomes a thin wrapper around DeezerProvider only.
+**Goal**: Update MCP tools and API routes so external consumers (agents, tools) are Deezer-aware. Keep Spotify fallback to let Deezer bake in production.
 
-### Files to remove/modify
+**NOT in this phase**: Spotify API removal. SpotifyProvider, externalApiQueries.ts, and all fallback paths stay until Deezer stability is confirmed.
+
+### Files to create/modify
 
 | File | Change |
 |------|--------|
-| `src/server/utils/queries/externalApiQueries.ts` | Delete entirely. |
-| `src/server/utils/queries/wikiQueries.ts` | **Create** — move `getArtistWiki` here from `externalApiQueries.ts`. Update all imports. |
-| `src/server/utils/musicPlatform/spotifyProvider.ts` | Delete |
-| `src/server/utils/musicPlatform/artistMusicPlatformDataProvider.ts` | Remove fallback paths (only DeezerProvider remains) |
-| `src/env.ts` | Remove `SPOTIFY_WEB_CLIENT_ID`, `SPOTIFY_WEB_CLIENT_SECRET` |
-| `src/app/api/getSpotifyData/route.ts` | Delete |
-| `package.json` | Remove `querystring` (audit usage in Phase 4 so Phase 5 is purely mechanical) |
-| `CLAUDE.md` | Update tech stack, env vars, API docs |
-| ~10 test files | Remove Spotify mocks |
+| `src/app/api/mcp/types.ts` | Add `deezerId: string \| null` to `ArtistDetail` interface |
+| `src/app/api/mcp/transformers/artist-detail.ts` | Return `deezerId: artist.deezer ?? null` alongside existing `spotifyId` |
+| `src/server/utils/idMappingService.ts` | `getUnmappedArtists`: add `basePlatform` param (default `'spotify'`). When `'deezer'`, use `WHERE a.deezer IS NOT NULL`. Return both `spotify` and `deezer` fields. `getMappingStats`: add `totalArtistsWithDeezer` count alongside existing `totalArtistsWithSpotify`. |
+| `src/app/api/mcp/server.ts` | Update `get_unmapped_artists` tool: add optional `basePlatform` input param. Update description. |
+| `src/app/api/findArtistByDeezerID/route.ts` | **Create** — mirror `findArtistBySpotifyID` pattern, query on `artists.deezer` column |
+| `src/app/api/mcp/__tests__/transformers.test.ts` | Assert `deezerId` in ArtistDetail output |
+| `src/app/api/mcp/__tests__/get-unmapped-artists.test.ts` | Test `basePlatform: 'deezer'` |
+| `src/app/api/mcp/__tests__/get-mapping-stats.test.ts` | Assert `totalArtistsWithDeezer` |
+| `src/app/api/findArtistByDeezerID/__tests__/route.test.ts` | **Create** — mirror findArtistBySpotifyID tests |
 
-### Keep
-- `artists.spotify` column — artist metadata (we know everything about an artist)
-- `artists.spotifyusername` — platform link field
-- `src/app/api/findArtistBySpotifyID/route.ts` — backwards compat
-- `src/app/api/findArtistByDeezerID/route.ts` — **Create** new route mirroring `findArtistBySpotifyID` but querying on `artists.deezer`. External tools/agents will need this since Deezer is now the primary platform.
-- MCP transformer: expose both `spotifyId` and `deezerId`
+### Deferred to Phase 6 (Spotify API Removal)
+
+Only after Deezer stability is confirmed in production:
+- Delete `externalApiQueries.ts`, `spotifyProvider.ts`, `getSpotifyData/route.ts`
+- Move `getArtistWiki` to `wikiQueries.ts`
+- Remove Spotify env vars from `env.ts`
+- Simplify `ArtistMusicPlatformDataProvider` (remove fallback paths)
+- Remove `querystring` package
+- Update CLAUDE.md tech stack
 
 ---
 
