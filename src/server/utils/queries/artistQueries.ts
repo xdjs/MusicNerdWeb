@@ -304,6 +304,9 @@ export async function getArtistLinks(artist: Artist): Promise<ArtistLink[]> {
 // ----------------------------------
 
 export async function addArtist(platformId: string, platform: MusicPlatform = 'spotify'): Promise<AddArtistResp> {
+    if (platform !== 'deezer' && platform !== 'spotify') {
+        return { status: "error", message: "Invalid platform" };
+    }
     try {
         console.debug(`[Server] Starting addArtist for ${platform}Id:`, platformId);
 

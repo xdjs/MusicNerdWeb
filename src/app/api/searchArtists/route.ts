@@ -100,13 +100,18 @@ export async function POST(req: Request) {
         }),
       ]);
 
-      // Dedup: filter out external results that already exist in DB (by deezer ID)
+      // Dedup: filter out external results that already exist in DB
+      // Check both deezer ID and normalized name to prevent visible duplicates
+      // (only ~1% of artists have deezer populated, so name-matching is essential)
       const existingDeezerIds = new Set(
         (dbResults ?? []).map(artist => (artist as any).deezer).filter(Boolean)
       );
+      const existingNames = new Set(
+        (dbResults ?? []).map(artist => (artist.name || '').toLowerCase()).filter(Boolean)
+      );
 
       const newExternalResults = externalResults
-        .filter(ext => !existingDeezerIds.has(ext.platformId))
+        .filter(ext => !existingDeezerIds.has(ext.platformId) && !existingNames.has(ext.name.toLowerCase()))
         .map(ext => ({
           id: null,
           name: ext.name,
