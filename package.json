@@ -64,7 +64,6 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.53.1",
     "react-query": "^3.39.3",
-    "react-spotify-embed": "^2.0.4",
     "sass": "^1.77.8",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",

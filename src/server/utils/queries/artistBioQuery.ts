@@ -4,7 +4,7 @@ import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
-import { getArtistTopTrackName, getNumberOfSpotifyReleases, getSpotifyArtist, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 
 /**
@@ -17,46 +17,25 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
 
-  let spotifyBioData = "";
-
-  // Compile Spotify Data
-  if (artist.spotify) {
-    try {
-      const headers = await getSpotifyHeaders();
-      const {data} = await getSpotifyArtist(artist.spotify, headers);
-
-      if (data) {
-        const spotifyTimeout = 8000;
-
-        const [releases, topTrack] = await Promise.allSettled([
-          Promise.race([
-            getNumberOfSpotifyReleases(artist.spotify, headers),
-            new Promise<number>((_, reject) =>
-              setTimeout(() => reject(new Error('Spotify releases timeout')), spotifyTimeout)
-            )
-          ]),
-          Promise.race([
-            getArtistTopTrackName(artist.spotify, headers),
-            new Promise<string | null>((_, reject) =>
-              setTimeout(() => reject(new Error('Spotify top track timeout')), spotifyTimeout)
-            )
-          ])
-        ]);
-
-        const releasesCount = releases.status === 'fulfilled' ? releases.value : 0;
-        const topTrackName = topTrack.status === 'fulfilled' ? topTrack.value : null;
-
-        spotifyBioData = [
-          `Spotify name: ${data.name}`,
-          `Followers: ${data.followers.total}`,
-          data.genres.length > 0 ? `Genres: ${data.genres.join(", ")}` : "No genres found",
-          releasesCount > 0 ? `Number of releases: ${releasesCount}` : "No releases found",
-          topTrackName ? `Top track: ${topTrackName}` : "No top track found",
-        ].filter(Boolean).join(",");
-      }
-    } catch (error) {
-      console.error("Error fetching Spotify data for bio generation:", error);
+  // Compile platform data (Deezer primary, Spotify fallback)
+  const PLATFORM_TIMEOUT_MS = 8000;
+  let platformBioData = "";
+  try {
+    const platformArtist = await Promise.race([
+      musicPlatformData.getArtist(artist),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), PLATFORM_TIMEOUT_MS)),
+    ]);
+    if (platformArtist) {
+      platformBioData = [
+        `Name: ${platformArtist.name}`,
+        platformArtist.followerCount ? `Followers: ${platformArtist.followerCount}` : null,
+        platformArtist.genres.length > 0 ? `Genres: ${platformArtist.genres.join(", ")}` : null,
+        platformArtist.albumCount > 0 ? `Number of releases: ${platformArtist.albumCount}` : null,
+        platformArtist.topTrackName ? `Top track: ${platformArtist.topTrackName}` : null,
+      ].filter(Boolean).join(", ");
     }
+  } catch (error) {
+    console.error("Error fetching platform data for bio generation:", error);
   }
 
   // Put all informational sections of prompt together
@@ -68,7 +47,7 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
   if (artist.youtube) promptParts.push(`YouTube: https://youtube.com/@${artist.youtube.replace(/^@/, '')}`);
   if (artist.youtubechannel) promptParts.push(`YouTube Channel: ${artist.youtubechannel}`);
   if (artist.wikipedia) promptParts.push(`Wikipedia: ${artist.wikipedia}`);
-  if (spotifyBioData) promptParts.push(`Spotify Data: ${spotifyBioData}`);
+  if (platformBioData) promptParts.push(`Music Platform Data: ${platformBioData}`);
 
   // Include approved vault sources as additional context
   let hasVaultContext = false;
@@ -102,7 +81,7 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
 
 RULES:
 - The vault context below is ARTIST-PROVIDED and your PRIMARY source. Extract specific facts: real names, locations, labels, collaborators, credits, timeline events, roles.
-- Use Spotify data only for stats (follower count, release count, top track). Do NOT let Spotify genres drive the narrative.
+- Use the music platform data only for stats (follower count, release count, top track). Do NOT let genres drive the narrative.
 - Write with personality and specificity. Name actual songs, projects, collaborators, and moments. Avoid filler phrases like "emerging force", "pushing boundaries", "sonic territories", or "artist to watch".
 - If the vault mentions a label, collective, nonprofit, or side project, include it.
 - End with a forward-looking line about what they're working on IF the vault provides that info. Otherwise just end strong.

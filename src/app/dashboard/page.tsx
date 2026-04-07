@@ -3,7 +3,7 @@ import { getDevSession } from "@/server/utils/dev-auth";
 import { redirect } from "next/navigation";
 import { getApprovedClaimByUserId, getPendingClaimByUserId } from "@/server/utils/queries/dashboardQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
-import { getSpotifyImage, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getArtistLinks, getAllLinks } from "@/server/utils/queries/artistQueries";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import DashboardContent from "./_components/DashboardContent";
@@ -71,16 +71,16 @@ export default async function Dashboard() {
         );
     }
 
-    let spotifyImgUrl = "";
-    try {
-        const headers = await getSpotifyHeaders();
-        const spotifyImg = await getSpotifyImage(claim.artist?.spotify ?? "", undefined, headers);
-        spotifyImgUrl = spotifyImg.artistImage;
-    } catch {
-        // Spotify image fetch failed — use fallback
-    }
-
     const artist = await getArtistById(claim.artistId);
+
+    let platformImgUrl = "";
+    if (artist) {
+        try {
+            platformImgUrl = await musicPlatformData.getArtistImage(artist) ?? "";
+        } catch {
+            // Platform image fetch failed — use fallback
+        }
+    }
 
     const [pendingSources, approvedSources, artistLinks, availableLinks] = await Promise.all([
         getVaultSourcesByArtistId(claim.artistId, "pending"),
@@ -89,7 +89,7 @@ export default async function Dashboard() {
         getAllLinks(),
     ]);
 
-    const currentImage = claim.artist?.customImage || spotifyImgUrl || "/default_pfp_pink.png";
+    const currentImage = claim.artist?.customImage || platformImgUrl || "/default_pfp_pink.png";
 
     return (
         <section className="px-4 lg:px-8 py-5 space-y-6 max-w-[1200px] mx-auto">
