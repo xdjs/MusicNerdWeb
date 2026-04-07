@@ -76,7 +76,7 @@ describe("get_unmapped_artists MCP tool", () => {
     (s.getUnmappedArtists as jest.Mock).mockResolvedValue({ artists: [], totalUnmapped: 100 });
 
     const result = await callTool(s, { platform: "deezer", limit: 25, offset: 50 });
-    expect(s.getUnmappedArtists).toHaveBeenCalledWith("deezer", 25, 50);
+    expect(s.getUnmappedArtists).toHaveBeenCalledWith("deezer", 25, 50, "spotify");
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.limit).toBe(25);
     expect(parsed.offset).toBe(50);
@@ -87,7 +87,7 @@ describe("get_unmapped_artists MCP tool", () => {
     (s.getUnmappedArtists as jest.Mock).mockResolvedValue({ artists: [], totalUnmapped: 0 });
 
     await callTool(s, { platform: "deezer", limit: 500, offset: 0 });
-    expect(s.getUnmappedArtists).toHaveBeenCalledWith("deezer", 200, 0);
+    expect(s.getUnmappedArtists).toHaveBeenCalledWith("deezer", 200, 0, "spotify");
   });
 
   it("returns empty array when all mapped", async () => {
