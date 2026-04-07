@@ -200,22 +200,53 @@ No auth. `axios.get` + `unstable_cache` (24h).
 
 ---
 
-## Phase 3: Switch Consumers to ArtistMusicPlatformDataProvider
+## Phase 3: Switch Simple Consumers to ArtistMusicPlatformDataProvider
 
-**Goal**: All data consumers use `musicPlatformData` instead of direct Spotify calls.
+<!-- /autoplan restore point: /Users/clt/.gstack/projects/xdjs-MusicNerdWeb/staging-autoplan-restore-20260406-213103.md -->
+
+**Goal**: Non-search data consumers use `musicPlatformData` instead of direct Spotify calls. Search migration deferred to Phase 4 (see review notes below).
+
+### Review Notes (autoplan 2026-04-06)
+
+**Deferred to Phase 4**: `searchArtists/route.ts` migration. Reasons:
+1. External Deezer search results produce Deezer IDs, but `addArtist()` expects Spotify IDs (breaks add-artist flow)
+2. Dedup logic can't match Deezer external results against DB Spotify IDs
+3. Spotify batch endpoint (1 call/50 artists) → individual Deezer calls adds 200-300ms latency
+4. SearchBar.tsx contract is Spotify-shaped (`isSpotifyOnly`, `result.spotify`, Spotify image arrays)
+
+**Bugs discovered**:
+- `getArtistDetailsText` in `services.ts` has a type mismatch: expects `{releases: number}`, receives raw `number`. Release count has never rendered. Fix in this phase.
+- `getArtistDetailsText` hardcodes "releases on Spotify". Fix to platform-agnostic "releases".
+
+**Missing from original plan**:
+- `services.ts`: fix `getArtistDetailsText` type + text
+- `recentEdited/route.ts`: add `artists.deezer` to query select (needed for AMPDP routing)
+- `page.tsx`: update `BookmarkButton` and `AddArtistData` (2 instances) image prop source
+- `Dashboard.tsx` is dead code (not imported anywhere). Delete entirely instead of modifying.
+
+**Known risks**:
+- Bio quality: Deezer returns empty genres (artist-level). Bios may lose genre context.
+- `albumCount` semantics: Spotify counts albums+singles, Deezer counts albums only. Counts may differ.
+- Image source: Deezer CDN vs Spotify CDN. Different crops/resolutions possible.
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
-| `src/app/artist/[id]/page.tsx` | Replace `getSpotifyHeaders` + `getSpotifyImage` + `getNumberOfSpotifyReleases` → `musicPlatformData.getArtist(artist)`. Use `.imageUrl` for OG + hero, `.albumCount` for release count. |
-| `src/app/artist/[id]/_components/Dashboard.tsx` | Remove `react-spotify-embed` import and `<Spotify>` component. Remove embed section entirely (already not shown in UI). |
+| `src/app/artist/[id]/page.tsx` | Replace `getSpotifyHeaders` + `getSpotifyImage` + `getNumberOfSpotifyReleases` → `musicPlatformData.getArtist(artist)`. Use `.imageUrl` for OG + hero, `.albumCount` for release count. Update `BookmarkButton` and `AddArtistData` (2 instances) image props. |
+| `src/app/artist/[id]/_components/Dashboard.tsx` | **DELETE** (dead code, not imported anywhere). |
 | `src/server/utils/queries/artistBioQuery.ts` | Replace Spotify data compilation (lines 20-60) with `musicPlatformData.getArtist(artist)`. Build `platformBioData` from `MusicPlatformArtist` fields. Change prompt label from "Spotify Data:" to "Music Platform Data:". |
-| `src/app/api/searchArtists/route.ts` | Replace Spotify search + batch image fetch → `musicPlatformData.searchArtists(query, 10)` and `musicPlatformData.getArtistImages(dbArtists)`. Rename `isSpotifyOnly` → `isExternalOnly`. |
-| `src/app/api/recentEdited/route.ts` | Replace Spotify image fetch → `musicPlatformData.getArtistImage(artist)` |
-| `src/app/dashboard/page.tsx` | Replace Spotify image fetch → `musicPlatformData.getArtistImage(artist)` |
+| `src/app/api/recentEdited/route.ts` | Replace Spotify image fetch → `musicPlatformData.getArtistImage(artist)`. Add `artists.deezer` to query select. Construct minimal Artist object for AMPDP routing. |
+| `src/app/dashboard/page.tsx` | Replace Spotify image fetch → `musicPlatformData.getArtistImage(artist)`. Move `getArtistById()` before image fetch. |
+| `src/server/utils/services.ts` | Fix `getArtistDetailsText`: change type from `SpotifyDataType` to `number`. Change text from "N releases on Spotify" to "N releases". |
 | `package.json` | Remove `react-spotify-embed` |
-| ~8 test files | Update mocks and assertions |
+| 7-11 test files | Update mocks and assertions (see test plan) |
+
+### Source precedence (explicit)
+
+Image: `artist.customImage` > `musicPlatformData.getArtistImage(artist)` > `"/default_pfp_pink.png"`
+
+Release count: `data?.albumCount > 0` → show "N releases". `0` or null → hide line entirely.
 
 ### Key migration pattern
 
@@ -238,12 +269,22 @@ const numReleases = data?.albumCount ?? 0;
 
 ## Phase 4: Search + Add-Artist Migration
 
-**Goal**: Add-artist flow supports both Deezer and Spotify URLs. Search results from Deezer.
+**Goal**: Search results from Deezer. Add-artist flow supports both Deezer and Spotify URLs. Includes the searchArtists route migration deferred from Phase 3.
+
+### Review Notes (autoplan 2026-04-06)
+
+**Moved from Phase 3**: `searchArtists/route.ts` migration. This must ship alongside the SearchBar and addArtist updates to avoid breaking the add-artist flow for external search results.
+
+**Key challenges**:
+- Dedup between Deezer external results and DB artists (match on `artists.deezer` column, not just Spotify ID)
+- Performance: Spotify batch endpoint (50/call) → individual Deezer calls (pLimit 10). Consider DB-level image caching or accept latency.
+- Search quality: benchmark Deezer search recall against Spotify for top queries before shipping
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
+| `src/app/api/searchArtists/route.ts` | Replace Spotify search + batch image fetch → `musicPlatformData.searchArtists(query, 10)` and `musicPlatformData.getArtistImages(dbArtists)`. Rename `isSpotifyOnly` → `isExternalOnly`. Add `platform`, `platformId` to external results. Update dedup to check `artists.deezer` column. |
 | `src/app/_components/nav/components/SearchBar.tsx` | Update `SearchResult` interface: rename `isSpotifyOnly` → `isExternalOnly`, add `platform`, `platformId`. Render "View on Deezer" link. `handleAddArtist` passes Deezer ID. |
 | `src/app/_components/nav/components/AddArtist.tsx` | Accept both URL formats. Deezer: `/deezer\.com\/(?:\w+\/)?artist\/(\d+)/`. Spotify: existing regex. Detect format, call appropriate add flow. |
 | `src/app/actions/addArtist.ts` | Accept `{ deezerId?, spotifyId? }`. Validate via provider. Insert with appropriate column. |
@@ -401,8 +442,24 @@ Uses known real artists from the database. Run with Playwright MCP against `npm 
 | `src/server/utils/musicPlatform/spotifyProvider.ts` | Spotify impl (new Phase 1, deleted Phase 5) |
 | `src/server/utils/musicPlatform/deezerProvider.ts` | Deezer impl (new Phase 2) |
 | `src/server/utils/musicPlatform/artistMusicPlatformDataProvider.ts` | Routing + fallback (new Phase 2) |
-| `src/app/api/searchArtists/route.ts` | Search pipeline — switches in Phase 3 |
+| `src/app/api/searchArtists/route.ts` | Search pipeline — switches in Phase 4 (deferred from Phase 3) |
 | `src/app/artist/[id]/page.tsx` | Artist profile — switches in Phase 3 |
 | `src/server/utils/queries/artistBioQuery.ts` | Bio generation — switches in Phase 3 |
-| `src/app/artist/[id]/_components/Dashboard.tsx` | Embed removal in Phase 3 |
+| `src/app/artist/[id]/_components/Dashboard.tsx` | Dead code — DELETE in Phase 3 |
+| `src/server/utils/services.ts` | Fix `getArtistDetailsText` type + text — Phase 3 |
 | `src/server/db/schema.ts` | Schema — add `deezer` column in Phase 2 |
+
+---
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | issues_open | 7 premises, 3 challenged. Search coverage flagged as top risk. |
+| CEO Voices | `/autoplan` | Independent 2nd opinions | 1 | clean | Codex+subagent. 5/6 confirmed, 1 disagree (albumCount semantics). |
+| Design Review | `/plan-design-review` | UI/UX gaps | 1 | issues_open | "on Spotify" text critical. Missing state specs. 3 props missing from plan. |
+| Design Voices | `/autoplan` | Independent 2nd opinions | 1 | clean | Codex+subagent. 7/7 confirmed. |
+| Eng Review | `/plan-eng-review` | Architecture & tests | 1 | issues_open | 1 critical (type bug), 2 high (search, latency). 11 test files, not ~8. |
+| Eng Voices | `/autoplan` | Independent 2nd opinions | 1 | clean | Codex+subagent. 4/6 confirmed, 2 disagree (search severity). |
+
+**VERDICT:** APPROVED with modifications. Search migration deferred to Phase 4. `getArtistDetailsText` bug fix added. Dead code deletion. Props/query fixes added. Test plan at `~/.gstack/projects/xdjs-MusicNerdWeb/clt-staging-test-plan-20260406.md`.
