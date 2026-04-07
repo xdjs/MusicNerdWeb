@@ -225,6 +225,23 @@ jest.mock('@google/genai', () => ({
     }
 }));
 
+// Mock musicPlatformData to prevent ESM p-limit import chain in consumer tests.
+// Tests for the providers themselves (spotifyProvider.test.ts, deezerProvider.test.ts,
+// artistMusicPlatformDataProvider.test.ts) mock p-limit directly and use jest.resetModules().
+jest.mock('@/server/utils/musicPlatform', () => ({
+    musicPlatformData: {
+        getArtist: jest.fn().mockResolvedValue(null),
+        getArtistImage: jest.fn().mockResolvedValue(null),
+        getTopTrackName: jest.fn().mockResolvedValue(null),
+        searchArtists: jest.fn().mockResolvedValue([]),
+        getArtistImages: jest.fn().mockResolvedValue(new Map()),
+        getActivePlatform: jest.fn().mockReturnValue(null),
+    },
+    SpotifyProvider: jest.fn(),
+    DeezerProvider: jest.fn(),
+    ArtistMusicPlatformDataProvider: jest.fn(),
+}));
+
 // Mock server actions to prevent function not found errors
 jest.mock('@/app/actions/serverActions', () => ({
     getUgcStatsInRangeAction: jest.fn().mockResolvedValue({ ugcCount: 0, artistsCount: 0 }),

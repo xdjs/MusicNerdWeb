@@ -11,10 +11,11 @@ jest.mock('@/server/utils/queries/artistQueries', () => ({
     getAllLinks: jest.fn(),
 }));
 
-jest.mock('@/server/utils/queries/externalApiQueries', () => ({
-    getSpotifyImage: jest.fn(),
-    getSpotifyHeaders: jest.fn(),
-    getNumberOfSpotifyReleases: jest.fn(),
+jest.mock('@/server/utils/musicPlatform', () => ({
+    musicPlatformData: {
+        getArtist: jest.fn(),
+        getArtistImage: jest.fn(),
+    },
 }));
 
 jest.mock('@/server/utils/services', () => ({
@@ -60,7 +61,7 @@ jest.mock('@/server/utils/dev-auth', () => ({
 import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
 import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
-import { getSpotifyImage, getSpotifyHeaders, getNumberOfSpotifyReleases } from '@/server/utils/queries/externalApiQueries';
+import { musicPlatformData } from '@/server/utils/musicPlatform';
 
 const mockArtist = {
     id: 'artist-uuid',
@@ -72,15 +73,23 @@ const mockArtist = {
     twitter: null,
 };
 
-const mockSpotifyImg = { artistImage: 'https://img.spotify.com/artist.jpg' };
-const mockHeaders = { headers: { Authorization: 'Bearer token' } };
+const mockPlatformArtist = {
+    platform: 'deezer',
+    platformId: '12345',
+    name: 'Test Artist',
+    imageUrl: 'https://cdn.deezer.com/artist.jpg',
+    followerCount: 10000,
+    albumCount: 5,
+    genres: [],
+    profileUrl: 'https://www.deezer.com/artist/12345',
+    topTrackName: 'Hit Song',
+};
 
-function setupMocks({ session = null, artist = mockArtist, spotifyImg = mockSpotifyImg } = {}) {
+function setupMocks({ session = null, artist = mockArtist } = {}) {
     (getServerAuthSession as jest.Mock).mockResolvedValue(session);
     (getArtistById as jest.Mock).mockResolvedValue(artist);
-    (getSpotifyHeaders as jest.Mock).mockResolvedValue(mockHeaders);
-    (getSpotifyImage as jest.Mock).mockResolvedValue(spotifyImg);
-    (getNumberOfSpotifyReleases as jest.Mock).mockResolvedValue(5);
+    (musicPlatformData.getArtist as jest.Mock).mockResolvedValue(mockPlatformArtist);
+    (musicPlatformData.getArtistImage as jest.Mock).mockResolvedValue('https://cdn.deezer.com/artist.jpg');
     (getAllLinks as jest.Mock).mockResolvedValue([]);
 }
 
@@ -177,10 +186,10 @@ describe('ArtistProfile page', () => {
             expect(metadata.title).toBe('Artist Not Found | Music Nerd');
         });
 
-        it('includes OpenGraph image from Spotify', async () => {
+        it('includes OpenGraph image from platform provider', async () => {
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images?.[0]).toMatchObject({
-                url: 'https://img.spotify.com/artist.jpg',
+                url: 'https://cdn.deezer.com/artist.jpg',
             });
         });
     });
