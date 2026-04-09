@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
 import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -127,17 +127,20 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
 
     if (sources.length === 0) return null;
 
-    // Build type counts for filter chips
-    const typeCounts = sources.reduce<Record<string, number>>((acc, s) => {
-        const t = s.type ?? "article";
-        acc[t] = (acc[t] ?? 0) + 1;
-        return acc;
-    }, {});
-
-    const types = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-    const filtered = activeFilter
-        ? sources.filter(s => (s.type ?? "article") === activeFilter)
-        : sources;
+    // Build type counts + filtered list (memoized)
+    const { types, filtered } = useMemo(() => {
+        const counts: Record<string, number> = {};
+        const items: typeof sources = [];
+        for (const s of sources) {
+            const t = s.type ?? "article";
+            counts[t] = (counts[t] ?? 0) + 1;
+            if (!activeFilter || t === activeFilter) items.push(s);
+        }
+        return {
+            types: Object.entries(counts).sort((a, b) => b[1] - a[1]),
+            filtered: items,
+        };
+    }, [sources, activeFilter]);
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;
@@ -191,7 +194,7 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
                 {/* Left arrow */}
                 <button
                     onClick={() => scroll("left")}
-                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-black/80 shadow-lg"
+                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white opacity-60 md:opacity-0 md:group-hover/carousel:opacity-100 transition-opacity hover:bg-black/80 shadow-lg"
                     aria-label="Scroll left"
                 >
                     <ChevronLeft size={18} />
@@ -213,7 +216,7 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
                 {/* Right arrow */}
                 <button
                     onClick={() => scroll("right")}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-black/80 shadow-lg"
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white opacity-60 md:opacity-0 md:group-hover/carousel:opacity-100 transition-opacity hover:bg-black/80 shadow-lg"
                     aria-label="Scroll right"
                 >
                     <ChevronRight size={18} />

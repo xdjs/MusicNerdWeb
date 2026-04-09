@@ -107,7 +107,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
     if (!aiBlurb || isSavingToVault) return;
     setIsSavingToVault(true);
     try {
-      const result = await saveCurrentBio(aiBlurb);
+      const result = await saveCurrentBio(aiBlurb, artistId);
       if (result.success) {
         setSavedToVault(true);
         toast({ title: "Bio saved to vault" });

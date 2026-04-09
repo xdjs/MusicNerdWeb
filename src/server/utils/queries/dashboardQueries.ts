@@ -391,10 +391,23 @@ export async function getBioVersionsByArtistId(artistId: string) {
     }
 }
 
+const MAX_BIO_VERSIONS = 50;
+
 export async function saveBioVersion(artistId: string, bioText: string, isPinned = false) {
     try {
+        // Enforce version cap — delete oldest unpinned if at limit
+        const existing = await db.query.artistBioVersions.findMany({
+            where: eq(artistBioVersions.artistId, artistId),
+            orderBy: (v, { asc }) => [asc(v.createdAt)],
+        });
+        if (existing.length >= MAX_BIO_VERSIONS) {
+            const oldest = existing.find(v => !v.isPinned);
+            if (oldest) {
+                await db.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+            }
+        }
+
         if (isPinned) {
-            // Atomic: unpin all → insert pinned
             return await db.transaction(async (tx) => {
                 await tx
                     .update(artistBioVersions)

@@ -6,16 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Pin, Trash2, Save, ChevronDown } from "lucide-react";
 import { getArtistBioVersions, saveCurrentBio, pinBioVersionAction, deleteBioVersionAction } from "@/app/actions/dashboardActions";
+import type { InferSelectModel } from "drizzle-orm";
+import type { artistBioVersions } from "@/server/db/schema";
+
+type BioVersion = InferSelectModel<typeof artistBioVersions>;
 
 interface BioVersionsSectionProps {
     currentBio: string | null;
-}
-
-interface BioVersion {
-    id: string;
-    bioText: string;
-    isPinned: boolean;
-    createdAt: string;
 }
 
 export default function BioVersionsSection({ currentBio }: BioVersionsSectionProps) {
@@ -30,7 +27,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
     useEffect(() => {
         getArtistBioVersions().then(result => {
             if (result.success && result.versions) {
-                setVersions(result.versions as BioVersion[]);
+                setVersions(result.versions);
             }
             setLoading(false);
         });
@@ -44,7 +41,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
             toast({ title: "Bio saved to versions" });
             // Refresh versions list
             const updated = await getArtistBioVersions();
-            if (updated.success && updated.versions) setVersions(updated.versions as BioVersion[]);
+            if (updated.success && updated.versions) setVersions(updated.versions);
         } else {
             toast({ title: "Error", description: result.error, variant: "destructive" });
         }
@@ -57,7 +54,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         if (result.success) {
             toast({ title: "Bio pinned — now showing on your profile" });
             const updated = await getArtistBioVersions();
-            if (updated.success && updated.versions) setVersions(updated.versions as BioVersion[]);
+            if (updated.success && updated.versions) setVersions(updated.versions);
             router.refresh();
         } else {
             toast({ title: "Error", description: result.error, variant: "destructive" });

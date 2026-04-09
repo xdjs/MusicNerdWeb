@@ -313,7 +313,7 @@ export async function getArtistBioVersions(): Promise<{ success: boolean; versio
 
 const MAX_BIO_LENGTH = 10_000;
 
-export async function saveCurrentBio(bioText: string): Promise<{ success: boolean; error?: string }> {
+export async function saveCurrentBio(bioText: string, targetArtistId?: string): Promise<{ success: boolean; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
 
@@ -322,10 +322,30 @@ export async function saveCurrentBio(bioText: string): Promise<{ success: boolea
     }
 
     try {
-        const claim = await getApprovedClaimByUserId(session.user.id);
-        if (!claim) return { success: false, error: "No claimed artist profile" };
+        let artistId: string;
 
-        await saveBioVersion(claim.artistId, bioText, false);
+        if (targetArtistId) {
+            // Admin can save bio for any artist; claimed artist can save for their own
+            const { getUserById } = await import("@/server/utils/queries/userQueries");
+            const user = await getUserById(session.user.id);
+            const isAdmin = !!user?.isAdmin;
+
+            if (isAdmin) {
+                artistId = targetArtistId;
+            } else {
+                const claim = await getApprovedClaimByUserId(session.user.id);
+                if (!claim || claim.artistId !== targetArtistId) {
+                    return { success: false, error: "Not authorized for this artist" };
+                }
+                artistId = claim.artistId;
+            }
+        } else {
+            const claim = await getApprovedClaimByUserId(session.user.id);
+            if (!claim) return { success: false, error: "No claimed artist profile" };
+            artistId = claim.artistId;
+        }
+
+        await saveBioVersion(artistId, bioText, false);
         return { success: true };
     } catch (error) {
         console.error("[saveCurrentBio] Error:", error);
