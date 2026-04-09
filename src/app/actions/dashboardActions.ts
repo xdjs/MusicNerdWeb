@@ -311,9 +311,15 @@ export async function getArtistBioVersions(): Promise<{ success: boolean; versio
     }
 }
 
+const MAX_BIO_LENGTH = 10_000;
+
 export async function saveCurrentBio(bioText: string): Promise<{ success: boolean; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
+
+    if (!bioText || bioText.length > MAX_BIO_LENGTH) {
+        return { success: false, error: `Bio must be between 1 and ${MAX_BIO_LENGTH} characters` };
+    }
 
     try {
         const claim = await getApprovedClaimByUserId(session.user.id);
@@ -351,7 +357,7 @@ export async function deleteBioVersionAction(versionId: string): Promise<{ succe
         const claim = await getApprovedClaimByUserId(session.user.id);
         if (!claim) return { success: false, error: "No claimed artist profile" };
 
-        await deleteBioVersion(versionId);
+        await deleteBioVersion(versionId, claim.artistId);
         return { success: true };
     } catch (error) {
         console.error("[deleteBioVersionAction] Error:", error);

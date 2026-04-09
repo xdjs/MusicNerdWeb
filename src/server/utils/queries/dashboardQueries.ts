@@ -393,12 +393,20 @@ export async function getBioVersionsByArtistId(artistId: string) {
 
 export async function saveBioVersion(artistId: string, bioText: string, isPinned = false) {
     try {
-        // If pinning, unpin all others first
         if (isPinned) {
-            await db
-                .update(artistBioVersions)
-                .set({ isPinned: false })
-                .where(eq(artistBioVersions.artistId, artistId));
+            // Atomic: unpin all → insert pinned
+            return await db.transaction(async (tx) => {
+                await tx
+                    .update(artistBioVersions)
+                    .set({ isPinned: false })
+                    .where(eq(artistBioVersions.artistId, artistId));
+
+                const [version] = await tx
+                    .insert(artistBioVersions)
+                    .values({ artistId, bioText, isPinned })
+                    .returning();
+                return version;
+            });
         }
 
         const [version] = await db
@@ -414,39 +422,46 @@ export async function saveBioVersion(artistId: string, bioText: string, isPinned
 
 export async function pinBioVersion(versionId: string, artistId: string) {
     try {
-        // Unpin all versions for this artist
-        await db
-            .update(artistBioVersions)
-            .set({ isPinned: false })
-            .where(eq(artistBioVersions.artistId, artistId));
+        // Verify version belongs to this artist
+        const version = await db.query.artistBioVersions.findFirst({
+            where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
+        });
+        if (!version) throw new Error("Version not found or does not belong to this artist");
 
-        // Pin the selected version
-        const [pinned] = await db
-            .update(artistBioVersions)
-            .set({ isPinned: true })
-            .where(eq(artistBioVersions.id, versionId))
-            .returning();
+        // Atomic: unpin all → pin selected → update artist bio
+        return await db.transaction(async (tx) => {
+            await tx
+                .update(artistBioVersions)
+                .set({ isPinned: false })
+                .where(eq(artistBioVersions.artistId, artistId));
 
-        // Update the artist's active bio
-        if (pinned) {
-            await db
-                .update(artists)
-                .set({ bio: pinned.bioText })
-                .where(eq(artists.id, artistId));
-        }
+            const [pinned] = await tx
+                .update(artistBioVersions)
+                .set({ isPinned: true })
+                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
+                .returning();
 
-        return pinned;
+            if (pinned) {
+                await tx
+                    .update(artists)
+                    .set({ bio: pinned.bioText })
+                    .where(eq(artists.id, artistId));
+            }
+
+            return pinned;
+        });
     } catch (e) {
         console.error("[pinBioVersion] Error:", e);
         throw e;
     }
 }
 
-export async function deleteBioVersion(versionId: string) {
+export async function deleteBioVersion(versionId: string, artistId: string) {
     try {
+        // Only delete if version belongs to this artist
         const [deleted] = await db
             .delete(artistBioVersions)
-            .where(eq(artistBioVersions.id, versionId))
+            .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
             .returning();
         return deleted;
     } catch (e) {

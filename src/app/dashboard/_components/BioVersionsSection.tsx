@@ -9,7 +9,6 @@ import { getArtistBioVersions, saveCurrentBio, pinBioVersionAction, deleteBioVer
 
 interface BioVersionsSectionProps {
     currentBio: string | null;
-    artistId: string;
 }
 
 interface BioVersion {
@@ -19,7 +18,7 @@ interface BioVersion {
     createdAt: string;
 }
 
-export default function BioVersionsSection({ currentBio, artistId }: BioVersionsSectionProps) {
+export default function BioVersionsSection({ currentBio }: BioVersionsSectionProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [versions, setVersions] = useState<BioVersion[]>([]);

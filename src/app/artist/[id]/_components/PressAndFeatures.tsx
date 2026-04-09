@@ -141,8 +141,11 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;
+        // Use first card's width + gap for scroll amount, fallback to container width
+        const firstCard = scrollRef.current.querySelector<HTMLElement>("[data-vault-card]");
+        const amount = firstCard ? firstCard.offsetWidth + 16 : scrollRef.current.clientWidth;
         scrollRef.current.scrollBy({
-            left: direction === "left" ? -320 : 320,
+            left: direction === "left" ? -amount : amount,
             behavior: "smooth",
         });
     };
@@ -201,7 +204,7 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                     {filtered.map((source) => (
-                        <div key={source.id} className="snap-start">
+                        <div key={source.id} className="snap-start" data-vault-card>
                             <SourceCard source={source} />
                         </div>
                     ))}

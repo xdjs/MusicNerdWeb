@@ -346,7 +346,6 @@ export default function DashboardContent({
                 />
                 <BioVersionsSection
                     currentBio={artistBio ?? null}
-                    artistId={artistId}
                 />
             </div>
 
