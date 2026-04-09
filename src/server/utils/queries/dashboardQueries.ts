@@ -393,40 +393,28 @@ export async function getBioVersionsByArtistId(artistId: string) {
 
 const MAX_BIO_VERSIONS = 50;
 
-export async function saveBioVersion(artistId: string, bioText: string, isPinned = false) {
+export async function saveBioVersion(artistId: string, bioText: string) {
     try {
-        // Enforce version cap — delete oldest unpinned if at limit
-        const existing = await db.query.artistBioVersions.findMany({
-            where: eq(artistBioVersions.artistId, artistId),
-            orderBy: (v, { asc }) => [asc(v.createdAt)],
-        });
-        if (existing.length >= MAX_BIO_VERSIONS) {
-            const oldest = existing.find(v => !v.isPinned);
-            if (oldest) {
-                await db.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
-            }
-        }
-
-        if (isPinned) {
-            return await db.transaction(async (tx) => {
-                await tx
-                    .update(artistBioVersions)
-                    .set({ isPinned: false })
-                    .where(eq(artistBioVersions.artistId, artistId));
-
-                const [version] = await tx
-                    .insert(artistBioVersions)
-                    .values({ artistId, bioText, isPinned })
-                    .returning();
-                return version;
+        // All operations in a single transaction to prevent TOCTOU race on version cap
+        return await db.transaction(async (tx) => {
+            // Enforce version cap — delete oldest unpinned if at limit
+            const existing = await tx.query.artistBioVersions.findMany({
+                where: eq(artistBioVersions.artistId, artistId),
+                orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
-        }
+            if (existing.length >= MAX_BIO_VERSIONS) {
+                const oldest = existing.find(v => !v.isPinned);
+                if (oldest) {
+                    await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+                }
+            }
 
-        const [version] = await db
-            .insert(artistBioVersions)
-            .values({ artistId, bioText, isPinned })
-            .returning();
-        return version;
+            const [version] = await tx
+                .insert(artistBioVersions)
+                .values({ artistId, bioText, isPinned: false })
+                .returning();
+            return version;
+        });
     } catch (e) {
         console.error("[saveBioVersion] Error:", e);
         throw e;

@@ -125,9 +125,7 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    if (sources.length === 0) return null;
-
-    // Build type counts + filtered list (memoized)
+    // Build type counts + filtered list (memoized) — must be before early return
     const { types, filtered } = useMemo(() => {
         const counts: Record<string, number> = {};
         const items: typeof sources = [];
@@ -141,6 +139,8 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
             filtered: items,
         };
     }, [sources, activeFilter]);
+
+    if (sources.length === 0) return null;
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;

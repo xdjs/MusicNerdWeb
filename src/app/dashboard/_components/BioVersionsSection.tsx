@@ -75,7 +75,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
     };
 
     const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr.endsWith("Z") ? dateStr : `${dateStr}Z`);
+        const d = new Date(dateStr);
         return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
     };
 
