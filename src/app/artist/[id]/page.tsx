@@ -111,9 +111,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                     <h1 className="text-black dark:text-white text-2xl font-bold">
                         {artist.name}
                     </h1>
-                    <div className="text-black dark:text-gray-300 text-sm">
-                        {artist && getArtistDetailsText(artist, numReleases)}
-                    </div>
+                    {/* Release count hidden for now — revisit when discography feature is built */}
                     <div className="flex justify-center gap-2 pt-1">
                         <ClaimButton
                             artistId={artist.id}
@@ -185,7 +183,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
                 {/* 7. Press & Features (vault sources) */}
                 {approvedSources.length > 0 && (
                     <RevealSection className="glass p-5 space-y-3">
-                        <h2 className="text-black dark:text-white text-xl font-bold">Press & Features</h2>
+                        <h2 className="text-black dark:text-white text-xl font-bold">Artist Vault</h2>
                         <PressAndFeatures sources={approvedSources} artistName={artist.name ?? ""} />
                     </RevealSection>
                 )}

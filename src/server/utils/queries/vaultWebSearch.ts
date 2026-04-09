@@ -172,6 +172,7 @@ If you cannot find any results specifically about this artist, return an empty a
                             title: content.title,
                             snippet: content.snippet,
                             extractedText: content.extractedText,
+                            ogImage: content.ogImage,
                         }).catch(e => console.error("[vaultWebSearch] Background content update failed:", e));
                     }).catch(e => console.error("[vaultWebSearch] Background fetch failed:", e));
                 }

@@ -98,6 +98,7 @@ export default async function Dashboard() {
                 artistId={claim.artistId}
                 artistImage={currentImage}
                 artistSpotify={artist?.spotify ?? null}
+                artistBio={artist?.bio ?? null}
                 pendingSources={pendingSources}
                 approvedSources={approvedSources}
                 artistLinks={artistLinks}

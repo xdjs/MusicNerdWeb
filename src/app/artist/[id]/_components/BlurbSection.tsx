@@ -5,7 +5,8 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
-import { RefreshCw, ChevronDown } from "lucide-react";
+import { RefreshCw, ChevronDown, Pin, Check } from "lucide-react";
+import { saveCurrentBio } from "@/app/actions/dashboardActions";
 
 interface BlurbSectionProps {
   artistName: string;
@@ -35,6 +36,8 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isSavingToVault, setIsSavingToVault] = useState(false);
+  const [savedToVault, setSavedToVault] = useState(false);
   const [originalBio, setOriginalBio] = useState<string>("");
 
   // Update edit text when bio changes
@@ -98,6 +101,25 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
 
   function handleDiscard() {
     setEditText(originalBio);
+  }
+
+  async function handleSaveToVault() {
+    if (!aiBlurb || isSavingToVault) return;
+    setIsSavingToVault(true);
+    try {
+      const result = await saveCurrentBio(aiBlurb);
+      if (result.success) {
+        setSavedToVault(true);
+        toast({ title: "Bio saved to vault" });
+        setTimeout(() => setSavedToVault(false), 3000);
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to save bio", variant: "destructive" });
+    } finally {
+      setIsSavingToVault(false);
+    }
   }
 
   async function handleRegenerate() {
@@ -210,16 +232,39 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
         )}
       </div>
 
-      {/* Controls row: Read More / Show Less + Regenerate */}
+      {/* Controls row */}
       <div className="flex items-center justify-between px-1">
-        <button
-          onClick={handleRegenerate}
-          disabled={isRegenerating}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors"
-        >
-          <RefreshCw size={11} className={isRegenerating ? "animate-spin" : ""} />
-          {isRegenerating ? "Regenerating..." : "Regenerate summary"}
-        </button>
+        <div className="flex items-center gap-3">
+          {canEdit && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors"
+            >
+              <RefreshCw size={11} className={isRegenerating ? "animate-spin" : ""} />
+              {isRegenerating ? "Regenerating..." : "Regenerate"}
+            </button>
+          )}
+          {canEdit && aiBlurb && (
+            <button
+              onClick={handleSaveToVault}
+              disabled={isSavingToVault || savedToVault}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-pastypink transition-colors"
+            >
+              {savedToVault ? (
+                <>
+                  <Check size={11} className="text-green-500" />
+                  <span className="text-green-500">Saved</span>
+                </>
+              ) : (
+                <>
+                  <Pin size={11} />
+                  {isSavingToVault ? "Saving..." : "Save to vault"}
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {needsTruncation && (
           <button
