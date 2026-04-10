@@ -11,6 +11,11 @@ import type { artistBioVersions } from "@/server/db/schema";
 
 type BioVersion = InferSelectModel<typeof artistBioVersions>;
 
+function formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 interface BioVersionsSectionProps {
     currentBio: string | null;
 }
@@ -88,11 +93,6 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         } finally {
             setActionId(null);
         }
-    };
-
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
     };
 
     return (

@@ -296,15 +296,15 @@ export async function removeVaultSources(
 
 // ------ Bio Versions ------
 
-export async function getArtistBioVersions(): Promise<{ success: boolean; versions?: Awaited<ReturnType<typeof getBioVersionsByArtistId>>; error?: string }> {
+export async function getArtistBioVersions(targetArtistId?: string): Promise<{ success: boolean; versions?: Awaited<ReturnType<typeof getBioVersionsByArtistId>>; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
 
     try {
-        const claim = await getApprovedClaimByUserId(session.user.id);
-        if (!claim) return { success: false, error: "No claimed artist profile" };
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
 
-        const versions = await getBioVersionsByArtistId(claim.artistId);
+        const versions = await getBioVersionsByArtistId(resolved.artistId);
         return { success: true, versions };
     } catch (error) {
         console.error("[getArtistBioVersions] Error:", error);

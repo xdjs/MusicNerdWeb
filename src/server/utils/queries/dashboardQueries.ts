@@ -455,18 +455,20 @@ export async function pinBioVersion(versionId: string, artistId: string) {
 
 export async function deleteBioVersion(versionId: string, artistId: string) {
     try {
-        // Check if version exists and its state
-        const version = await db.query.artistBioVersions.findFirst({
-            where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
-        });
-        if (!version) return undefined; // not found
-        if (version.isPinned) throw new Error("Cannot delete a pinned bio version");
+        // Atomic check + delete to prevent TOCTOU race with concurrent pin
+        return await db.transaction(async (tx) => {
+            const version = await tx.query.artistBioVersions.findFirst({
+                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
+            });
+            if (!version) return undefined;
+            if (version.isPinned) throw new Error("Cannot delete a pinned bio version");
 
-        const [deleted] = await db
-            .delete(artistBioVersions)
-            .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
-            .returning();
-        return deleted;
+            const [deleted] = await tx
+                .delete(artistBioVersions)
+                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
+                .returning();
+            return deleted;
+        });
     } catch (e) {
         console.error("[deleteBioVersion] Error:", e);
         throw e;
