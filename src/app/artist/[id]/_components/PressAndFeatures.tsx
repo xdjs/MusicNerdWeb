@@ -26,6 +26,8 @@ function getSourceDomain(url: string): string {
     }
 }
 
+// Privacy note: Google favicon service sees which domains are rendered.
+// Consider self-hosted proxy if this becomes a concern.
 function getFaviconUrl(url: string): string {
     try {
         const domain = new URL(url).hostname;

@@ -397,7 +397,7 @@ export const artistBioVersions = pgTable("artist_bio_versions", {
 		columns: [table.artistId],
 		foreignColumns: [artists.id],
 		name: "artist_bio_versions_artist_id_fkey"
-	}),
+	}).onDelete("cascade"),
 	pgPolicy("mnweb_select_artist_bio_versions", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
 	pgPolicy("mnweb_insert_artist_bio_versions", { as: "permissive", for: "insert", to: ["mnweb"] }),
 	pgPolicy("mnweb_update_artist_bio_versions", { as: "permissive", for: "update", to: ["mnweb"] }),

@@ -330,7 +330,8 @@ export async function saveCurrentBio(bioText: string, targetArtistId?: string): 
         return { success: true };
     } catch (error) {
         console.error("[saveCurrentBio] Error:", error);
-        return { success: false, error: "Failed to save bio" };
+        const message = error instanceof Error ? error.message : "Failed to save bio";
+        return { success: false, error: message };
     }
 }
 
@@ -378,6 +379,7 @@ export async function deleteBioVersionAction(versionId: string, targetArtistId?:
         return { success: true };
     } catch (error) {
         console.error("[deleteBioVersionAction] Error:", error);
-        return { success: false, error: "Failed to delete bio version" };
+        const message = error instanceof Error ? error.message : "Failed to delete bio version";
+        return { success: false, error: message };
     }
 }

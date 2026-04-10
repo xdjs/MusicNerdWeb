@@ -8,7 +8,7 @@ CREATE TABLE "artist_bio_versions" (
 --> statement-breakpoint
 ALTER TABLE "artist_bio_versions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "artist_vault_sources" ADD COLUMN "og_image" text;--> statement-breakpoint
-ALTER TABLE "artist_bio_versions" ADD CONSTRAINT "artist_bio_versions_artist_id_fkey" FOREIGN KEY ("artist_id") REFERENCES "public"."artists"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "artist_bio_versions" ADD CONSTRAINT "artist_bio_versions_artist_id_fkey" FOREIGN KEY ("artist_id") REFERENCES "public"."artists"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_artist_bio_versions_artist_id" ON "artist_bio_versions" USING btree ("artist_id" uuid_ops);--> statement-breakpoint
 CREATE POLICY "mnweb_select_artist_bio_versions" ON "artist_bio_versions" AS PERMISSIVE FOR SELECT TO "mnweb" USING (true);--> statement-breakpoint
 CREATE POLICY "mnweb_insert_artist_bio_versions" ON "artist_bio_versions" AS PERMISSIVE FOR INSERT TO "mnweb";--> statement-breakpoint
