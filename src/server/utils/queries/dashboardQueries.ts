@@ -404,9 +404,10 @@ export async function saveBioVersion(artistId: string, bioText: string) {
             });
             if (existing.length >= MAX_BIO_VERSIONS) {
                 const oldest = existing.find(v => !v.isPinned);
-                if (oldest) {
-                    await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+                if (!oldest) {
+                    throw new Error("Bio version limit reached — unpin or delete a version first");
                 }
+                await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
             }
 
             const [version] = await tx
@@ -423,13 +424,8 @@ export async function saveBioVersion(artistId: string, bioText: string) {
 
 export async function pinBioVersion(versionId: string, artistId: string) {
     try {
-        // Verify version belongs to this artist
-        const version = await db.query.artistBioVersions.findFirst({
-            where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
-        });
-        if (!version) throw new Error("Version not found or does not belong to this artist");
-
         // Atomic: unpin all → pin selected → update artist bio
+        // Ownership is enforced by the WHERE clause (artistId match)
         return await db.transaction(async (tx) => {
             await tx
                 .update(artistBioVersions)

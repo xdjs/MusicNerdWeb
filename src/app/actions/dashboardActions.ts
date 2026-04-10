@@ -323,29 +323,10 @@ export async function saveCurrentBio(bioText: string, targetArtistId?: string): 
     }
 
     try {
-        let artistId: string;
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
 
-        if (targetArtistId) {
-            // Admin can save bio for any artist; claimed artist can save for their own
-            const user = await getUserById(session.user.id);
-            const isAdmin = !!user?.isAdmin;
-
-            if (isAdmin) {
-                artistId = targetArtistId;
-            } else {
-                const claim = await getApprovedClaimByUserId(session.user.id);
-                if (!claim || claim.artistId !== targetArtistId) {
-                    return { success: false, error: "Not authorized for this artist" };
-                }
-                artistId = claim.artistId;
-            }
-        } else {
-            const claim = await getApprovedClaimByUserId(session.user.id);
-            if (!claim) return { success: false, error: "No claimed artist profile" };
-            artistId = claim.artistId;
-        }
-
-        await saveBioVersion(artistId, bioText);
+        await saveBioVersion(resolved.artistId, bioText);
         return { success: true };
     } catch (error) {
         console.error("[saveCurrentBio] Error:", error);

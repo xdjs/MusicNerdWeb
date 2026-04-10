@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
-import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface VaultSource {
     id: string;

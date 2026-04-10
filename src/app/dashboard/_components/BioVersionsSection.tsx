@@ -29,49 +29,64 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
             if (result.success && result.versions) {
                 setVersions(result.versions);
             }
-            setLoading(false);
-        });
-    }, []);
+        }).catch(() => {
+            toast({ title: "Error", description: "Failed to load bio versions", variant: "destructive" });
+        }).finally(() => setLoading(false));
+    }, [toast]);
 
     const handleSaveCurrent = async () => {
         if (!currentBio) return;
         setSaving(true);
-        const result = await saveCurrentBio(currentBio);
-        if (result.success) {
-            toast({ title: "Bio saved to versions" });
-            // Refresh versions list
-            const updated = await getArtistBioVersions();
-            if (updated.success && updated.versions) setVersions(updated.versions);
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
+        try {
+            const result = await saveCurrentBio(currentBio);
+            if (result.success) {
+                toast({ title: "Bio saved to versions" });
+                const updated = await getArtistBioVersions();
+                if (updated.success && updated.versions) setVersions(updated.versions);
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        } catch {
+            toast({ title: "Error", description: "Failed to save bio", variant: "destructive" });
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     const handlePin = async (versionId: string) => {
         setActionId(versionId);
-        const result = await pinBioVersionAction(versionId);
-        if (result.success) {
-            toast({ title: "Bio pinned — now showing on your profile" });
-            const updated = await getArtistBioVersions();
-            if (updated.success && updated.versions) setVersions(updated.versions);
-            router.refresh();
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
+        try {
+            const result = await pinBioVersionAction(versionId);
+            if (result.success) {
+                toast({ title: "Bio pinned — now showing on your profile" });
+                const updated = await getArtistBioVersions();
+                if (updated.success && updated.versions) setVersions(updated.versions);
+                router.refresh();
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        } catch {
+            toast({ title: "Error", description: "Failed to pin bio", variant: "destructive" });
+        } finally {
+            setActionId(null);
         }
-        setActionId(null);
     };
 
     const handleDelete = async (versionId: string) => {
         setActionId(versionId);
-        const result = await deleteBioVersionAction(versionId);
-        if (result.success) {
-            toast({ title: "Bio version deleted" });
-            setVersions(prev => prev.filter(v => v.id !== versionId));
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
+        try {
+            const result = await deleteBioVersionAction(versionId);
+            if (result.success) {
+                toast({ title: "Bio version deleted" });
+                setVersions(prev => prev.filter(v => v.id !== versionId));
+            } else {
+                toast({ title: "Error", description: result.error, variant: "destructive" });
+            }
+        } catch {
+            toast({ title: "Error", description: "Failed to delete bio version", variant: "destructive" });
+        } finally {
+            setActionId(null);
         }
-        setActionId(null);
     };
 
     const formatDate = (dateStr: string) => {
