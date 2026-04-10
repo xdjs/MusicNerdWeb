@@ -3,7 +3,7 @@ import { musicPlatformData } from "@/server/utils/musicPlatform";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
 import BookmarkButton from "@/app/_components/BookmarkButton";
 import ClaimButton from "./_components/ClaimButton";
-import { getArtistDetailsText } from "@/server/utils/services";
+// import { getArtistDetailsText } from "@/server/utils/services"; // Hidden until discography feature
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
@@ -87,7 +87,7 @@ export default async function ArtistProfile({ params }: ArtistProfileProps) {
     ]);
 
     const platformImage = platformData?.imageUrl ?? null;
-    const numReleases = platformData?.albumCount ?? 0;
+    // const numReleases = platformData?.albumCount ?? 0; // Hidden until discography feature
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";

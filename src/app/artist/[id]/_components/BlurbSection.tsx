@@ -38,6 +38,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isSavingToVault, setIsSavingToVault] = useState(false);
   const [savedToVault, setSavedToVault] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [originalBio, setOriginalBio] = useState<string>("");
 
   // Update edit text when bio changes
@@ -65,6 +66,11 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
       setNeedsTruncation(true);
     }
   }, [aiBlurb]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
+  }, []);
 
   async function handleSave() {
     // Prevent saving empty bios – restore original text instead
@@ -111,7 +117,8 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
       if (result.success) {
         setSavedToVault(true);
         toast({ title: "Bio saved to vault" });
-        setTimeout(() => setSavedToVault(false), 3000);
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSavedToVault(false), 3000);
       } else {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       }
