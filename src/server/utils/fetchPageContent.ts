@@ -2,6 +2,7 @@ export interface PageContent {
     title: string;
     snippet?: string;
     extractedText: string | null;
+    ogImage?: string;
 }
 
 /** Decode HTML entities (&#8217; → ', &amp; → &, etc.) */
@@ -77,6 +78,7 @@ export async function fetchPageContent(url: string): Promise<PageContent> {
     let title = "Untitled Source";
     let snippet: string | undefined;
     let extractedText: string | null = null;
+    let ogImage: string | undefined;
 
     if (isUnsafeUrl(url)) {
         return { title, extractedText: null };
@@ -109,6 +111,15 @@ export async function fetchPageContent(url: string): Promise<PageContent> {
                 if (ogMatch?.[1]) snippet = decodeEntities(ogMatch[1].trim());
             }
 
+            // Extract og:image
+            const ogImgMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+                ?? html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+            if (ogImgMatch?.[1]) {
+                const imgUrl = ogImgMatch[1].trim();
+                // Only use https images, skip data URIs and relative paths
+                if (imgUrl.startsWith("https://")) ogImage = imgUrl;
+            }
+
             // Extract body text (strip tags, collapse whitespace)
             const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
             if (bodyMatch?.[1]) {
@@ -127,5 +138,5 @@ export async function fetchPageContent(url: string): Promise<PageContent> {
         // Fetch failed — return what we have
     }
 
-    return { title, snippet, extractedText };
+    return { title, snippet, extractedText, ogImage };
 }

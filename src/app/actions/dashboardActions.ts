@@ -2,6 +2,7 @@
 
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
+import { getUserById } from "@/server/utils/queries/userQueries";
 import {
     createClaim,
     getClaimByArtistId,
@@ -15,6 +16,10 @@ import {
     deleteVaultSource,
     deleteVaultSources,
     deleteClaim,
+    getBioVersionsByArtistId,
+    saveBioVersion,
+    pinBioVersion,
+    deleteBioVersion,
 } from "@/server/utils/queries/dashboardQueries";
 import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
@@ -210,6 +215,7 @@ export async function addVaultSource(
                     title: content.title,
                     snippet: content.snippet,
                     extractedText: content.extractedText,
+                    ogImage: content.ogImage,
                 }).catch(e => console.error("[addVaultSource] Background content update failed:", e));
             }).catch(e => console.error("[addVaultSource] Background fetch failed:", e));
         }
@@ -285,5 +291,95 @@ export async function removeVaultSources(
     } catch (error) {
         console.error("[removeVaultSources] Error:", error);
         return { success: false, error: "Failed to delete sources" };
+    }
+}
+
+// ------ Bio Versions ------
+
+export async function getArtistBioVersions(targetArtistId?: string): Promise<{ success: boolean; versions?: Awaited<ReturnType<typeof getBioVersionsByArtistId>>; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: "Not authenticated" };
+
+    try {
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
+
+        const versions = await getBioVersionsByArtistId(resolved.artistId);
+        return { success: true, versions };
+    } catch (error) {
+        console.error("[getArtistBioVersions] Error:", error);
+        return { success: false, error: "Failed to load bio versions" };
+    }
+}
+
+const MAX_BIO_LENGTH = 10_000;
+
+export async function saveCurrentBio(bioText: string, targetArtistId?: string): Promise<{ success: boolean; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: "Not authenticated" };
+
+    if (!bioText || bioText.length > MAX_BIO_LENGTH) {
+        return { success: false, error: `Bio must be between 1 and ${MAX_BIO_LENGTH} characters` };
+    }
+
+    try {
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
+
+        await saveBioVersion(resolved.artistId, bioText);
+        return { success: true };
+    } catch (error) {
+        console.error("[saveCurrentBio] Error:", error);
+        const message = error instanceof Error ? error.message : "Failed to save bio";
+        return { success: false, error: message };
+    }
+}
+
+/** Resolve the artistId for bio version actions — admin can target any artist via the version's owner */
+async function resolveBioArtistId(userId: string, targetArtistId?: string): Promise<{ artistId: string } | { error: string }> {
+    if (targetArtistId) {
+        const user = await getUserById(userId);
+        if (user?.isAdmin) return { artistId: targetArtistId };
+        const claim = await getApprovedClaimByUserId(userId);
+        if (!claim || claim.artistId !== targetArtistId) return { error: "Not authorized for this artist" };
+        return { artistId: claim.artistId };
+    }
+    const claim = await getApprovedClaimByUserId(userId);
+    if (!claim) return { error: "No claimed artist profile" };
+    return { artistId: claim.artistId };
+}
+
+export async function pinBioVersionAction(versionId: string, targetArtistId?: string): Promise<{ success: boolean; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: "Not authenticated" };
+
+    try {
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
+
+        const pinned = await pinBioVersion(versionId, resolved.artistId);
+        if (!pinned) return { success: false, error: "Bio version not found" };
+        return { success: true };
+    } catch (error) {
+        console.error("[pinBioVersionAction] Error:", error);
+        return { success: false, error: "Failed to pin bio version" };
+    }
+}
+
+export async function deleteBioVersionAction(versionId: string, targetArtistId?: string): Promise<{ success: boolean; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: "Not authenticated" };
+
+    try {
+        const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
+        if ("error" in resolved) return { success: false, error: resolved.error };
+
+        const deleted = await deleteBioVersion(versionId, resolved.artistId);
+        if (!deleted) return { success: false, error: "Bio version not found" };
+        return { success: true };
+    } catch (error) {
+        console.error("[deleteBioVersionAction] Error:", error);
+        const message = error instanceof Error ? error.message : "Failed to delete bio version";
+        return { success: false, error: message };
     }
 }

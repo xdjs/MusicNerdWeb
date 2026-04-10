@@ -14,6 +14,7 @@ import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
 import type { ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
 import DashboardLinksSection from "./DashboardLinksSection";
+import BioVersionsSection from "./BioVersionsSection";
 
 interface FileUploadStatus {
     name: string;
@@ -26,6 +27,7 @@ interface DashboardContentProps {
     artistId: string;
     artistImage: string;
     artistSpotify?: string | null;
+    artistBio?: string | null;
     pendingSources: ArtistVaultSource[];
     approvedSources: ArtistVaultSource[];
     artistLinks: ArtistLink[];
@@ -37,6 +39,7 @@ export default function DashboardContent({
     artistId,
     artistImage,
     artistSpotify,
+    artistBio,
     pendingSources,
     approvedSources,
     artistLinks,
@@ -333,13 +336,18 @@ export default function DashboardContent({
             {/* Two-column layout on desktop */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Left column: Manage Links */}
-            <DashboardLinksSection
-                artistId={artistId}
-                artistSpotify={artistSpotify}
-                artistLinks={artistLinks}
-                availableLinks={availableLinks}
-            />
+            {/* Left column: Manage Links + Bio Versions */}
+            <div className="space-y-6">
+                <DashboardLinksSection
+                    artistId={artistId}
+                    artistSpotify={artistSpotify}
+                    artistLinks={artistLinks}
+                    availableLinks={availableLinks}
+                />
+                <BioVersionsSection
+                    currentBio={artistBio ?? null}
+                />
+            </div>
 
             {/* Right column: Vault Sources */}
             <div className="space-y-6">
@@ -367,6 +375,19 @@ export default function DashboardContent({
                         {loading ? "Seeding..." : "Seed Mock Data"}
                     </Button>
                 )}
+            </div>
+
+            {/* Context note */}
+            <div className="glass-subtle p-4 flex gap-3 items-start">
+                <div className="shrink-0 w-8 h-8 rounded-full bg-pastypink/10 flex items-center justify-center">
+                    <Globe size={16} className="text-pastypink" />
+                </div>
+                <div>
+                    <p className="text-sm font-medium text-black dark:text-white">Your vault powers your profile</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        Approved sources are used as context for your <strong>Artist Summary</strong> and the <strong>Ask About</strong> section on your profile. The more quality sources you add, the better your AI-generated content will be.
+                    </p>
+                </div>
             </div>
 
             {/* Add Source: URL + File Upload */}

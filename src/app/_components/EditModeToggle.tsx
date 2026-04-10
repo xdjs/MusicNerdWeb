@@ -15,7 +15,7 @@ export default function EditModeToggle() {
             size="sm"
             onClick={toggle}
             data-testid="edit-mode-toggle"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200 border-pastypink/50 text-pastypink hover:bg-pastypink hover:text-white"
         >
             {isEditing ? <Check size={14} /> : <Pencil size={14} />}
             {isEditing ? "Done" : "Edit"}

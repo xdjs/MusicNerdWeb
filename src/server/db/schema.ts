@@ -369,6 +369,7 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	filePath: text("file_path"),
 	contentType: text("content_type"),
 	extractedText: text("extracted_text"),
+	ogImage: text("og_image"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
@@ -382,6 +383,25 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	pgPolicy("mnweb_insert_artist_vault_sources", { as: "permissive", for: "insert", to: ["mnweb"] }),
 	pgPolicy("mnweb_select_artist_vault_sources", { as: "permissive", for: "select", to: ["mnweb"] }),
 	pgPolicy("mnweb_update_artist_vault_sources", { as: "permissive", for: "update", to: ["mnweb"] }),
+]);
+
+export const artistBioVersions = pgTable("artist_bio_versions", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	artistId: uuid("artist_id").notNull(),
+	bioText: text("bio_text").notNull(),
+	isPinned: boolean("is_pinned").default(false).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+}, (table) => [
+	index("idx_artist_bio_versions_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+		columns: [table.artistId],
+		foreignColumns: [artists.id],
+		name: "artist_bio_versions_artist_id_fkey"
+	}).onDelete("cascade"),
+	pgPolicy("mnweb_select_artist_bio_versions", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_artist_bio_versions", { as: "permissive", for: "insert", to: ["mnweb"] }),
+	pgPolicy("mnweb_update_artist_bio_versions", { as: "permissive", for: "update", to: ["mnweb"] }),
+	pgPolicy("mnweb_delete_artist_bio_versions", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
 ]);
 
 export const exclusionReason = pgEnum("exclusion_reason", [
@@ -504,6 +524,14 @@ export const artistsRelations = relations(artists, ({one, many}) => ({
 	}),
 	artistClaims: many(artistClaims),
 	artistVaultSources: many(artistVaultSources),
+	artistBioVersions: many(artistBioVersions),
+}));
+
+export const artistBioVersionsRelations = relations(artistBioVersions, ({one}) => ({
+	artist: one(artists, {
+		fields: [artistBioVersions.artistId],
+		references: [artists.id]
+	}),
 }));
 
 export const usersRelations = relations(users, ({many}) => ({

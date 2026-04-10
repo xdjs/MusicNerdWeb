@@ -1,6 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists } from "@/server/db/schema";
 
 export async function getClaimByArtistId(artistId: string) {
     try {
@@ -304,6 +304,7 @@ export async function updateVaultSourceContent(sourceId: string, data: {
     title?: string;
     snippet?: string;
     extractedText?: string | null;
+    ogImage?: string;
 }) {
     try {
         const [updated] = await db
@@ -312,6 +313,7 @@ export async function updateVaultSourceContent(sourceId: string, data: {
                 ...(data.title !== undefined ? { title: data.title } : {}),
                 ...(data.snippet !== undefined ? { snippet: data.snippet } : {}),
                 ...(data.extractedText !== undefined ? { extractedText: data.extractedText } : {}),
+                ...(data.ogImage !== undefined ? { ogImage: data.ogImage } : {}),
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
             .where(eq(artistVaultSources.id, sourceId))
@@ -371,6 +373,104 @@ export async function seedMockVaultSources(artistId: string) {
         return await db.insert(artistVaultSources).values(mockSources).returning();
     } catch (e) {
         console.error("[seedMockVaultSources] Error:", e);
+        throw e;
+    }
+}
+
+// ------ Bio Versions ------
+
+export async function getBioVersionsByArtistId(artistId: string) {
+    try {
+        return await db.query.artistBioVersions.findMany({
+            where: eq(artistBioVersions.artistId, artistId),
+            orderBy: (versions, { desc }) => [desc(versions.createdAt)],
+        });
+    } catch (e) {
+        console.error("[getBioVersionsByArtistId] Error:", e);
+        return [];
+    }
+}
+
+const MAX_BIO_VERSIONS = 50;
+
+export async function saveBioVersion(artistId: string, bioText: string) {
+    try {
+        // All operations in a single transaction to prevent TOCTOU race on version cap
+        return await db.transaction(async (tx) => {
+            // Enforce version cap — delete oldest unpinned if at limit
+            const existing = await tx.query.artistBioVersions.findMany({
+                where: eq(artistBioVersions.artistId, artistId),
+                orderBy: (v, { asc }) => [asc(v.createdAt)],
+            });
+            if (existing.length >= MAX_BIO_VERSIONS) {
+                const oldest = existing.find(v => !v.isPinned);
+                if (!oldest) {
+                    throw new Error("Bio version limit reached — unpin or delete a version first");
+                }
+                await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+            }
+
+            const [version] = await tx
+                .insert(artistBioVersions)
+                .values({ artistId, bioText, isPinned: false })
+                .returning();
+            return version;
+        });
+    } catch (e) {
+        console.error("[saveBioVersion] Error:", e);
+        throw e;
+    }
+}
+
+export async function pinBioVersion(versionId: string, artistId: string) {
+    try {
+        // Atomic: unpin all → pin selected → update artist bio
+        // Ownership is enforced by the WHERE clause (artistId match)
+        return await db.transaction(async (tx) => {
+            await tx
+                .update(artistBioVersions)
+                .set({ isPinned: false })
+                .where(eq(artistBioVersions.artistId, artistId));
+
+            const [pinned] = await tx
+                .update(artistBioVersions)
+                .set({ isPinned: true })
+                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
+                .returning();
+
+            if (pinned) {
+                await tx
+                    .update(artists)
+                    .set({ bio: pinned.bioText })
+                    .where(eq(artists.id, artistId));
+            }
+
+            return pinned;
+        });
+    } catch (e) {
+        console.error("[pinBioVersion] Error:", e);
+        throw e;
+    }
+}
+
+export async function deleteBioVersion(versionId: string, artistId: string) {
+    try {
+        // Atomic check + delete to prevent TOCTOU race with concurrent pin
+        return await db.transaction(async (tx) => {
+            const version = await tx.query.artistBioVersions.findFirst({
+                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
+            });
+            if (!version) return undefined;
+            if (version.isPinned) throw new Error("Cannot delete a pinned bio version");
+
+            const [deleted] = await tx
+                .delete(artistBioVersions)
+                .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
+                .returning();
+            return deleted;
+        });
+    } catch (e) {
+        console.error("[deleteBioVersion] Error:", e);
         throw e;
     }
 }
