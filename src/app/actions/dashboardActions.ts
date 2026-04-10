@@ -356,7 +356,8 @@ export async function pinBioVersionAction(versionId: string, targetArtistId?: st
         const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
         if ("error" in resolved) return { success: false, error: resolved.error };
 
-        await pinBioVersion(versionId, resolved.artistId);
+        const pinned = await pinBioVersion(versionId, resolved.artistId);
+        if (!pinned) return { success: false, error: "Bio version not found" };
         return { success: true };
     } catch (error) {
         console.error("[pinBioVersionAction] Error:", error);
@@ -372,7 +373,8 @@ export async function deleteBioVersionAction(versionId: string, targetArtistId?:
         const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
         if ("error" in resolved) return { success: false, error: resolved.error };
 
-        await deleteBioVersion(versionId, resolved.artistId);
+        const deleted = await deleteBioVersion(versionId, resolved.artistId);
+        if (!deleted) return { success: false, error: "Bio version not found" };
         return { success: true };
     } catch (error) {
         console.error("[deleteBioVersionAction] Error:", error);

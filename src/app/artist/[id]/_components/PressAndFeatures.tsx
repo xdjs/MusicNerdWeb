@@ -140,8 +140,6 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
         };
     }, [sources, activeFilter]);
 
-    if (sources.length === 0) return null;
-
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;
         // Use first card's width + gap for scroll amount, fallback to container width
@@ -152,6 +150,8 @@ export default function PressAndFeatures({ sources, artistName }: PressAndFeatur
             behavior: "smooth",
         });
     };
+
+    if (sources.length === 0) return null;
 
     return (
         <div className="space-y-3">
