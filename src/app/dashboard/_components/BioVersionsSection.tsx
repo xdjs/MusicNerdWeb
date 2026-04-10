@@ -13,6 +13,7 @@ type BioVersion = InferSelectModel<typeof artistBioVersions>;
 
 function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
@@ -27,7 +28,8 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    const [actionId, setActionId] = useState<string | null>(null);
+    const [pinningId, setPinningId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         getArtistBioVersions().then(result => {
@@ -37,6 +39,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         }).catch(() => {
             toast({ title: "Error", description: "Failed to load bio versions", variant: "destructive" });
         }).finally(() => setLoading(false));
+    // Mount-only: toast is stable across renders, versions fetched once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -60,13 +63,13 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
     };
 
     const handlePin = async (versionId: string) => {
-        setActionId(versionId);
+        setPinningId(versionId);
         try {
             const result = await pinBioVersionAction(versionId);
             if (result.success) {
                 toast({ title: "Bio pinned — now showing on your profile" });
-                const updated = await getArtistBioVersions();
-                if (updated.success && updated.versions) setVersions(updated.versions);
+                // Optimistic local update — flip isPinned on the target row
+                setVersions(prev => prev.map(v => ({ ...v, isPinned: v.id === versionId })));
                 router.refresh();
             } else {
                 toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -74,12 +77,12 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         } catch {
             toast({ title: "Error", description: "Failed to pin bio", variant: "destructive" });
         } finally {
-            setActionId(null);
+            setPinningId(null);
         }
     };
 
     const handleDelete = async (versionId: string) => {
-        setActionId(versionId);
+        setDeletingId(versionId);
         try {
             const result = await deleteBioVersionAction(versionId);
             if (result.success) {
@@ -91,7 +94,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         } catch {
             toast({ title: "Error", description: "Failed to delete bio version", variant: "destructive" });
         } finally {
-            setActionId(null);
+            setDeletingId(null);
         }
     };
 
@@ -144,7 +147,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handlePin(version.id)}
-                                            disabled={actionId === version.id}
+                                            disabled={pinningId === version.id}
                                             className="h-7 px-2 text-xs text-muted-foreground hover:text-pastypink"
                                         >
                                             <Pin size={12} className="mr-1" />
@@ -156,7 +159,7 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleDelete(version.id)}
-                                            disabled={actionId === version.id}
+                                            disabled={deletingId === version.id}
                                             className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
                                         >
                                             <Trash2 size={12} />
