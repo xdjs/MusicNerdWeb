@@ -32,7 +32,8 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
         }).catch(() => {
             toast({ title: "Error", description: "Failed to load bio versions", variant: "destructive" });
         }).finally(() => setLoading(false));
-    }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSaveCurrent = async () => {
         if (!currentBio) return;
@@ -150,15 +151,17 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
                                             Pin
                                         </Button>
                                     )}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDelete(version.id)}
-                                        disabled={actionId === version.id}
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
-                                    >
-                                        <Trash2 size={12} />
-                                    </Button>
+                                    {!version.isPinned && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDelete(version.id)}
+                                            disabled={actionId === version.id}
+                                            className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                                        >
+                                            <Trash2 size={12} />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                             <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">

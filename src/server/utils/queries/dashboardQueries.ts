@@ -455,10 +455,14 @@ export async function pinBioVersion(versionId: string, artistId: string) {
 
 export async function deleteBioVersion(versionId: string, artistId: string) {
     try {
-        // Only delete if version belongs to this artist
+        // Only delete if version belongs to this artist and is not pinned
         const [deleted] = await db
             .delete(artistBioVersions)
-            .where(and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)))
+            .where(and(
+                eq(artistBioVersions.id, versionId),
+                eq(artistBioVersions.artistId, artistId),
+                eq(artistBioVersions.isPinned, false),
+            ))
             .returning();
         return deleted;
     } catch (e) {
