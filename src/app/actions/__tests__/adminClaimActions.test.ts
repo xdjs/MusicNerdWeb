@@ -13,6 +13,7 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     deleteClaim: jest.fn(),
     getAllClaims: jest.fn(),
     getClaimById: jest.fn(),
+    revokeApprovedClaim: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
     searchAndPopulateVault: jest.fn().mockResolvedValue(0),
@@ -23,6 +24,16 @@ jest.mock("@/server/utils/queries/discord", () => ({
 jest.mock("@/app/api/mcp/audit", () => ({
     logMcpAudit: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("@/server/lib/supabase", () => {
+    const list = jest.fn().mockResolvedValue({ data: [], error: null });
+    const remove = jest.fn().mockResolvedValue({ error: null });
+    const from = jest.fn(() => ({ list, remove }));
+    return {
+        getSupabaseAdmin: jest.fn(() => ({ storage: { from } })),
+        VAULT_BUCKET: "vault-files",
+        __storageMocks: { list, remove, from },
+    };
+});
 
 describe("adminClaimActions", () => {
     beforeEach(() => {
@@ -32,8 +43,10 @@ describe("adminClaimActions", () => {
     async function setup() {
         const { getServerAuthSession } = await import("@/server/auth");
         const { getUserById } = await import("@/server/utils/queries/userQueries");
-        const { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById } = await import("@/server/utils/queries/dashboardQueries");
+        const { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById, revokeApprovedClaim } = await import("@/server/utils/queries/dashboardQueries");
         const { searchAndPopulateVault } = await import("@/server/utils/queries/vaultWebSearch");
+        const supabaseMod = await import("@/server/lib/supabase");
+        const storageMocks = (supabaseMod as any).__storageMocks;
         const { approveClaimAction, rejectClaimAction, revokeClaimAction, getAdminAllClaims } = await import("../adminClaimActions");
 
         return {
@@ -44,7 +57,11 @@ describe("adminClaimActions", () => {
             deleteClaim: deleteClaim as jest.Mock,
             getAllClaims: getAllClaims as jest.Mock,
             getClaimById: getClaimById as jest.Mock,
+            revokeApprovedClaim: revokeApprovedClaim as jest.Mock,
             searchAndPopulateVault: searchAndPopulateVault as jest.Mock,
+            storageList: storageMocks.list as jest.Mock,
+            storageRemove: storageMocks.remove as jest.Mock,
+            storageFrom: storageMocks.from as jest.Mock,
             approveClaimAction,
             rejectClaimAction,
             revokeClaimAction,
@@ -116,16 +133,43 @@ describe("adminClaimActions", () => {
     });
 
     describe("revokeClaimAction", () => {
-        it("hard-deletes an approved claim when admin", async () => {
+        it("hard-deletes an approved claim + purges vault storage when admin", async () => {
             const m = await setup();
             mockAdmin(m);
             m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
-            m.deleteClaim.mockResolvedValue({ id: "c1", artistId: "a1", referenceCode: "MN-REVK" });
+            m.revokeApprovedClaim.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.storageList.mockResolvedValue({ data: [{ name: "123_file.pdf" }, { name: "456_image.png" }], error: null });
+            m.storageRemove.mockResolvedValue({ error: null });
 
             const result = await m.revokeClaimAction("c1");
             expect(result.success).toBe(true);
             expect(m.getClaimById).toHaveBeenCalledWith("c1");
-            expect(m.deleteClaim).toHaveBeenCalledWith("c1");
+            expect(m.revokeApprovedClaim).toHaveBeenCalledWith("c1");
+            expect(m.storageList).toHaveBeenCalledWith("a1");
+            expect(m.storageRemove).toHaveBeenCalledWith(["a1/123_file.pdf", "a1/456_image.png"]);
+        });
+
+        it("succeeds even when vault storage is empty", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.revokeApprovedClaim.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.storageList.mockResolvedValue({ data: [], error: null });
+
+            const result = await m.revokeClaimAction("c1");
+            expect(result.success).toBe(true);
+            expect(m.storageRemove).not.toHaveBeenCalled();
+        });
+
+        it("still succeeds when storage cleanup fails (best-effort)", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.revokeApprovedClaim.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.storageList.mockResolvedValue({ data: null, error: { message: "bucket unreachable" } });
+
+            const result = await m.revokeClaimAction("c1");
+            expect(result.success).toBe(true);
         });
 
         it("rejects revoking a pending claim", async () => {
@@ -136,7 +180,20 @@ describe("adminClaimActions", () => {
             const result = await m.revokeClaimAction("c1");
             expect(result.success).toBe(false);
             expect(result.error).toBe("Can only revoke approved claims");
-            expect(m.deleteClaim).not.toHaveBeenCalled();
+            expect(m.revokeApprovedClaim).not.toHaveBeenCalled();
+            expect(m.storageList).not.toHaveBeenCalled();
+        });
+
+        it("returns error when status changed between preflight and transaction", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.revokeApprovedClaim.mockResolvedValue(undefined);
+
+            const result = await m.revokeClaimAction("c1");
+            expect(result.success).toBe(false);
+            expect(result.error).toBe("Claim is no longer approved");
+            expect(m.storageList).not.toHaveBeenCalled();
         });
 
         it("rejects non-admin", async () => {

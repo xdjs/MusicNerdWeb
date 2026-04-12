@@ -136,6 +136,39 @@ export async function deleteClaim(claimId: string) {
     }
 }
 
+/**
+ * Revoke an approved claim atomically, wiping all vault sources for the artist
+ * inside the same transaction. Storage objects live outside the DB and must be
+ * purged separately by the caller. Guards on status='approved' to prevent races
+ * from resurrecting a pending/rejected claim mid-revoke.
+ */
+export async function revokeApprovedClaim(claimId: string) {
+    try {
+        return await db.transaction(async (tx) => {
+            const claim = await tx.query.artistClaims.findFirst({
+                where: and(
+                    eq(artistClaims.id, claimId),
+                    eq(artistClaims.status, "approved"),
+                ),
+            });
+            if (!claim) return undefined;
+
+            await tx
+                .delete(artistVaultSources)
+                .where(eq(artistVaultSources.artistId, claim.artistId));
+
+            const [deleted] = await tx
+                .delete(artistClaims)
+                .where(eq(artistClaims.id, claimId))
+                .returning();
+            return deleted;
+        });
+    } catch (e) {
+        console.error("[revokeApprovedClaim] Error:", e);
+        throw e;
+    }
+}
+
 export async function getApprovedClaimForArtistByUserId(userId: string, artistId: string) {
     try {
         return await db.query.artistClaims.findFirst({
