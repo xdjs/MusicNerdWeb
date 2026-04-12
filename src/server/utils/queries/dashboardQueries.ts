@@ -141,6 +141,12 @@ export async function deleteClaim(claimId: string) {
  * inside the same transaction. Storage objects live outside the DB and must be
  * purged separately by the caller. Guards on status='approved' to prevent races
  * from resurrecting a pending/rejected claim mid-revoke.
+ *
+ * Vault sources are deleted by artist_id, not claim_id, because
+ * artist_vault_sources has no claim_id FK and the UNIQUE(artist_id) constraint
+ * on artist_claims guarantees one active claim per artist. If a claim_id FK is
+ * ever added to artist_vault_sources (e.g. to support multi-claimant history),
+ * tighten the WHERE clause here.
  */
 export async function revokeApprovedClaim(claimId: string) {
     try {

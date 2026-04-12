@@ -85,21 +85,39 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
 
         // Best-effort: purge uploaded files from Supabase Storage under the artist's folder.
         // Runs after the DB tx commits — orphaned storage objects beat a failed revoke.
+        // Paginated so artists with >100 files (supabase-js list default limit) are fully purged.
         try {
             const supa = getSupabaseAdmin();
-            const { data: files, error: listError } = await supa.storage
-                .from(VAULT_BUCKET)
-                .list(claim.artistId);
-            if (listError) {
-                console.error("[revokeClaimAction] Storage list failed:", listError);
-            } else if (files && files.length > 0) {
+            const PAGE_SIZE = 1000;
+            let offset = 0;
+            let totalRemoved = 0;
+            while (true) {
+                const { data: files, error: listError } = await supa.storage
+                    .from(VAULT_BUCKET)
+                    .list(claim.artistId, { limit: PAGE_SIZE, offset });
+                if (listError) {
+                    console.error("[revokeClaimAction] Storage list failed:", listError);
+                    break;
+                }
+                if (!files || files.length === 0) break;
+
                 const paths = files.map(f => `${claim.artistId}/${f.name}`);
                 const { error: removeError } = await supa.storage
                     .from(VAULT_BUCKET)
                     .remove(paths);
                 if (removeError) {
                     console.error("[revokeClaimAction] Storage remove failed:", removeError);
+                    break;
                 }
+                totalRemoved += files.length;
+
+                // If we got a full page, another may exist. Keep reading from offset 0
+                // because remove() shifted the listing — no need to advance offset.
+                if (files.length < PAGE_SIZE) break;
+                offset = 0;
+            }
+            if (totalRemoved > 0) {
+                console.log(`[revokeClaimAction] Purged ${totalRemoved} storage objects for artist ${claim.artistId}`);
             }
         } catch (e) {
             console.error("[revokeClaimAction] Storage cleanup error:", e);

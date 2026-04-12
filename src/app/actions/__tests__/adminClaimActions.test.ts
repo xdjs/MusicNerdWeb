@@ -145,8 +145,30 @@ describe("adminClaimActions", () => {
             expect(result.success).toBe(true);
             expect(m.getClaimById).toHaveBeenCalledWith("c1");
             expect(m.revokeApprovedClaim).toHaveBeenCalledWith("c1");
-            expect(m.storageList).toHaveBeenCalledWith("a1");
+            expect(m.storageList).toHaveBeenCalledWith("a1", { limit: 1000, offset: 0 });
             expect(m.storageRemove).toHaveBeenCalledWith(["a1/123_file.pdf", "a1/456_image.png"]);
+        });
+
+        it("paginates storage purge for artists with >1000 files", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.getClaimById.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+            m.revokeApprovedClaim.mockResolvedValue({ id: "c1", artistId: "a1", status: "approved", referenceCode: "MN-REVK" });
+
+            // First list() returns 1000 files (full page → another page may exist),
+            // second returns 3 files (short page → done).
+            const firstPage = Array.from({ length: 1000 }, (_, i) => ({ name: `file_${i}.pdf` }));
+            const secondPage = [{ name: "final_a.pdf" }, { name: "final_b.pdf" }, { name: "final_c.pdf" }];
+            m.storageList
+                .mockResolvedValueOnce({ data: firstPage, error: null })
+                .mockResolvedValueOnce({ data: secondPage, error: null });
+            m.storageRemove.mockResolvedValue({ error: null });
+
+            const result = await m.revokeClaimAction("c1");
+            expect(result.success).toBe(true);
+            expect(m.storageList).toHaveBeenCalledTimes(2);
+            expect(m.storageRemove).toHaveBeenCalledTimes(2);
+            expect(m.storageRemove).toHaveBeenNthCalledWith(2, ["a1/final_a.pdf", "a1/final_b.pdf", "a1/final_c.pdf"]);
         });
 
         it("succeeds even when vault storage is empty", async () => {
