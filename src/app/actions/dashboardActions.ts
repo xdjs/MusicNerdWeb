@@ -24,7 +24,7 @@ import {
 import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
-import { fetchPageContent } from "@/server/utils/fetchPageContent";
+import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { generateReferenceCode } from "@/lib/referenceCode";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -189,6 +189,12 @@ export async function addVaultSource(
         const claim = await getApprovedClaimByUserId(session.user.id);
         if (!claim || claim.artistId !== artistId) {
             return { success: false, error: "Not authorized for this artist" };
+        }
+
+        // Reject non-http(s) schemes (javascript:, data:, file:, etc.) and private/local hosts.
+        // URLs are rendered as <a href> on the public artist page — unsafe schemes would be stored XSS.
+        if (isUnsafeUrl(url)) {
+            return { success: false, error: "URL must be a public http or https address" };
         }
 
         // Insert immediately with domain-based title, then fetch content in background
