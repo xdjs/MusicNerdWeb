@@ -89,12 +89,12 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
         try {
             const supa = getSupabaseAdmin();
             const PAGE_SIZE = 1000;
-            let offset = 0;
+            const MAX_ITERATIONS = 100; // safety ceiling — 100k files would be absurd
             let totalRemoved = 0;
-            while (true) {
+            for (let i = 0; i < MAX_ITERATIONS; i++) {
                 const { data: files, error: listError } = await supa.storage
                     .from(VAULT_BUCKET)
-                    .list(claim.artistId, { limit: PAGE_SIZE, offset });
+                    .list(claim.artistId, { limit: PAGE_SIZE, offset: 0 });
                 if (listError) {
                     console.error("[revokeClaimAction] Storage list failed:", listError);
                     break;
@@ -111,10 +111,13 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
                 }
                 totalRemoved += files.length;
 
-                // If we got a full page, another may exist. Keep reading from offset 0
-                // because remove() shifted the listing — no need to advance offset.
+                // Short page → no more results. remove() shifted the listing, so we
+                // always re-read from offset 0; no offset advance needed.
                 if (files.length < PAGE_SIZE) break;
-                offset = 0;
+
+                if (i === MAX_ITERATIONS - 1) {
+                    console.error(`[revokeClaimAction] Storage purge hit iteration ceiling (${MAX_ITERATIONS}) for artist ${claim.artistId} — remaining files orphaned`);
+                }
             }
             if (totalRemoved > 0) {
                 console.log(`[revokeClaimAction] Purged ${totalRemoved} storage objects for artist ${claim.artistId}`);
