@@ -92,7 +92,7 @@ export default async function Dashboard() {
     const currentImage = claim.artist?.customImage || platformImgUrl || "/default_pfp_pink.png";
 
     return (
-        <section className="px-4 lg:px-8 py-5 space-y-6 max-w-[1200px] mx-auto">
+        <section className="w-full px-4 lg:px-8 py-5 space-y-6 max-w-[1200px] mx-auto">
             <DashboardContent
                 artistName={claim.artist?.name ?? "Unknown Artist"}
                 artistId={claim.artistId}

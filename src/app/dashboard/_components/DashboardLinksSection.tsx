@@ -108,14 +108,14 @@ export default function DashboardLinksSection({
     };
 
     const renderLinkRow = (link: ArtistLink) => (
-        <div key={link.siteName} className="flex items-center justify-between py-2 px-3 rounded-lg glass-subtle">
-            <div className="flex items-center gap-3">
+        <div key={link.siteName} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg glass-subtle">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
                 <img
                     src={link.siteImage ?? ""}
                     alt={link.cardPlatformName ?? link.siteName}
-                    className="w-6 h-6 object-contain"
+                    className="w-6 h-6 object-contain shrink-0"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">
                         {link.cardPlatformName ?? link.siteName}
                     </p>
@@ -123,7 +123,7 @@ export default function DashboardLinksSection({
                         href={link.artistUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-muted-foreground hover:text-pastypink truncate block max-w-[250px]"
+                        className="text-xs text-muted-foreground hover:text-pastypink truncate block"
                     >
                         {link.artistUrl}
                     </a>
@@ -134,7 +134,7 @@ export default function DashboardLinksSection({
                 size="sm"
                 onClick={() => handleDelete(link.siteName)}
                 disabled={deletingSite === link.siteName}
-                className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500 shrink-0"
             >
                 <X size={14} />
             </Button>
@@ -153,13 +153,13 @@ export default function DashboardLinksSection({
                         value={newUrl}
                         onChange={(e) => setNewUrl(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                        className="flex-1"
+                        className="flex-1 min-w-0"
                         autoFocus
                     />
                     <Button
                         onClick={handleAdd}
                         disabled={submitting || !newUrl.trim()}
-                        className="bg-pastypink hover:bg-pastypink/80 text-white text-xs"
+                        className="bg-pastypink hover:bg-pastypink/80 text-white text-xs shrink-0"
                     >
                         {submitting ? "Adding..." : "Add"}
                     </Button>
@@ -167,7 +167,7 @@ export default function DashboardLinksSection({
                         variant="ghost"
                         size="sm"
                         onClick={() => { setAddingTo(null); setNewUrl(""); }}
-                        className="h-9 w-9 p-0"
+                        className="h-9 w-9 p-0 shrink-0"
                     >
                         <X size={14} />
                     </Button>
@@ -188,7 +188,7 @@ export default function DashboardLinksSection({
     };
 
     return (
-        <div className="glass p-5 space-y-5">
+        <div className="glass p-4 sm:p-5 space-y-5">
             <div>
                 <h3 className="text-lg font-bold text-foreground">Manage Links</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">Links are automatically sorted into Social or Support based on platform type.</p>
@@ -210,16 +210,16 @@ export default function DashboardLinksSection({
                 </div>
                 {renderAddInput("social")}
                 {artistSpotify && (
-                    <div className="flex items-center justify-between py-2 px-3 rounded-lg glass-subtle">
-                        <div className="flex items-center gap-3">
-                            <img src="/siteIcons/spotify_icon.svg" alt="Spotify" className="w-6 h-6 object-contain" />
-                            <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg glass-subtle">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <img src="/siteIcons/spotify_icon.svg" alt="Spotify" className="w-6 h-6 object-contain shrink-0" />
+                            <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-foreground">Spotify</p>
                                 <a
                                     href={`https://open.spotify.com/artist/${artistSpotify}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-muted-foreground hover:text-pastypink"
+                                    className="text-xs text-muted-foreground hover:text-pastypink truncate block"
                                 >
                                     open.spotify.com/artist/{artistSpotify}
                                 </a>

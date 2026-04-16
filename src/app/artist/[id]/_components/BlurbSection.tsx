@@ -181,7 +181,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
         />
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-2">
           {canEdit && (
             <Button
               variant="outline"

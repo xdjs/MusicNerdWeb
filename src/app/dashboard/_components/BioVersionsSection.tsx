@@ -99,8 +99,8 @@ export default function BioVersionsSection({ currentBio }: BioVersionsSectionPro
     };
 
     return (
-        <div className="glass p-5 space-y-4">
-            <div className="flex items-center justify-between">
+        <div className="glass p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-lg font-bold text-foreground">Saved Bios</h3>
                 <Button
                     variant="outline"

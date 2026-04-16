@@ -279,7 +279,7 @@ export default function DashboardContent({
     return (
         <div className="space-y-6">
             {/* Hero Header */}
-            <div className="relative w-full h-44 md:h-52 rounded-2xl overflow-hidden">
+            <div className="relative w-full h-40 sm:h-44 md:h-52 rounded-2xl overflow-hidden">
                 {/* Blurred background */}
                 <img
                     src={currentImage}
@@ -289,8 +289,8 @@ export default function DashboardContent({
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
                 {/* Foreground content */}
-                <div className="absolute inset-0 flex items-center px-6 md:px-8">
-                    <div className="flex items-center gap-5">
+                <div className="absolute inset-0 flex items-center px-4 sm:px-6 md:px-8">
+                    <div className="flex items-center gap-3 sm:gap-5 min-w-0 w-full">
                         {/* Profile image with upload overlay */}
                         <div
                             className="relative group shrink-0 cursor-pointer rounded-full p-1 backdrop-blur-md bg-white/20 border border-white/30"
@@ -299,7 +299,7 @@ export default function DashboardContent({
                             <img
                                 src={currentImage}
                                 alt={artistName}
-                                className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover"
+                                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full object-cover"
                             />
                             <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 {uploadingImage ? (
@@ -316,9 +316,9 @@ export default function DashboardContent({
                                 className="hidden"
                             />
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                             <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Managing</p>
-                            <h2 className="text-2xl md:text-3xl font-bold text-white mt-0.5">
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mt-0.5 truncate">
                                 {artistName}
                             </h2>
                             <Link
@@ -353,7 +353,7 @@ export default function DashboardContent({
             <div className="space-y-6">
 
             {/* Vault action buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 <Button
                     size="sm"
                     onClick={handleWebSearch}
@@ -391,7 +391,7 @@ export default function DashboardContent({
             </div>
 
             {/* Add Source: URL + File Upload */}
-            <div className="glass p-5 space-y-4">
+            <div className="glass p-4 sm:p-5 space-y-4">
                 {/* URL input */}
                 <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-2">Add a source URL</p>
