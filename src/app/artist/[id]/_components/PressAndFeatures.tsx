@@ -15,7 +15,6 @@ interface VaultSource {
 
 interface PressAndFeaturesProps {
     sources: VaultSource[];
-    artistName: string;
 }
 
 function getSourceDomain(url: string): string {
@@ -123,7 +122,7 @@ function SourceCard({ source }: { source: VaultSource }) {
     );
 }
 
-export default function PressAndFeatures({ sources, artistName }: PressAndFeaturesProps) {
+export default function PressAndFeatures({ sources }: PressAndFeaturesProps) {
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
