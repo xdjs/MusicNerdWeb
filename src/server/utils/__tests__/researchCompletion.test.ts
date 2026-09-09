@@ -107,6 +107,18 @@ describe("an extraction job that has read everything", () => {
         expect(result.progress).toContain("no document to rebuild");
     });
 
+    it('passes the Lore job identity to the ownership fence and stops cancelled work', async () => {
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'lore_refresh' });
+        refreshArtistDoc.mockResolvedValue('cancelled');
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        const result = await advanceResearch({ budgetMs: 60_000 });
+        expect(refreshArtistDoc).toHaveBeenCalledWith('artist-1', { createIfMissing: true, jobId: 'job-1' });
+        expect(completeResearchJob).toHaveBeenCalledWith('job-1');
+        expect(failResearchJob).not.toHaveBeenCalled();
+        expect(result.done).toBe(true);
+        expect(result.progress).toContain('cancelled');
+    });
+
     it("completes when the document was rebuilt", async () => {
         refreshArtistDoc.mockResolvedValue("rebuilt");
         const result = await advanceOnce();

@@ -21,7 +21,7 @@ describe('persistArtistBio', () => {
     }
     it('never overwrites a pin, even when generation started before the pin', async () => {
         const { persistArtistBio, set, values } = await setup({ pinned: true });
-        expect(await persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Artist edited bio' })).toBe('Artist edited bio');
+        await expect(persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Artist edited bio' })).rejects.toThrow('changed or was pinned');
         expect(set).not.toHaveBeenCalled();
         expect(values).not.toHaveBeenCalled();
     });
@@ -32,7 +32,7 @@ describe('persistArtistBio', () => {
     });
     it('keeps a newer artist edit when a slow generation finishes', async () => {
         const { persistArtistBio, set } = await setup();
-        expect(await persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Old bio' })).toBe('Artist edited bio');
+        await expect(persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Old bio' })).rejects.toThrow('changed or was pinned');
         expect(set).not.toHaveBeenCalled();
     });
     it('preserves old and new bios in history before an authorized update', async () => {

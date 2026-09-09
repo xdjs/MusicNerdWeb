@@ -2,6 +2,7 @@ import { db } from '@/server/db/drizzle';
 import { artists, artistBioVersions } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealBio } from '@/lib/bioConstants';
+import { BioConflictError } from '@/lib/bioConflict';
 
 /** All bio writers take the artist row lock, including pin and delete. A model
  * call must never hold this lock; compare its starting bio after it finishes. */
@@ -16,12 +17,13 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.isPinned, true)),
         });
         if (pinned) {
+            if (options.generated) throw new BioConflictError();
             if (!options.generated && bio !== pinned.bioText) {
                 throw new Error('Unpin your bio before editing it. Your saved version will be kept.');
             }
             return artist.bio;
         }
-        if (options.generated && artist.bio !== options.expectedBio) return artist.bio;
+        if (options.generated && artist.bio !== options.expectedBio) throw new BioConflictError();
         if (artist.bio === bio) return bio;
         // Preserve both sides of every edit. History is deleted only explicitly.
         for (const text of [artist.bio, bio].filter((v): v is string => isRealBio(v))) {

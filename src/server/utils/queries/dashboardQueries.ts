@@ -1,6 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs } from "@/server/db/schema";
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.
@@ -183,6 +183,10 @@ export async function revokeApprovedClaim(claimId: string) {
                 .returning();
             if (!deleted) return undefined;
             await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
+            // Removing the job identity invalidates even an already-running model
+            // call. Its final guarded write cannot recreate the deleted Lore.
+            await tx.delete(artistResearchJobs).where(and(
+                eq(artistResearchJobs.artistId, deleted.artistId), eq(artistResearchJobs.kind, 'lore_refresh')));
 
             // Only after we've confirmed we owned the approved claim do we
             // wipe the vault. Same transaction, so both DELETEs commit together.

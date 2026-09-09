@@ -93,6 +93,7 @@ async function main() {
     const refreshed = await refreshArtistDoc(artist.id);
     console.log({
         rebuilt: "Document rebuilt.",
+        cancelled: "Rebuild cancelled because ownership changed.",
         "no-document": "No document to rebuild.",
         failed: "DOCUMENT REBUILD FAILED — it still cites the sources just rejected.",
     }[refreshed]);

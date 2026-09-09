@@ -166,6 +166,25 @@ describe('runOnboardingTurn', () => {
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
 
+    it.each(['open', 'publish'])('a bio conflict in %s never finalizes onboarding or overwrites Lore', async type => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: type === 'open' ? 'profiles' : 'publish' });
+        const { BioConflictError } = await import('@/lib/bioConflict');
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        persistArtistBio.mockRejectedValue(new BioConflictError());
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const run = collect(runOnboardingTurn('a1', { type, doc: '## Overview\nd', about: 'About text' }));
+        if (type === 'publish') await expect(run).rejects.toThrow('changed or was pinned');
+        else {
+            const events = await run;
+            expect(events.some(e => e.kind === 'error')).toBe(true);
+            expect(events.some(e => e.kind === 'complete')).toBe(false);
+        }
+        expect(oq.confirmOnboardingStep).not.toHaveBeenCalledWith('a1', 'publish');
+        expect(oq.upsertArtistDoc).not.toHaveBeenCalled();
+        expect(oq.upsertArtistDocSources).not.toHaveBeenCalled();
+    });
+
     it('the auto-build runs every identity guard before writing a discovered link, and refuses one they reject', async () => {
         // The guards existed, had their own passing tests, and NOTHING CALLED
         // THEM on this path — the commit that added them said this call site

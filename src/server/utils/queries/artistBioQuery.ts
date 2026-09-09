@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
+import { BioConflictError } from '@/lib/bioConflict';
 import { getBioVersionsByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
@@ -289,6 +290,7 @@ You have NO web access for this task. Write the About using ONLY the curated sou
 
     return NextResponse.json({ bio });
   } catch (err: any) {
+    if (err instanceof BioConflictError) return NextResponse.json({ error: err.message }, { status: 409 });
     console.error("Gemini error generating bio", err);
     if (err.message === 'Gemini timeout') {
       return NextResponse.json({ error: "Bio generation timed out" }, { status: 408 });

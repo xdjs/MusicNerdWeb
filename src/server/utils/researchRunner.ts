@@ -94,7 +94,11 @@ async function runLoreRefresh(job: ResearchJob, deadline: number): Promise<{ pro
         await saveJobProgress(job.id, job.cursor);
         return { progress: 'Waiting for a full Lore rebuild budget', done: false, waiting: true };
     }
-    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true });
+    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true, jobId: job.id });
+    if (result === 'cancelled') {
+        await completeResearchJob(job.id);
+        return { progress: 'Lore refresh cancelled after ownership or job changed', done: true };
+    }
     if (result === 'failed') throw new Error('Could not rebuild Lore from current sources');
     const rows = await db.execute(sql`update artist_research_jobs set
         status = case when coalesce(state->>'requestedAt', '') = ${String(job.state?.requestedAt ?? '')}

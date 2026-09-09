@@ -50,6 +50,7 @@ import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfil
 import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/utils/linkPresentation";
 import { ONBOARDING_QUESTIONS } from "./questions";
 import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
+import { BioConflictError } from '@/lib/bioConflict';
 import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
@@ -1265,14 +1266,18 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const about = await generateAboutFromDoc(artistName, doc, sources);
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
-            await upsertArtistDoc(artistId, doc);
-            await upsertArtistDocSources(artistId, sources);
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
             await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null });
+            await upsertArtistDoc(artistId, doc);
+            await upsertArtistDocSources(artistId, sources);
             wrote = true;
         }
     } catch (e) {
         console.error("[onboarding] auto-build About generation failed:", e);
+        if (e instanceof BioConflictError) {
+            yield { kind: 'error', message: e.message };
+            return;
+        }
     }
     yield { kind: "progress", label: wrote ? "Wrote your About" : "Couldn't write an About yet", done: true, group: DOC_GROUP };
 
@@ -1603,12 +1608,12 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // must not prevent publishing or require deleting an artist's saved work.
         const existingArtist = await getArtistById(artistId);
         const existingBio = existingArtist?.bio;
-        await upsertArtistDoc(artistId, doc);
-        await upsertArtistDocSources(artistId, sources);
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: existingBio ?? null });
+        await upsertArtistDoc(artistId, doc);
+        await upsertArtistDocSources(artistId, sources);
         await confirmOnboardingStep(artistId, "publish");
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };

@@ -20,7 +20,8 @@ import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { getSpotifyCatalogDetail, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
-import { getInterviewAnswers, getArtistDoc, upsertArtistDoc, upsertArtistDocSources } from "@/server/utils/queries/onboardingQueries";
+import { getInterviewAnswers, getArtistDoc } from "@/server/utils/queries/onboardingQueries";
+import { getLoreClaimGeneration, persistRefreshedLore } from '@/server/utils/queries/lorePersistence';
 import { getDocCorrections } from "@/server/utils/queries/docCorrectionQueries";
 import { getSocialPostsForArtist } from "@/server/utils/socialIngest";
 import { deriveSocialSignals } from "@/server/utils/socialSignals";
@@ -715,15 +716,15 @@ export async function synthesizeFallbackAbout(artistId: string, artistName: stri
  * for the first time is in exactly that state, so this was the common case
  * rather than an edge.
  */
-export type DocRefresh = "rebuilt" | "no-document" | "failed";
+export type DocRefresh = "rebuilt" | "no-document" | "failed" | "cancelled";
 
-export async function refreshArtistDoc(artistId: string, options: { createIfMissing?: boolean } = {}): Promise<DocRefresh> {
+export async function refreshArtistDoc(artistId: string, options: { createIfMissing?: boolean; jobId?: string } = {}): Promise<DocRefresh> {
     try {
+        const claimId = await getLoreClaimGeneration(artistId);
         if (!options.createIfMissing && !(await getArtistDoc(artistId))) return "no-document";
         const sources = await buildDocSources(artistId);
         const doc = await synthesizeArtistDoc(artistId, sources);
-        await upsertArtistDoc(artistId, doc);
-        await upsertArtistDocSources(artistId, sources);
+        if (!(await persistRefreshedLore(artistId, doc, sources, claimId, options.jobId))) return 'cancelled';
         console.log(`[refreshArtistDoc] Rebuilt doc for ${artistId} from ${sources.length} sources`);
         return "rebuilt";
     } catch (e) {
