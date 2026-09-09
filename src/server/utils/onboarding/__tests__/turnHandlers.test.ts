@@ -149,6 +149,23 @@ describe('runOnboardingTurn', () => {
         expect(labels.some(l => /About/i.test(l))).toBe(true);
     });
 
+    it('auto-build publishes when inherited history has reached the explicit-save cap', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const dq = await import('@/server/utils/queries/dashboardQueries');
+        dq.saveBioVersion.mockRejectedValue(new Error('Bio history is full'));
+        const artistQ = await import('@/server/utils/queries/artistQueries');
+        artistQ.getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes', bio: 'Existing bio' });
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', { generated: true, expectedBio: 'Existing bio' });
+        expect(dq.saveBioVersion).not.toHaveBeenCalled();
+        expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
+        expect(events.some(e => e.kind === 'progress' && e.label === 'Wrote your About')).toBe(true);
+        expect(events.some(e => e.kind === 'complete')).toBe(true);
+    });
+
     it('the auto-build runs every identity guard before writing a discovered link, and refuses one they reject', async () => {
         // The guards existed, had their own passing tests, and NOTHING CALLED
         // THEM on this path — the commit that added them said this call site
@@ -1341,7 +1358,7 @@ describe('runOnboardingTurn', () => {
         const { runOnboardingTurn } = await import('../turnHandlers');
         const events = await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
         expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nd');
-        expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'About text');
+        expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true }));
         expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', []);
@@ -1368,7 +1385,7 @@ describe('runOnboardingTurn', () => {
             sources,
         }));
         expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nCited Lauryn Hill[1].'); // doc keeps its markers
-        expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.'); // About is stripped
+        expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.', expect.objectContaining({ generated: true }));
         expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', sources);
@@ -1398,10 +1415,11 @@ describe('runOnboardingTurn', () => {
         ]);
     });
 
-    it('publish snapshots a pre-existing REAL bio via saveBioVersion BEFORE overwriting it (C2)', async () => {
+    it('publish uses atomic history-preserving persistence even when explicit history saves are capped', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
         const dq = await import('@/server/utils/queries/dashboardQueries');
+        dq.saveBioVersion.mockRejectedValue(new Error('Bio history is full'));
         const artistQ = await import('@/server/utils/queries/artistQueries');
         artistQ.getArtistById.mockResolvedValueOnce({ id: 'a1', name: 'Nova Reyes', bio: 'A real hand-written bio.' });
         const { db } = await import('@/server/db/drizzle');
@@ -1409,12 +1427,15 @@ describe('runOnboardingTurn', () => {
         const set = jest.fn().mockReturnValue({ where });
         db.update.mockReturnValue({ set });
         const { runOnboardingTurn } = await import('../turnHandlers');
-        await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
-        expect(dq.saveBioVersion).toHaveBeenNthCalledWith(1, 'a1', 'A real hand-written bio.');
-        expect(dq.saveBioVersion).toHaveBeenNthCalledWith(2, 'a1', 'About text');
+        const events = await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
+        expect(dq.saveBioVersion).not.toHaveBeenCalled();
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', { generated: true, expectedBio: 'A real hand-written bio.' });
+        expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
+        expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
 
-    it('publish does NOT snapshot the empty-state/claim-nudge bio (C2)', async () => {
+    it('publish delegates placeholder handling to shared persistence', async () => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
@@ -1427,8 +1448,9 @@ describe('runOnboardingTurn', () => {
         db.update.mockReturnValue({ set });
         const { runOnboardingTurn } = await import('../turnHandlers');
         await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
-        expect(dq.saveBioVersion).toHaveBeenCalledTimes(1);
-        expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'About text');
+        expect(dq.saveBioVersion).not.toHaveBeenCalled();
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', { generated: true, expectedBio: ABOUT_EMPTY_STATE });
     });
 
     it('publish rejects when not on the publish step', async () => {

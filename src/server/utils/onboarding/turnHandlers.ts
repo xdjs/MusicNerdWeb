@@ -11,7 +11,6 @@ import {
     getVaultSourcesByArtistId,
     getVaultSourceByIdAndArtist,
     updateVaultSourceStatus,
-    saveBioVersion,
     insertVaultSource,
     updateVaultSourceContent,
 } from "@/server/utils/queries/dashboardQueries";
@@ -50,7 +49,7 @@ import {
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
 import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/utils/linkPresentation";
 import { ONBOARDING_QUESTIONS } from "./questions";
-import { MAX_BIO_LENGTH, isRealBio } from "@/lib/bioConstants";
+import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
 import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
@@ -1266,11 +1265,8 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const about = await generateAboutFromDoc(artistName, doc, sources);
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
-            const existingBio = artist?.bio;
-            if (isRealBio(existingBio)) await saveBioVersion(artistId, existingBio as string);
             await upsertArtistDoc(artistId, doc);
             await upsertArtistDocSources(artistId, sources);
-            await saveBioVersion(artistId, cleanAbout);
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
             await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null });
             wrote = true;
@@ -1602,20 +1598,13 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // only in this stateless turn; its audit trail is the doc + sources
         // persisted below, which share the same citation ids.
         const cleanAbout = stripCitationMarkers(about);
-        // Snapshot a pre-existing REAL bio before it's overwritten. An artist who
-        // hand-edited their About via updateArtistBio/saveBio has a live bio with
-        // NO version row — publishing here must not destroy it irrecoverably. The
-        // empty-state/claim-nudge bio is not real content and is never versioned.
-        // Any failure here (e.g. version cap reached) should fail the publish, not
-        // silently proceed to overwrite an unsaved bio — do not swallow it.
+        // Shared persistence atomically preserves old/new bios and enforces pins.
+        // Do not pre-save through the explicit history-save cap: a full history
+        // must not prevent publishing or require deleting an artist's saved work.
         const existingArtist = await getArtistById(artistId);
         const existingBio = existingArtist?.bio;
-        if (isRealBio(existingBio)) {
-            await saveBioVersion(artistId, existingBio as string);
-        }
         await upsertArtistDoc(artistId, doc);
         await upsertArtistDocSources(artistId, sources);
-        await saveBioVersion(artistId, cleanAbout);
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
