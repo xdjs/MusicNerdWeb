@@ -1,5 +1,9 @@
 # Privy Authentication Migration - Implementation Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 **Document Version:** 1.1
 **Created:** 2025-12-02
 **Updated:** 2025-12-16
@@ -29,7 +33,7 @@ This plan outlines the step-by-step implementation for migrating MusicNerdWeb fr
 ## Table of Contents
 
 1. [Pre-Migration Setup](#1-pre-migration-setup)
-2. [Phase 1: Database Schema Updates](#2-phase-1-database-schema-updates)
+2. [Phase 1: Database Schema Updates](#2-phase-1-database-schema-updates-)
 3. [Phase 2: Privy SDK Integration](#3-phase-2-privy-sdk-integration)
 4. [Phase 3: NextAuth Privy Provider](#4-phase-3-nextauth-privy-provider)
 5. [Phase 4: Login UI Implementation](#5-phase-4-login-ui-implementation)

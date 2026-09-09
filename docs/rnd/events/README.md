@@ -1,7 +1,13 @@
 # Roundtable & Showcase
 
-Two recurring formats, monthly each. Roundtable at the top of the month, showcase at the end.
-Decided 2026-08-20.
+The August 20 plan was a monthly roundtable and a monthly showcase. On
+[August 24](../meetings/2026-08-24-showcase-planning.md), Pete and Black Dave chose an
+every-other-week showcase with room for feedback and discussion. By
+[September 3](../meetings/2026-09-03-profile-design.md), the event was called Feed Forward.
+The [September 7 meeting](../meetings/2026-09-07.md) separated that week's Thursday demo
+at 11:00 AM Eastern from the community session at 4:00 PM. Earlier September 4/Friday targets
+are historical. Check the calendar for the current event schedule; these notes do not verify
+an event actually ran.
 
 They aren't only events. They're where Music Nerd generates trust, source material,
 relationships, and stories that wouldn't otherwise exist — and the output is meant to end up in
@@ -22,7 +28,8 @@ and what should land in the database.
 
 ## Standing setup
 
-- Recorded in **Riverside** — quality, and it doubles as content.
+- **Riverside** was the preferred recording setup; plan/capacity verification remained a
+  follow-up. A planning decision is not proof that an event was recorded.
 - Invites go to the **Music Nerd email list** from Jade. Approved 8/20. The list itself never
   goes in this repo.
 - Reviving something Jamie tried before that died on scheduling. The community is wider than the

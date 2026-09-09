@@ -2,7 +2,10 @@
 
 ## Purpose & how to use this doc
 
-This file is the **north star** for MusicNerdWeb's visual and interaction design. It is the single source of truth for color, typography, layout, components, and motion.
+This file inventories the existing visual and interaction patterns. Verify tokens and component
+behavior in the current checkout before using its counts or examples. It is a baseline for
+design work, not a veto on an approved redesign; later product direction is recorded in
+[the decision log](docs/rnd/decisions.md).
 
 Two rules for using it:
 

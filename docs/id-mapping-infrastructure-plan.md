@@ -1,5 +1,9 @@
 # Cross-Platform Artist ID Mapping — Infrastructure Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 
 MusicNerdWeb has ~N artists, each with a Spotify ID and name. We want to map these to other platform IDs (starting with Deezer, then Apple Music, then others) to enable an eventual migration off the Spotify API. The mapping work will be performed by automated, unsupervised agents via MCP tools.

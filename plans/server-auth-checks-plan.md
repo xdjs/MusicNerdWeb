@@ -1,5 +1,9 @@
 # Plan: Re-implement Server-Side Auth Checks
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 
 When the project migrated from Web3/SIWE to Privy email-first auth (commit `c0783e1`), all server-side auth checks were disabled — 8 API routes were gutted to return `unauthorizedResponse()` ("Authentication temporarily disabled"). The `artistBio` PUT handler was left without any route-level auth check. This plan restores proper auth to all protected routes using the now-functional Privy + NextAuth session system. It also removes the obsolete `walletlessEnabled` dev bypass throughout the codebase.
