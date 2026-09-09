@@ -1,6 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, type WriteDb } from './ownershipWrites';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bioConstants';
 
@@ -189,6 +189,7 @@ export async function revokeApprovedClaim(claimId: string) {
             // call. Its final guarded write cannot recreate the deleted Lore.
             await tx.delete(artistResearchJobs).where(eq(artistResearchJobs.artistId, deleted.artistId));
             await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, deleted.artistId));
+            await tx.delete(artistDocCorrections).where(eq(artistDocCorrections.artistId, deleted.artistId));
 
             // Only after we've confirmed we owned the approved claim do we
             // wipe the vault. Same transaction, so both DELETEs commit together.

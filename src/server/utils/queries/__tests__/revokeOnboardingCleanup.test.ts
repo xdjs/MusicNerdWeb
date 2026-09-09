@@ -53,7 +53,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // content, per implementation invariant. (Social posts/profiles added
         // alongside post-claim social ingestion — see socialIngest.ts.)
         expect(deletedTables).toEqual([
-            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistVaultSources,
+            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
             schema.artistSocialPosts, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);
@@ -80,7 +80,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
 
         // Still delete claims, vault, and social data, but no onboarding content to clear
         expect(deletedTables).toEqual([
-            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistVaultSources,
+            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
             schema.artistSocialPosts, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);

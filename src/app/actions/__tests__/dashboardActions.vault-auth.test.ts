@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));

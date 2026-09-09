@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }));
 jest.mock('@/server/utils/researchRunner', () => ({ requestArtistResearch: jest.fn() }));
@@ -24,7 +25,7 @@ describe('Look again refreshes documents independently of social cooldown', () =
         const { call, queue, runner } = await setup();
         const res = await call();
         expect(res.status).toBe(200);
-        expect(queue.queueLoreRefresh).toHaveBeenCalledWith('artist');
+        expect(queue.queueLoreRefresh).toHaveBeenCalledWith('artist', 'claim-1');
         expect(runner.requestArtistResearch).not.toHaveBeenCalled();
         expect((await res.json()).message).toContain('current documents');
     });

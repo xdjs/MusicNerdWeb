@@ -96,19 +96,21 @@ async function runLoreRefresh(job: ResearchJob, deadline: number): Promise<{ pro
         await saveJobProgress(job.id, job.cursor);
         return { progress: 'Waiting for a full Lore rebuild budget', done: false, waiting: true };
     }
-    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true, jobId: job.id });
-    if (result === 'cancelled') {
+    if (!Object.prototype.hasOwnProperty.call(job.state, 'claimId')) {
         await completeResearchJob(job.id);
-        return { progress: 'Lore refresh cancelled after ownership or job changed', done: true };
+        return { progress: 'Legacy Lore refresh cancelled; use Look again to retry', done: true };
     }
+    const expectedClaimId = typeof job.state.claimId === 'string' ? job.state.claimId : null;
+    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true, jobId: job.id, expectedClaimId });
     if (result === 'failed') throw new Error('Could not rebuild Lore from current sources');
     const rows = await db.execute(sql`update artist_research_jobs set
         status = case when coalesce(state->>'requestedAt', '') = ${String(job.state?.requestedAt ?? '')}
             then 'done' else 'pending' end,
         claimed_at = null, updated_at = now()
         where id = ${job.id}::uuid returning status`);
-    const done = (rows as unknown as { status: string }[])[0]?.status === 'done';
-    return { progress: done ? 'Lore rebuilt from current documents and sources' : 'Sources changed during rebuild; another refresh is queued', done };
+    const status = (rows as unknown as { status: string }[])[0]?.status;
+    const done = status === undefined || status === 'done';
+    return { progress: !done ? 'Sources changed during rebuild; another refresh is queued' : result === 'cancelled' ? 'Lore refresh cancelled after ownership changed' : 'Lore rebuilt from current documents and sources', done };
 }
 
 async function runIngest(job: ResearchJob): Promise<{ progress: string; done: boolean; waiting?: boolean }> {

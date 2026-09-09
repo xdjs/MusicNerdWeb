@@ -16,6 +16,7 @@ import { getServerAuthSession } from "@/server/auth";
 import { requestArtistResearch } from "@/server/utils/researchRunner";
 import { getResearchJobs, reopenResearchJob } from "@/server/utils/queries/researchJobQueries";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 
 export const dynamic = "force-dynamic";
 
@@ -32,11 +33,12 @@ export async function POST(
         const session = await getServerAuthSession();
         const userId = session?.user?.id;
         if (!userId) return Response.json({ error: "Not signed in" }, { status: 401 });
+        const claimId = await getLoreClaimGeneration(id);
         if (!(await canEditArtist(userId, id))) {
             return Response.json({ error: "Not your artist" }, { status: 403 });
         }
 
-        await queueLoreRefresh(id);
+        await queueLoreRefresh(id, claimId);
         const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
         if (live) {

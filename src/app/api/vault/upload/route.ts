@@ -61,10 +61,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "File and artistId are required" }, { status: 400 });
         }
 
+        const expectedClaimId = await getLoreClaimGeneration(artistId);
         if (!(await canEditArtist(session.user.id, artistId))) {
             return NextResponse.json({ error: "Not authorized for this artist" }, { status: 403 });
         }
-        const expectedClaimId = await getLoreClaimGeneration(artistId);
 
         if (file.size > MAX_FILE_SIZE) {
             console.error("[vault/upload] rejected:", { name: file.name, type: file.type, size: file.size, reason: "too_large" });
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
         unpublishedPath = undefined;
 
         let refreshWarning: string | undefined;
-        try { await queueLoreRefresh(artistId); }
+        try { await queueLoreRefresh(artistId, expectedClaimId); }
         catch (error) {
             console.error('[vault/upload] Saved upload; Lore enqueue failed', error);
             refreshWarning = 'File saved. Use Look again to retry the Lore refresh; do not upload again.';

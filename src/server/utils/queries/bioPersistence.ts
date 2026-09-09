@@ -1,5 +1,5 @@
 import { db } from '@/server/db/drizzle';
-import { artists, artistBioVersions, artistDocs } from '@/server/db/schema';
+import { artists, artistBioVersions, artistDocs, artistOnboardingSteps } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealBio } from '@/lib/bioConstants';
 import { BioConflictError } from '@/lib/bioConflict';
@@ -9,6 +9,7 @@ import { BioConflictError } from '@/lib/bioConflict';
 export async function persistArtistBio(artistId: string, bio: string, options: {
     generated?: boolean; expectedBio?: string | null;
     document?: { content: string; sources: unknown[] };
+    confirmSteps?: ('interview' | 'publish')[];
 } = {}): Promise<string | null> {
     return db.transaction(async tx => {
         await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
@@ -25,6 +26,12 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             return artist.bio;
         }
         if (options.generated && artist.bio !== options.expectedBio) throw new BioConflictError();
+        // Confirmation rolls back with the document/bio/history on any failure.
+        for (const step of options.confirmSteps ?? []) {
+            await tx.insert(artistOnboardingSteps).values({ artistId, step }).onConflictDoNothing({
+                target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step],
+            });
+        }
         // Onboarding publishes one coherent snapshot. A failed document, history,
         // or bio write rolls the entire transaction back; conflicts write nothing.
         if (options.document) {

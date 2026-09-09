@@ -1265,7 +1265,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null, document: { content: doc, sources } });
+            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null, document: { content: doc, sources }, confirmSteps: ['interview', 'publish'] });
             wrote = true;
         }
     } catch (e) {
@@ -1275,8 +1275,10 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     }
     yield { kind: "progress", label: wrote ? "Wrote your About" : "Couldn't write an About yet", done: true, group: DOC_GROUP };
 
-    await confirmOnboardingStep(artistId, "interview");
-    await confirmOnboardingStep(artistId, "publish");
+    if (!wrote) {
+        yield { kind: 'error', message: 'No About was produced. Please try again.' };
+        return;
+    }
     yield { kind: "chat", text: citable > 0 && wrote ? NARRATION.built : NARRATION.builtThin };
     yield { kind: "complete" };
 }
@@ -1611,8 +1613,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: turn.expectedBio, document: { content: doc, sources } });
-        await confirmOnboardingStep(artistId, "publish");
+        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: turn.expectedBio, document: { content: doc, sources }, confirmSteps: ['publish'] });
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };
         return;

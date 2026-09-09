@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
 jest.mock("@/server/auth", () => ({
     getServerAuthSession: jest.fn(),
@@ -237,19 +238,19 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         // the document, so nothing ever surfaced that.
         const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
     it("rebuilds the doc when a source is approved", async () => {
         const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "approved");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
     it("rebuilds the doc when a source is deleted outright", async () => {
         const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
     it("durably queues every change so the database can coalesce a burst", async () => {

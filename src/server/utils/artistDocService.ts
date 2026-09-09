@@ -718,9 +718,9 @@ export async function synthesizeFallbackAbout(artistId: string, artistName: stri
  */
 export type DocRefresh = "rebuilt" | "no-document" | "failed" | "cancelled";
 
-export async function refreshArtistDoc(artistId: string, options: { createIfMissing?: boolean; jobId?: string } = {}): Promise<DocRefresh> {
+export async function refreshArtistDoc(artistId: string, options: { createIfMissing?: boolean; jobId?: string; expectedClaimId?: string | null } = {}): Promise<DocRefresh> {
     try {
-        const claimId = await getLoreClaimGeneration(artistId);
+        const claimId = options.expectedClaimId !== undefined ? options.expectedClaimId : await getLoreClaimGeneration(artistId);
         if (!options.createIfMissing && !(await getArtistDoc(artistId))) return "no-document";
         const sources = await buildDocSources(artistId);
         const doc = await synthesizeArtistDoc(artistId, sources);

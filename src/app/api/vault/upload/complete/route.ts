@@ -13,8 +13,8 @@ import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 export const maxDuration = 60;
 
-async function refreshAfterUpload(artistId: string): Promise<string | undefined> {
-    try { await queueLoreRefresh(artistId); }
+async function refreshAfterUpload(artistId: string, expectedClaimId: string | null): Promise<string | undefined> {
+    try { await queueLoreRefresh(artistId, expectedClaimId); }
     catch (error) {
         console.error('[vault/upload/complete] Saved upload; Lore enqueue failed', error);
         return 'File saved. Lore refresh could not start; use Look again to retry. Do not upload the file again.';
@@ -26,18 +26,20 @@ export async function POST(req: Request) {
     if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
     let unpublishedPath: string | undefined;
     let uploadArtistId: string | undefined;
+    let uploadClaimId: string | null = null;
     try {
         const body = await req.json();
         let ticket;
         try { ticket = readUploadTicket(String(body.ticket ?? ''), session.user.id); }
         catch { return Response.json({ error: 'Upload expired or invalid. Please try again.' }, { status: 400 }); }
-        if (!(await canEditArtist(session.user.id, ticket.artistId))) return Response.json({ error: 'Not authorized for this artist' }, { status: 403 });
         const expectedClaimId = await getLoreClaimGeneration(ticket.artistId);
+        if (!(await canEditArtist(session.user.id, ticket.artistId))) return Response.json({ error: 'Not authorized for this artist' }, { status: 403 });
+        uploadClaimId = expectedClaimId;
         uploadArtistId = ticket.artistId;
         const storage = getSupabaseAdmin().storage;
         const prior = await getVaultUploadByPath(ticket.artistId, ticket.path);
         if (prior) {
-            const warning = await refreshAfterUpload(ticket.artistId);
+            const warning = await refreshAfterUpload(ticket.artistId, expectedClaimId);
             return Response.json({ source: prior, warning });
         }
         const { data: file, error } = await storage.from(LORE_UPLOAD_BUCKET).download(ticket.path);
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
         const source = inserted ?? await getVaultUploadByPath(ticket.artistId, ticket.path);
         if (!source) throw new Error('Upload source was not saved');
         unpublishedPath = undefined;
-        const refreshWarning = await refreshAfterUpload(ticket.artistId);
+        const refreshWarning = await refreshAfterUpload(ticket.artistId, expectedClaimId);
         try {
             const { error: cleanupError } = await storage.from(LORE_UPLOAD_BUCKET).remove([ticket.path]);
             if (cleanupError) console.error('[vault/upload/complete] Staging cleanup failed', cleanupError);
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
                 // Never delete a committed upload on an ambiguous network failure.
                 const saved = await getVaultUploadByPath(uploadArtistId, unpublishedPath);
                 if (saved && !(error instanceof OwnershipChangedError)) {
-                    const warning = await refreshAfterUpload(uploadArtistId);
+                    const warning = await refreshAfterUpload(uploadArtistId, uploadClaimId);
                     return Response.json({ source: saved, warning });
                 }
                 if (!saved) {

@@ -140,7 +140,9 @@ describe('runOnboardingTurn', () => {
         // Every stage confirms its own step, so a crash mid-build leaves the
         // artist resuming at exactly the stage that failed.
         const confirmed = oq.confirmOnboardingStep.mock.calls.map(c => c[1]);
-        expect(confirmed).toEqual(['profiles', 'vault', 'interview', 'publish']);
+        expect(confirmed).toEqual(['profiles', 'vault']);
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ confirmSteps: ['interview', 'publish'] }));
 
         // And it narrates what it's doing rather than sitting silent for a minute.
         const labels = events.filter(e => e.kind === 'progress').map(e => e.label);
@@ -161,7 +163,7 @@ describe('runOnboardingTurn', () => {
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', expect.objectContaining({ generated: true, expectedBio: 'Existing bio', document: expect.objectContaining({ content: '## Overview\ndoc' }) }));
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
-        expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ confirmSteps: ['interview', 'publish'] }));
         expect(events.some(e => e.kind === 'progress' && e.label === 'Wrote your About')).toBe(true);
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
@@ -1422,7 +1424,7 @@ describe('runOnboardingTurn', () => {
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true }));
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ document: { content: '## Overview\nd', sources: [] } }));
-        expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ confirmSteps: ['publish'] }));
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
 
@@ -1492,7 +1494,7 @@ describe('runOnboardingTurn', () => {
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true, expectedBio: 'A real hand-written bio.' }));
-        expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ confirmSteps: ['publish'] }));
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
 

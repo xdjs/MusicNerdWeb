@@ -71,6 +71,22 @@ describe('persistArtistBio', () => {
         expect(set).not.toHaveBeenCalled();
         expect(values).not.toHaveBeenCalled();
     });
+    it('includes publish confirmation in the same transaction, even when the bio already matches', async () => {
+        const { persistArtistBio, tx, set } = await setup();
+        const confirmation = jest.fn().mockResolvedValue(undefined);
+        const confirmValues = jest.fn(() => ({ onConflictDoNothing: confirmation }));
+        tx.insert.mockReturnValueOnce({ values: confirmValues });
+        await persistArtistBio('a1', 'Artist edited bio', { generated: true, expectedBio: 'Artist edited bio', confirmSteps: ['publish'] });
+        expect(confirmValues).toHaveBeenCalledWith({ artistId: 'a1', step: 'publish' });
+        expect(set).not.toHaveBeenCalled();
+    });
+    it('aborts publication if confirmation cannot be persisted', async () => {
+        const { persistArtistBio, tx, set, values } = await setup();
+        tx.insert.mockReturnValueOnce({ values: jest.fn(() => ({ onConflictDoNothing: jest.fn().mockRejectedValue(new Error('confirmation failed')) })) });
+        await expect(persistArtistBio('a1', 'Draft', { generated: true, expectedBio: 'Artist edited bio', document: { content: 'Lore', sources: [] }, confirmSteps: ['publish'] })).rejects.toThrow('confirmation failed');
+        expect(set).not.toHaveBeenCalled();
+        expect(values).not.toHaveBeenCalled();
+    });
     it.each(['placeholder', 'whitespace'])('does not snapshot an old %s when publishing a real bio', async kind => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
         const bio = kind === 'placeholder' ? ` ${ABOUT_EMPTY_STATE} ` : '   ';

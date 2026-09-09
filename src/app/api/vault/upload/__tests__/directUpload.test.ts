@@ -89,7 +89,7 @@ describe('direct private-storage uploads', () => {
         expect((await complete(req({ ticket }))).status).toBe(200);
         expect(from).toHaveBeenCalledWith('lore-upload-staging');
         expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ extractedText:'A short artist-written document.', status:'approved' }), { userId: 'owner', expectedClaimId: 'claim-1' });
-        expect(queue.queueLoreRefresh).toHaveBeenCalledWith(artistId);
+        expect(queue.queueLoreRefresh).toHaveBeenCalledWith(artistId, 'claim-1');
         expect(dq.insertVaultSource.mock.invocationCallOrder[0]).toBeLessThan(queue.queueLoreRefresh.mock.invocationCallOrder[0]);
         expect(bucket.remove).toHaveBeenCalled();
     });
