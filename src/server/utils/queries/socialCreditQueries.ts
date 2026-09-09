@@ -7,6 +7,7 @@
  */
 import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
+import { withResearchJobWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistSocialCredits } from "@/server/db/schema";
 import type { CaptionExtraction, CaptionCredit, ArtistStatement } from "@/server/utils/socialCredits";
 import { roleIsSomebodyElsesHandle } from "@/server/utils/socialCredits";
@@ -25,11 +26,13 @@ import { EMPTY_EXTRACTION } from "@/server/utils/socialCredits";
 /** Wipe an artist's extraction. Called ONCE when a job starts, never per slice
  *  — the old delete-then-insert was fine for a single pass and would have had
  *  every slice erase the one before it. */
-export async function clearSocialCredits(artistId: string): Promise<void> {
+export async function clearSocialCredits(artistId: string, jobId?: string): Promise<void> {
     if (!artistId) return;
     try {
-        await db.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, artistId));
+        const write = async (tx: WriteDb) => { await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, artistId)); };
+        if (jobId) await withResearchJobWrite(artistId, jobId, write); else await write(db);
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[clearSocialCredits] Error:", e);
     }
 }
@@ -43,8 +46,9 @@ export async function appendSocialCredits(
     artistId: string,
     extraction: CaptionExtraction,
     postedAtByUrl?: Map<string, string | null>,
+    jobId?: string,
 ): Promise<number | null> {
-    return writeSocialCredits(artistId, extraction, postedAtByUrl, { clearFirst: false });
+    return writeSocialCredits(artistId, extraction, postedAtByUrl, { clearFirst: false, jobId });
 }
 
 export async function replaceSocialCredits(
@@ -59,7 +63,7 @@ async function writeSocialCredits(
     artistId: string,
     extraction: CaptionExtraction,
     postedAtByUrl?: Map<string, string | null>,
-    opts?: { clearFirst?: boolean },
+    opts?: { clearFirst?: boolean; jobId?: string },
 ): Promise<number | null> {
     if (!artistId) return 0;
     const rows = [
@@ -88,13 +92,17 @@ async function writeSocialCredits(
     ];
 
     try {
+        const write = async (tx: WriteDb) => {
         if (opts?.clearFirst) {
-            await db.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, artistId));
+            await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, artistId));
         }
         if (rows.length === 0) return 0;
-        await db.insert(artistSocialCredits).values(rows).onConflictDoNothing();
+        await tx.insert(artistSocialCredits).values(rows).onConflictDoNothing();
         return rows.length;
+        };
+        return opts?.jobId ? await withResearchJobWrite(artistId, opts.jobId, write) : await write(db);
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[writeSocialCredits] Error:", e);
         return null;
     }

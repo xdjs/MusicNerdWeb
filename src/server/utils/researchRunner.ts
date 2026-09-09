@@ -29,6 +29,7 @@ import {
 } from "@/server/utils/socialIngest";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
 import { refreshArtistDoc } from "@/server/utils/artistDocService";
+import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 /** Headroom kept back so the slice can persist what it did before the platform
  *  stops the invocation. Losing a finished batch because there was no time left
@@ -72,6 +73,7 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
             : await runExtraction(job, deadline);
         return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, ...result };
     } catch (e) {
+        if (e instanceof OwnershipChangedError) return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
         const message = e instanceof Error ? e.message : String(e);
         console.error(`[research] ${job.kind} failed for ${job.artistId}:`, message);
         await failResearchJob(job.id, message);
@@ -129,7 +131,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
     // Already have the posts and nobody asked for a fresh look.
     if (!force && !runId && await hasSocialPosts(job.artistId)) {
         await completeResearchJob(job.id);
-        await enqueueResearchJob(job.artistId, "caption_extract");
+        await enqueueResearchJob(job.artistId, "caption_extract", { parentJobId: job.id });
         return { progress: "posts already present", done: true };
     }
 
@@ -156,7 +158,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
         return { progress: `scrape failed: ${state.reason}`, done: false };
     }
 
-    const result = await collectInstagramScrape(job.artistId, handle, state.datasetId);
+    const result = await collectInstagramScrape(job.artistId, handle, state.datasetId, job.id);
     if (result === null) {
         // The dataset request failed, which is not the same as a feed with
         // nothing in it. Marking this done would record both jobs as
@@ -166,6 +168,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
     }
     await completeResearchJob(job.id);
     await enqueueResearchJob(job.artistId, "caption_extract", {
+        parentJobId: job.id,
         state: force ? { incremental: true } : {},
     });
     return { progress: `ingested ${result.ingested} post(s)`, done: true };
@@ -238,7 +241,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
         await saveJobState(job.id, { ...job.state, mode: incremental ? "incremental" : "full" });
         job.state = { ...job.state, mode: incremental ? "incremental" : "full" };
         // Only a full re-read clears, and only before it has read anything.
-        if (!incremental) await clearSocialCredits(job.artistId);
+        if (!incremental) await clearSocialCredits(job.artistId, job.id);
     } else {
         incremental = job.state?.mode === "incremental";
     }
@@ -273,7 +276,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
     });
 
     const postedAtByUrl = new Map(posts.map(p => [p.url, p.postedAt] as const));
-    const stored = await appendSocialCredits(job.artistId, slice.extraction, postedAtByUrl);
+    const stored = await appendSocialCredits(job.artistId, slice.extraction, postedAtByUrl, job.id);
     if (stored === null) {
         // The credits from this slice were verified and then not written.
         // Advancing the cursor would discard them permanently.
@@ -314,7 +317,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
             toRead, await claimedSourceUrls(job.artistId), artist.name, artist.instagram ?? "",
             { budgetMs: remaining(), startBatch: sweepStart },
         );
-        if ((await appendSocialCredits(job.artistId, swept.extraction, postedAtByUrl)) === null) {
+        if ((await appendSocialCredits(job.artistId, swept.extraction, postedAtByUrl, job.id)) === null) {
             await failResearchJob(job.id, "could not store swept credits");
             return { progress: "sweep storage failed", done: false };
         }

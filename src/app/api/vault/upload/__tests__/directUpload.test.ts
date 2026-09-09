@@ -12,6 +12,7 @@ jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }))
 jest.mock('@/server/lib/supabase', () => ({ getSupabaseAdmin: jest.fn(), VAULT_BUCKET: 'vault-files' }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn(), insertVaultSource: jest.fn() }));
 jest.mock('@/server/utils/queries/loreRefresh', () => ({ queueLoreRefresh: jest.fn() }));
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 jest.mock('@/server/utils/extractPdfText', () => ({ extractPdfText: jest.fn().mockResolvedValue('A short artist-written document.') }));
 const artistId = '11111111-1111-4111-8111-111111111111';
 const req = body => new Request('https://example.test', { method: 'POST', body: JSON.stringify(body) });
@@ -64,6 +65,17 @@ describe('direct private-storage uploads', () => {
         expect((await sign(req(body))).status).toBe(403);
         expect(bucket.createSignedUploadUrl).not.toHaveBeenCalled();
     });
+    it('removes the public copy and rejects completion when ownership changes during upload', async () => {
+        const { complete, ticket, dq, bucket, from, queue } = await setup();
+        const { OwnershipChangedError } = await import('@/server/utils/queries/ownershipWrites');
+        dq.insertVaultSource.mockRejectedValue(new OwnershipChangedError());
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(403);
+        expect(bucket.upload).toHaveBeenCalled();
+        expect(from).toHaveBeenLastCalledWith('vault-files');
+        expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
+        expect(queue.queueLoreRefresh).not.toHaveBeenCalled();
+    });
     it('rejects forged, expired and different-user completion tickets', async () => {
         const { tickets, ticket, complete, auth, bucket } = await setup();
         expect((await complete(req({ ticket: ticket+'tampered' }))).status).toBe(400);
@@ -76,7 +88,7 @@ describe('direct private-storage uploads', () => {
         const { complete, ticket, dq, queue, bucket, from } = await setup();
         expect((await complete(req({ ticket }))).status).toBe(200);
         expect(from).toHaveBeenCalledWith('lore-upload-staging');
-        expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ extractedText:'A short artist-written document.', status:'approved' }));
+        expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ extractedText:'A short artist-written document.', status:'approved' }), { userId: 'owner', expectedClaimId: 'claim-1' });
         expect(queue.queueLoreRefresh).toHaveBeenCalledWith(artistId);
         expect(dq.insertVaultSource.mock.invocationCallOrder[0]).toBeLessThan(queue.queueLoreRefresh.mock.invocationCallOrder[0]);
         expect(bucket.remove).toHaveBeenCalled();
@@ -103,7 +115,7 @@ describe('direct private-storage uploads', () => {
         bucket.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
         const ticket = tickets.signUploadTicket({ userId: 'owner', artistId, path: artistId+'/data', name: 'data', type, size: bytes.length, expires: Date.now()+60000 });
         expect((await complete(req({ ticket }))).status).toBe(200);
-        expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ type: 'data', extractedText: bytes.toString('utf8') }));
+        expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ type: 'data', extractedText: bytes.toString('utf8') }), { userId: 'owner', expectedClaimId: 'claim-1' });
     });
     it('rejects mismatched file bytes before publishing', async () => {
         const { complete, ticket, bucket, dq } = await setup();

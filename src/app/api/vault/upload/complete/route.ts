@@ -8,6 +8,8 @@ import { validateMagicBytes } from '@/server/utils/validateMagicBytes';
 import { extractPdfText } from '@/server/utils/extractPdfText';
 import { getVaultSourcesByArtistId, insertVaultSource } from '@/server/utils/queries/dashboardQueries';
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 export const maxDuration = 60;
 
@@ -22,12 +24,14 @@ async function refreshAfterUpload(artistId: string): Promise<string | undefined>
 export async function POST(req: Request) {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+    let unpublishedPath: string | undefined;
     try {
         const body = await req.json();
         let ticket;
         try { ticket = readUploadTicket(String(body.ticket ?? ''), session.user.id); }
         catch { return Response.json({ error: 'Upload expired or invalid. Please try again.' }, { status: 400 }); }
         if (!(await canEditArtist(session.user.id, ticket.artistId))) return Response.json({ error: 'Not authorized for this artist' }, { status: 403 });
+        const expectedClaimId = await getLoreClaimGeneration(ticket.artistId);
         const storage = getSupabaseAdmin().storage;
         const prior = (await getVaultSourcesByArtistId(ticket.artistId)).find(s => s.filePath === ticket.path);
         if (prior) {
@@ -43,13 +47,16 @@ export async function POST(req: Request) {
             : ticket.type.startsWith('text/') || ticket.type === 'application/json' ? buffer.toString('utf8') : null;
         const { error: publishError } = await storage.from(VAULT_BUCKET).upload(ticket.path, buffer, { contentType: ticket.type, upsert: true });
         if (publishError) throw publishError;
+        unpublishedPath = ticket.path;
         const url = storage.from(VAULT_BUCKET).getPublicUrl(ticket.path).data.publicUrl;
         const inserted = await insertVaultSource({ artistId: ticket.artistId, url, title: ticket.name,
             snippet: extractedText?.slice(0, 300) ?? `Uploaded file: ${ticket.name}`, extractedText,
             type: getUploadSourceType(ticket.type),
-            status: 'approved', fileName: ticket.name, fileSize: file.size, filePath: ticket.path, contentType: ticket.type });
+            status: 'approved', fileName: ticket.name, fileSize: file.size, filePath: ticket.path, contentType: ticket.type },
+            { userId: session.user.id, expectedClaimId });
         const source = inserted ?? (await getVaultSourcesByArtistId(ticket.artistId)).find(s => s.filePath === ticket.path);
         if (!source) throw new Error('Upload source was not saved');
+        unpublishedPath = undefined;
         const refreshWarning = await refreshAfterUpload(ticket.artistId);
         try {
             const { error: cleanupError } = await storage.from(LORE_UPLOAD_BUCKET).remove([ticket.path]);
@@ -58,7 +65,12 @@ export async function POST(req: Request) {
         return Response.json({ source, warning: [refreshWarning, ticket.type === 'application/pdf' && !extractedText
             ? 'PDF saved, but no readable text was found. Use a text-based PDF so Lore can read it.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {
+        if (error instanceof OwnershipChangedError && unpublishedPath) {
+            const { error: cleanupError } = await getSupabaseAdmin().storage.from(VAULT_BUCKET).remove([unpublishedPath]);
+            if (cleanupError) console.error('[vault/upload/complete] Rejected upload cleanup failed', cleanupError);
+        }
         console.error('[vault/upload/complete]', error);
+        if (error instanceof OwnershipChangedError) return Response.json({ error: error.message }, { status: 403 });
         return Response.json({ error: 'Could not finish the upload. Please try again.' }, { status: 500 });
     }
 }

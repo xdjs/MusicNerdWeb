@@ -1,6 +1,7 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits } from "@/server/db/schema";
+import { withArtistUploadWrite, type WriteDb } from './ownershipWrites';
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.
@@ -185,8 +186,8 @@ export async function revokeApprovedClaim(claimId: string) {
             await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
             // Removing the job identity invalidates even an already-running model
             // call. Its final guarded write cannot recreate the deleted Lore.
-            await tx.delete(artistResearchJobs).where(and(
-                eq(artistResearchJobs.artistId, deleted.artistId), eq(artistResearchJobs.kind, 'lore_refresh')));
+            await tx.delete(artistResearchJobs).where(eq(artistResearchJobs.artistId, deleted.artistId));
+            await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, deleted.artistId));
 
             // Only after we've confirmed we owned the approved claim do we
             // wipe the vault. Same transaction, so both DELETEs commit together.
@@ -352,13 +353,14 @@ export async function insertVaultSource(data: {
     ogImage?: string | null;
     /** ISO date (YYYY-MM-DD) the source says it was published, or null. */
     publishedAt?: string | null;
-}) {
+}, authorization?: { userId: string; expectedClaimId: string | null }) {
     try {
+        const write = async (writer: WriteDb) => {
         // onConflictDoNothing pairs with the unique index on (artist_id, url)
         // added in 0014. Dedup used to be a read-then-write with nothing
         // underneath, so two overlapping discovery runs both read "absent" and
         // both inserted — a real artist's vault held the same interview twice.
-        const [source] = await db
+        const [source] = await writer
             .insert(artistVaultSources)
             .values({
                 artistId: data.artistId,
@@ -381,6 +383,10 @@ export async function insertVaultSource(data: {
         // race. Callers treat a missing row as "nothing new to enrich", which is
         // correct: the source is present either way.
         return source;
+        };
+        return authorization
+            ? await withArtistUploadWrite(data.artistId, authorization.userId, authorization.expectedClaimId, write)
+            : await write(db);
     } catch (e) {
         console.error("[insertVaultSource] Error:", e);
         throw e;

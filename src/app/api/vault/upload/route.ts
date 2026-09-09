@@ -9,6 +9,8 @@ import { resolveUploadType } from "@/server/utils/resolveUploadType";
 import { extractPdfText } from "@/server/utils/extractPdfText";
 import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL, getUploadSourceType } from '@/lib/vaultUpload';
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +46,7 @@ const MIME_EXT_MAP: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+    let unpublishedPath: string | undefined;
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -61,6 +64,7 @@ export async function POST(req: Request) {
         if (!(await canEditArtist(session.user.id, artistId))) {
             return NextResponse.json({ error: "Not authorized for this artist" }, { status: 403 });
         }
+        const expectedClaimId = await getLoreClaimGeneration(artistId);
 
         if (file.size > MAX_FILE_SIZE) {
             console.error("[vault/upload] rejected:", { name: file.name, type: file.type, size: file.size, reason: "too_large" });
@@ -131,6 +135,7 @@ export async function POST(req: Request) {
         }
 
         // Get public URL
+        unpublishedPath = storagePath;
         const { data: urlData } = supabaseAdmin.storage
             .from(VAULT_BUCKET)
             .getPublicUrl(storagePath);
@@ -170,7 +175,8 @@ export async function POST(req: Request) {
             filePath: storagePath,
             contentType: resolvedType,
             extractedText: extractedText ?? null,
-        });
+        }, { userId: session.user.id, expectedClaimId });
+        unpublishedPath = undefined;
 
         let refreshWarning: string | undefined;
         try { await queueLoreRefresh(artistId); }
@@ -182,7 +188,12 @@ export async function POST(req: Request) {
             warning: [refreshWarning, resolvedType === 'application/pdf' && !extractedText
                 ? 'PDF saved, but no readable text was found. Upload a text-based PDF to use it in Lore.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {
+        if (error instanceof OwnershipChangedError && unpublishedPath) {
+            const { error: cleanupError } = await supabaseAdmin.storage.from(VAULT_BUCKET).remove([unpublishedPath]);
+            if (cleanupError) console.error('[vault/upload] Rejected upload cleanup failed', cleanupError);
+        }
         console.error("[vault/upload] Error:", error);
+        if (error instanceof OwnershipChangedError) return NextResponse.json({ error: error.message }, { status: 403 });
         return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
     }
 }

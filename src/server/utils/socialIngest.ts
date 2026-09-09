@@ -13,6 +13,7 @@
  */
 import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
+import { withResearchJobWrite, OwnershipChangedError, type WriteDb } from '@/server/utils/queries/ownershipWrites';
 import { artistSocialPosts, artists } from "@/server/db/schema";
 import type { SocialPostRow } from "@/server/utils/socialSignals";
 import { APIFY_API_TOKEN } from "@/env";
@@ -228,8 +229,8 @@ export function mapApifyPost(rawItem: unknown, artistId: string, handle: string,
 
 /** Upserts one mapped row. Exported so the dev script can ingest from a
  *  local file (bypassing Apify) through the exact same write path. */
-export async function upsertSocialPost(row: SocialPostInsert): Promise<void> {
-    await db
+export async function upsertSocialPost(row: SocialPostInsert, writer: WriteDb = db): Promise<void> {
+    await writer
         .insert(artistSocialPosts)
         .values(row)
         .onConflictDoUpdate({
@@ -253,10 +254,10 @@ export async function upsertSocialPost(row: SocialPostInsert): Promise<void> {
         });
 }
 
-async function upsertMappedRows(rows: SocialPostInsert[]): Promise<IngestResult> {
+async function upsertMappedRows(rows: SocialPostInsert[], writer: WriteDb = db): Promise<IngestResult> {
     let ingested = 0, ownPosts = 0, collabPosts = 0;
     for (const row of rows) {
-        await upsertSocialPost(row);
+        await upsertSocialPost(row, writer);
         ingested += 1;
         if (row.isOwnPost) ownPosts += 1; else collabPosts += 1;
     }
@@ -658,6 +659,7 @@ export async function collectInstagramScrape(
     artistId: string,
     handle: string,
     datasetId: string,
+    jobId?: string,
 ): Promise<IngestResult | null> {
     if (!APIFY_API_TOKEN) return null;
     try {
@@ -675,8 +677,9 @@ export async function collectInstagramScrape(
         const rows = items
             .map(item => mapApifyPost(item, artistId, handle, artistName))
             .filter((r): r is SocialPostInsert => r !== null);
-        return await upsertMappedRows(rows);
+        return jobId ? await withResearchJobWrite(artistId, jobId, tx => upsertMappedRows(rows, tx)) : await upsertMappedRows(rows);
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[collectInstagramScrape] Error:", e);
         return null;
     }
