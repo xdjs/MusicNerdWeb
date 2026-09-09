@@ -1,5 +1,5 @@
 import { db } from '@/server/db/drizzle';
-import { artists, artistBioVersions } from '@/server/db/schema';
+import { artists, artistBioVersions, artistDocs } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealBio } from '@/lib/bioConstants';
 import { BioConflictError } from '@/lib/bioConflict';
@@ -8,6 +8,7 @@ import { BioConflictError } from '@/lib/bioConflict';
  * call must never hold this lock; compare its starting bio after it finishes. */
 export async function persistArtistBio(artistId: string, bio: string, options: {
     generated?: boolean; expectedBio?: string | null;
+    document?: { content: string; sources: unknown[] };
 } = {}): Promise<string | null> {
     return db.transaction(async tx => {
         await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
@@ -24,6 +25,15 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             return artist.bio;
         }
         if (options.generated && artist.bio !== options.expectedBio) throw new BioConflictError();
+        // Onboarding publishes one coherent snapshot. A failed document, history,
+        // or bio write rolls the entire transaction back; conflicts write nothing.
+        if (options.document) {
+            const { content, sources } = options.document;
+            await tx.insert(artistDocs).values({ artistId, content, sources }).onConflictDoUpdate({
+                target: [artistDocs.artistId],
+                set: { content, sources, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
+            });
+        }
         if (artist.bio === bio) return bio;
         // Preserve both sides of every edit. History is deleted only explicitly.
         for (const text of [artist.bio, bio].filter((v): v is string => isRealBio(v))) {

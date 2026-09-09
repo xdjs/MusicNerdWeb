@@ -2,6 +2,7 @@ import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits } from "@/server/db/schema";
 import { withArtistUploadWrite, type WriteDb } from './ownershipWrites';
+import { ABOUT_EMPTY_STATE } from '@/lib/bioConstants';
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.
@@ -228,7 +229,8 @@ export async function revokeApprovedClaim(claimId: string) {
                 // Preserve even a hand-edited bio that never reached version history.
                 await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
                     select id, bio, false from artists a
-                    where id = ${deleted.artistId}::uuid and bio is not null and bio <> ''
+                    where id = ${deleted.artistId}::uuid and bio is not null
+                    and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
                     and not exists (select 1 from artist_bio_versions v
                         where v.artist_id = a.id and v.bio_text = a.bio)`);
                 await tx

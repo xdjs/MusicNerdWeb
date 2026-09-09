@@ -159,7 +159,7 @@ describe('runOnboardingTurn', () => {
         const { runOnboardingTurn } = await import('../turnHandlers');
         const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', { generated: true, expectedBio: 'Existing bio' });
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', expect.objectContaining({ generated: true, expectedBio: 'Existing bio', document: expect.objectContaining({ content: '## Overview\ndoc' }) }));
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
         expect(events.some(e => e.kind === 'progress' && e.label === 'Wrote your About')).toBe(true);
@@ -183,6 +183,18 @@ describe('runOnboardingTurn', () => {
         expect(oq.confirmOnboardingStep).not.toHaveBeenCalledWith('a1', 'publish');
         expect(oq.upsertArtistDoc).not.toHaveBeenCalled();
         expect(oq.upsertArtistDocSources).not.toHaveBeenCalled();
+    });
+
+    it('auto-build leaves publication retryable when its atomic persistence fails', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        persistArtistBio.mockRejectedValue(new Error('document write failed'));
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+        expect(oq.confirmOnboardingStep).not.toHaveBeenCalledWith('a1', 'publish');
+        expect(events.some(e => e.kind === 'error')).toBe(true);
+        expect(events.some(e => e.kind === 'complete')).toBe(false);
     });
 
     it('the auto-build runs every identity guard before writing a discovered link, and refuses one they reject', async () => {
@@ -1376,11 +1388,11 @@ describe('runOnboardingTurn', () => {
         db.update.mockReturnValue({ set });
         const { runOnboardingTurn } = await import('../turnHandlers');
         const events = await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
-        expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nd');
+        expect(oq.upsertArtistDoc).not.toHaveBeenCalled();
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true }));
-        expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', []);
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ document: { content: '## Overview\nd', sources: [] } }));
         expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
@@ -1403,11 +1415,11 @@ describe('runOnboardingTurn', () => {
             about: 'Cited Lauryn Hill as an influence[1].',
             sources,
         }));
-        expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nCited Lauryn Hill[1].'); // doc keeps its markers
+        expect(oq.upsertArtistDoc).not.toHaveBeenCalled();
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.', expect.objectContaining({ generated: true }));
-        expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', sources);
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.', expect.objectContaining({ document: { content: '## Overview\nCited Lauryn Hill[1].', sources } }));
     });
 
     it('publish drops a malformed sources entry rather than persisting garbage', async () => {
@@ -1429,7 +1441,8 @@ describe('runOnboardingTurn', () => {
                 'not even an object',
             ],
         }));
-        expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', [
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio.mock.calls[0][2].document.sources).toEqual([
             { id: 1, kind: 'vault', label: 'Real one', url: 'https://x.com' },
         ]);
     });
@@ -1449,7 +1462,7 @@ describe('runOnboardingTurn', () => {
         const events = await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', { generated: true, expectedBio: 'A real hand-written bio.' });
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true, expectedBio: 'A real hand-written bio.' }));
         expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
         expect(events.some(e => e.kind === 'complete')).toBe(true);
     });
@@ -1469,7 +1482,7 @@ describe('runOnboardingTurn', () => {
         await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', { generated: true, expectedBio: ABOUT_EMPTY_STATE });
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true, expectedBio: ABOUT_EMPTY_STATE }));
     });
 
     it('publish rejects when not on the publish step', async () => {

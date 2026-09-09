@@ -25,8 +25,6 @@ import {
     confirmOnboardingStep,
     getInterviewAnswers,
     upsertInterviewAnswer,
-    upsertArtistDoc,
-    upsertArtistDocSources,
 } from "@/server/utils/queries/onboardingQueries";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
 import {
@@ -1267,17 +1265,13 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null });
-            await upsertArtistDoc(artistId, doc);
-            await upsertArtistDocSources(artistId, sources);
+            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null, document: { content: doc, sources } });
             wrote = true;
         }
     } catch (e) {
         console.error("[onboarding] auto-build About generation failed:", e);
-        if (e instanceof BioConflictError) {
-            yield { kind: 'error', message: e.message };
-            return;
-        }
+        yield { kind: 'error', message: e instanceof BioConflictError ? e.message : 'Could not publish your About and Lore. Please try again; your saved bio is safe.' };
+        return;
     }
     yield { kind: "progress", label: wrote ? "Wrote your About" : "Couldn't write an About yet", done: true, group: DOC_GROUP };
 
@@ -1611,9 +1605,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: existingBio ?? null });
-        await upsertArtistDoc(artistId, doc);
-        await upsertArtistDocSources(artistId, sources);
+        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: existingBio ?? null, document: { content: doc, sources } });
         await confirmOnboardingStep(artistId, "publish");
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };

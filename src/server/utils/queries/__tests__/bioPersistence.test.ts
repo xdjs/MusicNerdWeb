@@ -51,6 +51,26 @@ describe('persistArtistBio', () => {
         expect(values).not.toHaveBeenCalled();
         expect(set).toHaveBeenCalledWith({ bio: ABOUT_EMPTY_STATE });
     });
+    it('publishes document and citations in the same transaction, before bio/history writes', async () => {
+        const { persistArtistBio, tx, set, values } = await setup();
+        const docUpsert = jest.fn().mockResolvedValue(undefined);
+        const docValues = jest.fn(() => ({ onConflictDoUpdate: docUpsert }));
+        tx.insert.mockReturnValueOnce({ values: docValues });
+        const sources = [{ id: 1, label: 'PDF' }];
+        await persistArtistBio('a1', 'Published About', { generated: true, expectedBio: 'Artist edited bio', document: { content: 'Lore', sources } });
+        expect(docValues).toHaveBeenCalledWith({ artistId: 'a1', content: 'Lore', sources });
+        expect(docUpsert.mock.invocationCallOrder[0]).toBeLessThan(values.mock.invocationCallOrder[0]);
+        expect(docUpsert.mock.invocationCallOrder[0]).toBeLessThan(set.mock.invocationCallOrder[0]);
+        const { db } = await import('@/server/db/drizzle');
+        expect(db.transaction).toHaveBeenCalledTimes(1);
+    });
+    it('does not write bio or history if the atomic document upsert fails', async () => {
+        const { persistArtistBio, tx, set, values } = await setup();
+        tx.insert.mockReturnValueOnce({ values: jest.fn(() => ({ onConflictDoUpdate: jest.fn().mockRejectedValue(new Error('document write failed')) })) });
+        await expect(persistArtistBio('a1', 'Published About', { generated: true, expectedBio: 'Artist edited bio', document: { content: 'Lore', sources: [] } })).rejects.toThrow('document write failed');
+        expect(set).not.toHaveBeenCalled();
+        expect(values).not.toHaveBeenCalled();
+    });
     it.each(['placeholder', 'whitespace'])('does not snapshot an old %s when publishing a real bio', async kind => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
         const bio = kind === 'placeholder' ? ` ${ABOUT_EMPTY_STATE} ` : '   ';
