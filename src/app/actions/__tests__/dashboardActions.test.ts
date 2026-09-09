@@ -262,11 +262,11 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         expect(queueLoreRefresh).toHaveBeenCalledTimes(3);
     });
 
-    it("reports failure if the durable refresh could not be queued", async () => {
+    it("keeps a committed deletion successful if the refresh queue is unavailable", async () => {
         // Fire-and-forget behind an action that already succeeded — a bad Gemini
         // day must not turn a successful removal into an error.
         const { removeVaultSource, queueLoreRefresh } = await setup();
-        queueLoreRefresh.mockRejectedValueOnce(new Error("gemini down"));
-        await expect(removeVaultSource("s1")).resolves.toEqual(expect.objectContaining({ success: false }));
+        queueLoreRefresh.mockRejectedValueOnce(new Error("queue unavailable"));
+        await expect(removeVaultSource("s1")).resolves.toEqual(expect.objectContaining({ success: true }));
     });
 });

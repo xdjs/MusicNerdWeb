@@ -172,10 +172,15 @@ export async function POST(req: Request) {
             extractedText: extractedText ?? null,
         });
 
-        await queueLoreRefresh(artistId);
+        let refreshWarning: string | undefined;
+        try { await queueLoreRefresh(artistId); }
+        catch (error) {
+            console.error('[vault/upload] Saved upload; Lore enqueue failed', error);
+            refreshWarning = 'File saved. Use Look again to retry the Lore refresh; do not upload again.';
+        }
         return NextResponse.json({ success: true, source,
-            warning: resolvedType === 'application/pdf' && !extractedText
-                ? 'PDF saved, but no readable text was found. Upload a text-based PDF to use it in Lore.' : undefined });
+            warning: [refreshWarning, resolvedType === 'application/pdf' && !extractedText
+                ? 'PDF saved, but no readable text was found. Upload a text-based PDF to use it in Lore.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {
         console.error("[vault/upload] Error:", error);
         return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });

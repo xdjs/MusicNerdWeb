@@ -36,7 +36,12 @@ import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
 // Durable jobs coalesce changes across workers and survive request completion.
 async function scheduleDocRefresh(artistId: string | undefined): Promise<void> {
     if (!artistId) return;
-    await queueLoreRefresh(artistId);
+    try { await queueLoreRefresh(artistId); }
+    catch (error) {
+        // The source mutation is already committed. Never report it as failed:
+        // Look again can retry the derived-document refresh independently.
+        console.error('[vault] Source saved but Lore enqueue failed', error);
+    }
 }
 
 export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean; referenceCode?: string }> {

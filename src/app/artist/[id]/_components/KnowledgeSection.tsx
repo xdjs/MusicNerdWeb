@@ -306,7 +306,6 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
         <RevealSection className="glass p-4 sm:p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
                 <h2 className="text-black dark:text-white text-xl font-bold">What we know about you</h2>
-                {hasDoc && (
                     <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
@@ -323,16 +322,15 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
                           * structure and its citations intact. The sources are
                           * resolved inside the file, so [7] still means
                           * something wherever it ends up. */}
-                        <a
+                        {hasDoc && <a
                             href={`/api/artist/${artistId}/knowledge-doc/export`}
                             className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-black/10 dark:border-white/15 text-gray-600 dark:text-gray-400 hover:border-black/25 dark:hover:border-white/30"
                             title="Download as markdown, with sources — ready to hand to another AI"
                         >
                             <Download size={12} />
                             Download
-                        </a>
+                        </a>}
                     </div>
-                )}
             </div>
             {refreshNote && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">{refreshNote}</p>

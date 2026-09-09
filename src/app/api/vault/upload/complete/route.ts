@@ -11,6 +11,14 @@ import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 
 export const maxDuration = 60;
 
+async function refreshAfterUpload(artistId: string): Promise<string | undefined> {
+    try { await queueLoreRefresh(artistId); }
+    catch (error) {
+        console.error('[vault/upload/complete] Saved upload; Lore enqueue failed', error);
+        return 'File saved. Lore refresh could not start; use Look again to retry. Do not upload the file again.';
+    }
+}
+
 export async function POST(req: Request) {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
@@ -23,8 +31,8 @@ export async function POST(req: Request) {
         const storage = getSupabaseAdmin().storage;
         const prior = (await getVaultSourcesByArtistId(ticket.artistId)).find(s => s.filePath === ticket.path);
         if (prior) {
-            await queueLoreRefresh(ticket.artistId);
-            return Response.json({ source: prior });
+            const warning = await refreshAfterUpload(ticket.artistId);
+            return Response.json({ source: prior, warning });
         }
         const { data: file, error } = await storage.from(LORE_UPLOAD_BUCKET).download(ticket.path);
         if (error || !file) throw error ?? new Error('Upload missing');
@@ -42,10 +50,13 @@ export async function POST(req: Request) {
             status: 'approved', fileName: ticket.name, fileSize: file.size, filePath: ticket.path, contentType: ticket.type });
         const source = inserted ?? (await getVaultSourcesByArtistId(ticket.artistId)).find(s => s.filePath === ticket.path);
         if (!source) throw new Error('Upload source was not saved');
-        await queueLoreRefresh(ticket.artistId);
-        await storage.from(LORE_UPLOAD_BUCKET).remove([ticket.path]);
-        return Response.json({ source, warning: ticket.type === 'application/pdf' && !extractedText
-            ? 'PDF saved, but no readable text was found. Use a text-based PDF so Lore can read it.' : undefined });
+        const refreshWarning = await refreshAfterUpload(ticket.artistId);
+        try {
+            const { error: cleanupError } = await storage.from(LORE_UPLOAD_BUCKET).remove([ticket.path]);
+            if (cleanupError) console.error('[vault/upload/complete] Staging cleanup failed', cleanupError);
+        } catch (cleanupError) { console.error('[vault/upload/complete] Staging cleanup failed', cleanupError); }
+        return Response.json({ source, warning: [refreshWarning, ticket.type === 'application/pdf' && !extractedText
+            ? 'PDF saved, but no readable text was found. Use a text-based PDF so Lore can read it.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {
         console.error('[vault/upload/complete]', error);
         return Response.json({ error: 'Could not finish the upload. Please try again.' }, { status: 500 });

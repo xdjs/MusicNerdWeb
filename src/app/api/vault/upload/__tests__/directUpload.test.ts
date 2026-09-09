@@ -81,6 +81,22 @@ describe('direct private-storage uploads', () => {
         expect(dq.insertVaultSource.mock.invocationCallOrder[0]).toBeLessThan(queue.queueLoreRefresh.mock.invocationCallOrder[0]);
         expect(bucket.remove).toHaveBeenCalled();
     });
+    it('returns the saved upload with a retry warning when Lore enqueue fails', async () => {
+        const { complete, ticket, queue, bucket, dq } = await setup();
+        queue.queueLoreRefresh.mockRejectedValue(new Error('queue unavailable'));
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ source: { id: 'source' }, warning: expect.stringContaining('File saved') });
+        expect(bucket.remove).toHaveBeenCalled();
+        dq.getVaultSourcesByArtistId.mockResolvedValue([{ id: 'source', filePath: artistId+'/fixture.pdf' }]);
+        expect((await complete(req({ ticket }))).status).toBe(200);
+        expect(dq.insertVaultSource).toHaveBeenCalledTimes(1);
+    });
+    it('does not fail a saved upload when temporary-object cleanup fails', async () => {
+        const { complete, ticket, bucket } = await setup();
+        bucket.remove.mockRejectedValue(new Error('cleanup unavailable'));
+        expect((await complete(req({ ticket }))).status).toBe(200);
+    });
     it('rejects mismatched file bytes before publishing', async () => {
         const { complete, ticket, bucket, dq } = await setup();
         bucket.download.mockResolvedValue({ data: new Blob(['not a pdf payload']), error:null });

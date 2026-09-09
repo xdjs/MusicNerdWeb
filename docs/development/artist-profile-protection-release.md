@@ -65,6 +65,15 @@ policies. Broader hardening is separate from this release:
 [GraphQL guidance](https://supabase.com/docs/guides/database/database-linter?lint=0026_pg_graphql_anon_table_exposed).
 The following are application release checks, not outstanding dev database setup:
 
+2026-09-09 verification: the real browser upload of an approved PDF copy to an
+isolated dev fixture succeeded, with extracted text visible in the source card.
+Historical pin selection updated About; regeneration left it pinned and unchanged.
+The In Process link and 10 MB/file copy rendered. A signed storage transport test
+accepted 10,485,760 bytes and rejected 10,485,761 bytes; transport objects were removed.
+Dev Lore processing reached Gemini but the configured provider project returned
+403 PERMISSION_DENIED. A successful dev synthesis is therefore unverified. The
+Look again route requires a real session (the dev page's fallback is not login proof).
+
 1. Run type-check, lint, all unit tests, build and `npx drizzle-kit check`.
 2. On dev, upload a 10 MiB PDF through the signed flow; reject one byte over.
    Verify an unauthorized user cannot sign or complete another artist's upload.
