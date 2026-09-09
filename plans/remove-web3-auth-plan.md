@@ -1,5 +1,9 @@
 # Remove Web3 Authentication - Read-Only Conversion Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Overview
 Convert MusicNerdWeb from Web3-authenticated platform to read-only website. All editing and admin functionality will be disabled until a new authentication system is implemented.
 

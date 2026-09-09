@@ -14,7 +14,7 @@ docs/rnd/
 ├── decisions.md           one line per decision → links to the meeting
 ├── retro.md               keep / fix / try + open commitments
 ├── agendas/               _template.md + YYYY-MM-DD.md
-├── meetings/              YYYY-MM-DD.md
+├── meetings/              README.md index + YYYY-MM-DD.md + _template.md
 ├── events/                roundtable + showcase: concepts, run of show, recaps
 ├── research/
 │   ├── inbox.md           links + one line on why
@@ -29,19 +29,20 @@ docs/rnd/
 |---|---|
 | `decisions.md` | One line per decision, newest first, linked to where it was made. Answers "what's our position on X" without reading every meeting in order. Open questions live at the bottom. |
 | `retro.md` | Running keep / fix / try, plus open commitments and who owns them. Appended weekly, carried until closed. |
-| `onboarding-fixes.md` | Working task list for the onboarding flow, sourced from artist tests. Status per item, root cause where known. |
-| `hybrid-onboarding-proposal.md` | The proposed shape of the collapsed onboarding flow — what's pre-built, the one question, where the affordances live. For reaction. |
-| `agendas/` | One file per Thursday. Written before the meeting, emailed to the team. `_template.md` is the shape. |
-| `meetings/` | Synthesized notes from each meeting — decisions, open threads, what didn't get reached, what's next. |
+| `onboarding-fixes.md` | Dated findings and fixes from artist tests; use `MEMORY.md` for the active engineering queue. |
+| `hybrid-onboarding-proposal.md` | Historical onboarding proposal; later meeting decisions and implemented behavior take precedence. |
+| `agendas/` | Plans for upcoming R&D discussions. `_template.md` is the shape; an agenda is not evidence that a topic was decided. |
+| `meetings/` | Synthesized outcomes, with source and date. See the [meeting index](meetings/README.md) for coverage. |
 | `events/` | Roundtable and showcase: the concept and who's in the room, the run of show, and afterward what came out of it. |
 | `research/` | Competitor teardowns, articles, threads worth keeping. `inbox.md` is the low-friction dump for links. |
-| `research/_scratch/` | **Gitignored.** Pete's raw, unedited thinking. Write freely — nobody's reading it but Claude, and none of it publishes. Claude promotes the durable parts into committed research notes. |
+| `research/_scratch/` | **Gitignored.** Raw notes and private source material for the working assistant. Promote only the durable, public-safe substance into committed notes. |
 | `notes/claude/` | Claude's working notes — reasoning behind a decision, open questions, dead ends worth not re-walking. |
 | `notes/codex/` | Codex / ChatGPT notes. Same idea. Separate so it's obvious which agent produced a line of reasoning when two disagree. |
 
 `MEMORY.md` at the repo root keeps its existing job: engineering state (recently shipped, in
-progress, backlog, known issues). This folder is the team-and-direction layer. Why a timeout is
-38 seconds goes in MEMORY.md. Why we decided to build the thing at all goes here.
+progress, backlog, known issues). This folder is the team-and-direction layer. Implementation
+details belong in the relevant technical reference. Why we decided to build the thing at all
+goes here.
 
 Specs and implementation plans keep living in `docs/superpowers/specs/` and
 `docs/superpowers/plans/`. Link to them from here rather than restating them.
@@ -55,7 +56,8 @@ initials or nothing. They agreed to try the product, not to a public writeup.
 
 `xdjs/MusicNerdWeb` is a **public repo**. Everything committed here is world-readable.
 
-- **No raw transcripts.** Pete feeds them to Claude directly. They are not committed.
+- **No raw transcripts.** Read them through authorized private sources or keep them in ignored
+  scratch. They are not committed.
 - **No text threads, DMs, email lists, or contact data.**
 - **Synthesize, don't quote.** Record the substance of a critique, not the quotable version of
   it. "Curated-listening subscriptions don't hold up without a personal connection to the
@@ -67,29 +69,32 @@ accountable. The rule is about tone and raw material, not about naming people.
 
 **The escape hatch is `research/_scratch/`.** It's gitignored, so nothing in it publishes. If
 you're about to soften a thought so it reads well in public, put the unsoftened version there
-instead. Claude reads it and promotes what's durable. The rule above should never cost us the
-thought itself — only where it lands.
+instead. The working assistant reads it and promotes what's durable. The rule above should never
+cost us the thought itself — only where it lands.
 
-## The weekly loop
+## The meeting loop
 
-1. **Thursday, 10:00 AM — the meeting.** Flow below.
-2. **After the meeting** — Pete hands Claude the transcript. They talk through it and **decide
-   what to work on next**; that conversation is the point, the filing is bookkeeping. Then Claude
-   writes `meetings/YYYY-MM-DD.md`, adds anything settled to `decisions.md`, appends the retro to
-   `retro.md`, updates commitments, and files research or notes wherever they belong. Claude
-   decides placement without asking; this README is the map it follows.
-3. **During the week** — work happens on feature branches as usual. Anything that changes
-   direction (a decision, a dead end, a thing an artist did that surprised us) gets written
-   down when it happens, not reconstructed on Thursday. Decisions go in `decisions.md` the day
-   they're made. Pete dumps raw into `research/_scratch/` and links into `research/inbox.md`
-   without thinking about it.
-4. **Thursday morning — the sweep.** Run `/agenda`. Claude reads the week's commits, the diffs
-   to this folder and `MEMORY.md`, and open commitments in `retro.md`, then writes
-   `agendas/YYYY-MM-DD.md` and creates a Gmail draft. Pete reviews and sends.
-5. **Pete posts the agenda to the Music Nerd Discord** before the meeting, and the retro after.
-   Carl's "try" from 8/20. Manual — Claude has no channel access.
+1. Prepare an agenda for the next R&D discussion using `agendas/_template.md`. Read the week's
+   engineering handoff, relevant commits, decisions and outstanding commitments. In runtimes
+   with an `/agenda` command it can help; other assistants use these files directly.
+2. After a meeting, read the available source notes/transcript and synthesize
+   `meetings/YYYY-MM-DD.md` using the existing format. Add a descriptive suffix if separate
+   sessions on the same day need separate records. Use source timestamps to distinguish them.
+3. Record settled decisions in `decisions.md`, link their meeting evidence, and update retro
+   commitments only when a later source supports the new status. Mark proposals and unknowns.
+4. During the week, record changes in direction when they happen. Keep raw material private
+   and promote only its durable, work-related substance.
+5. Pete coordinates agenda/retro sharing. Sending email or Discord messages is a separate
+   action requiring authorization; maintaining these notes does not authorize it.
 
-## Meeting flow
+The August 27 meeting introduced daily standups and separate retrospectives. The September 7
+meeting moved that week's Thursday demo to 11:00 AM Eastern in place of the standup. Check the
+calendar for current times; neither the original 10:00 AM nor a later one-week adjustment is a
+permanent schedule. Keep the repository's weekly meeting record distinct from scheduling.
+
+## Original meeting flow — August 20
+
+Historical format: the August 27 decision moved the retro to its own meeting.
 
 60 minutes. Open to people in our network as observers; the AMA is open for everyone.
 
@@ -115,12 +120,11 @@ decided. See [`agendas/_template.md`](agendas/_template.md).
 ## Email
 
 Recipients live in `recipients.md`, which is gitignored — contact data doesn't go in a public
-repo. Claude drafts, Pete sends.
+repo. Pete reviews and sends any authorized drafts.
 
 ## Branching
 
-Carl allowed docs-only commits to go straight to `main` on 8/20. Current operating practice is to
-route them through `staging` anyway, so the handoff and public documentation travel with the code
-being verified there and reach `main` in the same release. Carl also floated dropping the staging
-branch in favor of feature branches merging directly into `main`; that is still not decided, so
-all work follows the flow in `CLAUDE.md`.
+All documentation follows the branch and release rules in [CLAUDE.md](../../CLAUDE.md): feature
+branch → staging → main, with the existing review/authorization gate. The August 20 permission
+for docs-only commits directly to main is historical and does not override current practice.
+The suggestion to remove staging was not adopted in the current guide.

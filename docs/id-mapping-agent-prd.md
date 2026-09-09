@@ -1,5 +1,9 @@
 # Cross-Platform Artist ID Mapping Agent — PRD
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 > Depends on: `docs/id-mapping-infrastructure-plan.md` (DB table + MCP tools must be deployed first)
 
 ## Problem

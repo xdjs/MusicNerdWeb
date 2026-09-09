@@ -5,6 +5,21 @@ forward until they're done or dropped.
 
 ---
 
+## Follow-through checked 2026-09-09
+
+The [August 27 meeting](meetings/2026-08-27.md) moved retrospectives to a separate session and
+introduced daily standups. No later standalone keep/fix/try record was found in this sweep;
+standup discussion is not being relabeled as a retro.
+
+- Substack publication was confirmed August 27; a further community-session post was reported
+  [September 7](meetings/2026-09-07.md). The old access blocker is no longer an active commitment.
+- Event format evolved from monthly sessions to an every-other-week showcase, later Feed
+  Forward. See [event context](events/README.md); the original date-picking task is superseded.
+- Discord cleanup was discussed through [September 8](meetings/2026-09-08.md). This supports
+  ongoing work, not a claim that all cleanup or regular agenda/retro posting is complete.
+- Reel publication, regular In Process use, Riverside plan verification and a genuinely cold
+  artist test have no confirmed completion in the reviewed sources.
+
 ## 2026-08-20
 
 Not run live — the meeting ran long and the retro happened over text afterward. CY's fix this
@@ -35,21 +50,23 @@ generated agenda both worked and became keeps.
 
 ## Open commitments
 
-Carried until closed. Owner in brackets.
+Carried until closed. Owner in brackets. Checked items retain closure evidence; unchecked items
+have not been confirmed complete in the reviewed sources.
 
 ### Visibility — "new Music Nerd energy"
-- [ ] Get Substack access. **Blocked** — Pete still can't get in, needs someone to grant it.
-      [Pete → needs CY or Jade]
-- [ ] Publish a Substack post. [Pete]
+- [x] Resolve Substack access and publish a post. Publication confirmed in the August 27
+      meeting; see follow-through above. [Pete]
 - [ ] Publish a reel about the new role. [Pete]
 - [ ] Start using Discord regularly; agenda before the meeting, retro after. [Pete]
 - [ ] Start using In Process a few times a week. [Pete]
 
 ### Roundtable & showcase
-- [ ] Pick dates — roundtable at the top of the month, showcase at the end. Monthly each.
-      [Pete]
-- [ ] Write a concept for the first roundtable, share it in the agenda. [Pete]
-- [ ] Get the Music Nerd email list from Jade; invites go out to it. Approved 8/20. [Pete, Jade]
+- [x] Choose the initial event format and schedule. Superseded by the every-other-week
+      showcase/Feed Forward plans; confirm upcoming dates in the calendar. [Pete]
+- [x] Establish the initial community-session concept. August 24 showcase planning and later
+      Feed Forward discussions supersede the original separate-roundtable concept. [Pete]
+- [x] Obtain the community mailing list. Receipt/use reported September 7; the list remains
+      private. [Pete, Jade]
 - [ ] Check Riverside pricing and report back if it needs a paid plan. [Pete]
 
 ### Product

@@ -1,5 +1,9 @@
 # Agent Work Admin Tab
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 ID mapping agents have been running and producing data (mappings, exclusions, audit entries), but there's no way to see their work in the admin UI. Adding an "Agent Work" tab to the admin dashboard with four sections: platform coverage stats, recent audit log, per-agent breakdown, and exclusions report.
 

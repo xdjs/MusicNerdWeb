@@ -1,5 +1,7 @@
 # Hybrid onboarding — a concrete proposal
 
+> Historical proposal. Later meetings selected profile-based review and in-app interviews; compare with current code before treating any option below as agreed work. See the [documentation map](../README.md).
+
 Carl's direction from 2026-08-20 (one assertion, then the profile) worked through against what a
 week of real artist testing actually showed. For reaction, not approval.
 

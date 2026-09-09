@@ -1,5 +1,9 @@
 # JWT Bearer Token Authentication Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Goal
 Secure public API routes with short‑lived bearer tokens signed using the existing NextAuth JWT secret.
 
