@@ -3,7 +3,7 @@ import { getDevSession } from '@/server/utils/dev-auth';
 import { canEditArtist } from '@/server/utils/artistEditAuth';
 import { getSupabaseAdmin, VAULT_BUCKET } from '@/server/lib/supabase';
 import { LORE_UPLOAD_BUCKET, readUploadTicket } from '@/server/utils/vaultUploadTicket';
-import { MAX_VAULT_FILE_BYTES } from '@/lib/vaultUpload';
+import { MAX_VAULT_FILE_BYTES, getUploadSourceType } from '@/lib/vaultUpload';
 import { validateMagicBytes } from '@/server/utils/validateMagicBytes';
 import { extractPdfText } from '@/server/utils/extractPdfText';
 import { getVaultSourcesByArtistId, insertVaultSource } from '@/server/utils/queries/dashboardQueries';
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         const url = storage.from(VAULT_BUCKET).getPublicUrl(ticket.path).data.publicUrl;
         const inserted = await insertVaultSource({ artistId: ticket.artistId, url, title: ticket.name,
             snippet: extractedText?.slice(0, 300) ?? `Uploaded file: ${ticket.name}`, extractedText,
-            type: ticket.type.startsWith('image/') ? 'image' : ticket.type.startsWith('audio/') ? 'audio' : 'document',
+            type: getUploadSourceType(ticket.type),
             status: 'approved', fileName: ticket.name, fileSize: file.size, filePath: ticket.path, contentType: ticket.type });
         const source = inserted ?? (await getVaultSourcesByArtistId(ticket.artistId)).find(s => s.filePath === ticket.path);
         if (!source) throw new Error('Upload source was not saved');

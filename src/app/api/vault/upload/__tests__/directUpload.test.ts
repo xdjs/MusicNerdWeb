@@ -97,6 +97,14 @@ describe('direct private-storage uploads', () => {
         bucket.remove.mockRejectedValue(new Error('cleanup unavailable'));
         expect((await complete(req({ ticket }))).status).toBe(200);
     });
+    it.each(['text/csv', 'application/json'])('classifies %s uploads as data', async type => {
+        const { complete, tickets, bucket, dq } = await setup();
+        const bytes = Buffer.from(type === 'application/json' ? '{"release":"demo"}' : 'release,year\ndemo,2025');
+        bucket.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
+        const ticket = tickets.signUploadTicket({ userId: 'owner', artistId, path: artistId+'/data', name: 'data', type, size: bytes.length, expires: Date.now()+60000 });
+        expect((await complete(req({ ticket }))).status).toBe(200);
+        expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ type: 'data', extractedText: bytes.toString('utf8') }));
+    });
     it('rejects mismatched file bytes before publishing', async () => {
         const { complete, ticket, bucket, dq } = await setup();
         bucket.download.mockResolvedValue({ data: new Blob(['not a pdf payload']), error:null });

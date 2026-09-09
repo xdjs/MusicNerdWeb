@@ -7,7 +7,7 @@ import { supabaseAdmin, VAULT_BUCKET, isSupabaseStorageConfigured } from "@/serv
 import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 import { resolveUploadType } from "@/server/utils/resolveUploadType";
 import { extractPdfText } from "@/server/utils/extractPdfText";
-import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
+import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL, getUploadSourceType } from '@/lib/vaultUpload';
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 
 export const dynamic = "force-dynamic";
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
             url: publicUrl,
             title: file.name,
             snippet: extractedText ? extractedText.slice(0, 300) : `Uploaded file: ${file.name} (${formatFileSize(file.size)})`,
-            type: getSourceType(resolvedType),
+            type: getUploadSourceType(resolvedType),
             status: "approved",
             fileName: file.name,
             fileSize: file.size,
@@ -185,16 +185,6 @@ export async function POST(req: Request) {
         console.error("[vault/upload] Error:", error);
         return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
     }
-}
-
-function getSourceType(mimeType: string): string {
-    if (mimeType.startsWith("image/")) return "image";
-    if (mimeType.startsWith("audio/")) return "audio";
-    if (mimeType === "application/pdf") return "document";
-    if (mimeType.includes("word")) return "document";
-    if (mimeType === "text/plain" || mimeType === "text/markdown") return "document";
-    if (mimeType === "text/csv" || mimeType === "application/json") return "data";
-    return "document";
 }
 
 function formatFileSize(bytes: number): string {
