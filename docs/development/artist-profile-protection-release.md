@@ -3,6 +3,10 @@
 This change requires configuration **before deployment**. Never restore a database
 backup or run bio generation as part of this release.
 
+Pinned bios survive normal edits and regeneration until explicitly unpinned. Admin
+claim revocation is the approved exception: clear the former owner's public bio and
+release its pin, but preserve all saved versions (including the current bio).
+
 ## Database
 
 Applied `drizzle/0024_artist_profile_protection.sql` on dev on 2026-09-09.
@@ -37,6 +41,10 @@ not as a manual task for the PR author/reviewer:
 node scripts/provision-lore-upload-storage.mjs /path/to/environment.env
 ```
 
+For non-exportable service-role credentials, the agent can apply
+`scripts/provision-lore-upload-storage.sql` using the authorized Supabase connection.
+It creates only the missing private bucket and fails on incompatible existing settings.
+
 This creates `lore-upload-staging` as **private**, restricted to 10 MiB (the UI's
 10 MB/file limit) and supported MIME types. It refuses to change an existing bucket
 with incompatible settings. Keep the existing `vault-files` bucket for validated,
@@ -70,8 +78,10 @@ isolated dev fixture succeeded, with extracted text visible in the source card.
 Historical pin selection updated About; regeneration left it pinned and unchanged.
 The In Process link and 10 MB/file copy rendered. A signed storage transport test
 accepted 10,485,760 bytes and rejected 10,485,761 bytes; transport objects were removed.
-Dev Lore processing reached Gemini but the configured provider project returned
-403 PERMISSION_DENIED. A successful dev synthesis is therefore unverified. The
+The old local Gemini key returned 403 PERMISSION_DENIED. Retesting with Vercel's
+current development-scoped key completed the real PDF-to-Lore worker in about ten
+seconds and the resulting document rendered in the editor. No production key was
+used in dev. Both isolated fixtures and copied storage objects were removed. The
 Look again route requires a real session (the dev page's fallback is not login proof).
 
 1. Run type-check, lint, all unit tests, build and `npx drizzle-kit check`.

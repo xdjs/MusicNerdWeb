@@ -213,15 +213,23 @@ export async function revokeApprovedClaim(claimId: string) {
                 .delete(artistDocs)
                 .where(eq(artistDocs.artistId, deleted.artistId))
                 .returning();
-            if (deletedDocs.length > 0) {
-                // The owner published — the live bio (doc-generated or later hand-edited)
-                // is their content. Clear it so the next state regenerates from scratch.
+            // Admin revocation is the explicit moderation exception to pinning.
+            // Keep saved history, but never leave the next claimant a locked bio.
+            const unpinned = await tx.update(artistBioVersions)
+                .set({ isPinned: false })
+                .where(and(eq(artistBioVersions.artistId, deleted.artistId), eq(artistBioVersions.isPinned, true)))
+                .returning();
+            if (deletedDocs.length > 0 || unpinned.length > 0) {
+                // Preserve even a hand-edited bio that never reached version history.
+                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
+                    select id, bio, false from artists a
+                    where id = ${deleted.artistId}::uuid and bio is not null and bio <> ''
+                    and not exists (select 1 from artist_bio_versions v
+                        where v.artist_id = a.id and v.bio_text = a.bio)`);
                 await tx
                     .update(artists)
                     .set({ bio: null })
-                    .where(and(eq(artists.id, deleted.artistId), sql`not exists (
-                        select 1 from artist_bio_versions where artist_id = ${deleted.artistId}::uuid and is_pinned = true
-                    )`));
+                    .where(eq(artists.id, deleted.artistId));
             }
 
             return deleted;

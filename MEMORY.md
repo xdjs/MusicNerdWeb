@@ -38,7 +38,8 @@ linked PRs, issues, and decision notes for history.
 
 - **Profile protection / Lore repair in progress (2026-09-08):** isolated worktree
   `/private/tmp/musicnerd-profile-protection`, branch `pete/artist-profile-protection`.
-  Local implementation, not deployed. Includes pinned-bio write guards, In Process,
+  [Staging PR #1215](https://github.com/xdjs/MusicNerdWeb/pull/1215), head `9d97ac63`.
+  Pushed, not merged or deployed to production. Includes pinned-bio write guards, In Process,
   retired supported links, durable Lore refresh, and direct storage uploads retaining
   10 MB/file. The In Process column exists in dev/prod; the requested artist link was
   written and verified with the existing `mnweb` role without changing the bio.
@@ -61,10 +62,18 @@ linked PRs, issues, and decision notes for history.
   PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
   and needs a separate fix; do not describe this as end-to-end UI verification.
 - **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
-  177 suites / 2,182 tests passed / 6 skipped, coverage and production build with stub
+  177 suites / 2,185 tests passed / 6 skipped, coverage and production build with stub
   build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
-  coalescing and completion with all fixtures rolled back. Browser/upload integration
-  checks and Codex review remain release gates. Production DB/storage changes are
+  coalescing and completion with transaction fixtures rolled back. Browser confirmed
+  In Process, upload copy, a real PDF upload, and historical pin + regeneration protection.
+  Real extraction yielded 79,823 chars; signed storage accepted 10 MiB and rejected one
+  byte over. A stale local Gemini key returned 403; using the current Vercel development-
+  scoped key completed the real Lore worker and rendered the resulting doc in the browser.
+  Codex's first two findings were fixed. Pete approved admin revocation as the exception:
+  clear the revoked owner's public bio and release its pin, preserving saved history.
+  That policy fix passed full CI and is included in the next review commit.
+  The SQL private-bucket provisioning alternative also verified on dev.
+  Production DB/storage changes are
   authorized after staging green; main merge remains Carl's responsibility.
 
 1. **Artist-profile latest activity.** This is the agreed next product task: show interview answers
