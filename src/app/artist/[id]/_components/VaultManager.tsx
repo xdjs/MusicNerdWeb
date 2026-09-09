@@ -18,6 +18,7 @@ import {
 } from "@/app/actions/dashboardActions";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
+import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
 
 interface VaultManagerProps {
   artistId: string;
@@ -204,22 +205,32 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleUpload(file: File) {
+    if (file.size > MAX_VAULT_FILE_BYTES) {
+      toast({ title: `Couldn't upload ${file.name}`, description: `Maximum ${VAULT_UPLOAD_LIMIT_LABEL}. Compress or split the file and try again.`, variant: 'destructive' });
+      return;
+    }
     setUploading(true);
     try {
+      const signing = await fetch('/api/vault/upload/sign', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistId, name: file.name, type: file.type, size: file.size }) });
+      const signed = await signing.json();
+      if (!signing.ok) throw new Error(signed.error ?? 'Could not prepare upload');
       const fd = new FormData();
-      fd.append("file", file);
-      fd.append("artistId", artistId);
-      const res = await fetch("/api/vault/upload", { method: "POST", body: fd });
+      fd.append('cacheControl', '3600');
+      fd.append('', new Blob([file], { type: signed.contentType }), file.name);
+      const uploaded = await fetch(signed.signedUrl, { method: 'PUT', body: fd });
+      if (!uploaded.ok) throw new Error('File storage rejected the upload. Please try again.');
+      const res = await fetch('/api/vault/upload/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket: signed.ticket }) });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.source) {
         setApproved(prev => [data.source, ...prev]);
-        toast({ title: "File uploaded" });
+        toast({ title: "File uploaded", description: data.warning });
         router.refresh();
       } else {
         toast({ title: `Couldn't upload ${file.name}`, description: data.error || "Upload failed", variant: "destructive" });
       }
-    } catch {
-      toast({ title: `Couldn't upload ${file.name}`, description: "Network error", variant: "destructive" });
+    } catch (error) {
+      toast({ title: `Couldn't upload ${file.name}`, description: error instanceof Error ? error.message : "Network error", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -276,6 +287,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
           }}
         />
         <p className="text-sm text-muted-foreground mb-2">Drag &amp; drop files here, or use the buttons below.</p>
+        <p className="text-xs text-muted-foreground mb-3">Maximum {VAULT_UPLOAD_LIMIT_LABEL}. PDF, TXT, MD, CSV, JSON, DOC/DOCX, images and audio. Use text-based PDFs so Lore can read their contents.</p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" className="text-black dark:text-white" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? "Uploading…" : "Upload file"}

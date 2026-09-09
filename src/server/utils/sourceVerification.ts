@@ -187,7 +187,10 @@ export function classifyFetchedSource(
  * rule existed — a few are in the database with full extracted text, and their
  * URLs have since expired to 404s.
  */
-export function isCitableSource(row: { url: string; extractedText: string | null }): boolean {
+export function isCitableSource(row: { url: string; extractedText: string | null; filePath?: string | null; status?: string }): boolean {
     if (!row.url || isGroundingRedirect(row.url)) return false;
+    // Owner-uploaded files are not scraped navigation pages. Short, readable
+    // documents are still useful evidence; keep the web-page floor unchanged.
+    if (row.filePath && row.status === 'approved') return !!row.extractedText?.trim();
     return (row.extractedText?.length ?? 0) >= MIN_VERIFIED_TEXT;
 }

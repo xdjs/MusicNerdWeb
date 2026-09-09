@@ -81,6 +81,7 @@ const mockArtist: Artist = {
     deezer: null,
     subvert: null,
     bluesky: null,
+    inprocess: null,
 };
 
 // Session removed - authentication disabled
@@ -391,4 +392,4 @@ describe('ArtistLinks YouTube Rendering', () => {
         // Should not show add button in monetized section
         expect(screen.queryByTestId('add-artist-data')).not.toBeInTheDocument();
     });
-}); 
+});

@@ -36,6 +36,37 @@ linked PRs, issues, and decision notes for history.
 
 ## Next work
 
+- **Profile protection / Lore repair in progress (2026-09-08):** isolated worktree
+  `/private/tmp/musicnerd-profile-protection`, branch `pete/artist-profile-protection`.
+  Local implementation, not deployed. Includes pinned-bio write guards, In Process,
+  retired supported links, durable Lore refresh, and direct storage uploads retaining
+  10 MB/file. The In Process column exists in dev/prod; the requested artist link was
+  written and verified with the existing `mnweb` role without changing the bio.
+  Dev migration/configuration is applied as of 2026-09-09; private upload bucket is
+  provisioned with the 10 MiB limit. Verified In Process config, retired choices removed,
+  Lore job constraint, `mnweb` privileges and enabled RLS; Drizzle check passes.
+  Production's remaining migration/storage work is explicitly held until green light.
+  Application release verification remains unfinished; do not assume deploy readiness.
+- **Real-PDF verification:** all text from three approved PDFs (73 pages, one visually
+  blank) matched stored extraction. A fictional studio anecdote from the synthesis
+  prompt had leaked into a real knowledge document and was repeated by live Ask.
+  Removed the worked example in this branch and stopped labelling AI-compiled context
+  as ground truth. A separately reviewed, page-cited knowledge document was saved on
+  production with explicit user permission; only `artist_docs` content/sources/timestamp
+  changed. Profile row, bio history, claims and PDF source text were checked unchanged.
+  Raw PDFs, evidence, prior doc and operation receipt remain in private `/private/tmp`
+  artifacts, not in Git. This is a scoped repair, not a completed general ingestion system.
+  Live Ask retest: the fabricated studio-name question now returns uncertainty; the
+  delayed-cassette USB detail and closing artistic-philosophy question return correct,
+  PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
+  and needs a separate fix; do not describe this as end-to-end UI verification.
+- **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
+  177 suites / 2,182 tests passed / 6 skipped, coverage and production build with stub
+  build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
+  coalescing and completion with all fixtures rolled back. Browser/upload integration
+  checks and Codex review remain release gates. Production DB/storage changes are
+  authorized after staging green; main merge remains Carl's responsibility.
+
 1. **Artist-profile latest activity.** This is the agreed next product task: show interview answers
    ("nuggets") beside social updates, with a call to action back to the source post. The decision
    is in `docs/rnd/decisions.md`; the existing `ActivityFeed` is homepage-only, so the artist-page

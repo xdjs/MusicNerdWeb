@@ -12,6 +12,7 @@ function makeTx(docRowsDeleted) {
     const updatedTables = [];
     const setCalls = [];
     const tx = {
+        execute: jest.fn().mockResolvedValue([]),
         delete: jest.fn((table) => {
             deletedTables.push(table);
             if (table === schema.artistClaims) {

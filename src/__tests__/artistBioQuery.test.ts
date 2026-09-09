@@ -56,6 +56,7 @@ jest.mock('@/server/utils/queries/externalApiQueries', () => ({
 }));
 
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
+  getBioVersionsByArtistId: jest.fn().mockResolvedValue([]),
   getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 
@@ -172,3 +173,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     );
   });
 });
+
+jest.mock('@/server/utils/queries/bioPersistence', () => ({
+  persistArtistBio: jest.fn(async (_id: string, bio: string) => bio),
+}));

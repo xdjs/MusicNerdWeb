@@ -14,6 +14,7 @@ jest.mock('@/app/actions/dashboardActions', () => ({
   }),
   pinBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
   deleteBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
+  unpinBioAction: jest.fn().mockResolvedValue({ success: true }),
 }));
 import { pinBioVersionAction, deleteBioVersionAction } from '@/app/actions/dashboardActions';
 
@@ -38,7 +39,7 @@ describe('BioVersionHistory', () => {
     // history is behind a toggle; open it
     fireEvent.click(screen.getByText(/version history/i));
     await waitFor(() => expect(screen.getByText('Second bio')).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole('button', { name: /pin/i })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^pin$/i })[0]);
     await waitFor(() => expect(pinBioVersionAction).toHaveBeenCalledWith('v2', 'a1'));
   });
 

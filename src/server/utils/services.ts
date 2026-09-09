@@ -3,8 +3,8 @@ import { Artist, UrlMap } from "../db/DbTypes";
 // Import directly from the artist queries module to ensure the symbol is recognised by TypeScript’s type checker
 import { getAllLinks } from "./queries/queriesTS"; // Wrapper maintains compatibility with existing mocks
 
-export const artistWeb3Platforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'supercollector', 'wallets', 'ens'];
-export const artistPlatforms = ['catalog', 'soundxyz', 'opensea', 'zora', 'mintsongs', 'x', 'audius', 'bandisintown', 'ens', 'wallets', 'facebook', 'instagram', 'lastfm', 'soundcloud', 'tiktok', 'youtube', 'youtubechannel', 'supercollector'];
+export const artistWeb3Platforms = ['inprocess', 'opensea', 'zora', 'mintsongs', 'supercollector', 'wallets', 'ens'];
+export const artistPlatforms = ['inprocess', 'opensea', 'zora', 'mintsongs', 'x', 'audius', 'bandisintown', 'ens', 'wallets', 'facebook', 'instagram', 'lastfm', 'soundcloud', 'tiktok', 'youtube', 'youtubechannel', 'supercollector'];
 
 //pluh
 export const getArtistSplitPlatforms = (artist: Artist) => {
@@ -318,4 +318,3 @@ export async function extractArtistId(artistUrl: string) {
     console.debug('[extractArtistId] No matching platform for URL:', artistUrl);
     return null;
 }
-

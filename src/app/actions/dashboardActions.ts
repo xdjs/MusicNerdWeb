@@ -18,11 +18,11 @@ import {
     saveBioVersion,
     pinBioVersion,
     deleteBioVersion,
+    unpinArtistBio,
 } from "@/server/utils/queries/dashboardQueries";
 import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
-import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
-import { refreshArtistDoc } from "@/server/utils/artistDocService";
+import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/server/utils/queries/docCorrectionQueries";
 import { claimKey } from "@/lib/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
@@ -33,60 +33,10 @@ import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
 import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
 
-// Best-effort debounce for bio regen (same serverless caveat as rate limiting).
-// Map is module-level — on long-lived workers (e.g. self-hosted Node) it would
-// grow unbounded without the prune below. Soft-cap + TTL drop keeps it bounded.
-//
-// Prune fires only on the WRITE path (right before set()), not on read. On a quiet
-// worker that always hits the debounce for the same small set of artists, the map
-// is small and prune is unnecessary. On a busy worker, every new artist write goes
-// through this prune, so growth is naturally rate-limited. A separate timer/sweeper
-// would just burn cycles on idle workers and add coordination overhead — write-time
-// prune is the right shape for best-effort serverless state.
-const bioRegenTimestamps = new Map<string, number>();
-const BIO_REGEN_DEBOUNCE_MS = 30_000;
-const BIO_REGEN_MAP_SOFT_CAP = 5_000;
-function pruneBioRegenTimestamps(now: number): void {
-    if (bioRegenTimestamps.size <= BIO_REGEN_MAP_SOFT_CAP) return;
-    // First pass: drop entries older than 2× the debounce window — those can't
-    // possibly affect a debounce decision anymore.
-    const cutoff = now - BIO_REGEN_DEBOUNCE_MS * 2;
-    for (const [k, t] of bioRegenTimestamps) {
-        if (t < cutoff) bioRegenTimestamps.delete(k);
-    }
-    // Belt and suspenders: if a worker somehow racked up 5k regenerations inside
-    // a single debounce window, nuke the whole map. Worst case is one extra regen
-    // per artist on the next request — best-effort debounce, by design.
-    if (bioRegenTimestamps.size > BIO_REGEN_MAP_SOFT_CAP) bioRegenTimestamps.clear();
-}
-
-
-/**
- * Rebuild the knowledge document after the source set changed.
- *
- * The document feeds the Ask section, fun facts, and the bio generator, and it
- * was written once at publish and never again — so it kept citing sources the
- * artist had removed, and never learned about ones they added. There is no UI
- * for the document, so nothing surfaced this.
- *
- * Fire-and-forget behind an action that already succeeded, debounced on the same
- * map as the bio regen (the `doc:` prefix keeps the two independent while reusing
- * one prune and one soft cap). Rebuilding costs a Gemini call, and a burst of
- * removals should cost one rebuild, not one each.
- */
-function scheduleDocRefresh(artistId: string | undefined): void {
+// Durable jobs coalesce changes across workers and survive request completion.
+async function scheduleDocRefresh(artistId: string | undefined): Promise<void> {
     if (!artistId) return;
-    const key = `doc:${artistId}`;
-    const now = Date.now();
-    if (now - (bioRegenTimestamps.get(key) ?? 0) <= BIO_REGEN_DEBOUNCE_MS) {
-        console.log(`[scheduleDocRefresh] Skipping doc refresh for ${artistId} — debounced`);
-        return;
-    }
-    pruneBioRegenTimestamps(now);
-    bioRegenTimestamps.set(key, now);
-    Promise.resolve(refreshArtistDoc(artistId)).catch(e =>
-        console.error("[scheduleDocRefresh] Background doc refresh failed:", e)
-    );
+    await queueLoreRefresh(artistId);
 }
 
 export async function claimArtistProfile(artistId: string): Promise<{ success: boolean; error?: string; alreadyClaimed?: boolean; referenceCode?: string }> {
@@ -145,25 +95,10 @@ export async function updateSourceStatus(
 
         await updateVaultSourceStatus(sourceId, status);
 
-        // Regenerate bio in the background when a source is approved (debounced)
-        if (status === "approved" && ownership.artistId) {
-            const now = Date.now();
-            const lastRegen = bioRegenTimestamps.get(ownership.artistId) ?? 0;
-            if (now - lastRegen > BIO_REGEN_DEBOUNCE_MS) {
-                pruneBioRegenTimestamps(now);
-                bioRegenTimestamps.set(ownership.artistId, now);
-                Promise.resolve(generateArtistBio(ownership.artistId)).catch(e =>
-                    console.error("[updateSourceStatus] Background bio regeneration failed:", e)
-                );
-            } else {
-                console.log(`[updateSourceStatus] Skipping bio regen for ${ownership.artistId} — debounced`);
-            }
-        }
-
         // The document follows the sources in BOTH directions. Approving is not
         // the only change that matters: rejecting a source the document cites is
         // exactly the case the artist is trying to fix.
-        scheduleDocRefresh(ownership.artistId);
+        await scheduleDocRefresh(ownership.artistId);
 
         return { success: true };
     } catch (error) {
@@ -276,7 +211,7 @@ export async function removeVaultSource(
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
         await deleteVaultSource(sourceId);
-        scheduleDocRefresh(ownership.artistId);
+        await scheduleDocRefresh(ownership.artistId);
         return { success: true };
     } catch (error) {
         console.error("[removeVaultSource] Error:", error);
@@ -317,7 +252,7 @@ export async function removeVaultSources(
         }
 
         const deleted = await deleteVaultSources(sourceIds);
-        artistIds.forEach(scheduleDocRefresh);
+        await Promise.all(artistIds.map(scheduleDocRefresh));
         return { success: true, count: deleted.length };
     } catch (error) {
         console.error("[removeVaultSources] Error:", error);
@@ -390,7 +325,7 @@ export async function correctDocClaim(
         await upsertDocCorrection(artistId, trimmedClaim, kind, trimmedFix);
         // Rebuild so the artist sees their correction take effect, rather than
         // being told it was saved and watching nothing change.
-        scheduleDocRefresh(artistId);
+        await scheduleDocRefresh(artistId);
         return { success: true };
     } catch (error) {
         console.error("[correctDocClaim] Error:", error);
@@ -406,7 +341,7 @@ export async function undoDocCorrection(artistId: string, correctionId: string):
         const auth = await verifyArtistEditable(session.user.id, artistId);
         if (!auth.ok) return { success: false, error: auth.error };
         await deleteDocCorrection(artistId, correctionId);
-        scheduleDocRefresh(artistId);
+        await scheduleDocRefresh(artistId);
         return { success: true };
     } catch (error) {
         console.error("[undoDocCorrection] Error:", error);
@@ -496,5 +431,17 @@ export async function deleteBioVersionAction(versionId: string, targetArtistId?:
         console.error("[deleteBioVersionAction] Error:", error);
         const message = error instanceof Error ? error.message : "Failed to delete bio version";
         return { success: false, error: message };
+    }
+}
+
+export async function unpinBioAction(artistId: string): Promise<{ success: boolean; error?: string }> {
+    const session = await getServerAuthSession() ?? await getDevSession();
+    if (!session) return { success: false, error: 'Not authenticated' };
+    if (!(await canEditArtist(session.user.id, artistId))) return { success: false, error: 'Not authorized' };
+    try {
+        await unpinArtistBio(artistId);
+        return { success: true };
+    } catch {
+        return { success: false, error: 'Could not unpin bio' };
     }
 }

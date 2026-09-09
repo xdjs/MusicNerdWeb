@@ -37,8 +37,8 @@ jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
 jest.mock("@/server/utils/queries/artistBioQuery", () => ({
     generateArtistBio: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock("@/server/utils/artistDocService", () => ({
-    refreshArtistDoc: jest.fn().mockResolvedValue("rebuilt"),
+jest.mock("@/server/utils/queries/loreRefresh", () => ({
+    queueLoreRefresh: jest.fn().mockResolvedValue("rebuilt"),
 }));
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
@@ -219,14 +219,14 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
     async function setup() {
         const { getServerAuthSession } = await import("@/server/auth");
         const dq = await import("@/server/utils/queries/dashboardQueries");
-        const { refreshArtistDoc } = await import("@/server/utils/artistDocService");
+        const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
         const actions = await import("../dashboardActions");
         getServerAuthSession.mockResolvedValue({ user: { id: "u1" } });
         dq.getVaultSourceById.mockResolvedValue({ id: "s1", artistId: "a1" });
         // Authorize through the REAL canEditArtist by giving it the approved
         // claim it reads, rather than stubbing the guard itself out.
         dq.getApprovedClaimForArtistByUserId.mockResolvedValue({ id: "c1", artistId: "a1", userId: "u1" });
-        return { ...actions, dq, refreshArtistDoc };
+        return { ...actions, dq, queueLoreRefresh };
     }
 
     it("rebuilds the doc when a source is REJECTED, not only when one is approved", async () => {
@@ -235,38 +235,38 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         // marketplace directory from their vault kept a document that cited it
         // forever, and the Ask section kept answering from it. There is no UI for
         // the document, so nothing ever surfaced that.
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
     });
 
     it("rebuilds the doc when a source is approved", async () => {
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "approved");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
     });
 
     it("rebuilds the doc when a source is deleted outright", async () => {
-        const { removeVaultSource, refreshArtistDoc } = await setup();
+        const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1");
     });
 
-    it("debounces a burst so a multi-remove costs one rebuild, not one each", async () => {
+    it("durably queues every change so the database can coalesce a burst", async () => {
         // Rebuilding is a Gemini call; clearing out five bad sources should not
         // buy five of them.
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
         await updateSourceStatus("s1", "rejected");
         await updateSourceStatus("s1", "rejected");
-        expect(refreshArtistDoc).toHaveBeenCalledTimes(1);
+        expect(queueLoreRefresh).toHaveBeenCalledTimes(3);
     });
 
-    it("does not fail the user's action when the rebuild throws", async () => {
+    it("reports failure if the durable refresh could not be queued", async () => {
         // Fire-and-forget behind an action that already succeeded — a bad Gemini
         // day must not turn a successful removal into an error.
-        const { removeVaultSource, refreshArtistDoc } = await setup();
-        refreshArtistDoc.mockRejectedValueOnce(new Error("gemini down"));
-        await expect(removeVaultSource("s1")).resolves.toEqual({ success: true });
+        const { removeVaultSource, queueLoreRefresh } = await setup();
+        queueLoreRefresh.mockRejectedValueOnce(new Error("gemini down"));
+        await expect(removeVaultSource("s1")).resolves.toEqual(expect.objectContaining({ success: false }));
     });
 });

@@ -46,6 +46,10 @@ describe('artistDocService', () => {
         expect(call.contents).toContain('heartbreak you can dance to');
         expect(call.contents).not.toContain('Offline?'); // skipped answers are omitted, not sent as empties
         expect(call.config.systemInstruction).toContain('Story hooks');
+        // Fictional sample anecdotes previously leaked into a real artist's Lore.
+        expect(call.config.systemInstruction).not.toContain('the pantry');
+        expect(call.config.systemInstruction).not.toContain('Marisol');
+        expect(call.config.systemInstruction).not.toContain('Late Bus');
         expect(call.config.tools).toBeUndefined(); // ungrounded by design
     });
 

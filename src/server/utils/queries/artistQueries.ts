@@ -265,7 +265,7 @@ export async function getAllLinks() {
     if (urlmapCache && Date.now() - urlmapCache.at < URLMAP_TTL_MS) return urlmapCache.rows;
     const start = performance.now();
     try {
-        const rows = await db.query.urlmap.findMany();
+        const rows = (await db.query.urlmap.findMany()).filter(row => !['catalog', 'foundation', 'soundxyz', 'sound'].includes(row.siteName));
         urlmapCache = { rows, at: Date.now() };
         return rows;
     } finally {
@@ -1079,17 +1079,18 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
             }
             // Discovery found nothing new — the existing About was preserved, not regenerated.
             if (priorBio !== null && generatedBio === priorBio) {
-                return { status: "success", message: "No new sources found — About unchanged", data: generatedBio };
+                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise no new verified information was found.", data: generatedBio };
             }
             return { status: "success", message: "Bio regenerated", data: generatedBio };
         } else {
             // Update with provided bio
-            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+            await persistArtistBio(artistId, bio);
             return { status: "success", message: "Bio updated" };
         }
     } catch (e) {
         console.error("Error updating bio", e);
-        return { status: "error", message: "Error updating bio" };
+        return { status: "error", message: e instanceof Error ? e.message : "Error updating bio" };
     }
 }
 

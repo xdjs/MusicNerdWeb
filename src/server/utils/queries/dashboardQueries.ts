@@ -182,6 +182,7 @@ export async function revokeApprovedClaim(claimId: string) {
                 ))
                 .returning();
             if (!deleted) return undefined;
+            await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
 
             // Only after we've confirmed we owned the approved claim do we
             // wipe the vault. Same transaction, so both DELETEs commit together.
@@ -218,7 +219,9 @@ export async function revokeApprovedClaim(claimId: string) {
                 await tx
                     .update(artists)
                     .set({ bio: null })
-                    .where(eq(artists.id, deleted.artistId));
+                    .where(and(eq(artists.id, deleted.artistId), sql`not exists (
+                        select 1 from artist_bio_versions where artist_id = ${deleted.artistId}::uuid and is_pinned = true
+                    )`));
             }
 
             return deleted;
@@ -464,17 +467,14 @@ export async function saveBioVersion(artistId: string, bioText: string) {
     try {
         // All operations in a single transaction to prevent TOCTOU race on version cap
         return await db.transaction(async (tx) => {
-            // Enforce version cap — delete oldest unpinned if at limit
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            // Never discard an artist's saved history automatically.
             const existing = await tx.query.artistBioVersions.findMany({
                 where: eq(artistBioVersions.artistId, artistId),
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
             if (existing.length >= MAX_BIO_VERSIONS) {
-                const oldest = existing.find(v => !v.isPinned);
-                if (!oldest) {
-                    throw new Error("Bio version limit reached — unpin or delete a version first");
-                }
-                await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+                throw new Error("Bio version limit reached — delete an unwanted version first");
             }
 
             const [version] = await tx
@@ -494,6 +494,18 @@ export async function pinBioVersion(versionId: string, artistId: string) {
         // Atomic: unpin all → pin selected → update artist bio
         // Ownership is enforced by the WHERE clause (artistId match)
         return await db.transaction(async (tx) => {
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            const selected = await tx.query.artistBioVersions.findFirst({
+                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
+            });
+            if (!selected) return undefined;
+            const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
+            if (current?.bio && current.bio !== selected.bioText) {
+                const saved = await tx.query.artistBioVersions.findFirst({
+                    where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, current.bio)),
+                });
+                if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: current.bio, isPinned: false });
+            }
             await tx
                 .update(artistBioVersions)
                 .set({ isPinned: false })
@@ -524,6 +536,7 @@ export async function deleteBioVersion(versionId: string, artistId: string) {
     try {
         // Atomic check + delete to prevent TOCTOU race with concurrent pin
         return await db.transaction(async (tx) => {
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
             const version = await tx.query.artistBioVersions.findFirst({
                 where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
             });
@@ -540,4 +553,12 @@ export async function deleteBioVersion(versionId: string, artistId: string) {
         console.error("[deleteBioVersion] Error:", e);
         throw e;
     }
+}
+
+export async function unpinArtistBio(artistId: string) {
+    await db.transaction(async tx => {
+        await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+        await tx.update(artistBioVersions).set({ isPinned: false })
+            .where(eq(artistBioVersions.artistId, artistId));
+    });
 }

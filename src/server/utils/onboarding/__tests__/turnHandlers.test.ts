@@ -1,5 +1,8 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/queries/bioPersistence', () => ({
+    persistArtistBio: jest.fn(async (_id: string, bio: string) => bio),
+}));
 
 jest.mock('@/server/utils/queries/onboardingQueries', () => ({
     ONBOARDING_STEPS: ['profiles', 'vault', 'interview', 'publish'],
@@ -1339,8 +1342,8 @@ describe('runOnboardingTurn', () => {
         const events = await collect(runOnboardingTurn('a1', { type: 'publish', doc: '## Overview\nd', about: 'About text' }));
         expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nd');
         expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'About text');
-        expect(db.update).toHaveBeenCalled();
-        expect(set).toHaveBeenCalledWith({ bio: 'About text' });
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About text', expect.objectContaining({ generated: true }));
         expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', []);
         expect(oq.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'publish');
         expect(events.some(e => e.kind === 'complete')).toBe(true);
@@ -1366,7 +1369,8 @@ describe('runOnboardingTurn', () => {
         }));
         expect(oq.upsertArtistDoc).toHaveBeenCalledWith('a1', '## Overview\nCited Lauryn Hill[1].'); // doc keeps its markers
         expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.'); // About is stripped
-        expect(set).toHaveBeenCalledWith({ bio: 'Cited Lauryn Hill as an influence.' }); // artists.bio is stripped
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'Cited Lauryn Hill as an influence.', expect.objectContaining({ generated: true }));
         expect(oq.upsertArtistDocSources).toHaveBeenCalledWith('a1', sources);
     });
 

@@ -7,10 +7,12 @@ import { supabaseAdmin, VAULT_BUCKET, isSupabaseStorageConfigured } from "@/serv
 import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 import { resolveUploadType } from "@/server/utils/resolveUploadType";
 import { extractPdfText } from "@/server/utils/extractPdfText";
+import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
+import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 
 export const dynamic = "force-dynamic";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = MAX_VAULT_FILE_BYTES;
 const ALLOWED_TYPES = [
     "application/pdf",
     "text/plain",
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
         if (file.size > MAX_FILE_SIZE) {
             console.error("[vault/upload] rejected:", { name: file.name, type: file.type, size: file.size, reason: "too_large" });
             return NextResponse.json(
-                { error: `File too large: ${formatFileSize(file.size)} (max 10MB)` },
+                { error: `File too large: ${formatFileSize(file.size)} (maximum ${VAULT_UPLOAD_LIMIT_LABEL})` },
                 { status: 400 }
             );
         }
@@ -170,7 +172,10 @@ export async function POST(req: Request) {
             extractedText: extractedText ?? null,
         });
 
-        return NextResponse.json({ success: true, source });
+        await queueLoreRefresh(artistId);
+        return NextResponse.json({ success: true, source,
+            warning: resolvedType === 'application/pdf' && !extractedText
+                ? 'PDF saved, but no readable text was found. Upload a text-based PDF to use it in Lore.' : undefined });
     } catch (error) {
         console.error("[vault/upload] Error:", error);
         return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });

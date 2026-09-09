@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { db } from "@/server/db/drizzle";
-import { artists } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
+import { getBioVersionsByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { sanitizeBioText } from "@/lib/bioText";
@@ -33,8 +32,8 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
 }
 
 /** Persist the generated About. Single writer so the update shape stays consistent. */
-async function saveBio(artistId: string, bio: string): Promise<void> {
-  await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+async function saveBio(artistId: string, bio: string, expectedBio: string | null): Promise<string | null> {
+  return persistArtistBio(artistId, bio, { generated: true, expectedBio });
 }
 
 /**
@@ -102,6 +101,8 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
   if (!artist) {
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
+  const pinned = (await getBioVersionsByArtistId(artistId)).find(v => v.isPinned);
+  if (pinned) return NextResponse.json({ bio: artist.bio, pinned: true, message: "Bio is pinned. Unpin it before regenerating." });
 
   // Run every independent I/O concurrently so they overlap inside the route's 57s budget
   // instead of summing. Platform stats (Deezer primary, Spotify fallback), verified-ID
@@ -162,8 +163,8 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
     }
     // Cache the nudge so the profile invites the artist to add context (and we don't
     // re-run the expensive discovery on every view). An explicit regenerate retries.
-    await saveBio(artistId, ABOUT_EMPTY_STATE);
-    return NextResponse.json({ bio: ABOUT_EMPTY_STATE, empty: true });
+    const saved = await saveBio(artistId, ABOUT_EMPTY_STATE, artist.bio);
+    return NextResponse.json({ bio: saved, empty: saved === ABOUT_EMPTY_STATE });
   }
 
   // Assemble the prompt in order: identity links → anchors → verified facts → sources.
@@ -282,7 +283,8 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     console.debug("Gemini call duration:", `${geminiDurationMs}ms`);
 
     if (bio) {
-      await saveBio(artistId, bio);
+      const saved = await saveBio(artistId, bio, artist.bio);
+      return NextResponse.json({ bio: saved });
     }
 
     return NextResponse.json({ bio });

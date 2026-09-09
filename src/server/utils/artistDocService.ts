@@ -304,62 +304,6 @@ function sourceManifestBlock(sources: DocSource[]): string {
     return `\n--- NUMBERED SOURCES (cite these ids as [n]) ---\n${lines.join("\n")}\n--- END SOURCES ---`;
 }
 
-/**
- * The complete worked example injected into the doc prompt (Recoup's "Braden
- * Bales" technique — teach the shape and the citation convention by pasting a
- * finished report, not a list of section names). Fictional artist, fictional
- * sources, but every claim below carries the [n] it would actually need —
- * including the anti-inflation framing in Recent Activity (a genuinely new
- * direction is scoped to "on their last two releases", not retold as a
- * career-long trait) and the non-pitch framing of Who They Are.
- */
-const WORKED_EXAMPLE = `
-# MARISOL ECHOTHORNE - Artist Knowledge Document
-
-## Overview
-Marisol Echothorne is a Providence, Rhode Island singer-producer who self-releases guitar-and-synth songs about long-distance friendship and job-hopping in your twenties[1]. She started writing under this name in 2019 after leaving a touring cover band[2].
-
-## Career Highlights
-- Left the cover band Radio Static in early 2019 to write her own material[2]
-- First single "Two Bus Transfer" picked up by a Spotify editorial playlist in 2021[3]
-- Opened for Squirrel Flower at The Met in Pawtucket, RI (2022)[4]
-- Self-released the "Late Bus" EP (4 tracks) in March 2024[1]
-
-## Story hooks
-- Wrote "Two Bus Transfer" entirely on the actual bus route it's named after, voice-memoing lines on her phone between stops[2]
-- Named her home studio "the pantry" because it's a converted pantry off her kitchen — you can hear the fridge hum on early demos if you listen for it[2]
-- Kept her old cover-band setlists taped inside her guitar case "so I remember what boring feels like"[2]
-
-## Sound & Influences
-Her records through 2024 sit in a lo-fi indie-rock lane — acoustic guitar, tape hiss, a drum machine mixed low[1][4]. In interviews she's named Sharon Van Etten and Alex G as the two songwriters she keeps returning to[2]. On "Late Bus" (2024), several reviewers flagged a new synth-bass layer as a departure from the earlier all-acoustic records[4] — that's a recent shift, not a description of her catalog as a whole.
-
-## Discography Highlights
-- "Two Bus Transfer" (2021) — her most-streamed single, ~40k streams on the Spotify editorial add[3]
-- "Late Bus EP" (2024) — 4 tracks, first release with a full-time drummer[1]
-
-## Industry Connections
-Co-wrote two tracks on the "Late Bus" EP with producer Danny Okafor, credited on both as a mixing collaborator[1]. One confirmed Instagram collaboration post with fellow Providence artist Rowan Vex, tagged as a co-write on an unreleased song[5] — no other confirmed collaborators had enough material to say what the collaboration actually was, so they're left out rather than listed as bare handles.
-
-## Recent Activity
-On her last two releases (the "Late Bus" EP and its lead single), she's said in interviews that she's been experimenting with synth-bass and drum machine textures she hadn't used before[2][4] — a direction she describes as new for her, not a long-standing part of her sound.
-
-## Online Presence
-Spotify artist page linked and verified[1]. Instagram handle @marisolecho, used mostly to post short clips from "the pantry"[5].
-
-## Who They Are
-She still keeps her old cover-band setlists in her guitar case — a specific, small habit that says more about where she came from than any bio line would[2].
-
-## In Their Own Words
-- On working alone: "I like that nobody's waiting on me. If a song's bad, it's bad on my own time."[2]
-- On why she left the cover band: "I remember what boring feels like. That's the whole reason I write anything."[2]
-- On the pantry studio: "Everyone keeps telling me to treat the room. I think the fridge is on the record now."[2]
-`.trim();
-// NOTE: no "## Audience & Fanbase" section above — the fictional source
-// material has no real signal for it, so the worked example demonstrates
-// the omit rule directly rather than describing it. Writing a "not enough
-// signal" placeholder here would teach the model the exact anti-pattern the
-// omit rule forbids ("no placeholders, no 'TBD', no empty sections").
-
 /** Today, for the model.
  *
  *  Without it, a source written before a release date describes that release in
@@ -387,8 +331,7 @@ Use ONLY these section headers, in this order, and OMIT any section entirely if 
 ## In Their Own Words
 ## Audience & Fanbase
 
-Here is a complete worked example for a fictional artist — follow its shape, density, and citation style exactly (but never reuse any of its facts):
-${WORKED_EXAMPLE}
+Use concrete, source-supported facts and concise bullets. There is no example artist: do not borrow names, anecdotes, quotes, or credits from any template or prior knowledge.
 
 CITATIONS — every factual claim must carry a marker:
 - The material below is numbered as a SOURCES manifest ([1], [2], [3]...). Immediately after each claim, add the [n] of the source it came from — e.g. "toured with Fana Hues[4]." Multiple sources for one claim: stack the markers, "[2][5]".
@@ -774,9 +717,9 @@ export async function synthesizeFallbackAbout(artistId: string, artistName: stri
  */
 export type DocRefresh = "rebuilt" | "no-document" | "failed";
 
-export async function refreshArtistDoc(artistId: string): Promise<DocRefresh> {
+export async function refreshArtistDoc(artistId: string, options: { createIfMissing?: boolean } = {}): Promise<DocRefresh> {
     try {
-        if (!(await getArtistDoc(artistId))) return "no-document";
+        if (!options.createIfMissing && !(await getArtistDoc(artistId))) return "no-document";
         const sources = await buildDocSources(artistId);
         const doc = await synthesizeArtistDoc(artistId, sources);
         await upsertArtistDoc(artistId, doc);

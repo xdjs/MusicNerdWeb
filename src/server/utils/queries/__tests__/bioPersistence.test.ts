@@ -1,0 +1,47 @@
+// @ts-nocheck
+import { jest } from '@jest/globals';
+
+describe('persistArtistBio', () => {
+    beforeEach(() => { jest.resetModules(); });
+    async function setup({ bio = 'Artist edited bio', pinned = false } = {}) {
+        const { db } = await import('@/server/db/drizzle');
+        const values = jest.fn().mockResolvedValue(undefined);
+        const set = jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) });
+        const tx = {
+            execute: jest.fn().mockResolvedValue([]),
+            query: {
+                artists: { findFirst: jest.fn().mockResolvedValue({ id: 'a1', bio }) },
+                artistBioVersions: { findFirst: jest.fn().mockResolvedValueOnce(pinned ? { bioText: bio } : undefined).mockResolvedValue(undefined) },
+            },
+            insert: jest.fn(() => ({ values })), update: jest.fn(() => ({ set })),
+        };
+        db.transaction = jest.fn(fn => fn(tx));
+        const { persistArtistBio } = await import('../bioPersistence');
+        return { persistArtistBio, tx, set, values };
+    }
+    it('never overwrites a pin, even when generation started before the pin', async () => {
+        const { persistArtistBio, set, values } = await setup({ pinned: true });
+        expect(await persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Artist edited bio' })).toBe('Artist edited bio');
+        expect(set).not.toHaveBeenCalled();
+        expect(values).not.toHaveBeenCalled();
+    });
+    it('requires explicit unpin before manual editing', async () => {
+        const { persistArtistBio, set } = await setup({ pinned: true });
+        await expect(persistArtistBio('a1', 'Replacement')).rejects.toThrow('Unpin');
+        expect(set).not.toHaveBeenCalled();
+    });
+    it('keeps a newer artist edit when a slow generation finishes', async () => {
+        const { persistArtistBio, set } = await setup();
+        expect(await persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Old bio' })).toBe('Artist edited bio');
+        expect(set).not.toHaveBeenCalled();
+    });
+    it('preserves old and new bios in history before an authorized update', async () => {
+        const { persistArtistBio, set, values, tx } = await setup();
+        await persistArtistBio('a1', 'New artist bio');
+        expect(tx.execute).toHaveBeenCalledTimes(1);
+        expect(values).toHaveBeenNthCalledWith(1, { artistId: 'a1', bioText: 'Artist edited bio', isPinned: false });
+        expect(values).toHaveBeenNthCalledWith(2, { artistId: 'a1', bioText: 'New artist bio', isPinned: false });
+        expect(set).toHaveBeenCalledWith({ bio: 'New artist bio' });
+        expect(values.mock.invocationCallOrder[1]).toBeLessThan(set.mock.invocationCallOrder[0]);
+    });
+});

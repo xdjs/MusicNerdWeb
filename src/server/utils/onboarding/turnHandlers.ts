@@ -1271,7 +1271,8 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
             await upsertArtistDoc(artistId, doc);
             await upsertArtistDocSources(artistId, sources);
             await saveBioVersion(artistId, cleanAbout);
-            await db.update(artists).set({ bio: cleanAbout }).where(eq(artists.id, artistId));
+            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null });
             wrote = true;
         }
     } catch (e) {
@@ -1617,7 +1618,8 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         await saveBioVersion(artistId, cleanAbout);
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
-        await db.update(artists).set({ bio: cleanAbout }).where(eq(artists.id, artistId));
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: existingBio ?? null });
         await confirmOnboardingStep(artistId, "publish");
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };

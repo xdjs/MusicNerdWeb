@@ -14,7 +14,7 @@
  */
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
     claimResearchJob, saveJobProgress, saveJobState, completeResearchJob, failResearchJob,
     failJobAtCursor, enqueueResearchJob, type ResearchJob,
@@ -65,7 +65,9 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "social_ingest"
+        const result = job.kind === "lore_refresh"
+            ? await runLoreRefresh(job, deadline)
+            : job.kind === "social_ingest"
             ? await runIngest(job)
             : await runExtraction(job, deadline);
         return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, ...result };
@@ -87,6 +89,22 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
  * which is what happened when this was a single blocking call, forever, because
  * each new slice started the same scrape from scratch.
  */
+async function runLoreRefresh(job: ResearchJob, deadline: number): Promise<{ progress: string; done: boolean; waiting?: boolean }> {
+    if (deadline - Date.now() < DOC_REBUILD_RESERVE_MS) {
+        await saveJobProgress(job.id, job.cursor);
+        return { progress: 'Waiting for a full Lore rebuild budget', done: false, waiting: true };
+    }
+    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true });
+    if (result === 'failed') throw new Error('Could not rebuild Lore from current sources');
+    const rows = await db.execute(sql`update artist_research_jobs set
+        status = case when coalesce(state->>'requestedAt', '') = ${String(job.state?.requestedAt ?? '')}
+            then 'done' else 'pending' end,
+        claimed_at = null, updated_at = now()
+        where id = ${job.id}::uuid returning status`);
+    const done = (rows as unknown as { status: string }[])[0]?.status === 'done';
+    return { progress: done ? 'Lore rebuilt from current documents and sources' : 'Sources changed during rebuild; another refresh is queued', done };
+}
+
 async function runIngest(job: ResearchJob): Promise<{ progress: string; done: boolean; waiting?: boolean }> {
     const force = job.state?.force === true;
     const runId = typeof job.state?.apifyRunId === "string" ? job.state.apifyRunId : null;

@@ -9,7 +9,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
