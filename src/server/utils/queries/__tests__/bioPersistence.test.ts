@@ -44,4 +44,19 @@ describe('persistArtistBio', () => {
         expect(set).toHaveBeenCalledWith({ bio: 'New artist bio' });
         expect(values.mock.invocationCallOrder[1]).toBeLessThan(set.mock.invocationCallOrder[0]);
     });
+    it('caches the no-context placeholder without creating a saved bio', async () => {
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { persistArtistBio, set, values } = await setup({ bio: null });
+        await persistArtistBio('a1', ABOUT_EMPTY_STATE, { generated: true, expectedBio: null });
+        expect(values).not.toHaveBeenCalled();
+        expect(set).toHaveBeenCalledWith({ bio: ABOUT_EMPTY_STATE });
+    });
+    it.each(['placeholder', 'whitespace'])('does not snapshot an old %s when publishing a real bio', async kind => {
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const bio = kind === 'placeholder' ? ` ${ABOUT_EMPTY_STATE} ` : '   ';
+        const { persistArtistBio, values } = await setup({ bio });
+        await persistArtistBio('a1', 'Real artist bio', { generated: true, expectedBio: bio });
+        expect(values).toHaveBeenCalledTimes(1);
+        expect(values).toHaveBeenCalledWith({ artistId: 'a1', bioText: 'Real artist bio', isPinned: false });
+    });
 });
