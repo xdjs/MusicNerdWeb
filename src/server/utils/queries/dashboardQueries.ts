@@ -312,6 +312,13 @@ export async function getVaultSourceByIdAndArtist(sourceId: string, artistId: st
     }
 }
 
+/** Publication reconciliation must distinguish a missing row from a failed read. */
+export async function getVaultUploadByPath(artistId: string, filePath: string) {
+    return db.query.artistVaultSources.findFirst({
+        where: and(eq(artistVaultSources.artistId, artistId), eq(artistVaultSources.filePath, filePath)),
+    });
+}
+
 export async function getVaultSourceById(sourceId: string) {
     try {
         return await db.query.artistVaultSources.findFirst({
@@ -494,6 +501,8 @@ export async function saveBioVersion(artistId: string, bioText: string) {
                 where: eq(artistBioVersions.artistId, artistId),
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
+            const saved = existing.find(version => version.bioText === bioText);
+            if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
                 throw new Error("Bio version limit reached — delete an unwanted version first");
             }

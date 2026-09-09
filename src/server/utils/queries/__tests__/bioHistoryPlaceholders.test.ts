@@ -25,4 +25,15 @@ describe('bio history placeholder exclusions', () => {
         await expect(saveBioVersion('a1', ABOUT_EMPTY_STATE)).rejects.toThrow('Write a bio');
         expect(db.transaction).not.toHaveBeenCalled();
     });
+    it('explicit save returns the already-saved version even when history is full', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        const saved = { id: 'existing', bioText: 'Current bio' };
+        const tx = { execute: jest.fn().mockResolvedValue([]), insert: jest.fn(), query: {
+            artistBioVersions: { findMany: jest.fn().mockResolvedValue([saved, ...Array.from({ length: 49 }, (_, i) => ({ id: String(i), bioText: `Version ${i}` }))]) },
+        } };
+        db.transaction = jest.fn(fn => fn(tx));
+        const { saveBioVersion } = await import('../dashboardQueries');
+        expect(await saveBioVersion('a1', 'Current bio')).toBe(saved);
+        expect(tx.insert).not.toHaveBeenCalled();
+    });
 });

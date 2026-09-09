@@ -10,7 +10,7 @@ jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }));
 jest.mock('@/server/lib/supabase', () => ({ getSupabaseAdmin: jest.fn(), VAULT_BUCKET: 'vault-files' }));
-jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn(), insertVaultSource: jest.fn() }));
+jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultUploadByPath: jest.fn(), insertVaultSource: jest.fn() }));
 jest.mock('@/server/utils/queries/loreRefresh', () => ({ queueLoreRefresh: jest.fn() }));
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 jest.mock('@/server/utils/extractPdfText', () => ({ extractPdfText: jest.fn().mockResolvedValue('A short artist-written document.') }));
@@ -27,7 +27,7 @@ describe('direct private-storage uploads', () => {
         const queue = await import('@/server/utils/queries/loreRefresh');
         auth.getServerAuthSession.mockResolvedValue({ user: { id: 'owner' } });
         guard.canEditArtist.mockResolvedValue(true);
-        dq.getVaultSourcesByArtistId.mockResolvedValue([]);
+        dq.getVaultUploadByPath.mockResolvedValue(undefined);
         dq.insertVaultSource.mockResolvedValue({ id: 'source' });
         queue.queueLoreRefresh.mockResolvedValue(undefined);
         const bytes = Buffer.from('%PDF-1.4\nfixture');
@@ -100,7 +100,7 @@ describe('direct private-storage uploads', () => {
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual({ source: { id: 'source' }, warning: expect.stringContaining('File saved') });
         expect(bucket.remove).toHaveBeenCalled();
-        dq.getVaultSourcesByArtistId.mockResolvedValue([{ id: 'source', filePath: artistId+'/fixture.pdf' }]);
+        dq.getVaultUploadByPath.mockResolvedValue({ id: 'source', filePath: artistId+'/fixture.pdf' });
         expect((await complete(req({ ticket }))).status).toBe(200);
         expect(dq.insertVaultSource).toHaveBeenCalledTimes(1);
     });
@@ -108,6 +108,31 @@ describe('direct private-storage uploads', () => {
         const { complete, ticket, bucket } = await setup();
         bucket.remove.mockRejectedValue(new Error('cleanup unavailable'));
         expect((await complete(req({ ticket }))).status).toBe(200);
+    });
+    it('removes the public copy after a confirmed pre-save failure', async () => {
+        const { complete, ticket, bucket, dq, from } = await setup();
+        dq.insertVaultSource.mockRejectedValue(new Error('insert failed'));
+        expect((await complete(req({ ticket }))).status).toBe(500);
+        expect(from).toHaveBeenLastCalledWith('vault-files');
+        expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
+    });
+    it('recovers a committed source after a lost insert response without deleting its file', async () => {
+        const { complete, ticket, bucket, dq } = await setup();
+        dq.insertVaultSource.mockRejectedValue(new Error('connection lost after commit'));
+        dq.getVaultUploadByPath.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'committed-source' });
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(200);
+        expect((await response.json()).source.id).toBe('committed-source');
+        expect(bucket.remove).not.toHaveBeenCalled();
+    });
+    it('preserves uncertain publication and requests same-ticket retry if reconciliation fails', async () => {
+        const { complete, ticket, bucket, dq } = await setup();
+        dq.insertVaultSource.mockRejectedValue(new Error('connection lost'));
+        dq.getVaultUploadByPath.mockResolvedValueOnce(undefined).mockRejectedValue(new Error('database unavailable'));
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(503);
+        expect((await response.json()).retryCompletion).toBe(true);
+        expect(bucket.remove).not.toHaveBeenCalled();
     });
     it.each(['text/csv', 'application/json'])('classifies %s uploads as data', async type => {
         const { complete, tickets, bucket, dq } = await setup();

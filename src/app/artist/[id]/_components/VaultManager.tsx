@@ -42,6 +42,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   const [dragOver, setDragOver] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingCompletions = useRef(new Map<string, string>());
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -210,7 +211,10 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
       return;
     }
     setUploading(true);
+    const retryKey = JSON.stringify([artistId, file.name, file.size, file.type, file.lastModified]);
     try {
+      let ticket = pendingCompletions.current.get(retryKey);
+      if (!ticket) {
       const signing = await fetch('/api/vault/upload/sign', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ artistId, name: file.name, type: file.type, size: file.size }) });
       const signed = await signing.json();
@@ -220,13 +224,18 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
       fd.append('', new Blob([file], { type: signed.contentType }), file.name);
       const uploaded = await fetch(signed.signedUrl, { method: 'PUT', body: fd });
       if (!uploaded.ok) throw new Error('File storage rejected the upload. Please try again.');
-      const res = await fetch('/api/vault/upload/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket: signed.ticket }) });
+      ticket = signed.ticket;
+      pendingCompletions.current.set(retryKey, signed.ticket);
+      }
+      const res = await fetch('/api/vault/upload/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket }) });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.source) {
-        setApproved(prev => [data.source, ...prev]);
+        pendingCompletions.current.delete(retryKey);
+        setApproved(prev => [data.source, ...prev.filter(s => s.id !== data.source.id)]);
         toast({ title: "File uploaded", description: data.warning });
         router.refresh();
       } else {
+        if (res.status === 400 || res.status === 403) pendingCompletions.current.delete(retryKey);
         toast({ title: `Couldn't upload ${file.name}`, description: data.error || "Upload failed", variant: "destructive" });
       }
     } catch (error) {
