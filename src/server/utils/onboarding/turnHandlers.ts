@@ -129,7 +129,7 @@ export type TurnEvent =
     // `stage` splits what used to be one step into the order the artist actually
     // needs it in: read and correct the knowledge document FIRST, decide about the
     // About second. At `stage: "doc"` there is no About yet and `about` is null.
-    | { kind: "draft"; stage: "doc" | "about"; doc: string; about: string | null; sources: DocSource[]; selfWrite?: boolean }
+    | { kind: "draft"; stage: "doc" | "about"; doc: string; about: string | null; sources: DocSource[]; selfWrite?: boolean; expectedBio?: string | null }
     | { kind: "complete" }
     | { kind: "error"; message: string };
 
@@ -158,7 +158,7 @@ export type ClientTurn =
     // back — everything downstream is generated from the version they approved,
     // not the version we generated.
     | { type: "about_choice"; mode: "generate" | "self"; doc: string; sources?: DocSource[] }
-    | { type: "publish"; doc: string; about: string; sources?: DocSource[] };
+    | { type: "publish"; doc: string; about: string; sources?: DocSource[]; expectedBio: string | null };
 
 /** How long the vault step waits for web discovery.
  *
@@ -1525,18 +1525,22 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         }
         const sources = sanitizeDocSources(turn.sources);
 
+        // Capture BEFORE generating (or opening a self-written draft), then carry
+        // this snapshot through the client. Reading it only on Publish would let
+        // an old draft overwrite a newer edit from another tab.
+        const artist = await getArtistById(artistId);
+        const expectedBio = artist?.bio ?? null;
         if (turn.mode === "self") {
             // No generation at all: an empty About for them to write into. Their
             // words are the point — we shouldn't put a draft in their mouth first.
             yield { kind: "chat", text: NARRATION.selfWrite };
-            yield { kind: "draft", stage: "about", doc, about: "", sources, selfWrite: true };
+            yield { kind: "draft", stage: "about", doc, about: "", sources, selfWrite: true, expectedBio };
             return;
         }
 
         yield { kind: "chat", text: NARRATION.writingAbout };
         yield { kind: "progress", label: "Writing your About", done: false };
         const startedAt = Date.now();
-        const artist = await getArtistById(artistId);
         const artistName = artist?.name ?? "this artist";
         let about: string | null = null;
         try {
@@ -1559,7 +1563,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // Both texts are shown together from here, so the manifest covers both.
         const citedIds = new Set([...extractCitedIds(doc), ...extractCitedIds(about)]);
         yield { kind: "chat", text: NARRATION.draftReady };
-        yield { kind: "draft", stage: "about", doc, about, sources: sources.filter(s => citedIds.has(s.id)) };
+        yield { kind: "draft", stage: "about", doc, about, sources: sources.filter(s => citedIds.has(s.id)), expectedBio };
         return;
     }
 
@@ -1600,12 +1604,14 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // Shared persistence atomically preserves old/new bios and enforces pins.
         // Do not pre-save through the explicit history-save cap: a full history
         // must not prevent publishing or require deleting an artist's saved work.
-        const existingArtist = await getArtistById(artistId);
-        const existingBio = existingArtist?.bio;
+        if (turn.expectedBio !== null && (typeof turn.expectedBio !== 'string' || turn.expectedBio.length > MAX_BIO_LENGTH)) {
+            yield { kind: 'error', message: 'This draft is missing its starting bio. Reload and generate a fresh draft before publishing.' };
+            return;
+        }
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: existingBio ?? null, document: { content: doc, sources } });
+        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: turn.expectedBio, document: { content: doc, sources } });
         await confirmOnboardingStep(artistId, "publish");
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };

@@ -253,7 +253,7 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish 
                         sources={item.sources}
                         startEditing={item.selfWrite}
                         disabled={!interactive}
-                        onPublish={r => void sendTurn({ type: "publish", sources: item.sources, ...r })}
+                        onPublish={r => void sendTurn({ type: "publish", sources: item.sources, expectedBio: item.expectedBio, ...r })}
                     />
                 );
             case "complete":
