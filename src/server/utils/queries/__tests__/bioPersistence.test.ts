@@ -10,15 +10,33 @@ describe('persistArtistBio', () => {
         const tx = {
             execute: jest.fn().mockResolvedValue([]),
             query: {
+                artistClaims: { findFirst: jest.fn().mockResolvedValue(undefined) },
+                users: { findFirst: jest.fn().mockResolvedValue({ isAdmin: true }) },
                 artists: { findFirst: jest.fn().mockResolvedValue({ id: 'a1', bio }) },
                 artistBioVersions: { findFirst: jest.fn().mockResolvedValueOnce(pinned ? { bioText: bio } : undefined).mockResolvedValue(undefined) },
             },
             insert: jest.fn(() => ({ values })), update: jest.fn(() => ({ set })),
         };
         db.transaction = jest.fn(fn => fn(tx));
-        const { persistArtistBio } = await import('../bioPersistence');
-        return { persistArtistBio, tx, set, values };
+        const { persistArtistBio: persist } = await import('../bioPersistence');
+        const persistArtistBio = (artistId, text, options = {}) => persist(artistId, text, { ownership: { expectedClaimId: null }, ...options });
+        return { persistArtistBio, persist, tx, set, values };
     }
+    it.each([true, false])('rejects a changed claim before bio, document or completion writes (initiating user: %s)', async withUser => {
+        const { persistArtistBio, tx, set, values } = await setup({ bio: null });
+        tx.query.artistClaims.findFirst.mockResolvedValue({ id: 'replacement-claim', userId: 'new-owner' });
+        await expect(persistArtistBio('a1', 'Delayed About', {
+            ownership: { expectedClaimId: 'old-claim', ...(withUser ? { userId: 'old-owner' } : {}) },
+            generated: true, expectedBio: null, document: { content: 'Delayed Lore', sources: [] }, confirmSteps: ['interview', 'publish'],
+        })).rejects.toThrow('ownership changed');
+        expect(tx.insert).not.toHaveBeenCalled();expect(set).not.toHaveBeenCalled();expect(values).not.toHaveBeenCalled();
+        expect(tx.execute.mock.invocationCallOrder[0]).toBeLessThan(tx.query.artistClaims.findFirst.mock.invocationCallOrder[0]);
+    });
+    it('rejects missing ownership context rather than silently trusting the write', async () => {
+        const { persist, tx } = await setup();
+        await expect(persist('a1', 'Unsafe', {})).rejects.toThrow('ownership changed');
+        expect(tx.insert).not.toHaveBeenCalled();
+    });
     it('never overwrites a pin, even when generation started before the pin', async () => {
         const { persistArtistBio, set, values } = await setup({ pinned: true });
         await expect(persistArtistBio('a1', 'AI replacement', { generated: true, expectedBio: 'Artist edited bio' })).rejects.toThrow('changed or was pinned');

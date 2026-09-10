@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { NextResponse } from 'next/server';
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue(null) }));
 
 // Mock NextResponse
 const mockNextResponseJson = jest.fn().mockImplementation((data, options) => ({

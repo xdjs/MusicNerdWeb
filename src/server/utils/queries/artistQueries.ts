@@ -1061,14 +1061,14 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 // ----------------------------------
 // Bio update helper
 // ----------------------------------
-export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
+export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean, ownership: import('./ownershipWrites').ArtistWriteAuth): Promise<RemoveArtistDataResp> {
     try {
         if (regenerate) {
             // Snapshot the current About so we can tell a real regeneration apart from a
             // no-op (discovery is flaky; when it finds nothing new the clobber-guard in
             // generateArtistBio preserves the existing bio unchanged).
             const priorBio = (await getArtistById(artistId))?.bio ?? null;
-            const generatedBio = await regenerateArtistBio(artistId);
+            const generatedBio = await regenerateArtistBio(artistId, ownership);
             if (!generatedBio) {
                 return { status: "error", message: "Failed to generate bio" };
             }
@@ -1085,7 +1085,7 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
         } else {
             // Update with provided bio
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, bio);
+            await persistArtistBio(artistId, bio, { ownership });
             return { status: "success", message: "Bio updated" };
         }
     } catch (e) {

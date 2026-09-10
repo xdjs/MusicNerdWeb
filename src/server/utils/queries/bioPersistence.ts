@@ -1,18 +1,31 @@
 import { db } from '@/server/db/drizzle';
-import { artists, artistBioVersions, artistDocs, artistOnboardingSteps } from '@/server/db/schema';
+import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { isRealBio } from '@/lib/bioConstants';
 import { BioConflictError } from '@/lib/bioConflict';
+import { authorizeLockedArtistWrite, OwnershipChangedError } from './ownershipWrites';
+
+export type BioWriteOwnership = { expectedClaimId: string | null; userId?: string };
 
 /** All bio writers take the artist row lock, including pin and delete. A model
  * call must never hold this lock; compare its starting bio after it finishes. */
 export async function persistArtistBio(artistId: string, bio: string, options: {
+    ownership: BioWriteOwnership;
     generated?: boolean; expectedBio?: string | null;
     document?: { content: string; sources: unknown[] };
     confirmSteps?: ('interview' | 'publish')[];
-} = {}): Promise<string | null> {
+}): Promise<string | null> {
     return db.transaction(async tx => {
         await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+        if (!options?.ownership) throw new OwnershipChangedError();
+        if (options.ownership.userId) {
+            await authorizeLockedArtistWrite(tx, artistId, { userId: options.ownership.userId, expectedClaimId: options.ownership.expectedClaimId });
+        } else {
+            // Existing automatic generation has no initiating user, but still
+            // cannot publish across a claim/revocation boundary.
+            const claim = await tx.query.artistClaims.findFirst({ where: and(eq(artistClaims.artistId, artistId), eq(artistClaims.status, 'approved')) });
+            if ((claim?.id ?? null) !== options.ownership.expectedClaimId) throw new OwnershipChangedError();
+        }
         const artist = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
         if (!artist) throw new Error('Artist not found');
         const pinned = await tx.query.artistBioVersions.findFirst({

@@ -175,7 +175,8 @@ describe('runOnboardingTurn', () => {
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         persistArtistBio.mockRejectedValue(new BioConflictError());
         const { runOnboardingTurn } = await import('../turnHandlers');
-        const run = collect(runOnboardingTurn('a1', { type, doc: '## Overview\nd', about: 'About text', expectedBio: null }));
+        const ownership = { userId: 'owner', expectedClaimId: 'original-claim' };
+        const run = collect(runOnboardingTurn('a1', { type, doc: '## Overview\nd', about: 'About text', expectedBio: null }, ownership));
         if (type === 'publish') await expect(run).rejects.toThrow('changed or was pinned');
         else {
             const events = await run;
@@ -185,6 +186,7 @@ describe('runOnboardingTurn', () => {
         expect(oq.confirmOnboardingStep).not.toHaveBeenCalledWith('a1', 'publish');
         expect(oq.upsertArtistDoc).not.toHaveBeenCalled();
         expect(oq.upsertArtistDocSources).not.toHaveBeenCalled();
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ ownership }));
     });
 
     it('auto-build leaves publication retryable when its atomic persistence fails', async () => {

@@ -86,6 +86,22 @@ describe('direct private-storage uploads', () => {
         expect(bucket.download).not.toHaveBeenCalled();
         expect(bucket.remove).not.toHaveBeenCalled();
     });
+    it('cleans an expired authentic ticket without downloading or publishing', async () => {
+        const { tickets, complete, bucket, from, dq } = await setup();
+        const ticket = tickets.signUploadTicket({ userId: 'owner', artistId, path: artistId+'/expired.pdf', name: 'expired.pdf', type: 'application/pdf', size: 12, expires: 0 });
+        expect((await complete(req({ ticket }))).status).toBe(400);
+        expect(from).toHaveBeenLastCalledWith('lore-upload-staging');
+        expect(bucket.remove).toHaveBeenCalledWith([artistId+'/expired.pdf']);
+        expect(bucket.download).not.toHaveBeenCalled();expect(dq.insertVaultSource).not.toHaveBeenCalled();
+    });
+    it('retains retryability if expired-ticket cleanup fails', async () => {
+        const { tickets, complete, bucket } = await setup();
+        const ticket = tickets.signUploadTicket({ userId: 'owner', artistId, path: artistId+'/expired.pdf', expires: 0 });
+        bucket.remove.mockResolvedValueOnce({ error: new Error('unavailable') });
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(500);expect((await response.json()).retryCompletion).toBe(true);
+        expect((await complete(req({ ticket }))).status).toBe(400);
+    });
     it('extracts PDF text and queues Lore only after validating and saving the source', async () => {
         const { complete, ticket, dq, queue, bucket, from } = await setup();
         expect((await complete(req({ ticket }))).status).toBe(200);

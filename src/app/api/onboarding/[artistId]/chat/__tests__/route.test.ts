@@ -64,6 +64,11 @@ describe('POST /api/onboarding/[artistId]/chat', () => {
         const res = await POST(makeReq({ type: 'open' }), params);
         expect(res.status).toBe(401);
     });
+    it('passes the initiating user and original claim generation to the turn handler', async () => {
+        const { POST, runOnboardingTurn } = await setup();
+        await POST(makeReq({ type: 'open' }), params);
+        expect(runOnboardingTurn).toHaveBeenCalledWith(expect.any(String), { type: 'open' }, { userId: 'u1', expectedClaimId: null });
+    });
 
     it('403s when the user cannot edit this artist', async () => {
         const { POST } = await setup({ canEdit: false });

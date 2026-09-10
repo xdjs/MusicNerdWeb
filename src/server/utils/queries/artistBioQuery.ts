@@ -13,6 +13,9 @@ import { resolveVerifiedGrounding } from "@/server/utils/verifiedGrounding";
 import { getSpotifyHeaders, getSpotifyCatalogNames } from "@/server/utils/queries/externalApiQueries";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
+import { getLoreClaimGeneration } from './lorePersistence';
+import { OwnershipChangedError, type ArtistWriteAuth } from './ownershipWrites';
+import type { BioWriteOwnership } from './bioPersistence';
 
 // Every I/O the generator does runs concurrently inside the route's budget, so each gets
 // its own bound: no single slow dependency can starve synthesis and 408 the request.
@@ -33,8 +36,8 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
 }
 
 /** Persist the generated About. Single writer so the update shape stays consistent. */
-async function saveBio(artistId: string, bio: string, expectedBio: string | null): Promise<string | null> {
-  return persistArtistBio(artistId, bio, { generated: true, expectedBio });
+async function saveBio(artistId: string, bio: string, expectedBio: string | null, ownership: BioWriteOwnership): Promise<string | null> {
+  return persistArtistBio(artistId, bio, { generated: true, expectedBio, ownership });
 }
 
 /**
@@ -97,7 +100,8 @@ async function gatherContextualSources(artistId: string): Promise<ArtistVaultSou
  *      namesakes — the conflation bug this flow fixes).
  * Unified function — used by the bio API route, dashboard actions, and artistLinkService.
  */
-export async function generateArtistBio(artistId: string): Promise<NextResponse> {
+export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth): Promise<NextResponse> {
+  const ownership = auth ?? { expectedClaimId: await getLoreClaimGeneration(artistId) };
   const artist = await getArtistById(artistId);
   if (!artist) {
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
@@ -164,7 +168,7 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
     }
     // Cache the nudge so the profile invites the artist to add context (and we don't
     // re-run the expensive discovery on every view). An explicit regenerate retries.
-    const saved = await saveBio(artistId, ABOUT_EMPTY_STATE, artist.bio);
+    const saved = await saveBio(artistId, ABOUT_EMPTY_STATE, artist.bio, ownership);
     return NextResponse.json({ bio: saved, empty: saved === ABOUT_EMPTY_STATE });
   }
 
@@ -284,13 +288,13 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     console.debug("Gemini call duration:", `${geminiDurationMs}ms`);
 
     if (bio) {
-      const saved = await saveBio(artistId, bio, artist.bio);
+      const saved = await saveBio(artistId, bio, artist.bio, ownership);
       return NextResponse.json({ bio: saved });
     }
 
     return NextResponse.json({ bio });
   } catch (err: any) {
-    if (err instanceof BioConflictError) return NextResponse.json({ error: err.message }, { status: 409 });
+    if (err instanceof BioConflictError || err instanceof OwnershipChangedError) return NextResponse.json({ error: err.message }, { status: 409 });
     console.error("Gemini error generating bio", err);
     if (err.message === 'Gemini timeout') {
       return NextResponse.json({ error: "Bio generation timed out" }, { status: 408 });
@@ -303,9 +307,9 @@ You have NO web access for this task. Write the About using ONLY the curated sou
  * Simplified wrapper around generateArtistBio that returns just the bio string
  * (or null on failure). Used by updateArtistBio for admin-triggered regeneration.
  */
-export async function regenerateArtistBio(artistId: string): Promise<string | null> {
+export async function regenerateArtistBio(artistId: string, auth?: ArtistWriteAuth): Promise<string | null> {
   try {
-    const response = await generateArtistBio(artistId);
+    const response = await generateArtistBio(artistId, auth);
     const data = await response.json();
     return data.bio ?? null;
   } catch (e) {

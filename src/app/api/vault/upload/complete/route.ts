@@ -2,7 +2,7 @@ import { getServerAuthSession } from '@/server/auth';
 import { getDevSession } from '@/server/utils/dev-auth';
 import { canEditArtist } from '@/server/utils/artistEditAuth';
 import { getSupabaseAdmin, VAULT_BUCKET } from '@/server/lib/supabase';
-import { LORE_UPLOAD_BUCKET, readUploadTicket } from '@/server/utils/vaultUploadTicket';
+import { LORE_UPLOAD_BUCKET, verifyUploadTicket } from '@/server/utils/vaultUploadTicket';
 import { MAX_VAULT_FILE_BYTES, getUploadSourceType } from '@/lib/vaultUpload';
 import { validateMagicBytes } from '@/server/utils/validateMagicBytes';
 import { extractPdfText } from '@/server/utils/extractPdfText';
@@ -41,9 +41,13 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
         let ticket;
-        try { ticket = readUploadTicket(String(body.ticket ?? ''), session.user.id); }
+        try { ticket = verifyUploadTicket(String(body.ticket ?? ''), session.user.id); }
         catch { return Response.json({ error: 'Upload expired or invalid. Please try again.' }, { status: 400 }); }
         stagedPath = ticket.path;
+        if (ticket.expires < Date.now()) {
+            await removeStagedUpload(ticket.path);
+            return Response.json({ error: 'Upload expired. Please try again.' }, { status: 400 });
+        }
         const expectedClaimId = await getLoreClaimGeneration(ticket.artistId);
         if (!(await canEditArtist(session.user.id, ticket.artistId))) {
             // The signed, user-bound ticket authorizes cleanup of this temporary

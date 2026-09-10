@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { runOnboardingTurn, type ClientTurn } from "@/server/utils/onboarding/turnHandlers";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ art
 
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    const expectedClaimId = await getLoreClaimGeneration(artistId);
     if (!(await canEditArtist(session.user.id, artistId))) {
         return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
@@ -55,7 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ art
                 }
             };
             try {
-                for await (const event of runOnboardingTurn(artistId, turn)) {
+                for await (const event of runOnboardingTurn(artistId, turn, { userId: session.user.id, expectedClaimId })) {
                     send(event);
                     if (Date.now() - startedAt > TURN_DEADLINE_MS) {
                         // Checkpoint stays unconfirmed — derived state resumes next turn (spec §9).

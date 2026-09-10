@@ -1034,7 +1034,7 @@ export async function applyProfileLinkDecisions(
     return { unrecognized, writeRejected, routedToVaultApproved, routedToVaultPending, vaultInsertFailed, identityBlocked, written };
 }
 
-export async function* runOnboardingTurn(artistId: string, turn: ClientTurn): AsyncGenerator<TurnEvent> {
+export async function* runOnboardingTurn(artistId: string, turn: ClientTurn, ownership: import('@/server/utils/queries/ownershipWrites').ArtistWriteAuth): AsyncGenerator<TurnEvent> {
     const state = await getOnboardingState(artistId);
     // `null` = the confirmed-steps read failed (e.g. migration/grants issue) —
     // state is UNKNOWN, not "incomplete". Never guess a step or write anything;
@@ -1265,7 +1265,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-            await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: artist?.bio ?? null, document: { content: doc, sources }, confirmSteps: ['interview', 'publish'] });
+            await persistArtistBio(artistId, cleanAbout, { generated: true, ownership, expectedBio: artist?.bio ?? null, document: { content: doc, sources }, confirmSteps: ['interview', 'publish'] });
             wrote = true;
         }
     } catch (e) {
@@ -1613,7 +1613,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        await persistArtistBio(artistId, cleanAbout, { generated: true, expectedBio: turn.expectedBio, document: { content: doc, sources }, confirmSteps: ['publish'] });
+        await persistArtistBio(artistId, cleanAbout, { generated: true, ownership, expectedBio: turn.expectedBio, document: { content: doc, sources }, confirmSteps: ['publish'] });
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };
         return;

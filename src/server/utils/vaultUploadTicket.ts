@@ -8,13 +8,19 @@ export function signUploadTicket(ticket: UploadTicket): string {
     const payload = Buffer.from(JSON.stringify(ticket)).toString('base64url');
     return `${payload}.${signature(payload)}`;
 }
-export function readUploadTicket(value: string, userId: string): UploadTicket {
+/** Verify identity/integrity separately so expired tickets can authorize cleanup only. */
+export function verifyUploadTicket(value: string, userId: string): UploadTicket {
     const [payload, mac, extra] = value.split('.');
     if (!payload || !mac || extra !== undefined) throw new Error('Invalid upload ticket');
     const expected = Buffer.from(signature(payload));
     const actual = Buffer.from(mac);
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) throw new Error('Invalid upload ticket');
     const ticket = JSON.parse(Buffer.from(payload, 'base64url').toString()) as UploadTicket;
-    if (ticket.userId !== userId || ticket.expires < Date.now()) throw new Error('Upload expired. Please try again.');
+    if (ticket.userId !== userId) throw new Error('Invalid upload ticket');
+    return ticket;
+}
+export function readUploadTicket(value: string, userId: string): UploadTicket {
+    const ticket = verifyUploadTicket(value, userId);
+    if (ticket.expires < Date.now()) throw new Error('Upload expired. Please try again.');
     return ticket;
 }

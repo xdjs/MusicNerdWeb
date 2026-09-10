@@ -103,6 +103,22 @@ describe("artistBioQuery (unified sourcing flow)", () => {
   }
 
   // ------- generateArtistBio -------
+  it('retains initiating editor authorization through regeneration', async () => {
+    const { regenerateArtistBio, getArtistById, persistArtistBio } = await setup();
+    getArtistById.mockResolvedValue(artist({ bio: null }));
+    const ownership = { userId: 'original-owner', expectedClaimId: 'original-claim' };
+    await regenerateArtistBio('artist-1', ownership);
+    expect(persistArtistBio).toHaveBeenCalledWith('artist-1', expect.any(String), expect.objectContaining({ ownership }));
+  });
+
+  it('captures automatic generation claim before reading the artist or sources', async () => {
+    const { generateArtistBio, getArtistById, persistArtistBio, db } = await setup();
+    db.query.artistClaims.findFirst.mockResolvedValueOnce({ id: 'original-claim' }).mockResolvedValue({ id: 'replacement-claim' });
+    getArtistById.mockResolvedValue(artist({ bio: null }));
+    await generateArtistBio('artist-1');
+    expect(persistArtistBio).toHaveBeenCalledWith('artist-1', expect.any(String), expect.objectContaining({ ownership: { expectedClaimId: 'original-claim' } }));
+    expect(db.query.artistClaims.findFirst.mock.invocationCallOrder[0]).toBeLessThan(getArtistById.mock.invocationCallOrder[0]);
+  });
 
   it("returns 404 if artist not found", async () => {
     const { generateArtistBio, getArtistById } = await setup();
