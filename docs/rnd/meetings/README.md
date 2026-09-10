@@ -14,7 +14,7 @@ date simply because the calendar cadence suggests it should have.
 | Date / record | Session | Evidence |
 | --- | --- | --- |
 | [2026-09-10](2026-09-10.md) | R&D | Gemini notes and transcript; source needs team access |
-| [2026-09-09-kickoff](2026-09-09-kickoff.md) | Kickoff (Pete, Patrick) | Granola notes and transcript; source needs Patrick's access |
+| [2026-09-09-kickoff](2026-09-09-kickoff.md) | Kickoff (Pete, Sweetman) | Granola notes and transcript; source needs Sweetman's access |
 | [2026-09-09](2026-09-09.md) | Standup | Gemini notes; source linked in file |
 | [2026-09-08](2026-09-08.md) | Standup | Gemini notes; source linked in file |
 | [2026-09-07](2026-09-07.md) | Standup | Gemini notes; source linked in file |
