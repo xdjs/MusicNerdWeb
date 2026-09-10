@@ -7,13 +7,13 @@ forward until they're done or dropped.
 
 ## September 10 · [R&D](meetings/2026-09-10.md)
 
-First retro with Patrick present. Carl introduced the format; Patrick deferred his items until
+First retro with Sweetman present. Carl introduced the format; Sweetman deferred his items until
 he has more context.
 
 **Keep**
 - Adding In Process to the profile; keep moving toward Latest without rushing it. (Pete)
 - Turning artist feedback into shipped output, as with the last release. (CY)
-- Patrick on the team. (Carl)
+- Sweetman on the team. (Carl)
 
 **Fix**
 - Documentation organization. (Pete)
