@@ -6,12 +6,13 @@ import { db } from '@/server/db/drizzle';
 // and capture the values written by set() to verify exact bio-null writes.
 // Deletes on the claim row and artist_docs use .returning(); the vault/answers/steps
 // deletes are awaited directly, so their mock resolves at .where().
-function makeTx(docRowsDeleted) {
+function makeTx(docRowsDeleted, pinnedRows = []) {
     const schema = require('@/server/db/schema');
     const deletedTables = [];
     const updatedTables = [];
     const setCalls = [];
     const tx = {
+        execute: jest.fn().mockResolvedValue([]),
         delete: jest.fn((table) => {
             deletedTables.push(table);
             if (table === schema.artistClaims) {
@@ -27,7 +28,8 @@ function makeTx(docRowsDeleted) {
             return {
                 set: jest.fn((values) => {
                     setCalls.push({ table, values });
-                    return { where: jest.fn().mockResolvedValue(undefined) };
+                    return { where: jest.fn().mockReturnValue(table === schema.artistBioVersions
+                        ? { returning: jest.fn().mockResolvedValue(pinnedRows) } : Promise.resolve(undefined)) };
                 })
             };
         }),
@@ -51,12 +53,19 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // content, per implementation invariant. (Social posts/profiles added
         // alongside post-claim social ingestion — see socialIngest.ts.)
         expect(deletedTables).toEqual([
-            schema.artistClaims, schema.artistVaultSources,
+            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
             schema.artistSocialPosts, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);
         // A doc was deleted → the (doc-derived or hand-edited) bio is the revoked owner's content
-        expect(updatedTables).toEqual([schema.artists]);
+        expect(updatedTables).toEqual([schema.artistBioVersions, schema.artists]);
+        expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
+        expect(tx.execute).toHaveBeenCalledTimes(2); // row lock + preserve current bio
+        const { PgDialect } = require('drizzle-orm/pg-core');
+        const { ABOUT_EMPTY_STATE } = require('@/lib/bioConstants');
+        const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
+        expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
+        expect(preservation.sql).toContain('btrim(bio');
         // Verify bio was cleared exactly to null (not "" or other value)
         expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
     });
@@ -71,12 +80,25 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
 
         // Still delete claims, vault, and social data, but no onboarding content to clear
         expect(deletedTables).toEqual([
-            schema.artistClaims, schema.artistVaultSources,
+            schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
             schema.artistSocialPosts, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);
         // No artists table update
-        expect(updatedTables).toHaveLength(0);
-        expect(setCalls).toHaveLength(0);
+        expect(updatedTables).toEqual([schema.artistBioVersions]);
+        expect(setCalls).not.toContainEqual({ table: schema.artists, values: { bio: null } });
+        expect(tx.execute).toHaveBeenCalledTimes(1); // only the row lock
+    });
+
+    it('clears a pinned bio even without a doc, releases its lock, and never deletes history', async () => {
+        const schema = require('@/server/db/schema');
+        const { tx, deletedTables, setCalls } = makeTx([], [{ id: 'pinned-version' }]);
+        db.transaction = jest.fn(async cb => cb(tx));
+        const { revokeApprovedClaim } = require('@/server/utils/queries/dashboardQueries');
+        await revokeApprovedClaim('claim-1');
+        expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
+        expect(setCalls).toContainEqual({ table: schema.artists, values: { bio: null } });
+        expect(deletedTables).not.toContain(schema.artistBioVersions);
+        expect(tx.execute).toHaveBeenCalledTimes(2);
     });
 });

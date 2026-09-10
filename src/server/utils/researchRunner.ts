@@ -14,7 +14,7 @@
  */
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
     claimResearchJob, saveJobProgress, saveJobState, completeResearchJob, failResearchJob,
     failJobAtCursor, enqueueResearchJob, type ResearchJob,
@@ -29,6 +29,7 @@ import {
 } from "@/server/utils/socialIngest";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
 import { refreshArtistDoc } from "@/server/utils/artistDocService";
+import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 /** Headroom kept back so the slice can persist what it did before the platform
  *  stops the invocation. Losing a finished batch because there was no time left
@@ -65,11 +66,14 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "social_ingest"
+        const result = job.kind === "lore_refresh"
+            ? await runLoreRefresh(job, deadline)
+            : job.kind === "social_ingest"
             ? await runIngest(job)
             : await runExtraction(job, deadline);
         return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, ...result };
     } catch (e) {
+        if (e instanceof OwnershipChangedError) return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
         const message = e instanceof Error ? e.message : String(e);
         console.error(`[research] ${job.kind} failed for ${job.artistId}:`, message);
         await failResearchJob(job.id, message);
@@ -87,6 +91,28 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
  * which is what happened when this was a single blocking call, forever, because
  * each new slice started the same scrape from scratch.
  */
+async function runLoreRefresh(job: ResearchJob, deadline: number): Promise<{ progress: string; done: boolean; waiting?: boolean }> {
+    if (deadline - Date.now() < DOC_REBUILD_RESERVE_MS) {
+        await saveJobProgress(job.id, job.cursor);
+        return { progress: 'Waiting for a full Lore rebuild budget', done: false, waiting: true };
+    }
+    if (!Object.prototype.hasOwnProperty.call(job.state, 'claimId')) {
+        await completeResearchJob(job.id);
+        return { progress: 'Legacy Lore refresh cancelled; use Look again to retry', done: true };
+    }
+    const expectedClaimId = typeof job.state.claimId === 'string' ? job.state.claimId : null;
+    const result = await refreshArtistDoc(job.artistId, { createIfMissing: true, jobId: job.id, expectedClaimId });
+    if (result === 'failed') throw new Error('Could not rebuild Lore from current sources');
+    const rows = await db.execute(sql`update artist_research_jobs set
+        status = case when coalesce(state->>'requestedAt', '') = ${String(job.state?.requestedAt ?? '')}
+            then 'done' else 'pending' end,
+        claimed_at = null, updated_at = now()
+        where id = ${job.id}::uuid returning status`);
+    const status = (rows as unknown as { status: string }[])[0]?.status;
+    const done = status === undefined || status === 'done';
+    return { progress: !done ? 'Sources changed during rebuild; another refresh is queued' : result === 'cancelled' ? 'Lore refresh cancelled after ownership changed' : 'Lore rebuilt from current documents and sources', done };
+}
+
 async function runIngest(job: ResearchJob): Promise<{ progress: string; done: boolean; waiting?: boolean }> {
     const force = job.state?.force === true;
     const runId = typeof job.state?.apifyRunId === "string" ? job.state.apifyRunId : null;
@@ -107,7 +133,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
     // Already have the posts and nobody asked for a fresh look.
     if (!force && !runId && await hasSocialPosts(job.artistId)) {
         await completeResearchJob(job.id);
-        await enqueueResearchJob(job.artistId, "caption_extract");
+        await enqueueResearchJob(job.artistId, "caption_extract", { parentJobId: job.id });
         return { progress: "posts already present", done: true };
     }
 
@@ -134,7 +160,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
         return { progress: `scrape failed: ${state.reason}`, done: false };
     }
 
-    const result = await collectInstagramScrape(job.artistId, handle, state.datasetId);
+    const result = await collectInstagramScrape(job.artistId, handle, state.datasetId, job.id);
     if (result === null) {
         // The dataset request failed, which is not the same as a feed with
         // nothing in it. Marking this done would record both jobs as
@@ -144,6 +170,7 @@ async function runIngest(job: ResearchJob): Promise<{ progress: string; done: bo
     }
     await completeResearchJob(job.id);
     await enqueueResearchJob(job.artistId, "caption_extract", {
+        parentJobId: job.id,
         state: force ? { incremental: true } : {},
     });
     return { progress: `ingested ${result.ingested} post(s)`, done: true };
@@ -216,7 +243,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
         await saveJobState(job.id, { ...job.state, mode: incremental ? "incremental" : "full" });
         job.state = { ...job.state, mode: incremental ? "incremental" : "full" };
         // Only a full re-read clears, and only before it has read anything.
-        if (!incremental) await clearSocialCredits(job.artistId);
+        if (!incremental) await clearSocialCredits(job.artistId, job.id);
     } else {
         incremental = job.state?.mode === "incremental";
     }
@@ -251,7 +278,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
     });
 
     const postedAtByUrl = new Map(posts.map(p => [p.url, p.postedAt] as const));
-    const stored = await appendSocialCredits(job.artistId, slice.extraction, postedAtByUrl);
+    const stored = await appendSocialCredits(job.artistId, slice.extraction, postedAtByUrl, job.id);
     if (stored === null) {
         // The credits from this slice were verified and then not written.
         // Advancing the cursor would discard them permanently.
@@ -292,7 +319,7 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
             toRead, await claimedSourceUrls(job.artistId), artist.name, artist.instagram ?? "",
             { budgetMs: remaining(), startBatch: sweepStart },
         );
-        if ((await appendSocialCredits(job.artistId, swept.extraction, postedAtByUrl)) === null) {
+        if ((await appendSocialCredits(job.artistId, swept.extraction, postedAtByUrl, job.id)) === null) {
             await failResearchJob(job.id, "could not store swept credits");
             return { progress: "sweep storage failed", done: false };
         }

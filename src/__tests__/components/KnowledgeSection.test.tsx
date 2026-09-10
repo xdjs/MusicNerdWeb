@@ -103,6 +103,8 @@ describe('KnowledgeSection', () => {
         getKnowledgeDoc.mockResolvedValue({ success: true, content: undefined, sources: [], corrections: [] });
         renderEditing();
         expect(await screen.findByText(/nothing here yet/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /look again/i })).toBeEnabled();
+        expect(screen.queryByRole('link', { name: /download/i })).toBeNull();
     });
 
     it('surfaces a failure instead of pretending the correction saved', async () => {

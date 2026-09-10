@@ -36,6 +36,7 @@ jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
 
 jest.mock("@/server/utils/queries/dashboardQueries", () => ({
   getVaultSourcesByArtistId: jest.fn(),
+  getBioVersionsByArtistId: jest.fn().mockResolvedValue([]),
 }));
 
 const mockGenerateContent = jest.fn().mockResolvedValue({ text: "mocked gemini response" });
@@ -83,6 +84,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     // Default: both approved + pending empty → discovery path.
     (getVaultSourcesByArtistId as jest.Mock).mockResolvedValue([]);
 
+    const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
     db.update = jest.fn().mockReturnValue({
       set: jest.fn().mockReturnValue({
         where: jest.fn().mockResolvedValue([]),
@@ -92,7 +94,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     const { generateArtistBio, regenerateArtistBio } = await import("../artistBioQuery");
 
     return {
-      db,
+      db, persistArtistBio,
       getArtistById: getArtistById as jest.Mock,
       getVaultSourcesByArtistId: getVaultSourcesByArtistId as jest.Mock,
       generateArtistBio,
@@ -101,6 +103,22 @@ describe("artistBioQuery (unified sourcing flow)", () => {
   }
 
   // ------- generateArtistBio -------
+  it('retains initiating editor authorization through regeneration', async () => {
+    const { regenerateArtistBio, getArtistById, persistArtistBio } = await setup();
+    getArtistById.mockResolvedValue(artist({ bio: null }));
+    const ownership = { userId: 'original-owner', expectedClaimId: 'original-claim' };
+    await regenerateArtistBio('artist-1', ownership);
+    expect(persistArtistBio).toHaveBeenCalledWith('artist-1', expect.any(String), expect.objectContaining({ ownership }));
+  });
+
+  it('captures automatic generation claim before reading the artist or sources', async () => {
+    const { generateArtistBio, getArtistById, persistArtistBio, db } = await setup();
+    db.query.artistClaims.findFirst.mockResolvedValueOnce({ id: 'original-claim' }).mockResolvedValue({ id: 'replacement-claim' });
+    getArtistById.mockResolvedValue(artist({ bio: null }));
+    await generateArtistBio('artist-1');
+    expect(persistArtistBio).toHaveBeenCalledWith('artist-1', expect.any(String), expect.objectContaining({ ownership: { expectedClaimId: 'original-claim' } }));
+    expect(db.query.artistClaims.findFirst.mock.invocationCallOrder[0]).toBeLessThan(getArtistById.mock.invocationCallOrder[0]);
+  });
 
   it("returns 404 if artist not found", async () => {
     const { generateArtistBio, getArtistById } = await setup();
@@ -175,7 +193,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("a3");
 
-    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3");
+    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3", { ownership: { expectedClaimId: null } });
   });
 
   it("uses approved vault sources and does NOT re-run discovery", async () => {
@@ -209,7 +227,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
   });
 
   it("returns and saves the claim-nudge (no synthesis) when no sources can be found", async () => {
-    const { generateArtistBio, getArtistById, db } = await setup();
+    const { generateArtistBio, getArtistById, db, persistArtistBio } = await setup();
     mockSearchAndPopulate.mockResolvedValue([]); // discovery finds nothing
     getArtistById.mockResolvedValue(artist({ name: "Obscure Artist", spotify: "sp9" }));
 
@@ -219,12 +237,12 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     expect(data.bio).toBe(ABOUT_EMPTY_STATE);
     expect(data.empty).toBe(true);
     expect(mockGenerateContent).not.toHaveBeenCalled();      // never guesses a bio
-    const setMock = db.update.mock.results[0].value.set;
-    expect(setMock).toHaveBeenCalledWith({ bio: ABOUT_EMPTY_STATE }); // cached so we don't re-discover every view
+    const setMock = persistArtistBio;
+    expect(setMock).toHaveBeenCalledWith(expect.any(String), ABOUT_EMPTY_STATE, expect.objectContaining({ generated: true })); // cached so we don't re-discover every view
   });
 
   it("preserves an existing real bio when discovery returns no sources (regenerate must not clobber)", async () => {
-    const { generateArtistBio, getArtistById, db } = await setup();
+    const { generateArtistBio, getArtistById, db, persistArtistBio } = await setup();
     mockSearchAndPopulate.mockResolvedValue([]); // flaky discovery comes up empty this run
     getArtistById.mockResolvedValue(artist({ name: "Established Artist", spotify: "sp1", bio: "A solid, accurate existing About." }));
 
@@ -247,18 +265,18 @@ describe("artistBioQuery (unified sourcing flow)", () => {
   });
 
   it("saves the synthesized bio to the DB on success", async () => {
-    const { generateArtistBio, getArtistById, db } = await setup();
+    const { generateArtistBio, getArtistById, db, persistArtistBio } = await setup();
     getArtistById.mockResolvedValue(artist({ spotify: "sp1" }));
 
     await generateArtistBio("artist-1");
 
-    expect(db.update).toHaveBeenCalled();
-    const setMock = db.update.mock.results[0].value.set;
-    expect(setMock).toHaveBeenCalledWith({ bio: "mocked gemini response" });
+    expect(persistArtistBio).toHaveBeenCalled();
+    const setMock = persistArtistBio;
+    expect(setMock).toHaveBeenCalledWith(expect.any(String), "mocked gemini response", expect.objectContaining({ generated: true }));
   });
 
   it("strips markdown citations before saving and returning the bio", async () => {
-    const { generateArtistBio, getArtistById, db } = await setup();
+    const { generateArtistBio, getArtistById, db, persistArtistBio } = await setup();
     mockGenerateContent.mockResolvedValue({
       text: "Her debut landed in 2019. ([example.com](https://example.com/a?utm_source=openai))",
     });
@@ -268,8 +286,8 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     const data = await result.json();
 
     expect(data.bio).toBe("Her debut landed in 2019.");
-    const setMock = db.update.mock.results[0].value.set;
-    expect(setMock).toHaveBeenCalledWith({ bio: "Her debut landed in 2019." });
+    const setMock = persistArtistBio;
+    expect(setMock).toHaveBeenCalledWith(expect.any(String), "Her debut landed in 2019.", expect.objectContaining({ generated: true }));
   });
 
   it("returns error on Gemini failure", async () => {
@@ -355,3 +373,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     expect(result).toBeNull();
   });
 });
+
+jest.mock('@/server/utils/queries/bioPersistence', () => ({
+  persistArtistBio: jest.fn(async (_id: string, bio: string) => bio),
+}));

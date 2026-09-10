@@ -28,6 +28,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
   const [savedToVault, setSavedToVault] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [originalBio, setOriginalBio] = useState<string>("");
+  const [historyRevision, setHistoryRevision] = useState(0);
 
   // Update edit text when bio changes
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
         setOriginalBio(editText);
         // Refetch to update the cache
         refetch();
+        setHistoryRevision(v => v + 1);
         toast({ title: "Bio updated" });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
@@ -94,6 +96,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
       const result = await saveCurrentBio(aiBlurb, artistId);
       if (result.success) {
         setSavedToVault(true);
+        setHistoryRevision(v => v + 1);
         toast({ title: "Bio saved to Lore" });
         if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSavedToVault(false), 3000);
@@ -111,7 +114,8 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
     if (isRegenerating) return;
     setIsRegenerating(true);
     try {
-      // First try PUT (admin regeneration) - falls back to GET with regenerate param
+      // One explicit generation request. Retrying via GET could start a second
+      // model call after a timeout or hide an authorization/locked-bio error.
       const resp = await fetch(`/api/artistBio/${artistId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -121,19 +125,11 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
         const data = await resp.json();
         setEditText(data.bio);
         refetch(); // Update the hook's displayed bio
-        toast({ title: "Bio regenerated" });
+        setHistoryRevision(v => v + 1);
+        toast({ title: data.message ?? "Bio regenerated" });
       } else {
-        // PUT failed — retry via GET force-regenerate. Both paths are editor-gated now,
-        // so this only helps an authorized editor whose PUT hit a transient (non-auth) error.
-        const getResp = await fetch(`/api/artistBio/${artistId}?regenerate=true`);
-        const getData = await getResp.json();
-        if (getResp.ok && getData.bio) {
-          setEditText(getData.bio);
-          refetch(); // Update the hook's displayed bio
-          toast({ title: "Bio regenerated" });
-        } else {
-          toast({ title: "Error regenerating bio", description: getData?.error ?? "Please try again." });
-        }
+        const data = await resp.json().catch(() => ({}));
+        toast({ title: "Error regenerating bio", description: data?.error ?? data?.message ?? "Please try again." });
       }
     } catch (e) {
       console.error(e);
@@ -208,7 +204,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
             </Button>
           </div>
         </div>
-        <BioVersionHistory artistId={artistId} />
+        <BioVersionHistory artistId={artistId} onChanged={refetch} revision={historyRevision} />
       </div>
     );
   }

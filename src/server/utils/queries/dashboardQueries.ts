@@ -1,6 +1,9 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
+import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
+import { getActiveArtistOperation } from '../artistOperationContext';
+import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bioConstants';
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.
@@ -182,6 +185,12 @@ export async function revokeApprovedClaim(claimId: string) {
                 ))
                 .returning();
             if (!deleted) return undefined;
+            await tx.execute(sql`select id from artists where id = ${deleted.artistId}::uuid for update`);
+            // Removing the job identity invalidates even an already-running model
+            // call. Its final guarded write cannot recreate the deleted Lore.
+            await tx.delete(artistResearchJobs).where(eq(artistResearchJobs.artistId, deleted.artistId));
+            await tx.delete(artistSocialCredits).where(eq(artistSocialCredits.artistId, deleted.artistId));
+            await tx.delete(artistDocCorrections).where(eq(artistDocCorrections.artistId, deleted.artistId));
 
             // Only after we've confirmed we owned the approved claim do we
             // wipe the vault. Same transaction, so both DELETEs commit together.
@@ -212,9 +221,20 @@ export async function revokeApprovedClaim(claimId: string) {
                 .delete(artistDocs)
                 .where(eq(artistDocs.artistId, deleted.artistId))
                 .returning();
-            if (deletedDocs.length > 0) {
-                // The owner published — the live bio (doc-generated or later hand-edited)
-                // is their content. Clear it so the next state regenerates from scratch.
+            // Admin revocation is the explicit moderation exception to pinning.
+            // Keep saved history, but never leave the next claimant a locked bio.
+            const unpinned = await tx.update(artistBioVersions)
+                .set({ isPinned: false })
+                .where(and(eq(artistBioVersions.artistId, deleted.artistId), eq(artistBioVersions.isPinned, true)))
+                .returning();
+            if (deletedDocs.length > 0 || unpinned.length > 0) {
+                // Preserve even a hand-edited bio that never reached version history.
+                await tx.execute(sql`insert into artist_bio_versions (artist_id, bio_text, is_pinned)
+                    select id, bio, false from artists a
+                    where id = ${deleted.artistId}::uuid and bio is not null
+                    and btrim(bio, E' \\t\\n\\r') <> '' and btrim(bio, E' \\t\\n\\r') <> ${ABOUT_EMPTY_STATE}
+                    and not exists (select 1 from artist_bio_versions v
+                        where v.artist_id = a.id and v.bio_text = a.bio)`);
                 await tx
                     .update(artists)
                     .set({ bio: null })
@@ -294,6 +314,13 @@ export async function getVaultSourceByIdAndArtist(sourceId: string, artistId: st
     }
 }
 
+/** Publication reconciliation must distinguish a missing row from a failed read. */
+export async function getVaultUploadByPath(artistId: string, filePath: string) {
+    return db.query.artistVaultSources.findFirst({
+        where: and(eq(artistVaultSources.artistId, artistId), eq(artistVaultSources.filePath, filePath)),
+    });
+}
+
 export async function getVaultSourceById(sourceId: string) {
     try {
         return await db.query.artistVaultSources.findFirst({
@@ -305,16 +332,22 @@ export async function getVaultSourceById(sourceId: string) {
     }
 }
 
+async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWriteDb, predicate: ReturnType<typeof eq>) => Promise<T>): Promise<T> {
+    const scope = getActiveArtistOperation();
+    if (!scope) return write(db, eq(artistVaultSources.id, sourceId));
+    return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
+}
+
 export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected") {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 status,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceStatus] Error:", e);
@@ -337,13 +370,14 @@ export async function insertVaultSource(data: {
     ogImage?: string | null;
     /** ISO date (YYYY-MM-DD) the source says it was published, or null. */
     publishedAt?: string | null;
-}) {
+}, authorization?: { userId: string; expectedClaimId: string | null }) {
     try {
+        const write = async (writer: WriteDb) => {
         // onConflictDoNothing pairs with the unique index on (artist_id, url)
         // added in 0014. Dedup used to be a read-then-write with nothing
         // underneath, so two overlapping discovery runs both read "absent" and
         // both inserted — a real artist's vault held the same interview twice.
-        const [source] = await db
+        const [source] = await writer
             .insert(artistVaultSources)
             .values({
                 artistId: data.artistId,
@@ -366,6 +400,10 @@ export async function insertVaultSource(data: {
         // race. Callers treat a missing row as "nothing new to enrich", which is
         // correct: the source is present either way.
         return source;
+        };
+        return authorization
+            ? await withArtistUploadWrite(data.artistId, authorization.userId, authorization.expectedClaimId, write)
+            : await withScopedArtistWrite(data.artistId, write);
     } catch (e) {
         console.error("[insertVaultSource] Error:", e);
         throw e;
@@ -374,10 +412,10 @@ export async function insertVaultSource(data: {
 
 export async function deleteVaultSource(sourceId: string) {
     try {
-        const [deleted] = await db
+        const [deleted] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .delete(artistVaultSources)
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return deleted;
     } catch (e) {
         console.error("[deleteVaultSource] Error:", e);
@@ -387,14 +425,14 @@ export async function deleteVaultSource(sourceId: string) {
 
 export async function updateVaultSourceType(sourceId: string, type: string) {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 type,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceType] Error:", e);
@@ -425,7 +463,7 @@ export async function updateVaultSourceContent(sourceId: string, data: {
     publishedAt?: string | null;
 }) {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 ...(data.title !== undefined ? { title: data.title } : {}),
@@ -435,8 +473,8 @@ export async function updateVaultSourceContent(sourceId: string, data: {
                 ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceContent] Error:", e);
@@ -460,21 +498,22 @@ export async function getBioVersionsByArtistId(artistId: string) {
 
 const MAX_BIO_VERSIONS = 50;
 
-export async function saveBioVersion(artistId: string, bioText: string) {
+export async function saveBioVersion(artistId: string, bioText: string, auth: ArtistWriteAuth) {
     try {
+        if (!isRealBio(bioText)) throw new Error('Write a bio before saving a version.');
         // All operations in a single transaction to prevent TOCTOU race on version cap
         return await db.transaction(async (tx) => {
-            // Enforce version cap — delete oldest unpinned if at limit
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
+            // Never discard an artist's saved history automatically.
             const existing = await tx.query.artistBioVersions.findMany({
                 where: eq(artistBioVersions.artistId, artistId),
                 orderBy: (v, { asc }) => [asc(v.createdAt)],
             });
+            const saved = existing.find(version => version.bioText === bioText);
+            if (saved) return saved;
             if (existing.length >= MAX_BIO_VERSIONS) {
-                const oldest = existing.find(v => !v.isPinned);
-                if (!oldest) {
-                    throw new Error("Bio version limit reached — unpin or delete a version first");
-                }
-                await tx.delete(artistBioVersions).where(eq(artistBioVersions.id, oldest.id));
+                throw new Error("Bio version limit reached — delete an unwanted version first");
             }
 
             const [version] = await tx
@@ -489,11 +528,24 @@ export async function saveBioVersion(artistId: string, bioText: string) {
     }
 }
 
-export async function pinBioVersion(versionId: string, artistId: string) {
+export async function pinBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
     try {
         // Atomic: unpin all → pin selected → update artist bio
-        // Ownership is enforced by the WHERE clause (artistId match)
+        // Reauthorize under the same lock; artistId matching alone is not ownership.
         return await db.transaction(async (tx) => {
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
+            const selected = await tx.query.artistBioVersions.findFirst({
+                where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
+            });
+            if (!selected) return undefined;
+            const current = await tx.query.artists.findFirst({ where: eq(artists.id, artistId) });
+            if (current?.bio && isRealBio(current.bio) && current.bio !== selected.bioText) {
+                const saved = await tx.query.artistBioVersions.findFirst({
+                    where: and(eq(artistBioVersions.artistId, artistId), eq(artistBioVersions.bioText, current.bio)),
+                });
+                if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: current.bio, isPinned: false });
+            }
             await tx
                 .update(artistBioVersions)
                 .set({ isPinned: false })
@@ -520,10 +572,12 @@ export async function pinBioVersion(versionId: string, artistId: string) {
     }
 }
 
-export async function deleteBioVersion(versionId: string, artistId: string) {
+export async function deleteBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
     try {
         // Atomic check + delete to prevent TOCTOU race with concurrent pin
         return await db.transaction(async (tx) => {
+            await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
             const version = await tx.query.artistBioVersions.findFirst({
                 where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
             });
@@ -540,4 +594,13 @@ export async function deleteBioVersion(versionId: string, artistId: string) {
         console.error("[deleteBioVersion] Error:", e);
         throw e;
     }
+}
+
+export async function unpinArtistBio(artistId: string, auth: ArtistWriteAuth) {
+    await db.transaction(async tx => {
+        await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+        await authorizeLockedArtistWrite(tx, artistId, auth);
+        await tx.update(artistBioVersions).set({ isPinned: false })
+            .where(eq(artistBioVersions.artistId, artistId));
+    });
 }

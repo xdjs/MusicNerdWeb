@@ -176,13 +176,13 @@ describe('OnboardingChat', () => {
 
     it('renders a draft item and publish calls sendTurn with the exact doc + about', () => {
         const sendTurn = setChat({
-            items: [{ id: 'd1', kind: 'draft', doc: '## Overview', about: 'An About.' }],
+            items: [{ id: 'd1', kind: 'draft', doc: '## Overview', about: 'An About.', expectedBio: 'Bio when draft started' }],
         });
         render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} />);
 
         expect(screen.getByText('An About.')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /publish/i }));
-        expect(sendTurn).toHaveBeenCalledWith({ type: 'publish', doc: '## Overview', about: 'An About.' });
+        expect(sendTurn).toHaveBeenCalledWith(expect.objectContaining({ type: 'publish', doc: '## Overview', about: 'An About.', expectedBio: 'Bio when draft started' }));
     });
 
     // The document is read and corrected one card earlier (stage "doc", DocReviewCard).

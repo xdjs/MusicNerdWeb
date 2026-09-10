@@ -5,6 +5,10 @@ jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.f
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn() }));
 jest.mock('@/server/utils/queries/docCorrectionQueries', () => ({ getDocCorrections: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getInterviewAnswers: jest.fn(), getArtistDoc: jest.fn() }));
+jest.mock('@/server/utils/queries/lorePersistence', () => ({
+    getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1'),
+    persistRefreshedLore: jest.fn().mockResolvedValue(true),
+}));
 jest.mock('@/server/utils/socialIngest', () => ({ getSocialPostsForArtist: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/lib/gemini', () => ({
     getGemini: jest.fn(),
@@ -37,6 +41,21 @@ describe('artistDocService', () => {
         return { svc, generateContent, getArtistDoc };
     }
 
+    it('refresh captures ownership before synthesis and passes the job identity to guarded persistence', async () => {
+        const { svc, generateContent } = await setup();
+        const { getLoreClaimGeneration, persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
+        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
+        expect(getLoreClaimGeneration.mock.invocationCallOrder[0]).toBeLessThan(generateContent.mock.invocationCallOrder[0]);
+        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.any(String), expect.any(Array), 'claim-1', 'j1');
+    });
+
+    it('refresh reports cancellation if ownership changed while synthesis ran', async () => {
+        const { svc } = await setup();
+        const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
+        persistRefreshedLore.mockResolvedValue(false);
+        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('cancelled');
+    });
+
     it('synthesizeArtistDoc feeds sources AND interview answers to Gemini, skipping skipped answers', async () => {
         const { svc, generateContent } = await setup();
         const doc = await svc.synthesizeArtistDoc('a1');
@@ -46,6 +65,10 @@ describe('artistDocService', () => {
         expect(call.contents).toContain('heartbreak you can dance to');
         expect(call.contents).not.toContain('Offline?'); // skipped answers are omitted, not sent as empties
         expect(call.config.systemInstruction).toContain('Story hooks');
+        // Fictional sample anecdotes previously leaked into a real artist's Lore.
+        expect(call.config.systemInstruction).not.toContain('the pantry');
+        expect(call.config.systemInstruction).not.toContain('Marisol');
+        expect(call.config.systemInstruction).not.toContain('Late Bus');
         expect(call.config.tools).toBeUndefined(); // ungrounded by design
     });
 

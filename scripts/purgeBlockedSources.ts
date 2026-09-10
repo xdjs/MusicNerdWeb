@@ -57,6 +57,7 @@ async function main() {
         const outcome = await refreshArtistDoc(artistId);
         console.log(`  ${name}: ${{
             rebuilt: "document rebuilt",
+            cancelled: "rebuild cancelled because ownership changed",
             "no-document": "no document to rebuild",
             failed: "REBUILD FAILED — it may still cite a source just deleted",
         }[outcome]}`);

@@ -220,7 +220,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
      *  rendering once onboarding is complete — so "Look again" on a finished
      *  profile enqueued a job and nothing ever ran it. This drives the same
      *  route from here, for as long as there is work. */
-    const [pumping, setPumping] = useState(false);
+    const [pumping, setPumping] = useState(0);
     const [corrections, setCorrections] = useState<Correction[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -276,7 +276,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
 
     // Nothing else on this page calls the advance route, so without this the
     // button is a promise nobody keeps.
-    useResearchPump(artistId, pumping);
+    useResearchPump(artistId, canEdit && isEditing ? pumping : 0, load);
 
     if (!canEdit || !isEditing) return null;
 
@@ -294,7 +294,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
                 setError(data?.error ?? "Couldn't start that. Try again in a bit.");
             } else {
                 setRefreshNote(data?.message ?? "Reading your recent posts — this page will fill in as it goes.");
-                setPumping(true);
+                setPumping(v => v + 1);
             }
         } catch {
             setError("Couldn't start that. Try again in a bit.");
@@ -306,14 +306,13 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
         <RevealSection className="glass p-4 sm:p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
                 <h2 className="text-black dark:text-white text-xl font-bold">What we know about you</h2>
-                {hasDoc && (
                     <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={handleLookAgain}
                             disabled={refreshing}
                             className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-black/10 dark:border-white/15 text-gray-600 dark:text-gray-400 hover:border-black/25 dark:hover:border-white/30 disabled:opacity-50"
-                            title="Look at anything you've posted since we last read your feed"
+                            title="Rebuild from current Lore documents and check recent posts"
                         >
                             {refreshing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                             Look again
@@ -323,16 +322,15 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
                           * structure and its citations intact. The sources are
                           * resolved inside the file, so [7] still means
                           * something wherever it ends up. */}
-                        <a
+                        {hasDoc && <a
                             href={`/api/artist/${artistId}/knowledge-doc/export`}
                             className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-black/10 dark:border-white/15 text-gray-600 dark:text-gray-400 hover:border-black/25 dark:hover:border-white/30"
                             title="Download as markdown, with sources — ready to hand to another AI"
                         >
                             <Download size={12} />
                             Download
-                        </a>
+                        </a>}
                     </div>
-                )}
             </div>
             {refreshNote && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">{refreshNote}</p>

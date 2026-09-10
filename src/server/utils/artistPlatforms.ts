@@ -29,6 +29,7 @@ const PLATFORM_DOMAINS_EXTRA: Record<string, string[]> = {
     farcaster: ["farcaster.xyz", "warpcast.com"],
     foundation: ["foundation.app"],
     imdb: ["imdb.com"],
+    inprocess: ["inprocess.world"],
     lens: ["hey.xyz", "lens.xyz"],
     linktree: ["linktr.ee"],
     mirror: ["mirror.xyz"],

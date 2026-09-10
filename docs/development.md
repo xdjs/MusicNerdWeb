@@ -19,7 +19,7 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID`, `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET` | Existing catalog credentials; the public secret name is known debt, not a pattern to copy |
 | `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | Session configuration; local URL is HTTPS when using `npm run dev` |
 | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Real Privy login |
-| `OPENAI_API_KEY` | Required by env validation, used by legacy AI features |
+| `OPENAI_API_KEY` | Legacy env validation only; a stub suffices. The declared OpenAI client is unused by current features |
 | `GEMINI_API_KEY` | Research, interview generation, profile synthesis |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |

@@ -3,6 +3,8 @@ import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 import { requireArtistEditor } from "@/lib/auth-helpers";
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import type { ArtistWriteAuth } from '@/server/utils/queries/ownershipWrites';
 import { MAX_BIO_LENGTH, ABOUT_EMPTY_STATE, isRealBio, isAboutEmptyState } from "@/lib/bioConstants";
 
 // This route reads from the DB (getArtistById + the self-heal vault lookup); force dynamic
@@ -53,13 +55,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   );
 
   const bioOperation = async (): Promise<NextResponse> => {
+    let ownership: ArtistWriteAuth | undefined;
     // Forced regeneration bypasses the cache and triggers the expensive discovery + Gemini
     // path, so gate it to admins / the artist who claimed the profile (same guard as PUT).
     // Normal cached reads stay public. Runs INSIDE the try/timeout race so a thrown or slow
     // auth check gets the same graceful (CORS'd, timed) handling as the rest of the route.
     if (forceRegenerate) {
+      const expectedClaimId = await getLoreClaimGeneration(id);
       const auth = await requireArtistEditor(id);
       if (!auth.authenticated) return corsAuthFailure(auth);
+      ownership = { userId: auth.userId, expectedClaimId };
     }
 
     // Fetch artist row/object
@@ -96,7 +101,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     //generate a bio and return it
     try {
-      const response = await generateArtistBio(id);
+      const response = ownership ? await generateArtistBio(id, ownership) : await generateArtistBio(id);
       Object.entries(CORS_HEADERS).forEach(([key, value]) => response.headers.set(key, String(value)));
       return response;
     //Error Handling
@@ -132,6 +137,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const expectedClaimId = await getLoreClaimGeneration(id);
     const auth = await requireArtistEditor(id);
     if (!auth.authenticated) {
       return corsAuthFailure(auth);
@@ -154,7 +160,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const { updateArtistBio } = await import("@/server/utils/queries/artistQueries");
 
-    const result = await updateArtistBio(id, bio, regenerate);
+    const result = await updateArtistBio(id, bio, regenerate, { userId: auth.userId, expectedClaimId });
 
     if (result.status === "success") {
       return NextResponse.json({ 

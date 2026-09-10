@@ -116,6 +116,7 @@ export function useArtistBio(artistId: string, initialBio?: string | null): UseA
   useEffect(() => {
     // If the server already provided a bio, use it directly — no API call needed
     if (initialBio != null) {
+      setBio(sanitizeBioText(initialBio));
       setLoading(false);
       return;
     }

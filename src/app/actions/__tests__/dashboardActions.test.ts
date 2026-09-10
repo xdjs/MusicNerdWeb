@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
 jest.mock("@/server/auth", () => ({
     getServerAuthSession: jest.fn(),
@@ -30,6 +31,7 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     saveBioVersion: jest.fn(),
     pinBioVersion: jest.fn(),
     deleteBioVersion: jest.fn(),
+    unpinArtistBio: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
     searchAndPopulateVault: jest.fn().mockResolvedValue(0),
@@ -37,8 +39,8 @@ jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
 jest.mock("@/server/utils/queries/artistBioQuery", () => ({
     generateArtistBio: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock("@/server/utils/artistDocService", () => ({
-    refreshArtistDoc: jest.fn().mockResolvedValue("rebuilt"),
+jest.mock("@/server/utils/queries/loreRefresh", () => ({
+    queueLoreRefresh: jest.fn().mockResolvedValue("rebuilt"),
 }));
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
@@ -50,6 +52,41 @@ jest.mock("@/server/utils/fetchPageContent", () => {
         ...actual,
         fetchPageContent: jest.fn().mockResolvedValue({ title: "mock", snippet: undefined, extractedText: null }),
     };
+});
+
+describe('bio actions pass original ownership to the locked mutation', () => {
+    beforeEach(() => jest.resetModules());
+    async function setup() {
+        const auth = await import('@/server/auth');
+        const dq = await import('@/server/utils/queries/dashboardQueries');
+        const generation = await import('@/server/utils/queries/lorePersistence');
+        const actions = await import('../dashboardActions');
+        auth.getServerAuthSession.mockResolvedValue({ user: { id: 'owner' } });
+        dq.getApprovedClaimForArtistByUserId.mockResolvedValue({ id: 'claim-1', artistId: 'a1', userId: 'owner' });
+        dq.getApprovedClaimByUserId.mockResolvedValue({ id: 'claim-1', artistId: 'a1', userId: 'owner' });
+        dq.pinBioVersion.mockResolvedValue({ id: 'v1' });
+        dq.deleteBioVersion.mockResolvedValue({ id: 'v1' });
+        return { actions, dq, generation };
+    }
+    it.each([true, false])('threads identity and generation for save/pin/delete (explicit artist: %s)', async explicit => {
+        const { actions, dq } = await setup();
+        const artist = explicit ? 'a1' : undefined;
+        const expected = { userId: 'owner', expectedClaimId: 'claim-1' };
+        expect((await actions.saveCurrentBio('Saved text', artist)).success).toBe(true);
+        expect((await actions.pinBioVersionAction('v1', artist)).success).toBe(true);
+        expect((await actions.deleteBioVersionAction('v1', artist)).success).toBe(true);
+        expect(dq.saveBioVersion).toHaveBeenCalledWith('a1', 'Saved text', expected);
+        expect(dq.pinBioVersion).toHaveBeenCalledWith('v1', 'a1', expected);
+        expect(dq.deleteBioVersion).toHaveBeenCalledWith('v1', 'a1', expected);
+    });
+    it('captures generation before authorization and does not report a revoked unpin as success', async () => {
+        const { actions, dq, generation } = await setup();
+        dq.unpinArtistBio.mockRejectedValue(new Error('Artist ownership changed'));
+        expect((await actions.unpinBioAction('a1')).success).toBe(false);
+        expect(dq.unpinArtistBio).toHaveBeenCalledWith('a1', { userId: 'owner', expectedClaimId: 'claim-1' });
+        expect(generation.getLoreClaimGeneration.mock.invocationCallOrder[0])
+            .toBeLessThan(dq.getApprovedClaimForArtistByUserId.mock.invocationCallOrder[0]);
+    });
 });
 
 describe("dashboardActions.addVaultSource", () => {
@@ -219,14 +256,14 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
     async function setup() {
         const { getServerAuthSession } = await import("@/server/auth");
         const dq = await import("@/server/utils/queries/dashboardQueries");
-        const { refreshArtistDoc } = await import("@/server/utils/artistDocService");
+        const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
         const actions = await import("../dashboardActions");
         getServerAuthSession.mockResolvedValue({ user: { id: "u1" } });
         dq.getVaultSourceById.mockResolvedValue({ id: "s1", artistId: "a1" });
         // Authorize through the REAL canEditArtist by giving it the approved
         // claim it reads, rather than stubbing the guard itself out.
         dq.getApprovedClaimForArtistByUserId.mockResolvedValue({ id: "c1", artistId: "a1", userId: "u1" });
-        return { ...actions, dq, refreshArtistDoc };
+        return { ...actions, dq, queueLoreRefresh };
     }
 
     it("rebuilds the doc when a source is REJECTED, not only when one is approved", async () => {
@@ -235,38 +272,38 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         // marketplace directory from their vault kept a document that cited it
         // forever, and the Ask section kept answering from it. There is no UI for
         // the document, so nothing ever surfaced that.
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
     it("rebuilds the doc when a source is approved", async () => {
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "approved");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
     it("rebuilds the doc when a source is deleted outright", async () => {
-        const { removeVaultSource, refreshArtistDoc } = await setup();
+        const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");
-        expect(refreshArtistDoc).toHaveBeenCalledWith("a1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
-    it("debounces a burst so a multi-remove costs one rebuild, not one each", async () => {
+    it("durably queues every change so the database can coalesce a burst", async () => {
         // Rebuilding is a Gemini call; clearing out five bad sources should not
         // buy five of them.
-        const { updateSourceStatus, refreshArtistDoc } = await setup();
+        const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
         await updateSourceStatus("s1", "rejected");
         await updateSourceStatus("s1", "rejected");
-        expect(refreshArtistDoc).toHaveBeenCalledTimes(1);
+        expect(queueLoreRefresh).toHaveBeenCalledTimes(3);
     });
 
-    it("does not fail the user's action when the rebuild throws", async () => {
+    it("keeps a committed deletion successful if the refresh queue is unavailable", async () => {
         // Fire-and-forget behind an action that already succeeded — a bad Gemini
         // day must not turn a successful removal into an error.
-        const { removeVaultSource, refreshArtistDoc } = await setup();
-        refreshArtistDoc.mockRejectedValueOnce(new Error("gemini down"));
-        await expect(removeVaultSource("s1")).resolves.toEqual({ success: true });
+        const { removeVaultSource, queueLoreRefresh } = await setup();
+        queueLoreRefresh.mockRejectedValueOnce(new Error("queue unavailable"));
+        await expect(removeVaultSource("s1")).resolves.toEqual(expect.objectContaining({ success: true }));
     });
 });

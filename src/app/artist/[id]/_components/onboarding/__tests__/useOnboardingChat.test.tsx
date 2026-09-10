@@ -60,6 +60,12 @@ describe('useOnboardingChat', () => {
         expect(bot?.text).toBe('hello');
         expect(result.current.items.some(i => i.kind === 'complete')).toBe(true);
     });
+    it('retains the starting bio from the draft SSE frame for publication', async () => {
+        global.fetch.mockResolvedValueOnce(fakeStreamResponse(['data: {"kind":"draft","stage":"about","doc":"Lore","about":"Draft","expectedBio":"Original"}\n\n']));
+        const { result } = renderHook(() => useOnboardingChat('artist-1'));
+        await act(async () => { await result.current.sendTurn({ type: 'open' }); });
+        expect(result.current.items.find(i => i.kind === 'draft')?.expectedBio).toBe('Original');
+    });
 
     it('c) non-SSE JSON failure — error item carries the server message, no crash', async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({

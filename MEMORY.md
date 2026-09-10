@@ -41,7 +41,77 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
   feature review/migration gates above remain pending. This documentation release contains no
   application code, workflow, package-script or database changes.
 
-## Evidence so far
+## Profile protection release — September 9
+
+- **Profile protection / Lore repair in progress (2026-09-08):** isolated worktree
+  `/private/tmp/musicnerd-profile-protection`, branch `pete/artist-profile-protection`.
+  [Staging PR #1215](https://github.com/xdjs/MusicNerdWeb/pull/1215), latest code head `bdeedb98`.
+  Pushed, not merged or deployed to production. Includes pinned-bio write guards, In Process,
+  retired supported links, durable Lore refresh, and direct storage uploads retaining
+  10 MB/file. The In Process column exists in dev/prod; the requested artist link was
+  written and verified with the existing `mnweb` role without changing the bio.
+  Dev migration/configuration is applied as of 2026-09-09; private upload bucket is
+  provisioned with the 10 MiB limit. Verified In Process config, retired choices removed,
+  Lore job constraint, `mnweb` privileges and enabled RLS; Drizzle check passes.
+  Production's remaining migration/storage work is explicitly held until green light.
+  Application release verification remains unfinished; do not assume deploy readiness.
+- **Real-PDF verification:** all text from three approved PDFs (73 pages, one visually
+  blank) matched stored extraction. A fictional studio anecdote from the synthesis
+  prompt had leaked into a real knowledge document and was repeated by live Ask.
+  Removed the worked example in this branch and stopped labelling AI-compiled context
+  as ground truth. A separately reviewed, page-cited knowledge document was saved on
+  production with explicit user permission; only `artist_docs` content/sources/timestamp
+  changed. Profile row, bio history, claims and PDF source text were checked unchanged.
+  Raw PDFs, evidence, prior doc and operation receipt remain in private `/private/tmp`
+  artifacts, not in Git. This is a scoped repair, not a completed general ingestion system.
+  Live Ask retest: the fabricated studio-name question now returns uncertainty; the
+  delayed-cassette USB detail and closing artistic-philosophy question return correct,
+  PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
+  and needs a separate fix; do not describe this as end-to-end UI verification.
+- **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
+  184 suites / 2,275 tests passed / 6 skipped, coverage and production build with stub
+  build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
+  coalescing and completion with transaction fixtures rolled back. Browser confirmed
+  In Process, upload copy, a real PDF upload, and historical pin + regeneration protection.
+  Real extraction yielded 79,823 chars; signed storage accepted 10 MiB and rejected one
+  byte over. A stale local Gemini key returned 403; using the current Vercel development-
+  scoped key completed the real Lore worker and rendered the resulting doc in the browser.
+  Twenty-six Codex findings have been addressed, including the retired-platform audit and
+  rejected-upload staging cleanup. Cleanup errors retain same-ticket retry; permission
+  loss and recovered/saved uploads also attempt temporary-object cleanup.
+  Live dev endpoint checks verified size/type rejection removes storage records and
+  creates no public upload/source. Immediate downloads can return cached deleted bytes;
+  storage listings confirmed removal. Disposable fixture and server were cleaned up.
+  Bio-history save/pin/delete/unpin now reauthorize the original claim and current
+  owner/admin under the artist lock. Caller tests and real dev `mnweb` transactions
+  verified stale operations fail without clearing the selected pin; fixture removed.
+  Final bio/Onboarding publication also checks original ownership under that lock;
+  route, generator and onboarding callers carry the initiating context. Real dev
+  transactions rejected stale publication without creating Lore or completion rows.
+  Expired authentic upload tickets permit staging cleanup only; the live dev endpoint
+  verified removal without publication. Forged/different-user tickets cannot delete.
+  The audit passes against dev; three focused regression tests preserve active-platform drift checks.
+  Onboarding and discovery now retain initiating ownership across async work, with
+  short locked checks for checkpoints, answers/offers, source/link writes and social
+  job enqueue/reopen. Caller regressions cover context propagation; real dev `mnweb`
+  tests rejected stale writes without recreating records, and removed their fixture.
+  Review must run again on this operation-wide ownership fix before merging.
+  Follow-up fixes cover ownership-generation fencing, atomic onboarding publication,
+  stale bio drafts, placeholder history and idempotent upload/save recovery.
+  These follow-ups have regression/full-CI coverage, not a new real-login browser run.
+  Pete approved admin revocation as the exception:
+  clear the revoked owner's public bio and release its pin, preserving saved history.
+  That policy fix passed full CI and is included in the branch.
+  The SQL private-bucket provisioning alternative also verified on dev.
+  Production DB/storage changes are
+  authorized after staging green; main merge remains Carl's responsibility.
+
+- Documentation PR #1216 merged to staging at `e8152341` during this review. Its handoff
+  and docs are being integrated here without the unrelated local Latest/bookmarks code.
+  The pending bookmarks migration also uses number 0024: its owner must renumber/rebase
+  before release because this branch carries `0024_artist_profile_protection`.
+
+## Latest/bookmarks evidence so far
 
 - Live read-only Latest browser test passed on dev, with all three source categories:
   filter/open/close/source links, actual Deezer art, desktop and mobile overflow checks.

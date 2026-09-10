@@ -77,8 +77,8 @@ const job = {
     state: { mode: "full", swept: true }, updatedAt: null,
 };
 
-async function advanceOnce() {
-    claimResearchJob.mockResolvedValueOnce({ ...job });
+async function advanceOnce(overrides = {}) {
+    claimResearchJob.mockResolvedValueOnce({ ...job, ...overrides });
     const { db } = await import("@/server/db/drizzle");
     (db.query.artists.findFirst as jest.Mock).mockResolvedValue({ name: "Test Artist", instagram: "artist" });
     const { advanceResearch } = await import("@/server/utils/researchRunner");
@@ -107,6 +107,19 @@ describe("an extraction job that has read everything", () => {
         expect(result.progress).toContain("no document to rebuild");
     });
 
+    it('passes the Lore job identity to the ownership fence and stops cancelled work', async () => {
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'lore_refresh', state: { claimId: 'claim-1' } });
+        refreshArtistDoc.mockResolvedValue('cancelled');
+        const { db } = await import('@/server/db/drizzle');
+        db.execute.mockResolvedValue([]);
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        const result = await advanceResearch({ budgetMs: 60_000 });
+        expect(refreshArtistDoc).toHaveBeenCalledWith('artist-1', { createIfMissing: true, jobId: 'job-1', expectedClaimId: 'claim-1' });
+        expect(failResearchJob).not.toHaveBeenCalled();
+        expect(result.done).toBe(true);
+        expect(result.progress).toContain('cancelled');
+    });
+
     it("completes when the document was rebuilt", async () => {
         refreshArtistDoc.mockResolvedValue("rebuilt");
         const result = await advanceOnce();
@@ -114,6 +127,40 @@ describe("an extraction job that has read everything", () => {
         expect(completeResearchJob).toHaveBeenCalledWith("job-1");
         expect(failResearchJob).not.toHaveBeenCalled();
         expect(result.progress).not.toContain("no document");
+    });
+
+    it('threads job identity through collection and follow-up enqueue', async () => {
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'social_ingest', state: { apifyRunId: 'run-1' } });
+        const ingest = await import('@/server/utils/socialIngest');
+        ingest.checkInstagramScrape.mockResolvedValue({ status: 'succeeded', datasetId: 'dataset-1' });
+        ingest.collectInstagramScrape.mockResolvedValue({ ingested: 1 });
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        await advanceResearch({ budgetMs: 60_000 });
+        expect(ingest.collectInstagramScrape).toHaveBeenCalledWith('artist-1', 'artist', 'dataset-1', 'job-1');
+        const { enqueueResearchJob } = await import('@/server/utils/queries/researchJobQueries');
+        expect(enqueueResearchJob).toHaveBeenCalledWith('artist-1', 'caption_extract', expect.objectContaining({ parentJobId: 'job-1' }));
+    });
+
+    it('threads job identity through credit clearing and appending', async () => {
+        refreshArtistDoc.mockResolvedValue('rebuilt');
+        await advanceOnce({ state: { fullRebuild: true, swept: true } });
+        const { clearSocialCredits, appendSocialCredits } = await import('@/server/utils/queries/socialCreditQueries');
+        expect(clearSocialCredits).toHaveBeenCalledWith('artist-1', 'job-1');
+        expect(appendSocialCredits).toHaveBeenCalledWith('artist-1', expect.any(Object), expect.any(Map), 'job-1');
+    });
+
+    it('does not retry or spawn follow-up jobs after a cancelled collection', async () => {
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'social_ingest', state: { apifyRunId: 'run-1' } });
+        const ingest = await import('@/server/utils/socialIngest');
+        const { OwnershipChangedError } = await import('@/server/utils/queries/ownershipWrites');
+        ingest.checkInstagramScrape.mockResolvedValue({ status: 'succeeded', datasetId: 'dataset-1' });
+        ingest.collectInstagramScrape.mockRejectedValue(new OwnershipChangedError());
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        const result = await advanceResearch({ budgetMs: 60_000 });
+        expect(result.progress).toContain('cancelled');
+        expect(failResearchJob).not.toHaveBeenCalled();
+        const { enqueueResearchJob } = await import('@/server/utils/queries/researchJobQueries');
+        expect(enqueueResearchJob).not.toHaveBeenCalled();
     });
 
     it("still fails, and retries, when the rebuild genuinely breaks", async () => {

@@ -7,9 +7,10 @@
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
+import { withResearchJobWrite, withScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
@@ -67,16 +68,18 @@ const rowsOf = (r: unknown): Record<string, unknown>[] => {
 export async function enqueueResearchJob(
     artistId: string,
     kind: JobKind,
-    opts?: { total?: number; state?: Record<string, unknown> },
+    opts?: { total?: number; state?: Record<string, unknown>; parentJobId?: string },
 ): Promise<boolean> {
     if (!artistId) return false;
     try {
-        await db.execute(sql`
+        const write = async (tx: WriteDb) => { await tx.execute(sql`
             insert into artist_research_jobs (artist_id, kind, total, state)
             values (${artistId}::uuid, ${kind}, ${opts?.total ?? null}, ${JSON.stringify(opts?.state ?? {})}::jsonb)
-            on conflict do nothing`);
+            on conflict do nothing`); };
+        if (opts?.parentJobId) await withResearchJobWrite(artistId, opts.parentJobId, write); else await withScopedArtistWrite(artistId, write);
         return true;
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[enqueueResearchJob] Error:", e);
         return false;
     }
@@ -333,10 +336,11 @@ export async function isResearchInFlight(artistId: string, kinds: JobKind | JobK
  *  be enqueued; the caller decides the rate limit. */
 export async function reopenResearchJob(artistId: string, kind: JobKind): Promise<void> {
     try {
-        await db.execute(sql`
+        await withScopedArtistWrite(artistId, async tx => { await tx.execute(sql`
             delete from artist_research_jobs
-             where artist_id = ${artistId}::uuid and kind = ${kind} and status in ('done', 'failed')`);
+             where artist_id = ${artistId}::uuid and kind = ${kind} and status in ('done', 'failed')`); });
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[reopenResearchJob] Error:", e);
     }
 }
