@@ -5,6 +5,19 @@ forward until they're done or dropped.
 
 ---
 
+## September 9 engineering cycle — input for the next retro
+
+Pete requested this handoff after the profile-release review; these are engineering lessons,
+not decisions attributed to a future team meeting.
+
+- **Keep:** real app-role/concurrency tests, artist-data preservation checks, clear Carl merge gate.
+- **Fix:** narrow patches missed neighboring callers; stale handoffs and treating every review
+  suggestion as a blocker prolonged the release.
+- **Try:** audit the whole affected flow once, batch code/security findings, and stop when
+  verified release blockers are cleared. Defer optional work; rebut incorrect findings with evidence.
+
+[Current release, evidence and stopping rules](../development/profile-release-handoff-2026-09-09.md).
+
 ## Follow-through checked 2026-09-09
 
 The [August 27 meeting](meetings/2026-08-27.md) moved retrospectives to a separate session and
