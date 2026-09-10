@@ -43,6 +43,22 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
 
 ## Profile protection release — September 9
 
+- **Release update, September 10 UTC:** #1215 merged to staging at `250c2015` after
+  exact-head CI and Codex code/security reviews cleared `22cb4f99` with no findings
+  and a thumbs-up. Production `artist_profile_protection` and
+  `provision_lore_upload_staging` migrations are applied and verified as `mnweb`;
+  In Process config, Lore job kind and private 10 MiB bucket are ready, RLS/privileges
+  unchanged. Dutchy's full profile and bio-history fingerprints match the preflight.
+  Existing platform advisory warnings remain separate. The existing
+  [release PR #1217](https://github.com/xdjs/MusicNerdWeb/pull/1217) now contains the
+  profile fixes plus docs. Its release-scope objection was resolved with current
+  approval/setup evidence. A follow-up corrects the latest Drizzle snapshot from
+  the complete schema and tests that an unchanged schema generates zero SQL;
+  no migration SQL or runtime behavior changes. Full CI passes with 185 suites /
+  2,276 tests / 6 skipped. That metadata follow-up is pending staging/main review.
+  **Do not merge main; Carl owns that step.** Email Pete only after release review
+  is fully green. Earlier in-progress notes below are retained verification history.
+
 - **Profile protection / Lore repair in progress (2026-09-08):** isolated worktree
   `/private/tmp/musicnerd-profile-protection`, branch `pete/artist-profile-protection`.
   [Staging PR #1215](https://github.com/xdjs/MusicNerdWeb/pull/1215), latest code head `bdeedb98`.

@@ -91,9 +91,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -101,10 +101,10 @@
       "uniqueConstraints": {
         "agent_heartbeats_worker_id_unique": {
           "name": "agent_heartbeats_worker_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "worker_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -332,9 +332,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_agent_runs_started_at": {
           "name": "idx_agent_runs_started_at",
@@ -347,9 +347,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -517,24 +517,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_bio_versions_artist_id_fkey": {
           "name": "artist_bio_versions_artist_id_fkey",
           "tableFrom": "artist_bio_versions",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -643,10 +643,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "status IN ('pending', 'approved')",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "idx_artist_claims_user_id": {
           "name": "idx_artist_claims_user_id",
@@ -660,9 +660,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_artist_claims_artist_id": {
           "name": "idx_artist_claims_artist_id",
@@ -676,37 +676,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_claims_user_id_fkey": {
           "name": "artist_claims_user_id_fkey",
           "tableFrom": "artist_claims",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "artist_claims_artist_id_fkey": {
           "name": "artist_claims_artist_id_fkey",
           "tableFrom": "artist_claims",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -744,6 +744,155 @@
           "to": [
             "mnweb"
           ]
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artist_doc_corrections": {
+      "name": "artist_doc_corrections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim": {
+          "name": "claim",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correction": {
+          "name": "correction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'wrong'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        }
+      },
+      "indexes": {
+        "idx_artist_doc_corrections_artist_id": {
+          "name": "idx_artist_doc_corrections_artist_id",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artist_doc_corrections_artist_claim_uniq": {
+          "name": "artist_doc_corrections_artist_claim_uniq",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artist_doc_corrections_artist_id_fkey": {
+          "name": "artist_doc_corrections_artist_id_fkey",
+          "tableFrom": "artist_doc_corrections",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_select_artist_doc_corrections": {
+          "name": "mnweb_select_artist_doc_corrections",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_artist_doc_corrections": {
+          "name": "mnweb_insert_artist_doc_corrections",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        },
+        "mnweb_update_artist_doc_corrections": {
+          "name": "mnweb_update_artist_doc_corrections",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "mnweb_delete_artist_doc_corrections": {
+          "name": "mnweb_delete_artist_doc_corrections",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
         }
       },
       "checkConstraints": {},
@@ -799,25 +948,25 @@
         "artist_docs_artist_id_fkey": {
           "name": "artist_docs_artist_id_fkey",
           "tableFrom": "artist_docs",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_docs_artist_id_key": {
           "name": "artist_docs_artist_id_key",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -956,9 +1105,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_artist_id_mappings_confidence": {
           "name": "idx_artist_id_mappings_confidence",
@@ -971,43 +1120,43 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_id_mappings_artist_id_fkey": {
           "name": "artist_id_mappings_artist_id_fkey",
           "tableFrom": "artist_id_mappings",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_id_mappings_artist_platform_uniq": {
           "name": "artist_id_mappings_artist_platform_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "platform"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "artist_id_mappings_platform_id_uniq": {
           "name": "artist_id_mappings_platform_id_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "platform",
             "platform_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1083,6 +1232,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "sitting": {
+          "name": "sitting",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offered_at": {
+          "name": "offered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1104,35 +1266,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_interview_answers_artist_id_fkey": {
           "name": "artist_interview_answers_artist_id_fkey",
           "tableFrom": "artist_interview_answers",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_interview_answers_artist_question_uniq": {
           "name": "artist_interview_answers_artist_question_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "question_key"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1239,35 +1401,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_mapping_exclusions_artist_id_fkey": {
           "name": "artist_mapping_exclusions_artist_id_fkey",
           "tableFrom": "artist_mapping_exclusions",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_mapping_exclusions_artist_platform_uniq": {
           "name": "artist_mapping_exclusions_artist_platform_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "platform"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1346,35 +1508,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_onboarding_steps_artist_id_fkey": {
           "name": "artist_onboarding_steps_artist_id_fkey",
           "tableFrom": "artist_onboarding_steps",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_onboarding_steps_artist_step_uniq": {
           "name": "artist_onboarding_steps_artist_step_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "step"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1398,6 +1560,342 @@
         },
         "mnweb_delete_artist_onboarding_steps": {
           "name": "mnweb_delete_artist_onboarding_steps",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artist_research_jobs": {
+      "name": "artist_research_jobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "cursor": {
+          "name": "cursor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total": {
+          "name": "total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        }
+      },
+      "indexes": {
+        "artist_research_jobs_claimable": {
+          "name": "artist_research_jobs_claimable",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claimed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artist_research_jobs_artist_id_fkey": {
+          "name": "artist_research_jobs_artist_id_fkey",
+          "tableFrom": "artist_research_jobs",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_select_artist_research_jobs": {
+          "name": "mnweb_select_artist_research_jobs",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_artist_research_jobs": {
+          "name": "mnweb_insert_artist_research_jobs",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        },
+        "mnweb_update_artist_research_jobs": {
+          "name": "mnweb_update_artist_research_jobs",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "mnweb_delete_artist_research_jobs": {
+          "name": "mnweb_delete_artist_research_jobs",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artist_social_credits": {
+      "name": "artist_social_credits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'instagram'"
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_handle": {
+          "name": "is_handle",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_self": {
+          "name": "is_self",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quote": {
+          "name": "quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posted_at": {
+          "name": "posted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "(now() AT TIME ZONE 'utc'::text)"
+        }
+      },
+      "indexes": {
+        "idx_artist_social_credits_artist": {
+          "name": "idx_artist_social_credits_artist",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artist_social_credits_artist_id_fkey": {
+          "name": "artist_social_credits_artist_id_fkey",
+          "tableFrom": "artist_social_credits",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_select_artist_social_credits": {
+          "name": "mnweb_select_artist_social_credits",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_artist_social_credits": {
+          "name": "mnweb_insert_artist_social_credits",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        },
+        "mnweb_update_artist_social_credits": {
+          "name": "mnweb_update_artist_social_credits",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "mnweb_delete_artist_social_credits": {
+          "name": "mnweb_delete_artist_social_credits",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
@@ -1546,9 +2044,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_artist_social_posts_own": {
           "name": "idx_artist_social_posts_own",
@@ -1567,36 +2065,36 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_social_posts_artist_id_fkey": {
           "name": "artist_social_posts_artist_id_fkey",
           "tableFrom": "artist_social_posts",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_social_posts_artist_platform_post_uniq": {
           "name": "artist_social_posts_artist_platform_post_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "platform",
             "platform_post_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1709,35 +2207,35 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_social_profiles_artist_id_fkey": {
           "name": "artist_social_profiles_artist_id_fkey",
           "tableFrom": "artist_social_profiles",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "artist_social_profiles_artist_platform_uniq": {
           "name": "artist_social_profiles_artist_platform_uniq",
+          "nullsNotDistinct": false,
           "columns": [
             "artist_id",
             "platform"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1867,6 +2365,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "published_at": {
+          "name": "published_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1895,24 +2399,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artist_vault_sources_artist_id_fkey": {
           "name": "artist_vault_sources_artist_id_fkey",
           "tableFrom": "artist_vault_sources",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2322,12 +2826,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "inprocess": {
-          "name": "inprocess",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "subvert": {
           "name": "subvert",
           "type": "text",
@@ -2336,6 +2834,12 @@
         },
         "bluesky": {
           "name": "bluesky",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inprocess": {
+          "name": "inprocess",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2361,9 +2865,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "artists_lcname_btree_idx": {
           "name": "artists_lcname_btree_idx",
@@ -2377,9 +2881,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "artists_lcname_trgm_gin": {
           "name": "artists_lcname_trgm_gin",
@@ -2393,9 +2897,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gin",
-          "concurrently": false
+          "with": {}
         },
         "artists_lcname_trgm_idx": {
           "name": "artists_lcname_trgm_idx",
@@ -2409,9 +2913,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gist",
-          "concurrently": false
+          "with": {}
         },
         "artists_name_trgm_idx": {
           "name": "artists_name_trgm_idx",
@@ -2425,9 +2929,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gist",
-          "concurrently": false
+          "with": {}
         },
         "artists_spotify_uniq": {
           "name": "artists_spotify_uniq",
@@ -2441,10 +2945,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "(spotify IS NOT NULL)",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "artists_deezer_uniq": {
           "name": "artists_deezer_uniq",
@@ -2458,10 +2962,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "(deezer IS NOT NULL)",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "idx_artists_added_by": {
           "name": "idx_artists_added_by",
@@ -2475,9 +2979,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_artists_name": {
           "name": "idx_artists_name",
@@ -2491,24 +2995,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_artists_name_gin": {
           "name": "idx_artists_name_gin",
           "columns": [
             {
               "expression": "to_tsvector('english'::regconfig, name)",
-              "isExpression": true,
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gin",
-          "concurrently": false
+          "with": {}
         },
         "idx_artists_created_at": {
           "name": "idx_artists_created_at",
@@ -2521,24 +3025,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "artists_added_by_fkey": {
           "name": "artists_added_by_fkey",
           "tableFrom": "artists",
+          "tableTo": "users",
           "columnsFrom": [
             "added_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2710,28 +3214,28 @@
         "featured_featured_artist_fkey": {
           "name": "featured_featured_artist_fkey",
           "tableFrom": "featured",
+          "tableTo": "artists",
           "columnsFrom": [
             "featured_artist"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "featured_featured_collector_fkey": {
           "name": "featured_featured_collector_fkey",
           "tableFrom": "featured",
+          "tableTo": "artists",
           "columnsFrom": [
             "featured_collector"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2784,15 +3288,15 @@
           "primaryKey": false,
           "notNull": true,
           "identity": {
+            "type": "byDefault",
             "name": "funfacts_id_seq",
+            "schema": "public",
             "increment": "1",
+            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854776000",
-            "startWith": "1",
             "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "byDefault"
+            "cycle": false
           }
         },
         "lore_drop": {
@@ -2963,10 +3467,10 @@
       "uniqueConstraints": {
         "mcp_api_keys_key_hash_unique": {
           "name": "mcp_api_keys_key_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "key_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -3075,9 +3579,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_mcp_audit_log_created_at": {
           "name": "idx_mcp_audit_log_created_at",
@@ -3090,9 +3594,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_mcp_audit_log_api_key_hash_created_at": {
           "name": "idx_mcp_audit_log_api_key_hash_created_at",
@@ -3111,24 +3615,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "mcp_audit_log_artist_id_fkey": {
           "name": "mcp_audit_log_artist_id_fkey",
           "tableFrom": "mcp_audit_log",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3250,9 +3754,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "ugcresearch_user_created_at_idx": {
           "name": "ugcresearch_user_created_at_idx",
@@ -3273,9 +3777,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_ugcresearch_date_processed": {
           "name": "idx_ugcresearch_date_processed",
@@ -3288,37 +3792,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "ugcresearch_artist_id_fkey": {
           "name": "ugcresearch_artist_id_fkey",
           "tableFrom": "ugcresearch",
+          "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
           ],
-          "tableTo": "artists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "ugcresearch_user_id_fkey": {
           "name": "ugcresearch_user_id_fkey",
           "tableFrom": "ugcresearch",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3502,31 +4006,31 @@
       "uniqueConstraints": {
         "urlmap_siteurl_key": {
           "name": "urlmap_siteurl_key",
+          "nullsNotDistinct": false,
           "columns": [
             "site_url"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "urlmap_sitename_key": {
           "name": "urlmap_sitename_key",
+          "nullsNotDistinct": false,
           "columns": [
             "site_name"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "urlmap_example_key": {
           "name": "urlmap_example_key",
+          "nullsNotDistinct": false,
           "columns": [
             "example"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "urlmap_appstringformat_key": {
           "name": "urlmap_appstringformat_key",
+          "nullsNotDistinct": false,
           "columns": [
             "app_string_format"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -3635,9 +4139,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_user_tracks_user_id": {
           "name": "idx_user_tracks_user_id",
@@ -3651,9 +4155,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -3792,17 +4296,17 @@
       "uniqueConstraints": {
         "users_wallet_key": {
           "name": "users_wallet_key",
+          "nullsNotDistinct": false,
           "columns": [
             "wallet"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "users_privy_user_id_key": {
           "name": "users_privy_user_id_key",
+          "nullsNotDistinct": false,
           "columns": [
             "privy_user_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -4001,10 +4505,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
