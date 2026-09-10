@@ -10,6 +10,27 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-10 · [R&D](meetings/2026-09-10.md)
+
+**Product**
+
+- Saving the About bio pins it by default; older versions re-pin from history. — Carl, Pete
+- Collapse "save" and "save to lore" into one save. — Pete
+- Remove the bookmark button from artist profiles; revisit bookmarks in the user-profile
+  redesign. — CY, Carl, Pete
+- Patrick's first feature: display an artist's music NFTs on the profile using In Process's
+  existing index and API, no new indexing. Scope set Monday with Pete. — Carl, Patrick
+
+**How we work**
+
+- Any non-author can approve a staging-to-main merge; Carl to verify the ruleset. — Carl
+- Pete pauses artist-profile changes until 2026-09-14 while Patrick reviews. — Pete
+
+## 2026-09-09 · [kickoff](meetings/2026-09-09-kickoff.md)
+
+- Patrick's first phase is the research pipeline: audit both apps' research, compare Exa and
+  Tavily, solidify the claim-triggered agent, then Latest with a reindex cron. — Pete
+
 ## 2026-09-09 · [standup](meetings/2026-09-09.md)
 
 - Pete coordinates Patrick Sweetman's onboarding and agrees useful first tasks with him. The
