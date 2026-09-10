@@ -40,7 +40,10 @@ export async function POST(
         }
 
         return await withArtistOperation(id, { userId, expectedClaimId: claimId }, async () => {
-        await queueLoreRefresh(id, claimId);
+        const loreQueued = await queueLoreRefresh(id, claimId, { manual: true });
+        const loreMessage = loreQueued === false
+            ? "Lore is already queued or was checked recently. New document changes still trigger a rebuild."
+            : "Rebuilding Lore from your current documents.";
         const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
         if (live) {
@@ -50,7 +53,7 @@ export async function POST(
                 ok: true,
                 message: live.total
                     ? `Already reading your posts (${live.cursor}/${live.total}).`
-                    : "Rebuilding Lore from your current documents. Already reading your posts.",
+                    : `${loreMessage} Already reading your posts.`,
             });
         }
 
@@ -62,7 +65,7 @@ export async function POST(
             const mins = Math.ceil((COOLDOWN_MS - (Date.now() - lastFinished)) / 60000);
             return Response.json({
                 ok: true,
-                message: `Rebuilding Lore from your current documents. Social posts can be checked again in ${mins} minute${mins === 1 ? "" : "s"}.`,
+                message: `${loreMessage} Social posts can be checked again in ${mins} minute${mins === 1 ? "" : "s"}.`,
             });
         }
 
@@ -72,7 +75,7 @@ export async function POST(
 
         return Response.json({
             ok: true,
-            message: "Rebuilding Lore from your current documents and checking recent posts. Your bio will stay unchanged.",
+            message: `${loreMessage} Checking recent posts. Your bio will stay unchanged.`,
         });
         });
     } catch (e) {
