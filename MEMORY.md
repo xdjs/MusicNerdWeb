@@ -55,7 +55,13 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
   approval/setup evidence. A follow-up corrects the latest Drizzle snapshot from
   the complete schema and tests that an unchanged schema generates zero SQL;
   no migration SQL or runtime behavior changes. Full CI passes with 185 suites /
-  2,276 tests / 6 skipped. That metadata follow-up is pending staging/main review.
+  2,276 tests / 6 skipped. Metadata PR #1218 cleared review and merged staging at
+  `1aad7609`. Release #1217 then identified direct-link ownership fencing and
+  manual Lore-refresh flooding; the follow-up captures direct set/clear ownership
+  and throttles manual Lore enqueue under the artist lock while keeping source
+  invalidations immediate. Live dev concurrent-queue checks passed and fixture
+  was removed. Full local CI passes with 185 suites / 2,284 tests / 6 skipped;
+  these two guards are pending staging/main review, not additional production DDL.
   **Do not merge main; Carl owns that step.** Email Pete only after release review
   is fully green. Earlier in-progress notes below are retained verification history.
 

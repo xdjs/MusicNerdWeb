@@ -9,6 +9,9 @@ import {
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { extractArtistId } from "@/server/utils/services";
 import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
+import { getLoreClaimGeneration } from "@/server/utils/queries/lorePersistence";
+import { withArtistOperation } from "@/server/utils/artistOperationContext";
+import { OwnershipChangedError } from "@/server/utils/queries/ownershipWrites";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,7 @@ export async function POST(req: Request) {
         }
 
         // Authorization: admin can edit any artist, claimed artist can edit own profile only
+        const expectedClaimId = await getLoreClaimGeneration(artistId);
         if (!(await canEditArtist(authResult.userId, artistId))) {
             return Response.json({ error: "Not authorized for this artist" }, { status: 403 });
         }
@@ -44,7 +48,10 @@ export async function POST(req: Request) {
             }
 
             const user = await getUserById(authResult.userId);
-            const { oldValue, artistName } = await setArtistLink(artistId, extracted.siteName, extracted.id);
+            const { oldValue, artistName } = await withArtistOperation(
+                artistId, { userId: authResult.userId, expectedClaimId },
+                () => setArtistLink(artistId, extracted.siteName, extracted.id),
+            );
             if (oldValue !== extracted.id) {
                 await notifyDiscordOfArtistLinkAdded({
                     user: user ?? {},
@@ -62,12 +69,18 @@ export async function POST(req: Request) {
                 return Response.json({ error: "siteName is required for clear action" }, { status: 400 });
             }
 
-            await clearArtistLink(artistId, siteName);
+            await withArtistOperation(
+                artistId, { userId: authResult.userId, expectedClaimId },
+                () => clearArtistLink(artistId, siteName),
+            );
             return Response.json({ success: true });
         }
 
         return Response.json({ error: "Invalid action" }, { status: 400 });
     } catch (error) {
+        if (error instanceof OwnershipChangedError) {
+            return Response.json({ error: error.message }, { status: 403 });
+        }
         if (error instanceof ArtistLinkConflictError) {
             return Response.json(
                 { error: error.message, code: "CONFLICT" },

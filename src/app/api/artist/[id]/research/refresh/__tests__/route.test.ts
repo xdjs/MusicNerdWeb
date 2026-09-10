@@ -25,7 +25,7 @@ describe('Look again refreshes documents independently of social cooldown', () =
         const { call, queue, runner } = await setup();
         const res = await call();
         expect(res.status).toBe(200);
-        expect(queue.queueLoreRefresh).toHaveBeenCalledWith('artist', 'claim-1');
+        expect(queue.queueLoreRefresh).toHaveBeenCalledWith('artist', 'claim-1', { manual: true });
         expect(runner.requestArtistResearch).not.toHaveBeenCalled();
         expect((await res.json()).message).toContain('current documents');
     });
@@ -34,6 +34,16 @@ describe('Look again refreshes documents independently of social cooldown', () =
         edit.canEditArtist.mockResolvedValue(false);
         expect((await call()).status).toBe(403);
         expect(queue.queueLoreRefresh).not.toHaveBeenCalled();
+    });
+    it('reports the Lore cooldown without blocking an eligible social refresh', async () => {
+        const { call, queue, runner } = await setup();
+        const jobs = await import('@/server/utils/queries/researchJobQueries');
+        jobs.getResearchJobs.mockResolvedValue([]);
+        queue.queueLoreRefresh.mockResolvedValue(false);
+        const res = await call();
+        expect(res.status).toBe(200);
+        expect((await res.json()).message).toContain('already queued or was checked recently');
+        expect(runner.requestArtistResearch).toHaveBeenCalledWith('artist', { force: true });
     });
     it('carries the original claim through job reopen and social scheduling', async () => {
         const { call, runner } = await setup();

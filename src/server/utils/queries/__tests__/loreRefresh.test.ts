@@ -24,4 +24,26 @@ describe('Lore queue claim generation', () => {
         const query = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
         expect(query.params).toContain(JSON.stringify({ claimId: 'claim-1' }));
     });
+    it('coalesces active/recent manual refreshes without touching requestedAt', async () => {
+        const { queueLoreRefresh, tx } = await setup({ id: 'claim-1' });
+        tx.execute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'existing-job' }]);
+        await expect(queueLoreRefresh('a1', 'claim-1', { manual: true })).resolves.toBe(false);
+        expect(tx.execute).toHaveBeenCalledTimes(2); // artist lock + cooldown read, no enqueue
+        const { PgDialect } = await import('drizzle-orm/pg-core');
+        const read = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
+        expect(read.sql).toContain("status in ('pending', 'running')");
+        expect(read.sql).toContain("interval '30 minutes'");
+    });
+    it('enqueues a manual refresh when no active/recent Lore exists', async () => {
+        const { queueLoreRefresh, tx } = await setup({ id: 'claim-1' });
+        await expect(queueLoreRefresh('a1', 'claim-1', { manual: true })).resolves.toBe(true);
+        expect(tx.execute).toHaveBeenCalledTimes(3);
+    });
+    it('source changes bypass the manual cooldown and keep coalescing invalidations', async () => {
+        const { queueLoreRefresh, tx } = await setup({ id: 'claim-1' });
+        await expect(queueLoreRefresh('a1', 'claim-1')).resolves.toBe(true);
+        expect(tx.execute).toHaveBeenCalledTimes(2); // no cooldown query
+        const { PgDialect } = await import('drizzle-orm/pg-core');
+        expect(new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]).sql).toContain("'{requestedAt}'");
+    });
 });

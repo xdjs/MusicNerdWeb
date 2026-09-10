@@ -31,6 +31,9 @@ jest.mock("@/server/utils/artistLinkService", () => {
 jest.mock("@/server/utils/services", () => ({
     extractArtistId: jest.fn(),
 }));
+jest.mock("@/server/utils/queries/lorePersistence", () => ({
+    getLoreClaimGeneration: jest.fn().mockResolvedValue("original-claim"),
+}));
 
 if (!("json" in Response)) {
     Response.json = (data, init) =>
@@ -73,6 +76,47 @@ describe("POST /api/directEditLink", () => {
             body: JSON.stringify(body),
         });
     }
+
+    it.each(["set", "clear"])("%s carries initiating ownership into its link mutation", async action => {
+        const { POST, requireAuth, getUserById, extractArtistId, setArtistLink, clearArtistLink } = await setup();
+        const { getActiveArtistOperation } = await import("@/server/utils/artistOperationContext");
+        const { getLoreClaimGeneration } = await import("@/server/utils/queries/lorePersistence");
+        requireAuth.mockResolvedValue({ authenticated: true, userId: "u1" });
+        getUserById.mockResolvedValue({ id: "u1", isAdmin: true });
+        extractArtistId.mockResolvedValue({ siteName: "instagram", id: "artist" });
+        const contexts = [];
+        const mutation = action === "set" ? setArtistLink : clearArtistLink;
+        mutation.mockImplementation(async () => {
+            await Promise.resolve();
+            contexts.push(getActiveArtistOperation());
+            return { oldValue: "artist", artistName: "Artist" };
+        });
+        const res = await POST(makeRequest({ artistId: "a1", action, siteName: "instagram", url: "https://instagram.com/artist" }));
+        expect(res.status).toBe(200);
+        expect(contexts).toEqual([{ artistId: "a1", userId: "u1", expectedClaimId: "original-claim" }]);
+        expect(getLoreClaimGeneration.mock.invocationCallOrder[0]).toBeLessThan(getUserById.mock.invocationCallOrder[0]);
+        expect(getActiveArtistOperation()).toBeUndefined();
+    });
+
+    it.each(["set", "clear"])("%s rejects a revoked request in the actual locked link service", async action => {
+        const { POST, requireAuth, getUserById, extractArtistId, setArtistLink, clearArtistLink, sendDiscordMessage } = await setup();
+        const { db } = await import("@/server/db/drizzle");
+        const actual = jest.requireActual("@/server/utils/artistLinkService");
+        const tx = { execute: jest.fn().mockResolvedValue([]), update: jest.fn(), query: {
+            artistClaims: { findFirst: jest.fn().mockResolvedValue({ id: "replacement", userId: "new-owner" }) },
+        } };
+        db.transaction = jest.fn(fn => fn(tx));
+        requireAuth.mockResolvedValue({ authenticated: true, userId: "u1" });
+        getUserById.mockResolvedValue({ id: "u1", isAdmin: true });
+        extractArtistId.mockResolvedValue({ siteName: "instagram", id: "artist" });
+        setArtistLink.mockImplementation(actual.setArtistLink);
+        clearArtistLink.mockImplementation(actual.clearArtistLink);
+        const res = await POST(makeRequest({ artistId: "a1", action, siteName: "instagram", url: "https://instagram.com/artist" }));
+        expect(res.status).toBe(403);
+        expect(tx.execute).toHaveBeenCalledTimes(1); // artist lock only
+        expect(tx.update).not.toHaveBeenCalled();
+        expect(sendDiscordMessage).not.toHaveBeenCalled();
+    });
 
     it("returns 401 when not authenticated", async () => {
         const { POST, requireAuth } = await setup();
