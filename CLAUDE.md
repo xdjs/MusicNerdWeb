@@ -17,7 +17,8 @@ treating a handoff as live evidence. Preserve user edits and ignored files.
 
 | Area | Entry point |
 | --- | --- |
-| Artist UI and Latest cards | `src/app/artist/[id]/` |
+| Artist UI | `src/app/artist/[id]/` |
+| Latest cards (unreleased feature contract) | `docs/artist-latest.md` |
 | Routes / actions / business queries | `src/app/api/`, `src/app/actions/`, `src/server/utils/queries/` |
 | Data model / client / types | `src/server/db/schema.ts`, `drizzle.ts`, `DbTypes.ts` |
 | Authentication and authorization | `src/server/auth.ts`, `src/lib/auth-helpers.ts` |

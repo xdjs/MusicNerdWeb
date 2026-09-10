@@ -5,7 +5,8 @@ source-backed profiles, and read social updates and interview answers.
 
 Built with Next.js 15, TypeScript, Drizzle/Postgres on Supabase, Privy + NextAuth,
 Tailwind CSS, and Radix UI. Catalog data comes from multiple music platforms; research and
-interviews use Gemini, with OpenAI retained for legacy paths.
+interviews use Gemini. `OPENAI_API_KEY` is a legacy validation requirement only;
+a stub value suffices for that requirement. The declared OpenAI client is unused.
 
 ## Develop
 
