@@ -9,8 +9,10 @@ release its pin, but preserve all saved versions (including the current bio).
 
 ## Database
 
-Applied `drizzle/0024_artist_profile_protection.sql` on dev on 2026-09-09.
-Production is explicitly held pending reviewer green light and release approval.
+Applied `drizzle/0024_artist_profile_protection.sql` on dev on 2026-09-09 and
+production on 2026-09-10 UTC after #1215 cleared exact-head code/security review
+and merged to staging. #1217 is the combined profile-protection and documentation
+release; main remains unmerged for Carl's approval and merge.
 The migration adds the `inprocess` column/platform configuration,
 retires Catalog/Foundation/Sound from `urlmap` (legacy artist values are retained),
 and permits `lore_refresh` research jobs. Verify the `mnweb` role's column privileges
@@ -19,7 +21,7 @@ In Process links display: platform configuration and this app release are requir
 
 The `inprocess` column was already added on dev and production during the scoped
 link repair; the migration uses `IF NOT EXISTS`. Remaining statements are now
-applied on dev only. The dev schema has no unique index on `urlmap.site_name` and
+applied on both dev and production. The dev schema has no unique index on `urlmap.site_name` and
 requires `color_hex`; the migration handles both without broad schema changes.
 Verified one In Process configuration row, zero retired platform rows, nullable text
 column, updated job-kind constraint, `mnweb` privileges and existing enabled RLS.
@@ -32,10 +34,10 @@ Each environment needs its own server-only `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY`. Never use production credentials on a preview deployment.
 Production has both variables configured; confirm preview configuration separately.
 
-Dev provisioning is complete: `lore-upload-staging` is private with a 10,485,760-byte
-limit and the supported MIME allowlist. Production provisioning has not been run.
-The provisioning command is recorded for the agent at the approved production gate,
-not as a manual task for the PR author/reviewer:
+Dev and production provisioning are complete: `lore-upload-staging` is private
+with a 10,485,760-byte limit and the supported MIME allowlist. Production was
+provisioned on 2026-09-10 UTC after the staging review gate. The following command
+is retained for future environment setup, not as outstanding reviewer work:
 
 ```sh
 node scripts/provision-lore-upload-storage.mjs /path/to/environment.env
@@ -60,6 +62,11 @@ periodic cleanup of staging objects older than the signed URL lifetime is operat
 follow-up. Never clean objects in `vault-files` as part of staging cleanup.
 
 ## Verification and rollout
+
+Production verification as `mnweb` confirmed In Process configuration, Lore job
+kind, required app privileges and enabled RLS. The existing `vault-files` bucket
+and grants/policies were unchanged. Dutchy's full profile and saved bio-history
+fingerprints matched before and after migration; no bio was generated or replaced.
 
 `npx drizzle-kit check` passed after the SQL and schema snapshot corrections.
 Direct dev verification connected as `mnweb` (not owner): In Process URL validation
