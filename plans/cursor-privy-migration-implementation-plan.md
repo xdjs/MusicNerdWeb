@@ -1,5 +1,9 @@
 # Privy Authentication Migration - Detailed Implementation Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 **Document Version:** 1.0  
 **Created:** 2025-01-27  
 **Status:** Draft  

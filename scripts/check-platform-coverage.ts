@@ -19,8 +19,7 @@
  */
 import dotenv from "dotenv";
 import postgres from "postgres";
-
-dotenv.config({ path: ".env.local" });
+import { PROFILE_LINK_COLUMNS, PLATFORM_DOMAINS, IDENTITY_ANCHOR_COLUMNS } from "@/server/utils/artistPlatforms";
 
 /** Platforms deliberately left unclassified, with the reason. */
 const KNOWN_ABSENT: Record<string, string> = {
@@ -28,17 +27,11 @@ const KNOWN_ABSENT: Record<string, string> = {
     ens: "wallet identity rather than an artist name; urlmap url is a placeholder",
 };
 
-async function main() {
-    const conn = process.env.SUPABASE_DB_CONNECTION;
-    if (!conn) throw new Error("SUPABASE_DB_CONNECTION is not set");
-    const sql = postgres(conn, { max: 1 });
+// Legacy columns/domains remain recognizable, but are deliberately no longer
+// offered by urlmap. Exempt only their absence, not malformed configured rows.
+const RETIRED_PLATFORMS = new Set(["catalog", "foundation", "soundxyz"]);
 
-    const { PROFILE_LINK_COLUMNS, PLATFORM_DOMAINS, IDENTITY_ANCHOR_COLUMNS } =
-        await import("@/server/utils/queries/vaultWebSearch");
-
-    const rows = await sql<{ site_name: string }[]>`SELECT site_name FROM urlmap ORDER BY site_name`;
-    const cols = await sql<{ column_name: string }[]>`
-        SELECT column_name FROM information_schema.columns WHERE table_name = 'artists'`;
+export function checkPlatformCoverage(rows: { site_name: string }[], cols: { column_name: string }[]) {
     const isColumn = new Set(cols.map(c => c.column_name));
 
     const known = new Set<string>(PROFILE_LINK_COLUMNS as readonly string[]);
@@ -65,16 +58,31 @@ async function main() {
     // The other direction: a list naming something urlmap has never heard of.
     const inUrlmap = new Set(rows.map(r => r.site_name));
     for (const col of PROFILE_LINK_COLUMNS) {
-        if (!inUrlmap.has(col)) problems.push(`${col}: classified here but not configured in urlmap`);
+        if (!inUrlmap.has(col) && !RETIRED_PLATFORMS.has(col)) {
+            problems.push(`${col}: classified here but not configured in urlmap`);
+        }
     }
     for (const col of IDENTITY_ANCHOR_COLUMNS) {
         if (!known.has(col)) problems.push(`${col}: an identity anchor that is not a known profile column`);
     }
+    return problems;
+}
+
+async function main() {
+    dotenv.config({ path: ".env.local" });
+    const conn = process.env.SUPABASE_DB_CONNECTION;
+    if (!conn) throw new Error("SUPABASE_DB_CONNECTION is not set");
+    const sql = postgres(conn, { max: 1 });
+    const rows = await sql<{ site_name: string }[]>`SELECT site_name FROM urlmap ORDER BY site_name`;
+    const cols = await sql<{ column_name: string }[]>`
+        SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'artists'`;
+    const problems = checkPlatformCoverage(rows, cols);
 
     console.log(`urlmap platforms: ${rows.length}`);
     console.log(`known to discovery: ${PROFILE_LINK_COLUMNS.length}`);
     console.log(`used as identity anchors: ${IDENTITY_ANCHOR_COLUMNS.length}`);
     console.log(`deliberately absent: ${Object.keys(KNOWN_ABSENT).join(", ")}`);
+    console.log(`retired (legacy recognition retained): ${[...RETIRED_PLATFORMS].join(", ")}`);
 
     if (problems.length === 0) {
         console.log("\nEvery platform is classified.");
@@ -86,4 +94,6 @@ async function main() {
     process.exit(problems.length === 0 ? 0 : 1);
 }
 
-main().catch(e => { console.error(e.message); process.exit(1); });
+if (require.main === module) {
+    main().catch(e => { console.error(e.message); process.exit(1); });
+}

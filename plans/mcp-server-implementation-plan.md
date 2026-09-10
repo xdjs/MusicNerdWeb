@@ -1,5 +1,9 @@
 # MCP Server Implementation Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 This document details the implementation tasks for the MusicNerd MCP server as specified in [mcp-server-prd.md](./mcp-server-prd.md).
 
 ## Architecture Overview

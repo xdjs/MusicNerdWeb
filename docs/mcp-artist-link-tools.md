@@ -1,5 +1,9 @@
 # MCP Artist Link Tools — Implementation Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Overview
 
 Add two new secured MCP tools (`set_artist_link`, `delete_artist_link`) that allow internal agents to modify artist platform links. Before building these tools, refactor existing code to eliminate duplication and SRP violations, ensuring the new tools share the same code paths as UGC submissions.

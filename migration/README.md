@@ -1,5 +1,9 @@
 # YouTube Data Migration Scripts
 
+> **Historical YouTube migration material.** These data-rewrite/rollback scripts are not
+> fresh-clone setup steps. Inspect the target and current data before using them; follow
+> the [migration protocol](../docs/development.md#database-migrations).
+
 ## Overview
 This directory contains migration scripts for the YouTube URL refactor project. The migration strategy evolved significantly after analyzing production data complexity.
 

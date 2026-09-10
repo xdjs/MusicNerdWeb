@@ -1,5 +1,9 @@
 # Deezer Cutover Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 
 MusicNerdWeb uses the Spotify Web API as its primary external music data provider. This plan introduces a `MusicPlatformProvider` abstraction, refactors existing Spotify code behind it, implements a Deezer provider, then migrates all consumers to an `ArtistMusicPlatformDataProvider` (Deezer primary, Spotify fallback). Finally, Spotify API code is removed entirely.

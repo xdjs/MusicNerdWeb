@@ -1,5 +1,9 @@
 # Agent Monitoring: Activity Indicators + Worker Heartbeats
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 
 The id-mapping agents run on a remote droplet, calling the MCP API on Vercel. Currently the only way to check status is SSH + `check-status.sh`. The admin UI's Agent Work tab shows historical data but nothing about live activity or worker health. Production runs (13h, 80 batches, ~1,100 Deezer mappings) confirmed the need for better observability — issues like false-positive auth detection and timeout-killed workers went unnoticed until manual log analysis.

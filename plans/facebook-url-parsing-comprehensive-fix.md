@@ -1,5 +1,9 @@
 # Facebook URL Parsing - Comprehensive Fix Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Problem Statement
 
 Facebook has three different URL formats that need to be properly handled by the artist link parsing system:

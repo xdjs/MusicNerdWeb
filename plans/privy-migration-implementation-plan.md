@@ -1,5 +1,9 @@
 # Privy Migration Implementation Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Overview
 Migrate from NextAuth + RainbowKit + Wagmi + SIWE to Privy for authentication, enabling wallet + email login. Gradual rollout over 4-6 weeks with comprehensive testing at each phase.
 

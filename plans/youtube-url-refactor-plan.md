@@ -1,5 +1,9 @@
 # YouTube URL Handling Refactor Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Overview
 Modify the YouTube URL handling logic to properly separate usernames and channel IDs into different database columns, and update the display logic to prefer the @username format when available.
 

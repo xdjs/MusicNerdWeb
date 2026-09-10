@@ -1,5 +1,9 @@
 # YouTube Data Migration V2 - Enhanced Backup & Rollback Strategy
 
+> **Historical YouTube migration material.** These data-rewrite/rollback scripts are not
+> fresh-clone setup steps. Inspect the target and current data before using them; follow
+> the [migration protocol](../docs/development.md#database-migrations).
+
 ## Overview
 Comprehensive backup and rollback strategy for the **complex bidirectional** YouTube data migration discovered in production analysis. This involves migrating data in BOTH directions between `youtube` and `youtubechannel` columns.
 

@@ -1,5 +1,9 @@
 # Authentication & Authorization System Analysis - MusicNerdWeb
 
+> **Superseded: pre-Privy authentication.** The SIWE, RainbowKit and wallet-first examples
+> below are historical. Current auth uses Privy with NextAuth sessions; start with
+> [development](development.md#architecture-and-integration-map) and `src/server/auth.ts`.
+
 ## 🔐 Architecture Overview
 
 MusicNerdWeb uses a **Web3-first authentication system** combining:

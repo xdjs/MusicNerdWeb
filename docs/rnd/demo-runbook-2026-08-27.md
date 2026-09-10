@@ -1,5 +1,7 @@
 # Demo runbook — 2026-08-27
 
+> Historical demo recipe for August 27. Fixture resets and live actions below are not routine onboarding steps; inspect their effects and use a known dev target. See the [documentation map](../README.md).
+
 The artist walks to their already-claimed profile on **staging** and runs
 onboarding from a blank profile. Staging deploys against the **dev** database
 (`kyhlkqriyvevjqtufidu`), so migrations already applied there are already

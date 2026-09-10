@@ -1,44 +1,51 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-Updated 2026-09-04. Read this after `CLAUDE.md`. This is current state, not a changelog; use the
-linked PRs, issues, and decision notes for history.
+Product implementation handoff updated 2026-09-06; documentation context checked 2026-09-09.
+This is dated engineering state, not a changelog or proof of current deployment.
+Read `CLAUDE.md` first and verify remote/environment state before release actions.
 
-## Live and verified
+## Current task and release gate
 
-- **Production / `main`:** [`#1211`](https://github.com/xdjs/MusicNerdWeb/pull/1211) merged as
-  `ff1e4472`, carrying the MusicBrainz fallback from #1209 on top of release #1200. Main CI, the
-  production deployment, and post-deploy smoke all passed on that exact merge SHA.
-- **Database migrations 0022 and 0023:** applied and directly verified in both dev and production.
-  `artist_interview_answers.sitting` is backfilled with no nulls; `offered_at` is `timestamptz`,
-  backfilled, `NOT NULL`, and defaulted. The app role `mnweb` has SELECT/INSERT/UPDATE on both
-  columns. RLS is enabled and the expected four `mnweb` policies are the only policies on the
-  table. Owner/superuser success was not used as the access check.
-- **Interview flow:** the repeatable, opt-in interview and research readiness work is live. A
-  sitting is assigned when questions are offered and is not changed when answers are upserted;
-  `offered_at` preserves offer time. See [`#1204`](https://github.com/xdjs/MusicNerdWeb/pull/1204)
-  and the release PR above.
-- **Repository hygiene:** [`#1210`](https://github.com/xdjs/MusicNerdWeb/pull/1210) keeps local
-  Substack artifacts, local data, and the Discord layout scratch file out of Git. Durable public
-  docs and agent reasoning remain tracked per `docs/rnd/README.md`.
+**Latest/bookmarks feature work still needs Pete’s local review before its PR or release.**
+Pete separately authorized the documentation cleanup to merge through staging to main on
+September 9. That authorization does not include the feature code or database migration.
+Feature branch: `pete/artist-latest`. Its product changes are local and uncommitted.
+Documentation release branch: `pete/engineer-onboarding-docs`.
 
-## Staging differs from main
+- Artist **Latest** is implemented: MNTv-inspired image cards for catalog releases, imported
+  Instagram posts and answered interview questions, with filters and source-backed popups.
+  Pete's local feedback changed it to one horizontal gallery on desktop and mobile (no grid).
+  [Design, read path, limits and test command](docs/artist-latest.md).
+- Pete clarified that **bookmarks must sync across devices by account**. The former button was
+  localStorage-only. The branch now has account-owned persistence, an authenticated API,
+  shared button/profile state, draft Save/Cancel, legacy browser import and account-merge
+  preservation. [Contract, migration and verification](docs/account-bookmarks.md).
+- Migration **0024_user_artist_bookmarks** is prepared with schema/journal/snapshot. Dev application
+  approval was requested and has not yet been received. **Not applied to dev or production.**
+  Local account browser verification requires dev setup; don't call it complete from mock tests.
+- The local preview uses `https://localhost:3002` and the existing dev env file. Only the server
+  started for this task may be restarted; other local app processes belong to the user.
+- No Substack/profile update was published, and none is in scope.
 
-- There is no product-code delta at this handoff. #1211 carried
-  [`#1209`](https://github.com/xdjs/MusicNerdWeb/pull/1209) to `main`: its fail-closed MusicBrainz
-  artist-ID fallback is live, and the two Claude GitHub Action workflows are removed.
-- `staging` additionally contains the public operating-guide and handoff refresh from
-  [`#1212`](https://github.com/xdjs/MusicNerdWeb/pull/1212). Those docs will reach `main` with the
-  next normal release; do not create a release solely to move the handoff.
-- There were no open PRs at the 2026-09-04 handoff. Old draft
-  [`#1159`](https://github.com/xdjs/MusicNerdWeb/pull/1159) was closed without merging because its
-  artist-research foundation overlaps the shipped research-job and resolver work. Do not revive
-  its branch without comparing it to current `staging` and re-scoping it.
+## Documentation and team context — September 9
 
-## Next work
+- Pete requested an onboarding documentation cleanup for Patrick Sweetman. Start with the
+  [documentation map](docs/README.md); the [meeting index](docs/rnd/meetings/README.md) now
+  covers available R&D/standup and related work-session notes from August 20–September 9.
+- The September 9 meeting leaves Patrick's first tasks for Pete and Patrick to agree. Later
+  meetings report In Process/link fixes and other work, but those reports do not establish
+  that the changes are in this worktree. Compare the relevant branch/PR before acting.
+- Read-only GitHub checks on September 9 still found staging at `3bb849d7`, main at
+  `14053e51`, and no PR for `pete/artist-latest`. This does not re-verify deployment or databases.
+- Documentation is being released separately with Pete’s September 9 authorization. The
+  feature review/migration gates above remain pending. This documentation release contains no
+  application code, workflow, package-script or database changes.
+
+## Profile protection release — September 9
 
 - **Profile protection / Lore repair in progress (2026-09-08):** isolated worktree
   `/private/tmp/musicnerd-profile-protection`, branch `pete/artist-profile-protection`.
-  [Staging PR #1215](https://github.com/xdjs/MusicNerdWeb/pull/1215), head `9d97ac63`.
+  [Staging PR #1215](https://github.com/xdjs/MusicNerdWeb/pull/1215), latest code head `bdeedb98`.
   Pushed, not merged or deployed to production. Includes pinned-bio write guards, In Process,
   retired supported links, durable Lore refresh, and direct storage uploads retaining
   10 MB/file. The In Process column exists in dev/prod; the requested artist link was
@@ -62,42 +69,104 @@ linked PRs, issues, and decision notes for history.
   PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
   and needs a separate fix; do not describe this as end-to-end UI verification.
 - **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
-  177 suites / 2,185 tests passed / 6 skipped, coverage and production build with stub
+  182 suites / 2,232 tests passed / 6 skipped, coverage and production build with stub
   build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
   coalescing and completion with transaction fixtures rolled back. Browser confirmed
   In Process, upload copy, a real PDF upload, and historical pin + regeneration protection.
   Real extraction yielded 79,823 chars; signed storage accepted 10 MiB and rejected one
   byte over. A stale local Gemini key returned 403; using the current Vercel development-
   scoped key completed the real Lore worker and rendered the resulting doc in the browser.
-  Codex's first two findings were fixed. Pete approved admin revocation as the exception:
+  Nineteen Codex findings have been addressed, including the retired-platform audit.
+  The audit passes against dev; three focused regression tests preserve active-platform drift checks.
+  Review must run again on the integration commit before merging.
+  Follow-up fixes cover ownership-generation fencing, atomic onboarding publication,
+  stale bio drafts, placeholder history and idempotent upload/save recovery.
+  These follow-ups have regression/full-CI coverage, not a new real-login browser run.
+  Pete approved admin revocation as the exception:
   clear the revoked owner's public bio and release its pin, preserving saved history.
-  That policy fix passed full CI and is included in the next review commit.
+  That policy fix passed full CI and is included in the branch.
   The SQL private-bucket provisioning alternative also verified on dev.
   Production DB/storage changes are
   authorized after staging green; main merge remains Carl's responsibility.
 
-1. **Artist-profile latest activity.** This is the agreed next product task: show interview answers
-   ("nuggets") beside social updates, with a call to action back to the source post. The decision
-   is in `docs/rnd/decisions.md`; the existing `ActivityFeed` is homepage-only, so the artist-page
-   implementation has not been built. Define source-link behavior and test the display/query path.
-2. **Later product queue:** bookmarks, user-profile redesign, and the Dupes/YouTube-playlist
-   prototype.
+- Documentation PR #1216 merged to staging at `e8152341` during this review. Its handoff
+  and docs are being integrated here without the unrelated local Latest/bookmarks code.
+  The pending bookmarks migration also uses number 0024: its owner must renumber/rebase
+  before release because this branch carries `0024_artist_profile_protection`.
 
-## Reliability and cleanup
+## Latest/bookmarks evidence so far
 
-- [`#1148`](https://github.com/xdjs/MusicNerdWeb/issues/1148): reconcile manual database state
-  with Drizzle migration history before wiring `db:migrate` into deployment. This remains the most
-  important migration-process debt.
-- [`#1149`](https://github.com/xdjs/MusicNerdWeb/issues/1149): reconcile `schema.ts` RLS policy
-  definitions with the live policies.
-- Supabase reports GraphQL schema-discoverability warnings for `artist_interview_answers` because
-  broad table grants exist. Direct verification found no `anon` or `authenticated` policy and no
-  public row access; treat schema hardening as separate follow-up, not a release blocker.
-- CI currently triggers the same workflow for both push and pull-request events. The resulting
-  duplicate runs are redundant executions, not different tests; optimize later if queue time
-  becomes a problem.
-- Triage [`#1150`](https://github.com/xdjs/MusicNerdWeb/issues/1150): CI and post-deploy smoke now
-  exist and passed for #1200, so the issue is at least partly obsolete.
-- Other active debt: the Spotify client secret still uses a `NEXT_PUBLIC_` name and should move to
-  a backward-compatible server-only variable; upload size remains tracked in
-  [`#1151`](https://github.com/xdjs/MusicNerdWeb/issues/1151).
+- Live read-only Latest browser test passed on dev, with all three source categories:
+  filter/open/close/source links, actual Deezer art, desktop and mobile overflow checks.
+  The normal development auth fallback was active; this did not prove real Privy login.
+- Stored Instagram image URLs in the sampled dev records failed; cards used the artist image.
+  Durable social image storage/refresh is still a separate design decision, not implemented.
+- After gallery feedback: six focused UI tests, type check, focused lint and the live read-only
+  browser flow passed (single row, next/previous, keyboard/trackpad, filters, dialogs, mobile).
+  Image audit confirmed nine of nine recent own posts already contain image URLs; retention,
+  not basic extraction, is the missing piece. See the Latest doc for MNTv's actual sourcing path
+  and a proposed bounded thumbnail-retention follow-up. No ingest or storage writes performed.
+- Pete saw "bookmarks couldn't sync" during local review. Read-only dev verification confirmed
+  `public.user_artist_bookmarks` is absent; 0024 remains pending approval, not an applied fix.
+- Production build passed with the bookmark/auth UI changes included. Final type check and
+  lint passed (existing warnings remain), and 180 Jest suites / 2,239 tests passed with six
+  skips and coverage thresholds satisfied before the gallery revision above. The last backend guards/image fallback have focused
+  and full-suite coverage but were added after the production build. These are local results,
+  not GitHub CI or deployed checks.
+- Account client tests cover independent query clients, not physical devices. Real Postgres
+  verification passed in a disposable local instance: migration, exact RLS/ACLs, actual `mnweb`
+  CRUD, public-role denial, concurrent writes/merge, stale edits and cascading deletion.
+  [Repeatable isolated check](docs/account-bookmarks.md#verification).
+  The verification database was removed and its disposable Postgres cluster stopped.
+  The opt-in two-browser account E2E exists but has not run against migrated dev.
+- The branch adds server wallet verification before account linking, and session refresh follows
+  the surviving account after a merge. Wallet-provider failure/ownership and merge behavior have
+  regression coverage; real wallet linking has not been exercised.
+
+## Operating improvements made with this feature
+
+The former guide was 448 lines, README described Next 14/wallet-first auth/Node 18 and a
+nonexistent env template, and local type checks failed on deleted routes' generated types.
+`CLAUDE.md` is now short; setup and technical detail live in `docs/development.md`.
+The pending local `type-check` change regenerates route types. The pending CI cleanup retains
+PR + staging/main checks without a duplicate
+feature push run, uses the same coverage command as local CI, and removes the already-disabled
+coverage job. No active regression tests or thresholds were removed. Workflow YAML structure
+was checked locally; remote CI has not run for those pending workflow/code changes.
+Those script/workflow edits are not included in the documentation release.
+
+## Last known remote / database state
+
+- [#1214](https://github.com/xdjs/MusicNerdWeb/pull/1214) is merged into main:
+  `14053e512d3a6f402f47383827fe1fe0f7d99ce4`, confirmed via GitHub on 2026-09-06.
+  This carries the shared operating docs. Production deployment/smoke for that merge was not
+  re-verified in this task; a merged PR alone is not deployment evidence.
+- At task start, staging was `3bb849d7` with no product-code delta from main; this branch is
+  based on staging. Fetch/compare again before creating a future PR.
+- Migrations 0022/0023 were directly verified in dev and production at the prior 2026-09-04
+  handoff: sitting backfill, offered_at type/default/not-null, mnweb access and policies.
+  This task did not re-run or change them.
+- Historical draft #1159 was closed as overlapping shipped research work; don't revive without
+  comparison and re-scoping.
+
+## Next, after Pete's local review
+
+1. Resolve the image/interaction feedback on Latest; reliable historical Instagram images remain
+   the largest visual limitation. Do not add an ingestion/storage system before that decision.
+2. Once authorized, apply/verify 0024 on dev and run the account browser flow; production must
+   receive 0024 before dependent code deploys at the later release gate.
+3. Only after local approval, prepare a reviewable PR to staging, separating Latest, account
+   bookmarks, and operating cleanup in the review/commits. Do not release solely for a handoff.
+4. Later product queue: user-profile redesign and Dupes/YouTube-playlist prototype.
+
+## Existing reliability debt
+
+- [#1148](https://github.com/xdjs/MusicNerdWeb/issues/1148): reconcile manual schema state with
+  Drizzle history before automated migration replay.
+- [#1149](https://github.com/xdjs/MusicNerdWeb/issues/1149): reconcile historical schema RLS
+  definitions with live policies. This bookmark migration must not rewrite unrelated drift.
+- [#1150](https://github.com/xdjs/MusicNerdWeb/issues/1150): CI/smoke work partly supersedes it;
+  triage separately.
+- Server-only Spotify secret naming and [#1151 upload size](https://github.com/xdjs/MusicNerdWeb/issues/1151)
+  remain follow-ups. Supabase schema-discoverability warnings on existing interview tables were
+  previously checked as not granting public row access; don't silently broaden grants.
