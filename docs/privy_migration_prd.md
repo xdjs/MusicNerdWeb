@@ -1,4 +1,8 @@
 # PRD: Migration to Privy Authentication (Revised)
+
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
 **Product:** Music Nerd  
 **Document Type:** High-Level PRD
 

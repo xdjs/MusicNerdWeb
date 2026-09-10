@@ -15,6 +15,9 @@ import { canEditArtist } from "@/server/utils/artistEditAuth";
 import { getServerAuthSession } from "@/server/auth";
 import { requestArtistResearch } from "@/server/utils/researchRunner";
 import { getResearchJobs, reopenResearchJob } from "@/server/utils/queries/researchJobQueries";
+import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +34,17 @@ export async function POST(
         const session = await getServerAuthSession();
         const userId = session?.user?.id;
         if (!userId) return Response.json({ error: "Not signed in" }, { status: 401 });
+        const claimId = await getLoreClaimGeneration(id);
         if (!(await canEditArtist(userId, id))) {
             return Response.json({ error: "Not your artist" }, { status: 403 });
         }
 
-        const jobs = await getResearchJobs(id);
+        return await withArtistOperation(id, { userId, expectedClaimId: claimId }, async () => {
+        const loreQueued = await queueLoreRefresh(id, claimId, { manual: true });
+        const loreMessage = loreQueued === false
+            ? "Lore is already queued or was checked recently. New document changes still trigger a rebuild."
+            : "Rebuilding Lore from your current documents.";
+        const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
         if (live) {
             // Already working. Saying so is better than silently enqueuing
@@ -44,7 +53,7 @@ export async function POST(
                 ok: true,
                 message: live.total
                     ? `Already reading your posts (${live.cursor}/${live.total}).`
-                    : "Already reading your posts.",
+                    : `${loreMessage} Already reading your posts.`,
             });
         }
 
@@ -56,7 +65,7 @@ export async function POST(
             const mins = Math.ceil((COOLDOWN_MS - (Date.now() - lastFinished)) / 60000);
             return Response.json({
                 ok: true,
-                message: `We read your posts recently. Check back in about ${mins} minute${mins === 1 ? "" : "s"}.`,
+                message: `${loreMessage} Social posts can be checked again in ${mins} minute${mins === 1 ? "" : "s"}.`,
             });
         }
 
@@ -66,7 +75,8 @@ export async function POST(
 
         return Response.json({
             ok: true,
-            message: "Reading anything you've posted since last time — this page will fill in as it goes.",
+            message: `${loreMessage} Checking recent posts. Your bio will stay unchanged.`,
+        });
         });
     } catch (e) {
         console.error("[research/refresh] Error:", e);

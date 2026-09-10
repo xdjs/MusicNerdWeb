@@ -180,6 +180,7 @@ export const artists = pgTable("artists", {
 	deezer: text(),
 	subvert: text(),
 	bluesky: text(),
+	inprocess: text(),
 }, (table) => [
 	index("artists_added_by_created_at_idx").using("btree", table.addedBy.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("timestamptz_ops")),
 	index("artists_lcname_btree_idx").using("btree", table.lcname.asc().nullsLast().op("text_ops")),

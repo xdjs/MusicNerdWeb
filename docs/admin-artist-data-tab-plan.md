@@ -1,5 +1,9 @@
 # Admin Dashboard — Artist Data Tab
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 > **Goal:** Add a new tab to the admin dashboard that provides visibility into artist data coverage across all platforms, social links, and data completeness. Complements the existing Agent Work tab (which focuses on agent activity) with a data-centric view.
 
 ## Context

@@ -23,6 +23,7 @@ export type ChatItem = {
     // locked to exactly {doc, about} by existing tests) and threaded into the
     // actual publish turn by OnboardingChat.tsx.
     sources?: DocSource[];
+    expectedBio?: string | null;
     done?: boolean;
     // Live-accumulated discovered profiles for a "candidates" item — grows as
     // `candidate` SSE events arrive, one at a time, ahead of the terminal
@@ -52,7 +53,7 @@ export type ClientTurnShape =
     // `doc` carries back any corrections the artist made while fact-checking, so
     // the About is written from the version they approved.
     | { type: "about_choice"; mode: "generate" | "self"; doc: string; sources?: DocSource[] }
-    | { type: "publish"; doc: string; about: string; sources?: DocSource[] };
+    | { type: "publish"; doc: string; about: string; sources?: DocSource[]; expectedBio?: string | null };
 
 /** Text shown as the user's own bubble for a given turn (null = no user bubble). */
 function userEcho(turn: ClientTurnShape): string | null {
@@ -188,7 +189,7 @@ export function useOnboardingChat(artistId: string) {
                             case "candidate": push({ kind: "candidates", candidates: [event.profile] }); break;
                             case "choices": push({ kind: "choices", platform: event.platform, chosen: event.chosen, candidates: event.options }); break;
                             case "step": push({ kind: "step", step: event.step, payload: event.payload }); receivedTerminalFrame = true; break;
-                            case "draft": push({ kind: "draft", stage: event.stage ?? "about", doc: event.doc, about: event.about, sources: event.sources, selfWrite: event.selfWrite }); receivedTerminalFrame = true; break;
+                            case "draft": push({ kind: "draft", stage: event.stage ?? "about", doc: event.doc, about: event.about, sources: event.sources, selfWrite: event.selfWrite, expectedBio: event.expectedBio }); receivedTerminalFrame = true; break;
                             case "complete": push({ kind: "complete" }); receivedTerminalFrame = true; break;
                             case "error": push({ kind: "error", text: event.message }); receivedTerminalFrame = true; break;
                         }

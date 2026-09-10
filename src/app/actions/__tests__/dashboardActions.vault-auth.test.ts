@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));
@@ -72,6 +73,7 @@ describe('vault action authorization', () => {
     const res = await actions.searchWebForSources('artist-they-dont-own');
 
     expect(res.success).toBe(true);
+    expect(searchAndPopulateVault).toHaveBeenCalledWith('artist-they-dont-own', { ownership: { userId: 'admin-1', expectedClaimId: 'claim-1' } });
   });
 
   it('admin removeVaultSources is allowed across artists (per-source canEditArtist)', async () => {

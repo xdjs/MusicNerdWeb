@@ -123,6 +123,7 @@ export const createMockArtist = (id: string, name: string, spotify: string): Art
     deezer: null,
     subvert: null,
     bluesky: null,
+    inprocess: null,
 });
 
 // Basic tests to verify mock functionality
@@ -155,4 +156,4 @@ describe('mockDatabase', () => {
         expect(foundArtist).toBeTruthy();
         expect(foundArtist?.name).toBe('Test Artist');
     });
-}); 
+});

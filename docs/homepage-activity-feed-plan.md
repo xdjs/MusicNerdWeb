@@ -1,5 +1,9 @@
 # Homepage Live Activity Feed
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Context
 
 The MusicNerdWeb homepage currently shows a static subtitle list ("Music Nerd", "Mindful Listener", etc.) rendered in static mode. With agents actively mapping thousands of artists and human contributors adding links, there's a compelling story to tell on the homepage — a live feed showing the site is alive and actively growing. This replaces the subtitle list with a polling activity feed that links visitors directly to artist pages.

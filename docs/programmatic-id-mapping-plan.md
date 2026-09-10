@@ -1,5 +1,9 @@
 # Programmatic ID Mapping & Enrichment (Tier 1 + 2) — Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 > **Goal:** Replace the LLM-driven Wikidata and MusicBrainz lookups with a deterministic script, reducing the projected cost of mapping the remaining ~36k artists from ~$8,150 to ~$300-600. Additionally, harvest all available platform IDs and social links from Wikidata in the same pass — data that users currently add manually via UGC.
 
 ## Context

@@ -98,6 +98,12 @@ artist_onboarding_steps (
 
 **Claim revocation (required change):** `revokeApprovedClaim` (`src/server/utils/queries/dashboardQueries.ts`) additionally deletes this artist's `artist_docs`, `artist_interview_answers`, and `artist_onboarding_steps` rows **in the same transaction** — same invariant as the existing vault-source wipe: a re-claimer must not inherit (or be silently skipped past onboarding by) the previous owner's content. If the transaction deleted a doc row (i.e. the revoked owner had published), also clear `artists.bio` — whether doc-generated or later hand-edited, it is the revoked owner's content.
 
+**Pinned bio clarification (2026-09-09):** Admin claim revocation also releases any
+bio pin and clears a pinned public bio even if no knowledge document exists. Preserve
+all saved bio versions and save the current public text if not already in history.
+This moderation exception does not allow ordinary edits or regeneration to overwrite
+a pinned bio; the artist must explicitly unpin for those operations.
+
 ## 6. The chat chain (forced steps)
 
 Every step ends with an explicit artist action ("Looks good", "Keep these", answering/skipping the last question, "Publish") — and that action is what writes the step's confirmation row. No confirmation is ever written by data merely existing.

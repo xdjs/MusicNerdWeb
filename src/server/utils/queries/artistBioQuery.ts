@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { db } from "@/server/db/drizzle";
-import { artists } from "@/server/db/schema";
-import { eq } from "drizzle-orm";
+import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
+import { BioConflictError } from '@/lib/bioConflict';
+import { getBioVersionsByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { sanitizeBioText } from "@/lib/bioText";
@@ -13,6 +13,9 @@ import { resolveVerifiedGrounding } from "@/server/utils/verifiedGrounding";
 import { getSpotifyHeaders, getSpotifyCatalogNames } from "@/server/utils/queries/externalApiQueries";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
+import { getLoreClaimGeneration } from './lorePersistence';
+import { OwnershipChangedError, type ArtistWriteAuth } from './ownershipWrites';
+import type { BioWriteOwnership } from './bioPersistence';
 
 // Every I/O the generator does runs concurrently inside the route's budget, so each gets
 // its own bound: no single slow dependency can starve synthesis and 408 the request.
@@ -33,8 +36,8 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
 }
 
 /** Persist the generated About. Single writer so the update shape stays consistent. */
-async function saveBio(artistId: string, bio: string): Promise<void> {
-  await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+async function saveBio(artistId: string, bio: string, expectedBio: string | null, ownership: BioWriteOwnership): Promise<string | null> {
+  return persistArtistBio(artistId, bio, { generated: true, expectedBio, ownership });
 }
 
 /**
@@ -50,7 +53,7 @@ async function saveBio(artistId: string, bio: string): Promise<void> {
  * clobber-guard preserves an existing bio, and the route self-heal recovers a cached nudge
  * once the DB is healthy and sources exist.
  */
-async function gatherContextualSources(artistId: string): Promise<ArtistVaultSource[]> {
+async function gatherContextualSources(artistId: string, ownership: BioWriteOwnership): Promise<ArtistVaultSource[]> {
   try {
     const [approved, pending] = await Promise.all([
       getVaultSourcesByArtistId(artistId, "approved"),
@@ -71,7 +74,7 @@ async function gatherContextualSources(artistId: string): Promise<ArtistVaultSou
     // writes to the vault as pending) and synthesize from what returns. Bounded by
     // withTimeout so a slow/hung run can't starve synthesis of the route's budget.
     const discovered = await withTimeout(
-      searchAndPopulateVault(artistId).catch((e) => {
+      searchAndPopulateVault(artistId, { ownership }).catch((e) => {
         console.error("[bio] discovery failed:", e);
         return [] as ArtistVaultSource[];
       }),
@@ -97,11 +100,14 @@ async function gatherContextualSources(artistId: string): Promise<ArtistVaultSou
  *      namesakes — the conflation bug this flow fixes).
  * Unified function — used by the bio API route, dashboard actions, and artistLinkService.
  */
-export async function generateArtistBio(artistId: string): Promise<NextResponse> {
+export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth): Promise<NextResponse> {
+  const ownership = auth ?? { expectedClaimId: await getLoreClaimGeneration(artistId) };
   const artist = await getArtistById(artistId);
   if (!artist) {
     return NextResponse.json({ error: "Artist not found" }, { status: 404 });
   }
+  const pinned = (await getBioVersionsByArtistId(artistId)).find(v => v.isPinned);
+  if (pinned) return NextResponse.json({ bio: artist.bio, pinned: true, message: "Bio is pinned. Unpin it before regenerating." });
 
   // Run every independent I/O concurrently so they overlap inside the route's 57s budget
   // instead of summing. Platform stats (Deezer primary, Spotify fallback), verified-ID
@@ -145,7 +151,7 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
   // we research (identity-anchored discovery, which also writes what it finds to the vault
   // as pending, for curation + the Ask-About chat + Press & Features). No contextual
   // sources → the claim-nudge, never a hollow catalog-only "bio". One source system.
-  const sourcesPromise = gatherContextualSources(artistId);
+  const sourcesPromise = gatherContextualSources(artistId, ownership);
 
   const [platformBioData, grounding, catalog, contextualSources] = await Promise.all([
     platformPromise, groundingPromise, catalogPromise, sourcesPromise,
@@ -162,8 +168,8 @@ export async function generateArtistBio(artistId: string): Promise<NextResponse>
     }
     // Cache the nudge so the profile invites the artist to add context (and we don't
     // re-run the expensive discovery on every view). An explicit regenerate retries.
-    await saveBio(artistId, ABOUT_EMPTY_STATE);
-    return NextResponse.json({ bio: ABOUT_EMPTY_STATE, empty: true });
+    const saved = await saveBio(artistId, ABOUT_EMPTY_STATE, artist.bio, ownership);
+    return NextResponse.json({ bio: saved, empty: saved === ABOUT_EMPTY_STATE });
   }
 
   // Assemble the prompt in order: identity links → anchors → verified facts → sources.
@@ -282,11 +288,13 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     console.debug("Gemini call duration:", `${geminiDurationMs}ms`);
 
     if (bio) {
-      await saveBio(artistId, bio);
+      const saved = await saveBio(artistId, bio, artist.bio, ownership);
+      return NextResponse.json({ bio: saved });
     }
 
     return NextResponse.json({ bio });
   } catch (err: any) {
+    if (err instanceof BioConflictError || err instanceof OwnershipChangedError) return NextResponse.json({ error: err.message }, { status: 409 });
     console.error("Gemini error generating bio", err);
     if (err.message === 'Gemini timeout') {
       return NextResponse.json({ error: "Bio generation timed out" }, { status: 408 });
@@ -299,9 +307,9 @@ You have NO web access for this task. Write the About using ONLY the curated sou
  * Simplified wrapper around generateArtistBio that returns just the bio string
  * (or null on failure). Used by updateArtistBio for admin-triggered regeneration.
  */
-export async function regenerateArtistBio(artistId: string): Promise<string | null> {
+export async function regenerateArtistBio(artistId: string, auth?: ArtistWriteAuth): Promise<string | null> {
   try {
-    const response = await generateArtistBio(artistId);
+    const response = await generateArtistBio(artistId, auth);
     const data = await response.json();
     return data.bio ?? null;
   } catch (e) {

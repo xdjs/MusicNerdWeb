@@ -18,6 +18,8 @@ import {
     contradictsScrapedPosts, handleBelongsToAnotherArtist, nameIsAmbiguousInDirectory,
 } from "@/server/utils/artistIdentityGuards";
 import { artistRowProperty } from "@/server/db/artistRowProperties";
+import { getArtistOperationOwnership, withArtistOperation, type ArtistOperationOwnership } from '../artistOperationContext';
+import { getLoreClaimGeneration } from './lorePersistence';
 
 // Re-exported: several callers and scripts import these from here.
 export { PROFILE_LINK_COLUMNS, PLATFORM_DOMAINS, IDENTITY_ANCHOR_COLUMNS };
@@ -819,8 +821,17 @@ function normalizeUrl(raw: string): string {
  * verification pass below runs with `requireFullName` — see the comment there.
  */
 export async function searchAndPopulateVault(
+    artistId: string, opts?: Parameters<typeof searchAndPopulateVaultInternal>[1],
+): Promise<ArtistVaultSource[]> {
+    const ownership = opts?.ownership ?? getArtistOperationOwnership(artistId)
+        ?? { expectedClaimId: await getLoreClaimGeneration(artistId) };
+    return withArtistOperation(artistId, ownership, () => searchAndPopulateVaultInternal(artistId, opts));
+}
+
+async function searchAndPopulateVaultInternal(
     artistId: string,
     opts?: {
+        ownership?: ArtistOperationOwnership;
         deadline?: number;
         /** Columns the caller wrote from a GUESS, not an answer — see
          *  `holdsAnswerFor`. Only the onboarding auto-build passes these,

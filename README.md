@@ -1,137 +1,47 @@
 # MusicNerdWeb
 
-MusicNerdWeb is a Next.js application that provides artist discovery and management features, integrating with Spotify and other social media platforms.
+Music Nerd is a community-built artist directory: discover artists, explore their links and
+source-backed profiles, and read social updates and interview answers.
 
-## Features
+Built with Next.js 15, TypeScript, Drizzle/Postgres on Supabase, Privy + NextAuth,
+Tailwind CSS, and Radix UI. Catalog data comes from multiple music platforms; research and
+interviews use Gemini. `OPENAI_API_KEY` is a legacy validation requirement only;
+a stub value suffices for that requirement. The declared OpenAI client is unused.
 
-- **Artist Discovery**: Search and explore artists from various platforms
-- **Spotify Integration**: Rich artist data, images, and music embeds
-- **Social Media Aggregation**: Collect and display artist links from multiple platforms
-- **AI-Powered Content**: Auto-generated artist bios and fun facts using OpenAI
-- **Web3 Integration**: Wallet-based authentication and ENS support
-- **User Management**: Role-based access control and whitelisting
-- **Real-time Search**: Fast, debounced search with combined local and Spotify results
-- **Responsive Design**: Mobile-first UI with modern components
+## Develop
 
-## Prerequisites
+New to the project? Start with the [engineering reading path](docs/README.md).
 
-- Node.js 18 or later
-- npm
-- PostgreSQL database (Supabase)
-- Spotify Developer Account
-- OpenAI Account (for AI features like bio generation and fun facts)
+Use npm and the runtime versions declared in [package.json](package.json).
+Install the lockfile with `npm ci`, configure a **dev** database and credentials, then run:
 
-## Environment Variables
-
-Create a `.env.local` file in the root directory with the following variables:
-
-```bash
-# Spotify API Credentials
-NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=your_spotify_client_id
-NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=your_spotify_client_secret
-
-# Database
-SUPABASE_DB_CONNECTION=your_supabase_connection_string
-
-# Authentication
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret
-
-# Discord Integration for UGC notifications
-DISCORD_WEBHOOK_URL=your_discord_webhook_url
-
-# OpenAI API (for AI features like bio generation and fun facts)
-OPENAI_API_KEY=your_openai_api_key
-# OpenAI timeout in milliseconds (defaults to 60000ms if not set)
-OPENAI_TIMEOUT_MS=60000
-# OpenAI model to use (optional - if not set, no model parameter is sent to OpenAI)
-OPENAI_MODEL=gpt-5-nano
-
-# Optional: Coverage reporting webhook
-DISCORD_COVERAGE_URL=your_discord_coverage_webhook_url
-
-# Optional: Disable wallet requirement for development
-NEXT_PUBLIC_DISABLE_WALLET_REQUIREMENT=false
-```
-
-**Note**: You can also copy `.env.example` to `.env.local` and fill in your values.
-
-## Getting Started
-
-1. Clone the repository:
-```bash
-git clone https://github.com/xdjs/MusicNerdWeb.git
-cd MusicNerdWeb
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up your environment variables:
-```bash
-cp .env.example .env.local
-# Edit .env.local with your actual values
-```
-
-4. Run the development server:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [https://localhost:3000](https://localhost:3000). The dev server uses a local certificate.
 
-## Available Scripts
+See [Development](docs/development.md) for setup, environment requirements and verification.
+Coding assistants start with [AGENTS.md](AGENTS.md); current work is in [MEMORY.md](MEMORY.md).
 
-### Development
-- `npm run dev` - Start development server with HTTPS
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-
-### Code Quality
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
-- `npm run ci` - Run all checks (types, lint, tests, build)
-
-### Testing
-- `npm run test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage
-- `npm run test:ci` - Run tests with coverage for CI
-
-## API Documentation
-
-For detailed API documentation, see [ApiReadMe.md](./ApiReadMe.md).
-
-## Testing
-
-The project uses Jest for testing. Run tests with:
+## Verify
 
 ```bash
-npm run test
+npm run ci
 ```
 
-For test coverage:
+This runs TypeScript, lint, Jest with coverage, and a production build.
+Live/browser checks are separate; see the development reference for their environment and
+side-effect requirements. A mocked unit suite is not proof of working production services.
 
-```bash
-npm run test:coverage
-```
+## Further reading
 
-## Tech Stack
-
-- **Framework**: Next.js 14
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + SCSS
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: NextAuth.js + RainbowKit
-- **AI**: OpenAI API
-- **Testing**: Jest with React Testing Library
-- **State Management**: React Query
-- **UI Components**: Radix UI + Custom components
-- **Web3**: Wagmi + RainbowKit + SIWE
+- [API reference](ApiReadMe.md)
+- [MCP reference](docs/mcp.md)
+- [R&D decisions and public documentation](docs/rnd/README.md)
+- [Artist Latest experiment](docs/artist-latest.md)
+- [Account bookmarks](docs/account-bookmarks.md)
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
-
+[MIT](LICENSE).

@@ -1,5 +1,7 @@
 # Production migration runbook — 2026-09-02
 
+> Dated release runbook for migrations 0011–0023. These are not fresh-clone setup steps or a request to replay production SQL. Verify the current target and migration history using the development protocol. See the [documentation map](../README.md).
+
 Run these against **production** Supabase (`cbabvmebugudeuylronz`) in the SQL
 editor, in order, before deploying code that depends on them. Migrations
 0011–0021 were required before #1195; 0022–0023 are required before #1200.

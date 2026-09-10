@@ -45,6 +45,29 @@ describe('VaultManager', () => {
     await waitFor(() => expect(updateSourceStatus).toHaveBeenCalledWith('p1', 'approved'));
   });
 
+  it('retries completion with the same ticket instead of creating another public object', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ticket: 'same-ticket', signedUrl: 'https://storage/upload', contentType: 'application/pdf' }) })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ error: 'Retry this file', retryCompletion: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ source: { id: 'recovered', title: 'Recovered upload', status: 'approved' } }) });
+    const { container } = renderEditing(true);
+    const input = container.querySelector('input[type="file"]');
+    const file = new File(['x'], 'retry.pdf', { type: 'application/pdf' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(screen.getByRole('button', { name: /upload file/i })).not.toBeDisabled());
+    fireEvent.change(input, { target: { files: [file] } });
+    await screen.findByText('Recovered upload');
+    expect(global.fetch).toHaveBeenCalledTimes(4);
+    const calls = (global.fetch as jest.Mock).mock.calls;
+    expect(calls[2][0]).toBe('/api/vault/upload/complete');
+    expect(calls[3][0]).toBe('/api/vault/upload/complete');
+    expect(calls[3][1].body).toBe(calls[2][1].body);
+    global.fetch = originalFetch;
+  });
+
   it('upload happy path: uploaded file lands in Approved section, not Pending', async () => {
     const uploadedSource = {
       id: 'up1',

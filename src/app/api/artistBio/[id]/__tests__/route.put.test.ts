@@ -38,7 +38,7 @@ describe('PUT /api/artistBio/[id]', () => {
 
     expect(res.status).toBe(200);
     expect(requireArtistEditor).toHaveBeenCalledWith('artist-1');
-    expect(aq.updateArtistBio).toHaveBeenCalledWith('artist-1', 'New bio', false);
+    expect(aq.updateArtistBio).toHaveBeenCalledWith('artist-1', 'New bio', false, { userId: 'u1', expectedClaimId: null });
   });
 
   it('rejects a bio that exceeds the character cap with a 400', async () => {

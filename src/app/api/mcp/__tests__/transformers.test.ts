@@ -77,6 +77,7 @@ function createMockArtist(overrides: Partial<Artist> = {}): Artist {
     deezer: null,
     subvert: null,
     bluesky: null,
+    inprocess: null,
     ...overrides,
   };
 }

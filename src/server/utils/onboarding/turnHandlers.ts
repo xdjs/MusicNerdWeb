@@ -11,7 +11,6 @@ import {
     getVaultSourcesByArtistId,
     getVaultSourceByIdAndArtist,
     updateVaultSourceStatus,
-    saveBioVersion,
     insertVaultSource,
     updateVaultSourceContent,
 } from "@/server/utils/queries/dashboardQueries";
@@ -26,8 +25,6 @@ import {
     confirmOnboardingStep,
     getInterviewAnswers,
     upsertInterviewAnswer,
-    upsertArtistDoc,
-    upsertArtistDocSources,
 } from "@/server/utils/queries/onboardingQueries";
 import { setArtistLink, clearArtistLink } from "@/server/utils/artistLinkService";
 import {
@@ -50,7 +47,8 @@ import {
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
 import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/utils/linkPresentation";
 import { ONBOARDING_QUESTIONS } from "./questions";
-import { MAX_BIO_LENGTH, isRealBio } from "@/lib/bioConstants";
+import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
+import { BioConflictError } from '@/lib/bioConflict';
 import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
@@ -131,7 +129,7 @@ export type TurnEvent =
     // `stage` splits what used to be one step into the order the artist actually
     // needs it in: read and correct the knowledge document FIRST, decide about the
     // About second. At `stage: "doc"` there is no About yet and `about` is null.
-    | { kind: "draft"; stage: "doc" | "about"; doc: string; about: string | null; sources: DocSource[]; selfWrite?: boolean }
+    | { kind: "draft"; stage: "doc" | "about"; doc: string; about: string | null; sources: DocSource[]; selfWrite?: boolean; expectedBio?: string | null }
     | { kind: "complete" }
     | { kind: "error"; message: string };
 
@@ -160,7 +158,7 @@ export type ClientTurn =
     // back — everything downstream is generated from the version they approved,
     // not the version we generated.
     | { type: "about_choice"; mode: "generate" | "self"; doc: string; sources?: DocSource[] }
-    | { type: "publish"; doc: string; about: string; sources?: DocSource[] };
+    | { type: "publish"; doc: string; about: string; sources?: DocSource[]; expectedBio: string | null };
 
 /** How long the vault step waits for web discovery.
  *
@@ -1036,7 +1034,21 @@ export async function applyProfileLinkDecisions(
     return { unrecognized, writeRejected, routedToVaultApproved, routedToVaultPending, vaultInsertFailed, identityBlocked, written };
 }
 
-export async function* runOnboardingTurn(artistId: string, turn: ClientTurn): AsyncGenerator<TurnEvent> {
+export async function* runOnboardingTurn(artistId: string, turn: ClientTurn, ownership: import('@/server/utils/queries/ownershipWrites').ArtistWriteAuth): AsyncGenerator<TurnEvent> {
+    const { withArtistOperation } = await import('@/server/utils/artistOperationContext');
+    const iterator = runOnboardingTurnInternal(artistId, turn, ownership);
+    try {
+        while (true) {
+            const result = await withArtistOperation(artistId, ownership, () => iterator.next());
+            if (result.done) return;
+            yield result.value;
+        }
+    } finally {
+        await withArtistOperation(artistId, ownership, () => iterator.return(undefined));
+    }
+}
+
+async function* runOnboardingTurnInternal(artistId: string, turn: ClientTurn, ownership: import('@/server/utils/queries/ownershipWrites').ArtistWriteAuth): AsyncGenerator<TurnEvent> {
     const state = await getOnboardingState(artistId);
     // `null` = the confirmed-steps read failed (e.g. migration/grants issue) —
     // state is UNKNOWN, not "incomplete". Never guess a step or write anything;
@@ -1266,21 +1278,21 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         const about = await generateAboutFromDoc(artistName, doc, sources);
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
-            const existingBio = artist?.bio;
-            if (isRealBio(existingBio)) await saveBioVersion(artistId, existingBio as string);
-            await upsertArtistDoc(artistId, doc);
-            await upsertArtistDocSources(artistId, sources);
-            await saveBioVersion(artistId, cleanAbout);
-            await db.update(artists).set({ bio: cleanAbout }).where(eq(artists.id, artistId));
+            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+            await persistArtistBio(artistId, cleanAbout, { generated: true, ownership, expectedBio: artist?.bio ?? null, document: { content: doc, sources }, confirmSteps: ['interview', 'publish'] });
             wrote = true;
         }
     } catch (e) {
         console.error("[onboarding] auto-build About generation failed:", e);
+        yield { kind: 'error', message: e instanceof BioConflictError ? e.message : 'Could not publish your About and Lore. Please try again; your saved bio is safe.' };
+        return;
     }
     yield { kind: "progress", label: wrote ? "Wrote your About" : "Couldn't write an About yet", done: true, group: DOC_GROUP };
 
-    await confirmOnboardingStep(artistId, "interview");
-    await confirmOnboardingStep(artistId, "publish");
+    if (!wrote) {
+        yield { kind: 'error', message: 'No About was produced. Please try again.' };
+        return;
+    }
     yield { kind: "chat", text: citable > 0 && wrote ? NARRATION.built : NARRATION.builtThin };
     yield { kind: "complete" };
 }
@@ -1529,18 +1541,22 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         }
         const sources = sanitizeDocSources(turn.sources);
 
+        // Capture BEFORE generating (or opening a self-written draft), then carry
+        // this snapshot through the client. Reading it only on Publish would let
+        // an old draft overwrite a newer edit from another tab.
+        const artist = await getArtistById(artistId);
+        const expectedBio = artist?.bio ?? null;
         if (turn.mode === "self") {
             // No generation at all: an empty About for them to write into. Their
             // words are the point — we shouldn't put a draft in their mouth first.
             yield { kind: "chat", text: NARRATION.selfWrite };
-            yield { kind: "draft", stage: "about", doc, about: "", sources, selfWrite: true };
+            yield { kind: "draft", stage: "about", doc, about: "", sources, selfWrite: true, expectedBio };
             return;
         }
 
         yield { kind: "chat", text: NARRATION.writingAbout };
         yield { kind: "progress", label: "Writing your About", done: false };
         const startedAt = Date.now();
-        const artist = await getArtistById(artistId);
         const artistName = artist?.name ?? "this artist";
         let about: string | null = null;
         try {
@@ -1563,7 +1579,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // Both texts are shown together from here, so the manifest covers both.
         const citedIds = new Set([...extractCitedIds(doc), ...extractCitedIds(about)]);
         yield { kind: "chat", text: NARRATION.draftReady };
-        yield { kind: "draft", stage: "about", doc, about, sources: sources.filter(s => citedIds.has(s.id)) };
+        yield { kind: "draft", stage: "about", doc, about, sources: sources.filter(s => citedIds.has(s.id)), expectedBio };
         return;
     }
 
@@ -1601,24 +1617,17 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // only in this stateless turn; its audit trail is the doc + sources
         // persisted below, which share the same citation ids.
         const cleanAbout = stripCitationMarkers(about);
-        // Snapshot a pre-existing REAL bio before it's overwritten. An artist who
-        // hand-edited their About via updateArtistBio/saveBio has a live bio with
-        // NO version row — publishing here must not destroy it irrecoverably. The
-        // empty-state/claim-nudge bio is not real content and is never versioned.
-        // Any failure here (e.g. version cap reached) should fail the publish, not
-        // silently proceed to overwrite an unsaved bio — do not swallow it.
-        const existingArtist = await getArtistById(artistId);
-        const existingBio = existingArtist?.bio;
-        if (isRealBio(existingBio)) {
-            await saveBioVersion(artistId, existingBio as string);
+        // Shared persistence atomically preserves old/new bios and enforces pins.
+        // Do not pre-save through the explicit history-save cap: a full history
+        // must not prevent publishing or require deleting an artist's saved work.
+        if (turn.expectedBio !== null && (typeof turn.expectedBio !== 'string' || turn.expectedBio.length > MAX_BIO_LENGTH)) {
+            yield { kind: 'error', message: 'This draft is missing its starting bio. Reload and generate a fresh draft before publishing.' };
+            return;
         }
-        await upsertArtistDoc(artistId, doc);
-        await upsertArtistDocSources(artistId, sources);
-        await saveBioVersion(artistId, cleanAbout);
         // The ONLY implicit artists.bio write in this feature — the explicit
         // publish moment (spec §6). Later doc regens never touch the bio.
-        await db.update(artists).set({ bio: cleanAbout }).where(eq(artists.id, artistId));
-        await confirmOnboardingStep(artistId, "publish");
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        await persistArtistBio(artistId, cleanAbout, { generated: true, ownership, expectedBio: turn.expectedBio, document: { content: doc, sources }, confirmSteps: ['publish'] });
         yield { kind: "chat", text: NARRATION.published };
         yield { kind: "complete" };
         return;

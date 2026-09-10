@@ -24,14 +24,16 @@ const TICK_MS = 20_000;
 /** Consecutive "nothing to do" replies before this stops asking. */
 const IDLE_TICKS_BEFORE_STOP = 5;
 
-export function useResearchPump(artistId: string | undefined, enabled = true) {
+export function useResearchPump(artistId: string | undefined, enabled: boolean | number = true, onProgress?: () => Promise<void>) {
     useEffect(() => {
         if (!artistId || !enabled) return;
         let stopped = false;
         let idle = 0;
+        let inFlight = false;
 
         const tick = async () => {
-            if (stopped) return;
+            if (stopped || inFlight) return;
+            inFlight = true;
             try {
                 const res = await fetch("/api/research/advance", {
                     method: "POST",
@@ -39,16 +41,18 @@ export function useResearchPump(artistId: string | undefined, enabled = true) {
                     body: JSON.stringify({ artistId }),
                 });
                 const data = await res.json().catch(() => ({}));
+                if (!stopped && res.ok && onProgress) await onProgress();
                 // Stop after a few empty ticks. A page left open for an hour
                 // should not keep asking a question the answer to which has
                 // been "nothing to do" since the first minute.
                 idle = data?.ran ? 0 : idle + 1;
                 if (idle >= IDLE_TICKS_BEFORE_STOP) { stopped = true; clearInterval(id); }
             } catch { /* background work; never surfaced */ }
+            finally { inFlight = false; }
         };
 
         const id = setInterval(() => void tick(), TICK_MS);
         void tick();
         return () => { stopped = true; clearInterval(id); };
-    }, [artistId, enabled]);
+    }, [artistId, enabled, onProgress]);
 }

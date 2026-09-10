@@ -1,5 +1,9 @@
 # MCP Server for MusicNerd - Product Requirements Document
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](../docs/README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Overview
 
 Add a Model Context Protocol (MCP) server to MusicNerd that exposes artist data to AI assistants and applications. The MCP server enables AI systems to query MusicNerd's artist database, allowing them to answer questions like "based on what musicnerd.xyz knows about <artist>, tell me about what they have been up to lately."

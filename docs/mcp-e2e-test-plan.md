@@ -1,5 +1,9 @@
 # MCP Artist Link Tools — E2E Test Plan
 
+> **Historical plan.** Retained for rationale; tasks and status below describe the original
+> proposal, not the current queue or deployment. Start with the [documentation map](README.md)
+> and compare the current code and handoff before implementing or running these steps.
+
 ## Prerequisites
 
 ### 1. Dev server running

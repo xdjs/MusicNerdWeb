@@ -1,6 +1,7 @@
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
 import { artistDocs, artistInterviewAnswers, artistOnboardingSteps } from "@/server/db/schema";
+import { withScopedArtistWrite } from './ownershipWrites';
 
 /**
  * Post-claim onboarding state. The step order is the chat's forced chain.
@@ -38,10 +39,10 @@ export async function getConfirmedSteps(artistId: string): Promise<Set<Onboardin
 
 /** Written ONLY by an explicit artist action in the chat. Idempotent (two-tab safe). */
 export async function confirmOnboardingStep(artistId: string, step: OnboardingStep): Promise<void> {
-    await db
+    await withScopedArtistWrite(artistId, async tx => { await tx
         .insert(artistOnboardingSteps)
         .values({ artistId, step })
-        .onConflictDoNothing({ target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step] });
+        .onConflictDoNothing({ target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step] }); });
 }
 
 /** `null` return means onboarding state is UNKNOWN (the confirmed-steps read
@@ -68,7 +69,7 @@ export async function upsertInterviewAnswer(input: {
      *  cannot see where one offer ended and the next began. */
     source: "onboarding" | "followup" | "offered";
 }): Promise<void> {
-    await db
+    await withScopedArtistWrite(input.artistId, async tx => { await tx
         .insert(artistInterviewAnswers)
         .values(input)
         .onConflictDoUpdate({
@@ -85,7 +86,7 @@ export async function upsertInterviewAnswer(input: {
                 // `sitting` IS DELIBERATELY ABSENT FROM THIS SET LIST. Answering
                 // a question must leave its stored membership intact.
             },
-        });
+        }); });
 }
 
 /**
@@ -142,7 +143,7 @@ export async function recordInterviewBatchOffered(
         console.error("[recordInterviewBatchOffered] Could not read sitting:", e);
     }
 
-    await db
+    await withScopedArtistWrite(artistId, async tx => { await tx
         .insert(artistInterviewAnswers)
         .values(questions.map(question => ({
             artistId,
@@ -153,7 +154,7 @@ export async function recordInterviewBatchOffered(
         })))
         .onConflictDoNothing({
             target: [artistInterviewAnswers.artistId, artistInterviewAnswers.questionKey],
-        });
+        }); });
 }
 
 /**
@@ -179,13 +180,13 @@ export async function getInterviewAnswers(artistId: string) {
 }
 
 export async function upsertArtistDoc(artistId: string, content: string): Promise<void> {
-    await db
+    await withScopedArtistWrite(artistId, async tx => { await tx
         .insert(artistDocs)
         .values({ artistId, content })
         .onConflictDoUpdate({
             target: [artistDocs.artistId],
             set: { content, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
-        });
+        }); });
 }
 
 /** Separate call from `upsertArtistDoc` on purpose — that function's 2-arg
@@ -194,10 +195,10 @@ export async function upsertArtistDoc(artistId: string, content: string): Promis
  *  Always called immediately after `upsertArtistDoc` in the same publish
  *  handler, so the row is guaranteed to already exist. */
 export async function upsertArtistDocSources(artistId: string, sources: unknown[]): Promise<void> {
-    await db
+    await withScopedArtistWrite(artistId, async tx => { await tx
         .update(artistDocs)
         .set({ sources, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` })
-        .where(eq(artistDocs.artistId, artistId));
+        .where(eq(artistDocs.artistId, artistId)); });
 }
 
 /**

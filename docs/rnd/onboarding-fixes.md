@@ -1,5 +1,7 @@
 # Onboarding fixes — from the 2026-08-21 artist test
 
+> Dated investigation and fix history, not the active task queue. Some early diagnoses were superseded by later fixes in this file. Check MEMORY.md and current code before reopening an item. See the [documentation map](../README.md).
+
 Everything the Pharaoh session surfaced, in the order worth doing it. Source:
 [the writeup](research/2026-08-21-artist-test-pharaoh.md).
 

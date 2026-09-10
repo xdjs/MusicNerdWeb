@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { NextResponse } from 'next/server';
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue(null) }));
 
 // Mock NextResponse
 const mockNextResponseJson = jest.fn().mockImplementation((data, options) => ({
@@ -56,6 +57,7 @@ jest.mock('@/server/utils/queries/externalApiQueries', () => ({
 }));
 
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
+  getBioVersionsByArtistId: jest.fn().mockResolvedValue([]),
   getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 
@@ -172,3 +174,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
     );
   });
 });
+
+jest.mock('@/server/utils/queries/bioPersistence', () => ({
+  persistArtistBio: jest.fn(async (_id: string, bio: string) => bio),
+}));

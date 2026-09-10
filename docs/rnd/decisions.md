@@ -4,11 +4,43 @@ An **index**, newest first. One line per decision plus who made it. The reasonin
 meeting notes — follow the link. Don't restate it here; two copies of the same decision drift.
 
 A line goes here when something changes what we build or how we work. Still open? Bottom of the
-file.
+file. Meeting decisions record intent at that date, not implementation or deployment. Current
+engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
+[CLAUDE.md](../../CLAUDE.md).
 
 ---
 
-## 2026-09-02 · standup
+## 2026-09-09 · [standup](meetings/2026-09-09.md)
+
+- Pete coordinates Patrick Sweetman's onboarding and agrees useful first tasks with him. The
+  meeting did not assign feature ownership; Pete subsequently requested the docs cleanup. — team
+
+## 2026-09-08 · [standup](meetings/2026-09-08.md)
+
+- Log artist feedback and choose fixes without promising every request. — Carl, Pete, CY
+- Continuous backups were deferred at this meeting; investigate the missing biography through
+  an isolated restore. A human-edit lock was proposed, not confirmed implemented. — team
+
+## 2026-09-07 · [standup](meetings/2026-09-07.md)
+
+- Use compact mobile constraints to guide the next artist-profile design iteration. — Carl, Pete
+- That week's Thursday demo moves to 11:00 AM Eastern and replaces the standup; the community
+  session remains separate. Check the calendar for ongoing scheduling. — team
+
+## 2026-09-04 · [standup](meetings/2026-09-04.md)
+
+- Try a shared repository-context agent with Hermes and a dedicated channel. An auxiliary
+  experiment, not a required web-app dependency or proof of a running service. — Carl, Pete
+
+## 2026-09-03 · [R&D](meetings/2026-09-03.md) · [design review](meetings/2026-09-03-profile-design.md)
+
+- Focus the next design work on the artist profile, targeting an improved release by the end
+  of September. — team
+- Rename the artist-facing Vault section to **Lore**. Internal code/schema names are separate. — team
+- Place Latest after About as the initial design direction and make the artist's answers
+  visible. Longer-term profile layout remains under iteration. — Pete, Tom, Carl, CY
+
+## 2026-09-02 · [standup](meetings/2026-09-02.md)
 
 **Product**
 
@@ -16,14 +48,52 @@ file.
   we're not doing that initially. — Carl, Pete
 - A **latest-activity section** on the artist profile, surfacing the answers artists give to
   interview questions. These become the "nuggets" MNTv draws on, shown next to the artist's social
-  updates with a call to action back to the source post. Agreed work, next up. — Carl
+  updates with a call to action back to the source post. Implementation status is in
+  `MEMORY.md`. — Carl
 
 **How we work**
 
 - **Releases:** reviewer green light → Pete tells Carl → Carl merges `staging` to `main`. Squash,
-  per the `default` ruleset, which allows only squash and rebase and has no bypass actors.
+  as recorded at the time; verify the current GitHub ruleset before release actions.
 - **Agents must write tests for each new feature.** Raised by Carl after a week where staging
   caught failures the local suite had missed. — Carl
+
+## 2026-09-01 · [standup](meetings/2026-09-01.md)
+
+- Preserve inactive projects by archiving them and propose a clearer Discord structure. — team
+- Try turntable.fyi before making further integration decisions. — team
+
+## 2026-08-31 · [standup](meetings/2026-08-31.md)
+
+- Present one main social account per artist for now; revisit additional-account UI when
+  artist feedback warrants it. This is not a bulk-deletion or identity-merge instruction. — Carl, Pete
+- Keep standups brief: check-in, yesterday/today, availability. — Carl, Pete
+
+## 2026-08-27 · [R&D](meetings/2026-08-27.md)
+
+- Prioritize underground artists; big-name artists are a non-goal for this stage. — Carl, CY
+- Deliver the initial interview in chat, not an email cadence. — team
+- Defer contribution mechanics beyond links while profile claiming is the focus. — Carl
+- Use domain credibility in source judging and make profile/knowledge content readable by
+  crawlers. Verify actual access rather than assuming client-rendered content is available. — team
+- Finish profile claiming before MNTv integration. — Carl, Pete
+- Separate retrospectives from R&D and start daily 15-minute standups. Later scheduling updates
+  supersede the original time. — team
+
+## 2026-08-24 · [showcase planning](meetings/2026-08-24-showcase-planning.md)
+
+- Start with an every-other-week showcase incorporating feedback/discussion, using Riverside
+  as the preferred recording platform. This revises the August 20 monthly format. — Pete, Black Dave
+
+## 2026-08-21 · [artist test](research/2026-08-21-artist-test-pharaoh.md)
+
+**Product**
+
+- An artist's own website is surfaced beside Links on the profile, not buried in the vault —
+  stored as an approved vault source of type `website`, no schema change. — Pete
+- "Social Links" is renamed "Links". — Pete
+
+**Open questions this raised** (below)
 
 ## 2026-08-20 · [meeting notes](meetings/2026-08-20.md)
 
@@ -49,7 +119,8 @@ file.
 **How we work** — [reasoning](meetings/2026-08-20.md#shared-context-in-the-repo)
 
 - Shared context lives in this repo as markdown, not a separate system. — Carl
-- Docs-only commits can go straight to `main`. — Carl
+- Docs-only direct-to-`main` permission was given then. **Superseded by current operating
+  practice:** docs follow feature → staging → main and the release gate in `CLAUDE.md`. — Carl
 - The retro moves to 0:42 with ten minutes, from 0:51 with five. — from the retro
 
 **Direction**
@@ -60,61 +131,50 @@ file.
 
 **Events** — [reasoning](meetings/2026-08-20.md#roundtable--showcase)
 
-- Roundtable and showcase are monthly each — roundtable top of month, showcase end. — team
+- Originally monthly roundtable and showcase; **revised by August 24 showcase planning** and
+  subsequent Feed Forward scheduling. — team
 - Record in Riverside. — Pete, endorsed
 - Invites go to the Music Nerd email list from Jade. Approved. — CY
 
 ---
 
-## 2026-08-21 · [artist test](research/2026-08-21-artist-test-pharaoh.md)
+## Questions resolved or narrowed since August 21
 
-**Product**
-
-- An artist's own website is surfaced beside Links on the profile, not buried in the vault —
-  stored as an approved vault source of type `website`, no schema change. — Pete
-- "Social Links" is renamed "Links". — Pete
-
-**Open questions this raised** (below)
-
----
+- **Where do answers appear?** September 2 chose Latest. The implementation and its release
+  limits are in [Latest](../artist-latest.md) and `MEMORY.md`.
+- **When are interview questions asked?** They are opt-in from the profile, with repeat sittings
+  gated by new research. See [onboarding fix 5](onboarding-fixes.md#5-the-interview-should-be-opt-in-and-repeatable-done).
+  A future email path remains undecided.
+- **How is Instagram research triggered?** The earlier CLI-only observation is obsolete.
+  Existing durable research jobs handle ingest/extraction and readiness; see
+  [onboarding fix 6](onboarding-fixes.md#6-caption-extraction-needs-a-durable-job-not-a-request-callback-done).
+- **Must onboarding remain long?** The team proceeded with the collapsed/profile-review
+  direction. The early artist test remains evidence for future usability work, not an open
+  instruction to reverse the implemented flow.
 
 ## Open
 
 Raised, not settled. Move up into a dated section when they close.
 
-- **Drop the staging branch** for feature branches straight into `main`? Floated by Carl 8/20,
-  not decided. Code still follows `CLAUDE.md`.
-- **Wizard vs. per-section affordances** for profile editing — both named, neither chosen. Build
-  both and compare. *(8/20)*
-- **Does the knowledge document keep source references?** Pete wants provenance; artist edits
-  leave unreferenced lines beside referenced ones. Carl suggested suppressing them. *(8/20)*
+- **Drop the staging branch?** Historical proposal from August 20, not adopted in the current
+  guide. All work, including docs, continues through staging. Revisit only as an explicit team
+  workflow decision.
+- **Longer-term profile editing and layout.** August 20 proposed a wizard/per-section
+  comparison; September 3 reviewed a working wizard and September 7 reopened the mobile
+  layout. No final redesign was selected. Follow the current design task, not a blanket
+  instruction to build both. See [design review](meetings/2026-09-03-profile-design.md).
+- **How should citations appear beside artist edits?** The August 20 presentation question
+  was unresolved. It does not override the current requirement to preserve provenance and
+  real source URLs in stored research. Decide the presentation without discarding evidence.
 - **Does the artist want editorialising or transcription?** Pharaoh asked for "an editorial
   version" of what he typed rather than it being handed back verbatim. That is the exact
   behaviour the About's "mine, don't summarize" mandate and factual voice were built to prevent,
   after the Black Dave conflation. Both positions are defensible; the line between shaping and
   inventing needs drawing deliberately. *(8/21)*
-- **Does the flow actually need collapsing?** The one artist who has walked it called it
-  "streamlined" and never mentioned length — which cuts against the 8/20 premise. Weak evidence
-  (in-person, friendly, zero abandonment pressure), but it is the only evidence we have. Worth
-  putting to Carl before rebuilding around the opposite assumption. *(8/21)*
-- **Where do the artist's answers get displayed?** Today an interview answer is pure input — it
-  feeds the knowledge doc, the About, and the Ask section, and the artist never sees the sentence
-  they wrote presented as theirs. Set against CY's "feeling seen" bar, an answer that dissolves
-  into third-person prose reads as being harvested, not seen. And it's Pharaoh's complaint from
-  the other side: he could tell the output was his own words handed back. Sketched in
-  [notes](notes/claude/2026-08-21-where-do-the-artists-answers-go.md). Raised by Pete. *(8/21)*
-- **When do the questions get asked if the flow collapses?** There's no interview step to hang
-  them on once onboarding becomes claim → confirm → pre-filled profile. Inside the guided review,
-  in the weekly email cadence, or one of each. Also deletes the scrape-vs-artist race the current
-  wait works around. Raised by Pete. *(8/21)*
-- **Wiring Instagram ingestion into the flow.** `ingestInstagramPosts` is called only by a manual
-  CLI script, so the grounded-question feature has never run on data it collected itself. Needs a
-  decision on where it triggers and what happens during the wait, given it's an Apify round-trip
-  on a user-facing path. *(8/21)*
-- **Does the Instagram scrape stay inside onboarding, or move after profile generation?** It is
-  the only per-claim cost in the flow denominated in cash. **Leaving it on for now** — Pete, 8/22
-  — and taking it to the team. Numbers and the emails-about-posts direction are in
-  [onboarding-fixes 4.5](onboarding-fixes.md). *(8/22)*
+- **What should ongoing social refresh cost and how often should it run?** The August 22
+  question about scraping inside onboarding predates the durable-job implementation. Keep
+  the existing job path; future refresh cadence and image retention remain separate product
+  decisions. See [Latest limits](../artist-latest.md#known-limits-and-next-decisions).
 
 - **How does one human hold several DSP artist profiles?** Sherwinn "Dupes" Brice has four Deezer
   entities and can claim one — compounds minted before multi-primary-artist support ("X & Hebrue")
@@ -134,9 +194,9 @@ Raised, not settled. Move up into a dated section when they close.
 - **How relationships in the database become explorable** — what counts as an edge, whether edges
   weigh equally, verified vs. inferred vs. artist-described. On the 8/20 agenda, never reached.
 
-- **Do long-running jobs need a server of their own?** Vercel kills a function at 60 seconds, and
-  the work that matters here does not fit: an Instagram scrape takes one to five minutes, caption
-  extraction seventy seconds for a small feed and several for a large one. Running it inside the
+- **Do long-running research jobs need a server of their own?** The application’s research
+  route uses a 60-second invocation budget. The September 2 discussion described Instagram
+  scraping and extraction taking minutes, depending on the feed. Running it inside the
   onboarding request meant the platform cut it off partway and the artist's credits never arrived.
   The current answer is `artist_research_jobs` plus a once-a-minute cron that takes as many slices
   as fit in an invocation and leaves a cursor behind — the work survives the request, at the cost

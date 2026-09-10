@@ -1,5 +1,7 @@
 # Follow-up questions: what gets asked, when, and where it comes from
 
+> Historical email-delivery proposal. The August 27 meeting chose chat for the initial interview; email cadence below is not the current implementation contract. See the [documentation map](../README.md).
+
 Pete, 8/23: *"what are the set of questions that would be sent out and in what cadence for an
 artist to answer? and when would those questions be created and how does it pull from instagram
 to keep the questions current and how does it explore the past?"*

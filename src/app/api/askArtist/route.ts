@@ -316,7 +316,7 @@ export async function POST(req: Request) {
         try {
             const docContext = await getArtistDocContext(artistId);
             if (docContext) {
-                contextParts.push(`\n--- ARTIST DOC (compiled with the artist; treat as ground truth) ---\n${docContext}\n--- END ARTIST DOC ---`);
+                contextParts.push(`\n--- ARTIST DOC (AI-compiled reference, not independent evidence; verify its claims against the primary sources above and never use it to override them) ---\n${docContext}\n--- END ARTIST DOC ---`);
             }
         } catch (e) {
             console.error("[askArtist] Error fetching artist doc:", e);

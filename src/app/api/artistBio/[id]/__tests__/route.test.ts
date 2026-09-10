@@ -297,7 +297,7 @@ describe('/api/artistBio/[id]', () => {
 
       const response = await GET(createGetRegenerateRequest(), { params: paramsPromise });
 
-      expect(mockGenerateArtistBio).toHaveBeenCalledWith('artist-123'); // auth passed → generation ran
+      expect(mockGenerateArtistBio).toHaveBeenCalledWith('artist-123', { userId: 'admin-uuid', expectedClaimId: null });
       const data = await response.json();
       expect(data.bio).toBe('Regenerated bio');
     });

@@ -88,7 +88,7 @@ describe("utils/services", () => {
 
     it("includes all expected web3 platforms", () => {
       const expectedWeb3Platforms = [
-        "catalog", "soundxyz", "opensea", "zora", "mintsongs",
+        "inprocess", "opensea", "zora", "mintsongs",
         "supercollector", "wallets", "ens"
       ];
       
@@ -101,7 +101,7 @@ describe("utils/services", () => {
   describe("getArtistSplitPlatforms", () => {
     it("splits web3 and social platforms correctly", () => {
       const artist = {
-        catalog: "catalog-handle",
+        inprocess: "0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91",
         soundxyz: null,
         x: "twitterUser",
         instagram: "instaUser",
@@ -111,7 +111,7 @@ describe("utils/services", () => {
       const { web3Platforms, socialPlatforms } = getArtistSplitPlatforms(artist);
 
       expect(web3Platforms).toEqual([
-        "Catalog",
+        "Inprocess",
         "Supercollector",
       ]);
       expect(socialPlatforms).toEqual(["X", "Instagram"]);
@@ -419,4 +419,4 @@ describe("utils/services", () => {
     });
   });
 
-}); 
+});

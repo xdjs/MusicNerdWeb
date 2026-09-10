@@ -138,6 +138,21 @@ describe("searchAndPopulateVault", () => {
     expect(result).toHaveLength(1);
   });
 
+  it("retains the initiating ownership through discovery and source insertion", async () => {
+    mockWebSearch.mockResolvedValue([hit("https://example.com/a")]);
+    const { getActiveArtistOperation } = await import("../../artistOperationContext");
+    const observed = [];
+    mockInsert.mockImplementation(async () => {
+      await Promise.resolve();
+      observed.push(getActiveArtistOperation());
+      return { id: "src-1", url: "https://example.com/a", status: "pending" };
+    });
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1", { ownership: { userId: "owner", expectedClaimId: "original-claim" } });
+    expect(observed).toEqual([{ artistId: "a1", userId: "owner", expectedClaimId: "original-claim" }]);
+    expect(getActiveArtistOperation()).toBeUndefined();
+  });
+
   it("returns [] when the search API finds nothing, without inserting", async () => {
     mockWebSearch.mockResolvedValue([]);
     const { searchAndPopulateVault } = await import("../vaultWebSearch");

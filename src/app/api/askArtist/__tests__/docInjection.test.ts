@@ -36,6 +36,8 @@ describe('POST /api/askArtist injects the artist doc', () => {
         const sys = generateContent.mock.calls[0][0].config.systemInstruction;
         expect(sys).toContain('--- ARTIST DOC');
         expect(sys).toContain('water tower');
+        expect(sys).toContain('not independent evidence');
+        expect(sys).not.toContain('compiled with the artist; treat as ground truth');
     });
 
     it('still answers when doc lookup throws', async () => {

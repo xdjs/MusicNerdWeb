@@ -265,7 +265,7 @@ export async function getAllLinks() {
     if (urlmapCache && Date.now() - urlmapCache.at < URLMAP_TTL_MS) return urlmapCache.rows;
     const start = performance.now();
     try {
-        const rows = await db.query.urlmap.findMany();
+        const rows = (await db.query.urlmap.findMany()).filter(row => !['catalog', 'foundation', 'soundxyz', 'sound'].includes(row.siteName));
         urlmapCache = { rows, at: Date.now() };
         return rows;
     } finally {
@@ -1061,14 +1061,14 @@ export async function removeArtistData(artistId: string, siteName: string): Prom
 // ----------------------------------
 // Bio update helper
 // ----------------------------------
-export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean = false): Promise<RemoveArtistDataResp> {
+export async function updateArtistBio(artistId: string, bio: string, regenerate: boolean, ownership: import('./ownershipWrites').ArtistWriteAuth): Promise<RemoveArtistDataResp> {
     try {
         if (regenerate) {
             // Snapshot the current About so we can tell a real regeneration apart from a
             // no-op (discovery is flaky; when it finds nothing new the clobber-guard in
             // generateArtistBio preserves the existing bio unchanged).
             const priorBio = (await getArtistById(artistId))?.bio ?? null;
-            const generatedBio = await regenerateArtistBio(artistId);
+            const generatedBio = await regenerateArtistBio(artistId, ownership);
             if (!generatedBio) {
                 return { status: "error", message: "Failed to generate bio" };
             }
@@ -1079,17 +1079,18 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
             }
             // Discovery found nothing new — the existing About was preserved, not regenerated.
             if (priorBio !== null && generatedBio === priorBio) {
-                return { status: "success", message: "No new sources found — About unchanged", data: generatedBio };
+                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise no new verified information was found.", data: generatedBio };
             }
             return { status: "success", message: "Bio regenerated", data: generatedBio };
         } else {
             // Update with provided bio
-            await db.update(artists).set({ bio }).where(eq(artists.id, artistId));
+            const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+            await persistArtistBio(artistId, bio, { ownership });
             return { status: "success", message: "Bio updated" };
         }
     } catch (e) {
         console.error("Error updating bio", e);
-        return { status: "error", message: "Error updating bio" };
+        return { status: "error", message: e instanceof Error ? e.message : "Error updating bio" };
     }
 }
 

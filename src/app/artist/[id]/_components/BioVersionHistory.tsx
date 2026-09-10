@@ -9,6 +9,7 @@ import {
     getArtistBioVersions,
     pinBioVersionAction,
     deleteBioVersionAction,
+    unpinBioAction,
 } from "@/app/actions/dashboardActions";
 
 interface BioVersion {
@@ -19,7 +20,7 @@ interface BioVersion {
     createdAt: string;
 }
 
-export default function BioVersionHistory({ artistId }: { artistId: string }) {
+export default function BioVersionHistory({ artistId, onChanged, revision = 0 }: { artistId: string; onChanged?: () => void; revision?: number }) {
     const { isEditing } = useContext(EditModeContext);
     const { toast } = useToast();
     const [versions, setVersions] = useState<BioVersion[]>([]);
@@ -43,7 +44,7 @@ export default function BioVersionHistory({ artistId }: { artistId: string }) {
             })
             .finally(() => { if (active) { setLoading(false); setLoaded(true); } });
         return () => { active = false; };
-    }, [isEditing, artistId]);
+    }, [isEditing, artistId, revision]);
 
     if (!isEditing) return null;
 
@@ -51,6 +52,8 @@ export default function BioVersionHistory({ artistId }: { artistId: string }) {
         const res = await pinBioVersionAction(id, artistId);
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: v.id === id })));
+            onChanged?.();
+            toast({ title: 'Bio pinned and locked', description: 'Unpin it before editing or regenerating.' });
         } else {
             toast({ title: "Couldn't pin version", description: res.error ?? "Please try again", variant: "destructive" });
         }
@@ -66,8 +69,17 @@ export default function BioVersionHistory({ artistId }: { artistId: string }) {
         }
     }
 
+    async function handleUnpin() {
+        const res = await unpinBioAction(artistId);
+        if (res.success) {
+            setVersions(prev => prev.map(v => ({ ...v, isPinned: false })));
+            onChanged?.();
+        } else toast({ title: "Couldn't unpin bio", description: res.error, variant: 'destructive' });
+    }
+
     return (
         <div className="space-y-2">
+            {versions.some(v => v.isPinned) && <p className="text-xs text-muted-foreground">Your pinned bio is locked. <button type="button" onClick={handleUnpin} className="underline">Unpin to edit or regenerate</button>. The saved version will be kept.</p>}
             <button
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}

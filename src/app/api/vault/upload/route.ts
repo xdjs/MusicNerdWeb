@@ -7,10 +7,14 @@ import { supabaseAdmin, VAULT_BUCKET, isSupabaseStorageConfigured } from "@/serv
 import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 import { resolveUploadType } from "@/server/utils/resolveUploadType";
 import { extractPdfText } from "@/server/utils/extractPdfText";
+import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL, getUploadSourceType } from '@/lib/vaultUpload';
+import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 export const dynamic = "force-dynamic";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = MAX_VAULT_FILE_BYTES;
 const ALLOWED_TYPES = [
     "application/pdf",
     "text/plain",
@@ -42,6 +46,7 @@ const MIME_EXT_MAP: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+    let unpublishedPath: string | undefined;
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -56,6 +61,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "File and artistId are required" }, { status: 400 });
         }
 
+        const expectedClaimId = await getLoreClaimGeneration(artistId);
         if (!(await canEditArtist(session.user.id, artistId))) {
             return NextResponse.json({ error: "Not authorized for this artist" }, { status: 403 });
         }
@@ -63,7 +69,7 @@ export async function POST(req: Request) {
         if (file.size > MAX_FILE_SIZE) {
             console.error("[vault/upload] rejected:", { name: file.name, type: file.type, size: file.size, reason: "too_large" });
             return NextResponse.json(
-                { error: `File too large: ${formatFileSize(file.size)} (max 10MB)` },
+                { error: `File too large: ${formatFileSize(file.size)} (maximum ${VAULT_UPLOAD_LIMIT_LABEL})` },
                 { status: 400 }
             );
         }
@@ -129,6 +135,7 @@ export async function POST(req: Request) {
         }
 
         // Get public URL
+        unpublishedPath = storagePath;
         const { data: urlData } = supabaseAdmin.storage
             .from(VAULT_BUCKET)
             .getPublicUrl(storagePath);
@@ -161,30 +168,34 @@ export async function POST(req: Request) {
             url: publicUrl,
             title: file.name,
             snippet: extractedText ? extractedText.slice(0, 300) : `Uploaded file: ${file.name} (${formatFileSize(file.size)})`,
-            type: getSourceType(resolvedType),
+            type: getUploadSourceType(resolvedType),
             status: "approved",
             fileName: file.name,
             fileSize: file.size,
             filePath: storagePath,
             contentType: resolvedType,
             extractedText: extractedText ?? null,
-        });
+        }, { userId: session.user.id, expectedClaimId });
+        unpublishedPath = undefined;
 
-        return NextResponse.json({ success: true, source });
+        let refreshWarning: string | undefined;
+        try { await queueLoreRefresh(artistId, expectedClaimId); }
+        catch (error) {
+            console.error('[vault/upload] Saved upload; Lore enqueue failed', error);
+            refreshWarning = 'File saved. Use Look again to retry the Lore refresh; do not upload again.';
+        }
+        return NextResponse.json({ success: true, source,
+            warning: [refreshWarning, resolvedType === 'application/pdf' && !extractedText
+                ? 'PDF saved, but no readable text was found. Upload a text-based PDF to use it in Lore.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {
+        if (error instanceof OwnershipChangedError && unpublishedPath) {
+            const { error: cleanupError } = await supabaseAdmin.storage.from(VAULT_BUCKET).remove([unpublishedPath]);
+            if (cleanupError) console.error('[vault/upload] Rejected upload cleanup failed', cleanupError);
+        }
         console.error("[vault/upload] Error:", error);
+        if (error instanceof OwnershipChangedError) return NextResponse.json({ error: error.message }, { status: 403 });
         return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
     }
-}
-
-function getSourceType(mimeType: string): string {
-    if (mimeType.startsWith("image/")) return "image";
-    if (mimeType.startsWith("audio/")) return "audio";
-    if (mimeType === "application/pdf") return "document";
-    if (mimeType.includes("word")) return "document";
-    if (mimeType === "text/plain" || mimeType === "text/markdown") return "document";
-    if (mimeType === "text/csv" || mimeType === "application/json") return "data";
-    return "document";
 }
 
 function formatFileSize(bytes: number): string {
