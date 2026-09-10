@@ -5,6 +5,22 @@ forward until they're done or dropped.
 
 ---
 
+## September 10 · [R&D](meetings/2026-09-10.md)
+
+First retro with Sweetman present. Carl introduced the format; Sweetman deferred his items until
+he has more context.
+
+**Keep**
+- Adding In Process to the profile; keep moving toward Latest without rushing it. (Pete)
+- Turning artist feedback into shipped output, as with the last release. (CY)
+- Sweetman on the team. (Carl)
+
+**Fix**
+- Documentation organization. (Pete)
+
+**Try**
+- Iterate on the profile UI and test it with a range of artists next week. (Pete)
+
 ## September 9 engineering cycle — input for the next retro
 
 Pete requested this handoff after the profile-release review; these are engineering lessons,
