@@ -1,7 +1,7 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
-import { withArtistUploadWrite, type WriteDb } from './ownershipWrites';
+import { withArtistUploadWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb } from './ownershipWrites';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bioConstants';
 
 /**
@@ -491,12 +491,13 @@ export async function getBioVersionsByArtistId(artistId: string) {
 
 const MAX_BIO_VERSIONS = 50;
 
-export async function saveBioVersion(artistId: string, bioText: string) {
+export async function saveBioVersion(artistId: string, bioText: string, auth: ArtistWriteAuth) {
     try {
         if (!isRealBio(bioText)) throw new Error('Write a bio before saving a version.');
         // All operations in a single transaction to prevent TOCTOU race on version cap
         return await db.transaction(async (tx) => {
             await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
             // Never discard an artist's saved history automatically.
             const existing = await tx.query.artistBioVersions.findMany({
                 where: eq(artistBioVersions.artistId, artistId),
@@ -520,12 +521,13 @@ export async function saveBioVersion(artistId: string, bioText: string) {
     }
 }
 
-export async function pinBioVersion(versionId: string, artistId: string) {
+export async function pinBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
     try {
         // Atomic: unpin all → pin selected → update artist bio
-        // Ownership is enforced by the WHERE clause (artistId match)
+        // Reauthorize under the same lock; artistId matching alone is not ownership.
         return await db.transaction(async (tx) => {
             await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
             const selected = await tx.query.artistBioVersions.findFirst({
                 where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
             });
@@ -563,11 +565,12 @@ export async function pinBioVersion(versionId: string, artistId: string) {
     }
 }
 
-export async function deleteBioVersion(versionId: string, artistId: string) {
+export async function deleteBioVersion(versionId: string, artistId: string, auth: ArtistWriteAuth) {
     try {
         // Atomic check + delete to prevent TOCTOU race with concurrent pin
         return await db.transaction(async (tx) => {
             await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+            await authorizeLockedArtistWrite(tx, artistId, auth);
             const version = await tx.query.artistBioVersions.findFirst({
                 where: and(eq(artistBioVersions.id, versionId), eq(artistBioVersions.artistId, artistId)),
             });
@@ -586,9 +589,10 @@ export async function deleteBioVersion(versionId: string, artistId: string) {
     }
 }
 
-export async function unpinArtistBio(artistId: string) {
+export async function unpinArtistBio(artistId: string, auth: ArtistWriteAuth) {
     await db.transaction(async tx => {
         await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
+        await authorizeLockedArtistWrite(tx, artistId, auth);
         await tx.update(artistBioVersions).set({ isPinned: false })
             .where(eq(artistBioVersions.artistId, artistId));
     });

@@ -3,8 +3,22 @@ import { artistClaims, artistResearchJobs, users } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 
 export type WriteDb = Pick<typeof db, 'insert' | 'delete' | 'execute'>;
+type TransactionDb = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type ArtistWriteAuth = { userId: string; expectedClaimId: string | null };
 export class OwnershipChangedError extends Error {
     constructor() { super('Artist ownership changed; this operation was cancelled.'); }
+}
+
+/** Call only after taking the artist row lock, in the mutation's transaction. */
+export async function authorizeLockedArtistWrite(tx: TransactionDb, artistId: string, auth: ArtistWriteAuth) {
+    const claim = await tx.query.artistClaims.findFirst({
+        where: and(eq(artistClaims.artistId, artistId), eq(artistClaims.status, 'approved')),
+    });
+    if ((claim?.id ?? null) !== auth.expectedClaimId) throw new OwnershipChangedError();
+    if (claim?.userId !== auth.userId) {
+        const user = await tx.query.users.findFirst({ where: eq(users.id, auth.userId) });
+        if (!user?.isAdmin) throw new OwnershipChangedError();
+    }
 }
 
 /** Only the short database write is locked, never extraction or remote I/O. */
@@ -23,14 +37,7 @@ export async function withArtistUploadWrite<T>(artistId: string, userId: string,
     write: (tx: WriteDb) => Promise<T>): Promise<T> {
     return db.transaction(async tx => {
         await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
-        const claim = await tx.query.artistClaims.findFirst({
-            where: and(eq(artistClaims.artistId, artistId), eq(artistClaims.status, 'approved')),
-        });
-        if ((claim?.id ?? null) !== expectedClaimId) throw new OwnershipChangedError();
-        if (claim?.userId !== userId) {
-            const user = await tx.query.users.findFirst({ where: eq(users.id, userId) });
-            if (!user?.isAdmin) throw new OwnershipChangedError();
-        }
+        await authorizeLockedArtistWrite(tx, artistId, { userId, expectedClaimId });
         return write(tx);
     });
 }

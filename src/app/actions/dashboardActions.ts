@@ -388,7 +388,7 @@ export async function saveCurrentBio(bioText: string, targetArtistId?: string): 
         const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
         if ("error" in resolved) return { success: false, error: resolved.error };
 
-        await saveBioVersion(resolved.artistId, bioText);
+        await saveBioVersion(resolved.artistId, bioText, { userId: session.user.id, expectedClaimId: resolved.claimId });
         return { success: true };
     } catch (error) {
         console.error("[saveCurrentBio] Error:", error);
@@ -398,14 +398,14 @@ export async function saveCurrentBio(bioText: string, targetArtistId?: string): 
 }
 
 /** Resolve the artistId for bio version actions — admin can target any artist via the version's owner */
-async function resolveBioArtistId(userId: string, targetArtistId?: string): Promise<{ artistId: string } | { error: string }> {
+async function resolveBioArtistId(userId: string, targetArtistId?: string): Promise<{ artistId: string; claimId: string | null } | { error: string }> {
     if (targetArtistId) {
-        if (await canEditArtist(userId, targetArtistId)) return { artistId: targetArtistId };
-        return { error: "Not authorized for this artist" };
+        const auth = await verifyArtistEditable(userId, targetArtistId);
+        return auth.ok ? { artistId: targetArtistId, claimId: auth.claimId } : { error: auth.error };
     }
     const claim = await getApprovedClaimByUserId(userId);
     if (!claim) return { error: "No claimed artist profile" };
-    return { artistId: claim.artistId };
+    return { artistId: claim.artistId, claimId: claim.id };
 }
 
 export async function pinBioVersionAction(versionId: string, targetArtistId?: string): Promise<{ success: boolean; error?: string }> {
@@ -416,7 +416,7 @@ export async function pinBioVersionAction(versionId: string, targetArtistId?: st
         const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
         if ("error" in resolved) return { success: false, error: resolved.error };
 
-        const pinned = await pinBioVersion(versionId, resolved.artistId);
+        const pinned = await pinBioVersion(versionId, resolved.artistId, { userId: session.user.id, expectedClaimId: resolved.claimId });
         if (!pinned) return { success: false, error: "Bio version not found" };
         return { success: true };
     } catch (error) {
@@ -433,7 +433,7 @@ export async function deleteBioVersionAction(versionId: string, targetArtistId?:
         const resolved = await resolveBioArtistId(session.user.id, targetArtistId);
         if ("error" in resolved) return { success: false, error: resolved.error };
 
-        const deleted = await deleteBioVersion(versionId, resolved.artistId);
+        const deleted = await deleteBioVersion(versionId, resolved.artistId, { userId: session.user.id, expectedClaimId: resolved.claimId });
         if (!deleted) return { success: false, error: "Bio version not found" };
         return { success: true };
     } catch (error) {
@@ -446,9 +446,10 @@ export async function deleteBioVersionAction(versionId: string, targetArtistId?:
 export async function unpinBioAction(artistId: string): Promise<{ success: boolean; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: 'Not authenticated' };
-    if (!(await canEditArtist(session.user.id, artistId))) return { success: false, error: 'Not authorized' };
     try {
-        await unpinArtistBio(artistId);
+        const auth = await verifyArtistEditable(session.user.id, artistId);
+        if (!auth.ok) return { success: false, error: auth.error };
+        await unpinArtistBio(artistId, { userId: session.user.id, expectedClaimId: auth.claimId });
         return { success: true };
     } catch {
         return { success: false, error: 'Could not unpin bio' };
