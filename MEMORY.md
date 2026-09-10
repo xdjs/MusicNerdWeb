@@ -69,16 +69,21 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
   PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
   and needs a separate fix; do not describe this as end-to-end UI verification.
 - **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
-  182 suites / 2,232 tests passed / 6 skipped, coverage and production build with stub
+  182 suites / 2,237 tests passed / 6 skipped, coverage and production build with stub
   build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
   coalescing and completion with transaction fixtures rolled back. Browser confirmed
   In Process, upload copy, a real PDF upload, and historical pin + regeneration protection.
   Real extraction yielded 79,823 chars; signed storage accepted 10 MiB and rejected one
   byte over. A stale local Gemini key returned 403; using the current Vercel development-
   scoped key completed the real Lore worker and rendered the resulting doc in the browser.
-  Nineteen Codex findings have been addressed, including the retired-platform audit.
+  Twenty Codex findings have been addressed, including the retired-platform audit and
+  rejected-upload staging cleanup. Cleanup errors retain same-ticket retry; permission
+  loss and recovered/saved uploads also attempt temporary-object cleanup.
+  Live dev endpoint checks verified size/type rejection removes storage records and
+  creates no public upload/source. Immediate downloads can return cached deleted bytes;
+  storage listings confirmed removal. Disposable fixture and server were cleaned up.
   The audit passes against dev; three focused regression tests preserve active-platform drift checks.
-  Review must run again on the integration commit before merging.
+  Review must run again on the cleanup commit before merging.
   Follow-up fixes cover ownership-generation fencing, atomic onboarding publication,
   stale bio drafts, placeholder history and idempotent upload/save recovery.
   These follow-ups have regression/full-CI coverage, not a new real-login browser run.

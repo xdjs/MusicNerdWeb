@@ -72,7 +72,8 @@ describe('direct private-storage uploads', () => {
         const response = await complete(req({ ticket }));
         expect(response.status).toBe(403);
         expect(bucket.upload).toHaveBeenCalled();
-        expect(from).toHaveBeenLastCalledWith('vault-files');
+        expect(from).toHaveBeenLastCalledWith('lore-upload-staging');
+        expect(bucket.remove).toHaveBeenCalledTimes(2);
         expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
         expect(queue.queueLoreRefresh).not.toHaveBeenCalled();
     });
@@ -83,6 +84,7 @@ describe('direct private-storage uploads', () => {
         expect((await complete(req({ ticket }))).status).toBe(400);
         expect(() => tickets.readUploadTicket(tickets.signUploadTicket({ userId:'owner', expires:0 }), 'owner')).toThrow();
         expect(bucket.download).not.toHaveBeenCalled();
+        expect(bucket.remove).not.toHaveBeenCalled();
     });
     it('extracts PDF text and queues Lore only after validating and saving the source', async () => {
         const { complete, ticket, dq, queue, bucket, from } = await setup();
@@ -117,13 +119,14 @@ describe('direct private-storage uploads', () => {
         expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
     });
     it('recovers a committed source after a lost insert response without deleting its file', async () => {
-        const { complete, ticket, bucket, dq } = await setup();
+        const { complete, ticket, bucket, dq, from } = await setup();
         dq.insertVaultSource.mockRejectedValue(new Error('connection lost after commit'));
         dq.getVaultUploadByPath.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'committed-source' });
         const response = await complete(req({ ticket }));
         expect(response.status).toBe(200);
         expect((await response.json()).source.id).toBe('committed-source');
-        expect(bucket.remove).not.toHaveBeenCalled();
+        expect(from).toHaveBeenLastCalledWith('lore-upload-staging');
+        expect(bucket.remove).toHaveBeenCalledTimes(1);
     });
     it('preserves uncertain publication and requests same-ticket retry if reconciliation fails', async () => {
         const { complete, ticket, bucket, dq } = await setup();
@@ -142,11 +145,28 @@ describe('direct private-storage uploads', () => {
         expect((await complete(req({ ticket }))).status).toBe(200);
         expect(dq.insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ type: 'data', extractedText: bytes.toString('utf8') }), { userId: 'owner', expectedClaimId: 'claim-1' });
     });
-    it('rejects mismatched file bytes before publishing', async () => {
-        const { complete, ticket, bucket, dq } = await setup();
-        bucket.download.mockResolvedValue({ data: new Blob(['not a pdf payload']), error:null });
-        expect((await complete(req({ ticket }))).status).toBe(400);
+    it.each(['size', 'magic'])('removes rejected %s bytes from staging before returning 400', async kind => {
+        const { complete, ticket, bucket, dq, from } = await setup();
+        const bytes = kind === 'size' ? 'wrong size' : 'x'.repeat(Buffer.byteLength('%PDF-1.4\nfixture'));
+        bucket.download.mockResolvedValue({ data: new Blob([bytes]), error:null });
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toContain(kind === 'size' ? 'size' : 'content');
+        expect(from).toHaveBeenLastCalledWith('lore-upload-staging');
+        expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
         expect(bucket.upload).not.toHaveBeenCalled();
+        expect(dq.insertVaultSource).not.toHaveBeenCalled();
+    });
+    it.each(['returned', 'thrown'])('keeps completion retryable when rejection cleanup fails (%s error)', async kind => {
+        const { complete, ticket, bucket, dq } = await setup();
+        bucket.download.mockResolvedValue({ data: new Blob(['wrong size']), error:null });
+        if (kind === 'returned') bucket.remove.mockResolvedValueOnce({ error: new Error('storage unavailable') });
+        else bucket.remove.mockRejectedValueOnce(new Error('storage unavailable'));
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(500);
+        expect((await response.json()).retryCompletion).toBe(true);
+        expect((await complete(req({ ticket }))).status).toBe(400);
+        expect(bucket.remove).toHaveBeenCalledTimes(2);
         expect(dq.insertVaultSource).not.toHaveBeenCalled();
     });
     it('reauthorizes completion after a claim is revoked', async () => {
@@ -154,5 +174,24 @@ describe('direct private-storage uploads', () => {
         guard.canEditArtist.mockResolvedValue(false);
         expect((await complete(req({ ticket }))).status).toBe(403);
         expect(bucket.download).not.toHaveBeenCalled();
+        expect(bucket.remove).toHaveBeenCalledWith([artistId + '/fixture.pdf']);
+    });
+    it('keeps a revoked-owner rejection retryable if staging cleanup fails', async () => {
+        const { complete, ticket, guard, bucket } = await setup();
+        guard.canEditArtist.mockResolvedValue(false);
+        bucket.remove.mockResolvedValue({ error: new Error('storage unavailable') });
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(500);
+        expect((await response.json()).retryCompletion).toBe(true);
+        expect(bucket.download).not.toHaveBeenCalled();
+    });
+    it('keeps mid-upload ownership loss retryable when only staging cleanup fails', async () => {
+        const { complete, ticket, dq, bucket } = await setup();
+        const { OwnershipChangedError } = await import('@/server/utils/queries/ownershipWrites');
+        dq.insertVaultSource.mockRejectedValue(new OwnershipChangedError());
+        bucket.remove.mockResolvedValueOnce({ error: null }).mockRejectedValueOnce(new Error('staging unavailable'));
+        const response = await complete(req({ ticket }));
+        expect(response.status).toBe(503);
+        expect((await response.json()).retryCompletion).toBe(true);
     });
 });
