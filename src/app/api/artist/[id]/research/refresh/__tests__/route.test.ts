@@ -35,4 +35,16 @@ describe('Look again refreshes documents independently of social cooldown', () =
         expect((await call()).status).toBe(403);
         expect(queue.queueLoreRefresh).not.toHaveBeenCalled();
     });
+    it('carries the original claim through job reopen and social scheduling', async () => {
+        const { call, runner } = await setup();
+        const jobs = await import('@/server/utils/queries/researchJobQueries');
+        const { getActiveArtistOperation } = await import('@/server/utils/artistOperationContext');
+        jobs.getResearchJobs.mockResolvedValue([]);
+        const contexts = [];
+        jobs.reopenResearchJob.mockImplementation(async () => { contexts.push(getActiveArtistOperation()); });
+        runner.requestArtistResearch.mockImplementation(async () => { contexts.push(getActiveArtistOperation()); });
+        expect((await call()).status).toBe(200);
+        expect(contexts).toEqual(Array(3).fill({ artistId: 'artist', userId: 'owner', expectedClaimId: 'claim-1' }));
+        expect(getActiveArtistOperation()).toBeUndefined();
+    });
 });

@@ -193,7 +193,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("a3");
 
-    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3");
+    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3", { ownership: { expectedClaimId: null } });
   });
 
   it("uses approved vault sources and does NOT re-run discovery", async () => {

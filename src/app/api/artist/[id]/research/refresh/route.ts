@@ -17,6 +17,7 @@ import { requestArtistResearch } from "@/server/utils/researchRunner";
 import { getResearchJobs, reopenResearchJob } from "@/server/utils/queries/researchJobQueries";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export async function POST(
             return Response.json({ error: "Not your artist" }, { status: 403 });
         }
 
+        return await withArtistOperation(id, { userId, expectedClaimId: claimId }, async () => {
         await queueLoreRefresh(id, claimId);
         const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
@@ -71,6 +73,7 @@ export async function POST(
         return Response.json({
             ok: true,
             message: "Rebuilding Lore from your current documents and checking recent posts. Your bio will stay unchanged.",
+        });
         });
     } catch (e) {
         console.error("[research/refresh] Error:", e);

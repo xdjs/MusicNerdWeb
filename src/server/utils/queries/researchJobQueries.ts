@@ -7,7 +7,7 @@
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
-import { withResearchJobWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
+import { withResearchJobWrite, withScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
 export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh";
@@ -76,7 +76,7 @@ export async function enqueueResearchJob(
             insert into artist_research_jobs (artist_id, kind, total, state)
             values (${artistId}::uuid, ${kind}, ${opts?.total ?? null}, ${JSON.stringify(opts?.state ?? {})}::jsonb)
             on conflict do nothing`); };
-        if (opts?.parentJobId) await withResearchJobWrite(artistId, opts.parentJobId, write); else await write(db);
+        if (opts?.parentJobId) await withResearchJobWrite(artistId, opts.parentJobId, write); else await withScopedArtistWrite(artistId, write);
         return true;
     } catch (e) {
         if (e instanceof OwnershipChangedError) throw e;
@@ -336,10 +336,11 @@ export async function isResearchInFlight(artistId: string, kinds: JobKind | JobK
  *  be enqueued; the caller decides the rate limit. */
 export async function reopenResearchJob(artistId: string, kind: JobKind): Promise<void> {
     try {
-        await db.execute(sql`
+        await withScopedArtistWrite(artistId, async tx => { await tx.execute(sql`
             delete from artist_research_jobs
-             where artist_id = ${artistId}::uuid and kind = ${kind} and status in ('done', 'failed')`);
+             where artist_id = ${artistId}::uuid and kind = ${kind} and status in ('done', 'failed')`); });
     } catch (e) {
+        if (e instanceof OwnershipChangedError) throw e;
         console.error("[reopenResearchJob] Error:", e);
     }
 }

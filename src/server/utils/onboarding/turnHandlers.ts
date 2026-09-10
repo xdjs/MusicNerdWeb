@@ -1035,6 +1035,20 @@ export async function applyProfileLinkDecisions(
 }
 
 export async function* runOnboardingTurn(artistId: string, turn: ClientTurn, ownership: import('@/server/utils/queries/ownershipWrites').ArtistWriteAuth): AsyncGenerator<TurnEvent> {
+    const { withArtistOperation } = await import('@/server/utils/artistOperationContext');
+    const iterator = runOnboardingTurnInternal(artistId, turn, ownership);
+    try {
+        while (true) {
+            const result = await withArtistOperation(artistId, ownership, () => iterator.next());
+            if (result.done) return;
+            yield result.value;
+        }
+    } finally {
+        await withArtistOperation(artistId, ownership, () => iterator.return(undefined));
+    }
+}
+
+async function* runOnboardingTurnInternal(artistId: string, turn: ClientTurn, ownership: import('@/server/utils/queries/ownershipWrites').ArtistWriteAuth): AsyncGenerator<TurnEvent> {
     const state = await getOnboardingState(artistId);
     // `null` = the confirmed-steps read failed (e.g. migration/grants issue) —
     // state is UNKNOWN, not "incomplete". Never guess a step or write anything;

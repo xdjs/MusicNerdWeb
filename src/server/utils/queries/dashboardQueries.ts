@@ -1,7 +1,8 @@
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
-import { withArtistUploadWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb } from './ownershipWrites';
+import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
+import { getActiveArtistOperation } from '../artistOperationContext';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bioConstants';
 
 /**
@@ -331,16 +332,22 @@ export async function getVaultSourceById(sourceId: string) {
     }
 }
 
+async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWriteDb, predicate: ReturnType<typeof eq>) => Promise<T>): Promise<T> {
+    const scope = getActiveArtistOperation();
+    if (!scope) return write(db, eq(artistVaultSources.id, sourceId));
+    return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
+}
+
 export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected") {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 status,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceStatus] Error:", e);
@@ -396,7 +403,7 @@ export async function insertVaultSource(data: {
         };
         return authorization
             ? await withArtistUploadWrite(data.artistId, authorization.userId, authorization.expectedClaimId, write)
-            : await write(db);
+            : await withScopedArtistWrite(data.artistId, write);
     } catch (e) {
         console.error("[insertVaultSource] Error:", e);
         throw e;
@@ -405,10 +412,10 @@ export async function insertVaultSource(data: {
 
 export async function deleteVaultSource(sourceId: string) {
     try {
-        const [deleted] = await db
+        const [deleted] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .delete(artistVaultSources)
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return deleted;
     } catch (e) {
         console.error("[deleteVaultSource] Error:", e);
@@ -418,14 +425,14 @@ export async function deleteVaultSource(sourceId: string) {
 
 export async function updateVaultSourceType(sourceId: string, type: string) {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 type,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceType] Error:", e);
@@ -456,7 +463,7 @@ export async function updateVaultSourceContent(sourceId: string, data: {
     publishedAt?: string | null;
 }) {
     try {
-        const [updated] = await db
+        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
             .set({
                 ...(data.title !== undefined ? { title: data.title } : {}),
@@ -466,8 +473,8 @@ export async function updateVaultSourceContent(sourceId: string, data: {
                 ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(eq(artistVaultSources.id, sourceId))
-            .returning();
+            .where(predicate)
+            .returning());
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceContent] Error:", e);

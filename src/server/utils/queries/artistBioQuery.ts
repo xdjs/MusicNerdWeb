@@ -53,7 +53,7 @@ async function saveBio(artistId: string, bio: string, expectedBio: string | null
  * clobber-guard preserves an existing bio, and the route self-heal recovers a cached nudge
  * once the DB is healthy and sources exist.
  */
-async function gatherContextualSources(artistId: string): Promise<ArtistVaultSource[]> {
+async function gatherContextualSources(artistId: string, ownership: BioWriteOwnership): Promise<ArtistVaultSource[]> {
   try {
     const [approved, pending] = await Promise.all([
       getVaultSourcesByArtistId(artistId, "approved"),
@@ -74,7 +74,7 @@ async function gatherContextualSources(artistId: string): Promise<ArtistVaultSou
     // writes to the vault as pending) and synthesize from what returns. Bounded by
     // withTimeout so a slow/hung run can't starve synthesis of the route's budget.
     const discovered = await withTimeout(
-      searchAndPopulateVault(artistId).catch((e) => {
+      searchAndPopulateVault(artistId, { ownership }).catch((e) => {
         console.error("[bio] discovery failed:", e);
         return [] as ArtistVaultSource[];
       }),
@@ -151,7 +151,7 @@ export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth
   // we research (identity-anchored discovery, which also writes what it finds to the vault
   // as pending, for curation + the Ask-About chat + Press & Features). No contextual
   // sources → the claim-nudge, never a hollow catalog-only "bio". One source system.
-  const sourcesPromise = gatherContextualSources(artistId);
+  const sourcesPromise = gatherContextualSources(artistId, ownership);
 
   const [platformBioData, grounding, catalog, contextualSources] = await Promise.all([
     platformPromise, groundingPromise, catalogPromise, sourcesPromise,

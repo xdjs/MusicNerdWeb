@@ -123,7 +123,7 @@ export async function searchWebForSources(artistId: string): Promise<{ success: 
         const auth = await verifyArtistEditable(session.user.id, artistId);
         if (!auth.ok) return { success: false, error: auth.error };
 
-        const sources = await searchAndPopulateVault(artistId);
+        const sources = await searchAndPopulateVault(artistId, { ownership: { userId: session.user.id, expectedClaimId: auth.claimId } });
         return { success: true, count: sources.length, sources };
     } catch (error) {
         console.error("[searchWebForSources] Error:", error);

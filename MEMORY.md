@@ -69,14 +69,14 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
   PDF-backed answers. Citation formatting still sometimes includes nonnumeric labels
   and needs a separate fix; do not describe this as end-to-end UI verification.
 - **Verification (2026-09-09):** `npm run ci` passed: TypeScript, lint (existing warnings),
-  183 suites / 2,258 tests passed / 6 skipped, coverage and production build with stub
+  184 suites / 2,275 tests passed / 6 skipped, coverage and production build with stub
   build credentials. Dev `mnweb` integration verified link writes and Lore job insert,
   coalescing and completion with transaction fixtures rolled back. Browser confirmed
   In Process, upload copy, a real PDF upload, and historical pin + regeneration protection.
   Real extraction yielded 79,823 chars; signed storage accepted 10 MiB and rejected one
   byte over. A stale local Gemini key returned 403; using the current Vercel development-
   scoped key completed the real Lore worker and rendered the resulting doc in the browser.
-  Twenty-three Codex findings have been addressed, including the retired-platform audit and
+  Twenty-six Codex findings have been addressed, including the retired-platform audit and
   rejected-upload staging cleanup. Cleanup errors retain same-ticket retry; permission
   loss and recovered/saved uploads also attempt temporary-object cleanup.
   Live dev endpoint checks verified size/type rejection removes storage records and
@@ -91,7 +91,11 @@ Documentation release branch: `pete/engineer-onboarding-docs`.
   Expired authentic upload tickets permit staging cleanup only; the live dev endpoint
   verified removal without publication. Forged/different-user tickets cannot delete.
   The audit passes against dev; three focused regression tests preserve active-platform drift checks.
-  Review must run again on the publication/expiry commit before merging.
+  Onboarding and discovery now retain initiating ownership across async work, with
+  short locked checks for checkpoints, answers/offers, source/link writes and social
+  job enqueue/reopen. Caller regressions cover context propagation; real dev `mnweb`
+  tests rejected stale writes without recreating records, and removed their fixture.
+  Review must run again on this operation-wide ownership fix before merging.
   Follow-up fixes cover ownership-generation fencing, atomic onboarding publication,
   stale bio drafts, placeholder history and idempotent upload/save recovery.
   These follow-ups have regression/full-CI coverage, not a new real-login browser run.

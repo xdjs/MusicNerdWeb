@@ -6,6 +6,7 @@ import { db } from "@/server/db/drizzle";
 import { ARTIST_ROW_PROPERTY_BY_COLUMN } from "@/server/db/artistRowProperties";
 import { and, eq, sql } from "drizzle-orm";
 import { artists, artistIdMappings } from "@/server/db/schema";
+import { lockScopedArtistWrite, withScopedArtistWrite } from './queries/ownershipWrites';
 import {
   acquireArtistPlatformLock,
   acquireArtistPlatformWriteLocks,
@@ -141,11 +142,12 @@ export async function setArtistLink(
         columnName,
         value,
       );
+      await lockScopedArtistWrite(transaction, artistId);
       return setArtistLinkWithExecutor(transaction, artistId, columnName, value);
     });
   }
 
-  return setArtistLinkWithExecutor(db, artistId, columnName, value);
+  return withScopedArtistWrite(artistId, tx => setArtistLinkWithExecutor(tx, artistId, columnName, value));
 }
 
 export async function clearArtistLink(
@@ -158,11 +160,12 @@ export async function clearArtistLink(
   if (columnName === "spotify" || columnName === "deezer") {
     return db.transaction(async (transaction) => {
       await acquireArtistPlatformLock(transaction, artistId, columnName);
+      await lockScopedArtistWrite(transaction, artistId);
       return clearArtistLinkWithExecutor(transaction, artistId, columnName);
     });
   }
 
-  return clearArtistLinkWithExecutor(db, artistId, columnName);
+  return withScopedArtistWrite(artistId, tx => clearArtistLinkWithExecutor(tx, artistId, columnName));
 }
 
 async function clearArtistLinkWithExecutor(
