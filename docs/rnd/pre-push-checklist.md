@@ -1,6 +1,6 @@
 # Pre-push checklist
 
-Five checks, written down after a run of PRs where the automated reviewer found
+Checks written down after a run of PRs where the automated reviewer found
 thirteen real defects across three rounds — most of them mine from the round
 before, and two of them the *same* mistake reappearing inside its own fix.
 
@@ -115,3 +115,12 @@ production release.
 Both were caught by real output disagreeing with the claim. Neither would have been caught by a
 test. Before asserting a schema is in some state, replay the statements in order and describe the
 state they leave behind — a `CREATE` is not evidence the object still exists.
+
+## 6. Define when review is finished
+
+Before pushing, trace the changed flow through all callers and async writes; batch all
+actionable code/security findings, including threads attached to older commits. Require
+exact-head CI and completed reviews, not an endless sequence of optional improvements.
+Proven release blockers get fixes; incorrect findings get reproduction evidence; unrelated
+hardening gets separate scope. Do not weaken safeguards to pass or push status-only commits
+after clearance. See the [September 9 release lessons](../development/profile-release-handoff-2026-09-09.md).

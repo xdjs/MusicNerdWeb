@@ -9,6 +9,14 @@ Newest first.
 
 ---
 
+## 2026-09-06
+
+- **Tw93 — [You Didn't Know GEO: AI Visibility Principles, Practices, and Trade-offs](https://tw93.fun/en/2026-05-01/ai-visibility.html)** (2026-05-01), shared by **C.Y.**
+  Save for when we focus on Music Nerd's AI visibility / generative engine optimization (GEO).
+  Covers crawler permissions, search indexing, `llms.txt`, Markdown content and citable pages.
+  Revisit alongside the [artist-page SEO and crawlability plan](../../../plans/artist-page-seo-crawlability-plan.md);
+  a reference for future evaluation, not an implementation decision.
+
 ## 2026-08-20
 
 - **Jamie / Sound of Fractures — new site** · https://sof-studio-v34.vercel.app
