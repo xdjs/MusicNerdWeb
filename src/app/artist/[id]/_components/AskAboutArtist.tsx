@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, CornerDownLeft } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -333,7 +333,7 @@ function SongLink({
     ];
 
     return (
-        <span className="relative inline-block" ref={box}>
+        <span className="relative inline-block" ref={box} data-song-menu-open={open}>
             <button
                 ref={toggleRef}
                 type="button"
@@ -415,44 +415,130 @@ function SongLink({
     );
 }
 
+type ConversationTurn = {
+    question: string;
+    answer?: string;
+    sources: AnswerSource[];
+    mentions: AnswerMention[];
+    songs: AnswerSong[];
+    bandcamp: string | null;
+    fromOpenWeb: boolean;
+    webDomains: string[];
+    error?: string;
+};
+
+function ConversationAnswer({ turn, artistName }: { turn: ConversationTurn; artistName: string }) {
+    const { answer, sources, mentions, songs, bandcamp, fromOpenWeb, webDomains } = turn;
+    return <div className="space-y-3 px-1">
+        {/* Answer */}
+        {answer && (
+            <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line break-words">
+                {renderAnswer(answer, mentions, songs, sources, bandcamp, artistName)}
+            </p>
+        )}
+
+        {/* Where it came from.
+          *
+          * "AI-generated response" tells a reader the least useful
+          * true thing about an answer: how it was phrased, not
+          * whether to believe it. The endpoint already reads the
+          * artist's verified vault and their knowledge document as
+          * ground truth, and it collected the source urls and then
+          * dropped them one line before responding. Showing them is
+          * the difference between a chatbot and a researched answer,
+          * and it is what a reader needs in order to trust either. */}
+        {answer && sources.length > 0 && (
+            <div className="flex flex-col gap-1 pt-1">
+                <p className="text-[10px] text-white/60">Sources</p>
+                <div className="flex flex-wrap gap-1.5">
+                    {sources.map(s => {
+                        const label = (
+                            <>
+                                <span className="opacity-50">[{s.n}]</span>
+                                {sourceHost(s)}
+                            </>
+                        );
+                        const pill = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-white/15 text-white/65 whitespace-nowrap max-w-[16rem] truncate";
+                        return s.url ? (
+                            <a
+                                key={s.n}
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${pill} hover:border-white/30`}
+                                title={s.title}
+                            >
+                                {label}
+                            </a>
+                        ) : (
+                            <span key={s.n} className={pill} title={s.title}>{label}</span>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
+        {/* Answered from the open web, because our own sources did
+          * not cover it. Named as such: a reader has to be able to
+          * tell "this is from the artist's own posts and their
+          * vault" from "this is from a search". */}
+        {answer && fromOpenWeb && (
+            <div className="flex flex-col gap-1 pt-1">
+                <p className="text-[10px] text-white/60">
+                    Not in {artistName}&apos;s sources — answered from the web
+                </p>
+                {webDomains.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {webDomains.map(d => (
+                            <span
+                                key={d}
+                                className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border border-dashed border-white/20 text-white/65 whitespace-nowrap"
+                            >
+                                {d}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {answer && (
+            <p className="text-[10px] text-white/50 italic">
+                {sources.length > 0
+                    ? "Written by AI from the sources above"
+                    : fromOpenWeb
+                        ? "Written by AI from a web search"
+                        : "AI-generated response"}
+            </p>
+        )}
+    </div>;
+}
+
 export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistProps) {
     const [question, setQuestion] = useState("");
-    const [answer, setAnswer] = useState<string | null>(null);
-    const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
+    const [turns, setTurns] = useState<ConversationTurn[]>([]);
     const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS(artistName));
-    const [sources, setSources] = useState<AnswerSource[]>([]);
-    const [mentions, setMentions] = useState<AnswerMention[]>([]);
-    const [songs, setSongs] = useState<AnswerSong[]>([]);
-    /** The artist's own Bandcamp, offered under a record as their store rather
-     *  than as that record — Bandcamp has no API, so we cannot claim more. */
-    const [bandcamp, setBandcamp] = useState<string | null>(null);
-    /** The endpoint answered from the open web because our own sources did not
-     *  cover the question, and these are the domains it used. Without this the
-     *  reader could not tell a researched answer from a searched one — which is
-     *  the whole reason the fallback reports it. */
-    const [fromOpenWeb, setFromOpenWeb] = useState(false);
-    const [webDomains, setWebDomains] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const requestPending = useRef(false);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const ask = async (q: string) => {
         const trimmed = q.trim();
-        if (!trimmed || loading) return;
-
+        if (!trimmed || requestPending.current) return;
+        requestPending.current = true;
         setLoading(true);
-        setError(null);
-        setAnswer(null);
-        // Cleared with the answer, not left over it: a failed second question
-        // would otherwise still be captioned with the first one's provenance.
-        setFromOpenWeb(false);
-        setWebDomains([]);
-        setSongs([]);
-        setAskedQuestion(trimmed);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
-
+        const pending: ConversationTurn = {
+            question: trimmed, sources: [], mentions: [], songs: [],
+            bandcamp: null, fromOpenWeb: false, webDomains: [],
+        };
+        setTurns(previous => [...previous, pending]);
+        const finish = (result: Partial<ConversationTurn>) => {
+            setTurns(previous => [...previous.slice(0, -1), { ...pending, ...result }]);
+        };
         try {
             const res = await fetch("/api/askArtist", {
                 method: "POST",
@@ -460,207 +546,77 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 body: JSON.stringify({ artistId, question: trimmed }),
             });
             const data = await res.json();
-
-            if (!res.ok || data.error) {
-                setError(data.error ?? "Something went wrong");
+            if (!res.ok || data.error || typeof data.answer !== "string" || !data.answer.trim()) {
+                finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
                 return;
             }
-
-            setAnswer(data.answer);
-            setSources(Array.isArray(data.sources) ? data.sources : []);
-            setSongs(Array.isArray(data.songs) ? data.songs : []);
-            setBandcamp(typeof data.bandcamp === "string" ? data.bandcamp : null);
-            setFromOpenWeb(data.fromOpenWeb === true);
-            setWebDomains(Array.isArray(data.webDomains) ? data.webDomains : []);
-            setMentions(Array.isArray(data.mentions) ? data.mentions : []);
-            if (data.suggestions?.length) {
-                // Filter out any suggestions the user has already asked
-                const fresh = data.suggestions.filter(
-                    (s: string) => !askedQuestions.current.has(s.toLowerCase())
-                );
-                setSuggestions(fresh.length > 0 ? fresh : data.suggestions);
+            finish({
+                answer: data.answer,
+                sources: Array.isArray(data.sources) ? data.sources : [],
+                mentions: Array.isArray(data.mentions) ? data.mentions : [],
+                songs: Array.isArray(data.songs) ? data.songs : [],
+                bandcamp: typeof data.bandcamp === "string" ? data.bandcamp : null,
+                fromOpenWeb: data.fromOpenWeb === true,
+                webDomains: Array.isArray(data.webDomains) ? data.webDomains : [],
+            });
+            if (Array.isArray(data.suggestions)) {
+                setSuggestions(data.suggestions.filter((s: string) =>
+                    typeof s === "string" && !askedQuestions.current.has(s.toLowerCase())));
             }
         } catch {
-            setError("Failed to get an answer. Try again.");
+            finish({ error: "Failed to get an answer. Try again." });
         } finally {
+            requestPending.current = false;
             setLoading(false);
         }
     };
 
-    const reset = () => {
-        setAnswer(null);
-        setAskedQuestion(null);
-        setError(null);
-        // Keep current suggestions instead of reverting to defaults
-        setTimeout(() => inputRef.current?.focus(), 50);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        ask(question);
-    };
+    useEffect(() => {
+        // Scroll only the conversation, never the artist page behind it. Show
+        // the latest question and the beginning of its answer, not its footnotes.
+        const scroller = scrollRef.current;
+        const latest = scroller?.querySelectorAll<HTMLElement>("[data-conversation-turn]");
+        const lastTurn = latest?.[latest.length - 1];
+        if (scroller && lastTurn) scroller.scrollTop = lastTurn.offsetTop;
+    }, [turns]);
 
     return (
-        <div className="space-y-3">
-            {/* Input */}
-            <form onSubmit={handleSubmit} className="relative">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder={`Ask anything about ${artistName}...`}
-                    maxLength={500}
-                    disabled={loading}
-                    className="min-h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] py-3 pl-10 pr-12 text-sm text-white/90 placeholder:text-white/45 outline-none focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30 transition-colors disabled:opacity-60"
-                />
-                <Search
-                    size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50"
-                />
-                {question.trim() && !loading && (
-                    <button
-                        type="submit"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-pastypink hover:text-pastypink/80 transition-colors"
-                        aria-label="Submit question"
-                    >
-                        <CornerDownLeft size={16} />
-                    </button>
+        <div className="flex min-h-0 flex-col">
+            <div ref={scrollRef} role="log" aria-label="Questions and answers" aria-live="polite"
+                className="relative min-h-0 overflow-y-auto overscroll-contain px-4 py-4 scrollbar-glass">
+                {turns.length === 0 && <p className="mb-3 text-sm leading-relaxed text-white/75">What would you like to know about {artistName}?</p>}
+                {turns.map((turn, index) => (
+                    <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
+                        <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
+                        {turn.error
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                            : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} />
+                                : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />Finding an answer…</p>}
+                    </div>
+                ))}
+                {!loading && suggestions.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (
+                            <button key={suggestion} type="button" onClick={() => ask(suggestion)}
+                                className="min-h-11 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">
+                                {suggestion}
+                            </button>
+                        ))}
+                    </div>
                 )}
+            </div>
+            <form onSubmit={event => { event.preventDefault(); void ask(question); }} className="shrink-0 border-t border-white/10 p-3">
+                <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] pl-3 pr-1 focus-within:border-pastypink/50 focus-within:ring-1 focus-within:ring-pastypink/20">
+                    <input ref={inputRef} type="text" value={question} onChange={event => setQuestion(event.target.value)}
+                        aria-label={`Ask anything about ${artistName}`}
+                        placeholder={`Ask anything about ${artistName}...`} maxLength={500}
+                        className="min-h-12 min-w-0 flex-1 border-0 bg-transparent py-3 text-base text-white/90 outline-none placeholder:text-white/45" />
+                    <button type="submit" disabled={!question.trim() || loading} aria-label="Submit question"
+                        className="button-pink flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-pastypink text-black transition-opacity hover:opacity-90 disabled:opacity-30">
+                        <ArrowUp size={20} aria-hidden="true" />
+                    </button>
+                </div>
             </form>
-
-            {/* Answer area */}
-            {(loading || answer || error) && (
-                <div className="relative space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                    {/* Close button */}
-                    {!loading && (
-                        <button
-                            onClick={reset}
-                            className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
-                            aria-label="Close answer"
-                        >
-                            <X size={14} />
-                        </button>
-                    )}
-
-                    {/* Question echo */}
-                    {askedQuestion && (
-                        <p className="text-xs text-white/65 pr-8">
-                            <span className="font-semibold text-pastypink">Q:</span> {askedQuestion}
-                        </p>
-                    )}
-
-                    {/* Loading */}
-                    {loading && (
-                        <div className="flex items-center gap-2.5 text-sm text-white/70">
-                            <img src="/music_nerd_logo_sm.png" alt="Loading" className="h-7 animate-pulse" />
-                            <span>Thinking...</span>
-                        </div>
-                    )}
-
-                    {/* Error */}
-                    {error && (
-                        <p className="text-sm text-red-400">{error}</p>
-                    )}
-
-                    {/* Answer */}
-                    {answer && (
-                        <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line pr-6">
-                            {renderAnswer(answer, mentions, songs, sources, bandcamp, artistName)}
-                        </p>
-                    )}
-
-                    {/* Where it came from.
-                      *
-                      * "AI-generated response" tells a reader the least useful
-                      * true thing about an answer: how it was phrased, not
-                      * whether to believe it. The endpoint already reads the
-                      * artist's verified vault and their knowledge document as
-                      * ground truth, and it collected the source urls and then
-                      * dropped them one line before responding. Showing them is
-                      * the difference between a chatbot and a researched answer,
-                      * and it is what a reader needs in order to trust either. */}
-                    {answer && sources.length > 0 && (
-                        <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-white/60">Sources</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {sources.map(s => {
-                                    const label = (
-                                        <>
-                                            <span className="opacity-50">[{s.n}]</span>
-                                            {sourceHost(s)}
-                                        </>
-                                    );
-                                    const pill = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-white/15 text-white/65 whitespace-nowrap max-w-[16rem] truncate";
-                                    return s.url ? (
-                                        <a
-                                            key={s.n}
-                                            href={s.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`${pill} hover:border-white/30`}
-                                            title={s.title}
-                                        >
-                                            {label}
-                                        </a>
-                                    ) : (
-                                        <span key={s.n} className={pill} title={s.title}>{label}</span>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Answered from the open web, because our own sources did
-                      * not cover it. Named as such: a reader has to be able to
-                      * tell "this is from the artist's own posts and their
-                      * vault" from "this is from a search". */}
-                    {answer && fromOpenWeb && (
-                        <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-white/60">
-                                Not in {artistName}&apos;s sources — answered from the web
-                            </p>
-                            {webDomains.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                    {webDomains.map(d => (
-                                        <span
-                                            key={d}
-                                            className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border border-dashed border-white/20 text-white/65 whitespace-nowrap"
-                                        >
-                                            {d}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {answer && (
-                        <p className="text-[10px] text-white/50 italic">
-                            {sources.length > 0
-                                ? "Written by AI from the sources above"
-                                : fromOpenWeb
-                                    ? "Written by AI from a web search"
-                                    : "AI-generated response"}
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* Suggestion chips */}
-            {!loading && (
-                <div className="flex flex-wrap gap-2">
-                    {suggestions.map((suggestion) => (
-                        <button
-                            key={suggestion}
-                            onClick={() => ask(suggestion)}
-                            className="min-h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/75 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
-                        >
-                            {suggestion}
-                        </button>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }

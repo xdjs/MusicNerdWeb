@@ -141,3 +141,17 @@ preference and do not break toggling. Login/logout still perform the existing fu
 reload. 29 focused theme/auth tests, TypeScript and targeted lint passed; tests
 include hydration and pre-hydration initialization, but a real Chrome login/reload
 visual check remains outstanding. HTTPS preview is now running on localhost:3000.
+
+Ask interaction follow-up: the floating pink trigger now opens a non-modal glass
+conversation panel anchored above it (390px maximum width, bounded to 65dvh/560px).
+There is no dimming overlay or scroll lock. Two suggestions introduce the feature;
+the composer stays at the bottom and answers scroll inside the panel. Question/answer
+history and drafts survive minimizing, including responses that finish while hidden.
+Escape restores trigger focus, while nested record menus handle their own Escape
+first. Pointer opening does not summon the mobile keyboard; visual viewport changes
+keep the composer above it. Keyboard opening focuses the input; reduced motion is
+respected. Existing citation/provenance and record-link rendering is retained.
+History is local to this artist-page visit; the existing API still answers each
+submitted question independently, with no new persistence or server context changes.
+20 focused Ask tests, TypeScript, targeted lint (existing image warning), and CSS
+compilation passed. Actual browser animation/touch review remains outstanding.

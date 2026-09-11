@@ -14,12 +14,16 @@ Drag link icons directly; Done saves ordering and remains in edit mode on failur
 Profile button hierarchy: Listen and save actions use solid pink; Claim/Edit use neutral
 glass; Ask stays pink with a translucent glass finish. Active Latest filters use gray.
 Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button
-labels/icons black despite legacy dark-mode text overrides. The Ask sheet, input,
+labels/icons black despite legacy dark-mode text overrides. The Ask panel, input,
 suggestion chips, answers and source links now use the same frosted charcoal styling
 as the other overlays, avoiding the legacy blue-gray background override. Add Link
 and Add Artist use compact glass forms (no oversized Add Link image), including
 supported-link and duplicate-choice states. The account menu has glass styling,
 icons, Explore/Account groups, 48px rows and viewport-bounded mobile width.
+Ask now opens as a compact non-modal panel above the pink trigger, without page
+dimming or scroll lock. A bottom composer and retained local Q&A/drafts support
+minimizing/reopening; the existing API remains independent per question. 20 focused
+Ask tests pass, including nested Escape, pending answers and viewport resize.
 Theme initialization now restores the saved preference before the first paint on
 full reloads, including login/logout; 29 theme/auth tests, types and lint pass.
 Chrome visual verification remains outstanding. HTTPS preview runs on port 3000.
