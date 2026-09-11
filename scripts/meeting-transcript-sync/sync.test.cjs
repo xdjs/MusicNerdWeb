@@ -154,4 +154,78 @@ test('preview never writes GitHub or checkpoints; normal run checkpoints only ve
   r.publish_ = () => { writes++; return 'verified'; };
   r.syncTranscripts(); assert.equal(JSON.parse(values['sync:doc']).receipt, 'verified');
   const prior = writes; r.syncTranscripts(); assert.equal(writes, prior);
+  r.Drive.Files.get = () => ({ name: 'Meeting agenda', mimeType: 'application/vnd.google-apps.document' });
+  assert.equal(r.scheduledSync().waiting, 1);
+  assert.equal(JSON.parse(values['schedule:lastRun']).pending, true);
+  assert.equal(writes, prior);
+});
+
+function scheduleRuntime() {
+  const values = { START_DATE: '2026-09-10', GITHUB_TOKEN: 'test-token' };
+  const unrelated = { getHandlerFunction: () => 'otherAutomation' };
+  const legacy = { getHandlerFunction: () => 'syncTranscripts' };
+  let triggers = [unrelated, legacy], attempts = 0, failAt = Infinity;
+  const r = runtime({
+    PropertiesService: { getScriptProperties: () => ({ getProperties: () => ({ ...values }),
+      getProperty: k => values[k], setProperty: (k, v) => { values[k] = v; },
+      deleteProperty: k => { delete values[k]; } }) },
+    ScriptApp: {
+      WeekDay: Object.fromEntries(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'].map(day => [day, day])),
+      getProjectTriggers: () => [...triggers],
+      deleteTrigger: t => { triggers = triggers.filter(other => other !== t); },
+      newTrigger(handler) {
+        const spec = { handler };
+        const builder = { timeBased() { return this; },
+          create() {
+            if (++attempts === failAt) throw new Error('Quota failure');
+            const t = { ...spec, getHandlerFunction: () => handler };
+            triggers.push(t); return t;
+          },
+        };
+        for (const method of ['inTimezone', 'onWeekDay', 'atHour', 'nearMinute', 'everyWeeks']) {
+          builder[method] = function(value) { spec[method] = value; return this; };
+        }
+        return builder;
+      },
+    },
+  });
+  return { r, values, unrelated, legacy, triggers: () => triggers, failOnAttempt: n => { failAt = n; } };
+}
+
+test('installer replaces legacy schedule with exactly two Eastern checks per weekday, including on rerun', () => {
+  const h = scheduleRuntime(); h.r.installTrigger();
+  const scheduled = h.triggers().filter(t => t !== h.unrelated);
+  assert.equal(scheduled.length, 10);
+  const expected = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'].flatMap(day =>
+    (day === 'THURSDAY' ? [[15, 30], [18, 15]] : [[12, 45], [13, 45]]).map(([hour, minute], i) =>
+      ({ handler: i ? 'retryScheduledSync' : 'scheduledSync', day, hour, minute })));
+  assert.deepEqual(scheduled.map(t => ({ handler: t.handler, day: t.onWeekDay, hour: t.atHour, minute: t.nearMinute })), expected);
+  assert.ok(scheduled.every(t => t.inTimezone === 'America/New_York' && t.everyWeeks === 1));
+  assert.ok(!h.triggers().includes(h.legacy));
+  h.r.installTrigger(); assert.equal(h.triggers().length, 11);
+  h.r.stopSync(); assert.deepEqual(h.triggers(), [h.unrelated]);
+});
+
+test('partial trigger creation failure preserves the previous schedule and removes partial replacements', () => {
+  const h = scheduleRuntime(); h.failOnAttempt(4);
+  assert.throws(() => h.r.installTrigger(), /Quota failure/);
+  assert.deepEqual(h.triggers(), [h.unrelated, h.legacy]);
+});
+
+test('retry skips a completed scan but recovers missing transcripts, failures, busy scans and missing state', () => {
+  const h = scheduleRuntime(); let calls = 0, outcome = { waiting: 0, errors: 0 };
+  h.r.syncTranscripts = () => { calls++; if (outcome instanceof Error) throw outcome; return outcome; };
+  h.r.scheduledSync(); assert.equal(calls, 1);
+  assert.equal(h.r.retryScheduledSync().skipped, true); assert.equal(calls, 1);
+  for (const next of [{ waiting: 1 }, { busy: true }, new Error('GitHub failed')]) {
+    outcome = next;
+    try { h.r.scheduledSync(); } catch (_) { assert.ok(next instanceof Error); }
+    assert.equal(JSON.parse(h.values['schedule:lastRun']).pending, true);
+    const before = calls; outcome = { waiting: 0, errors: 0 };
+    h.r.retryScheduledSync(); assert.equal(calls, before + 1);
+  }
+  for (const state of [undefined, '{broken', JSON.stringify({ day: '2000-01-01', pending: false })]) {
+    h.values['schedule:lastRun'] = state;
+    const before = calls; h.r.retryScheduledSync(); assert.equal(calls, before + 1);
+  }
 });

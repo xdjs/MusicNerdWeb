@@ -10,14 +10,55 @@ function syncTranscripts() { return runSync_(false); }
 
 function installTrigger() {
   config_(false);
-  if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'syncTranscripts')) {
-    ScriptApp.newTrigger('syncTranscripts').timeBased().everyMinutes(15).create();
+  const previous = syncTriggers_(), created = [];
+  const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+  try {
+    days.forEach(day => {
+      const times = day === 'THURSDAY' ? [[15, 30], [18, 15]] : [[12, 45], [13, 45]];
+      times.forEach(([hour, minute], index) => {
+        created.push(ScriptApp.newTrigger(index === 0 ? 'scheduledSync' : 'retryScheduledSync')
+          .timeBased().inTimezone(SYNC.zone).onWeekDay(ScriptApp.WeekDay[day])
+          .atHour(hour).nearMinute(minute).everyWeeks(1).create());
+      });
+    });
+  } catch (error) {
+    // Leave the previous schedule intact if installation fails partway through.
+    created.forEach(t => ScriptApp.deleteTrigger(t));
+    throw error;
   }
+  previous.forEach(t => ScriptApp.deleteTrigger(t));
+  PropertiesService.getScriptProperties().deleteProperty('schedule:lastRun');
+  console.log('Installed 10 weekly triggers in America/New_York: Mon/Tue/Wed/Fri 12:45 + 13:45 retry; Thu 15:30 + 18:15 retry. Times approximate +/-15 minutes.');
 }
 
-function stopSync() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'syncTranscripts')
-    .forEach(t => ScriptApp.deleteTrigger(t));
+function syncTriggers_() {
+  return ScriptApp.getProjectTriggers().filter(t =>
+    ['syncTranscripts', 'scheduledSync', 'retryScheduledSync'].includes(t.getHandlerFunction()));
+}
+
+function stopSync() { syncTriggers_().forEach(t => ScriptApp.deleteTrigger(t)); }
+
+function scheduledSync() {
+  const props = PropertiesService.getScriptProperties();
+  const day = Utilities.formatDate(new Date(), SYNC.zone, 'yyyy-MM-dd');
+  // Mark pending before starting so a timeout, failed write or busy lock still gets a retry.
+  props.setProperty('schedule:lastRun', JSON.stringify({ day, pending: true }));
+  const report = syncTranscripts();
+  props.setProperty('schedule:lastRun', JSON.stringify({ day,
+    pending: Boolean(report.busy || report.waiting || report.errors) }));
+  return report;
+}
+
+function retryScheduledSync() {
+  const day = Utilities.formatDate(new Date(), SYNC.zone, 'yyyy-MM-dd');
+  let previous;
+  try { previous = JSON.parse(PropertiesService.getScriptProperties().getProperty('schedule:lastRun') || 'null'); }
+  catch (_) { /* Missing/corrupt state must not suppress a recovery attempt. */ }
+  if (previous && previous.day === day && previous.pending === false) {
+    console.log('Retry skipped: the scheduled check completed with no pending transcripts.');
+    return { skipped: true };
+  }
+  return scheduledSync();
 }
 
 function config_(preview) {
@@ -49,15 +90,17 @@ function runSync_(preview) {
         if (!kind) continue;
         const attachments = (event.attachments || []).filter(a =>
           a.mimeType === 'application/vnd.google-apps.document');
-        if (!attachments.length) report.waiting++;
+        let matchedArtifact = false;
         for (const attachment of attachments) {
           const id = documentId_(attachment);
-          if (!id || seen.has(id)) continue;
-          seen.add(id);
+          if (!id) continue;
+          if (seen.has(id)) { matchedArtifact = true; continue; }
           try {
             const meta = Drive.Files.get(id, { fields: 'id,name,mimeType,modifiedTime,trashed' });
             // Only the generated artifact for this exact meeting, never an arbitrary attachment.
             if (!artifactMatches_(meta, event)) continue;
+            matchedArtifact = true;
+            seen.add(id);
             report.eligible++;
             const stateKey = 'sync:' + id;
             const old = JSON.parse(props.getProperty(stateKey) || 'null');
@@ -82,6 +125,7 @@ function runSync_(preview) {
             console.error('Sync failed for document ' + id + ': ' + safeError_(e));
           }
         }
+        if (!matchedArtifact) report.waiting++;
       }
       pageToken = page.nextPageToken;
     } while (pageToken);
