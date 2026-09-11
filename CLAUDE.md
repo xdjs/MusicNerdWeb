@@ -78,8 +78,9 @@ Schema SQL and the Drizzle journal are one change. Apply required migrations bef
 code deploys; follow the [migration protocol](docs/development.md#database-migrations).
 Do not trust automated migration replay until issue #1148 is reconciled.
 
-Keep durable public docs tracked; secrets, raw transcripts and disposable captures stay ignored
-per [R&D guidance](docs/rnd/README.md). `MEMORY.md` is the single engineering handoff, not a
+Keep durable public docs tracked; secrets and disposable captures stay ignored. Raw transcripts
+stay private except the explicitly authorized Stand Up and R&D exports described in
+[R&D guidance](docs/rnd/README.md). `MEMORY.md` is the single engineering handoff, not a
 diary or a second task tracker. Update it for material state/priority changes, link evidence,
 and distinguish locally implemented from shipped. Don't create releases solely to move handoffs.
 

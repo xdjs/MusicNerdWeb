@@ -1,5 +1,18 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Meeting transcript automation — prepared, not active
+
+Pete authorized publicly readable verbatim transcripts for Music Nerd Stand Up and Music Nerd
+R&D on September 10, 2026. [Setup and behavior](scripts/meeting-transcript-sync/README.md).
+The standalone Apps Script follows actual Calendar events, reads only their generated Transcript
+tabs, and creates/updates public transcript PRs to staging. It does not merge or deploy.
+Google project: `1VrYdy6udaGH1FJ-CQXsPFmH1gA5_iUspPnAviKwcOVjYy48ymexOTSte`.
+Code and manifest are prepared with START_DATE September 10. Google OAuth authorization,
+the repo-scoped GitHub token, first live publication, and the recurring trigger remain pending.
+Seven focused tests pass. Today's actual source exported 38,965 characters with exact text
+preservation. Full app CI passed (185 suites, 2,284 tests, 6 skips, typecheck, lint, build).
+These checks do not establish an active schedule or a successful live Google→GitHub write.
+
 Checked September 10, 2026. Verify live GitHub/environment state before acting.
 Read CLAUDE.md first. This is current state, not a release authorization.
 

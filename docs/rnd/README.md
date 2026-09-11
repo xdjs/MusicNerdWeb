@@ -56,13 +56,18 @@ initials or nothing. They agreed to try the product, not to a public writeup.
 
 `xdjs/MusicNerdWeb` is a **public repo**. Everything committed here is world-readable.
 
-- **No raw transcripts.** Read them through authorized private sources or keep them in ignored
-  scratch. They are not committed.
+- **Raw transcripts are private by default.** On September 10, 2026, Pete explicitly authorized
+  full verbatim transcripts of **Music Nerd Stand Up** and **Music Nerd R&D** to be publicly
+  readable in this repository. Those exports belong in `transcripts/`; see the
+  [automation setup](../../scripts/meeting-transcript-sync/README.md). This exception applies
+  only to those two meetings. Other raw sources remain private or in ignored scratch.
 - **No text threads, DMs, email lists, or contact data.**
-- **Synthesize, don't quote.** Record the substance of a critique, not the quotable version of
+- **Synthesize meeting notes; preserve authorized transcripts verbatim.** In synthesized notes,
+  record the substance of a critique, not the quotable version of
   it. "Curated-listening subscriptions don't hold up without a personal connection to the
   curator" belongs here. However someone actually phrased it in the room does not.
-- Nothing about anyone's personal or business situation outside the work.
+- Synthesized public notes exclude personal or business situations outside the work. The two
+  explicitly authorized transcript exports contain the full source text without editorial rewriting.
 
 Attributing a decision to whoever made it is fine and useful — that's how decisions stay
 accountable. The rule is about tone and raw material, not about naming people.
