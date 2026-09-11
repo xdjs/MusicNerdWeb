@@ -37,7 +37,8 @@ Latest, Lore and Links navigation pills resolve to those sections. Latest reuses
 Pete's earlier local read-only adapters for stored Instagram posts, interview
 answers and bounded release catalogs. It has filters, horizontal scrolling,
 keyboard gallery controls, image fallbacks and a detail dialog with original source
-links. In Process items remain Sweetman's adapter work, not a second section here.
+links. Expanded Latest details use a frosted charcoal glass surface with white text,
+replacing the opaque blue-gray panel. In Process items remain Sweetman's adapter work, not a second section here.
 
 Lore contains approved source cards and the generated inventory overview. The duplicate
 About section is removed. The hero biography keeps its existing edit/regenerate/pin

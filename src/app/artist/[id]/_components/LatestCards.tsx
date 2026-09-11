@@ -110,16 +110,16 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
             </div>
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
-            {selected && <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border-white/15 bg-white p-0 dark:bg-gray-950">
+            {selected && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
                 <div className="relative h-56 overflow-hidden rounded-t-2xl">
                     <CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                     {selected.kind !== 'release' && <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>}
                 </div>
                 <div className="space-y-4 px-5 pb-6">
                     <DialogTitle className="pr-3 text-xl leading-snug">{selected.title}</DialogTitle>
-                    <DialogDescription>{artistName} · {latestDateLabel(selected.date)}</DialogDescription>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-gray-800 dark:text-gray-200">{selected.kind === 'interview' ? `“${selected.text}”` : selected.text}</p>
-                    {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-fuchsia-700 dark:text-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
+                    <DialogDescription className="text-white/60">{artistName} · {latestDateLabel(selected.date)}</DialogDescription>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/85">{selected.kind === 'interview' ? `“${selected.text}”` : selected.text}</p>
+                    {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
                 </div>
             </DialogContent>}
         </Dialog>
