@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 jest.mock('@/server/auth', () => ({
     getServerAuthSession: jest.fn(),
@@ -54,7 +54,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName }: { artistName: string }) { return <div data-testid="hero-section"><img alt={artistName} src="test.jpg" /></div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)}><h1>{artistName}</h1>{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -63,7 +63,7 @@ jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArti
 jest.mock('@/app/artist/[id]/_components/ArtistJsonLd', () => function ArtistJsonLd() { return null; });
 jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButton() { return <div data-testid="claim-button" />; });
 jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return <div data-testid="ask-about-artist" />; });
-jest.mock('@/app/artist/[id]/_components/VaultSection', () => function VaultSection() { return <div data-testid="vault-section" />; });
+jest.mock('@/app/artist/[id]/_components/VaultSection', () => function VaultSection({ children }: any) { return <div data-testid="vault-section"><div id="mn-sources" />{children}</div>; });
 jest.mock('@/server/utils/queries/userQueries', () => ({
     getUserById: jest.fn().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false }),
 }));
@@ -71,6 +71,8 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getClaimByArtistId: jest.fn().mockResolvedValue(null),
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
+jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
+jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null), getOnboardingState: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
 }));
@@ -148,8 +150,10 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('blurb-section')).toBeInTheDocument();
         });
 
-        it('renders ask about artist section', async () => {
+        it('opens the existing Ask UI from its persistent trigger', async () => {
             await renderArtistPage();
+            expect(screen.queryByTestId('ask-about-artist')).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Ask about Test Artist' }));
             expect(screen.getByTestId('ask-about-artist')).toBeInTheDocument();
         });
 
@@ -213,9 +217,9 @@ describe('ArtistProfile page', () => {
             setupMocks({ session: mockSession });
         });
 
-        it('renders bookmark button when authenticated', async () => {
+        it('keeps profile bookmarks removed when authenticated', async () => {
             await renderArtistPage();
-            expect(screen.getByTestId('bookmark-button')).toBeInTheDocument();
+            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
         });
 
         it('renders edit mode toggle when admin', async () => {
@@ -349,5 +353,23 @@ describe('ArtistProfile page', () => {
                 url: 'https://cdn.deezer.com/artist.jpg',
             });
         });
+    });
+});
+
+
+describe('Museum page composition', () => {
+    beforeEach(() => { jest.clearAllMocks(); setupMocks(); });
+    it('orders one Latest, Lore with About, then Links and keeps all tour destinations', async () => {
+        const { container } = await renderArtistPage();
+        const latest = container.querySelector('#mn-latest');
+        const lore = container.querySelector('#mn-lore');
+        const links = container.querySelector('#mn-links');
+        expect(latest.compareDocumentPosition(lore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(lore.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(lore.querySelector('#mn-about')).toBeInTheDocument();
+        expect(container.querySelectorAll('#mn-latest')).toHaveLength(1);
+        expect(container.querySelector('#mn-timeline')).not.toBeInTheDocument();
+        for (const id of ['mn-about', 'mn-sources', 'mn-links', 'mn-ask']) expect(container.querySelector(`#${id}`)).toBeInTheDocument();
+        for (const a of screen.getByRole('navigation', { name: 'Explore artist profile' }).querySelectorAll('a')) expect(container.querySelector(a.getAttribute('href'))).toBeInTheDocument();
     });
 });

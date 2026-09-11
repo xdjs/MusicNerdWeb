@@ -1,5 +1,21 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Artist profile redesign #1230 — local implementation, draft review
+
+September 11: `pete/1230-artist-page-redesign`, isolated checkout
+`/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
+Museum starting direction with combined Latest, persistent artist search, Lore/About,
+combined Links/Support, and floating Ask sheet. All five issue images were reviewed.
+[Feature contract and verification limits](docs/artist-profile-redesign.md).
+
+Migration 0025 adds nullable artist_docs.lore_summary. Applied only to Music Nerd Dev;
+column privileges/RLS verified, actual app-role query blocked by connection restrictions.
+Production migration and live 390px/desktop checks are still required before release.
+Existing biographies were not regenerated. In Process remains Sweetman's #1228 work.
+The original dirty UI-research checkout and its account-bookmarks work are untouched.
+Implementation PR targets staging and references #1230; no merge/release authorization.
+
+
 ## Meeting transcript automation — prepared, not active
 
 Pete authorized publicly readable verbatim transcripts for Music Nerd Stand Up and Music Nerd

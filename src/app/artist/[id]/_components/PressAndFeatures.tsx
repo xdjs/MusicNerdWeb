@@ -15,6 +15,7 @@ interface VaultSource {
 
 interface PressAndFeaturesProps {
     sources: VaultSource[];
+    summary?: string | null;
 }
 
 function getSourceDomain(url: string): string {
@@ -122,7 +123,7 @@ function SourceCard({ source }: { source: VaultSource }) {
     );
 }
 
-export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
+export default function PressAndFeatures({ sources: allSources, summary }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
     const sources = allSources.filter((s) => s.type !== "website");
@@ -192,6 +193,8 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                     })}
                 </div>
             )}
+
+            {summary && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{summary}</p>}
 
             {/* Carousel */}
             <div className="relative group/carousel">

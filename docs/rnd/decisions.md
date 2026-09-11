@@ -10,6 +10,19 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-11 · [Stand Up transcript](transcripts/2026-09-11-standup-ab5db51a596c.md)
+
+- Combine Timeline into Latest, including In Process moments alongside other activity. — team, 13:25
+- Keep artist search easy to reach from the redesigned profile. — Pete, 17:21
+- Pete owns profile design/Latest; Sweetman owns the initial read-only In Process integration.
+  This supersedes yesterday's temporary pause on Pete's design work. — Pete, Sweetman, 21:23–22:12
+- In Process upload/writeback is later work; initially favor a distinct Music Nerd collection,
+  with artist-selectable collections left for exploration. — team, 14:11–15:53, 22:12
+- Keep Exa quality and make the research provider replaceable. — Carl, Sweetman, 19:30–20:38
+
+No explicit A/B/C selection was recorded. Floating Ask was feedback; the precise placement
+and folding About into Lore remain implementation choices under Pete's design ownership.
+
 ## 2026-09-10 · [R&D](meetings/2026-09-10.md)
 
 **Product**

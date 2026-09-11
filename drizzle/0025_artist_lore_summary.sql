@@ -1,0 +1,1 @@
+ALTER TABLE "artist_docs" ADD COLUMN "lore_summary" jsonb;

@@ -807,3 +807,6 @@ body {
 .scroll-text {
   @apply mt-4 text-gray-600;
 }
+
+/* Keep the profile's anchor destinations clear of the persistent artist search. */
+.artist-profile [id^="mn-"] { scroll-margin-top: 6rem; }

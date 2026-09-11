@@ -61,7 +61,7 @@ jest.mock('@/app/_components/EditModeToggle', () => function EditModeToggle() { 
 jest.mock('@/app/_components/AutoRefresh', () => function AutoRefresh() { return null; });
 jest.mock('@/app/artist/[id]/_components/BlurbSection', () => function BlurbSection() { return <div data-testid="blurb" />; });
 jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtistData() { return <div data-testid="add-data" />; });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection() { return <div data-testid="hero-section" />; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children }: any) { return <div data-testid="hero-section"><h1>{artistName}</h1>{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return null; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return null; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -69,6 +69,7 @@ jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArti
 // table, which this suite does not stand up.
 jest.mock('@/app/artist/[id]/_components/ArtistJsonLd', () => function ArtistJsonLd() { return null; });
 jest.mock('@/app/artist/[id]/_components/ClaimButton', () => function ClaimButton() { return null; });
+jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest">Latest</section>; });
 jest.mock('@/app/artist/[id]/_components/VaultSection', () => function VaultSection() { return <div data-testid="vault-section" />; });
 jest.mock('@/app/artist/[id]/_components/AskAboutArtist', () => function AskAboutArtist() { return null; });
 jest.mock('@/server/utils/queries/userQueries', () => ({

@@ -454,6 +454,7 @@ export const artistBioVersions = pgTable("artist_bio_versions", {
 
 // Post-claim onboarding: the artist knowledgebase doc (one current doc per artist).
 export const artistDocs = pgTable("artist_docs", {
+	loreSummary: jsonb("lore_summary"),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
 	content: text().notNull(),
