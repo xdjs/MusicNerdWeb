@@ -810,3 +810,14 @@ body {
 
 /* Keep the profile's anchor destinations clear of the persistent artist search. */
 .artist-profile [id^="mn-"] { scroll-margin-top: 6rem; }
+
+/* Pink actions keep black labels/icons in both themes. These scoped rules must
+   follow the legacy dark-mode text-black and svg[stroke-width] overrides. */
+.button-pink,
+.button-pink span,
+.button-pink svg,
+.dark .button-pink,
+.dark .button-pink span,
+.dark .button-pink svg {
+  color: #000 !important;
+}

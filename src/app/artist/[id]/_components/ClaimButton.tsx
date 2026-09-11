@@ -104,7 +104,7 @@ export default function ClaimButton({
     return (
         <>
             <Button
-                variant="pink"
+                variant="glass"
                 onClick={() => {
                     if (!session) {
                         // Trigger login via the nav login button

@@ -15,7 +15,7 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 - Unpin only unlocks the current bio; regenerate requires a separate explicit click. — Pete
 - Clicking a Latest release opens a compact picker matching the top Listen button, with direct release links and logos shown immediately; remove the More from artist dropdown. — Pete
 
-- Match Claim/Edit and primary profile buttons to Add Link: solid pink, black labels/icons, consistent rounded corners and interaction states. — Pete, citing Om
+- Keep consistent rounded button shapes and black text/icons on pink (Om’s contrast recommendation); reserve solid pink for Listen/save, use glass for Claim/Edit and gray for filters. Ask stays pink with a glass finish. — Pete
 
 - Keep one expandable biography in the hero; remove About under Lore and strengthen the portrait fade. — Pete
 - Listen opens a dark glass picker of saved music services, with unboxed logos and clean rows; exclude In Process as it is not a listening destination. — Pete

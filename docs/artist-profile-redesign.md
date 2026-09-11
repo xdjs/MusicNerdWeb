@@ -101,9 +101,11 @@ localhost:3002. Exercise portrait/fallback, search, anchor jumps, source filters
 upload, hero bio expand/edit/pin, service picker and saved link ordering on a running
 dev/preview environment before release.
 
-Local button review: Claim, Edit/Done, Add Link, Listen, Ask and bio Save share
-the pink Button variant with black text/icons, rounded-lg corners, 44px minimum
-height, and common hover/pressed/focus states. Pink selected filters use black text.
+Local button review: Listen, Done, Add Link and bio Save use solid pink with black
+labels/icons. Claim/Edit use neutral glass, active Latest filters use gray, and Ask
+keeps a translucent pink glass finish with blur, an edge highlight and black text.
+Rounded-lg corners, minimum 44px targets and focus states stay consistent. Scoped
+CSS overrides legacy dark-mode rules that otherwise turn pink-button labels white.
 This styling follow-up passed focused component tests, TypeScript and targeted lint;
 live browser review remains blocked by the existing localhost permission denial.
 

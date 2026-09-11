@@ -11,7 +11,7 @@ export default function EditModeToggle() {
 
     return (
         <Button
-            variant="pink"
+            variant={isEditing ? "pink" : "glass"}
             onClick={toggle}
             disabled={isSaving}
             data-testid="edit-mode-toggle"
