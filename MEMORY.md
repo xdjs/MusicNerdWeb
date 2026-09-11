@@ -11,6 +11,8 @@ combined Links/Support, and floating Ask sheet. All five issue images were revie
 Later local review: expandable hero bio only, stronger image fade, Listen service picker,
 no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode. Latest → Links → Lore.
 Drag link icons directly; Done saves ordering and remains in edit mode on failure.
+Primary profile actions now share the Add Link style: solid pink with black labels/icons,
+rounded corners, consistent hover/focus states and at least 44px targets, including Claim/Edit.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.

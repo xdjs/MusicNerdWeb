@@ -61,7 +61,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         {items.length > 0 && <div className="flex flex-wrap gap-2" aria-label="Filter latest activity">
             {(['all', ...Object.keys(categories).filter(kind => items.some(item => item.kind === kind))] as const).map(kind =>
                 <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind as LatestKind | 'all')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${filter === kind ? 'border-pastypink bg-pastypink text-gray-950' : 'border-black/10 bg-white/60 text-gray-700 hover:border-pastypink dark:border-white/15 dark:bg-white/5 dark:text-gray-300'}`}>
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${filter === kind ? 'border-pastypink bg-pastypink text-black' : 'border-black/10 bg-white/60 text-gray-700 hover:border-pastypink dark:border-white/15 dark:bg-white/5 dark:text-gray-300'}`}>
                     {kind === 'all' ? 'All' : categories[kind as LatestKind]}
                 </button>)}
         </div>}

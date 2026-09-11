@@ -11,14 +11,12 @@ export default function EditModeToggle() {
 
     return (
         <Button
-            variant="outline"
-            size="sm"
+            variant="pink"
             onClick={toggle}
             disabled={isSaving}
             data-testid="edit-mode-toggle"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200 border-pastypink/50 text-pastypink hover:bg-pastypink hover:text-white"
         >
-            {isEditing ? <Check size={14} /> : <Pencil size={14} />}
+            {isEditing ? <Check size={16} aria-hidden="true" /> : <Pencil size={16} aria-hidden="true" />}
             {isSaving ? "Saving…" : isEditing ? "Done" : "Edit"}
         </Button>
     );

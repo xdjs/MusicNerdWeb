@@ -1,6 +1,7 @@
 "use client";
 
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 import { ArrowUpRight, Music2, Play } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,9 +18,9 @@ export default function ListenPicker({ artistName, links }: { artistName: string
     if (!links.length) return null;
     return <Dialog>
         <DialogTrigger asChild>
-            <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-pastypink px-5 text-sm font-semibold text-gray-950 hover:bg-pink-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
+            <Button type="button" variant="pink" className="px-5">
                 Listen <Play size={14} fill="currentColor" aria-hidden="true" />
-            </button>
+            </Button>
         </DialogTrigger>
         <DialogContent className="max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/10 bg-neutral-950/90 p-5 text-white shadow-2xl backdrop-blur-2xl dark:bg-neutral-950/90 sm:rounded-2xl sm:p-6">
             <DialogHeader className="pr-5 text-left">

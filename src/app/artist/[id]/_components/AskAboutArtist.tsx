@@ -536,7 +536,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     {!loading && (
                         <button
                             onClick={reset}
-                            className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-white hover:bg-pastypink/80 transition-colors"
+                            className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-black hover:bg-pastypink transition-colors"
                             aria-label="Close answer"
                         >
                             <X size={14} />

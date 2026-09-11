@@ -58,7 +58,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             }} />
         <button type="button" aria-label="Change photo" disabled={uploading}
             onClick={() => fileRef.current?.click()}
-            className="absolute right-4 top-4 z-10 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-black/60 px-4 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
+            className="absolute right-4 top-4 z-10 inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-4 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
             <Camera size={16} aria-hidden="true" />{uploading ? "Uploading…" : "Change photo"}
         </button>
     </>;

@@ -316,15 +316,14 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
     return (
         <>
             <Button
-                size={label ? "sm" : "icon"}
-                className={label
-                    ? "text-white bg-pastypink flex items-center justify-center px-4 min-w-[60px]"
-                    : "text-white bg-pastypink rounded-lg hover:bg-pastypink/90 w-8 h-8 p-0 flex items-center justify-center"}
+                variant="pink"
+                size={label ? "default" : "icon"}
+                className={label ? "min-w-[60px]" : "h-11 w-11 p-0"}
                 onClick={handleClick}
                 aria-label={label ?? `Add a link for ${artist.name ?? "this artist"}`}
                 title={label ?? `Add a link for ${artist.name ?? "this artist"}`}
             >
-                {label ? <span className="whitespace-nowrap">{label}</span> : <Plus color="white" size={24} aria-hidden="true" />}
+                {label ? <span className="whitespace-nowrap">{label}</span> : <Plus size={24} aria-hidden="true" />}
             </Button>
             <Dialog open={isModalOpen} onOpenChange={handleClose}>
                 <DialogContent className="sm:max-w-[425px] max-h-screen overflow-auto scrollbar-hide">
@@ -392,7 +391,7 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                     disabled={isLoading || platformRegexStatus === "loading"}
                                     aria-busy={isLoading || platformRegexStatus === "loading"}
                                     aria-label={directEdit ? "Save Link" : autoApprove ? "Add Link" : "Submit"}
-                                    className="bg-pastypink hover:bg-pastypink/90 text-white"
+                                    variant="pink"
                                 >
                                     {platformRegexStatus === "loading" ? (
                                         <span>Loading supported links…</span>

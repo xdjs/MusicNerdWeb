@@ -11,7 +11,6 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { claimArtistProfile } from "@/app/actions/dashboardActions";
 
@@ -105,8 +104,7 @@ export default function ClaimButton({
     return (
         <>
             <Button
-                variant="outline"
-                size="sm"
+                variant="pink"
                 onClick={() => {
                     if (!session) {
                         // Trigger login via the nav login button
@@ -116,12 +114,8 @@ export default function ClaimButton({
                     }
                     setModalOpen(true);
                 }}
-                className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200",
-                    "bg-white text-pastypink border border-pastypink/50 hover:bg-pastypink hover:text-white"
-                )}
             >
-                <ShieldCheck size={14} strokeWidth={2.5} />
+                <ShieldCheck size={16} strokeWidth={2.5} aria-hidden="true" />
                 Claim
             </Button>
 
@@ -154,7 +148,8 @@ export default function ClaimButton({
                             <Button
                                 onClick={handleClaim}
                                 disabled={loading}
-                                className="w-full bg-pastypink hover:bg-pastypink/90 text-white"
+                                variant="pink"
+                                className="w-full"
                             >
                                 {loading ? "Submitting..." : "Submit Claim"}
                             </Button>

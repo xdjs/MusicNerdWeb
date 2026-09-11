@@ -141,7 +141,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
                 size="sm"
                 onClick={handleRegenerate}
                 disabled={isPinned || isRegenerating || isSaving}
-                className={hero ? "rounded-full border-white/15 bg-transparent text-white/75 hover:bg-white/10 hover:text-white" : "text-gray-700 dark:text-gray-200"}
+                className={hero ? "min-h-11 rounded-lg border-white/15 bg-transparent text-white/75 hover:bg-white/10 hover:text-white" : "text-gray-700 dark:text-gray-200"}
               >
                 {isRegenerating ? (
                   <>
@@ -156,10 +156,10 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
 
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" className={hero ? "rounded-full text-white/65 hover:bg-white/10 hover:text-white" : ""} onClick={handleDiscard} disabled={isSaving || isRegenerating}>
+            <Button variant="ghost" className={hero ? "min-h-11 rounded-lg text-white/65 hover:bg-white/10 hover:text-white" : ""} onClick={handleDiscard} disabled={isSaving || isRegenerating}>
               Discard
             </Button>
-            <Button className="rounded-full bg-pastypink text-gray-950 hover:bg-pink-200 disabled:opacity-40" onClick={handleSave} disabled={isPinned || isRegenerating || isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
+            <Button variant="pink" onClick={handleSave} disabled={isPinned || isRegenerating || isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
               {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
             </Button>
           </div>
