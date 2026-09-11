@@ -20,6 +20,9 @@ as the other overlays, avoiding the legacy blue-gray background override. Add Li
 and Add Artist use compact glass forms (no oversized Add Link image), including
 supported-link and duplicate-choice states. The account menu has glass styling,
 icons, Explore/Account groups, 48px rows and viewport-bounded mobile width.
+Theme initialization now restores the saved preference before the first paint on
+full reloads, including login/logout; 29 theme/auth tests, types and lint pass.
+Chrome visual verification remains outstanding. HTTPS preview runs on port 3000.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Unpin no longer refetches the bio; it preserves text and only unlocks editing.

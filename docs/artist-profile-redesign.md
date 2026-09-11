@@ -132,3 +132,12 @@ and a 288px mobile width capped to the viewport (256px desktop). Claim/admin and
 wallet menu gates, contribution tracking, authentication and theme handlers are retained.
 79 focused form/account tests, TypeScript, targeted lint (existing warnings) and CSS
 compilation passed. Auth tests use mocks; live mobile layout/auth remain unverified.
+
+Theme reload follow-up: a synchronous script in the document head restores the
+saved `musicnerd-theme` class and native color scheme before paint. React starts
+with matching server/client markup, then synchronizes to that preference without
+applying the light default to the document. Storage failures fall back to the system
+preference and do not break toggling. Login/logout still perform the existing full
+reload. 29 focused theme/auth tests, TypeScript and targeted lint passed; tests
+include hydration and pre-hydration initialization, but a real Chrome login/reload
+visual check remains outstanding. HTTPS preview is now running on localhost:3000.
