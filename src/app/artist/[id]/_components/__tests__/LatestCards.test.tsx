@@ -25,8 +25,8 @@ it('filters by source, opens full text, and links to the actual release', () => 
     expect(screen.queryByRole('button', { name: `Read ${answer.title}` })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Read New record' }));
     const detail = screen.getByRole('dialog');
-    expect(within(detail).getByRole('heading', { name: 'New record' })).toBeInTheDocument();
-    expect(within(detail).getByText('Test Artist · Aug 2026')).toBeInTheDocument();
+    expect(within(detail).getByRole('heading', { name: 'Listen to New record' })).toBeInTheDocument();
+    expect(within(detail).getByText('Test Artist')).toBeInTheDocument();
     expect(within(detail).getByRole('link', { name: 'Listen on Deezer' })).toHaveAttribute('href', release.sourceUrl);
     fireEvent.click(within(detail).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -88,7 +88,7 @@ it('keeps every update in one gallery and supports arrow controls and filter res
     expect(within(gallery).getAllByRole('article')).toHaveLength(1);
 });
 
-it('offers direct release services with logos and separates artist-only destinations', () => {
+it('opens a flat release picker with logos and no dropdown or artist-only destinations', () => {
     const spotify = { siteName: 'spotify', label: 'Spotify', href: 'https://open.spotify.com/album/2up3OPMp9Tb4dAKM2erWXQ', iconSrc: '/siteIcons/spotify_icon.svg' };
     render(<LatestCards items={[{ ...release, listeningLinks: [spotify] }]} artistName="Test Artist" artistImage="" unavailable={false}
         artistListeningLinks={[{ ...spotify, href: 'https://open.spotify.com/artist/123' }, { siteName: 'bandcamp', label: 'Bandcamp', href: 'https://test.bandcamp.com/', iconSrc: '/siteIcons/bandcamp_icon.svg' }]} />);
@@ -97,10 +97,10 @@ it('offers direct release services with logos and separates artist-only destinat
     expect(within(detail).getByRole('link', { name: 'Listen on Spotify' })).toHaveAttribute('href', spotify.href);
     expect(within(detail).getByRole('link', { name: 'Listen on Deezer' })).toHaveAttribute('href', release.sourceUrl);
     expect(within(detail).queryByRole('link', { name: 'Listen on Bandcamp' })).not.toBeInTheDocument();
-    const more = within(detail).getByText('More from Test Artist').closest('details')!;
-    fireEvent.click(within(detail).getByText('More from Test Artist'));
-    expect(more).toHaveTextContent('Artist pages');
-    expect(more.querySelector('a')).toHaveAttribute('href', 'https://test.bandcamp.com/');
+    expect(within(detail).queryByText('More from Test Artist')).not.toBeInTheDocument();
+    expect(detail.querySelector('details')).toBeNull();
+    expect(within(detail).queryByText('Single by Test Artist')).not.toBeInTheDocument();
+    expect(within(detail).getAllByRole('link')).toHaveLength(2);
 });
 
 jest.mock('@/server/utils/queries/artistLatestQueries', () => ({ getArtistLatest: jest.fn() }));

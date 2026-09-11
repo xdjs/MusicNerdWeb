@@ -40,9 +40,9 @@ keyboard gallery controls, image fallbacks and a detail dialog with original sou
 links. Release catalogs are read concurrently from known Deezer/Spotify artist IDs;
 exact title/date/kind matches share one card with both service links. Approved source
 pages with an exact release title can add Apple Music, Bandcamp, SoundCloud, YouTube
-and supported saved-profile services. The detail dialog reuses the logo rows from
-Listen. Artist-only destinations are explicitly separated under More from the artist;
-they are not advertised as direct release links. No guessed URLs, new scraping,
+and supported saved-profile services. Release cards open the same compact glass service picker as Listen, with a small
+cover and direct release links shown immediately. There is no dropdown or artist-profile
+fallback in this picker. No guessed URLs, new scraping,
 third-party resolver or database writes are involved. Expanded Latest details use a frosted charcoal glass surface with white text,
 replacing the opaque blue-gray panel. In Process items remain Sweetman's adapter work, not a second section here.
 
@@ -109,5 +109,7 @@ live browser review remains blocked by the existing localhost permission denial.
 
 The release/unpin follow-up passed full CI (197 suites, 2,348 tests, six skipped),
 plus a subsequent server-section-to-dialog regression (nine focused dialog tests).
+The later compact picker change passed those nine tests, TypeScript and targeted lint;
+full CI above predates that UI-only follow-up.
 Provider matching is covered with mocks; live cross-service availability and visual
 review remain unverified in this session.

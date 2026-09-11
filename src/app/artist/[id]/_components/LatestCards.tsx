@@ -8,7 +8,7 @@ import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/a
 
 import type { ProfileLink } from '@/lib/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/releaseListeningLinks';
-import ListeningLinks from './ListeningLinks';
+import ListeningDialogContent from './ListeningDialogContent';
 
 const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words' };
 const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle };
@@ -34,7 +34,6 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
     const [filter, setFilter] = useState<LatestKind | 'all'>('all');
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
     const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
-    const otherArtistLinks = artistListeningLinks.filter(link => !releaseLinks.some(release => release.siteName === link.siteName));
     const galleryRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ previous: false, next: false });
     const visible = items.filter(item => filter === 'all' || item.kind === filter);
@@ -116,25 +115,21 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
             </div>
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
-            {selected && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
+            {selected?.kind === 'release' && <ListeningDialogContent
+                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release
+                artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
+                    <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
+                </div>} />}
+            {selected && selected.kind !== 'release' && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
                 <div className="relative h-56 overflow-hidden rounded-t-2xl">
                     <CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
-                    {selected.kind !== 'release' && <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>}
+                    <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>
                 </div>
                 <div className="space-y-4 px-5 pb-6">
                     <DialogTitle className="pr-3 text-xl leading-snug">{selected.title}</DialogTitle>
                     <DialogDescription className="text-white/60">{artistName} · {latestDateLabel(selected.date)}</DialogDescription>
                     <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/85">{selected.kind === 'interview' ? `“${selected.text}”` : selected.text}</p>
-                    {selected.kind === 'release' && <div className="space-y-3">
-                        <h3 className="text-sm font-semibold">Listen to this release</h3>
-                        <ListeningLinks links={releaseLinks} release />
-                        {otherArtistLinks.length > 0 && <details className="border-t border-white/10 pt-3">
-                            <summary className="cursor-pointer rounded-lg py-2 text-sm text-white/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">More from {artistName}</summary>
-                            <p className="pb-2 text-xs text-white/50">Artist pages — we don’t have a direct link to this release on these services yet.</p>
-                            <ListeningLinks links={otherArtistLinks} />
-                        </details>}
-                    </div>}
-                    {selected.kind !== 'release' && selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
+                    {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
                 </div>
             </DialogContent>}
         </Dialog>
