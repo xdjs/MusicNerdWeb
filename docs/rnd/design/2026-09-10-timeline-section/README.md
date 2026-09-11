@@ -36,12 +36,16 @@ not just the artifacts. Tradeoff: tallest option.
 
 ![B](b-journal.png)
 
+![B at phone width](b-journal-phone.png)
+
 ### C · Featured
 
 Newest moment large with its description, older ones as a square strip. Gives the latest
 work a hero. Tradeoff: leans on the newest moment having a strong image.
 
 ![C](c-featured.png)
+
+![C at phone width](c-featured-phone.png)
 
 ## Decisions so far
 
