@@ -4,9 +4,14 @@
 
 September 11: `pete/1230-artist-page-redesign`, isolated checkout
 `/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
-Museum starting direction with combined Latest, persistent artist search, Lore/About,
+Museum starting direction with combined Latest, persistent artist search, Lore,
 combined Links/Support, and floating Ask sheet. All five issue images were reviewed.
 [Feature contract and verification limits](docs/artist-profile-redesign.md).
+
+Later local review: expandable hero bio only, stronger image fade, Listen service picker,
+no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode.
+Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.
+Browser permission denied access to the running localhost preview; visual and live save checks remain.
 
 Migration 0025 adds nullable artist_docs.lore_summary. Applied only to Music Nerd Dev;
 column privileges/RLS verified, actual app-role query blocked by connection restrictions.

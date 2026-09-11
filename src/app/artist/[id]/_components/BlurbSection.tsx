@@ -14,13 +14,16 @@ interface BlurbSectionProps {
   artistName: string;
   artistId: string;
   initialBio?: string | null;
+  hero?: boolean;
+  portrait?: boolean;
 }
 
-export default function BlurbSection({ artistName, artistId, initialBio }: BlurbSectionProps) {
+export default function BlurbSection({ artistName, artistId, initialBio, hero = false, portrait = false }: BlurbSectionProps) {
   const { isEditing, canEdit } = useContext(EditModeContext);
   const { toast } = useToast();
   const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
 
+  const [expanded, setExpanded] = useState(false);
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -149,7 +152,7 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
 
   if (isEditing) {
     return (
-      <div className="space-y-2">
+      <div className={hero ? "space-y-2 rounded-xl bg-white p-4 text-gray-950 dark:bg-gray-900 dark:text-white" : "space-y-2"}>
         <textarea
           className="w-full glass-subtle p-3 text-black dark:text-white h-40"
           value={editText}
@@ -207,6 +210,22 @@ export default function BlurbSection({ artistName, artistId, initialBio }: Blurb
         <BioVersionHistory artistId={artistId} onChanged={refetch} revision={historyRevision} />
       </div>
     );
+  }
+
+  if (hero) {
+    if (!aiBlurb) return null;
+    const text = aiBlurb.replace(/\[\d+(?:\s*,\s*\d+)*\]/g, "");
+    const canExpand = text.length > 220;
+    const excerpt = text.slice(0, 220).replace(/\s+\S*$/, "") + "…";
+    return <div>
+      <p id={`artist-bio-${artistId}`} className={`whitespace-pre-line text-sm leading-relaxed sm:text-base ${portrait ? "text-white" : "text-gray-700 dark:text-gray-200"}`}
+        dangerouslySetInnerHTML={{ __html: renderBioMarkdown(canExpand && !expanded ? excerpt : text) }} />
+      {canExpand && <button type="button" aria-expanded={expanded} aria-controls={`artist-bio-${artistId}`}
+        onClick={() => setExpanded(value => !value)}
+        className={`mt-1 min-h-11 text-sm font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${portrait ? "text-white hover:text-pastypink" : "text-gray-950 dark:text-white"}`}>
+        {expanded ? "Show less" : "Read more"}
+      </button>}
+    </div>;
   }
 
   // Non-editing view — show the full bio (no truncation)

@@ -1,4 +1,4 @@
-import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
+import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
@@ -10,7 +10,7 @@ import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
 import EditModeToggle from "@/app/_components/EditModeToggle";
-import BlurbSection from "./_components/BlurbSection";
+import { getListeningLinks } from "@/lib/artistProfileLinks";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import HeroSection from "./_components/HeroSection";
 import VaultSection from "./_components/VaultSection";
@@ -134,13 +134,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     }
     // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
     // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistDoc] = await Promise.all([
+    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistDoc, artistLinks] = await Promise.all([
         musicPlatformData.getArtist(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getVaultSourcesByArtistId(id, "pending"),
         getArtistDoc(id),
+        getArtistLinks(artist),
     ]);
 
     const platformImage = platformData?.imageUrl ?? null;
@@ -166,11 +167,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
 
-    const heroBio = artist.bio && isRealBio(artist.bio)
-        ? summarize(artist.bio.replace(/\[\d+(?:\s*,\s*\d+)*\]/g, ""), 160)
-        : null;
-    const listenUrl = platformData?.profileUrl && /^https:\/\//.test(platformData.profileUrl)
-        ? platformData.profileUrl : null;
+    const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
+    const listenLinks = getListeningLinks(artist, artistLinks, approvedSources);
 
     return (
         <>
@@ -208,7 +206,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
                     hasPortrait={!!customImageUrl(artist.customImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenUrl={listenUrl}>
+                    bio={heroBio} listenLinks={listenLinks}>
                         <ClaimButton
                             artistId={artist.id}
                             isClaimed={isClaimed}
@@ -231,17 +229,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </Suspense>
 
                 <div id="mn-lore">
-                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources}>
-                        <div id="mn-about" className="space-y-3 border-t border-black/10 pt-5 dark:border-white/10">
-                            <h3 className="text-lg font-semibold text-black dark:text-white">About</h3>
-                            <BlurbSection
-                                key={artist.bio ?? ""}
-                                artistName={artist.name ?? ""}
-                                artistId={artist.id}
-                                initialBio={artist.bio ?? null}
-                            />
-                        </div>
-                    </VaultSection>
+                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
 

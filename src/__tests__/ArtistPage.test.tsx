@@ -9,6 +9,7 @@ jest.mock('@/server/auth', () => ({
 jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     getAllLinks: jest.fn(),
+    getArtistLinks: jest.fn().mockResolvedValue([]),
 }));
 
 jest.mock('@/server/utils/musicPlatform', () => ({
@@ -54,7 +55,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)}><h1>{artistName}</h1>{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -359,14 +360,16 @@ describe('ArtistProfile page', () => {
 
 describe('Museum page composition', () => {
     beforeEach(() => { jest.clearAllMocks(); setupMocks(); });
-    it('orders one Latest, Lore with About, then Links and keeps all tour destinations', async () => {
+    it('orders Latest, Lore and Links with About only in the hero', async () => {
         const { container } = await renderArtistPage();
         const latest = container.querySelector('#mn-latest');
         const lore = container.querySelector('#mn-lore');
         const links = container.querySelector('#mn-links');
         expect(latest.compareDocumentPosition(lore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(lore.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(lore.querySelector('#mn-about')).toBeInTheDocument();
+        expect(lore.querySelector('#mn-about')).not.toBeInTheDocument();
+        expect(container.querySelectorAll('#mn-about')).toHaveLength(1);
+        expect(screen.getByTestId('hero-section').querySelector('#mn-about')).toBeInTheDocument();
         expect(container.querySelectorAll('#mn-latest')).toHaveLength(1);
         expect(container.querySelector('#mn-timeline')).not.toBeInTheDocument();
         for (const id of ['mn-about', 'mn-sources', 'mn-links', 'mn-ask']) expect(container.querySelector(`#${id}`)).toBeInTheDocument();

@@ -10,6 +10,13 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-11 · Pete's local profile review
+
+- Keep one expandable biography in the hero; remove About under Lore and strengthen the portrait fade. — Pete
+- Listen opens a logo-based picker of saved music services. — Pete
+- Remove Read the story for now; revisit its purpose Monday, September 14. — Pete
+- Allow profile editors to rearrange links and save their order. — Pete
+
 ## 2026-09-11 · [Stand Up transcript](transcripts/2026-09-11-standup-ab5db51a596c.md)
 
 - Combine Timeline into Latest, including In Process moments alongside other activity. — team, 13:25
@@ -21,7 +28,8 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 - Keep Exa quality and make the research provider replaceable. — Carl, Sweetman, 19:30–20:38
 
 No explicit A/B/C selection was recorded. Floating Ask was feedback; the precise placement
-and folding About into Lore remain implementation choices under Pete's design ownership.
+remained an implementation choice under Pete's design ownership. Pete's later review
+above supersedes the initial About placement.
 
 ## 2026-09-10 · [R&D](meetings/2026-09-10.md)
 

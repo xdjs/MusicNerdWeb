@@ -12,6 +12,7 @@ interface EditableLinkIconProps {
     artistId: string;
     iconSrc: string;
     label: string;
+    canEdit?: boolean;
     children?: React.ReactNode;
 }
 
@@ -21,6 +22,7 @@ export default function EditableLinkIcon({
     artistId,
     iconSrc,
     label,
+    canEdit = true,
 }: EditableLinkIconProps) {
     const { isEditing } = useContext(EditModeContext);
     const [deleting, setDeleting] = useState(false);
@@ -70,8 +72,9 @@ export default function EditableLinkIcon({
             <span className="text-xs text-center text-muted-foreground leading-tight truncate w-full">
                 {label}
             </span>
-            {isEditing && (
+            {canEdit && isEditing && (
                 <button
+                    aria-label={`Remove ${label}`}
                     onClick={handleDelete}
                     disabled={deleting}
                     className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors z-10"

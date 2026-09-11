@@ -24,8 +24,10 @@ supersedes the boards in these places:
 
 ## Visitor and editor behavior
 
-An uploaded custom portrait leads the page, with the artist's real bio excerpt,
-listening destination when available, and a link to About. Without a custom
+An uploaded custom portrait leads the page with a stronger dark fade and the artist's
+biography. Read more expands the full bio in place; Show less collapses it. Listen
+opens a service picker with logos and only stored music destinations. Read the story
+is removed pending discussion Monday, September 14. Without a custom
 portrait, the page retains a blurred thumbnail with a circular avatar. Photo
 upload, claim states and edit mode remain available; the profile bookmark is removed.
 
@@ -35,10 +37,15 @@ answers and bounded release catalogs. It has filters, horizontal scrolling,
 keyboard gallery controls, image fallbacks and a detail dialog with original source
 links. In Process items remain Sweetman's adapter work, not a second section here.
 
-Lore contains approved source cards, the generated inventory overview and About.
-About keeps its existing edit/regenerate/pin controls. Pending sources stay gated to
-editors. Support the artist sits within Links and retains its separate grid and
-submission controls. The existing tour anchor IDs remain available, including the
+Lore contains approved source cards and the generated inventory overview. The duplicate
+About section is removed. The hero biography keeps its existing edit/regenerate/pin
+controls. Pending sources stay gated to editors. Support the artist sits within Links and retains its separate grid and
+submission controls. In edit mode, each grid supports drag handles, keyboard sorting,
+arrow buttons, Save order and Discard order. Saved ordering is public and persisted
+in artists.link_order; new links append and removed links are ignored. The route
+requires the approved claimant or a current admin and rechecks ownership under the
+artist row lock. Saving one group preserves the other. Leaving edit mode discards
+unsaved ordering. The existing tour anchor IDs remain available, including the
 fixed Ask trigger; the tour does not change that trigger to relative positioning.
 
 ## Summary generation and persistence
@@ -59,19 +66,22 @@ is no automatic backfill or regeneration of an existing biography.
 
 ## Migration and verification
 
-Migration `0025_artist_lore_summary.sql` adds one nullable JSONB column. Its Drizzle
-snapshot and journal entry belong in the same change. It was applied to **Music Nerd
-Dev** on September 11; JSONB type/nullability, existing RLS and mnweb column
-SELECT/INSERT/UPDATE privileges were verified. The MCP session cannot SET ROLE mnweb,
+Migration `0025_artist_lore_summary.sql` adds the nullable Lore summary.
+`0026_artist_link_order.sql` adds nullable JSONB artists.link_order for profile ordering.
+Both were applied only to Music Nerd Dev; the new column has mnweb SELECT/UPDATE
+privileges and the existing artists RLS remains enabled. Both Drizzle snapshots and
+journal entries belong in the same change. Type/nullability and existing mnweb
+privileges were verified. The MCP session cannot SET ROLE mnweb,
 and the local shell cannot resolve the dev database host, so an actual app-role
 query remains unverified. No grants or policies were broadened.
 
-Production has not been migrated. Apply this additive migration through the normal
+Production has not been migrated. Apply these additive migrations through the normal
 release process **before** deploying dependent code; do not replay historical migrations.
 
-TypeScript, lint, full Jest coverage and production build passed with stub catalog
-credentials. This does not prove live providers, authentication, summary quality or
+Follow-up npm run ci passed: TypeScript, lint, 194 suites / 2,337 tests passed /
+6 skipped, coverage and production build with stub catalog credentials. This does not prove live providers, authentication, summary quality or
 production database access. Browser verification at 390px and desktop remains required:
-the current execution environment blocks local listening sockets (EPERM). Exercise
-portrait/fallback, search, anchor jumps, source filters, Ask with citations, photo
-upload and About edit/pin on a running dev/preview environment before release.
+the user started the local server, but browser policy denied this session access to
+localhost:3002. Exercise portrait/fallback, search, anchor jumps, source filters, Ask with citations, photo
+upload, hero bio expand/edit/pin, service picker and saved link ordering on a running
+dev/preview environment before release.

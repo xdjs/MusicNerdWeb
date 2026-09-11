@@ -25,6 +25,7 @@ jest.mock('@/server/utils/musicPlatform', () => ({
 jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     getAllLinks: jest.fn(),
+    getArtistLinks: jest.fn().mockResolvedValue([]),
 }));
 
 jest.mock('@/server/utils/services', () => ({

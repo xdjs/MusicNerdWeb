@@ -82,6 +82,7 @@ const mockArtist: Artist = {
     subvert: null,
     bluesky: null,
     inprocess: null,
+    linkOrder: null,
 };
 
 // Session removed - authentication disabled
