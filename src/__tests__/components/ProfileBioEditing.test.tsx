@@ -43,7 +43,7 @@ test('one Save updates the biography and exposes its preserved version in Lore',
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
     fetchMock.mockRestore();
 });
-test('the glass editor respects pinned bio protection until explicit unpin', async () => {
+test('unpin unlocks the existing bio without fetching or generating another bio', async () => {
     let pinned = true;
     (getArtistBioVersions as jest.Mock).mockImplementation(async () => ({ success: true, versions: [{ id: 'v1', artistId: 'a1', bioText: original, isPinned: pinned, createdAt: '2026-09-11T00:00:00Z' }] }));
     (unpinBioAction as jest.Mock).mockImplementation(async () => { pinned = false; return { success: true }; });
@@ -52,8 +52,19 @@ test('the glass editor respects pinned bio protection until explicit unpin', asy
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     await waitFor(() => expect(screen.getByRole('textbox')).toBeDisabled());
     expect(screen.getByRole('button', { name: 'Regenerate' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Unpin to edit or regenerate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unpin to edit' }));
     await waitFor(() => expect(screen.getByRole('textbox')).not.toBeDisabled());
     expect(unpinBioAction).toHaveBeenCalledWith('a1');
+    expect(screen.getByRole('textbox')).toHaveValue(original);
+    expect(screen.queryByText('Loading summary...')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Regenerate' })).toBeEnabled();
+    // Generation still requires its own explicit click after unpinning.
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/artistBio/a1', expect.objectContaining({
+        method: 'PUT', body: JSON.stringify({ regenerate: true }),
+    })));
+    await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(original));
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
     fetchMock.mockRestore();
 });

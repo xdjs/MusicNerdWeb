@@ -1,3 +1,5 @@
+import type { ProfileLink } from '@/lib/artistProfileLinks';
+
 export type LatestKind = 'release' | 'instagram' | 'interview';
 
 export interface ArtistLatestItem {
@@ -10,6 +12,7 @@ export interface ArtistLatestItem {
     imageCaption: string;
     sourceUrl: string | null;
     sourceLabel: string;
+    listeningLinks?: ProfileLink[];
 }
 
 /** Links come from stored sources or catalog responses, never generated prose. */

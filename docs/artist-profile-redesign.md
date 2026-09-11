@@ -37,7 +37,13 @@ Latest, Links and Lore navigation pills resolve to those sections. Latest reuses
 Pete's earlier local read-only adapters for stored Instagram posts, interview
 answers and bounded release catalogs. It has filters, horizontal scrolling,
 keyboard gallery controls, image fallbacks and a detail dialog with original source
-links. Expanded Latest details use a frosted charcoal glass surface with white text,
+links. Release catalogs are read concurrently from known Deezer/Spotify artist IDs;
+exact title/date/kind matches share one card with both service links. Approved source
+pages with an exact release title can add Apple Music, Bandcamp, SoundCloud, YouTube
+and supported saved-profile services. The detail dialog reuses the logo rows from
+Listen. Artist-only destinations are explicitly separated under More from the artist;
+they are not advertised as direct release links. No guessed URLs, new scraping,
+third-party resolver or database writes are involved. Expanded Latest details use a frosted charcoal glass surface with white text,
 replacing the opaque blue-gray panel. In Process items remain Sweetman's adapter work, not a second section here.
 
 Lore contains approved source cards and the generated inventory overview. The duplicate
@@ -46,7 +52,8 @@ controls, now in a frosted glass editor. One Save updates the public About and
 archives the previous and edited versions in the existing transaction. The separate
 Save to Lore button is removed; saved versions are accessible under Lore → Saved bios
 in edit mode. These are version-history records, not new third-party research sources.
-Pinned bios still require explicit unpinning. Pending sources stay gated to editors. Support the artist sits within Links and retains its separate grid and
+Pinned bios still require explicit unpinning. Unpin clears only the lock, retaining
+the displayed text without refetching or regenerating it; Regenerate is a separate action. Pending sources stay gated to editors. Support the artist sits within Links and retains its separate grid and
 submission controls. Links now appears above Lore. Editors drag the platform icons
 (or use Space, arrow keys and Space to drop); there are no separate handles or
 Save order buttons. Profile Done saves changed ordering before leaving edit mode.
@@ -86,7 +93,7 @@ query remains unverified. No grants or policies were broadened.
 Production has not been migrated. Apply these additive migrations through the normal
 release process **before** deploying dependent code; do not replay historical migrations.
 
-Follow-up npm run ci passed: TypeScript, lint, 196 suites / 2,342 tests passed /
+Follow-up npm run ci passed: TypeScript, lint, 197 suites / 2,348 tests passed /
 6 skipped, coverage and production build with stub catalog credentials. This does not prove live providers, authentication, summary quality or
 production database access. Browser verification at 390px and desktop remains required:
 the user started the local server, but browser policy denied this session access to
@@ -99,3 +106,8 @@ the pink Button variant with black text/icons, rounded-lg corners, 44px minimum
 height, and common hover/pressed/focus states. Pink selected filters use black text.
 This styling follow-up passed focused component tests, TypeScript and targeted lint;
 live browser review remains blocked by the existing localhost permission denial.
+
+The release/unpin follow-up passed full CI (197 suites, 2,348 tests, six skipped),
+plus a subsequent server-section-to-dialog regression (nine focused dialog tests).
+Provider matching is covered with mocks; live cross-service availability and visual
+review remain unverified in this session.

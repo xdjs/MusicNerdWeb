@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { ProfileLink } from '@/lib/artistProfileLinks';
 import type { Artist } from '@/server/db/DbTypes';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 import { getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
@@ -12,6 +13,7 @@ export type LatestRelease = {
     url: string;
     kind: string;
     platform: 'deezer' | 'spotify';
+    listeningLinks?: ProfileLink[];
 };
 
 const CATALOG_LIMIT = 50;
@@ -138,27 +140,31 @@ export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 's
     const providers: Array<[LatestRelease['platform'], string]> = [];
     if (artist.deezer && /^[1-9]\d*$/.test(artist.deezer)) providers.push(['deezer', artist.deezer]);
     if (artist.spotify && /^[a-zA-Z0-9]{22}$/.test(artist.spotify)) providers.push(['spotify', artist.spotify]);
-    const errors: unknown[] = [];
     const today = new Date().toISOString().slice(0, 10);
-    for (const [platform, id] of providers) {
-        try {
-            const catalog = await getCatalog(platform, id);
-            const seen = new Set<string>();
-            const releases = catalog.filter((release) => isReleased(release.releaseDate, today))
-                .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate) || a.id.localeCompare(b.id))
-                .filter((release) => {
-                    const key = `${release.title.toLocaleLowerCase('en-US')}|${release.releaseDate}`;
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                }).slice(0, 3);
-            if (releases.length) return releases;
-        } catch (error) {
-            errors.push(error);
+    const results = await Promise.allSettled(providers.map(([platform, id]) => getCatalog(platform, id)));
+    if (providers.length && results.every(result => result.status === 'rejected')) {
+        throw new AggregateError(results.map(result => result.status === 'rejected' ? result.reason : null), 'Artist release providers unavailable');
+    }
+    const groups = new Map<string, LatestRelease>();
+    // Both catalogs belong to known artist IDs. Match exact title, date and kind;
+    // never collapse a remaster/deluxe edition or an ambiguous partial date.
+    for (const result of results) {
+        if (result.status !== 'fulfilled') continue;
+        for (const release of result.value) {
+            if (!isReleased(release.releaseDate, today)) continue;
+            const key = `${release.title.trim().toLocaleLowerCase('en-US')}|${release.releaseDate}|${release.kind}`;
+            const link: ProfileLink = {
+                siteName: release.platform, href: release.url,
+                label: release.platform === 'deezer' ? 'Deezer' : 'Spotify',
+                iconSrc: `/siteIcons/${release.platform}_icon.svg`,
+            };
+            const existing = groups.get(key);
+            if (existing) {
+                if (!existing.listeningLinks?.some(item => item.siteName === link.siteName)) existing.listeningLinks?.push(link);
+            } else groups.set(key, { ...release, listeningLinks: [link] });
         }
     }
-    if (providers.length && errors.length === providers.length) {
-        throw new AggregateError(errors, 'Artist release providers unavailable');
-    }
-    return [];
+    return [...groups.values()]
+        .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate) || a.id.localeCompare(b.id))
+        .slice(0, 3);
 }

@@ -225,7 +225,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </nav>
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
-                    <LatestSection artist={artist} imageUrl={imageUrl} />
+                    <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
                 </Suspense>
 
                 {/* Listening, social and support links share one destination. */}

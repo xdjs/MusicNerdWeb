@@ -53,10 +53,10 @@ describe('getLatestArtistReleases', () => {
             deezerAlbum(5, '2026-04-01', { record_type: 'ep' }),
         ] } });
 
-        const result = await getLatestArtistReleases(artist);
+        const result = await getLatestArtistReleases({ ...artist, spotify: null });
 
         expect(result.map(({ id }) => id)).toEqual(['4', '2', '5']);
-        expect(result[0]).toEqual({
+        expect(result[0]).toMatchObject({
             id: '4', title: 'Release 4', releaseDate: '2026-09-06', kind: 'single', platform: 'deezer',
             url: 'https://www.deezer.com/album/4',
             imageUrl: 'https://cdn-images.dzcdn.net/images/cover/4/500x500.jpg',
@@ -71,7 +71,7 @@ describe('getLatestArtistReleases', () => {
         axiosGet.mockRejectedValueOnce(new Error('Deezer unavailable'))
             .mockResolvedValueOnce({ data: { items: [spotifyAlbum()] } });
 
-        expect(await getLatestArtistReleases(artist)).toEqual([{
+        expect(await getLatestArtistReleases(artist)).toMatchObject([{
             id: spotifyAlbumId, title: 'Single', releaseDate: '2026-08-24', kind: 'single', platform: 'spotify',
             url: `https://open.spotify.com/album/${spotifyAlbumId}`, imageUrl: 'https://i.scdn.co/image/actual-cover',
         }]);
@@ -174,4 +174,16 @@ describe('getLatestArtistReleases', () => {
         await pending;
         expect(axiosGet).not.toHaveBeenCalled();
     });
+});
+
+it('combines matching releases from both known artist catalogs and keeps distinct editions separate', async () => {
+    const { getLatestArtistReleases, axiosGet } = await setup();
+    axiosGet.mockResolvedValueOnce({ data: { data: [deezerAlbum(1, '2024-07-16', { title: 'Unfinished Hugs', record_type: 'single' })] } })
+        .mockResolvedValueOnce({ data: { items: [spotifyAlbum({ name: 'Unfinished Hugs', release_date: '2024-07-16' }),
+            spotifyAlbum({ id: '3up3OPMp9Tb4dAKM2erWXQ', name: 'Unfinished Hugs (Deluxe)', release_date: '2024-07-16', external_urls: { spotify: 'https://open.spotify.com/album/3up3OPMp9Tb4dAKM2erWXQ' } })] } });
+    const result = await getLatestArtistReleases(artist);
+    expect(axiosGet).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(2);
+    expect(result.find(release => release.title === 'Unfinished Hugs')?.listeningLinks?.map(link => link.siteName)).toEqual(['deezer', 'spotify']);
+    expect(result.find(release => release.title.includes('Deluxe'))?.listeningLinks).toHaveLength(1);
 });

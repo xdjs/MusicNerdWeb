@@ -75,14 +75,16 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
         const res = await unpinBioAction(artistId);
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: false })));
-            onChanged?.();
+            // Unpin changes only the lock. Refetching the bio can trigger generation
+            // for an empty/stale bio and unnecessarily replaces the editor with a loader.
+            onPinnedChange?.(false);
             refreshProfile?.();
         } else toast({ title: "Couldn't unpin bio", description: res.error, variant: 'destructive' });
     }
 
     return (
         <div className="space-y-2">
-            {showLockNotice && versions.some(v => v.isPinned) && <p className="text-xs text-muted-foreground">Your pinned bio is locked. <button type="button" onClick={handleUnpin} className="underline">Unpin to edit or regenerate</button>. The saved version will be kept.</p>}
+            {showLockNotice && versions.some(v => v.isPinned) && <p className="text-xs text-muted-foreground">Your pinned bio is locked. <button type="button" onClick={handleUnpin} className="underline">Unpin to edit</button>. Your bio will stay unchanged.</p>}
             {showHistory && <><button
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}

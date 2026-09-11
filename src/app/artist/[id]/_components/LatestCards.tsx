@@ -6,6 +6,10 @@ import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircl
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artistLatest';
 
+import type { ProfileLink } from '@/lib/artistProfileLinks';
+import { releaseListeningLinks } from '@/lib/releaseListeningLinks';
+import ListeningLinks from './ListeningLinks';
+
 const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words' };
 const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle };
 
@@ -24,11 +28,13 @@ function CardImage({ item, artistImage, artistName, detail = false }: { item: Ar
     </div>;
 }
 
-export default function LatestCards({ items, artistName, artistImage, unavailable }: {
-    items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean;
+export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [] }: {
+    items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[];
 }) {
     const [filter, setFilter] = useState<LatestKind | 'all'>('all');
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
+    const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
+    const otherArtistLinks = artistListeningLinks.filter(link => !releaseLinks.some(release => release.siteName === link.siteName));
     const galleryRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ previous: false, next: false });
     const visible = items.filter(item => filter === 'all' || item.kind === filter);
@@ -98,7 +104,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                                 <p className={`whitespace-pre-line ${item.kind === 'release' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
                                 <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-pink-200">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
-                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? item.sourceLabel.replace('Listen on', 'Release via') : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
+                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
                                 </span>
                             </div>
                         </button>
@@ -119,7 +125,16 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                     <DialogTitle className="pr-3 text-xl leading-snug">{selected.title}</DialogTitle>
                     <DialogDescription className="text-white/60">{artistName} · {latestDateLabel(selected.date)}</DialogDescription>
                     <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/85">{selected.kind === 'interview' ? `“${selected.text}”` : selected.text}</p>
-                    {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
+                    {selected.kind === 'release' && <div className="space-y-3">
+                        <h3 className="text-sm font-semibold">Listen to this release</h3>
+                        <ListeningLinks links={releaseLinks} release />
+                        {otherArtistLinks.length > 0 && <details className="border-t border-white/10 pt-3">
+                            <summary className="cursor-pointer rounded-lg py-2 text-sm text-white/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">More from {artistName}</summary>
+                            <p className="pb-2 text-xs text-white/50">Artist pages — we don’t have a direct link to this release on these services yet.</p>
+                            <ListeningLinks links={otherArtistLinks} />
+                        </details>}
+                    </div>}
+                    {selected.kind !== 'release' && selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
                 </div>
             </DialogContent>}
         </Dialog>

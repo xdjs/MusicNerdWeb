@@ -15,6 +15,9 @@ Primary profile actions now share the Add Link style: solid pink with black labe
 rounded corners, consistent hover/focus states and at least 44px targets, including Claim/Edit.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
+Unpin no longer refetches the bio; it preserves text and only unlocks editing.
+Release details combine known Deezer/Spotify catalog matches plus approved release-page
+links, using service logos; artist-only destinations are separately labeled.
 Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.
 Browser permission denied access to the running localhost preview; visual and live save checks remain.
 

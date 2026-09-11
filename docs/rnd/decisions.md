@@ -12,6 +12,9 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ## 2026-09-11 · Pete's local profile review
 
+- Unpin only unlocks the current bio; regenerate requires a separate explicit click. — Pete
+- Latest release details offer supported services where release links are available, with logos; artist-page links stay separately labeled. — Pete
+
 - Match Claim/Edit and primary profile buttons to Add Link: solid pink, black labels/icons, consistent rounded corners and interaction states. — Pete, citing Om
 
 - Keep one expandable biography in the hero; remove About under Lore and strengthen the portrait fade. — Pete

@@ -87,3 +87,36 @@ it('keeps every update in one gallery and supports arrow controls and filter res
     expect(gallery.scrollLeft).toBe(0);
     expect(within(gallery).getAllByRole('article')).toHaveLength(1);
 });
+
+it('offers direct release services with logos and separates artist-only destinations', () => {
+    const spotify = { siteName: 'spotify', label: 'Spotify', href: 'https://open.spotify.com/album/2up3OPMp9Tb4dAKM2erWXQ', iconSrc: '/siteIcons/spotify_icon.svg' };
+    render(<LatestCards items={[{ ...release, listeningLinks: [spotify] }]} artistName="Test Artist" artistImage="" unavailable={false}
+        artistListeningLinks={[{ ...spotify, href: 'https://open.spotify.com/artist/123' }, { siteName: 'bandcamp', label: 'Bandcamp', href: 'https://test.bandcamp.com/', iconSrc: '/siteIcons/bandcamp_icon.svg' }]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Read New record' }));
+    const detail = screen.getByRole('dialog');
+    expect(within(detail).getByRole('link', { name: 'Listen on Spotify' })).toHaveAttribute('href', spotify.href);
+    expect(within(detail).getByRole('link', { name: 'Listen on Deezer' })).toHaveAttribute('href', release.sourceUrl);
+    expect(within(detail).queryByRole('link', { name: 'Listen on Bandcamp' })).not.toBeInTheDocument();
+    const more = within(detail).getByText('More from Test Artist').closest('details')!;
+    fireEvent.click(within(detail).getByText('More from Test Artist'));
+    expect(more).toHaveTextContent('Artist pages');
+    expect(more.querySelector('a')).toHaveAttribute('href', 'https://test.bandcamp.com/');
+});
+
+jest.mock('@/server/utils/queries/artistLatestQueries', () => ({ getArtistLatest: jest.fn() }));
+
+it('carries catalog and approved-source release links through the server section into the actual dialog', async () => {
+    const { getArtistLatest } = await import('@/server/utils/queries/artistLatestQueries');
+    const { default: LatestSection } = await import('../LatestSection');
+    const spotify = { siteName: 'spotify', label: 'Spotify', href: 'https://open.spotify.com/album/2up3OPMp9Tb4dAKM2erWXQ', iconSrc: '/siteIcons/spotify_icon.svg' };
+    jest.mocked(getArtistLatest).mockResolvedValue({ items: [{ ...release, listeningLinks: [spotify] }], unavailable: false });
+    const appleUrl = 'https://music.apple.com/us/album/new-record/123';
+    render(await LatestSection({
+        artist: { id: 'artist-1', name: 'Test Artist' } as import('@/server/db/DbTypes').Artist,
+        imageUrl: '', sources: [{ title: 'New record by Test Artist', url: appleUrl }], listenLinks: [],
+    }));
+    fireEvent.click(screen.getByRole('button', { name: 'Read New record' }));
+    expect(screen.getByRole('link', { name: 'Listen on Apple Music' })).toHaveAttribute('href', appleUrl);
+    expect(screen.getByRole('link', { name: 'Listen on Spotify' })).toHaveAttribute('href', spotify.href);
+    expect(screen.getByRole('link', { name: 'Listen on Deezer' })).toHaveAttribute('href', release.sourceUrl);
+});

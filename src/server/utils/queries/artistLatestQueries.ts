@@ -71,6 +71,7 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
                 text: `${release.kind.charAt(0).toUpperCase() + release.kind.slice(1)} by ${artist.name ?? 'this artist'}`,
                 date: release.releaseDate, imageUrl: latestExternalUrl(release.imageUrl),
                 imageCaption: `${release.title} artwork`, sourceUrl,
+                listeningLinks: release.listeningLinks,
                 sourceLabel: `Listen on ${release.platform === 'deezer' ? 'Deezer' : 'Spotify'}` });
         }
     }

@@ -59,7 +59,7 @@ independent social/interview/catalog reads → normalized view data → interact
 | --- | --- | --- |
 | Instagram | Up to nine stored own posts, newest `posted_at` first | Stored display/thumbnail image; original validated Instagram post/Reel URL |
 | Interview | Up to six nonempty answers, excluding `source=offered`; `created_at` is answer/upsert time | Related stored post image when in the selected set; existing question-key source resolver; no invented link |
-| Release | Up to three already-released items from a bounded catalog, known Deezer ID first and Spotify fallback | Provider cover art and validated album URL; no name-based artist matching |
+| Release | Up to three already-released items from a bounded catalog, concurrent known Deezer/Spotify IDs, merging exact title/date/kind matches | Provider cover art and validated album URLs plus matching approved release pages; no name-based artist matching |
 
 The release adapter reads at most 50 catalog entries per provider, caches the catalog for an
 hour, and bounds each provider attempt to five seconds. The preview sorts that bounded response;
