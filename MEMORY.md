@@ -14,7 +14,9 @@ Drag link icons directly; Done saves ordering and remains in edit mode on failur
 Profile button hierarchy: Listen and save actions use solid pink; Claim/Edit use neutral
 glass; Ask stays pink with a translucent glass finish. Active Latest filters use gray.
 Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button
-labels/icons black despite legacy dark-mode text overrides.
+labels/icons black despite legacy dark-mode text overrides. The Ask sheet, input,
+suggestion chips, answers and source links now use the same frosted charcoal styling
+as the other overlays, avoiding the legacy blue-gray background override.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Unpin no longer refetches the bio; it preserves text and only unlocks editing.

@@ -115,3 +115,10 @@ The later compact picker change passed those nine tests, TypeScript and targeted
 full CI above predates that UI-only follow-up.
 Provider matching is covered with mocks; live cross-service availability and visual
 review remain unverified in this session.
+
+Ask uses the frosted charcoal glass treatment throughout the sheet, search input,
+suggestion chips, answer panel, citations and song-link popovers. The sheet avoids
+`bg-white` so the legacy dark-mode override cannot replace its surface with blue-gray.
+A scoped placeholder override preserves subdued text. The pink glass trigger remains.
+This follow-up passed 15 existing Ask tests, TypeScript, targeted lint (existing image
+warning) and CSS compilation; live browser review remains unverified.

@@ -821,3 +821,6 @@ body {
 .dark .button-pink svg {
   color: #000 !important;
 }
+
+/* Keep Ask's placeholder subdued despite the legacy dark-mode input override. */
+.artist-ask-panel input::placeholder { color: rgb(255 255 255 / 0.45) !important; }

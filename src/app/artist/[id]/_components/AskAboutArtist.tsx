@@ -98,7 +98,7 @@ function renderAnswer(
                 <sup key={key} className="ml-0.5 text-[0.65em] font-medium">
                     {cited.map((c, i) => (
                         <span key={c.n}>
-                            {i > 0 && <span className="text-muted-foreground/50">,</span>}
+                            {i > 0 && <span className="text-white/50">,</span>}
                             {c.url ? (
                                 <a
                                     href={c.url}
@@ -234,10 +234,10 @@ function ServiceIcon({ service }: { service: string }) {
     // wants the bare name.
     const src = SERVICE_ICON[parseServiceLabel(service).name];
     return (
-        <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/70 shadow-sm transition-all duration-200 group-hover/opt:scale-110 group-hover/opt:bg-white/90 dark:border-white/15 dark:bg-white/10 dark:group-hover/opt:bg-white/20">
+        <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/10 shadow-sm transition-colors group-hover/opt:bg-white/20">
             {src
                 ? <img src={src} alt="" className="h-6 w-6 object-contain" />
-                : <span className="text-sm font-semibold text-black/70 dark:text-white/70">{service.slice(0, 1)}</span>}
+                : <span className="text-sm font-semibold text-white/70">{service.slice(0, 1)}</span>}
         </span>
     );
 }
@@ -354,9 +354,9 @@ function SongLink({
                     // labelled group of links is what this actually is.
                     role="group"
                     aria-label={`Where to hear ${song.title}`}
-                    className="glass absolute left-0 top-full z-30 mt-2 flex w-max max-w-[min(20rem,80vw)] flex-col gap-2 rounded-xl border border-black/10 p-3 shadow-xl dark:border-white/15"
+                    className="absolute left-0 top-full z-30 mt-2 flex w-max max-w-[min(20rem,80vw)] flex-col gap-2 rounded-xl border border-white/15 bg-neutral-950/95 p-3 text-white shadow-xl backdrop-blur-xl"
                 >
-                    <span className="max-w-[16rem] truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="max-w-[16rem] truncate text-[11px] font-medium uppercase tracking-wide text-white/70">
                         Where to hear “{song.title}”
                     </span>
                     <span className="flex flex-wrap items-start gap-3">
@@ -384,10 +384,10 @@ function SongLink({
                                     page" — and the brackets make the boundary
                                     part of the text rather than something the
                                     layout has to supply. */}
-                                <span className="w-full text-center text-[11px] leading-tight text-muted-foreground">
+                                <span className="w-full text-center text-[11px] leading-tight text-white/70">
                                     {parseServiceLabel(o.service).name}
                                     {parseServiceLabel(o.service).caveat && (
-                                        <span className="block text-[10px] leading-tight text-muted-foreground/70">
+                                        <span className="block text-[10px] leading-tight text-white/65">
                                             ({parseServiceLabel(o.service).caveat})
                                         </span>
                                     )}
@@ -400,14 +400,14 @@ function SongLink({
                         {loading && (
                             <span className="flex w-16 flex-col items-center gap-1.5" aria-live="polite">
                                 <span className="h-10 w-10 animate-pulse rounded-full border border-white/40 bg-white/40 dark:border-white/15 dark:bg-white/10" />
-                                <span className="w-full truncate text-center text-[11px] leading-tight text-muted-foreground">
+                                <span className="w-full truncate text-center text-[11px] leading-tight text-white/70">
                                     Looking…
                                 </span>
                             </span>
                         )}
                     </span>
                     {!loading && links?.length === 0 && options.length === 1 && (
-                        <span className="text-[11px] text-muted-foreground">Nowhere else we could find it.</span>
+                        <span className="text-[11px] text-white/70">Nowhere else we could find it.</span>
                     )}
                 </span>
             )}
@@ -512,11 +512,11 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     placeholder={`Ask anything about ${artistName}...`}
                     maxLength={500}
                     disabled={loading}
-                    className="w-full glass-subtle pl-10 pr-10 py-3 rounded-xl text-sm text-black dark:text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-pastypink/40 transition-shadow"
+                    className="min-h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] py-3 pl-10 pr-12 text-sm text-white/90 placeholder:text-white/45 outline-none focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30 transition-colors disabled:opacity-60"
                 />
                 <Search
                     size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50"
                 />
                 {question.trim() && !loading && (
                     <button
@@ -531,12 +531,12 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
             {/* Answer area */}
             {(loading || answer || error) && (
-                <div className="glass-subtle rounded-xl p-4 space-y-3 relative">
+                <div className="relative space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
                     {/* Close button */}
                     {!loading && (
                         <button
                             onClick={reset}
-                            className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-black hover:bg-pastypink transition-colors"
+                            className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
                             aria-label="Close answer"
                         >
                             <X size={14} />
@@ -545,14 +545,14 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
                     {/* Question echo */}
                     {askedQuestion && (
-                        <p className="text-xs text-muted-foreground/70 pr-8">
+                        <p className="text-xs text-white/65 pr-8">
                             <span className="font-semibold text-pastypink">Q:</span> {askedQuestion}
                         </p>
                     )}
 
                     {/* Loading */}
                     {loading && (
-                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2.5 text-sm text-white/70">
                             <img src="/music_nerd_logo_sm.png" alt="Loading" className="h-7 animate-pulse" />
                             <span>Thinking...</span>
                         </div>
@@ -565,7 +565,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
                     {/* Answer */}
                     {answer && (
-                        <p data-testid="answer" className="text-sm text-black dark:text-white leading-relaxed whitespace-pre-line pr-6">
+                        <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line pr-6">
                             {renderAnswer(answer, mentions, songs, sources, bandcamp, artistName)}
                         </p>
                     )}
@@ -582,7 +582,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                       * and it is what a reader needs in order to trust either. */}
                     {answer && sources.length > 0 && (
                         <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-muted-foreground/60">Sources</p>
+                            <p className="text-[10px] text-white/60">Sources</p>
                             <div className="flex flex-wrap gap-1.5">
                                 {sources.map(s => {
                                     const label = (
@@ -591,14 +591,14 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                                             {sourceHost(s)}
                                         </>
                                     );
-                                    const pill = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-black/10 dark:border-white/15 text-gray-600 dark:text-gray-400 whitespace-nowrap max-w-[16rem] truncate";
+                                    const pill = "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-white/15 text-white/65 whitespace-nowrap max-w-[16rem] truncate";
                                     return s.url ? (
                                         <a
                                             key={s.n}
                                             href={s.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={`${pill} hover:border-black/25 dark:hover:border-white/30`}
+                                            className={`${pill} hover:border-white/30`}
                                             title={s.title}
                                         >
                                             {label}
@@ -617,7 +617,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                       * vault" from "this is from a search". */}
                     {answer && fromOpenWeb && (
                         <div className="flex flex-col gap-1 pt-1">
-                            <p className="text-[10px] text-muted-foreground/60">
+                            <p className="text-[10px] text-white/60">
                                 Not in {artistName}&apos;s sources — answered from the web
                             </p>
                             {webDomains.length > 0 && (
@@ -625,7 +625,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                                     {webDomains.map(d => (
                                         <span
                                             key={d}
-                                            className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border border-dashed border-black/15 dark:border-white/20 text-gray-600 dark:text-gray-400 whitespace-nowrap"
+                                            className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border border-dashed border-white/20 text-white/65 whitespace-nowrap"
                                         >
                                             {d}
                                         </span>
@@ -636,7 +636,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     )}
 
                     {answer && (
-                        <p className="text-[10px] text-muted-foreground/40 italic">
+                        <p className="text-[10px] text-white/50 italic">
                             {sources.length > 0
                                 ? "Written by AI from the sources above"
                                 : fromOpenWeb
@@ -654,7 +654,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                         <button
                             key={suggestion}
                             onClick={() => ask(suggestion)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium glass-subtle text-muted-foreground hover:text-black dark:hover:text-white hover:scale-[1.03] transition-all duration-150 border border-transparent hover:border-pastypink/30"
+                            className="min-h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/75 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
                         >
                             {suggestion}
                         </button>

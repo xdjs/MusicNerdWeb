@@ -12,6 +12,8 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ## 2026-09-11 · Pete's local profile review
 
+- Style the Ask panel and its inner controls in frosted charcoal glass to match the other overlays; retain the pink glass trigger. — Pete
+
 - Unpin only unlocks the current bio; regenerate requires a separate explicit click. — Pete
 - Clicking a Latest release opens a compact picker matching the top Listen button, with direct release links and logos shown immediately; remove the More from artist dropdown. — Pete
 

@@ -16,9 +16,9 @@ export default function ArtistAskSheet({ artistId, artistName }: { artistId: str
             </Button>
         </DialogTrigger>
         <DialogContent
-            className="bottom-0 top-auto max-h-[85dvh] max-w-[800px] translate-y-0 overflow-y-auto rounded-t-3xl bg-white px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 dark:bg-[#1a1a1a] sm:bottom-5 sm:w-[calc(100%-2rem)] sm:rounded-3xl data-[state=closed]:hidden motion-reduce:animate-none">
+            className="bottom-0 top-auto max-h-[85dvh] max-w-[800px] translate-y-0 overflow-y-auto artist-ask-panel rounded-t-3xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] px-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 dark:bg-neutral-950/80 sm:bottom-5 sm:w-[calc(100%-2rem)] sm:rounded-3xl data-[state=closed]:hidden motion-reduce:animate-none">
             <DialogTitle className="pr-8 text-xl">Ask about {artistName}</DialogTitle>
-            <DialogDescription>Explore their music, story and influences through the sources on this profile.</DialogDescription>
+            <DialogDescription className="text-white/60">Explore their music, story and influences through the sources on this profile.</DialogDescription>
             <AskAboutArtist artistId={artistId} artistName={artistName} />
         </DialogContent>
     </Dialog>;
