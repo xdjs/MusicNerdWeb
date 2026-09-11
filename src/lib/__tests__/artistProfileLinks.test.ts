@@ -7,7 +7,7 @@ function link(siteName: string, extra: Partial<ArtistLink> = {}): ArtistLink {
 
 test('Listen includes stored music and support services and excludes social profiles', () => {
     const result = getListeningLinks(artist, [link('instagram'), link('soundcloud'), link('bandcamp'), link('subvert'), link('inprocess', { platformTypeList: ['listen'] })]);
-    expect(result.map(item => item.siteName)).toEqual(['spotify', 'deezer', 'soundcloud', 'bandcamp', 'subvert', 'inprocess']);
+    expect(result.map(item => item.siteName)).toEqual(['spotify', 'deezer', 'soundcloud', 'bandcamp', 'subvert']);
     expect(result.find(item => item.siteName === 'deezer')?.iconSrc).toBe('/siteIcons/deezer_icon.svg');
 });
 test('Apple Music needs a saved approved website artist URL, not an album or lookalike host', () => {
@@ -26,4 +26,11 @@ test('saved order is stable when links are removed or added and respects support
     const links = getProfileLinks(artist, [link('instagram'), link('bandcamp')], 'links');
     expect(orderProfileLinks(links, ['instagram', 'removed', 'deezer']).map(item => item.siteName)).toEqual(['instagram', 'deezer', 'spotify']);
     expect(getProfileLinks(artist, [link('bandcamp')], 'support').map(item => item.siteName)).toEqual(['bandcamp']);
+});
+
+test('In Process stays in Support but is never a listening destination, even with a legacy listen tag', () => {
+    const saved = [link('inprocess', { platformTypeList: ['listen', 'web3'] })];
+    const noStreaming = { spotify: null, deezer: null };
+    expect(getListeningLinks(noStreaming, saved)).toEqual([]);
+    expect(getProfileLinks(noStreaming, saved, 'support')).toEqual([expect.objectContaining({ siteName: 'inprocess' })]);
 });

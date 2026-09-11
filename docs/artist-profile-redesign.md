@@ -26,7 +26,9 @@ supersedes the boards in these places:
 
 An uploaded custom portrait leads the page with a stronger dark fade and the artist's
 biography. Read more expands the full bio in place; Show less collapses it. Listen
-opens a service picker with logos and only stored music destinations. Read the story
+opens a smoked-black glass picker with unboxed logos, compact rows and subtle
+dividers. It includes only stored music destinations; In Process is excluded from
+Listen and stays in Support. Read the story
 is removed pending discussion Monday, September 14. Without a custom
 portrait, the page retains a blurred thumbnail with a circular avatar. Photo
 upload, claim states and edit mode remain available; the profile bookmark is removed.

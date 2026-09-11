@@ -36,7 +36,8 @@ export function getProfileLinks(artist: Pick<Artist, 'spotify' | 'deezer'>, link
 
 /** Only saved listening destinations: no catalog search, generated URLs or social links. */
 export function getListeningLinks(artist: Pick<Artist, 'spotify' | 'deezer'>, links: ArtistLink[], sources: { type: string | null; url: string }[] = []): ProfileLink[] {
-    const listeningNames = new Set(links.filter(link => LISTEN.has(link.siteName) || link.platformTypeList?.includes('listen')).map(link => link.siteName));
+    // In Process is a collection/discovery link, despite its legacy listen tag.
+    const listeningNames = new Set(links.filter(link => link.siteName !== 'inprocess' && (LISTEN.has(link.siteName) || link.platformTypeList?.includes('listen'))).map(link => link.siteName));
     listeningNames.add('spotify');
     listeningNames.add('deezer');
     const result = [...getProfileLinks(artist, links, 'links'), ...getProfileLinks(artist, links, 'support')].filter(link => listeningNames.has(link.siteName));
