@@ -122,3 +122,13 @@ suggestion chips, answer panel, citations and song-link popovers. The sheet avoi
 A scoped placeholder override preserves subdued text. The pink glass trigger remains.
 This follow-up passed 15 existing Ask tests, TypeScript, targeted lint (existing image
 warning) and CSS compilation; live browser review remains unverified.
+
+Add Link and Add Artist use compact charcoal glass forms with labeled full-width
+inputs, subdued helper text and pink submit buttons. Add Link no longer displays
+a large catalog image. Supported-link menus and the Add Artist duplicate-choice
+state match the surface; the shared duplicate component keeps its default appearance
+elsewhere. The account dropdown uses icons, Explore/Account grouping, 48px rows,
+and a 288px mobile width capped to the viewport (256px desktop). Claim/admin and
+wallet menu gates, contribution tracking, authentication and theme handlers are retained.
+79 focused form/account tests, TypeScript, targeted lint (existing warnings) and CSS
+compilation passed. Auth tests use mocks; live mobile layout/auth remain unverified.

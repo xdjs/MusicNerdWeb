@@ -822,5 +822,6 @@ body {
   color: #000 !important;
 }
 
-/* Keep Ask's placeholder subdued despite the legacy dark-mode input override. */
+/* Keep glass form placeholders subdued despite the legacy dark-mode input override. */
+.artist-link-panel input::placeholder,
 .artist-ask-panel input::placeholder { color: rgb(255 255 255 / 0.45) !important; }

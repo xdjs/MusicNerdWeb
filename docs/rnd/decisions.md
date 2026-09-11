@@ -12,6 +12,8 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ## 2026-09-11 · Pete's local profile review
 
+- Match Add Link, Add Artist and the mobile account menu to the glass styling; simplify forms and make mobile navigation easier to scan and tap. — Pete
+
 - Style the Ask panel and its inner controls in frosted charcoal glass to match the other overlays; retain the pink glass trigger. — Pete
 
 - Unpin only unlocks the current bio; regenerate requires a separate explicit click. — Pete

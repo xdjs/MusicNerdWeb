@@ -16,7 +16,10 @@ glass; Ask stays pink with a translucent glass finish. Active Latest filters use
 Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button
 labels/icons black despite legacy dark-mode text overrides. The Ask sheet, input,
 suggestion chips, answers and source links now use the same frosted charcoal styling
-as the other overlays, avoiding the legacy blue-gray background override.
+as the other overlays, avoiding the legacy blue-gray background override. Add Link
+and Add Artist use compact glass forms (no oversized Add Link image), including
+supported-link and duplicate-choice states. The account menu has glass styling,
+icons, Explore/Account groups, 48px rows and viewport-bounded mobile width.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Unpin no longer refetches the bio; it preserves text and only unlocks editing.
