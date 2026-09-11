@@ -360,13 +360,13 @@ describe('ArtistProfile page', () => {
 
 describe('Museum page composition', () => {
     beforeEach(() => { jest.clearAllMocks(); setupMocks(); });
-    it('orders Latest, Lore and Links with About only in the hero', async () => {
+    it('orders Latest, Links and Lore with About only in the hero', async () => {
         const { container } = await renderArtistPage();
         const latest = container.querySelector('#mn-latest');
         const lore = container.querySelector('#mn-lore');
         const links = container.querySelector('#mn-links');
-        expect(latest.compareDocumentPosition(lore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(lore.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(latest.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(links.compareDocumentPosition(lore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(lore.querySelector('#mn-about')).not.toBeInTheDocument();
         expect(container.querySelectorAll('#mn-about')).toHaveLength(1);
         expect(screen.getByTestId('hero-section').querySelector('#mn-about')).toBeInTheDocument();

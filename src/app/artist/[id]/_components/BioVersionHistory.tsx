@@ -20,8 +20,8 @@ interface BioVersion {
     createdAt: string;
 }
 
-export default function BioVersionHistory({ artistId, onChanged, revision = 0 }: { artistId: string; onChanged?: () => void; revision?: number }) {
-    const { isEditing } = useContext(EditModeContext);
+export default function BioVersionHistory({ artistId, onChanged, revision = 0, showHistory = true, showLockNotice = true, onPinnedChange }: { artistId: string; onChanged?: () => void; revision?: number; showHistory?: boolean; showLockNotice?: boolean; onPinnedChange?: (pinned: boolean) => void }) {
+    const { isEditing, refreshProfile, revision: profileRevision } = useContext(EditModeContext);
     const { toast } = useToast();
     const [versions, setVersions] = useState<BioVersion[]>([]);
     const [loading, setLoading] = useState(false);
@@ -40,11 +40,12 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0 }:
                         (a, b) => new Date((b as BioVersion).createdAt).getTime() - new Date((a as BioVersion).createdAt).getTime()
                     );
                     setVersions(sorted as BioVersion[]);
+                    onPinnedChange?.(sorted.some(v => v.isPinned));
                 }
             })
             .finally(() => { if (active) { setLoading(false); setLoaded(true); } });
         return () => { active = false; };
-    }, [isEditing, artistId, revision]);
+    }, [isEditing, artistId, revision, profileRevision, onPinnedChange]);
 
     if (!isEditing) return null;
 
@@ -53,6 +54,7 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0 }:
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: v.id === id })));
             onChanged?.();
+            refreshProfile?.();
             toast({ title: 'Bio pinned and locked', description: 'Unpin it before editing or regenerating.' });
         } else {
             toast({ title: "Couldn't pin version", description: res.error ?? "Please try again", variant: "destructive" });
@@ -74,13 +76,14 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0 }:
         if (res.success) {
             setVersions(prev => prev.map(v => ({ ...v, isPinned: false })));
             onChanged?.();
+            refreshProfile?.();
         } else toast({ title: "Couldn't unpin bio", description: res.error, variant: 'destructive' });
     }
 
     return (
         <div className="space-y-2">
-            {versions.some(v => v.isPinned) && <p className="text-xs text-muted-foreground">Your pinned bio is locked. <button type="button" onClick={handleUnpin} className="underline">Unpin to edit or regenerate</button>. The saved version will be kept.</p>}
-            <button
+            {showLockNotice && versions.some(v => v.isPinned) && <p className="text-xs text-muted-foreground">Your pinned bio is locked. <button type="button" onClick={handleUnpin} className="underline">Unpin to edit or regenerate</button>. The saved version will be kept.</p>}
+            {showHistory && <><button
                 onClick={() => setOpen(o => !o)}
                 aria-expanded={open}
                 className="text-xs text-muted-foreground hover:text-pastypink"
@@ -144,7 +147,7 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0 }:
                         </div>
                     ))}
                 </div>
-            )}
+            )}</>}
         </div>
     );
 }

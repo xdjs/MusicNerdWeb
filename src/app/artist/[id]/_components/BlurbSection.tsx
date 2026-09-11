@@ -1,12 +1,10 @@
 "use client"
 
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
-import { Check } from "lucide-react";
-import { saveCurrentBio } from "@/app/actions/dashboardActions";
 import { renderBioMarkdown } from "@/lib/renderBioMarkdown";
 import BioVersionHistory from "./BioVersionHistory";
 
@@ -19,7 +17,7 @@ interface BlurbSectionProps {
 }
 
 export default function BlurbSection({ artistName, artistId, initialBio, hero = false, portrait = false }: BlurbSectionProps) {
-  const { isEditing, canEdit } = useContext(EditModeContext);
+  const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
   const { toast } = useToast();
   const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
 
@@ -27,9 +25,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
   const [editText, setEditText] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isSavingToVault, setIsSavingToVault] = useState(false);
-  const [savedToVault, setSavedToVault] = useState(false);
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
   const [originalBio, setOriginalBio] = useState<string>("");
   const [historyRevision, setHistoryRevision] = useState(0);
 
@@ -48,11 +44,6 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
       setOriginalBio(aiBlurb ?? "");
     }
   }, [isEditing, aiBlurb]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
-  }, []);
 
   async function handleSave() {
     // Prevent saving empty bios – restore original text instead
@@ -76,7 +67,8 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
         // Refetch to update the cache
         refetch();
         setHistoryRevision(v => v + 1);
-        toast({ title: "Bio updated" });
+        refreshProfile?.();
+        toast({ title: "Bio saved", description: "Your edited bio is saved in Lore." });
       } else {
         toast({ title: "Error saving bio", description: data?.message ?? "Please try again." });
       }
@@ -90,27 +82,6 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
 
   function handleDiscard() {
     setEditText(originalBio);
-  }
-
-  async function handleSaveToVault() {
-    if (!aiBlurb || isSavingToVault) return;
-    setIsSavingToVault(true);
-    try {
-      const result = await saveCurrentBio(aiBlurb, artistId);
-      if (result.success) {
-        setSavedToVault(true);
-        setHistoryRevision(v => v + 1);
-        toast({ title: "Bio saved to Lore" });
-        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-        savedTimerRef.current = setTimeout(() => setSavedToVault(false), 3000);
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to save bio", variant: "destructive" });
-    } finally {
-      setIsSavingToVault(false);
-    }
   }
 
   async function handleRegenerate() {
@@ -129,6 +100,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
         setEditText(data.bio);
         refetch(); // Update the hook's displayed bio
         setHistoryRevision(v => v + 1);
+        refreshProfile?.();
         toast({ title: data.message ?? "Bio regenerated" });
       } else {
         const data = await resp.json().catch(() => ({}));
@@ -152,9 +124,11 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
 
   if (isEditing) {
     return (
-      <div className={hero ? "space-y-2 rounded-xl bg-white p-4 text-gray-950 dark:bg-gray-900 dark:text-white" : "space-y-2"}>
+      <div className={hero ? "bio-editor space-y-4 rounded-2xl border border-white/15 bg-neutral-950/70 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl sm:p-5" : "space-y-4"}>
         <textarea
-          className="w-full glass-subtle p-3 text-black dark:text-white h-40"
+          aria-label="Artist biography"
+          disabled={isPinned || isSaving || isRegenerating}
+          className={hero ? "h-48 w-full resize-y rounded-xl border border-white/10 bg-black/20 p-3 text-sm leading-7 text-white/90 outline-none [color-scheme:dark] focus:border-pastypink/60 focus:ring-1 focus:ring-pastypink/40 disabled:opacity-70" : "w-full glass-subtle p-3 text-black dark:text-white h-40"}
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
           placeholder="Enter artist bio..."
@@ -166,8 +140,8 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
                 variant="outline"
                 size="sm"
                 onClick={handleRegenerate}
-                disabled={isRegenerating || isSaving}
-                className="text-gray-700 dark:text-gray-200"
+                disabled={isPinned || isRegenerating || isSaving}
+                className={hero ? "rounded-full border-white/15 bg-transparent text-white/75 hover:bg-white/10 hover:text-white" : "text-gray-700 dark:text-gray-200"}
               >
                 {isRegenerating ? (
                   <>
@@ -179,35 +153,18 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
                 )}
               </Button>
             )}
-            {canEdit && aiBlurb && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveToVault}
-                disabled={isSavingToVault || savedToVault}
-                className="text-gray-700 dark:text-gray-200"
-              >
-                {savedToVault ? (
-                  <>
-                    <Check size={13} className="mr-1 text-green-500" />
-                    Saved
-                  </>
-                ) : (
-                  isSavingToVault ? "Saving..." : "Save to Lore"
-                )}
-              </Button>
-            )}
+
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleDiscard} disabled={isSaving}>
+            <Button variant="ghost" className={hero ? "rounded-full text-white/65 hover:bg-white/10 hover:text-white" : ""} onClick={handleDiscard} disabled={isSaving || isRegenerating}>
               Discard
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
+            <Button className="rounded-full bg-pastypink text-gray-950 hover:bg-pink-200 disabled:opacity-40" onClick={handleSave} disabled={isPinned || isRegenerating || isSaving || (editText?.trim() ?? "") === (originalBio?.trim() ?? "")}>
               {isSaving ? <img src="/spinner.svg" className="h-4 w-4" alt="saving" /> : "Save"}
             </Button>
           </div>
         </div>
-        <BioVersionHistory artistId={artistId} onChanged={refetch} revision={historyRevision} />
+        <BioVersionHistory artistId={artistId} onChanged={refetch} revision={historyRevision} showHistory={!hero} onPinnedChange={setIsPinned} />
       </div>
     );
   }

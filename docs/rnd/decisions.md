@@ -15,7 +15,8 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 - Keep one expandable biography in the hero; remove About under Lore and strengthen the portrait fade. — Pete
 - Listen opens a dark glass picker of saved music services, with unboxed logos and clean rows; exclude In Process as it is not a listening destination. — Pete
 - Remove Read the story for now; revisit its purpose Monday, September 14. — Pete
-- Allow profile editors to rearrange links and save their order. — Pete
+- Reorder by dragging the link icons; profile Done saves ordering, with no separate Save order control. Links appears above Lore. — Pete
+- Use a glass bio editor and one Save that also archives the edited bio in Lore; remove Save to Lore. — Pete
 
 ## 2026-09-11 · [Stand Up transcript](transcripts/2026-09-11-standup-ab5db51a596c.md)
 

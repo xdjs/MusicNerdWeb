@@ -219,7 +219,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </HeroSection>
 
                 <nav aria-label="Explore artist profile" className="flex flex-wrap gap-2">
-                    {[["mn-latest", "Latest"], ["mn-lore", "Lore"], ["mn-links", "Links"]].map(([anchor, label]) => (
+                    {[["mn-latest", "Latest"], ["mn-links", "Links"], ["mn-lore", "Lore"]].map(([anchor, label]) => (
                         <a key={anchor} href={`#${anchor}`} className="glass-subtle inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium text-black hover:bg-pastypink/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink dark:text-white">{label}</a>
                     ))}
                 </nav>
@@ -227,11 +227,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
                     <LatestSection artist={artist} imageUrl={imageUrl} />
                 </Suspense>
-
-                <div id="mn-lore">
-                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
-                </div>
-                <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
 
                 {/* Listening, social and support links share one destination. */}
                 <RevealSection id="mn-links" className="glass p-4 sm:p-5 space-y-3">
@@ -262,6 +257,10 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
+                <div id="mn-lore">
+                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
+                </div>
+                <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
             </div>
             <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
             </EditModeProvider>

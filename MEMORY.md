@@ -9,7 +9,10 @@ combined Links/Support, and floating Ask sheet. All five issue images were revie
 [Feature contract and verification limits](docs/artist-profile-redesign.md).
 
 Later local review: expandable hero bio only, stronger image fade, Listen service picker,
-no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode.
+no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode. Latest → Links → Lore.
+Drag link icons directly; Done saves ordering and remains in edit mode on failure.
+The glass bio editor has one Save; the existing atomic version history is available
+under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.
 Browser permission denied access to the running localhost preview; visual and live save checks remain.
 

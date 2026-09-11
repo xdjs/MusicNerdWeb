@@ -14,5 +14,5 @@ export default async function ArtistLinksGrid({ isMonetized, artist, canEdit = f
     const section = isMonetized ? 'support' : 'links';
     const links = orderProfileLinks(getProfileLinks(artist, await getArtistLinks(artist), section), artist.linkOrder?.[section]);
     if (!links.length) return <p className="text-sm text-muted-foreground">{isMonetized ? 'No support links yet.' : 'No links yet — help out by adding some!'}</p>;
-    return <SortableArtistLinks key={JSON.stringify(links)} artistId={artist.id} section={section} links={links} canEdit={canEdit} />;
+    return <SortableArtistLinks key={`${artist.id}:${section}`} artistId={artist.id} section={section} links={links} canEdit={canEdit} />;
 }

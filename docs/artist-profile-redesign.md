@@ -33,7 +33,7 @@ is removed pending discussion Monday, September 14. Without a custom
 portrait, the page retains a blurred thumbnail with a circular avatar. Photo
 upload, claim states and edit mode remain available; the profile bookmark is removed.
 
-Latest, Lore and Links navigation pills resolve to those sections. Latest reuses
+Latest, Links and Lore navigation pills resolve to those sections. Latest reuses
 Pete's earlier local read-only adapters for stored Instagram posts, interview
 answers and bounded release catalogs. It has filters, horizontal scrolling,
 keyboard gallery controls, image fallbacks and a detail dialog with original source
@@ -42,13 +42,18 @@ replacing the opaque blue-gray panel. In Process items remain Sweetman's adapter
 
 Lore contains approved source cards and the generated inventory overview. The duplicate
 About section is removed. The hero biography keeps its existing edit/regenerate/pin
-controls. Pending sources stay gated to editors. Support the artist sits within Links and retains its separate grid and
-submission controls. In edit mode, each grid supports drag handles, keyboard sorting,
-arrow buttons, Save order and Discard order. Saved ordering is public and persisted
-in artists.link_order; new links append and removed links are ignored. The route
-requires the approved claimant or a current admin and rechecks ownership under the
-artist row lock. Saving one group preserves the other. Leaving edit mode discards
-unsaved ordering. The existing tour anchor IDs remain available, including the
+controls, now in a frosted glass editor. One Save updates the public About and
+archives the previous and edited versions in the existing transaction. The separate
+Save to Lore button is removed; saved versions are accessible under Lore → Saved bios
+in edit mode. These are version-history records, not new third-party research sources.
+Pinned bios still require explicit unpinning. Pending sources stay gated to editors. Support the artist sits within Links and retains its separate grid and
+submission controls. Links now appears above Lore. Editors drag the platform icons
+(or use Space, arrow keys and Space to drop); there are no separate handles or
+Save order buttons. Profile Done saves changed ordering before leaving edit mode.
+A failure keeps edit mode and the draft available to retry. Saved ordering is public
+and persisted in artists.link_order; new links append and removed links are ignored.
+The route requires the approved claimant or a current admin and rechecks ownership
+under the artist row lock. Saving one group preserves the other. The existing tour anchor IDs remain available, including the
 fixed Ask trigger; the tour does not change that trigger to relative positioning.
 
 ## Summary generation and persistence
@@ -81,7 +86,7 @@ query remains unverified. No grants or policies were broadened.
 Production has not been migrated. Apply these additive migrations through the normal
 release process **before** deploying dependent code; do not replay historical migrations.
 
-Follow-up npm run ci passed: TypeScript, lint, 194 suites / 2,337 tests passed /
+Follow-up npm run ci passed: TypeScript, lint, 196 suites / 2,342 tests passed /
 6 skipped, coverage and production build with stub catalog credentials. This does not prove live providers, authentication, summary quality or
 production database access. Browser verification at 390px and desktop remains required:
 the user started the local server, but browser policy denied this session access to

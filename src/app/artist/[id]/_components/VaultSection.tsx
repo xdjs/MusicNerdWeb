@@ -4,6 +4,7 @@ import { useContext, type ReactNode } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import RevealSection from "./RevealSection";
 import PressAndFeatures from "./PressAndFeatures";
+import BioVersionHistory from "./BioVersionHistory";
 import VaultManager from "./VaultManager";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 
@@ -29,7 +30,8 @@ export default function VaultSection({ artistId, pendingSources, approvedSources
           list while editing (its own optimistic state) to avoid a stale-card flash. */}
       {!isEditing && approvedSources.length > 0 && <PressAndFeatures sources={approvedSources} summary={summary} />}
       {canEdit && isEditing && (
-        <VaultManager artistId={artistId} pendingSources={pendingSources} approvedSources={approvedSources} />
+        <><VaultManager artistId={artistId} pendingSources={pendingSources} approvedSources={approvedSources} />
+        <div className="border-t border-black/10 pt-4 dark:border-white/10"><h3 className="mb-2 text-sm font-medium text-black dark:text-white">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></div></>
       )}
       </div>
       {children}
