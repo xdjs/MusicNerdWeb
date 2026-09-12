@@ -57,12 +57,15 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
     DropdownMenu: ({ children }: any) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
     DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuSeparator: () => <hr />,
     DropdownMenuItem: ({ children, onSelect }: any) => (
         <div role="menuitem" onClick={onSelect}>{children}</div>
     ),
 }));
 
 jest.mock('lucide-react', () => ({
+    ...jest.requireActual('lucide-react'),
     LogIn: () => <svg data-testid="login-icon" />,
 }));
 

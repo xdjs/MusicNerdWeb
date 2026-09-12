@@ -85,7 +85,7 @@ export default function FunFacts({ artistId }: FunFactsProps) {
                 {(fact || loading) && (
                     <div className="absolute inset-0 flex flex-col glass-subtle shadow-lg overflow-y-auto overflow-x-hidden pt-2 pb-2 pr-1 pl-4">
                         <button
-                            className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-white border border-white/20 rounded-md bg-pastypink/80 backdrop-blur-sm hover:bg-pastypink focus:outline-none leading-none z-10 transition-colors"
+                            className="sticky top-0.5 ml-auto mr-1 flex h-6 w-6 items-center justify-center text-xl font-bold text-black border border-white/20 rounded-md bg-pastypink backdrop-blur-sm hover:bg-pastypink focus:outline-none leading-none z-10 transition-colors"
                             aria-label="Close fun fact"
                             onClick={() => {
                                 setFact(null);

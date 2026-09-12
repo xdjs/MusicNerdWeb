@@ -16,6 +16,7 @@ export type DuplicateArtistCandidate = {
 
 type DuplicateArtistChoiceProps = {
     candidates: DuplicateArtistCandidate[];
+    glass?: boolean;
     platform: SupportedArtistPlatform;
     platformId: string;
     message?: string;
@@ -33,6 +34,7 @@ function linkedPlatforms(candidate: DuplicateArtistCandidate) {
 
 export default function DuplicateArtistChoice({
     candidates,
+    glass = false,
     platform,
     platformId,
     message,
@@ -47,7 +49,7 @@ export default function DuplicateArtistChoice({
                 role="status"
                 aria-live="polite"
                 aria-busy="true"
-                className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"
+                className={glass ? "mt-4 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-white/85" : "mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"}
             >
                 <h3 className="font-semibold">Creating separate artist…</h3>
                 <p className="mt-1 text-sm">
@@ -63,7 +65,7 @@ export default function DuplicateArtistChoice({
         return (
             <section
                 aria-label="Possible existing artists"
-                className="mt-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-950"
+                className={glass ? "mt-4 rounded-xl border border-red-400/25 bg-red-400/10 p-4 text-red-300" : "mt-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-950"}
             >
                 <p role="alert">We couldn&apos;t prepare this artist link. Please submit the URL again.</p>
             </section>
@@ -74,7 +76,7 @@ export default function DuplicateArtistChoice({
         <section
             aria-label="Possible existing artists"
             aria-live="polite"
-            className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"
+            className={glass ? "mt-4 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-white/85" : "mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"}
         >
             <h3 className="font-semibold">Is this an existing artist?</h3>
             <p className="mt-1 text-sm">
@@ -87,16 +89,16 @@ export default function DuplicateArtistChoice({
                     const href = `/artist/${candidate.id}?addLink=${encodeURIComponent(submittedUrl)}`;
 
                     return (
-                        <li key={candidate.id} className="rounded-md border border-amber-200 bg-white p-3">
-                            <p className="font-medium text-gray-950">{candidate.name || "Unnamed artist"}</p>
+                        <li key={candidate.id} className={glass ? "rounded-lg border border-white/10 bg-black/20 p-3" : "rounded-md border border-amber-200 bg-white p-3"}>
+                            <p className={glass ? "font-medium text-white/90" : "font-medium text-gray-950"}>{candidate.name || "Unnamed artist"}</p>
                             {platforms && (
-                                <p className="mb-2 text-xs text-gray-600">Already linked on {platforms}</p>
+                                <p className={glass ? "mb-2 text-xs text-white/60" : "mb-2 text-xs text-gray-600"}>Already linked on {platforms}</p>
                             )}
                             <Link
                                 href={href}
                                 onClick={onChooseExisting}
                                 aria-label={`Add link to existing artist: ${candidate.name || "Unnamed artist"} (candidate ${index + 1} of ${candidates.length})`}
-                                className="inline-flex min-h-9 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-gray-950 shadow-sm hover:bg-accent hover:text-accent-foreground"
+                                className={glass ? "inline-flex min-h-11 items-center justify-center rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white/85 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink" : "inline-flex min-h-9 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-gray-950 shadow-sm hover:bg-accent hover:text-accent-foreground"}
                             >
                                 Add link to existing artist
                             </Link>
@@ -106,13 +108,14 @@ export default function DuplicateArtistChoice({
             </ul>
 
             {canCreateSeparate && (
-                <div className="mt-4 border-t border-amber-200 pt-4">
-                    <p className="mb-2 text-xs text-amber-900">
+                <div className={glass ? "mt-4 border-t border-white/10 pt-4" : "mt-4 border-t border-amber-200 pt-4"}>
+                    <p className={glass ? "mb-2 text-xs text-white/60" : "mb-2 text-xs text-amber-900"}>
                         Only create a separate artist if this is a different person or group with the same name.
                     </p>
                     <Button
                         type="button"
                         variant="outline"
+                        className={glass ? "min-h-11 rounded-lg border-white/15 bg-white/5 text-white/85 hover:bg-white/10 hover:text-white" : undefined}
                         disabled={isCreatingSeparate}
                         onClick={onCreateSeparate}
                     >

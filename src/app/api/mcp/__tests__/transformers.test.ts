@@ -78,6 +78,7 @@ function createMockArtist(overrides: Partial<Artist> = {}): Artist {
     subvert: null,
     bluesky: null,
     inprocess: null,
+    linkOrder: null,
     ...overrides,
   };
 }

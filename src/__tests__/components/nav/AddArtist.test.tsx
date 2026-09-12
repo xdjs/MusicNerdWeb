@@ -228,7 +228,7 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'success', artistId: 'new-id', artistName: 'Radiohead', message: 'Artist added!' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Artist added!')).toHaveClass('text-green-500');
+                    expect(screen.getByText('Artist added!')).toHaveClass('text-green-400');
                 });
             });
 
@@ -236,7 +236,7 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'error', message: 'Spotify error', artistId: undefined, artistName: undefined });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Spotify error')).toHaveClass('text-red-500');
+                    expect(screen.getByText('Spotify error')).toHaveClass('text-red-400');
                 });
             });
 
@@ -442,7 +442,7 @@ describe('AddArtist', () => {
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
 
-                expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-500');
+                expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-400');
                 expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
             });
 

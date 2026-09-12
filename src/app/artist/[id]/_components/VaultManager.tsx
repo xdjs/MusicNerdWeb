@@ -336,7 +336,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
                 onClick={() => setTypeFilter(null)}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   typeFilter === null
-                    ? "bg-pastypink text-white"
+                    ? "bg-pastypink text-black"
                     : "glass-subtle text-muted-foreground hover:text-black dark:hover:text-white"
                 }`}
               >

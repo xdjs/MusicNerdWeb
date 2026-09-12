@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { useState, useEffect, useRef } from "react";
 import { Artist } from "@/server/db/DbTypes";
-import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import { Label } from "@radix-ui/react-label";
 import { useSession } from "next-auth/react";
 import { UrlMap } from "@/server/db/DbTypes";
@@ -24,6 +23,7 @@ import {
     FormControl,
     FormField,
     FormItem,
+    FormLabel,
     FormMessage,
 } from "@/components/ui/form";
 import { addArtistDataAction as addArtistData, type AddArtistDataResp } from "@/app/actions/serverActions";
@@ -60,7 +60,7 @@ function promptLogin() {
     return false;
 }
 
-export default function AddArtistData({ artist, spotifyImg, availableLinks, isOpenOnLoad = false, prefillUrl, label, directEdit = false, autoApprove = false }: AddArtistDataProps) {
+export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = false, prefillUrl, label, directEdit = false, autoApprove = false }: AddArtistDataProps) {
     const { data: session, status } = useSession();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -316,30 +316,24 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
     return (
         <>
             <Button
-                size={label ? "sm" : "icon"}
-                className={label
-                    ? "text-white bg-pastypink flex items-center justify-center px-4 min-w-[60px]"
-                    : "text-white bg-pastypink rounded-lg hover:bg-pastypink/90 w-8 h-8 p-0 flex items-center justify-center"}
+                variant="pink"
+                size={label ? "default" : "icon"}
+                className={label ? "min-w-[60px]" : "h-11 w-11 p-0"}
                 onClick={handleClick}
                 aria-label={label ?? `Add a link for ${artist.name ?? "this artist"}`}
                 title={label ?? `Add a link for ${artist.name ?? "this artist"}`}
             >
-                {label ? <span className="whitespace-nowrap">{label}</span> : <Plus color="white" size={24} aria-hidden="true" />}
+                {label ? <span className="whitespace-nowrap">{label}</span> : <Plus size={24} aria-hidden="true" />}
             </Button>
             <Dialog open={isModalOpen} onOpenChange={handleClose}>
-                <DialogContent className="sm:max-w-[425px] max-h-screen overflow-auto scrollbar-hide">
-                    {spotifyImg && (
-                        <AspectRatio ratio={1 / 1} className="bg-muted rounded-md overflow-hidden">
-                            <img src={spotifyImg} alt={artist.name ?? "Artist"} className="object-cover w-full h-full" />
-                        </AspectRatio>
-                    )}
-                    <DialogHeader className="space-y-1">
-                        <DialogTitle className="text-black dark:text-white text-lg font-bold">
+                <DialogContent className="artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6">
+                    <DialogHeader className="space-y-2 pr-7 text-left">
+                        <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">
                             {directEdit || autoApprove
                                 ? `Add a link for ${artist.name}`
                                 : `Suggest a link for ${artist.name}`}
                         </DialogTitle>
-                        <DialogDescription className="text-xs text-muted-foreground">
+                        <DialogDescription className="text-sm leading-relaxed text-white/60">
                             {directEdit
                                 ? "This link will be saved directly to the artist profile."
                                 : autoApprove
@@ -348,24 +342,14 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                             <FormField
                                 control={form.control}
                                 name="artistDataUrl"
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
-                                        <div className="flex gap-2">
-                                            <FormControl>
-                                                <div className="flex-grow glass-subtle rounded-lg flex items-center h-11 px-3">
-                                                    <Input
-                                                        placeholder="Paste a profile link…"
-                                                        onClick={checkInput}
-                                                        id="name"
-                                                        className="w-full p-0 bg-transparent border-0 outline-none focus:outline-none focus-visible:outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 text-sm text-black dark:text-white placeholder:text-muted-foreground"
-                                                        {...field}
-                                                    />
-                                                </div>
-                                            </FormControl>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <FormLabel className="text-sm font-medium text-white/80">Profile link</FormLabel>
                                             <AddArtistDataOptions
                                                 availableLinks={displayLinks}
                                                 setOption={(option) => {
@@ -374,16 +358,27 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                                 }}
                                             />
                                         </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Tap <strong>{TIPS_BUTTON_LABEL}</strong> for the platforms we currently accept.
+                                        <FormControl>
+                                            <Input
+                                                placeholder="Paste a profile link…"
+                                                onClick={checkInput}
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                                className="min-h-12 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3 text-sm text-white/90 placeholder:text-white/45 outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <p className="text-xs leading-relaxed text-white/50">
+                                            Choose <strong>{TIPS_BUTTON_LABEL}</strong> to see an example.
                                         </p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <DialogFooter className="flex sm:flex-col gap-2">
+                            <DialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
                                 {addArtistResp && addArtistResp.status === "error" ? (
-                                    <Label className="text-xs text-red-600 dark:text-red-400 leading-relaxed">
+                                    <Label className="text-xs text-red-400 leading-relaxed">
                                         {addArtistResp.message}
                                     </Label>
                                 ) : null}
@@ -392,7 +387,8 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                     disabled={isLoading || platformRegexStatus === "loading"}
                                     aria-busy={isLoading || platformRegexStatus === "loading"}
                                     aria-label={directEdit ? "Save Link" : autoApprove ? "Add Link" : "Submit"}
-                                    className="bg-pastypink hover:bg-pastypink/90 text-white"
+                                    variant="pink"
+                                    className="w-full"
                                 >
                                     {platformRegexStatus === "loading" ? (
                                         <span>Loading supported links…</span>
@@ -404,7 +400,7 @@ export default function AddArtistData({ artist, spotifyImg, availableLinks, isOp
                                 </Button>
                                 {addArtistResp && addArtistResp.status === "success" ? (
                                     <div className="flex flex-col items-center gap-1">
-                                        <h2 className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                        <h2 className="text-sm font-semibold text-green-400">
                                             {addArtistResp.message}
                                         </h2>
                                         <Link href="/leaderboard" className="text-xs text-pastypink hover:underline">

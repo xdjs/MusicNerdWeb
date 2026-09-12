@@ -11,7 +11,6 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { claimArtistProfile } from "@/app/actions/dashboardActions";
 
@@ -22,6 +21,7 @@ interface ClaimButtonProps {
     isPending?: boolean;
     isPendingByUser?: boolean;
     artistInstagram?: string | null;
+    compactOnMobile?: boolean;
 }
 
 export default function ClaimButton({
@@ -31,6 +31,7 @@ export default function ClaimButton({
     isPending = false,
     isPendingByUser = false,
     artistInstagram,
+    compactOnMobile = false,
 }: ClaimButtonProps) {
     const { data: session } = useSession();
     const [modalOpen, setModalOpen] = useState(false);
@@ -47,9 +48,9 @@ export default function ClaimButton({
     // Already claimed by current user — show badge
     if (isClaimedByUser) {
         return (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-pastypink/15 text-pastypink text-xs font-semibold">
+            <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-pastypink/15 text-pastypink text-xs font-semibold">
                 <ShieldCheck size={14} strokeWidth={2.5} />
-                <span>Claimed</span>
+                <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Claimed</span>
             </div>
         );
     }
@@ -57,9 +58,9 @@ export default function ClaimButton({
     // Pending by current user — show pending badge
     if (isPendingByUser) {
         return (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/15 text-amber-500 text-xs font-semibold">
+            <div title="Pending verification" aria-label="Pending verification" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-amber-500/15 text-amber-500 text-xs font-semibold">
                 <ShieldCheck size={14} strokeWidth={2.5} />
-                <span>Pending Verification</span>
+                <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Pending Verification</span>
             </div>
         );
     }
@@ -105,8 +106,10 @@ export default function ClaimButton({
     return (
         <>
             <Button
-                variant="outline"
-                size="sm"
+                variant="glass"
+                className={compactOnMobile ? "w-11 px-0 sm:w-auto sm:px-4" : undefined}
+                aria-label={compactOnMobile ? "Claim profile" : undefined}
+                title="Claim profile"
                 onClick={() => {
                     if (!session) {
                         // Trigger login via the nav login button
@@ -116,13 +119,9 @@ export default function ClaimButton({
                     }
                     setModalOpen(true);
                 }}
-                className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-200",
-                    "bg-white text-pastypink border border-pastypink/50 hover:bg-pastypink hover:text-white"
-                )}
             >
-                <ShieldCheck size={14} strokeWidth={2.5} />
-                Claim
+                <ShieldCheck size={16} strokeWidth={2.5} aria-hidden="true" />
+                <span className={compactOnMobile ? "hidden sm:inline" : undefined}>Claim</span>
             </Button>
 
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -154,7 +153,8 @@ export default function ClaimButton({
                             <Button
                                 onClick={handleClaim}
                                 disabled={loading}
-                                className="w-full bg-pastypink hover:bg-pastypink/90 text-white"
+                                variant="pink"
+                                className="w-full"
                             >
                                 {loading ? "Submitting..." : "Submit Claim"}
                             </Button>

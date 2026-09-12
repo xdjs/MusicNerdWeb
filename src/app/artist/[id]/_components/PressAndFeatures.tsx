@@ -15,6 +15,7 @@ interface VaultSource {
 
 interface PressAndFeaturesProps {
     sources: VaultSource[];
+    summary?: string | null;
 }
 
 function getSourceDomain(url: string): string {
@@ -122,7 +123,7 @@ function SourceCard({ source }: { source: VaultSource }) {
     );
 }
 
-export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
+export default function PressAndFeatures({ sources: allSources, summary }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
     const sources = allSources.filter((s) => s.type !== "website");
@@ -155,7 +156,9 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
         });
     };
 
-    if (sources.length === 0) return null;
+    // Check the same filtered inventory we render: official websites live in
+    // Links, so website-only profiles also need a visible Lore destination.
+    if (sources.length === 0) return <p className="text-sm text-black/60 dark:text-white/65">No Lore sources to show yet. Articles, interviews and other sources will appear here.</p>;
 
     return (
         <div className="space-y-3">
@@ -167,7 +170,7 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                         aria-pressed={activeFilter === null}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             activeFilter === null
-                                ? "bg-pastypink text-white"
+                                ? "bg-pastypink text-black"
                                 : "glass-subtle text-muted-foreground hover:text-foreground"
                         }`}
                     >
@@ -192,6 +195,8 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                     })}
                 </div>
             )}
+
+            {summary && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{summary}</p>}
 
             {/* Carousel */}
             <div className="relative group/carousel">
