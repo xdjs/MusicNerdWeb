@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 let mockPathname = '/';
 
@@ -13,6 +13,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/app/_components/nav/components/SearchBar', () => function SearchBar() { return <div data-testid="search-bar" />; });
 jest.mock('@/app/_components/nav/components/AddArtist', () => function AddArtist() { return <button data-testid="add-artist-button">+</button>; });
 jest.mock('@/app/_components/nav/components/Login', () => function Login() { return <div data-testid="login-component" />; });
+jest.mock('@/app/_components/ActivityFeed', () => function ActivityFeed() { return <div data-testid="activity-feed" />; });
 jest.mock('@/app/_components/ThemeToggle', () => ({
     ThemeToggle: function ThemeToggle() { return <button data-testid="theme-toggle" />; },
 }));
@@ -24,16 +25,24 @@ jest.mock('next/link', () => {
 
 import Nav from '@/app/_components/nav';
 import NavContent from '@/app/_components/nav/NavContent';
+import HomePage from '@/app/page';
 
 describe('Nav', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    it('renders navigation on the home page ("/")', () => {
+    it('keeps homepage login in the header and search/add controls with the manifesto', () => {
         mockPathname = '/';
-        render(<Nav />);
-        expect(screen.getByTestId('search-bar')).toBeInTheDocument();
+        render(<><Nav /><HomePage /></>);
+        const nav = screen.getByRole('navigation');
+        expect(within(nav).getByTestId('login-component')).toBeInTheDocument();
+        expect(within(nav).queryByTestId('search-bar')).not.toBeInTheDocument();
+        expect(within(nav).queryByTestId('add-artist-button')).not.toBeInTheDocument();
+        const home = screen.getByRole('region', { name: 'We are music nerd' });
+        expect(within(home).getByTestId('search-bar')).toBeInTheDocument();
+        expect(within(home).getByTestId('add-artist-button')).toBeInTheDocument();
+        expect(screen.getAllByTestId('search-bar')).toHaveLength(1);
     });
 
     it('renders navigation on artist pages', () => {
@@ -68,6 +77,7 @@ describe('Nav', () => {
 });
 
 describe('NavContent', () => {
+    beforeEach(() => { mockPathname = '/artist/123'; });
     it('renders the logo link pointing to home', () => {
         render(<NavContent />);
         const logoLink = screen.getByRole('link');

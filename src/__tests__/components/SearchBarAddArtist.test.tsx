@@ -101,6 +101,21 @@ describe('SearchBar Add Artist Flow', () => {
         });
     }
 
+    it('offers adding an artist only after a homepage search completes empty, and clears the prompt with the query', async () => {
+        let finishSearch!: (response: unknown) => void;
+        global.fetch = jest.fn(() => new Promise(resolve => { finishSearch = resolve; })) as jest.Mock;
+        render(<SearchBar appearance="home" />);
+        const input = screen.getByRole('textbox', { name: 'Search for an artist' });
+        fireEvent.change(input, { target: { value: 'not-in-directory' } });
+        fireEvent.focus(input);
+        await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+        expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
+        await act(async () => finishSearch({ ok: true, json: async () => ({ results: [] }) }));
+        expect(await screen.findByRole('status')).toHaveTextContent('Use + to add the artist');
+        fireEvent.change(input, { target: { value: '' } });
+        expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
+    });
+
     it('shows "Add to MusicNerd | View on Deezer" for external results', async () => {
         await renderAndSearch([externalResult]);
 

@@ -5,6 +5,7 @@ import { useDebounce } from 'use-debounce';
 import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
+import styles from '../../HomePageSplash.module.css';
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,7 @@ interface SearchResult extends Artist {
 
 interface SearchBarProps {
     isTopSide?: boolean;
+    appearance?: "nav" | "home";
 }
 
 const PENDING_ADD_KEY = 'pendingAddArtistPlatformId';
@@ -50,7 +52,7 @@ type PossibleDuplicateResponse = {
     canCreateSeparate?: boolean;
 };
 
-function SearchBarInner({ isTopSide = false }: SearchBarProps) {
+function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [query, setQuery] = useState('');
@@ -188,7 +190,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         setQuery(search ?? '');
     }, [search]);
 
-    const { data: results = [], isLoading } = useQuery<SearchResult[]>({
+    const { data: results = [], isLoading, isFetching, isSuccess } = useQuery<SearchResult[]>({
         queryKey: ['searchArtists', debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery || debouncedQuery.trim() === '') return [];
@@ -225,6 +227,8 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
 
         if (value.trim() === '') {
             setShowResults(false);
+        } else if (appearance === 'home') {
+            setShowResults(true);
         }
     };
 
@@ -238,7 +242,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
         if (blurTimeoutRef.current) {
             clearTimeout(blurTimeoutRef.current);
         }
-        if (query.trim() !== '' && results.length > 0) {
+        if (query.trim() !== '' && (results.length > 0 || appearance === 'home')) {
             setShowResults(true);
         }
     };
@@ -296,7 +300,7 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
     const isAddInFlight = addingPlatformId !== null || isCreatingSeparate;
 
     return (
-        <div aria-busy={isCreatingSeparate} className="relative w-full max-w-[400px]">
+        <div aria-busy={isCreatingSeparate} className={appearance === "home" ? styles.searchRoot : "relative w-full max-w-[400px]"}>
             <div className="relative">
                 {/* The Input primitive ships with no border, height or focus ring (a documented
                     deviation from stock shadcn), so the search pill's chrome is added here at the
@@ -312,10 +316,11 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     onFocus={handleFocus}
-                    className="pl-10 h-[46px] rounded-full border border-input
+                    aria-label="Search for an artist"
+                    className={appearance === "home" ? styles.searchInput : `pl-10 h-[46px] rounded-full border border-input
                                transition-colors duration-300
                                focus:outline-none focus:border-pastypink/50
-                               focus:ring-2 focus:ring-pastypink/40"
+                               focus:ring-2 focus:ring-pastypink/40`}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
@@ -422,6 +427,14 @@ function SearchBarInner({ isTopSide = false }: SearchBarProps) {
                             </button>
                         );
                     })}
+                </div>
+            )}
+
+            {appearance === "home" && !duplicateChoice && showResults && isSuccess && !isFetching
+                && query.trim() !== "" && query === debouncedQuery && results.length === 0 && (
+                <div role="status" className={styles.searchEmpty}>
+                    <strong>No artists found.</strong>
+                    <span>Use + to add the artist with their Spotify or Deezer link.</span>
                 </div>
             )}
 
