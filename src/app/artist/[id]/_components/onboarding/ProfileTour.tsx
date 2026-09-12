@@ -62,7 +62,7 @@ const STOPS: Stop[] = [
     {
         anchor: "mn-ask",
         title: "Fans can ask about you here",
-        body: "The answers come from those same sources, so what you keep down there decides what fans get told up here.",
+        body: "The answers come from your Lore sources. Fans can open Ask from anywhere on your profile.",
     },
     {
         anchor: "mn-links",
@@ -72,7 +72,7 @@ const STOPS: Stop[] = [
     {
         anchor: "mn-sources",
         title: "This is what we found written about you",
-        body: "These feed the answers above and the About draft. If something here isn't you, remove it once and we won't bring it back.",
+        body: "These feed Ask and the About draft. If something here isn't you, remove it once and we won't bring it back.",
     },
 ];
 
@@ -189,7 +189,7 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
         el.style.borderRadius = "0.75rem";
         el.style.transition = "box-shadow 250ms ease";
         // Above the dim backdrop so the section stays fully legible.
-        if (!el.style.position || el.style.position === "static") el.style.position = "relative";
+        if (window.getComputedStyle(el).position === "static") el.style.position = "relative";
         el.style.zIndex = "45";
 
         return () => {

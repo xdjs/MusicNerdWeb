@@ -16,7 +16,7 @@ jest.mock('@/app/actions/dashboardActions', () => ({
   deleteBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
   unpinBioAction: jest.fn().mockResolvedValue({ success: true }),
 }));
-import { pinBioVersionAction, deleteBioVersionAction } from '@/app/actions/dashboardActions';
+import { pinBioVersionAction, deleteBioVersionAction, unpinBioAction } from '@/app/actions/dashboardActions';
 
 function renderEditing(isEditing = true) {
   return render(
@@ -55,4 +55,18 @@ describe('BioVersionHistory', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
     await waitFor(() => expect(deleteBioVersionAction).toHaveBeenCalledWith('v2', 'a1'));
   });
+});
+
+test('failed unpin keeps the lock and does not notify a bio change', async () => {
+  (unpinBioAction as jest.Mock).mockResolvedValueOnce({ success: false, error: 'Could not unpin bio' });
+  const onChanged = jest.fn();
+  const onPinnedChange = jest.fn();
+  render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+    <BioVersionHistory artistId="a1" onChanged={onChanged} onPinnedChange={onPinnedChange} />
+  </EditModeContext.Provider>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Unpin to edit' }));
+  await waitFor(() => expect(unpinBioAction).toHaveBeenCalledWith('a1'));
+  expect(screen.getByRole('button', { name: 'Unpin to edit' })).toBeInTheDocument();
+  expect(onChanged).not.toHaveBeenCalled();
+  expect(onPinnedChange).not.toHaveBeenCalledWith(false);
 });

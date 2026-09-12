@@ -1,5 +1,77 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Artist profile redesign #1230 — staging PR under review
+
+September 11: `pete/1230-artist-page-redesign`, isolated checkout
+`/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
+Museum starting direction with combined Latest, persistent artist search, Lore,
+combined Links/Support, and floating Ask sheet. All five issue images were reviewed.
+[Feature contract and verification limits](docs/artist-profile-redesign.md).
+
+Later local review: expandable hero bio only, stronger image fade, Listen service picker,
+no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode. Latest → Links → Lore.
+Drag link icons directly; Done saves ordering and remains in edit mode on failure.
+Pete selected navigation option 1: Latest/Links/Lore now use a full-width frosted
+glass segmented control below the hero. Click or drag horizontally and release to
+scroll to a section; vertical swipes remain page scrolls. Claim/Edit sit beside Listen
+in the hero; mobile management controls use accessible icons. Keyboard navigation,
+reduced motion and cancelled/multi-pointer gestures are covered by focused tests.
+Profile button hierarchy: Listen and save actions use solid pink; Claim/Edit use neutral
+glass; Ask stays pink with a translucent glass finish. Active Latest filters use gray.
+Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button
+labels/icons black despite legacy dark-mode text overrides. The Ask panel, input,
+suggestion chips, answers and source links now use the same frosted charcoal styling
+as the other overlays, avoiding the legacy blue-gray background override. Add Link
+and Add Artist use compact glass forms (no oversized Add Link image), including
+supported-link and duplicate-choice states. The account menu has glass styling,
+icons, Explore/Account groups, 48px rows and viewport-bounded mobile width.
+Ask now opens as a compact non-modal panel above the pink trigger, without page
+dimming or scroll lock. A bottom composer and retained local Q&A/drafts support
+minimizing/reopening; the existing API remains independent per question. 20 focused
+Ask tests pass, including nested Escape, pending answers and viewport resize.
+Theme initialization now restores the saved preference before the first paint on
+full reloads, including login/logout; 29 theme/auth tests, types and lint pass.
+Pete approved the local design and requested a staging PR after the glass navigation
+review. Agent-controlled browser verification remains unavailable. HTTPS preview
+runs on port 3000. Full pre-PR CI also exercises the login-flow suite; its account-menu
+mock now includes the added labels/separators and real icons.
+The glass bio editor has one Save; the existing atomic version history is available
+under Lore → Saved bios, with explicit unpin required for pinned biographies.
+Unpin no longer refetches the bio; it preserves text and only unlocks editing.
+Release details combine known Deezer/Spotify catalog matches plus approved release-page
+links. Release cards now open the same compact glass picker as the hero Listen button,
+with service logos and direct release links only; no dropdown or artist-page fallback.
+Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.
+Browser permission denied access to the running localhost preview; visual and live save checks remain.
+
+Migration 0025 adds nullable artist_docs.lore_summary. Applied only to Music Nerd Dev;
+column privileges/RLS verified, actual app-role query blocked by connection restrictions.
+Production migration and live 390px/desktop checks are still required before release.
+Existing biographies were not regenerated. In Process remains Sweetman's #1228 work.
+The original dirty UI-research checkout and its account-bookmarks work are untouched.
+[PR #1234](https://github.com/xdjs/MusicNerdWeb/pull/1234) targets staging and closes #1230.
+Pete authorized merging after checks/reviews are green, then a staging → main PR and an
+email asking Carl to approve/merge once its checks/reviews are green. Carl owns the main merge.
+Review fixes preserve a visible public Lore empty state after website filtering and readable
+neutral hero actions over a portrait in either theme. Catalog cache misses now share bounded
+per-provider transaction advisory locks across instances and cache results for 24 hours.
+Dev `mnweb` live checks confirmed slot contention, provider independence and release/reuse
+without artist writes or provider requests. Production migrations 0025/0026 remain prerequisites.
+
+
+## Meeting transcript automation — prepared, not active
+
+Pete authorized publicly readable verbatim transcripts for Music Nerd Stand Up and Music Nerd
+R&D on September 10, 2026. [Setup and behavior](scripts/meeting-transcript-sync/README.md).
+The standalone Apps Script follows actual Calendar events, reads only their generated Transcript
+tabs, and creates/updates public transcript PRs to staging. It does not merge or deploy.
+Google project: `1VrYdy6udaGH1FJ-CQXsPFmH1gA5_iUspPnAviKwcOVjYy48ymexOTSte`.
+Code and manifest are prepared with START_DATE September 10. Google OAuth authorization,
+the repo-scoped GitHub token, first live publication, and the recurring trigger remain pending.
+Seven focused tests pass. Today's actual source exported 38,965 characters with exact text
+preservation. Full app CI passed (185 suites, 2,284 tests, 6 skips, typecheck, lint, build).
+These checks do not establish an active schedule or a successful live Google→GitHub write.
+
 Checked September 10, 2026. Verify live GitHub/environment state before acting.
 Read CLAUDE.md first. This is current state, not a release authorization.
 

@@ -72,6 +72,8 @@ jest.mock('@/components/ui/button', () => {
 });
 
 jest.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenuLabel: ({ children }) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
   DropdownMenu: ({ children }) => <div data-testid="dropdown">{children}</div>,
   DropdownMenuTrigger: ({ children, asChild }) => <div data-testid="dropdown-trigger">{children}</div>,
   DropdownMenuContent: ({ children }) => <div data-testid="dropdown-content">{children}</div>,
@@ -83,6 +85,7 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 }));
 
 jest.mock('lucide-react', () => ({
+  ...jest.requireActual('lucide-react'),
   LogIn: () => <svg data-testid="login-icon" />,
 }));
 
@@ -157,7 +160,7 @@ describe('PrivyLogin', () => {
     it('renders login button with LogIn icon', () => {
       render(<PrivyLogin />);
 
-      expect(screen.getByTestId('login-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('dropdown-trigger').querySelector('[data-testid="login-icon"]')).toBeInTheDocument();
     });
 
     it('renders dropdown with Leaderboard and User Profile links', () => {

@@ -30,7 +30,7 @@ describe('artistDocService', () => {
         getVaultSourcesByArtistId.mockResolvedValue(vaultSources ?? [
             // Long enough to be CITABLE: a source is only usable as evidence if we
             // actually fetched and read the page, and stored body text is that record.
-            { title: 'Pitchfork review', url: 'https://pitchfork.com/x', snippet: 'bedroom auteur', extractedText: 'the review text '.repeat(40) },
+            { id: 'source-1', title: 'Pitchfork review', url: 'https://pitchfork.com/x', snippet: 'bedroom auteur', extractedText: 'the review text '.repeat(40) },
         ]);
         getInterviewAnswers.mockResolvedValue([
             { questionKey: 'sound_in_own_words', question: 'Sound?', answer: 'heartbreak you can dance to', source: 'onboarding' },
@@ -46,7 +46,7 @@ describe('artistDocService', () => {
         const { getLoreClaimGeneration, persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
         expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
         expect(getLoreClaimGeneration.mock.invocationCallOrder[0]).toBeLessThan(generateContent.mock.invocationCallOrder[0]);
-        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.any(String), expect.any(Array), 'claim-1', 'j1');
+        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.any(String), expect.any(Array), 'claim-1', 'j1', expect.objectContaining({ text: expect.any(String), sourceKey: expect.any(String) }));
     });
 
     it('refresh reports cancellation if ownership changed while synthesis ran', async () => {
@@ -54,6 +54,43 @@ describe('artistDocService', () => {
         const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
         persistRefreshedLore.mockResolvedValue(false);
         expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('cancelled');
+    });
+
+    it('generates a source inventory without sending extracted text or URLs', async () => {
+        const { svc, generateContent } = await setup({ geminiText: 'A journal and a conversation.', vaultSources: [
+            { id: 'd', title: 'Studio journal', type: 'document', extractedText: 'private raw payload', url: 'https://example.com/doc' },
+            { id: 'a', title: 'Conversation', type: 'audio' },
+        ] });
+        const summary = await svc.generateLoreSummary('a1');
+        expect(summary.text).toBe('A journal and a conversation.');
+        const call = generateContent.mock.calls[0][0];
+        expect(call.contents).toContain('Studio journal');
+        expect(call.contents).toContain('audio');
+        expect(call.contents).not.toContain('private raw payload');
+        expect(call.contents).not.toContain('https://');
+    });
+    it('does not generate a summary for an empty source set', async () => {
+        const { svc, generateContent } = await setup({ vaultSources: [] });
+        expect(await svc.generateLoreSummary('a1')).toBeNull();
+        expect(generateContent).not.toHaveBeenCalled();
+    });
+    it('tolerates failed or oversized summaries', async () => {
+        const { svc, generateContent } = await setup({ geminiText: 'x'.repeat(901) });
+        expect(await svc.generateLoreSummary('a1')).toBeUndefined();
+        generateContent.mockRejectedValueOnce(new Error('provider unavailable'));
+        expect(await svc.generateLoreSummary('a1')).toBeUndefined();
+    });
+
+    it('refreshes the document without requesting deletion when only overview generation fails', async () => {
+        const { svc, generateContent } = await setup();
+        const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
+        generateContent.mockImplementation(async request => {
+            if (request.config?.systemInstruction?.includes('Lore source collection')) throw new Error('temporary outage');
+            return { text: '## Overview\nThe refreshed document.' };
+        });
+        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
+        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.stringContaining('The refreshed document.'),
+            expect.any(Array), 'claim-1', 'j1', undefined);
     });
 
     it('synthesizeArtistDoc feeds sources AND interview answers to Gemini, skipping skipped answers', async () => {

@@ -58,13 +58,21 @@ independent social/interview/catalog reads → normalized view data → interact
 | Card | Data and time | Image and link |
 | --- | --- | --- |
 | Instagram | Up to nine stored own posts, newest `posted_at` first | Stored display/thumbnail image; original validated Instagram post/Reel URL |
-| Interview | Up to six nonempty answers, excluding `source=offered`; `created_at` is answer/upsert time | Related stored post image when in the selected set; existing question-key source resolver; no invented link |
-| Release | Up to three already-released items from a bounded catalog, known Deezer ID first and Spotify fallback | Provider cover art and validated album URL; no name-based artist matching |
+| Interview | Up to six nonempty answers: immediate follow-ups, or onboarding answers after that artist's Publish confirmation; `created_at` is answer/upsert time | Related stored post image when in the selected set; existing question-key source resolver; no invented link |
+| Release | Up to three already-released items from a bounded catalog, concurrent known Deezer/Spotify IDs, merging exact title/date/kind matches | Provider cover art and validated album URLs plus matching approved release pages; no name-based artist matching |
 
-The release adapter reads at most 50 catalog entries per provider, caches the catalog for an
-hour, and bounds each provider attempt to five seconds. The preview sorts that bounded response;
+The release adapter reads at most 50 catalog entries per provider, caches the catalog for
+24 hours, and bounds each provider attempt to five seconds. Cache misses share a database-backed
+admission limit across app instances: two concurrent slots per provider, each held for at least
+two seconds, including failed attempts. Nonblocking transaction advisory locks fail closed
+when capacity or the database is unavailable; they do not write artist data or require a new
+table. A cold successful fetch therefore takes at least two seconds, while warm catalog reads
+skip admission entirely. Time-sensitive release eligibility is still evaluated on each read.
+The preview sorts that bounded response;
 it does **not** promise a complete discography or the newest item beyond those 50 entries.
 Provider year/month date precision is retained; uncertain current-period releases are omitted.
+In the mixed gallery, month/year-only dates are placed at the end of their known period
+as an editorial ordering rule; their labels retain the original precision.
 
 Social/interview reads use the existing Drizzle client and `mnweb` role. Only projected image
 fields, selected text and source URLs reach the client, never the complete scraped payload.

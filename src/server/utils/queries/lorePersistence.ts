@@ -1,3 +1,4 @@
+import type { LoreSummary } from '@/lib/loreSummary';
 import { db } from '@/server/db/drizzle';
 import { artistClaims, artistDocs, artistResearchJobs } from '@/server/db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -11,7 +12,7 @@ export async function getLoreClaimGeneration(artistId: string): Promise<string |
 }
 
 export async function persistRefreshedLore(artistId: string, content: string, sources: unknown[],
-    expectedClaimId: string | null, jobId?: string): Promise<boolean> {
+    expectedClaimId: string | null, jobId?: string, loreSummary?: LoreSummary | null): Promise<boolean> {
     return db.transaction(async tx => {
         // Revocation uses this same lock. Either we commit first and its cleanup
         // removes the doc, or we observe its invalidation and write nothing.
@@ -27,9 +28,12 @@ export async function persistRefreshedLore(artistId: string, content: string, so
             });
             if (!job) return false;
         }
-        await tx.insert(artistDocs).values({ artistId, content, sources }).onConflictDoUpdate({
+        await tx.insert(artistDocs).values({ artistId, content, sources, loreSummary: loreSummary ?? null }).onConflictDoUpdate({
             target: [artistDocs.artistId],
-            set: { content, sources, updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
+            // A failed summary attempt must not erase the last good overview.
+            // An explicit null still clears it when the inventory is empty.
+            set: { content, sources, ...(loreSummary === undefined ? {} : { loreSummary }),
+                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)` },
         });
         return true;
     });

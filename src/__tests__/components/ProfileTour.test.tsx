@@ -55,7 +55,7 @@ describe('ProfileTour', () => {
         // ask section than the about."
         render(<ProfileTour artistId="a1" />);
         fireEvent.click(screen.getByRole('button', { name: /next/i }));
-        expect(screen.getByText(/answers come from those same sources/i)).toBeInTheDocument();
+        expect(screen.getByText(/answers come from your Lore sources/i)).toBeInTheDocument();
     });
 
     it('scrolls each section into view so the words always point at something visible', () => {
