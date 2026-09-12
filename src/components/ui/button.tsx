@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground",
         pink: "button-pink min-h-11 gap-2 rounded-lg bg-pastypink font-semibold text-black hover:bg-[#f3b3ff] hover:text-black active:bg-[#e57df7] focus-visible:ring-pastypink",
-        glass: "min-h-11 gap-2 rounded-lg border border-black/10 bg-black/5 text-foreground backdrop-blur-md hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:ring-pastypink",
+        glass: "button-glass min-h-11 gap-2 rounded-lg border border-black/10 bg-black/5 text-foreground backdrop-blur-md hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:ring-pastypink",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:

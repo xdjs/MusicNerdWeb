@@ -156,7 +156,9 @@ export default function PressAndFeatures({ sources: allSources, summary }: Press
         });
     };
 
-    if (sources.length === 0) return null;
+    // Check the same filtered inventory we render: official websites live in
+    // Links, so website-only profiles also need a visible Lore destination.
+    if (sources.length === 0) return <p className="text-sm text-black/60 dark:text-white/65">No Lore sources to show yet. Articles, interviews and other sources will appear here.</p>;
 
     return (
         <div className="space-y-3">

@@ -25,8 +25,7 @@ export default function VaultSection({ artistId, pendingSources, approvedSources
       <div id="mn-sources" className="space-y-3">
       {/* Public carousel only outside edit mode; VaultManager owns the approved
           list while editing (its own optimistic state) to avoid a stale-card flash. */}
-      {!isEditing && approvedSources.length > 0 && <PressAndFeatures sources={approvedSources} summary={summary} />}
-      {!isEditing && approvedSources.length === 0 && <p className="text-sm text-black/60 dark:text-white/65">No published sources yet. Articles, interviews and other sources will appear here.</p>}
+      {!isEditing && <PressAndFeatures sources={approvedSources} summary={summary} />}
       {canEdit && isEditing && (
         <><VaultManager artistId={artistId} pendingSources={pendingSources} approvedSources={approvedSources} />
         <div className="border-t border-black/10 pt-4 dark:border-white/10"><h3 className="mb-2 text-sm font-medium text-black dark:text-white">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></div></>

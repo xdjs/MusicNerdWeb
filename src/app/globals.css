@@ -811,6 +811,17 @@ body {
 /* Keep the profile's anchor destinations clear of the persistent artist search. */
 .artist-profile [id^="mn-"] { scroll-margin-top: 6rem; }
 
+/* A portrait always has a dark fade, even when the surrounding page is light.
+   Scope the inverse treatment to glass actions so pink Listen/Done stay black. */
+.artist-profile [data-artist-portrait] .button-glass {
+  color: #f3f4f6;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.artist-profile [data-artist-portrait] .button-glass:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
 /* Pink actions keep black labels/icons in both themes. These scoped rules must
    follow the legacy dark-mode text-black and svg[stroke-width] overrides. */
 .button-pink,
