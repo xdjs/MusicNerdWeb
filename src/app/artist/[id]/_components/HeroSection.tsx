@@ -91,6 +91,6 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             <div className="text-center">{identity}</div>
             <div className="flex justify-center"><ListenPicker artistName={artistName} links={listenLinks} /></div>
         </>}
-        <div className={`flex flex-wrap items-center gap-2 ${portrait ? '' : 'justify-center'}`}>{children}</div>
+        {children && <div className={`flex flex-wrap items-center gap-2 ${portrait ? '' : 'justify-center'}`}>{children}</div>}
     </header>;
 }

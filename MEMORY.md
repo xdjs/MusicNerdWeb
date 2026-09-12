@@ -11,6 +11,8 @@ combined Links/Support, and floating Ask sheet. All five issue images were revie
 Later local review: expandable hero bio only, stronger image fade, Listen service picker,
 no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode. Latest → Links → Lore.
 Drag link icons directly; Done saves ordering and remains in edit mode on failure.
+Latest/Links/Lore now share a slim navigation row below the hero with Claim/Edit
+aligned right; mobile management controls use accessible icons to keep one row.
 Profile button hierarchy: Listen and save actions use solid pink; Claim/Edit use neutral
 glass; Ask stays pink with a translucent glass finish. Active Latest filters use gray.
 Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button

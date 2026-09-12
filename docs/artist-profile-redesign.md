@@ -155,3 +155,13 @@ History is local to this artist-page visit; the existing API still answers each
 submitted question independently, with no new persistence or server context changes.
 20 focused Ask tests, TypeScript, targeted lint (existing image warning), and CSS
 compilation passed. Actual browser animation/touch review remains outstanding.
+
+Profile navigation follow-up: Latest, Links and Lore are now plain section links
+in a slim row directly below the hero, separated from content by one subtle rule.
+Claim/Edit share that row on the right; at mobile widths their labels collapse to
+accessible 44px icon controls. Default control presentation elsewhere is retained.
+The hero does not reserve an empty action row. Native anchor destinations, claim
+gates and Done/save behavior are unchanged. 40 focused page/hero/edit/order tests,
+TypeScript, targeted lint and CSS compilation passed; live visual review remains
+outstanding. The page-level Ask assertion now checks visibility, matching the
+previous change that retains the minimized conversation in the DOM.
