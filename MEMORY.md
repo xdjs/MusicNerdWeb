@@ -1,6 +1,6 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Artist profile redesign #1230 — local implementation, draft review
+## Artist profile redesign #1230 — approved locally, preparing staging PR
 
 September 11: `pete/1230-artist-page-redesign`, isolated checkout
 `/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
@@ -31,7 +31,10 @@ minimizing/reopening; the existing API remains independent per question. 20 focu
 Ask tests pass, including nested Escape, pending answers and viewport resize.
 Theme initialization now restores the saved preference before the first paint on
 full reloads, including login/logout; 29 theme/auth tests, types and lint pass.
-Chrome visual verification remains outstanding. HTTPS preview runs on port 3000.
+Pete approved the local design and requested a staging PR after the glass navigation
+review. Agent-controlled browser verification remains unavailable. HTTPS preview
+runs on port 3000. Full pre-PR CI also exercises the login-flow suite; its account-menu
+mock now includes the added labels/separators and real icons.
 The glass bio editor has one Save; the existing atomic version history is available
 under Lore → Saved bios, with explicit unpin required for pinned biographies.
 Unpin no longer refetches the bio; it preserves text and only unlocks editing.

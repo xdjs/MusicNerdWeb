@@ -167,5 +167,6 @@ beside Listen in the hero, using accessible icon controls on mobile. Existing
 section offsets, claim permissions and profile save behavior are retained.
 This is client-side navigation only: no API, persistence, jobs or service changes.
 40 focused navigation/page/hero tests, TypeScript and targeted lint passed.
-Browser access is unavailable in this session; visual/touch review remains pending
-on the running HTTPS localhost:3000 preview.
+Pete reviewed the running HTTPS localhost:3000 preview, approved the design and
+requested a PR to staging. Agent-controlled browser access remains unavailable;
+real-provider authentication and live persistence are not established by mocked tests.
