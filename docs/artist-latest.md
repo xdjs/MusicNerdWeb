@@ -43,12 +43,37 @@ to August 23, consistent with the browser failures. Missing extraction isn't the
 durable media is. [Apify's output](https://apify.com/apify/instagram-scraper) includes image URLs,
 carousel children and video media; those URLs alone aren't durable assets.
 
-Recommended next scope, **not implemented**: retain an authorized thumbnail during the existing
-ingest job (post image, carousel cover or Reel thumbnail), with original-post attribution and
-removal handling. Refresh a bounded set of old posts for the preview. Use matching release art
-or artist-approved press images when relevant, and a text/quote card when no appropriate image
-exists rather than repeating the logo or presenting an unrelated photo as the post's image.
-No new scraper, paid run, image upload or storage-policy change has been made for this audit.
+### Retained thumbnails (September 12 follow-up)
+
+The ingestion path now retains a 640px WebP thumbnail for each own Instagram post in the
+existing public `vault-files` bucket. Only Instagram CDN image hosts are accepted; redirects,
+unsupported formats, oversized responses and images over 40 megapixels are rejected. Downloads
+have a nine-second deadline including upload, and at most three run concurrently.
+
+Content-addressed objects live directly under the artist UUID folder, so retries are immutable
+and the existing claim-revocation storage purge includes them. `raw.displayUrl` points to the
+retained image for compatibility with deployed Latest readers. `raw._musicnerdThumbnail` records
+the original CDN URL, capture time, dimensions and SHA-256. Captions, post dates and original
+Instagram post links remain unchanged. The client query still projects only image fields.
+Scraper-supplied retention metadata is discarded. If retention fails, the post can still ingest;
+the conflict update preserves any previously retained thumbnail. A later ingestion can retry.
+
+The durable research worker collects nine mapped posts per invocation and records its cursor
+before continuing. Thumbnail I/O finishes before the short ownership-checked database write.
+It waits for a full collection budget when a cron invocation has too little time remaining.
+No image download, upload or scrape happens on profile reads. Missing/unavailable images retain
+the existing portrait fallback. Retention does not add a new schedule or automatically detect
+Instagram deletion; source/post removal and storage cleanup remain explicit administrative work.
+An interrupted or cancelled write can leave an unreferenced content-addressed object, covered
+by the artist-folder cleanup on claim revocation.
+
+On September 12, Pete authorized refreshing his existing own posts in Dev and production.
+One 244-post Apify run supplied matching post IDs/owners/URLs for both targets. All 244 Dev and
+144 production thumbnails were uploaded to their respective storage projects and publicly read
+back with matching checksums before image-only database updates. Caption/date hashes were
+checked in the update predicates and again after the refresh. No biography, credits or
+interview generation ran. This data refresh is live; future-ingestion code follows the normal
+staging/release review flow. No database migration or bucket/policy change is required.
 
 ## Data path and boundaries
 
@@ -86,10 +111,8 @@ an automatic refresh introduced by this feature.
 
 ## Known limits and next decisions
 
-- Instagram image URLs in existing data can expire. The dev sample failed to load contextual
-  images and used the artist fallback; real release artwork did load. Candidates fall back to
-  artist image, then the local placeholder. Reliable historical post images require a scoped
-  ingestion-time storage/refresh design and a decision about retaining third-party media.
+- Older posts without retained thumbnails can still have expired Instagram image URLs. They
+  need an authorized ingestion or image-only refresh; visiting the profile does not refresh them.
 - This section does not refresh Instagram data or implement notification subscriptions.
 - The initial audit found browser-only bookmarks. Pete clarified that they must sync by account;
   that implementation and its separate migration are documented in [account-bookmarks.md](account-bookmarks.md).

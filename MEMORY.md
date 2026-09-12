@@ -1,63 +1,32 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Artist profile redesign #1230 — staging PR under review
+## Instagram thumbnails — data refresh live, ingestion follow-up under development
 
-September 11: `pete/1230-artist-page-redesign`, isolated checkout
-`/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
-Museum starting direction with combined Latest, persistent artist search, Lore,
-combined Links/Support, and floating Ask sheet. All five issue images were reviewed.
-[Feature contract and verification limits](docs/artist-profile-redesign.md).
+September 12: `pete/instagram-retained-thumbnails`, isolated checkout
+`/private/tmp/musicnerd-issue-1230/repo`, based on staging `828830b`.
+Pete explicitly authorized retaining ingestion thumbnails and refreshing his existing images
+in both environments. All 244 own posts in Dev and 144 in production now use retained WebP
+thumbnails in each environment's existing `vault-files` storage. Every object was read back
+and checksum-verified before updating image metadata; captions/dates/post URLs are preserved.
+Future-ingestion retention, bounded worker collection and regression tests are implemented
+locally; not yet deployed. Full `npm run ci` passed: 203 suites / 2,404 tests, six skips,
+TypeScript, lint, coverage and production build. The actual conflict-update expression
+passed preserve/replace cases as Dev `mnweb` using read-only fixtures. See [thumbnail contract](docs/artist-latest.md#retained-thumbnails-september-12-follow-up).
+No new migration, bucket or policy. Vercel sensitive environment values export as empty;
+that is not evidence of missing configuration. No environment updates succeeded or were needed.
+Original dirty checkout and account-bookmark work remain untouched.
 
-Later local review: expandable hero bio only, stronger image fade, Listen service picker,
-no Read the story until Monday discussion, and persisted Links/Support ordering in edit mode. Latest → Links → Lore.
-Drag link icons directly; Done saves ordering and remains in edit mode on failure.
-Pete selected navigation option 1: Latest/Links/Lore now use a full-width frosted
-glass segmented control below the hero. Click or drag horizontally and release to
-scroll to a section; vertical swipes remain page scrolls. Claim/Edit sit beside Listen
-in the hero; mobile management controls use accessible icons. Keyboard navigation,
-reduced motion and cancelled/multi-pointer gestures are covered by focused tests.
-Profile button hierarchy: Listen and save actions use solid pink; Claim/Edit use neutral
-glass; Ask stays pink with a translucent glass finish. Active Latest filters use gray.
-Rounded corners and at least 44px targets stay consistent. Scoped CSS keeps pink-button
-labels/icons black despite legacy dark-mode text overrides. The Ask panel, input,
-suggestion chips, answers and source links now use the same frosted charcoal styling
-as the other overlays, avoiding the legacy blue-gray background override. Add Link
-and Add Artist use compact glass forms (no oversized Add Link image), including
-supported-link and duplicate-choice states. The account menu has glass styling,
-icons, Explore/Account groups, 48px rows and viewport-bounded mobile width.
-Ask now opens as a compact non-modal panel above the pink trigger, without page
-dimming or scroll lock. A bottom composer and retained local Q&A/drafts support
-minimizing/reopening; the existing API remains independent per question. 20 focused
-Ask tests pass, including nested Escape, pending answers and viewport resize.
-Theme initialization now restores the saved preference before the first paint on
-full reloads, including login/logout; 29 theme/auth tests, types and lint pass.
-Pete approved the local design and requested a staging PR after the glass navigation
-review. Agent-controlled browser verification remains unavailable. HTTPS preview
-runs on port 3000. Full pre-PR CI also exercises the login-flow suite; its account-menu
-mock now includes the added labels/separators and real icons.
-The glass bio editor has one Save; the existing atomic version history is available
-under Lore → Saved bios, with explicit unpin required for pinned biographies.
-Unpin no longer refetches the bio; it preserves text and only unlocks editing.
-Release details combine known Deezer/Spotify catalog matches plus approved release-page
-links. Release cards now open the same compact glass picker as the hero Listen button,
-with service logos and direct release links only; no dropdown or artist-page fallback.
-Migration 0026 adds artists.link_order; applied only to Dev with existing RLS/privileges verified.
-Browser permission denied access to the running localhost preview; visual and live save checks remain.
+## Artist profile redesign #1230 — released
 
-Migration 0025 adds nullable artist_docs.lore_summary. Applied only to Music Nerd Dev;
-column privileges/RLS verified, actual app-role query blocked by connection restrictions.
-Production migration and live 390px/desktop checks are still required before release.
-Existing biographies were not regenerated. In Process remains Sweetman's #1228 work.
-The original dirty UI-research checkout and its account-bookmarks work are untouched.
-[PR #1234](https://github.com/xdjs/MusicNerdWeb/pull/1234) targets staging and closes #1230.
-Pete authorized merging after checks/reviews are green, then a staging → main PR and an
-email asking Carl to approve/merge once its checks/reviews are green. Carl owns the main merge.
-Review fixes preserve a visible public Lore empty state after website filtering and readable
-neutral hero actions over a portrait in either theme. Catalog cache misses now share bounded
-per-provider transaction advisory locks across instances and cache results for 24 hours.
-Dev `mnweb` live checks confirmed slot contention, provider independence and release/reuse
-without artist writes or provider requests. Production migrations 0025/0026 remain prerequisites.
-
+[Release #1235](https://github.com/xdjs/MusicNerdWeb/pull/1235) merged to main as
+`c97a2e1` on September 12 after CI/code/security reviews and Carl's handoff.
+Feature #1234 and review fixes #1237 were merged through staging. Pete approved the glass
+navigation, Listen pickers, compact Ask, contribution forms and profile editing flow locally.
+[Feature contract](docs/artist-profile-redesign.md). Production migrations 0025/0026 were
+applied and verified before main merged (Supabase receipt `20260912025937`); no biographies
+regenerated. Historical Drizzle journal reconciliation remains #1148.
+[Issue #1238](https://github.com/xdjs/MusicNerdWeb/issues/1238) tracks incomplete cross-platform
+release discovery, deferred by Pete to next week. Do not resume that work as part of thumbnails.
 
 ## Meeting transcript automation — prepared, not active
 

@@ -11,7 +11,7 @@
  * owner's caption to the artist. Every downstream consumer (socialSignals,
  * questionGenerator) trusts `isOwnPost` rather than re-deriving it.
  */
-import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
 import { withResearchJobWrite, OwnershipChangedError, type WriteDb } from '@/server/utils/queries/ownershipWrites';
 import { artistSocialPosts, artists } from "@/server/db/schema";
@@ -20,6 +20,8 @@ import { APIFY_API_TOKEN } from "@/env";
 import { extractCaptionCredits, sweepSilentCaptions } from "@/server/utils/socialCredits";
 import { replaceSocialCredits, appendSocialCredits, claimedSourceUrls } from "@/server/utils/queries/socialCreditQueries";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
+
+import { retainInstagramThumbnails } from "@/server/utils/instagramThumbnail";
 
 const APIFY_RUN_SYNC_URL = "https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items";
 const DEFAULT_LIMIT = 200;
@@ -33,6 +35,8 @@ export interface IngestResult {
     ingested: number;
     ownPosts: number;
     collabPosts: number;
+    /** Durable collection cursor: present until all thumbnail batches are stored. */
+    nextCursor?: number;
 }
 
 const EMPTY_RESULT: IngestResult = { ingested: 0, ownPosts: 0, collabPosts: 0 };
@@ -206,6 +210,8 @@ export function mapApifyPost(rawItem: unknown, artistId: string, handle: string,
     const postedAt = typeof raw.timestamp === "string" ? raw.timestamp : null;
     const caption = typeof raw.caption === "string" ? raw.caption : null;
 
+    const storedRaw = { ...raw };
+    delete (storedRaw as Record<string, unknown>)._musicnerdThumbnail;
     return {
         artistId,
         platform: "instagram",
@@ -223,7 +229,7 @@ export function mapApifyPost(rawItem: unknown, artistId: string, handle: string,
         coauthors,
         musicTitle,
         musicArtist,
-        raw: rawItem,
+        raw: storedRaw,
     };
 }
 
@@ -249,7 +255,14 @@ export async function upsertSocialPost(row: SocialPostInsert, writer: WriteDb = 
                 coauthors: row.coauthors,
                 musicTitle: row.musicTitle,
                 musicArtist: row.musicArtist,
-                raw: row.raw,
+                raw: sql`CASE
+                    WHEN ${JSON.stringify(row.raw)}::jsonb->'_musicnerdThumbnail'->>'version' = '1'
+                        THEN ${JSON.stringify(row.raw)}::jsonb
+                    WHEN ${artistSocialPosts.raw}->'_musicnerdThumbnail'->>'version' = '1'
+                        THEN ${JSON.stringify(row.raw)}::jsonb || jsonb_build_object(
+                            'displayUrl', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->>'url',
+                            '_musicnerdThumbnail', ${artistSocialPosts.raw}->'_musicnerdThumbnail')
+                    ELSE ${JSON.stringify(row.raw)}::jsonb END`,
             },
         });
 }
@@ -317,7 +330,7 @@ export async function ingestInstagramPosts(
             .map(item => mapApifyPost(item, artistId, handle, artistName))
             .filter((r): r is SocialPostInsert => r !== null);
 
-        return await upsertMappedRows(rows);
+        return await upsertMappedRows(await retainInstagramThumbnails(rows));
     } catch (e) {
         console.error("[ingestInstagramPosts] Error:", e);
         return EMPTY_RESULT;
@@ -412,7 +425,7 @@ export async function ingestInstagramPostsFromItems(
         const rows = items
             .map(item => mapApifyPost(item, artistId, handle, artistName))
             .filter((r): r is SocialPostInsert => r !== null);
-        return await upsertMappedRows(rows);
+        return await upsertMappedRows(await retainInstagramThumbnails(rows));
     } catch (e) {
         console.error("[ingestInstagramPostsFromItems] Error:", e);
         return EMPTY_RESULT;
@@ -660,11 +673,12 @@ export async function collectInstagramScrape(
     handle: string,
     datasetId: string,
     jobId?: string,
+    cursor = 0,
 ): Promise<IngestResult | null> {
     if (!APIFY_API_TOKEN) return null;
     try {
-        const res = await fetch(`${APIFY_DATASET_URL(datasetId)}?token=${encodeURIComponent(APIFY_API_TOKEN)}&clean=true&format=json`, {
-            signal: AbortSignal.timeout(APIFY_FETCH_TIMEOUT_MS),
+        const res = await fetch(`${APIFY_DATASET_URL(datasetId)}?token=${encodeURIComponent(APIFY_API_TOKEN)}&clean=true&format=json&limit=${MAX_LIMIT}`, {
+            signal: AbortSignal.timeout(15000),
         });
         if (!res.ok) {
             console.error(`[collectInstagramScrape] dataset fetch failed: ${res.status}`);
@@ -677,7 +691,13 @@ export async function collectInstagramScrape(
         const rows = items
             .map(item => mapApifyPost(item, artistId, handle, artistName))
             .filter((r): r is SocialPostInsert => r !== null);
-        return jobId ? await withResearchJobWrite(artistId, jobId, tx => upsertMappedRows(rows, tx)) : await upsertMappedRows(rows);
+        // A worker invocation has sixty seconds. At most nine thumbnails (three
+        // concurrent, nine seconds each) fit alongside collection and DB work.
+        const bounded = rows.slice(0, MAX_LIMIT);
+        const batch = jobId ? bounded.slice(cursor, cursor + 9) : bounded;
+        const prepared = await retainInstagramThumbnails(batch);
+        const result = jobId ? await withResearchJobWrite(artistId, jobId, tx => upsertMappedRows(prepared, tx)) : await upsertMappedRows(prepared);
+        return jobId && cursor + batch.length < bounded.length ? { ...result, nextCursor: cursor + batch.length } : result;
     } catch (e) {
         if (e instanceof OwnershipChangedError) throw e;
         console.error("[collectInstagramScrape] Error:", e);
