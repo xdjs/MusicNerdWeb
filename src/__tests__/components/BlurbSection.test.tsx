@@ -345,13 +345,14 @@ describe('BlurbSection', () => {
             expect(screen.queryByText('Regenerate')).not.toBeInTheDocument();
         });
 
-        it('shows Regenerate and Save to Lore only in edit mode', () => {
+        it('shows a single Save action and Regenerate in edit mode', () => {
             render(
                 <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
                     <BlurbSection {...defaultProps} />
                 </EditModeContext.Provider>
             );
-            expect(screen.getByText('Save to Lore')).toBeInTheDocument();
+            expect(screen.queryByText('Save to Lore')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
             expect(screen.getByText('Regenerate')).toBeInTheDocument();
         });
     });

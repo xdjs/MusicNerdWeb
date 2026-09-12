@@ -26,7 +26,7 @@ export default function AddArtistDataOptions({ availableLinks, setOption }: { av
     const dataOptions = sortedLinks.map(link => (
         <DropdownMenuItem
             key={link.id}
-            className="cursor-pointer text-xs text-black dark:text-white focus:bg-pastypink/15 focus:text-pastypink"
+            className="min-h-11 cursor-pointer rounded-lg px-3 text-xs text-white/80 focus:bg-white/10 focus:text-white"
             onClick={() => setOption(link.example.replace(/^(?:https?:\/\/)?(?:www\.)?/, ''))}
         >
             {link.example.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')}
@@ -37,9 +37,9 @@ export default function AddArtistDataOptions({ availableLinks, setOption }: { av
             <DropdownMenuTrigger asChild>
                 <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-11 text-black dark:text-white whitespace-nowrap"
+                    className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs text-white/75 hover:bg-white/10 hover:text-white whitespace-nowrap focus-visible:ring-pastypink"
                 >
                     {TIPS_BUTTON_LABEL}
                 </Button>
@@ -48,7 +48,7 @@ export default function AddArtistDataOptions({ availableLinks, setOption }: { av
                 side="top"
                 align="end"
                 sideOffset={6}
-                className="glass-subtle scrollbar-glass max-h-44 overflow-auto p-1 border-0 shadow-lg"
+                className="scrollbar-glass max-h-[40dvh] max-w-[calc(100vw-3rem)] overflow-auto rounded-xl border border-white/15 bg-neutral-950/95 p-1 text-white shadow-xl backdrop-blur-xl"
             >
                 {dataOptions}
             </DropdownMenuContent>

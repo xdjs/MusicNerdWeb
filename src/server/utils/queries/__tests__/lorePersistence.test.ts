@@ -36,7 +36,7 @@ describe('Lore publication ownership fence', () => {
         expect(await persistRefreshedLore('a1', 'New doc', sources, 'current-claim', 'j1')).toBe(true);
         expect(tx.execute.mock.invocationCallOrder[0]).toBeLessThan(tx.query.artistClaims.findFirst.mock.invocationCallOrder[0]);
         expect(tx.query.artistResearchJobs.findFirst.mock.invocationCallOrder[0]).toBeLessThan(values.mock.invocationCallOrder[0]);
-        expect(values).toHaveBeenCalledWith({ artistId: 'a1', content: 'New doc', sources });
+        expect(values).toHaveBeenCalledWith({ artistId: 'a1', content: 'New doc', sources, loreSummary: null });
         expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ set: expect.objectContaining({ content: 'New doc', sources }) }));
     });
 });

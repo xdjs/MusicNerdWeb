@@ -175,38 +175,42 @@ export default function AddArtist() {
                     onPointerDownOutside={(event) => {
                         if (isCreatingSeparate) event.preventDefault();
                     }}
-                    className={`max-w-sm px-4 sm:max-w-[700px] max-h-screen overflow-auto scrollbar-hide text:black rounded-lg ${isCreatingSeparate ? "min-h-48" : ""}`}
+                    className={`artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6 ${isCreatingSeparate ? "min-h-48" : ""}`}
                 >
                     {isCreatingSeparate ? (
                         <div
                             role="status"
                             aria-live="polite"
-                            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-background p-6 text-center"
+                            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-neutral-950/95 p-6 text-center text-white"
                         >
                             <p className="font-semibold">Creating separate artist…</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="mt-1 text-sm text-white/60">
                                 Please wait while the artist is created. This action cannot be cancelled.
                             </p>
                         </div>
                     ) : (
                         <>
-                            <DialogHeader>
-                                <DialogTitle>Add new artist</DialogTitle>
-                                <DialogDescription>
+                            <DialogHeader className="space-y-2 pr-7 text-left">
+                                <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">Add new artist</DialogTitle>
+                                <DialogDescription className="text-sm leading-relaxed text-white/60">
                                     Add an artist by pasting their Spotify or Deezer URL
                                 </DialogDescription>
                             </DialogHeader>
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                                     <FormField
                                         control={form.control}
                                         name="artistUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Artist URL</FormLabel>
+                                                <FormLabel className="text-sm font-medium text-white/80">Artist URL</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         placeholder="Paste a Spotify or Deezer artist URL"
+                                                        autoCapitalize="none"
+                                                        autoCorrect="off"
+                                                        spellCheck={false}
+                                                        className="min-h-12 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3 text-sm text-white/90 placeholder:text-white/45 outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
                                                         {...field}
                                                         disabled={isCreatingSeparate}
                                                         onChange={(event) => {
@@ -215,7 +219,7 @@ export default function AddArtist() {
                                                         }}
                                                     />
                                                 </FormControl>
-                                                <FormDescription>
+                                                <FormDescription className="text-xs leading-relaxed text-white/50">
                                                     Copy the URL from the artist&apos;s Spotify or Deezer page
                                                 </FormDescription>
                                                 <FormMessage />
@@ -226,7 +230,8 @@ export default function AddArtist() {
                                         <Button
                                             type="submit"
                                             disabled={isLoading || isCreatingSeparate || addArtistStatus?.status === "possible_duplicate"}
-                                            className="w-auto self-start bg-pastypink"
+                                            variant="pink"
+                                            className="w-full"
                                         >
                                             {isLoading ?
                                                 <img className="max-h-6" src="/spinner.svg" alt="Adding artist" />
@@ -238,8 +243,8 @@ export default function AddArtist() {
                                                 aria-live="polite"
                                                 className={cn(
                                                     addArtistStatus.status === "error" || addArtistStatus.status === "conflict"
-                                                        ? "text-red-500"
-                                                        : "text-green-500",
+                                                        ? "mt-3 text-sm text-red-400"
+                                                        : "mt-3 text-sm text-green-400",
                                                 )}
                                             >
                                                 {addArtistStatus.message}
@@ -247,6 +252,7 @@ export default function AddArtist() {
                                         }
                                         {addArtistStatus?.status === "possible_duplicate" && (
                                             <DuplicateArtistChoice
+                                                glass
                                                 candidates={addArtistStatus.candidates}
                                                 platform={addArtistStatus.platform}
                                                 platformId={addArtistStatus.platformId}
@@ -257,15 +263,15 @@ export default function AddArtist() {
                                                 onChooseExisting={() => closeModal(false)}
                                             />
                                         )}
-                                        <div className="flex flex-col gap-2 text-black overflow-auto">
+                                        <div className="mt-3 flex flex-col gap-2 text-white/90 overflow-auto">
                                             {addedArtist &&
                                                 <>
-                                                    <Button asChild variant="outline" key="check-out">
+                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-white/90 hover:bg-white/10 hover:text-white" key="check-out">
                                                         <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}`}>
                                                             Check out {addedArtist.artistName}
                                                         </Link>
                                                     </Button>
-                                                    <Button asChild variant="outline" key="add-data">
+                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-white/90 hover:bg-white/10 hover:text-white" key="add-data">
                                                         <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}?opADM=1`}>
                                                             Add links for {addedArtist.artistName}
                                                         </Link>

@@ -15,7 +15,7 @@ export default function ArtistRouteError({ error, reset }: { error: Error & { di
       <h2 className="text-2xl font-semibold">Something went wrong loading this artist</h2>
       <p className="text-gray-600">A client-side error occurred. You can try again.</p>
       <div className="flex items-center gap-3">
-        <Button onClick={() => reset()} className="bg-pastypink text-white hover:bg-pastypink/90">Try again</Button>
+        <Button onClick={() => reset()} variant="pink">Try again</Button>
         <Button variant="outline" onClick={() => window.location.reload()}>Reload page</Button>
       </div>
       {error?.digest && (

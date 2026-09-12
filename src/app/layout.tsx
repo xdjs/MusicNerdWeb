@@ -4,6 +4,7 @@ import Nav from "./_components/nav";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "./_components/Footer";
 import Providers from "./_components/Providers";
+import ThemeScript from "./_components/ThemeScript";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -45,7 +46,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className="min-h-screen flex flex-col">
         <Providers>
           <Nav />

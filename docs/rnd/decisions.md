@@ -10,6 +10,39 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-11 · Pete's local profile review
+
+- Choose option 1 for section navigation: a glass segmented bar, supporting both dragging the selection and clicking a section. — Pete
+
+- Match Add Link, Add Artist and the mobile account menu to the glass styling; simplify forms and make mobile navigation easier to scan and tap. — Pete
+
+- Style the Ask panel and its inner controls in frosted charcoal glass to match the other overlays; retain the pink glass trigger. — Pete
+
+- Unpin only unlocks the current bio; regenerate requires a separate explicit click. — Pete
+- Clicking a Latest release opens a compact picker matching the top Listen button, with direct release links and logos shown immediately; remove the More from artist dropdown. — Pete
+
+- Keep consistent rounded button shapes and black text/icons on pink (Om’s contrast recommendation); reserve solid pink for Listen/save, use glass for Claim/Edit and gray for filters. Ask stays pink with a glass finish. — Pete
+
+- Keep one expandable biography in the hero; remove About under Lore and strengthen the portrait fade. — Pete
+- Listen opens a dark glass picker of saved music services, with unboxed logos and clean rows; exclude In Process as it is not a listening destination. — Pete
+- Remove Read the story for now; revisit its purpose Monday, September 14. — Pete
+- Reorder by dragging the link icons; profile Done saves ordering, with no separate Save order control. Links appears above Lore. — Pete
+- Use a glass bio editor and one Save that also archives the edited bio in Lore; remove Save to Lore. — Pete
+
+## 2026-09-11 · [Stand Up transcript](transcripts/2026-09-11-standup-ab5db51a596c.md)
+
+- Combine Timeline into Latest, including In Process moments alongside other activity. — team, 13:25
+- Keep artist search easy to reach from the redesigned profile. — Pete, 17:21
+- Pete owns profile design/Latest; Sweetman owns the initial read-only In Process integration.
+  This supersedes yesterday's temporary pause on Pete's design work. — Pete, Sweetman, 21:23–22:12
+- In Process upload/writeback is later work; initially favor a distinct Music Nerd collection,
+  with artist-selectable collections left for exploration. — team, 14:11–15:53, 22:12
+- Keep Exa quality and make the research provider replaceable. — Carl, Sweetman, 19:30–20:38
+
+No explicit A/B/C selection was recorded. Floating Ask was feedback; the precise placement
+remained an implementation choice under Pete's design ownership. Pete's later review
+above supersedes the initial About placement.
+
 ## 2026-09-10 · [R&D](meetings/2026-09-10.md)
 
 **Product**

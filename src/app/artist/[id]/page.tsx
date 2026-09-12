@@ -1,8 +1,7 @@
-import { getArtistById, getAllLinks } from "@/server/utils/queries/artistQueries";
+import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
-import BookmarkButton from "@/app/_components/BookmarkButton";
 import ClaimButton from "./_components/ClaimButton";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
@@ -11,12 +10,15 @@ import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
 import EditModeToggle from "@/app/_components/EditModeToggle";
-import BlurbSection from "./_components/BlurbSection";
+import { getListeningLinks } from "@/lib/artistProfileLinks";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import HeroSection from "./_components/HeroSection";
+import ProfileSectionNav from "./_components/ProfileSectionNav";
 import VaultSection from "./_components/VaultSection";
 import KnowledgeSection from "./_components/KnowledgeSection";
-import AskAboutArtist from "./_components/AskAboutArtist";
+import ArtistAskSheet from "./_components/ArtistAskSheet";
+import LatestSection from "./_components/LatestSection";
+import { Suspense } from "react";
 import RevealSection from "./_components/RevealSection";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import AutoRefresh from "@/app/_components/AutoRefresh";
@@ -27,7 +29,8 @@ import OfficialSiteLinks from "./_components/OfficialSiteLinks";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
-import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
+import { currentLoreSummary } from "@/lib/loreSummary";
+import { getArtistDoc, getOnboardingState } from "@/server/utils/queries/onboardingQueries";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artistProfileUrl";
 import { isRealBio } from "@/lib/bioConstants";
 
@@ -132,12 +135,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     }
     // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
     // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw] = await Promise.all([
+    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistDoc, artistLinks] = await Promise.all([
         musicPlatformData.getArtist(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getVaultSourcesByArtistId(id, "pending"),
+        getArtistDoc(id),
+        getArtistLinks(artist),
     ]);
 
     const platformImage = platformData?.imageUrl ?? null;
@@ -163,11 +168,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
 
+    const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
+    const listenLinks = getListeningLinks(artist, artistLinks, approvedSources);
+
     return (
         <>
             <EditModeProvider canEdit={canEdit}>
             <AutoRefresh showLoading={false} />
-            <div className="w-full max-w-[800px] mx-auto px-4 py-5 space-y-6">
+            <div className="artist-profile w-full max-w-[800px] mx-auto px-4 pt-2 pb-24 space-y-5 sm:pt-5 sm:space-y-6">
 
                 {/* Gated on onboarding being COMPLETE, which is the only state in
                     which a post-build tour makes sense. Without this, a stale
@@ -196,16 +204,11 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     />
                 )}
 
-                {/* 1. Hero Section */}
-                <HeroSection imageUrl={imageUrl} artistName={artist.name ?? "Artist"} artistId={artist.id} />
-
-                {/* 2. Name + Actions */}
-                <div className="text-center space-y-2">
-                    <h1 className="text-black dark:text-white text-2xl font-bold">
-                        {artist.name}
-                    </h1>
-                    {/* Release count hidden for now — revisit when discography feature is built */}
-                    <div className="flex flex-wrap justify-center items-center gap-2 pt-1">
+                <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
+                    hasPortrait={!!customImageUrl(artist.customImage)}
+                    artistName={artist.name ?? "Artist"} artistId={artist.id}
+                    bio={heroBio} listenLinks={listenLinks}>
+                    <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
                         <ClaimButton
                             artistId={artist.id}
                             isClaimed={isClaimed}
@@ -213,37 +216,19 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                             isPending={isPending}
                             isPendingByUser={isPendingByUser}
                             artistInstagram={artist.instagram}
+                            compactOnMobile
                         />
-                        {session && (
-                            <BookmarkButton
-                                artistId={artist.id}
-                                artistName={artist.name ?? ''}
-                                imageUrl={platformImage ?? ''}
-                                userId={session.user.id}
-                            />
-                        )}
-                        {canEdit && <EditModeToggle />}
+                        {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
-                </div>
+                </HeroSection>
 
-                {/* 3. Bio */}
-                <RevealSection id="mn-about" className="glass p-4 sm:p-5 space-y-3">
-                    <h2 className="text-black dark:text-white text-xl font-bold">About</h2>
-                    <BlurbSection
-                        key={artist.bio ?? ""}
-                        artistName={artist.name ?? ""}
-                        artistId={artist.id}
-                        initialBio={artist.bio ?? null}
-                    />
-                </RevealSection>
+                <ProfileSectionNav key={artist.id} />
 
-                {/* 4. Ask About Artist (AI Q&A) */}
-                <RevealSection id="mn-ask" className="glass p-4 sm:p-5 space-y-3">
-                    <h2 className="text-black dark:text-white text-xl font-bold break-words">Ask About {artist.name}</h2>
-                    <AskAboutArtist artistId={artist.id} artistName={artist.name ?? "this artist"} />
-                </RevealSection>
+                <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
+                    <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
+                </Suspense>
 
-                {/* 5. Links (icon grid) */}
+                {/* Listening, social and support links share one destination. */}
                 <RevealSection id="mn-links" className="glass p-4 sm:p-5 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-black dark:text-white text-xl font-bold">Links</h2>
@@ -259,12 +244,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                     <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     <OfficialSiteLinks sources={approvedSources} />
-                </RevealSection>
-
-                {/* 6. Support the Artist (icon grid) */}
-                <RevealSection className="glass p-4 sm:p-5 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-black dark:text-white text-xl font-bold">Support the Artist</h2>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
+                        <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
                         <AddArtistData
                             artist={artist}
                             spotifyImg={platformImage ?? ""}
@@ -276,22 +257,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
-
-                {/* 7. Press & Features (vault sources) */}
-                <div id="mn-sources">
-                <VaultSection artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
+                <div id="mn-lore">
+                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
-
-                {/* 8. What we know — the knowledge document, as correctable claims.
-                    Sits AFTER the sources deliberately, because every claim in it
-                    points back at one of them. The component owns its own gating
-                    (owner AND editing) the way VaultSection does, so it renders
-                    nothing at all the rest of the time. */}
-                <div id="mn-knowledge">
-                    <KnowledgeSection artistId={artist.id} />
-                </div>
-
+                <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
             </div>
+            <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />
             <ArtistJsonLd

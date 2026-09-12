@@ -22,47 +22,47 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-// Function to get system theme preference
-const getSystemTheme = (): Theme => {
-  if (typeof window !== 'undefined') {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-  }
-  return "light"
-}
-
 export function ThemeProvider({
   children,
   defaultTheme,
   storageKey = "musicnerd-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // SSR safety check
-    if (typeof window === 'undefined') {
-      return defaultTheme ?? "light"
-    }
-    // Check localStorage first
-    const stored = localStorage.getItem(storageKey) as Theme
-    if (stored && (stored === "light" || stored === "dark")) {
-      return stored
-    }
-    // If no stored preference, use system preference
-    return getSystemTheme()
-  })
+  // Keep the server and first client render identical. The head script already
+  // applies the saved theme before paint; this effect only synchronizes React.
+  const [theme, setTheme] = useState<Theme>(defaultTheme ?? "light")
+
+  const applyTheme = (nextTheme: Theme) => {
+    const root = document.documentElement
+    root.classList.remove("light", "dark")
+    root.classList.add(nextTheme)
+    root.style.colorScheme = nextTheme
+  }
 
   useEffect(() => {
-    const root = window.document.documentElement
-    root.classList.remove("light", "dark")
-    root.classList.add(theme)
-  }, [theme])
+    let stored: string | null = null
+    try {
+      stored = localStorage.getItem(storageKey)
+    } catch {
+      // Storage can be disabled; system preference still works.
+    }
+    const resolved = stored === "light" || stored === "dark"
+      ? stored
+      : defaultTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    applyTheme(resolved)
+    setTheme(resolved)
+  }, [defaultTheme, storageKey])
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(storageKey, theme)
+    setTheme: (nextTheme: Theme) => {
+      try {
+        localStorage.setItem(storageKey, nextTheme)
+      } catch {
+        // Keep toggling functional even when the preference cannot be persisted.
       }
-      setTheme(theme)
+      applyTheme(nextTheme)
+      setTheme(nextTheme)
     },
   }
 

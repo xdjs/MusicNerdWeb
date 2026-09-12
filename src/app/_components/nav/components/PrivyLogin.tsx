@@ -8,10 +8,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { LogIn, UserRound } from 'lucide-react';
+import { LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import { LegacyAccountModal } from './LegacyAccountModal';
@@ -21,6 +23,9 @@ interface PrivyLoginProps {
   buttonStyles?: string;
   triggerIcon?: 'login' | 'account';
 }
+
+const accountMenuItemClass = "min-h-12 cursor-pointer gap-3 rounded-lg px-3 text-sm text-white/85 focus:bg-white/10 focus:text-white [&_svg]:text-white/55";
+const accountMenuClass = "w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/90 bg-gradient-to-br from-white/[0.08] to-transparent p-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150 sm:w-64";
 
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
@@ -346,7 +351,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     };
 
     const themeMenuItem = (
-      <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+      <DropdownMenuItem className={accountMenuItemClass} onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+        {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
       </DropdownMenuItem>
     );
@@ -382,19 +388,22 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               {triggerIcon === 'account' ? <UserRound color="white" size={20} /> : <LogIn color="white" size={20} />}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem asChild>
+          <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className={accountMenuClass}>
+            <DropdownMenuLabel className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/45">Explore</DropdownMenuLabel>
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
               <Link href="/leaderboard" prefetch>
-                Leaderboard
+                <Trophy aria-hidden="true" />Leaderboard
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
               <Link href="/profile" prefetch>
-                User Profile
+                <UserRound aria-hidden="true" />User Profile
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
+            <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
             {themeMenuItem}
-            <DropdownMenuItem onSelect={handleLogin}>Log In</DropdownMenuItem>
+            <DropdownMenuItem className={accountMenuItemClass} onSelect={handleLogin}><LogIn aria-hidden="true" />Log In</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -407,6 +416,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
           <DropdownMenuTrigger asChild>
             <Button
               ref={ref}
+              aria-label="Account menu"
               type="button"
               size="lg"
               className="relative bg-pastypink hover:bg-pastypink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
@@ -423,13 +433,14 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem asChild>
+          <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className={accountMenuClass}>
+            <DropdownMenuLabel className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/45">Explore</DropdownMenuLabel>
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
               <Link href="/leaderboard" prefetch>
-                Leaderboard
+                <Trophy aria-hidden="true" />Leaderboard
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-2" asChild>
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
               <Link
                 href="/profile"
                 prefetch
@@ -444,42 +455,46 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                   } catch {}
                 }}
               >
-                <span>User Profile</span>
+                <UserRound aria-hidden="true" /><span>User Profile</span>
                 {hasNewUGC && (
                   <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
                 )}
               </Link>
             </DropdownMenuItem>
             {hasDashboardClaim && claimedArtistId && (
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem className={accountMenuItemClass} asChild>
                 <Link href={`/artist/${claimedArtistId}`} prefetch>
-                  My Artist Profile
+                  <Music2 aria-hidden="true" />My Artist Profile
                 </Link>
               </DropdownMenuItem>
             )}
             {session?.user?.isAdmin && (
-              <DropdownMenuItem asChild className="flex items-center gap-2">
+              <DropdownMenuItem asChild className={accountMenuItemClass}>
                 <Link href="/admin" prefetch>
-                  <span>Admin Panel</span>
+                  <ShieldCheck aria-hidden="true" /><span>Admin Panel</span>
                   {hasPendingUGC && (
                     <span className="inline-block h-2 w-2 rounded-full bg-red-600" />
                   )}
                 </Link>
               </DropdownMenuItem>
             )}
+
+            <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
+            <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
             {session?.user?.needsLegacyLink && (
-              <DropdownMenuItem onSelect={() => setShowLegacyModal(true)}>
-                Link Wallet
+              <DropdownMenuItem className={accountMenuItemClass} onSelect={() => setShowLegacyModal(true)}>
+                <Wallet aria-hidden="true" />Link Wallet
               </DropdownMenuItem>
             )}
             {themeMenuItem}
             <DropdownMenuItem
+              className={accountMenuItemClass}
               onSelect={(e) => {
                 e.preventDefault();
                 handleLogout();
               }}
             >
-              Log Out
+              <LogOut aria-hidden="true" />Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
