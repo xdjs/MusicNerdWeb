@@ -39,4 +39,25 @@ describe('Lore publication ownership fence', () => {
         expect(values).toHaveBeenCalledWith({ artistId: 'a1', content: 'New doc', sources, loreSummary: null });
         expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ set: expect.objectContaining({ content: 'New doc', sources }) }));
     });
+
+    it('keeps the last good overview on failure but shows it only for its current inventory', async () => {
+        const { persistRefreshedLore, upsert } = await setup('current-claim');
+        const { currentLoreSummary, loreSourceKey } = await import('@/lib/loreSummary');
+        const approved = [{ id: 'source-1', title: 'Studio journal', type: 'document' }];
+        const stored = { content: 'Old document', loreSummary: { text: 'A studio journal.', sourceKey: loreSourceKey(approved) } };
+        upsert.mockImplementation(async ({ set }) => { Object.assign(stored, set); });
+        await persistRefreshedLore('a1', 'Refreshed document', [], 'current-claim', 'j1', undefined);
+        expect(stored.content).toBe('Refreshed document');
+        expect(currentLoreSummary(stored.loreSummary, approved)).toBe('A studio journal.');
+        expect(currentLoreSummary(stored.loreSummary, [{ ...approved[0], title: 'Renamed journal' }])).toBeNull();
+        expect(currentLoreSummary(stored.loreSummary, [])).toBeNull();
+    });
+
+    it.each([null, { text: 'New overview.', sourceKey: 'new-inventory' }])('applies an explicit clear or replacement: %j', async summary => {
+        const { persistRefreshedLore, upsert } = await setup('current-claim');
+        const stored = { loreSummary: { text: 'Previous overview.', sourceKey: 'old-inventory' } };
+        upsert.mockImplementation(async ({ set }) => { Object.assign(stored, set); });
+        await persistRefreshedLore('a1', 'Refreshed document', [], 'current-claim', 'j1', summary);
+        expect(stored.loreSummary).toEqual(summary);
+    });
 });

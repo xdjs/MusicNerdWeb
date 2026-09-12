@@ -76,9 +76,21 @@ describe('artistDocService', () => {
     });
     it('tolerates failed or oversized summaries', async () => {
         const { svc, generateContent } = await setup({ geminiText: 'x'.repeat(901) });
-        expect(await svc.generateLoreSummary('a1')).toBeNull();
+        expect(await svc.generateLoreSummary('a1')).toBeUndefined();
         generateContent.mockRejectedValueOnce(new Error('provider unavailable'));
-        expect(await svc.generateLoreSummary('a1')).toBeNull();
+        expect(await svc.generateLoreSummary('a1')).toBeUndefined();
+    });
+
+    it('refreshes the document without requesting deletion when only overview generation fails', async () => {
+        const { svc, generateContent } = await setup();
+        const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
+        generateContent.mockImplementation(async request => {
+            if (request.config?.systemInstruction?.includes('Lore source collection')) throw new Error('temporary outage');
+            return { text: '## Overview\nThe refreshed document.' };
+        });
+        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
+        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.stringContaining('The refreshed document.'),
+            expect.any(Array), 'claim-1', 'j1', undefined);
     });
 
     it('synthesizeArtistDoc feeds sources AND interview answers to Gemini, skipping skipped answers', async () => {

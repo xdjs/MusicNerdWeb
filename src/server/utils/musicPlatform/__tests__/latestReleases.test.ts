@@ -115,6 +115,25 @@ describe('getLatestArtistReleases', () => {
             .toEqual(['2026-08', '2025']);
     });
 
+    it('uses the gallery period policy before selecting the three catalog previews', async () => {
+        const { getLatestArtistReleases, axiosGet } = await setup();
+        axiosGet.mockResolvedValueOnce({ data: { data: [
+            deezerAlbum(1, '2026-08-15'), deezerAlbum(2, '2026-08-20'),
+            deezerAlbum(3, '2026-08-25'), deezerAlbum(4, '2026-08'),
+        ] } });
+        expect((await getLatestArtistReleases({ ...artist, spotify: null })).map(release => release.id)).toEqual(['4', '3', '2']);
+    });
+
+    it('does not fill the preview with partial dates that the gallery must still withhold', async () => {
+        const { getLatestArtistReleases, axiosGet } = await setup();
+        jest.setSystemTime(new Date('2026-08-31T12:00:00Z'));
+        axiosGet.mockResolvedValueOnce({ data: { data: [
+            deezerAlbum(1, '2026-08'), deezerAlbum(2, '2026-08'),
+            deezerAlbum(3, '2026-08'), deezerAlbum(4, '2026-08-10'),
+        ] } });
+        expect((await getLatestArtistReleases({ ...artist, spotify: null })).map(release => release.id)).toEqual(['4']);
+    });
+
     it('omits invalid release links, title/date fields and compilations', async () => {
         const { getLatestArtistReleases, axiosGet } = await setup();
         axiosGet.mockResolvedValueOnce({ data: { data: [
