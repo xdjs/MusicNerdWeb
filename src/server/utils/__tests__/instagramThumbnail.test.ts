@@ -2,7 +2,7 @@
 import sharp from 'sharp';
 jest.mock('@/env', () => ({ SUPABASE_URL: 'https://test.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'test-key' }));
 jest.mock('@/server/lib/supabase', () => ({ VAULT_BUCKET: 'vault-files' }));
-import { instagramMediaUrl, retainInstagramThumbnail, retainInstagramThumbnails, removeRevokedInstagramThumbnails } from '../instagramThumbnail';
+import { instagramMediaUrl, retainInstagramThumbnail, retainInstagramThumbnails, storedInstagramThumbnail, removeRevokedInstagramThumbnails } from '../instagramThumbnail';
 
 const artist = '50f23458-df64-4381-8042-7333e8b64531';
 const source = 'https://scontent.cdninstagram.com/photo.jpg?oe=temporary';
@@ -101,4 +101,13 @@ it('rejects cleanup paths outside the revoked job and reports storage failures',
     scope.attemptedPaths = new Set([`${artist}/instagram-${scope.jobId}-123-${'a'.repeat(64)}.webp`]);
     fetchMock.mockResolvedValueOnce({ ok: false });
     await expect(removeRevokedInstagramThumbnails(artist, scope)).rejects.toThrow('cleanup failed');
+});
+
+it('only reuses stored thumbnails for this environment, artist and post', () => {
+    const sha256 = 'a'.repeat(64);
+    const url = `https://test.supabase.co/storage/v1/object/public/vault-files/${artist}/instagram-123-${sha256}.webp`;
+    const metadata = { version: 1, sha256, url };
+    expect(storedInstagramThumbnail({ _musicnerdThumbnail: metadata }, artist, '123')).toEqual(metadata);
+    expect(storedInstagramThumbnail({ _musicnerdThumbnail: metadata }, artist, '124')).toBeNull();
+    expect(storedInstagramThumbnail({ _musicnerdThumbnail: { ...metadata, url: url.replace('test.supabase.co', 'other.supabase.co') } }, artist, '123')).toBeNull();
 });

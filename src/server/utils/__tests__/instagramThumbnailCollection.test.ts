@@ -1,10 +1,10 @@
 // @ts-nocheck
-jest.mock('@/env', () => ({ ...jest.requireActual('@/env'), APIFY_API_TOKEN: 'test-apify' }));
+jest.mock('@/env', () => ({ ...jest.requireActual('@/env'), APIFY_API_TOKEN: 'test-apify', SUPABASE_URL: 'https://test.supabase.co' }));
 const retain = jest.fn(async rows => rows.map(row => ({ ...row, raw: { ...row.raw, displayUrl: 'https://test.supabase.co/retained.webp', _musicnerdThumbnail: { version: 1 } } })));
 let insideWrite = false;
 let revoked = false;
 const cleanup = jest.fn(async () => {});
-jest.mock('@/server/utils/instagramThumbnail', () => ({ retainInstagramThumbnails: (...args) => retain(...args), removeRevokedInstagramThumbnails: (...args) => cleanup(...args) }));
+jest.mock('@/server/utils/instagramThumbnail', () => ({ ...jest.requireActual('@/server/utils/instagramThumbnail'), retainInstagramThumbnails: (...args) => retain(...args), removeRevokedInstagramThumbnails: (...args) => cleanup(...args) }));
 jest.mock('@/server/utils/queries/ownershipWrites', () => ({
     ...jest.requireActual('@/server/utils/queries/ownershipWrites'),
     withResearchJobWrite: async (_artist, _job, write) => {
@@ -69,4 +69,25 @@ it('does not upload for a job that was revoked before collection started', async
     await expect(collectInstagramScrape('artist-id', 'artist', 'dataset', 'job')).rejects.toThrow('ownership changed');
     expect(retain).not.toHaveBeenCalled();
     revoked = false;
+});
+
+it('reuses stored post thumbnails across refresh jobs while updating captions and retaining new posts', async () => {
+    const artist = '50f23458-df64-4381-8042-7333e8b64531';
+    const metadata = { version: 1, sha256: 'a'.repeat(64), url: `https://test.supabase.co/storage/v1/object/public/vault-files/${artist}/instagram-11111111-1111-4111-8111-111111111111-1-${'a'.repeat(64)}.webp` };
+    db.query.artistSocialPosts.findMany.mockResolvedValue([{ platformPostId: '1', raw: { _musicnerdThumbnail: metadata } }]);
+    const items = [1, 2].map(id => ({ id: String(id), ownerUsername: 'artist', caption: 'Updated caption', url: `https://www.instagram.com/p/p${id}/` }));
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => items }));
+    retain.mockImplementation(async rows => rows);
+    const written = [];
+    db.insert.mockReturnValue({ values: row => {
+        written.push(row);
+        return { onConflictDoUpdate: jest.fn(async () => {}) };
+    } });
+    for (const jobId of ['new-job', 'another-job']) {
+        retain.mockClear();
+        await collectInstagramScrape(artist, 'artist', 'dataset', jobId);
+        expect(retain.mock.calls[0][0].map(row => row.platformPostId)).toEqual(['2']);
+    }
+    expect(written.filter(row => row.platformPostId === '1').every(row => row.raw.displayUrl === metadata.url && row.caption === 'Updated caption')).toBe(true);
+    db.query.artistSocialPosts.findMany.mockResolvedValue([]);
 });

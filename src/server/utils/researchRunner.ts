@@ -118,7 +118,11 @@ async function runIngest(job: ResearchJob, deadline: number): Promise<{ progress
     const runId = typeof job.state?.apifyRunId === "string" ? job.state.apifyRunId : null;
 
     // Nothing to scrape, or nothing to scrape it with.
-    const handle = await instagramHandleFor(job.artistId);
+    const readyDatasetId = typeof job.state?.apifyDatasetId === 'string' ? job.state.apifyDatasetId : null;
+    // A succeeded scrape is immutable. Resume its saved dataset/handle without
+    // paying for another status poll on every thumbnail collection slice.
+    const handle = readyDatasetId && typeof job.state?.instagramHandle === 'string'
+        ? job.state.instagramHandle : await instagramHandleFor(job.artistId);
     if (handle === "error") {
         // A database hiccup is not an artist without an Instagram. Completing
         // here permanently lost both the scrape and the extraction behind it.
@@ -150,7 +154,7 @@ async function runIngest(job: ResearchJob, deadline: number): Promise<{ progress
         return { progress: `scrape started (${started.runId})`, done: false, waiting: true };
     }
 
-    const state = await checkInstagramScrape(runId);
+    const state = readyDatasetId ? { status: 'succeeded' as const, datasetId: readyDatasetId } : await checkInstagramScrape(runId);
     if (state.status === "started" || state.status === "running") {
         await saveJobProgress(job.id, job.cursor, { state: job.state });
         return { progress: "scrape still running", done: false, waiting: true };
@@ -160,10 +164,11 @@ async function runIngest(job: ResearchJob, deadline: number): Promise<{ progress
         return { progress: `scrape failed: ${state.reason}`, done: false };
     }
 
+    const collectionState = { ...job.state, apifyDatasetId: state.datasetId, instagramHandle: handle };
     // Cron can reach this job after spending most of its invocation elsewhere.
     // Collection needs its own download/thumbnail budget, not the last few seconds.
     if (deadline - Date.now() < 45_000) {
-        await saveJobProgress(job.id, job.cursor, { state: job.state });
+        await saveJobProgress(job.id, job.cursor, { state: collectionState });
         return { progress: 'Waiting for a full thumbnail collection budget', done: false, waiting: true };
     }
     const result = await collectInstagramScrape(job.artistId, handle, state.datasetId, job.id, job.cursor);
@@ -171,11 +176,12 @@ async function runIngest(job: ResearchJob, deadline: number): Promise<{ progress
         // The dataset request failed, which is not the same as a feed with
         // nothing in it. Marking this done would record both jobs as
         // successful with no posts and never retry a transient failure.
+        await saveJobState(job.id, collectionState);
         await failResearchJob(job.id, "could not collect the finished scrape");
         return { progress: "collection failed, will retry", done: false };
     }
     if (result.nextCursor !== undefined) {
-        await saveJobProgress(job.id, result.nextCursor, { state: job.state });
+        await saveJobProgress(job.id, result.nextCursor, { state: collectionState });
         return { progress: `Stored posts and thumbnails through ${result.nextCursor}`, done: false, waiting: true };
     }
     await completeResearchJob(job.id);

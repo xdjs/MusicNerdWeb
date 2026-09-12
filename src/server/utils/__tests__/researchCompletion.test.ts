@@ -149,7 +149,7 @@ describe("an extraction job that has read everything", () => {
         const { advanceResearch } = await import('@/server/utils/researchRunner');
         const result = await advanceResearch({ budgetMs: 60_000 });
         expect(ingest.collectInstagramScrape).toHaveBeenCalledWith('artist-1', 'artist', 'dataset-1', 'job-1', 9);
-        expect(saveJobProgress).toHaveBeenCalledWith('job-1', 18, { state: { apifyRunId: 'run-1' } });
+        expect(saveJobProgress).toHaveBeenCalledWith('job-1', 18, { state: { apifyRunId: 'run-1', apifyDatasetId: 'dataset-1', instagramHandle: 'artist' } });
         expect(completeResearchJob).not.toHaveBeenCalled();
         const { enqueueResearchJob } = await import('@/server/utils/queries/researchJobQueries');
         expect(enqueueResearchJob).not.toHaveBeenCalled();
@@ -163,9 +163,35 @@ describe("an extraction job that has read everything", () => {
         const { advanceResearch } = await import('@/server/utils/researchRunner');
         const result = await advanceResearch({ budgetMs: 15_000 });
         expect(ingest.collectInstagramScrape).not.toHaveBeenCalled();
-        expect(saveJobProgress).toHaveBeenCalledWith('job-1', 9, { state: { apifyRunId: 'run-1' } });
+        expect(saveJobProgress).toHaveBeenCalledWith('job-1', 9, { state: { apifyRunId: 'run-1', apifyDatasetId: 'dataset-1', instagramHandle: 'artist' } });
         expect(result.waiting).toBe(true);
         expect(result.done).toBe(false);
+    });
+
+    it('persists a ready dataset after a slow poll and resumes without polling or looking up the handle again', async () => {
+        const clock = jest.spyOn(Date, 'now');
+        let now = 0;
+        clock.mockImplementation(() => now);
+        const ingest = await import('@/server/utils/socialIngest');
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'social_ingest', state: { apifyRunId: 'run-1' } });
+        ingest.checkInstagramScrape.mockImplementationOnce(async () => {
+            now += 10_000;
+            return { status: 'succeeded', datasetId: 'dataset-1' };
+        });
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        expect((await advanceResearch({ budgetMs: 56_000 })).waiting).toBe(true);
+        expect(ingest.collectInstagramScrape).not.toHaveBeenCalled();
+        const saved = saveJobProgress.mock.calls.at(-1)[2].state;
+        expect(saved).toMatchObject({ apifyDatasetId: 'dataset-1', instagramHandle: 'artist' });
+        claimResearchJob.mockResolvedValueOnce({ ...job, kind: 'social_ingest', state: saved });
+        ingest.checkInstagramScrape.mockClear();
+        ingest.instagramHandleFor.mockClear();
+        ingest.collectInstagramScrape.mockResolvedValueOnce({ ingested: 1 });
+        expect((await advanceResearch({ budgetMs: 56_000 })).done).toBe(true);
+        expect(ingest.checkInstagramScrape).not.toHaveBeenCalled();
+        expect(ingest.instagramHandleFor).not.toHaveBeenCalled();
+        expect(ingest.collectInstagramScrape).toHaveBeenCalledWith('artist-1', 'artist', 'dataset-1', 'job-1', 0);
+        clock.mockRestore();
     });
 
     it('threads job identity through credit clearing and appending', async () => {

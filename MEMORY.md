@@ -11,7 +11,8 @@ and checksum-verified before updating image metadata; captions/dates/post URLs a
 Future-ingestion retention, bounded worker collection and regression tests are implemented
 locally in [PR #1239](https://github.com/xdjs/MusicNerdWeb/pull/1239); not yet deployed.
 Review added job-scoped storage paths and compensating cleanup when revocation wins during
-thumbnail retention; race/path-isolation tests cover the fix. Full `npm run ci` passed: 203 suites / 2,409 tests, six skips,
+thumbnail retention; race/path-isolation tests cover the fix. Ready datasets persist across
+slices without re-polling; refreshes reuse existing retained images instead of duplicating them. Full `npm run ci` passed: 203 suites / 2,412 tests, six skips,
 TypeScript, lint, coverage and production build. The actual conflict-update expression
 passed preserve/replace cases as Dev `mnweb` using read-only fixtures. See [thumbnail contract](docs/artist-latest.md#retained-thumbnails-september-12-follow-up).
 No new migration, bucket or policy. Vercel sensitive environment values export as empty;

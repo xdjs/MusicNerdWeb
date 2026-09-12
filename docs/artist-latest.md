@@ -57,9 +57,14 @@ the original CDN URL, capture time, dimensions and SHA-256. Captions, post dates
 Instagram post links remain unchanged. The client query still projects only image fields.
 Scraper-supplied retention metadata is discarded. If retention fails, the post can still ingest;
 the conflict update preserves any previously retained thumbnail. A later ingestion can retry.
+Refreshes reuse validated retained metadata read from existing post rows, including images
+retained by older jobs or the authorized backfill. They do not upload another copy simply
+because a force-refresh has a new job UUID. Replacing an already retained image is a separate
+explicit image-repair operation; captions and other post metadata still refresh normally.
 
 The durable research worker collects nine mapped posts per invocation and records its cursor
-before continuing. Thumbnail I/O finishes before the short ownership-checked database write.
+before continuing. A succeeded dataset ID and its handle are persisted so resumed collection
+skips the status poll and cannot starve behind recurring slow Apify responses. Thumbnail I/O finishes before the short ownership-checked database write.
 It waits for a full collection budget when a cron invocation has too little time remaining.
 No image download, upload or scrape happens on profile reads. Missing/unavailable images retain
 the existing portrait fallback. Retention does not add a new schedule or automatically detect
