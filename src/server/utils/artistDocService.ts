@@ -719,8 +719,10 @@ export async function synthesizeFallbackAbout(artistId: string, artistName: stri
  */
 export type DocRefresh = "rebuilt" | "no-document" | "failed" | "cancelled";
 
-/** Inventory overview only. Source titles are untrusted data, not instructions. */
-export async function generateLoreSummary(artistId: string): Promise<LoreSummary | null> {
+/** Inventory overview only. null clears an empty inventory; undefined preserves
+ * the prior overview after failure. Public reads still require a current source
+ * key. Source titles are untrusted data, not instructions. */
+export async function generateLoreSummary(artistId: string): Promise<LoreSummary | null | undefined> {
     try {
         const sources = await getVaultSourcesByArtistId(artistId, "approved");
         if (!sources.length) return null;
@@ -734,11 +736,11 @@ export async function generateLoreSummary(artistId: string): Promise<LoreSummary
             },
         }), GEMINI_ABOUT_TIMEOUT_MS);
         const text = response.text?.trim();
-        return text && text.length <= 900 ? { text, sourceKey: loreSourceKey(sources) } : null;
+        return text && text.length <= 900 ? { text, sourceKey: loreSourceKey(sources) } : undefined;
     } catch {
         // A missing overview must not prevent publication of the knowledge document.
         console.error("[loreSummary] Summary unavailable", { artistId });
-        return null;
+        return undefined;
     }
 }
 
