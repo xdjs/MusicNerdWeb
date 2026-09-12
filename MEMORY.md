@@ -1,6 +1,6 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Artist profile redesign #1230 — approved locally, preparing staging PR
+## Artist profile redesign #1230 — staging PR under review
 
 September 11: `pete/1230-artist-page-redesign`, isolated checkout
 `/private/tmp/musicnerd-issue-1230/repo`, based on staging `424cfbf0`.
@@ -49,7 +49,14 @@ column privileges/RLS verified, actual app-role query blocked by connection rest
 Production migration and live 390px/desktop checks are still required before release.
 Existing biographies were not regenerated. In Process remains Sweetman's #1228 work.
 The original dirty UI-research checkout and its account-bookmarks work are untouched.
-Implementation PR targets staging and references #1230; no merge/release authorization.
+[PR #1234](https://github.com/xdjs/MusicNerdWeb/pull/1234) targets staging and closes #1230.
+Pete authorized merging after checks/reviews are green, then a staging → main PR and an
+email asking Carl to approve/merge once its checks/reviews are green. Carl owns the main merge.
+Review fixes preserve a visible public Lore empty state after website filtering and readable
+neutral hero actions over a portrait in either theme. Catalog cache misses now share bounded
+per-provider transaction advisory locks across instances and cache results for 24 hours.
+Dev `mnweb` live checks confirmed slot contention, provider independence and release/reuse
+without artist writes or provider requests. Production migrations 0025/0026 remain prerequisites.
 
 
 ## Meeting transcript automation — prepared, not active

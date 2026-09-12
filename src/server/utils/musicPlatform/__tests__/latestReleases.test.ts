@@ -3,6 +3,14 @@ import { jest } from '@jest/globals';
 jest.mock('next/cache', () => ({ unstable_cache: jest.fn((fn) => fn) }));
 jest.mock('axios', () => ({ __esModule: true, default: { get: jest.fn() } }));
 jest.mock('@/server/utils/queries/externalApiQueries', () => ({ getSpotifyHeaders: jest.fn() }));
+jest.mock('../catalogBudget', () => ({
+    withCatalogBudget: jest.fn((_platform: string, operation: (signal: AbortSignal) => Promise<unknown>) => operation(new AbortController().signal)),
+}));
+jest.mock('@/server/db/drizzle', () => ({ db: {
+    transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback({
+        execute: jest.fn(async () => [{ acquired: true }]),
+    })),
+} }));
 
 const spotifyArtistId = '0TnOYISbd1XYRBk9myaseg';
 const spotifyAlbumId = '2up3OPMp9Tb4dAKM2erWXQ';
@@ -30,10 +38,11 @@ async function setup() {
     const axios = (await import('axios')).default;
     const { getSpotifyHeaders } = await import('@/server/utils/queries/externalApiQueries');
     const { getLatestArtistReleases } = await import('../latestReleases');
+    const { withCatalogBudget } = await import('../catalogBudget');
     const axiosGet = jest.mocked(axios.get);
     const headers = jest.mocked(getSpotifyHeaders);
     headers.mockResolvedValue({ headers: { Authorization: 'Bearer test-token' } });
-    return { getLatestArtistReleases, axiosGet, headers };
+    return { getLatestArtistReleases, axiosGet, headers, budget: jest.mocked(withCatalogBudget) };
 }
 
 describe('getLatestArtistReleases', () => {
@@ -166,7 +175,9 @@ describe('getLatestArtistReleases', () => {
     });
 
     it('bounds waiting for Spotify token acquisition', async () => {
-        const { getLatestArtistReleases, headers, axiosGet } = await setup();
+        const { getLatestArtistReleases, headers, axiosGet, budget } = await setup();
+        const actual = jest.requireActual<typeof import('../catalogBudget')>('../catalogBudget');
+        budget.mockImplementationOnce(actual.withCatalogBudget);
         headers.mockImplementationOnce(() => new Promise(() => {}));
         const pending = expect(getLatestArtistReleases({ ...artist, deezer: null }))
             .rejects.toThrow('Artist release providers unavailable');
@@ -174,8 +185,51 @@ describe('getLatestArtistReleases', () => {
         await pending;
         expect(axiosGet).not.toHaveBeenCalled();
     });
-});
 
+    it('does not start a late catalog request after its admission slot expires', async () => {
+        const { getLatestArtistReleases, headers, axiosGet, budget } = await setup();
+        budget.mockImplementationOnce(jest.requireActual<typeof import('../catalogBudget')>('../catalogBudget').withCatalogBudget);
+        let finishHeaders!: (value: Awaited<ReturnType<typeof headers>>) => void;
+        headers.mockImplementationOnce(() => new Promise(resolve => { finishHeaders = resolve; }));
+        const pending = expect(getLatestArtistReleases({ ...artist, deezer: null })).rejects.toThrow('unavailable');
+        await jest.advanceTimersByTimeAsync(5000);
+        await pending;
+        finishHeaders({ headers: { Authorization: 'Bearer test-token' } });
+        await jest.advanceTimersByTimeAsync(0);
+        expect(axiosGet).not.toHaveBeenCalled();
+    });
+
+    it('serves a warm catalog without admission and still admits releases as their date arrives', async () => {
+        const { unstable_cache } = await import('next/cache');
+        jest.mocked(unstable_cache).mockImplementationOnce((fn) => {
+            let cached: Promise<unknown> | undefined;
+            return ((...args: Parameters<typeof fn>) => cached ??= fn(...args)) as typeof fn;
+        });
+        const { getLatestArtistReleases, axiosGet, budget } = await setup();
+        axiosGet.mockResolvedValueOnce({ data: { data: [deezerAlbum(1, '2026-09-07')] } });
+        expect(await getLatestArtistReleases({ ...artist, spotify: null })).toEqual([]);
+        jest.setSystemTime(new Date('2026-09-07T00:00:00Z'));
+        expect(await getLatestArtistReleases({ ...artist, spotify: null })).toMatchObject([{ id: '1' }]);
+        expect(budget).toHaveBeenCalledTimes(1);
+        expect(axiosGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('never contacts providers when the shared budget denies both catalogs', async () => {
+        const { getLatestArtistReleases, headers, axiosGet, budget } = await setup();
+        budget.mockRejectedValueOnce(new Error('capacity')).mockRejectedValueOnce(new Error('capacity'));
+        await expect(getLatestArtistReleases(artist)).rejects.toThrow('Artist release providers unavailable');
+        expect(headers).not.toHaveBeenCalled();
+        expect(axiosGet).not.toHaveBeenCalled();
+    });
+
+    it('preserves an available source when the other provider is at capacity', async () => {
+        const { getLatestArtistReleases, axiosGet, budget } = await setup();
+        budget.mockRejectedValueOnce(new Error('capacity'));
+        axiosGet.mockResolvedValueOnce({ data: { items: [spotifyAlbum()] } });
+        expect((await getLatestArtistReleases(artist))[0]?.platform).toBe('spotify');
+        expect(axiosGet).toHaveBeenCalledTimes(1);
+        expect(axiosGet).toHaveBeenCalledWith(expect.stringContaining('api.spotify.com'), expect.anything());
+    });
 it('combines matching releases from both known artist catalogs and keeps distinct editions separate', async () => {
     const { getLatestArtistReleases, axiosGet } = await setup();
     axiosGet.mockResolvedValueOnce({ data: { data: [deezerAlbum(1, '2024-07-16', { title: 'Unfinished Hugs', record_type: 'single' })] } })
@@ -186,4 +240,5 @@ it('combines matching releases from both known artist catalogs and keeps distinc
     expect(result).toHaveLength(2);
     expect(result.find(release => release.title === 'Unfinished Hugs')?.listeningLinks?.map(link => link.siteName)).toEqual(['deezer', 'spotify']);
     expect(result.find(release => release.title.includes('Deluxe'))?.listeningLinks).toHaveLength(1);
+});
 });

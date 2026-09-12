@@ -3,6 +3,7 @@ import type { ProfileLink } from '@/lib/artistProfileLinks';
 import type { Artist } from '@/server/db/DbTypes';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 import { getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
+import { withCatalogBudget } from './catalogBudget';
 
 export type LatestRelease = {
     id: string;
@@ -96,34 +97,20 @@ function normalize(value: unknown, platform: LatestRelease['platform']): LatestR
     };
 }
 
-async function bounded<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-        return await Promise.race([
-            operation(controller.signal),
-            new Promise<never>((_, reject) => {
-                timer = setTimeout(() => {
-                    controller.abort();
-                    reject(new Error('Release catalog request timed out'));
-                }, REQUEST_TIMEOUT_MS);
-            }),
-        ]);
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
 // Cache the bounded catalog, not the time-sensitive selection, so an upcoming
 // release can become eligible even while its catalog response is cached.
 const getCatalog = cachedOrDirect(async (platform: LatestRelease['platform'], id: string): Promise<LatestRelease[]> => {
-    return bounded(async (signal) => {
+    return withCatalogBudget(platform, async (signal) => {
         const config = { timeout: REQUEST_TIMEOUT_MS, signal };
+        const headers = platform === 'spotify' ? await getSpotifyHeaders() : {};
+        // Token acquisition may finish after the budget's deadline. Never start
+        // a catalog request after its slot has been released.
+        signal.throwIfAborted();
         const response = platform === 'deezer'
             ? await axios.get(`https://api.deezer.com/artist/${id}/albums?limit=${CATALOG_LIMIT}`, config)
             : await axios.get(
                 `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&limit=${CATALOG_LIMIT}&market=US`,
-                { ...await getSpotifyHeaders(), ...config },
+                { ...headers, ...config },
             );
         const data = object(response.data);
         const items = data?.[platform === 'deezer' ? 'data' : 'items'];
@@ -131,7 +118,7 @@ const getCatalog = cachedOrDirect(async (platform: LatestRelease['platform'], id
         return items.slice(0, CATALOG_LIMIT).map((item) => normalize(item, platform))
             .filter((item): item is LatestRelease => item !== null);
     });
-}, ['artist-latest-release-catalog-v1'], { revalidate: 3600 });
+}, ['artist-latest-release-catalog-v2'], { revalidate: 86400 });
 
 /** Known IDs only: never match artists or artwork by name. This is a bounded
  * latest-release preview, not a paginated discography. Empty successful catalogs
