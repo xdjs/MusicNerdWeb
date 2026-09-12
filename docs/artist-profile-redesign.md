@@ -68,8 +68,9 @@ fixed Ask trigger; the tour does not change that trigger to relative positioning
 `generateLoreSummary` runs alongside document synthesis during the existing Lore
 refresh. Only approved titles and media types are sent to Gemini, with instructions
 to describe the collection in two or three short sentences. The UI never generates
-on page reads. No sample board copy is stored. An empty source set, failed generation
-or oversized response produces no overview.
+on page reads. No sample board copy is stored. An empty source set clears the overview.
+Failed or invalid generation preserves an existing overview; it is displayed only while
+its inventory key remains current. Without a prior overview, nothing is displayed.
 
 `artist_docs.lore_summary` stores the text and a key for the approved source IDs,
 titles and types. Persistence uses the existing claim-generation/job fence and

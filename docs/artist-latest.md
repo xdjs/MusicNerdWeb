@@ -71,6 +71,8 @@ skip admission entirely. Time-sensitive release eligibility is still evaluated o
 The preview sorts that bounded response;
 it does **not** promise a complete discography or the newest item beyond those 50 entries.
 Provider year/month date precision is retained; uncertain current-period releases are omitted.
+In the mixed gallery, month/year-only dates are placed at the end of their known period
+as an editorial ordering rule; their labels retain the original precision.
 
 Social/interview reads use the existing Drizzle client and `mnweb` role. Only projected image
 fields, selected text and source URLs reach the client, never the complete scraped payload.

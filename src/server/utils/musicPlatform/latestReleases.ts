@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { ProfileLink } from '@/lib/artistProfileLinks';
+import { latestDateSortTime } from '@/lib/artistLatest';
 import type { Artist } from '@/server/db/DbTypes';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 import { getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';
@@ -127,7 +128,8 @@ export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 's
     const providers: Array<[LatestRelease['platform'], string]> = [];
     if (artist.deezer && /^[1-9]\d*$/.test(artist.deezer)) providers.push(['deezer', artist.deezer]);
     if (artist.spotify && /^[a-zA-Z0-9]{22}$/.test(artist.spotify)) providers.push(['spotify', artist.spotify]);
-    const today = new Date().toISOString().slice(0, 10);
+    const now = Date.now();
+    const today = new Date(now).toISOString().slice(0, 10);
     const results = await Promise.allSettled(providers.map(([platform, id]) => getCatalog(platform, id)));
     if (providers.length && results.every(result => result.status === 'rejected')) {
         throw new AggregateError(results.map(result => result.status === 'rejected' ? result.reason : null), 'Artist release providers unavailable');
@@ -138,7 +140,7 @@ export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 's
     for (const result of results) {
         if (result.status !== 'fulfilled') continue;
         for (const release of result.value) {
-            if (!isReleased(release.releaseDate, today)) continue;
+            if (!isReleased(release.releaseDate, today) || latestDateSortTime(release.releaseDate) > now) continue;
             const key = `${release.title.trim().toLocaleLowerCase('en-US')}|${release.releaseDate}|${release.kind}`;
             const link: ProfileLink = {
                 siteName: release.platform, href: release.url,
@@ -152,6 +154,6 @@ export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 's
         }
     }
     return [...groups.values()]
-        .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate) || a.id.localeCompare(b.id))
+        .sort((a, b) => latestDateSortTime(b.releaseDate) - latestDateSortTime(a.releaseDate) || a.id.localeCompare(b.id))
         .slice(0, 3);
 }
