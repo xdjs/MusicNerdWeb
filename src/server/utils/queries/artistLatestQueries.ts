@@ -1,7 +1,7 @@
-import { and, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, or, sql } from 'drizzle-orm';
 import type { Artist } from '@/server/db/DbTypes';
 import { db } from '@/server/db/drizzle';
-import { artistInterviewAnswers, artistSocialPosts } from '@/server/db/schema';
+import { artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts } from '@/server/db/schema';
 import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
 import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
 import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artistLatest';
@@ -29,7 +29,18 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
             question: artistInterviewAnswers.question, answer: artistInterviewAnswers.answer,
             createdAt: artistInterviewAnswers.createdAt,
         }).from(artistInterviewAnswers).where(and(
-            eq(artistInterviewAnswers.artistId, artist.id), ne(artistInterviewAnswers.source, 'offered'),
+            eq(artistInterviewAnswers.artistId, artist.id),
+            // Follow-ups publish on Send. Onboarding answers stay private until
+            // the artist confirms Publish; evaluate both in the same DB snapshot.
+            or(
+                eq(artistInterviewAnswers.source, 'followup'),
+                and(
+                    eq(artistInterviewAnswers.source, 'onboarding'),
+                    sql`EXISTS (SELECT 1 FROM ${artistOnboardingSteps}
+                        WHERE ${artistOnboardingSteps.artistId} = ${artistInterviewAnswers.artistId}
+                        AND ${artistOnboardingSteps.step} = 'publish')`,
+                ),
+            ),
             isNotNull(artistInterviewAnswers.answer), sql`length(trim(${artistInterviewAnswers.answer})) > 0`,
         )).orderBy(desc(artistInterviewAnswers.createdAt)).limit(6),
         getLatestArtistReleases(artist),

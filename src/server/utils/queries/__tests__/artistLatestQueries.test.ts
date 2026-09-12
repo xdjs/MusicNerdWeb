@@ -46,6 +46,17 @@ it('retains releases when the DB is unavailable and reports partial failure', as
     error.mockRestore();
 });
 
+it('keeps public posts and releases when interview publication cannot be read', async () => {
+    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([post]) as never)
+        .mockImplementationOnce(() => selectResult([], true) as never);
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await getArtistLatest(artist);
+    expect(result.unavailable).toBe(true);
+    expect(result.items.map(item => item.kind)).toEqual(['release', 'instagram']);
+    expect(sourceUrlsForQuestionKeys).not.toHaveBeenCalled();
+    error.mockRestore();
+});
+
 it('does not fabricate sources, keep skipped answers, or expose off-platform post links', async () => {
     jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([{ ...post, url: 'https://example.com/not-instagram' }]) as never)
         .mockImplementationOnce(() => selectResult([{ ...answer, answer: ' ' }, { ...answer, id: 'static', questionKey: 'sound_in_own_words' }]) as never);
