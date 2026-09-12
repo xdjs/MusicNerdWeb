@@ -5,8 +5,8 @@
 September 11: Pete supplied a mobile reference and circular pink Music Nerd logo
 for `pete/homepage-design-system`. Isolated worktree:
 `/private/tmp/musicnerd-homepage-design-system`; preview `http://127.0.0.1:3020`.
-The latest iteration uses a pale background, centered logo, stacked manifesto and
-search below the copy. Existing activity, add and login remain. Pete requested
+The latest iteration uses a pale background, lettered pink logo (centered above the manifesto on all screens,
+replacing the separate pink text wordmark), stacked manifesto and search with an adjacent plus button. Existing activity, add and login remain. Pete requested
 removing all assistant-added copy; only existing homepage wording is used.
 Homepage/activity/search suites (29 tests), TypeScript and lint passed (existing
 non-home nav image warning). Full release CI and real auth remain unverified.

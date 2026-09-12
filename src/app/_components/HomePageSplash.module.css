@@ -6,58 +6,65 @@
 .homeNav {
     position: relative;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
-    max-width: 1000px;
+    height: 0;
+    z-index: 20;
     margin: 0 auto;
-    padding: 32px 16px 0;
+    padding: 0;
 }
 
-.logo { width: 96px; height: 96px; }
+.logo { display: block; width: 96px; height: 96px; margin: 0 auto; }
 .actions {
     position: absolute;
-    right: 20px;
-    top: 32px;
+    right: 24px;
+    top: 24px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.actions button { width: 44px; height: 44px; padding: 0; }
-.homeNav a:focus-visible { outline: 2px solid #9b83a0; outline-offset: 6px; border-radius: 50%; }
+.actions button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: #77657c;
+    background: transparent;
+    border: 1px solid rgba(155, 131, 160, 0.45);
+    border-radius: 50%;
+    box-shadow: none;
+}
+.actions button svg { stroke: currentColor; }
+.actions button:hover { background: rgba(155, 131, 160, 0.12); }
+:global(.dark) .actions button { color: #c6bfc7; }
 
 .home {
-    --home-ink: #9b83a0;
+    --home-ink: #422b46;
     --home-muted: #77657c;
     --home-accent: #422b46;
     width: 100%;
-    padding: 42px 20px 32px;
+    padding: 24px 20px 32px;
 }
 
 .content { width: 100%; max-width: 800px; margin: 0 auto; }
-.header { text-align: center; }
-.wordmark {
-    font-size: clamp(34px, 4.5vw, 46px);
-    font-weight: 700;
-    letter-spacing: -1.6px;
-    line-height: 1.12;
-}
+.header { text-align: center; margin-bottom: 32px; }
 
 .manifesto { text-align: center; }
 .lines {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 10px;
     color: var(--home-ink);
-    font-size: clamp(28px, 4vw, 40px);
+    font-size: clamp(26px, 3.2vw, 34px);
     font-weight: 700;
-    line-height: 1.16;
-    letter-spacing: -1.2px;
+    line-height: 1.22;
+    letter-spacing: -0.9px;
     text-wrap: balance;
 }
 
-.keyword { font-weight: inherit; }
-.discovery { width: 100%; max-width: 520px; margin: 64px auto 0; }
+.keyword { font-weight: inherit; color: #b43b85; }
+:global(.dark) .keyword { color: #ff9ce3; }
+.discovery { width: 100%; max-width: 580px; margin: 36px auto 0; }
 .invitation {
     margin: 0 auto 16px;
     color: var(--home-muted);
@@ -68,40 +75,70 @@
     text-wrap: balance;
 }
 
-.search { position: relative; z-index: 10; min-height: 48px; }
+.searchRow { display: flex; align-items: center; gap: 10px; }
+.searchRow > button {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    flex-shrink: 0;
+    color: #087f99;
+    background: transparent;
+    border: 1px solid rgba(8, 127, 153, 0.55);
+    border-radius: 10px;
+    box-shadow: none;
+}
+.searchRow > button svg { stroke: #087f99; }
+.searchRow > button:hover { background: rgba(42, 212, 252, 0.08); }
+:global(.dark) .searchRow > button { color: #2ad4fc; border-color: rgba(42, 212, 252, 0.4); }
+:global(.dark) .searchRow > button svg { stroke: #2ad4fc; }
+.search { position: relative; z-index: 10; min-height: 56px; min-width: 0; flex: 1; }
 .search > div { max-width: none; }
 .search input {
-    height: 48px;
+    height: 56px;
+    font-size: 17px;
     border: 2px solid #ff9ce3;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.8);
     box-shadow: 0 0 10px rgba(255, 156, 227, 0.2);
 }
 
-.activity { max-width: 520px; margin: 24px auto 0; }
-.activity :global(.feed-root) {
+.activity {
+    max-width: 580px;
+    margin: 28px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid rgba(155, 131, 160, 0.22);
+}
+.home .activity :global(.feed-root) {
     padding: 0;
     --feed-artist: var(--home-accent);
     --feed-empty: var(--home-muted);
+    --feed-timestamp: var(--home-muted);
 }
+.activity :global(.animate-ping) { display: none; }
+.activity :global(.feed-root) a > span:first-child { opacity: 0.55; }
+.activity :global(.feed-root) li + li { margin-top: 4px; }
 .activity :global(.feed-root) a:focus-visible {
     outline: 2px solid var(--home-accent);
     outline-offset: 3px;
 }
 
 :global(.dark) .home {
-    --home-ink: #b6a1bb;
+    --home-ink: #ffffff;
     --home-muted: #c6bfc7;
     --home-accent: #ff9ce3;
 }
 :global(.dark) .search input { background: #242024; }
 
-@media (max-width: 480px) {
-    .homeNav { padding-top: 24px; }
+@media (max-width: 767px) {
+    :global(body):has(.home) > :global(main) { flex-grow: 0; }
+    :global(body):has(.home) > :global(footer) { margin-top: 20px; padding-bottom: 28px; }
     .logo { width: 80px; height: 80px; }
     .actions { right: 12px; top: 24px; gap: 6px; }
-    .home { padding: 40px 16px 24px; }
-    .discovery { margin-top: 48px; }
+    .home { padding: 32px 16px 24px; }
+}
+
+@media (max-width: 480px) {
+    .discovery { margin-top: 32px; }
     .invitation { font-size: 15px; }
 }
 

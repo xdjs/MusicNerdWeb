@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { LogIn } from 'lucide-react';
+import { LogIn, UserRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import { LegacyAccountModal } from './LegacyAccountModal';
@@ -19,6 +19,7 @@ import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
 
 interface PrivyLoginProps {
   buttonStyles?: string;
+  triggerIcon?: 'login' | 'account';
 }
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -29,7 +30,7 @@ const maxRetries = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_MAX_RETRIES || '
 const retryDelay = parseInt(process.env.NEXT_PUBLIC_PRIVY_TOKEN_RETRY_DELAY_MS || '500', 10);
 
 const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
-  ({ buttonStyles = '' }, ref) => {
+  ({ buttonStyles = '', triggerIcon = 'login' }, ref) => {
     const { ready, authenticated, user: privyUser, getAccessToken } = usePrivy();
     const { identityToken } = useIdentityToken();
     const { data: session, status } = useSession();
@@ -372,12 +373,13 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             <Button
               ref={ref}
               id="login-btn"
+              aria-label={triggerIcon === 'account' ? 'Account menu' : 'Log in'}
               size="lg"
               type="button"
               className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
               onClick={handleLogin}
             >
-              <LogIn color="white" size={20} />
+              {triggerIcon === 'account' ? <UserRound color="white" size={20} /> : <LogIn color="white" size={20} />}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-32">

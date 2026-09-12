@@ -1,7 +1,9 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import ActivityFeed from "@/app/_components/ActivityFeed";
 import styles from "@/app/_components/HomePageSplash.module.css";
 import SearchBar from "@/app/_components/nav/components/SearchBar";
+import AddArtist from "@/app/_components/nav/components/AddArtist";
 
 const MANIFESTO = [
     { before: "we listen with ", keyword: "intent" },
@@ -15,8 +17,15 @@ export default function HomePageSplash() {
         <div className={styles.home}>
             <div className={styles.content}>
                 <header className={styles.header}>
-                    <h1 className={styles.wordmark} style={{ color: "#ff9ce3" }}>
-                        music nerd
+                    <h1>
+                        <Image
+                            src="/music-nerd-logo-pink.png"
+                            alt="music nerd"
+                            width={96}
+                            height={96}
+                            priority
+                            className={styles.logo}
+                        />
                     </h1>
                 </header>
 
@@ -36,10 +45,13 @@ export default function HomePageSplash() {
                     <p className={styles.invitation}>
                         buy the music. follow the process. help make what comes next possible.
                     </p>
-                    <div className={styles.search}>
-                        <Suspense>
-                            <SearchBar />
-                        </Suspense>
+                    <div className={styles.searchRow}>
+                        <div className={styles.search}>
+                            <Suspense>
+                                <SearchBar />
+                            </Suspense>
+                        </div>
+                        <AddArtist />
                     </div>
                 </div>
 

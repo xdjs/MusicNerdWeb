@@ -18,13 +18,6 @@ type ActivityEvent = {
 const MAX_ITEMS = 4;
 const POLL_INTERVAL = 30_000;
 
-// Rows fade down the list: with n rows, row i sits at 1 - (i / (n-1)) * 0.55.
-// 4 rows → 1, 0.82, 0.63, 0.45.
-function rowOpacity(i: number, n: number): number {
-    if (n <= 1) return 1;
-    return Math.round((1 - (i / (n - 1)) * 0.55) * 100) / 100;
-}
-
 // --- Helpers --------------------------------------------------------------
 
 function relativeTime(iso: string): string {
@@ -151,8 +144,7 @@ export default function ActivityFeed() {
         }
     }, []);
 
-    // Initial load. The endpoint returns more than we show, so cap here as well as on the poll
-    // path — the row count drives the opacity ramp, so an uncapped list also flattens the fade.
+    // Keep the same four-item limit on initial load and subsequent polls.
     useEffect(() => {
         fetchEvents().then((data) => {
             if (!data?.length) return;
@@ -231,7 +223,6 @@ export default function ActivityFeed() {
                                 const key = eventKey(e);
                                 const isFresh = freshIds.has(key);
                                 const shouldAnimate = initialLoad || isFresh;
-                                const opacity = rowOpacity(i, events.length);
 
                                 return (
                                     <li
@@ -241,7 +232,7 @@ export default function ActivityFeed() {
                                             ...(shouldAnimate && initialLoad
                                                 ? { animationDelay: `${i * 30}ms` }
                                                 : {}),
-                                            opacity,
+                                            opacity: 1,
                                         }}
                                     >
                                         <Link
@@ -270,7 +261,7 @@ export default function ActivityFeed() {
                                                     color: isFresh
                                                         ? 'var(--feed-fresh-time)'
                                                         : 'var(--feed-timestamp)',
-                                                    opacity: isFresh ? 1 : 0.7,
+                                                    opacity: 1,
                                                 }}
                                             >
                                                 {relativeTime(e.createdAt)}

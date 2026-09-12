@@ -5,7 +5,6 @@ import SearchBar from "./components/SearchBar"
 import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
 import { Suspense } from "react";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import homeStyles from "@/app/_components/HomePageSplash.module.css";
 
@@ -15,19 +14,8 @@ export default function NavContent() {
     if (pathname === "/") {
         return (
             <nav className={homeStyles.homeNav}>
-                <Link href="/" aria-label="Music Nerd">
-                    <Image
-                        src="/music-nerd-logo-pink.png"
-                        alt="Music Nerd"
-                        width={96}
-                        height={96}
-                        priority
-                        className={homeStyles.logo}
-                    />
-                </Link>
                 <div className={homeStyles.actions}>
-                    <AddArtist />
-                    <Login buttonStyles="" />
+                    <Login buttonStyles="" triggerIcon="account" />
                 </div>
             </nav>
         );

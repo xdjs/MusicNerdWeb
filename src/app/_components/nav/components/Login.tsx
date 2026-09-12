@@ -6,6 +6,7 @@ import PrivyLogin from './PrivyLogin';
 
 interface LoginProps {
     buttonStyles?: string;
+    triggerIcon?: 'login' | 'account';
 }
 
 // Check if Privy is configured
@@ -43,7 +44,7 @@ const Login = forwardRef<HTMLButtonElement, LoginProps>((props, ref): React.Reac
     }
 
     // Use Privy-based login (email-first authentication)
-    return <PrivyLogin buttonStyles={props.buttonStyles} ref={ref} />;
+    return <PrivyLogin buttonStyles={props.buttonStyles} triggerIcon={props.triggerIcon} ref={ref} />;
 });
 
 Login.displayName = 'Login';

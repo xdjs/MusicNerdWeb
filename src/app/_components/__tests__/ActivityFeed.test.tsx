@@ -146,7 +146,7 @@ describe("ActivityFeed", () => {
         expect(screen.queryByText("Artist 8")).toBeNull();
     });
 
-    it("fades rows down the list: 1, 0.82, 0.63, 0.45", async () => {
+    it("keeps all four rows at full opacity for legibility", async () => {
         const four = Array.from({ length: 4 }, (_, i) => ({
             type: "artist_added",
             artistId: `id${i}`,
@@ -167,10 +167,10 @@ describe("ActivityFeed", () => {
         });
 
         const rows = [...screen.getByRole("list").querySelectorAll("li")];
-        expect(rows.map((r) => r.style.opacity)).toEqual(["1", "0.82", "0.63", "0.45"]);
+        expect(rows.map((r) => r.style.opacity)).toEqual(["1", "1", "1", "1"]);
     });
 
-    it("does not divide by zero when only one row is returned", async () => {
+    it("keeps a single activity row fully visible", async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({
             ok: true,
             json: async () => [mockEvents[0]],

@@ -84,6 +84,7 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 
 jest.mock('lucide-react', () => ({
   LogIn: () => <svg data-testid="login-icon" />,
+  UserRound: () => <svg data-testid="account-icon" />,
 }));
 
 jest.mock('next/link', () => {
