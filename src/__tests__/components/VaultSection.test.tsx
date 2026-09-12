@@ -19,10 +19,11 @@ function renderCtx(value: { isEditing: boolean; canEdit: boolean }, props: any) 
 }
 
 describe('VaultSection visibility', () => {
-  it('hides entirely for an idle editor with no approved sources', () => {
-    const { container } = renderCtx({ isEditing: false, canEdit: true }, { approvedSources: [] });
-    expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByText('Lore')).not.toBeInTheDocument();
+  it('keeps the Lore destination visible for an idle editor with no approved sources', () => {
+    renderCtx({ isEditing: false, canEdit: true }, { approvedSources: [] });
+    expect(screen.getByRole('heading', { name: 'Lore' })).toBeVisible();
+    expect(screen.getByText(/No published sources yet/)).toBeVisible();
+    expect(screen.queryByTestId('vault-manager')).not.toBeInTheDocument();
   });
 
   it('shows for a public viewer when approved sources exist', () => {
@@ -37,8 +38,11 @@ describe('VaultSection visibility', () => {
     expect(screen.getByTestId('vault-manager')).toBeInTheDocument();
   });
 
-  it('hides for a public viewer with no approved sources', () => {
-    const { container } = renderCtx({ isEditing: false, canEdit: false }, { approvedSources: [] });
-    expect(container).toBeEmptyDOMElement();
+  it('gives public viewers an empty Lore state without exposing editor controls', () => {
+    renderCtx({ isEditing: false, canEdit: false }, { approvedSources: [] });
+    expect(screen.getByRole('heading', { name: 'Lore' })).toBeVisible();
+    expect(screen.getByText(/No published sources yet/)).toBeVisible();
+    expect(screen.queryByTestId('press')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('vault-manager')).not.toBeInTheDocument();
   });
 });
