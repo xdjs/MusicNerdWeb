@@ -1,5 +1,27 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Homepage reference redesign — staging review
+
+Pete requested a desktop/mobile preview from the supplied September 12 homepage mockups,
+keeping the current right-hand login control. Branch `pete/homepage-manifesto` is based on
+staging `82fb157`; isolated checkout `/private/tmp/musicnerd-issue-1230/repo` serves
+`https://localhost:3000` against the verified Dev database. Original dirty checkout is untouched.
+The centered manifesto highlights listen/follow/care/act, places search/Add Artist under the
+invitation, and retains the live activity feed. Homepage-only light/dark styles and the supplied
+Music Nerd parental-advisory logo match the reference arrangement (stamp centered above credits on mobile).
+Light-mode colors are sampled from the supplied PNG: background #F5F4F5, headline #BFBFBF,
+highlights #FF75D8, supporting copy #787878, search border #FF9BE3 and surface #FDFDFD.
+Search icon/placeholder, add control, divider and activity colors also use sampled values.
+Desktop type and spacing now scale with viewport height so the footer fits the composition
+at common laptop sizes; smaller windows retain normal scrolling. On mobile, the + now sits inside the search field; successful empty searches explain how to add
+an artist through the existing Add Artist flow. Login behavior is unchanged; search/Add Artist reuse existing components. No API, database or
+worker changes. Pete approved the local design and authorized a staging PR, merge after Codex
+review/checks clear, then a staging-to-main PR. Main merge remains a separate release decision.
+Full `npm run ci` passes: TypeScript, lint (existing warnings), 203 suites / 2,413 tests passed,
+six existing skips, coverage and production build. Local homepage
+returns HTTP 200 with one labeled search input and the new content. Browser control reported no
+available browser, so responsive visual checks and interaction verification remain unconfirmed.
+
 ## Instagram thumbnails — data refresh live, ingestion follow-up under development
 
 September 12: `pete/instagram-retained-thumbnails`, isolated checkout

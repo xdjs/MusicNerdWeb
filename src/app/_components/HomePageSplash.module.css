@@ -1,0 +1,207 @@
+/* Homepage-only tokens. Preserve the global profile palette and login control. */
+.home {
+    --home-accent: #ff9be3;
+    --home-highlight: #ff75d8;
+    --home-hero: #bfbfbf;
+    --home-copy: #787878;
+    --home-line: #e0dbe2;
+    --home-surface: #fdfdfd;
+    --home-blue: #087f99;
+    --home-blue-border: #81b4c2;
+    --home-placeholder: #63748a;
+    --home-search-icon: #9da2ae;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 20px 36px;
+}
+:global(body):has(.home) { background: #f5f4f5; }
+:global(.dark) .home {
+    --home-accent: #ff9ce3;
+    --home-hero: #a9a5ac;
+    --home-copy: #bfb9c3;
+    --home-line: #38343c;
+    --home-surface: #211f24;
+    --home-blue: #2ad4fc;
+    --home-blue-border: color-mix(in srgb, #2ad4fc 55%, transparent);
+    --home-placeholder: #bfb9c3;
+    --home-search-icon: #9ca3af;
+}
+:global(.dark body):has(.home) { background: #1a1a1a; }
+.homeNav {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1120px;
+    padding: 24px 20px 12px;
+    margin: 0 auto;
+}
+.homeNavLogo { width: 56px; height: 56px; }
+.manifesto {
+    text-align: center;
+    color: var(--home-hero);
+    font-size: clamp(21px, 5.75vw, 38px);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1.22;
+}
+.manifesto p { margin: 0; }
+.manifesto span { color: var(--home-highlight); }
+.title { margin-top: 30px; font: inherit; letter-spacing: inherit; }
+.discovery { max-width: 640px; margin: 28px auto 0; }
+.invitation {
+    color: var(--home-copy);
+    text-align: center;
+    font-size: clamp(16px, 3.6vw, 22px);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.035em;
+    margin-bottom: 18px;
+}
+.searchRow { display: flex; align-items: center; gap: 10px; }
+.searchRoot { position: relative; width: 100%; min-width: 0; }
+.searchRoot .searchInput {
+    height: 52px;
+    padding-left: 42px;
+    border: 1.5px solid var(--home-accent);
+    border-radius: 11px;
+    background: var(--home-surface);
+    color: var(--home-copy);
+    box-shadow: 0 2px 8px rgb(66 43 70 / 3%);
+}
+.searchRoot .searchInput::placeholder { color: var(--home-placeholder); opacity: 1; }
+.searchRoot > div > svg { color: var(--home-search-icon); }
+.searchRoot .searchInput:focus-visible {
+    outline: 2px solid var(--home-accent);
+    outline-offset: 3px;
+}
+.searchRow > button {
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--home-blue-border);
+    border-radius: 11px;
+    background: transparent;
+    color: var(--home-blue);
+}
+.searchRow > button:hover { background: color-mix(in srgb, var(--home-blue) 8%, transparent); }
+.searchRow > button svg { stroke: var(--home-blue); width: 23px; height: 23px; }
+.searchSkeleton { height: 52px; flex: 1; border-radius: 11px; background: var(--home-surface); }
+.activity { margin-top: 24px; border-top: 1px solid var(--home-line); }
+.activity :global(.feed-root) {
+    --feed-body: #5a4e5e;
+    --feed-artist: #422b47;
+    --feed-timestamp: #76647d;
+    --feed-live-dot: #079669;
+    --feed-live-label: #99909b;
+    --feed-bar-ugc: #dc98bc;
+    --feed-bar-new: #86c1a8;
+    padding: 22px 0 0;
+}
+:global(.dark) .activity :global(.feed-root) {
+    --feed-body: #c6bfc7;
+    --feed-artist: #e5dbe8;
+    --feed-timestamp: #b4a5bc;
+    --feed-live-dot: #19ffb8;
+    --feed-live-label: rgba(198, 191, 199, 0.6);
+    --feed-bar-ugc: #ff9ce3;
+    --feed-bar-new: #19ffb8;
+}
+.activity :global(.feed-text) { white-space: normal; overflow: visible; line-height: 1.5; }
+.activity a { padding: 9px 0; align-items: center; }
+:global(.dark) .activity a > span:first-child { opacity: .55; }
+.homeFooter {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 1120px;
+    padding: 16px 20px 24px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 16px;
+}
+.footerCredit { color: #787878; font-size: 14px; font-weight: 700; text-align: center; letter-spacing: -.035em; }
+.footerCredit a { text-underline-offset: 3px; }
+:global(.dark) .footerCredit { color: #bfb9c3; }
+.stamp { display: block; width: 88px; height: auto; }
+.searchEmpty {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 10px);
+    width: 100%;
+    display: grid;
+    gap: 4px;
+    border: 1px solid var(--home-line);
+    border-radius: 12px;
+    padding: 16px;
+    background: var(--home-surface);
+    color: var(--home-copy);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+    font-size: 14px;
+    line-height: 1.5;
+}
+@media (max-width: 767px) {
+    .searchRow {
+        gap: 0;
+        padding: 3px;
+        border: 1.5px solid var(--home-accent);
+        border-radius: 12px;
+        background: var(--home-surface);
+    }
+    .searchRow:focus-within {
+        outline: 2px solid var(--home-accent);
+        outline-offset: 3px;
+    }
+    .searchRow .searchInput {
+        height: 44px;
+        border: 0;
+        border-radius: 8px 0 0 8px;
+        background: transparent;
+        box-shadow: none;
+    }
+    .searchRow .searchRoot .searchInput:focus-visible { outline: none; }
+    .searchRow > button {
+        width: 44px;
+        height: 44px;
+        padding: 10px;
+        border: 0;
+        border-left: 1px solid var(--home-line);
+        border-radius: 0 8px 8px 0;
+    }
+    .searchEmpty { width: calc(100% + 44px); }
+}
+/* Scale the desktop composition with available height as well as width.
+   Keep the footer in normal flow so short windows/zoom can still scroll. */
+@media (min-width: 768px) {
+    .homeNav { padding: clamp(12px, 2dvh, 24px) 28px 12px; }
+    .homeNavLogo { width: clamp(56px, 8dvh, 80px); height: auto; }
+    .home {
+        padding-top: 0;
+        margin-top: -36px;
+        padding-bottom: clamp(12px, 2dvh, 24px);
+    }
+    .manifesto { font-size: clamp(28px, min(3vw, 5dvh), 42px); line-height: 1.14; }
+    .title { margin-top: clamp(20px, 3.5dvh, 36px); }
+    .discovery { max-width: 580px; margin-top: clamp(20px, 3.5dvh, 36px); }
+    .invitation { font-size: clamp(18px, 2.6dvh, 22px); margin-bottom: clamp(12px, 1.8dvh, 18px); }
+    .searchRoot .searchInput, .searchRow > button, .searchSkeleton { height: clamp(48px, 6.7dvh, 56px); }
+    .searchRow > button { width: clamp(48px, 6.7dvh, 56px); }
+    .searchRow { gap: 12px; }
+    .activity { margin-top: clamp(18px, 2.8dvh, 28px); }
+    .activity :global(.feed-root) { padding-top: clamp(12px, 2dvh, 20px); }
+    .activity a { padding-top: 6px; padding-bottom: 6px; }
+    .homeFooter {
+        position: relative;
+        flex-shrink: 0;
+        min-height: clamp(80px, 11dvh, 104px);
+        justify-content: flex-end;
+        padding: 16px 140px;
+    }
+    .footerCredit { font-size: clamp(16px, 2.4dvh, 20px); }
+    .stamp { position: absolute; bottom: 16px; right: 28px; width: clamp(88px, 12dvh, 112px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .activity :global(.animate-ping), .activity :global(.animate-fadeSlideIn) { animation: none; }
+}

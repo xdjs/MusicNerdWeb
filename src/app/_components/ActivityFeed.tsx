@@ -129,7 +129,7 @@ const typeBarVar: Record<ActivityEvent["type"], string> = {
 
 // --- Component ------------------------------------------------------------
 
-export default function ActivityFeed() {
+export default function ActivityFeed({ fadeRows = true }: { fadeRows?: boolean }) {
     const [events, setEvents] = useState<ActivityEvent[]>([]);
     const [, setTick] = useState(0);
     const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
@@ -231,7 +231,7 @@ export default function ActivityFeed() {
                                 const key = eventKey(e);
                                 const isFresh = freshIds.has(key);
                                 const shouldAnimate = initialLoad || isFresh;
-                                const opacity = rowOpacity(i, events.length);
+                                const opacity = fadeRows ? rowOpacity(i, events.length) : 1;
 
                                 return (
                                     <li
@@ -270,7 +270,7 @@ export default function ActivityFeed() {
                                                     color: isFresh
                                                         ? 'var(--feed-fresh-time)'
                                                         : 'var(--feed-timestamp)',
-                                                    opacity: isFresh ? 1 : 0.7,
+                                                    opacity: isFresh || !fadeRows ? 1 : 0.7,
                                                 }}
                                             >
                                                 {relativeTime(e.createdAt)}
