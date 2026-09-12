@@ -1,0 +1,115 @@
+/* Compose the primitives documented in .design-sync/conventions.md locally. */
+.home {
+    --home-ink: #422b46;
+    --home-muted: #5a4d5e;
+    --home-accent: #422b46;
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    padding: 20px 16px 48px;
+}
+
+.home::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 32px 0 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at 25% 34%, rgba(239, 149, 255, 0.25), transparent 55%),
+        radial-gradient(ellipse at 80% 55%, rgba(42, 212, 252, 0.17), transparent 50%);
+    mask-image: linear-gradient(transparent, black 18%, black 75%, transparent);
+}
+
+.content { width: 100%; max-width: 800px; margin: 0 auto; }
+.header { padding: 8px 0 32px; text-align: center; }
+
+.wordmark {
+    font-size: clamp(48px, 7vw, 84px);
+    font-weight: 700;
+    letter-spacing: clamp(-4px, -0.3vw, -1px);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(255, 156, 227, 0.25);
+}
+
+.intro {
+    margin-top: 16px;
+    color: var(--home-muted);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.manifesto {
+    padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 40px);
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(66, 43, 70, 0.035);
+}
+
+.lines {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--home-ink);
+    font-size: clamp(24px, 3.5vw, 32px);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.7px;
+    text-wrap: balance;
+}
+
+/* Keep text dark on light glass; identity pink has enough contrast in dark mode. */
+.keyword {
+    color: var(--home-accent);
+    font-weight: 750;
+}
+
+.invitation {
+    margin: 28px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid rgba(66, 43, 70, 0.1);
+    max-width: 480px;
+    color: var(--home-muted);
+    font-size: 15px;
+    line-height: 1.8;
+    text-wrap: balance;
+}
+
+.activity { margin-top: 24px; padding: 24px; }
+.activityHeading {
+    color: var(--home-ink);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+}
+
+.activity :global(.feed-root) {
+    padding: 16px 0 0;
+    --feed-artist: var(--home-accent);
+    --feed-empty: var(--home-muted);
+}
+
+.activity :global(.feed-root) a:focus-visible {
+    outline: 2px solid var(--home-accent);
+    outline-offset: 3px;
+}
+
+:global(.dark) .home {
+    --home-ink: #f4edf5;
+    --home-muted: #c6bfc7;
+    --home-accent: #ff9ce3;
+}
+
+:global(.dark) .invitation { border-color: rgba(239, 149, 255, 0.16); }
+
+@media (max-width: 480px) {
+    .home { padding-top: 16px; }
+    .header { padding-bottom: 24px; }
+    .intro { max-width: 240px; margin-inline: auto; }
+    .activity { padding: 20px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home :global(.animate-ping),
+    .home :global(.animate-fadeSlideIn) { animation: none; }
+    .home a, .home a span { transition: none; }
+}
