@@ -4,6 +4,8 @@ import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from '@/env';
 import { VAULT_BUCKET } from '@/server/lib/supabase';
 
 const MAX_BYTES = 8 * 1024 * 1024;
+export type ThumbnailUploadScope = { jobId: string; attemptedPaths: Set<string> };
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Only Instagram's media hosts, never arbitrary URLs from scraped metadata.
@@ -40,12 +42,12 @@ async function readImage(response: Response): Promise<Buffer> {
  * URL stays in retention metadata; post URLs/captions are never altered.
  * A failed attempt returns the original payload; upsert preserves an older
  * retained thumbnail rather than replacing it with another expiring URL. */
-export async function retainInstagramThumbnail(raw: unknown, artistId: string, postId: string): Promise<unknown> {
+export async function retainInstagramThumbnail(raw: unknown, artistId: string, postId: string, scope?: ThumbnailUploadScope): Promise<unknown> {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
     const post = { ...raw } as Record<string, unknown>;
     // Never trust a scraper-provided value as evidence of a successful upload.
     delete post._musicnerdThumbnail;
-    if (!UUID.test(artistId) || !/^\d+$/.test(postId) || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return post;
+    if (!UUID.test(artistId) || (scope && !UUID.test(scope.jobId)) || !/^\d+$/.test(postId) || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return post;
     const candidates = [...new Set([post.displayUrl, post.thumbnailSrc, ...(Array.isArray(post.images) ? post.images : [])]
         .map(instagramMediaUrl).filter((url): url is string => url !== null))].slice(0, 3);
     const signal = AbortSignal.timeout(9000);
@@ -62,7 +64,11 @@ export async function retainInstagramThumbnail(raw: unknown, artistId: string, p
             const hash = createHash('sha256').update(data).digest('hex');
             // Flat artist folder is included in the existing claim-revocation
             // storage purge. Content-addressed names make retries immutable.
-            const path = `${artistId}/instagram-${postId}-${hash}.webp`;
+            // Job scope prevents revocation cleanup from deleting another job's
+            // identical thumbnail (including a newly approved claimant's job).
+            const path = `${artistId}/instagram-${scope ? `${scope.jobId}-` : ''}${postId}-${hash}.webp`;
+            // Track before POST: a failed response can still mean it was stored.
+            scope?.attemptedPaths.add(path);
             const objectUrl = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${VAULT_BUCKET}/${path}`;
             const upload = await fetch(objectUrl, {
                 method: 'POST', redirect: 'error', signal,
@@ -87,7 +93,7 @@ export async function retainInstagramThumbnail(raw: unknown, artistId: string, p
 }
 
 /** Three downloads at once, outside database ownership transactions. */
-export async function retainInstagramThumbnails<T extends { artistId: string; platformPostId: string; isOwnPost: boolean; raw: unknown }>(rows: T[]): Promise<T[]> {
+export async function retainInstagramThumbnails<T extends { artistId: string; platformPostId: string; isOwnPost: boolean; raw: unknown }>(rows: T[], scope?: ThumbnailUploadScope): Promise<T[]> {
     const prepared = [...rows];
     let cursor = 0;
     await Promise.all(Array.from({ length: Math.min(3, rows.length) }, async () => {
@@ -95,8 +101,26 @@ export async function retainInstagramThumbnails<T extends { artistId: string; pl
             const index = cursor++;
             const row = rows[index]!;
             // Latest only publishes the artist's own posts.
-            if (row.isOwnPost) prepared[index] = { ...row, raw: await retainInstagramThumbnail(row.raw, row.artistId, row.platformPostId) };
+            if (row.isOwnPost) prepared[index] = { ...row, raw: await retainInstagramThumbnail(row.raw, row.artistId, row.platformPostId, scope) };
         }
     }));
     return prepared;
+}
+
+/** Compensate after a revoked job loses its guarded DB write. Only internally
+ * generated paths for that job are accepted, never scraper metadata. */
+export async function removeRevokedInstagramThumbnails(artistId: string, scope: ThumbnailUploadScope): Promise<void> {
+    if (!scope.attemptedPaths.size) return;
+    if (!UUID.test(artistId) || !UUID.test(scope.jobId)) throw new Error('Invalid thumbnail cleanup scope');
+    const prefix = `${artistId}/instagram-${scope.jobId}-`;
+    const paths = [...scope.attemptedPaths];
+    if (paths.some(path => !path.startsWith(prefix) || !/^\d+-[a-f0-9]{64}\.webp$/.test(path.slice(prefix.length)))) {
+        throw new Error('Invalid thumbnail cleanup path');
+    }
+    const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${VAULT_BUCKET}`, {
+        method: 'DELETE', redirect: 'error', signal: AbortSignal.timeout(9000),
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, apikey: SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefixes: paths }),
+    });
+    if (!response.ok) throw new Error('Revoked Instagram thumbnail cleanup failed');
 }

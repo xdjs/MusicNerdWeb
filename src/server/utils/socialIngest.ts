@@ -21,7 +21,7 @@ import { extractCaptionCredits, sweepSilentCaptions } from "@/server/utils/socia
 import { replaceSocialCredits, appendSocialCredits, claimedSourceUrls } from "@/server/utils/queries/socialCreditQueries";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
 
-import { retainInstagramThumbnails } from "@/server/utils/instagramThumbnail";
+import { retainInstagramThumbnails, removeRevokedInstagramThumbnails, type ThumbnailUploadScope } from "@/server/utils/instagramThumbnail";
 
 const APIFY_RUN_SYNC_URL = "https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items";
 const DEFAULT_LIMIT = 200;
@@ -695,8 +695,21 @@ export async function collectInstagramScrape(
         // concurrent, nine seconds each) fit alongside collection and DB work.
         const bounded = rows.slice(0, MAX_LIMIT);
         const batch = jobId ? bounded.slice(cursor, cursor + 9) : bounded;
-        const prepared = await retainInstagramThumbnails(batch);
-        const result = jobId ? await withResearchJobWrite(artistId, jobId, tx => upsertMappedRows(prepared, tx)) : await upsertMappedRows(prepared);
+        const scope: ThumbnailUploadScope | undefined = jobId ? { jobId, attemptedPaths: new Set() } : undefined;
+        // Reject an already revoked job before creating any storage objects.
+        if (jobId) await withResearchJobWrite(artistId, jobId, async () => undefined);
+        const prepared = await retainInstagramThumbnails(batch, scope);
+        let result: IngestResult;
+        try {
+            result = jobId ? await withResearchJobWrite(artistId, jobId, tx => upsertMappedRows(prepared, tx)) : await upsertMappedRows(prepared);
+        } catch (error) {
+            if (error instanceof OwnershipChangedError && scope) {
+                // All uploads have settled. Revoke may already have completed its
+                // folder purge, so remove this job's late uploads explicitly.
+                await removeRevokedInstagramThumbnails(artistId, scope);
+            }
+            throw error;
+        }
         return jobId && cursor + batch.length < bounded.length ? { ...result, nextCursor: cursor + batch.length } : result;
     } catch (e) {
         if (e instanceof OwnershipChangedError) throw e;

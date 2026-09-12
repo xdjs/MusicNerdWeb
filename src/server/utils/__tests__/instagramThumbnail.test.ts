@@ -2,7 +2,7 @@
 import sharp from 'sharp';
 jest.mock('@/env', () => ({ SUPABASE_URL: 'https://test.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'test-key' }));
 jest.mock('@/server/lib/supabase', () => ({ VAULT_BUCKET: 'vault-files' }));
-import { instagramMediaUrl, retainInstagramThumbnail, retainInstagramThumbnails } from '../instagramThumbnail';
+import { instagramMediaUrl, retainInstagramThumbnail, retainInstagramThumbnails, removeRevokedInstagramThumbnails } from '../instagramThumbnail';
 
 const artist = '50f23458-df64-4381-8042-7333e8b64531';
 const source = 'https://scontent.cdninstagram.com/photo.jpg?oe=temporary';
@@ -70,4 +70,35 @@ it('skips collaborator thumbnails and caps downloads at three in flight', async 
     expect(max).toBeLessThanOrEqual(3);
     expect(result.slice(0, 6).every(row => '_musicnerdThumbnail' in row.raw)).toBe(true);
     expect(result[6]).toEqual(rows[6]);
+});
+
+it('isolates identical thumbnails by job and removes only the revoked job paths', async () => {
+    const first = { jobId: '11111111-1111-4111-8111-111111111111', attemptedPaths: new Set<string>() };
+    const second = { jobId: '22222222-2222-4222-8222-222222222222', attemptedPaths: new Set<string>() };
+    fetchMock.mockResolvedValueOnce(media()).mockResolvedValueOnce({ ok: true })
+        .mockResolvedValueOnce(media()).mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true });
+    await retainInstagramThumbnail({ displayUrl: source }, artist, '123', first);
+    await retainInstagramThumbnail({ displayUrl: source }, artist, '123', second);
+    expect([...first.attemptedPaths][0]).not.toEqual([...second.attemptedPaths][0]);
+    await removeRevokedInstagramThumbnails(artist, first);
+    const [url, options] = fetchMock.mock.calls[4];
+    expect(url).toBe('https://test.supabase.co/storage/v1/object/vault-files');
+    expect(options.method).toBe('DELETE');
+    expect(JSON.parse(options.body)).toEqual({ prefixes: [...first.attemptedPaths] });
+});
+
+it('tracks attempted uploads even when their response fails', async () => {
+    const scope = { jobId: '11111111-1111-4111-8111-111111111111', attemptedPaths: new Set<string>() };
+    fetchMock.mockResolvedValueOnce(media()).mockRejectedValueOnce(new Error('Connection lost'));
+    expect(await retainInstagramThumbnail({ displayUrl: source }, artist, '123', scope)).toEqual({ displayUrl: source });
+    expect(scope.attemptedPaths.size).toBe(1);
+});
+
+it('rejects cleanup paths outside the revoked job and reports storage failures', async () => {
+    const scope = { jobId: '11111111-1111-4111-8111-111111111111', attemptedPaths: new Set(['another-artist/file.webp']) };
+    await expect(removeRevokedInstagramThumbnails(artist, scope)).rejects.toThrow('Invalid thumbnail cleanup path');
+    expect(fetchMock).not.toHaveBeenCalled();
+    scope.attemptedPaths = new Set([`${artist}/instagram-${scope.jobId}-123-${'a'.repeat(64)}.webp`]);
+    fetchMock.mockResolvedValueOnce({ ok: false });
+    await expect(removeRevokedInstagramThumbnails(artist, scope)).rejects.toThrow('cleanup failed');
 });

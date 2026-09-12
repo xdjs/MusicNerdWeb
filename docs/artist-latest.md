@@ -64,8 +64,11 @@ It waits for a full collection budget when a cron invocation has too little time
 No image download, upload or scrape happens on profile reads. Missing/unavailable images retain
 the existing portrait fallback. Retention does not add a new schedule or automatically detect
 Instagram deletion; source/post removal and storage cleanup remain explicit administrative work.
-An interrupted or cancelled write can leave an unreferenced content-addressed object, covered
-by the artist-folder cleanup on claim revocation.
+Research uploads include the job UUID in their filenames. Collection checks job ownership before
+uploading; if revocation wins during the downloads, the rejected database write removes all paths
+attempted by that job, including uploads whose responses failed. Newer jobs use separate paths.
+Abrupt process termination or a failed Storage deletion can still require administrative cleanup;
+cleanup failures are reported rather than treated as successful collection.
 
 On September 12, Pete authorized refreshing his existing own posts in Dev and production.
 One 244-post Apify run supplied matching post IDs/owners/URLs for both targets. All 244 Dev and
