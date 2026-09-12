@@ -1,7 +1,7 @@
 # Homepage reference exploration
 
 Local implementation on `pete/homepage-design-system`, updated with staging
-`ecc68c7a15b5833dfe6c22d1172562fe6215cb29`. Not released.
+`828830b852fcf519f1a0819d9ba50c092cbb5d18`. Not released.
 
 Pete supplied a mobile homepage reference and the circular pink Music Nerd logo
 on September 11. This iteration uses its flat pale background, lettered logo centered above the manifesto on all screen sizes,
@@ -47,6 +47,8 @@ NEXTAUTH_URL=http://localhost:3020 npx next dev --hostname 127.0.0.1 --port 3020
   search render; SENTO search returned existing directory results on mobile.
 - Integrated menu verified at 1440px and 390px: glass styling, grouped items,
   48px rows, viewport fit, opening and working theme toggle.
-- Real login and add-artist writes were not exercised. Full release CI has not
-  been run; run `npm run ci` before opening a code PR.
+- Full `npm run ci` passed after syncing staging: TypeScript, lint (existing
+  warnings), 202 suites / 2,387 tests passed / 6 skipped, and production build.
+- Real login and add-artist writes were not exercised. Pete authorized a Vercel
+  team preview; no staging PR or production release is requested.
 - The existing optional Privy `@farcaster/mini-app-solana` build warning remains.

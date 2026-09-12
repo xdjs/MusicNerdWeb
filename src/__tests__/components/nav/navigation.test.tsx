@@ -30,10 +30,12 @@ describe('Nav', () => {
         jest.clearAllMocks();
     });
 
-    it('renders navigation on the home page ("/")', () => {
+    it('keeps the homepage account menu in navigation while search and add live in the page body', () => {
         mockPathname = '/';
         render(<Nav />);
-        expect(screen.getByTestId('search-bar')).toBeInTheDocument();
+        expect(screen.getByTestId('login-component')).toBeInTheDocument();
+        expect(screen.queryByTestId('search-bar')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('add-artist-button')).not.toBeInTheDocument();
     });
 
     it('renders navigation on artist pages', () => {
@@ -68,6 +70,9 @@ describe('Nav', () => {
 });
 
 describe('NavContent', () => {
+    beforeEach(() => {
+        mockPathname = '/artist/123';
+    });
     it('renders the logo link pointing to home', () => {
         render(<NavContent />);
         const logoLink = screen.getByRole('link');

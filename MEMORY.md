@@ -1,21 +1,18 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Local homepage reference exploration — not released
+## Homepage design — team preview preparation
 
-September 11: Pete supplied a mobile reference and circular pink Music Nerd logo
-for `pete/homepage-design-system`. Isolated worktree:
-`/private/tmp/musicnerd-homepage-design-system`; preview `http://127.0.0.1:3020`.
-The latest iteration uses a pale background, lettered pink logo (centered above the manifesto on all screens,
-replacing the separate pink text wordmark), stacked manifesto and search with an adjacent plus button. Existing activity, add and login remain. Pete requested
-removing all assistant-added copy; only existing homepage wording is used.
-Homepage/activity/search/theme/login suites (66 tests), TypeScript and lint passed
-(existing warnings). Full release CI and real auth remain unverified.
-No push or release. See [scope and local review](docs/homepage-design-system.md).
-
-Latest staging (`ecc68c7a`) is integrated locally, including PR #1234’s glass
-account menu and artist navigation. Desktop (1440px) and mobile (390px) menu,
-48px rows, viewport fit and theme toggle verified in the local browser. No push
-or PR has been made for the homepage.
+`pete/homepage-design-system`, isolated worktree `/private/tmp/musicnerd-homepage-design-system`,
+is aligned with staging `828830b8` (including #1237). Pete authorized a Vercel preview
+for team review; no staging PR or production release is requested.
+The centered lettered pink logo replaces the separate wordmark; original manifesto copy,
+search with adjacent plus, and staging’s glass account menu remain. Desktop/mobile menu
+and theme switching were verified locally. Full `npm run ci` passes: TypeScript, lint
+(existing warnings), 202 suites / 2,387 tests passed / 6 skipped, and production build.
+The old navigation test now reflects search/add moving into the homepage body; artist
+navigation tests set their own route explicitly. Real login and writes remain unverified.
+See [scope and verification](docs/homepage-design-system.md). Preview URL/status will be
+verified after Vercel finishes the deployment.
 
 ## Artist profile redesign #1230 — staging PR under review
 
