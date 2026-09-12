@@ -13,6 +13,7 @@ import EditModeToggle from "@/app/_components/EditModeToggle";
 import { getListeningLinks } from "@/lib/artistProfileLinks";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import HeroSection from "./_components/HeroSection";
+import ProfileSectionNav from "./_components/ProfileSectionNav";
 import VaultSection from "./_components/VaultSection";
 import KnowledgeSection from "./_components/KnowledgeSection";
 import ArtistAskSheet from "./_components/ArtistAskSheet";
@@ -206,14 +207,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
                     hasPortrait={!!customImageUrl(artist.customImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenLinks={listenLinks} />
-
-                <div className="!mt-0 flex items-center justify-between gap-2 border-b border-black/10 py-2 dark:border-white/10 sm:gap-4">
-                    <nav aria-label="Explore artist profile" className="flex min-w-0 items-center gap-1 sm:gap-4">
-                        {[["mn-latest", "Latest"], ["mn-links", "Links"], ["mn-lore", "Lore"]].map(([anchor, label]) => (
-                            <a key={anchor} href={`#${anchor}`} className="inline-flex min-h-12 items-center border-b-2 border-transparent px-2 text-sm font-semibold text-black/60 transition-colors hover:border-pastypink hover:text-black focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink dark:text-white/65 dark:hover:text-white sm:px-3">{label}</a>
-                        ))}
-                    </nav>
+                    bio={heroBio} listenLinks={listenLinks}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
                         <ClaimButton
                             artistId={artist.id}
@@ -226,7 +220,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                         />
                         {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
-                </div>
+                </HeroSection>
+
+                <ProfileSectionNav key={artist.id} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
                     <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />

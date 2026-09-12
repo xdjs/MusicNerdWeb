@@ -75,8 +75,9 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             {photoControl}
             <div className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
                 {identity}
-                <div className="mt-5 flex flex-wrap gap-3">
+                <div className="mt-5 flex flex-wrap items-center gap-3">
                     <ListenPicker artistName={artistName} links={listenLinks} />
+                    {children}
                 </div>
             </div>
         </div> : <>
@@ -89,8 +90,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 {photoControl}
             </div>
             <div className="text-center">{identity}</div>
-            <div className="flex justify-center"><ListenPicker artistName={artistName} links={listenLinks} /></div>
+            <div className="flex flex-wrap items-center justify-center gap-3"><ListenPicker artistName={artistName} links={listenLinks} />{children}</div>
         </>}
-        {children && <div className={`flex flex-wrap items-center gap-2 ${portrait ? '' : 'justify-center'}`}>{children}</div>}
     </header>;
 }

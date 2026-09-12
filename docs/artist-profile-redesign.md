@@ -156,12 +156,16 @@ submitted question independently, with no new persistence or server context chan
 20 focused Ask tests, TypeScript, targeted lint (existing image warning), and CSS
 compilation passed. Actual browser animation/touch review remains outstanding.
 
-Profile navigation follow-up: Latest, Links and Lore are now plain section links
-in a slim row directly below the hero, separated from content by one subtle rule.
-Claim/Edit share that row on the right; at mobile widths their labels collapse to
-accessible 44px icon controls. Default control presentation elsewhere is retained.
-The hero does not reserve an empty action row. Native anchor destinations, claim
-gates and Done/save behavior are unchanged. 40 focused page/hero/edit/order tests,
-TypeScript, targeted lint and CSS compilation passed; live visual review remains
-outstanding. The page-level Ask assertion now checks visibility, matching the
-previous change that retains the minimized conversation in the DOM.
+Profile navigation follow-up: Pete selected option 1 after comparing three mockups.
+Latest, Links and Lore share a full-width glass segmented control below the hero.
+The translucent selection follows horizontal dragging and snaps to the nearest
+section on release. Clicking a label navigates directly. Vertical swipes scroll
+the page, cancelled drags do not navigate, and extra pointers are ignored.
+The control uses real fragment links and aria-current, supports arrow/Home/End
+keys, and removes movement for keyboard/reduced-motion navigation. Claim/Edit sit
+beside Listen in the hero, using accessible icon controls on mobile. Existing
+section offsets, claim permissions and profile save behavior are retained.
+This is client-side navigation only: no API, persistence, jobs or service changes.
+40 focused navigation/page/hero tests, TypeScript and targeted lint passed.
+Browser access is unavailable in this session; visual/touch review remains pending
+on the running HTTPS localhost:3000 preview.
