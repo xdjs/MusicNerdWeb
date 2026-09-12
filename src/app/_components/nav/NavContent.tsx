@@ -5,8 +5,34 @@ import SearchBar from "./components/SearchBar"
 import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
 import { Suspense } from "react";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import homeStyles from "@/app/_components/HomePageSplash.module.css";
 
 export default function NavContent() {
+    const pathname = usePathname();
+
+    if (pathname === "/") {
+        return (
+            <nav className={homeStyles.homeNav}>
+                <Link href="/" aria-label="Music Nerd">
+                    <Image
+                        src="/music-nerd-logo-pink.png"
+                        alt="Music Nerd"
+                        width={96}
+                        height={96}
+                        priority
+                        className={homeStyles.logo}
+                    />
+                </Link>
+                <div className={homeStyles.actions}>
+                    <AddArtist />
+                    <Login buttonStyles="" />
+                </div>
+            </nav>
+        );
+    }
+
     return (
         <nav className="w-full px-3 py-3 sm:p-6 nav-bar flex items-center justify-between gap-2 max-w-[1000px] mx-auto">
             <div className="flex gap-2 shrink-0">

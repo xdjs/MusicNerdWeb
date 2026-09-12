@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import ActivityFeed from "@/app/_components/ActivityFeed";
 import styles from "@/app/_components/HomePageSplash.module.css";
+import SearchBar from "@/app/_components/nav/components/SearchBar";
 
 const MANIFESTO = [
     { before: "we listen with ", keyword: "intent" },
@@ -16,12 +18,9 @@ export default function HomePageSplash() {
                     <h1 className={styles.wordmark} style={{ color: "#ff9ce3" }}>
                         music nerd
                     </h1>
-                    <p className={styles.intro}>
-                        a closer connection to the artists you love.
-                    </p>
                 </header>
 
-                <section className={`glass ${styles.manifesto}`} aria-label="Our manifesto">
+                <div className={styles.manifesto}>
                     <div className={styles.lines}>
                         {MANIFESTO.map(({ before, keyword, after }) => (
                             <p key={keyword}>
@@ -31,19 +30,22 @@ export default function HomePageSplash() {
                             </p>
                         ))}
                     </div>
-                    <p className={styles.invitation}>
-                        buy the music. follow the process.
-                        <br />
-                        help make what comes next possible.
-                    </p>
-                </section>
+                </div>
 
-                <section className={`glass-subtle ${styles.activity}`} aria-labelledby="home-activity-heading">
-                    <h2 id="home-activity-heading" className={styles.activityHeading}>
-                        around the directory
-                    </h2>
+                <div className={styles.discovery}>
+                    <p className={styles.invitation}>
+                        buy the music. follow the process. help make what comes next possible.
+                    </p>
+                    <div className={styles.search}>
+                        <Suspense>
+                            <SearchBar />
+                        </Suspense>
+                    </div>
+                </div>
+
+                <div className={styles.activity}>
                     <ActivityFeed />
-                </section>
+                </div>
             </div>
         </div>
     );

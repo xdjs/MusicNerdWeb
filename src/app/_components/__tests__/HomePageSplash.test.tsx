@@ -19,10 +19,10 @@ describe("Homepage design system composition", () => {
         render(<HomePageSplash />);
 
         expect(screen.getByRole("heading", { level: 1, name: "music nerd" })).toBeInTheDocument();
-        expect(screen.getByRole("region", { name: "Our manifesto" })).toHaveTextContent(
-            "we care when artists let us into the work",
-        );
-        expect(screen.getByRole("region", { name: "around the directory" })).toBeInTheDocument();
+        expect(screen.getByPlaceholderText("Search for an artist...")).toBeInTheDocument();
+        expect(screen.getByText((_, element) =>
+            element?.tagName === "P" && element.textContent === "we care when artists let us into the work",
+        )).toBeInTheDocument();
         await waitFor(() => {
             expect(screen.getByRole("link", { name: /SENTO/ })).toHaveAttribute("href", "/artist/artist-sento");
         });

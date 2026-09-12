@@ -1,16 +1,16 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Local homepage design system preview — not released
+## Local homepage reference exploration — not released
 
-September 11: Pete requested a branch applying Carl's extracted design system to
-his homepage manifesto. Branch `pete/homepage-design-system`; isolated worktree
+September 11: Pete supplied a mobile reference and circular pink Music Nerd logo
+for `pete/homepage-design-system`. Isolated worktree:
 `/private/tmp/musicnerd-homepage-design-system`; preview `http://127.0.0.1:3020`.
-The implementation uses the documented glass surfaces, pink/cyan palette and
-wordmark while retaining the existing search and activity feed. It is a design
-system interpretation; Carl's separate Claude Design project was inaccessible.
-Focused tests, TypeScript, lint and desktop/mobile browser checks passed. Full
-release CI and real authentication remain unverified. No PR, push or release.
-See [scope and local review](docs/homepage-design-system.md).
+The latest iteration uses a pale background, centered logo, stacked manifesto and
+search below the copy. Existing activity, add and login remain. Pete requested
+removing all assistant-added copy; only existing homepage wording is used.
+Homepage/activity/search suites (29 tests), TypeScript and lint passed (existing
+non-home nav image warning). Full release CI and real auth remain unverified.
+No push or release. See [scope and local review](docs/homepage-design-system.md).
 
 ## Meeting transcript automation — prepared, not active
 
