@@ -4,10 +4,14 @@ import { extractInProcessAddress, inProcessProfileUrl, normalizeMoment, type Mom
 /**
  * An artist's In Process moments for the Timeline section.
  *
- * Reads In Process's public timeline (no key; nothing in env.ts) and never throws:
- * any failure logs and returns [], the way webSearch.ts does, so a profile view is
- * never broken by In Process. Cached per address for ten minutes. Cold calls were
- * 3.7 s and warm 1.6 s on 2026-09-13, so the section must sit behind Suspense.
+ * Reads In Process's public timeline (no key; nothing in env.ts) and never throws
+ * at its public boundary: any failure logs and returns [], the way webSearch.ts
+ * does, so a profile view is never broken by In Process. Successful responses
+ * (including a legitimately empty timeline) are cached per address for ten
+ * minutes; failures are thrown inside the cached function so the cache never
+ * stores them (a cached [] would blank the section for ten minutes after one
+ * slow upstream call, which happened on the 2026-09-13 preview). Cold calls were
+ * 3.7 s and warm 1.6 s that day, so the section must sit behind Suspense.
  *
  * The response carries each moment's metadata inline (name, image, content.mime),
  * so this is one round trip; there is no call to /api/metadata.
@@ -21,6 +25,14 @@ export const TIMELINE_LIMIT = 12;
 const REQUEST_TIMEOUT_MS = 10_000;
 const CACHE_SECONDS = 600;
 
+/** Thrown inside the cached function so a failed call is never cached. Already logged. */
+class TimelineUnavailable extends Error {}
+
+function unavailable(message: string, detail?: unknown): never {
+    console.error(`[inprocess] ${message}`, ...(detail === undefined ? [] : [detail]));
+    throw new TimelineUnavailable(message);
+}
+
 async function fetchTimelineDirect(address: string): Promise<Moment[]> {
     const artistUrl = inProcessProfileUrl(address);
     const url = `${TIMELINE_ENDPOINT}?artist=${encodeURIComponent(address)}&limit=${TIMELINE_LIMIT}`;
@@ -33,25 +45,21 @@ async function fetchTimelineDirect(address: string): Promise<Moment[]> {
         try {
             response = await fetch(url, { headers: { accept: 'application/json' }, signal: controller.signal });
         } catch (e) {
-            console.error(`[inprocess] timeline request failed for ${address}:`, e instanceof Error ? e.message : e);
-            return [];
+            if (controller.signal.aborted) unavailable(`timeline timed out after ${REQUEST_TIMEOUT_MS} ms for ${address}`);
+            unavailable(`timeline request failed for ${address}:`, e instanceof Error ? e.message : e);
         }
         if (!response.ok) {
             const detail = await response.text().catch(() => '');
-            console.error(`[inprocess] timeline HTTP ${response.status} for ${address}: ${detail.slice(0, 200)}`);
-            return [];
+            unavailable(`timeline HTTP ${response.status} for ${address}: ${detail.slice(0, 200)}`);
         }
         let body: { moments?: unknown };
         try {
             body = await response.json();
         } catch (e) {
-            console.error(`[inprocess] timeline returned unparseable JSON for ${address}:`, e);
-            return [];
+            if (controller.signal.aborted) unavailable(`timeline timed out after ${REQUEST_TIMEOUT_MS} ms for ${address}`);
+            unavailable(`timeline returned unparseable JSON for ${address}:`, e);
         }
-        if (!Array.isArray(body?.moments)) {
-            console.error(`[inprocess] timeline response had no moments array for ${address}`);
-            return [];
-        }
+        if (!Array.isArray(body?.moments)) unavailable(`timeline response had no moments array for ${address}`);
         return body.moments
             // A null or non-object entry must not take the whole timeline down.
             .filter((raw): raw is RawTimelineMoment => typeof raw === 'object' && raw !== null)
@@ -74,8 +82,8 @@ export async function fetchArtistTimeline(inprocess: string | null | undefined):
     try {
         return await cachedTimeline(address);
     } catch (e) {
-        // The fetch itself never throws; this is the cache layer. Same contract: log, empty.
-        console.error(`[inprocess] timeline cache failed for ${address}:`, e instanceof Error ? e.message : e);
+        // TimelineUnavailable was logged where it happened; anything else is the cache layer.
+        if (!(e instanceof TimelineUnavailable)) console.error(`[inprocess] timeline cache failed for ${address}:`, e instanceof Error ? e.message : e);
         return [];
     }
 }
