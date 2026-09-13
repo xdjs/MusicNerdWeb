@@ -112,10 +112,35 @@ describe('fetchArtistTimeline', () => {
             jest.advanceTimersByTime(10_001);
             expect(signal?.aborted).toBe(true);
             expect(await pending).toEqual([]);
-            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('unparseable JSON'), expect.anything());
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('timed out after 10000 ms'));
         } finally {
             jest.useRealTimers();
         }
+    });
+
+    it('does not cache a failure: the next call goes back to In Process', async () => {
+        jest.resetModules();
+        // Memoize resolved values the way unstable_cache does; rejections are not stored.
+        jest.doMock('next/cache', () => ({ unstable_cache: jest.fn((fn: (...a: unknown[]) => Promise<unknown>) => {
+            const memo = new Map<string, unknown>();
+            return async (...args: unknown[]) => {
+                const key = JSON.stringify(args);
+                if (memo.has(key)) return memo.get(key);
+                const value = await fn(...args);
+                memo.set(key, value);
+                return value;
+            };
+        }) }));
+        const fetchArtistTimeline = (await import('@/server/utils/inprocess/fetchArtistTimeline')).fetchArtistTimeline;
+        fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'upstream hiccup' }, 502));
+        expect(await fetchArtistTimeline(ARTIST)).toEqual([]);
+        fetchMock.mockResolvedValueOnce(jsonResponse({ status: 'success', moments: [moment('1')] }));
+        expect(await fetchArtistTimeline(ARTIST)).toHaveLength(1);
+        // and a success IS cached: a third call makes no request
+        expect(await fetchArtistTimeline(ARTIST)).toHaveLength(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        jest.dontMock('next/cache');
+        jest.resetModules();
     });
 
     it('returns [] and logs when the cache layer throws', async () => {
