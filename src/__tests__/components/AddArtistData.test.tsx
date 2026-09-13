@@ -421,22 +421,9 @@ describe('AddArtistData "+" trigger', () => {
 });
 
 describe('isLinkTarget', () => {
-  // Keeps the wallet and ENS rows out of the "Supported links" dropdown by site name.
-  // The old example-text match (any 0x address) also hid In Process, whose example is
-  // https://www.inprocess.world/0x1f8d…, so no artist could pick it from the UI.
-  // Eslint disable: the dynamic import keeps this independent from the modal's render path.
-  const { isLinkTarget } = require('@/app/artist/[id]/_components/AddArtistDataOptions');
-
-  it.each([
-    ['wallet', false],   // the live urlmap row
-    ['wallets', false],
-    ['ens', false],
-    ['inprocess', true],
-    ['bandcamp', true],
-    ['spotify', true],
-  ])('isLinkTarget({ siteName: %p }) → %p', (siteName, expected) => {
-    expect(isLinkTarget({ siteName })).toBe(expected);
-  });
+  // The pure rule lives in src/lib/isLinkTarget (own test file); this covers the picker
+  // that applies it. The old example-text match (any 0x address) also hid In Process,
+  // whose example is https://www.inprocess.world/0x1f8d…, so no artist could pick it.
 
   it('lists the In Process example and hides wallet and ENS rows in the picker', () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
