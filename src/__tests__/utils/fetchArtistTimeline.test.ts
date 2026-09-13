@@ -39,9 +39,9 @@ describe('fetchArtistTimeline', () => {
         return (await import('@/server/utils/inprocess/fetchArtistTimeline')).fetchArtistTimeline;
     }
 
-    it('calls the public timeline for the stored profile address and normalizes moments', async () => {
+    it('calls the public timeline for the stored address and normalizes moments', async () => {
         fetchMock.mockResolvedValue(jsonResponse({ status: 'success', moments: [moment('1'), moment('2', { hidden: [ARTIST] }), { id: 'bad' }] }));
-        const moments = await (await load())(ARTIST_URL);
+        const moments = await (await load())(ARTIST);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
         expect(url).toBe(`https://api.inprocess.world/api/timeline?artist=${ARTIST}&limit=12`);
@@ -54,9 +54,16 @@ describe('fetchArtistTimeline', () => {
         expect(errorSpy).not.toHaveBeenCalled();
     });
 
-    it('returns [] without a request when the stored URL is not an In Process profile', async () => {
+    it('accepts a full profile URL too', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ status: 'success', moments: [moment('1')] }));
+        expect(await (await load())(ARTIST_URL)).toHaveLength(1);
+        expect((fetchMock.mock.calls[0] as [string])[0]).toContain(`artist=${ARTIST}`);
+    });
+
+    it('returns [] without a request when the stored value is not an In Process link', async () => {
         const fetchArtistTimeline = await load();
         expect(await fetchArtistTimeline('https://www.inprocess.world/0xbogus')).toEqual([]);
+        expect(await fetchArtistTimeline('0xbogus')).toEqual([]);
         expect(await fetchArtistTimeline(null)).toEqual([]);
         expect(fetchMock).not.toHaveBeenCalled();
     });

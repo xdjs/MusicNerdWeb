@@ -1,4 +1,4 @@
-import { extractInProcessAddress, fetchableUrl, momentKind, momentUrl, normalizeMoment, type RawTimelineMoment } from '@/lib/inprocessTimeline';
+import { extractInProcessAddress, fetchableUrl, inProcessProfileUrl, momentKind, momentUrl, normalizeMoment, type RawTimelineMoment } from '@/lib/inprocessTimeline';
 
 const ARTIST = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
 const ARTIST_URL = `https://www.inprocess.world/${ARTIST}`;
@@ -25,10 +25,15 @@ function raw(overrides: Partial<RawTimelineMoment> = {}): RawTimelineMoment {
 
 describe('extractInProcessAddress', () => {
     it.each([
+        // artists.inprocess holds the urlmap capture group: the bare address.
+        [ARTIST, ARTIST],
+        [` ${ARTIST.toUpperCase().replace('0X', '0x')} `, ARTIST],
         [`https://www.inprocess.world/${ARTIST}`, ARTIST],
         [`http://inprocess.world/${ARTIST.toUpperCase().replace('0X', '0x')}/?ref=x#top`, ARTIST],
         [' https://www.inprocess.world/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91 ', ARTIST],
         ['https://www.inprocess.world/0x1f8d', null],
+        ['0x1f8d', null],
+        ['1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91', null],
         ['https://www.inprocess.world/collect/base:0xabc/1', null],
         ['https://example.com/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91', null],
         ['', null],
@@ -36,6 +41,12 @@ describe('extractInProcessAddress', () => {
         [undefined, null],
     ])('%p → %p', (input, expected) => {
         expect(extractInProcessAddress(input)).toBe(expected);
+    });
+});
+
+describe('inProcessProfileUrl', () => {
+    it('matches the Links grid shape', () => {
+        expect(inProcessProfileUrl(ARTIST)).toBe(`https://www.inprocess.world/${ARTIST}`);
     });
 });
 
