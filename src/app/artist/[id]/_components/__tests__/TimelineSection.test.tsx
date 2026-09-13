@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import type { Moment } from '@/lib/inprocessTimeline';
 
-jest.mock('@/server/utils/inprocess/fetchArtistTimeline', () => ({ fetchArtistTimeline: jest.fn() }));
+jest.mock('@/server/utils/fetchArtistTimeline', () => ({ fetchArtistTimeline: jest.fn() }));
 
-import { fetchArtistTimeline } from '@/server/utils/inprocess/fetchArtistTimeline';
+import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
 import TimelineSection from '../TimelineSection';
 
 beforeEach(() => jest.clearAllMocks());
