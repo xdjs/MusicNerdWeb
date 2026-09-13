@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button"
 import { UrlMap } from "@/server/db/DbTypes";
 import { TIPS_BUTTON_LABEL } from "@/lib/linkSubmissionMessages";
 
-/** Wallet/ENS examples aren't link-paste targets. */
-export function isWalletExample(example: string | null | undefined): boolean {
-    if (!example) return false;
-    return /\b0x[0-9a-f]{6,}\b/i.test(example);
+/** Wallet and ENS rows aren't link-paste targets; everything else in the urlmap is.
+ *  Filter by site name, the way AddArtistData already does for display. Matching
+ *  the example text instead hid In Process, whose example URL carries a 0x address. */
+const NOT_LINK_TARGETS = new Set(['wallets', 'ens']);
+export function isLinkTarget(link: Pick<UrlMap, 'siteName'>): boolean {
+    return !NOT_LINK_TARGETS.has(link.siteName);
 }
 
 export default function AddArtistDataOptions({ availableLinks, setOption }: { availableLinks: UrlMap[], setOption: (option: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const examplesId = useId();
     const sortedLinks = [...availableLinks]
-        .filter(link => !isWalletExample(link.example))
+        .filter(isLinkTarget)
         .sort((a, b) => (a.example || "").localeCompare(b.example || ""));
 
     return (
