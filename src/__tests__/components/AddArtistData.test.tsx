@@ -371,6 +371,44 @@ describe('AddArtistData "+" trigger', () => {
     }
   });
 
+  it('lets a Deezer-backed artist select a Spotify example and submit through the existing link action', async () => {
+    const originalFetch = global.fetch;
+    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[A-Za-z0-9]+$' }],
+    }) as unknown as typeof fetch;
+    (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
+    const artist = { ...baseProps.artist, deezer: '123', spotify: null };
+    try {
+      render(<AddArtistData {...baseProps} artist={artist} autoApprove availableLinks={[
+        { id: 'spotify', siteName: 'spotify', example: 'https://open.spotify.com/artist/ARTIST_NAME' } as any,
+      ]} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add a link for Test Artist' }));
+      const input = screen.getByRole('textbox', { name: 'Profile link' });
+      const examples = screen.getByRole('button', { name: 'Supported links' });
+      expect(examples).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(examples);
+      expect(examples).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.queryByText('open.spotify.com/artist/ARTIST_NAME')).not.toBeInTheDocument();
+      expect(screen.getByText(/Spotify links end with an artist ID/)).toBeVisible();
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(input).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'open.spotify.com/artist/ARTIST_ID' }));
+      expect(examples).toHaveAttribute('aria-expanded', 'false');
+      expect(input).toHaveValue('open.spotify.com/artist/ARTIST_ID');
+      expect(input).toHaveFocus();
+      const url = 'https://open.spotify.com/artist/2TNJWBi73MnkSRkZRPBqSW';
+      fireEvent.change(input, { target: { value: url } });
+      const submit = screen.getByRole('button', { name: 'Add Link' });
+      await waitFor(() => expect(submit).toBeEnabled());
+      fireEvent.click(submit);
+      await waitFor(() => expect(addArtistDataAction).toHaveBeenCalledWith(url, artist));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it('shows the "Supported links" trigger inside the modal', () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
 

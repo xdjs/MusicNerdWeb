@@ -32,7 +32,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID, TIPS_BUTTON_LABEL } from "@/lib/linkSubmissionMessages";
+import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID } from "@/lib/linkSubmissionMessages";
 
 type AddArtistDataProps = {
     artist: Artist;
@@ -348,16 +348,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                                 name="artistDataUrl"
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <FormLabel className="text-sm font-medium text-white/80">Profile link</FormLabel>
-                                            <AddArtistDataOptions
-                                                availableLinks={displayLinks}
-                                                setOption={(option) => {
-                                                    // Fill the input with the example so the user can edit it (replace USERNAME, etc.).
-                                                    form.setValue("artistDataUrl", option, { shouldDirty: true, shouldValidate: false });
-                                                }}
-                                            />
-                                        </div>
+                                        <FormLabel className="text-sm font-medium text-white/80">Profile link</FormLabel>
                                         <FormControl>
                                             <Input
                                                 placeholder="Paste a profile link…"
@@ -365,14 +356,21 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                                                 autoCapitalize="none"
                                                 autoCorrect="off"
                                                 spellCheck={false}
-                                                className="min-h-12 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3 text-sm text-white/90 placeholder:text-white/45 outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
+                                                className="min-h-12 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-3 text-base sm:text-sm text-white/90 placeholder:text-white/45 outline-none transition-colors focus:border-pastypink/50 focus:ring-1 focus:ring-pastypink/30"
                                                 {...field}
                                             />
                                         </FormControl>
                                         <p className="text-xs leading-relaxed text-white/50">
-                                            Choose <strong>{TIPS_BUTTON_LABEL}</strong> to see an example.
+                                            Copy the artist’s profile link from Spotify or another supported service. Spotify links end with an artist ID, not the artist’s name.
                                         </p>
                                         <FormMessage />
+                                        <AddArtistDataOptions
+                                            availableLinks={displayLinks}
+                                            setOption={(option) => {
+                                                form.setValue("artistDataUrl", option, { shouldDirty: true, shouldValidate: false });
+                                                form.setFocus("artistDataUrl");
+                                            }}
+                                        />
                                     </FormItem>
                                 )}
                             />
