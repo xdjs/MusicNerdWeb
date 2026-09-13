@@ -428,6 +428,7 @@ describe('isLinkTarget', () => {
   const { isLinkTarget } = require('@/app/artist/[id]/_components/AddArtistDataOptions');
 
   it.each([
+    ['wallet', false],   // the live urlmap row
     ['wallets', false],
     ['ens', false],
     ['inprocess', true],
@@ -440,7 +441,7 @@ describe('isLinkTarget', () => {
   it('lists the In Process example and hides wallet and ENS rows in the picker', () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
     render(<AddArtistData {...baseProps} availableLinks={[
-      { id: 'wallets', siteName: 'wallets', example: 'Example Wallet: 0x000000000000' } as any,
+      { id: 'wallet', siteName: 'wallet', example: 'Example Wallet: 0x000000...' } as any,
       { id: 'ens', siteName: 'ens', example: 'ARTIST_NAME.eth' } as any,
       { id: 'inprocess', siteName: 'inprocess', example: 'https://www.inprocess.world/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91' } as any,
       { id: 'bandcamp', siteName: 'bandcamp', example: 'https://ARTIST_NAME.bandcamp.com' } as any,

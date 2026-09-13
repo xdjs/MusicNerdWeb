@@ -6,9 +6,10 @@ import { UrlMap } from "@/server/db/DbTypes";
 import { TIPS_BUTTON_LABEL } from "@/lib/linkSubmissionMessages";
 
 /** Wallet and ENS rows aren't link-paste targets; everything else in the urlmap is.
- *  Filter by site name, the way AddArtistData already does for display. Matching
- *  the example text instead hid In Process, whose example URL carries a 0x address. */
-const NOT_LINK_TARGETS = new Set(['wallets', 'ens']);
+ *  Filter by site name instead of matching the example text, which hid In Process
+ *  (its example URL carries a 0x address). The live urlmap row is `wallet`;
+ *  artistLinkService accepts `wallets` too, so both are covered. */
+const NOT_LINK_TARGETS = new Set(['wallet', 'wallets', 'ens']);
 export function isLinkTarget(link: Pick<UrlMap, 'siteName'>): boolean {
     return !NOT_LINK_TARGETS.has(link.siteName);
 }
