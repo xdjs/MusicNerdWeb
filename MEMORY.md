@@ -1,6 +1,15 @@
 # MEMORY.md — Music Nerd engineering handoff
 
-## Mobile link entry and floating logo — staging review
+## Homepage logo alignment — follow-up before main release
+
+September 13: PR #1243 merged to staging as `63bcc1d` after CI and Codex code/security
+review cleared. Pete then clarified that the fixed logo must align horizontally with the
+login control, not the viewport edge. Branch `pete/homepage-logo-alignment` corrects its
+right offset to match the centered 1120px header and its responsive 20px/28px gutters.
+Vertical fixed positioning is preserved. Include this correction before opening the main
+release PR for the link-entry/logo work.
+
+## Mobile link entry and floating logo — merged to staging
 
 September 13: branch `pete/mobile-link-entry-and-logo` starts from staging `c7e8e4c`.
 Homepage release #1242 is merged to main (`a9e973e`). Pete requested the PA logo fixed at
