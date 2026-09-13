@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
+import styles from "../HomePageSplash.module.css"
 import SearchBar from "./components/SearchBar"
 import AddArtist from "./components/AddArtist";
 import Login from "./components/Login";
@@ -8,7 +10,18 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 export default function NavContent() {
-    const isProfile = usePathname()?.startsWith("/artist/");
+    const pathname = usePathname();
+    const isProfile = pathname?.startsWith("/artist/");
+    if (pathname === "/") {
+        return (
+            <nav aria-label="Main navigation" className={styles.homeNav}>
+                <Link href="/" aria-label="Music Nerd home">
+                    <Image src="/musicNerdLogo.png" width={80} height={80} className={styles.homeNavLogo} alt="" priority />
+                </Link>
+                <div className="flex gap-2 items-center shrink-0"><Login buttonStyles="" /></div>
+            </nav>
+        );
+    }
     return (
         <nav aria-label="Main navigation" className={`w-full px-3 py-3 nav-bar flex items-center justify-between gap-2 max-w-[1000px] mx-auto ${isProfile ? "sticky top-0 z-40 bg-white/90 backdrop-blur-xl dark:bg-[#1a1a1a]/90 sm:px-6" : "sm:p-6"}`}>
             <div className="flex gap-2 shrink-0">
