@@ -53,6 +53,23 @@ it('offers a pill per kind present, in order, and filters the row', () => {
     expect(screen.getByRole('button', { name: 'All (4)' })).toHaveAttribute('aria-pressed', 'false');
 });
 
+it('falls back to All when the selected kind is gone after the moments change', () => {
+    const { rerender } = render(<TimelineCards moments={moments} timelineUrl={TIMELINE_URL} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Audio (1)' }));
+    expect(within(screen.getByRole('region', { name: 'Moments' })).getAllByRole('link')).toHaveLength(1);
+    rerender(<TimelineCards moments={[moment('9', 'video'), moment('10', 'image')]} timelineUrl={TIMELINE_URL} />);
+    expect(within(screen.getByRole('region', { name: 'Moments' })).getAllByRole('link')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'All (2)' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+it('rewinds the row when the filter changes', () => {
+    render(<TimelineCards moments={moments} timelineUrl={TIMELINE_URL} />);
+    const gallery = screen.getByRole('region', { name: 'Moments' });
+    gallery.scrollLeft = 240;
+    fireEvent.click(screen.getByRole('button', { name: 'Video (2)' }));
+    expect(gallery.scrollLeft).toBe(0);
+});
+
 it('hides the pills when every moment is the same kind', () => {
     render(<TimelineCards moments={[moment('1', 'image'), moment('2', 'image')]} timelineUrl={TIMELINE_URL} />);
     expect(screen.queryByLabelText('Filter moments by type')).not.toBeInTheDocument();
