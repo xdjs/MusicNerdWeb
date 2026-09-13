@@ -18,6 +18,7 @@ import VaultSection from "./_components/VaultSection";
 import KnowledgeSection from "./_components/KnowledgeSection";
 import ArtistAskSheet from "./_components/ArtistAskSheet";
 import LatestSection from "./_components/LatestSection";
+import TimelineSection from "./_components/TimelineSection";
 import { Suspense } from "react";
 import RevealSection from "./_components/RevealSection";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
@@ -227,6 +228,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
                     <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
                 </Suspense>
+
+                {/* In Process moments, read-only. Only for artists with an In Process link; the
+                    section renders nothing when the timeline is empty or In Process is down. */}
+                {artist.inprocess && <Suspense fallback={<section id="mn-timeline" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Timeline</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading moments…</p></section>}>
+                    <TimelineSection inprocessUrl={artist.inprocess} />
+                </Suspense>}
 
                 {/* Listening, social and support links share one destination. */}
                 <RevealSection id="mn-links" className="glass p-4 sm:p-5 space-y-3">
