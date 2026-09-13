@@ -1,57 +1,61 @@
 "use client"
+import { useId, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { UrlMap } from "@/server/db/DbTypes";
 import { TIPS_BUTTON_LABEL } from "@/lib/linkSubmissionMessages";
 
-/**
- * Wallet/ENS examples in the urlmap aren't actually link-paste targets — exclude them from the picker.
- * Anchored on word boundaries + a 6-char minimum so a hypothetical platform whose example
- * coincidentally contains "0x" (e.g. "0xtracks.com/...") isn't false-positive-filtered.
- */
+/** Wallet/ENS examples aren't link-paste targets. */
 export function isWalletExample(example: string | null | undefined): boolean {
     if (!example) return false;
     return /\b0x[0-9a-f]{6,}\b/i.test(example);
 }
 
 export default function AddArtistDataOptions({ availableLinks, setOption }: { availableLinks: UrlMap[], setOption: (option: string) => void }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const examplesId = useId();
     const sortedLinks = [...availableLinks]
         .filter(link => !isWalletExample(link.example))
         .sort((a, b) => (a.example || "").localeCompare(b.example || ""));
-    const dataOptions = sortedLinks.map(link => (
-        <DropdownMenuItem
-            key={link.id}
-            className="min-h-11 cursor-pointer rounded-lg px-3 text-xs text-white/80 focus:bg-white/10 focus:text-white"
-            onClick={() => setOption(link.example.replace(/^(?:https?:\/\/)?(?:www\.)?/, ''))}
-        >
-            {link.example.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')}
-        </DropdownMenuItem>
-    ));
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs text-white/75 hover:bg-white/10 hover:text-white whitespace-nowrap focus-visible:ring-pastypink"
-                >
-                    {TIPS_BUTTON_LABEL}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-                side="top"
-                align="end"
-                sideOffset={6}
-                className="scrollbar-glass max-h-[40dvh] max-w-[calc(100vw-3rem)] overflow-auto rounded-xl border border-white/15 bg-neutral-950/95 p-1 text-white shadow-xl backdrop-blur-xl"
+        <div>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-expanded={isOpen}
+                aria-controls={examplesId}
+                onClick={() => setIsOpen(open => !open)}
+                className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs text-white/75 hover:bg-white/10 hover:text-white focus-visible:ring-pastypink"
             >
-                {dataOptions}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    )
+                {TIPS_BUTTON_LABEL}
+                <ChevronDown aria-hidden="true" className={`ml-2 h-4 w-4 ${isOpen ? "rotate-180" : ""}`} />
+            </Button>
+            {isOpen && (
+                <div id={examplesId} className="mt-2 rounded-xl border border-white/15 bg-white/[0.03] p-2">
+                    <p className="px-2 py-1 text-xs leading-relaxed text-white/50">Choose an example, then replace it with the artist’s profile URL.</p>
+                    <ul className="scrollbar-glass max-h-[min(28dvh,14rem)] overflow-y-auto overscroll-contain">
+                        {sortedLinks.map(link => {
+                            // Older urlmap rows use ARTIST_NAME, but Spotify artist URLs require an ID.
+                            const example = link.siteName === 'spotify'
+                                ? 'open.spotify.com/artist/ARTIST_ID'
+                                : link.example.replace(/^(?:https?:\/\/)?(?:www\.)?/, '');
+                            return (
+                                <li key={link.id}>
+                                    <button
+                                        type="button"
+                                        className="min-h-11 w-full rounded-lg px-2 py-2 text-left text-sm text-white/80 [overflow-wrap:anywhere] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink"
+                                        onClick={() => { setIsOpen(false); setOption(example); }}
+                                    >
+                                        {example}
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
 }

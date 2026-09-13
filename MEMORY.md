@@ -1,5 +1,21 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Mobile link entry and floating logo — staging review
+
+September 13: branch `pete/mobile-link-entry-and-logo` starts from staging `c7e8e4c`.
+Homepage release #1242 is merged to main (`a9e973e`). Pete requested the PA logo fixed at
+bottom right on mobile as well as desktop, and reported that Supported links covers the
+profile URL field on mobile. The logo is now viewport-fixed with safe-area offsets and sits
+below dialogs. Link entry precedes a collapsible, in-flow examples list; choosing an example
+closes the list and focuses the input. The Spotify example overrides the old ARTIST_NAME
+urlmap text with ARTIST_ID and asks users to copy the actual profile URL. Mobile input uses
+16px text to avoid focus zoom.
+Production Spearfisher's rendered page includes the Spotify URL example; no artist link/data
+was changed. Local regression submits a Spotify URL for a Deezer-only fixture through the
+existing action (mocked). Full `npm run ci` passes: 203 suites / 2,414 tests passed, six existing skips,
+coverage, TypeScript, lint (existing warnings), and production build. iPhone Safari visual verification remains outstanding. Pete authorized a staging PR, merge after checks/Codex review clear, and then a PR to main.
+Preview is `https://localhost:3000`; the main release remains a separate merge decision.
+
 ## Homepage reference redesign — staging review
 
 Pete requested a desktop/mobile preview from the supplied September 12 homepage mockups,
