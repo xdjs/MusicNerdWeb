@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ArrowUpRight, Play } from 'lucide-react';
 import { latestDateLabel } from '@/lib/artistLatest';
@@ -38,10 +38,18 @@ function Artwork({ moment }: { moment: Moment }) {
  * is a read or a link out to In Process.
  */
 export default function TimelineCards({ moments, timelineUrl }: { moments: Moment[]; timelineUrl: string }) {
-    const [filter, setFilter] = useState<MomentKind | 'all'>('all');
+    const [selected, setSelected] = useState<MomentKind | 'all'>('all');
     const kinds = KIND_ORDER.filter(kind => moments.some(moment => moment.kind === kind));
+    // The component can outlive one artist's moments (client navigation between
+    // profiles); a kind that is no longer present falls back to All.
+    const filter = selected === 'all' || kinds.includes(selected) ? selected : 'all';
     const visible = moments.filter(moment => filter === 'all' || moment.kind === filter);
     const count = (kind: MomentKind | 'all') => kind === 'all' ? moments.length : moments.filter(moment => moment.kind === kind).length;
+    const galleryRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        // Each filter starts at its first moment, as the Latest gallery does.
+        if (galleryRef.current) galleryRef.current.scrollLeft = 0;
+    }, [filter, moments]);
 
     return <section id="mn-timeline" aria-labelledby="timeline-heading" className="glass space-y-3 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
@@ -57,13 +65,13 @@ export default function TimelineCards({ moments, timelineUrl }: { moments: Momen
 
         {kinds.length > 1 && <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" aria-label="Filter moments by type">
             {(['all', ...kinds] as const).map(kind =>
-                <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind)}
+                <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setSelected(kind)}
                     className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${filter === kind ? 'bg-pastypink text-black' : 'glass-subtle text-muted-foreground hover:text-foreground'}`}>
                     {kind === 'all' ? 'All' : MOMENT_KIND_LABELS[kind]} ({count(kind)})
                 </button>)}
         </div>}
 
-        <div role="region" aria-label="Moments" className="scrollbar-hide -mx-4 flex snap-x gap-2.5 overflow-x-auto px-4 py-0.5 sm:-mx-5 sm:gap-3 sm:px-5">
+        <div ref={galleryRef} role="region" aria-label="Moments" className="scrollbar-hide -mx-4 flex snap-x gap-2.5 overflow-x-auto px-4 py-0.5 sm:-mx-5 sm:gap-3 sm:px-5">
             {visible.map(moment =>
                 <a key={moment.id} href={moment.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${moment.title} on In Process`}
                     className="glass-subtle flex w-[220px] shrink-0 snap-start flex-col overflow-hidden transition-shadow hover:shadow-[0_0_30px_rgba(239,149,255,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink sm:w-[236px]">
