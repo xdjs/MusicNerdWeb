@@ -127,7 +127,7 @@
 :global(.dark) .footerCredit { color: #bfb9c3; }
 .stamp {
     position: fixed;
-    right: max(16px, env(safe-area-inset-right, 0px));
+    right: 20px;
     bottom: max(16px, env(safe-area-inset-bottom, 0px));
     z-index: 30;
     display: block;
@@ -209,7 +209,11 @@
         padding: 16px 140px;
     }
     .footerCredit { font-size: clamp(16px, 2.4dvh, 20px); }
-    .stamp { right: max(28px, env(safe-area-inset-right, 0px)); width: clamp(88px, 12dvh, 112px); }
+    /* Match the login control's right edge inside the centered 1120px header. */
+    .stamp {
+        right: max(28px, calc((100% - 1120px) / 2 + 28px));
+        width: clamp(88px, 12dvh, 112px);
+    }
 }
 @media (prefers-reduced-motion: reduce) {
     .activity :global(.animate-ping), .activity :global(.animate-fadeSlideIn) { animation: none; }
