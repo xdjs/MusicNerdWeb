@@ -4,18 +4,13 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { UrlMap } from "@/server/db/DbTypes";
 import { TIPS_BUTTON_LABEL } from "@/lib/linkSubmissionMessages";
-
-/** Wallet/ENS examples aren't link-paste targets. */
-export function isWalletExample(example: string | null | undefined): boolean {
-    if (!example) return false;
-    return /\b0x[0-9a-f]{6,}\b/i.test(example);
-}
+import { isLinkTarget } from "@/lib/isLinkTarget";
 
 export default function AddArtistDataOptions({ availableLinks, setOption }: { availableLinks: UrlMap[], setOption: (option: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const examplesId = useId();
     const sortedLinks = [...availableLinks]
-        .filter(link => !isWalletExample(link.example))
+        .filter(isLinkTarget)
         .sort((a, b) => (a.example || "").localeCompare(b.example || ""));
 
     return (

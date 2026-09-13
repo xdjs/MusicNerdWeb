@@ -420,23 +420,24 @@ describe('AddArtistData "+" trigger', () => {
 
 });
 
-describe('isWalletExample', () => {
-  // The helper that keeps "Example Wallet: 0x000000..." (and any other wallet-shaped
-  // entry from the urlmap) out of the "Supported links" dropdown.
-  // Eslint disable: the dynamic import keeps this independent from the modal's render path.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { isWalletExample } = require('@/app/artist/[id]/_components/AddArtistDataOptions');
+describe('isLinkTarget', () => {
+  // The pure rule lives in src/lib/isLinkTarget (own test file); this covers the picker
+  // that applies it. The old example-text match (any 0x address) also hid In Process,
+  // whose example is https://www.inprocess.world/0x1f8d…, so no artist could pick it.
 
-  it.each([
-    ['Example Wallet: 0x000000000000', true],
-    ['0xABCDEF1234', true],
-    ['Send to 0x1234abcd…', true],
-    ['https://ARTIST_NAME.bandcamp.com', false],
-    ['spotify.com/artist/…', false],
-    ['', false],
-    [null, false],
-    [undefined, false],
-  ])('isWalletExample(%p) → %p', (input, expected) => {
-    expect(isWalletExample(input)).toBe(expected);
+  it('lists the In Process example and hides wallet and ENS rows in the picker', () => {
+    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    render(<AddArtistData {...baseProps} availableLinks={[
+      { id: 'wallet', siteName: 'wallet', example: 'Example Wallet: 0x000000...' } as any,
+      { id: 'ens', siteName: 'ens', example: 'ARTIST_NAME.eth' } as any,
+      { id: 'inprocess', siteName: 'inprocess', example: 'https://www.inprocess.world/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91' } as any,
+      { id: 'bandcamp', siteName: 'bandcamp', example: 'https://ARTIST_NAME.bandcamp.com' } as any,
+    ]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add a link for Test Artist' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Supported links' }));
+    expect(screen.getByRole('button', { name: 'inprocess.world/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ARTIST_NAME.bandcamp.com' })).toBeInTheDocument();
+    expect(screen.queryByText(/Example Wallet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ARTIST_NAME\.eth/)).not.toBeInTheDocument();
   });
 });
