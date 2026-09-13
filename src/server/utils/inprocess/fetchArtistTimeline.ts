@@ -1,5 +1,5 @@
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
-import { extractInProcessAddress, normalizeMoment, type Moment, type RawTimelineMoment } from '@/lib/inprocessTimeline';
+import { extractInProcessAddress, inProcessProfileUrl, normalizeMoment, type Moment, type RawTimelineMoment } from '@/lib/inprocessTimeline';
 
 /**
  * An artist's In Process moments for the Timeline section.
@@ -22,7 +22,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const CACHE_SECONDS = 600;
 
 async function fetchTimelineDirect(address: string): Promise<Moment[]> {
-    const artistUrl = `https://www.inprocess.world/${address}`;
+    const artistUrl = inProcessProfileUrl(address);
     const url = `${TIMELINE_ENDPOINT}?artist=${encodeURIComponent(address)}&limit=${TIMELINE_LIMIT}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -59,11 +59,11 @@ async function fetchTimelineDirect(address: string): Promise<Moment[]> {
 const cachedTimeline = cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-timeline-v1'], { revalidate: CACHE_SECONDS });
 
 /**
- * Moments for the artist whose In Process profile URL is stored in `artists.inprocess`.
- * Returns [] for anything that is not an In Process profile URL.
+ * Moments for the artist whose In Process link is stored in `artists.inprocess` (the
+ * bare 0x address, or a full profile URL). Returns [] for anything else.
  */
-export async function fetchArtistTimeline(inprocessUrl: string | null | undefined): Promise<Moment[]> {
-    const address = extractInProcessAddress(inprocessUrl);
+export async function fetchArtistTimeline(inprocess: string | null | undefined): Promise<Moment[]> {
+    const address = extractInProcessAddress(inprocess);
     if (!address) return [];
     return cachedTimeline(address);
 }
