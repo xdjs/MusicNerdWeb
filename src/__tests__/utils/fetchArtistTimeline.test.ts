@@ -36,7 +36,7 @@ describe('fetchArtistTimeline', () => {
     });
 
     async function load() {
-        return (await import('@/server/utils/inprocess/fetchArtistTimeline')).fetchArtistTimeline;
+        return (await import('@/server/utils/fetchArtistTimeline')).fetchArtistTimeline;
     }
 
     it('calls the public timeline for the stored address and normalizes moments', async () => {
@@ -131,7 +131,7 @@ describe('fetchArtistTimeline', () => {
                 return value;
             };
         }) }));
-        const fetchArtistTimeline = (await import('@/server/utils/inprocess/fetchArtistTimeline')).fetchArtistTimeline;
+        const fetchArtistTimeline = (await import('@/server/utils/fetchArtistTimeline')).fetchArtistTimeline;
         fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'upstream hiccup' }, 502));
         expect(await fetchArtistTimeline(ARTIST)).toEqual([]);
         fetchMock.mockResolvedValueOnce(jsonResponse({ status: 'success', moments: [moment('1')] }));

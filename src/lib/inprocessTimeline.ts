@@ -1,6 +1,6 @@
 /**
  * In Process timeline: types and pure helpers shared by the server fetcher and
- * the Timeline section. No I/O here; see server/utils/inprocess/fetchArtistTimeline.ts.
+ * the Timeline section. No I/O here; see server/utils/fetchArtistTimeline.ts.
  *
  * Tracking issue: xdjs/MusicNerdWeb#1228. Design record:
  * docs/rnd/design/2026-09-10-timeline-section/.
