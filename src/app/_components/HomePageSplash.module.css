@@ -116,7 +116,7 @@
     margin: auto auto 0;
     width: 100%;
     max-width: 1120px;
-    padding: 16px 20px 24px;
+    padding: 16px 20px calc(96px + env(safe-area-inset-bottom, 0px));
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -125,7 +125,16 @@
 .footerCredit { color: #787878; font-size: 14px; font-weight: 700; text-align: center; letter-spacing: -.035em; }
 .footerCredit a { text-underline-offset: 3px; }
 :global(.dark) .footerCredit { color: #bfb9c3; }
-.stamp { display: block; width: 88px; height: auto; }
+.stamp {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    display: block;
+    width: 88px;
+    height: auto;
+    pointer-events: none;
+}
 .searchEmpty {
     position: absolute;
     z-index: 50;
@@ -200,7 +209,7 @@
         padding: 16px 140px;
     }
     .footerCredit { font-size: clamp(16px, 2.4dvh, 20px); }
-    .stamp { position: absolute; bottom: 16px; right: 28px; width: clamp(88px, 12dvh, 112px); }
+    .stamp { right: max(28px, env(safe-area-inset-right, 0px)); width: clamp(88px, 12dvh, 112px); }
 }
 @media (prefers-reduced-motion: reduce) {
     .activity :global(.animate-ping), .activity :global(.animate-fadeSlideIn) { animation: none; }
