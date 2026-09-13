@@ -1,5 +1,5 @@
 import { extractInProcessAddress, inProcessProfileUrl } from '@/lib/inprocessTimeline';
-import { fetchArtistTimeline } from '@/server/utils/inprocess/fetchArtistTimeline';
+import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
 import TimelineCards from './TimelineCards';
 
 /**
