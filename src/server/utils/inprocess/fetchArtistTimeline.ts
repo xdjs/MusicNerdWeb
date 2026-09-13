@@ -24,36 +24,42 @@ const CACHE_SECONDS = 600;
 async function fetchTimelineDirect(address: string): Promise<Moment[]> {
     const artistUrl = inProcessProfileUrl(address);
     const url = `${TIMELINE_ENDPOINT}?artist=${encodeURIComponent(address)}&limit=${TIMELINE_LIMIT}`;
+    // One deadline covers the headers and the body: a slow body read is as much a
+    // hang as a slow connect, so the timer stays armed until the JSON is in.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let response: Response;
     try {
-        response = await fetch(url, { headers: { accept: 'application/json' }, signal: controller.signal });
-    } catch (e) {
-        console.error(`[inprocess] timeline request failed for ${address}:`, e instanceof Error ? e.message : e);
-        return [];
+        let response: Response;
+        try {
+            response = await fetch(url, { headers: { accept: 'application/json' }, signal: controller.signal });
+        } catch (e) {
+            console.error(`[inprocess] timeline request failed for ${address}:`, e instanceof Error ? e.message : e);
+            return [];
+        }
+        if (!response.ok) {
+            const detail = await response.text().catch(() => '');
+            console.error(`[inprocess] timeline HTTP ${response.status} for ${address}: ${detail.slice(0, 200)}`);
+            return [];
+        }
+        let body: { moments?: unknown };
+        try {
+            body = await response.json();
+        } catch (e) {
+            console.error(`[inprocess] timeline returned unparseable JSON for ${address}:`, e);
+            return [];
+        }
+        if (!Array.isArray(body?.moments)) {
+            console.error(`[inprocess] timeline response had no moments array for ${address}`);
+            return [];
+        }
+        return body.moments
+            // A null or non-object entry must not take the whole timeline down.
+            .filter((raw): raw is RawTimelineMoment => typeof raw === 'object' && raw !== null)
+            .map(raw => normalizeMoment(raw, address, artistUrl))
+            .filter((moment): moment is Moment => moment !== null);
     } finally {
         clearTimeout(timer);
     }
-    if (!response.ok) {
-        const detail = await response.text().catch(() => '');
-        console.error(`[inprocess] timeline HTTP ${response.status} for ${address}: ${detail.slice(0, 200)}`);
-        return [];
-    }
-    let body: { moments?: unknown };
-    try {
-        body = await response.json();
-    } catch (e) {
-        console.error(`[inprocess] timeline returned unparseable JSON for ${address}:`, e);
-        return [];
-    }
-    if (!Array.isArray(body?.moments)) {
-        console.error(`[inprocess] timeline response had no moments array for ${address}`);
-        return [];
-    }
-    return (body.moments as RawTimelineMoment[])
-        .map(raw => normalizeMoment(raw, address, artistUrl))
-        .filter((moment): moment is Moment => moment !== null);
 }
 
 const cachedTimeline = cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-timeline-v1'], { revalidate: CACHE_SECONDS });
@@ -65,5 +71,11 @@ const cachedTimeline = cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-ti
 export async function fetchArtistTimeline(inprocess: string | null | undefined): Promise<Moment[]> {
     const address = extractInProcessAddress(inprocess);
     if (!address) return [];
-    return cachedTimeline(address);
+    try {
+        return await cachedTimeline(address);
+    } catch (e) {
+        // The fetch itself never throws; this is the cache layer. Same contract: log, empty.
+        console.error(`[inprocess] timeline cache failed for ${address}:`, e instanceof Error ? e.message : e);
+        return [];
+    }
 }

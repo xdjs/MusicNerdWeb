@@ -90,6 +90,43 @@ describe('fetchArtistTimeline', () => {
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('unparseable JSON'), expect.any(Error));
     });
 
+    it('skips null and non-object entries instead of throwing', async () => {
+        fetchMock.mockResolvedValue(jsonResponse({ status: 'success', moments: [null, 'x', 7, moment('1')] }));
+        expect(await (await load())(ARTIST)).toHaveLength(1);
+        expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps the deadline armed while the body is read', async () => {
+        jest.useFakeTimers();
+        try {
+            let signal: AbortSignal | undefined;
+            fetchMock.mockImplementation(async (_url, init) => {
+                signal = (init as RequestInit).signal as AbortSignal;
+                return { ok: true, status: 200, text: async () => '', json: () => new Promise((_resolve, reject) => {
+                    signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+                }) } as unknown as Response;
+            });
+            const pending = (await load())(ARTIST);
+            await Promise.resolve();
+            expect(signal?.aborted).toBe(false);
+            jest.advanceTimersByTime(10_001);
+            expect(signal?.aborted).toBe(true);
+            expect(await pending).toEqual([]);
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('unparseable JSON'), expect.anything());
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    it('returns [] and logs when the cache layer throws', async () => {
+        jest.resetModules();
+        jest.doMock('next/cache', () => ({ unstable_cache: jest.fn(() => async () => { throw new Error('cache down'); }) }));
+        expect(await (await load())(ARTIST)).toEqual([]);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('cache failed'), 'cache down');
+        jest.dontMock('next/cache');
+        jest.resetModules();
+    });
+
     it('returns [] for an empty timeline without logging', async () => {
         fetchMock.mockResolvedValue(jsonResponse({ status: 'success', moments: [] }));
         expect(await (await load())(ARTIST_URL)).toEqual([]);
