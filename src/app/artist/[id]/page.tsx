@@ -232,7 +232,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 {/* In Process moments, read-only. Only for artists with an In Process link; the
                     section renders nothing when the timeline is empty or In Process is down. */}
                 {artist.inprocess && <Suspense fallback={<section id="mn-timeline" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Timeline</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading moments…</p></section>}>
-                    <TimelineSection inprocessUrl={artist.inprocess} />
+                    <TimelineSection inprocess={artist.inprocess} />
                 </Suspense>}
 
                 {/* Listening, social and support links share one destination. */}
