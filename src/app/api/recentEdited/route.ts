@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { customImageUrl } from "@/lib/artistImage";
+import { customImageUrl } from "@/lib/artist/artistImage";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
 import { ugcresearch, artists } from "@/server/db/schema";

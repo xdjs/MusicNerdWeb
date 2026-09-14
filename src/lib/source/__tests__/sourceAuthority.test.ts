@@ -5,7 +5,7 @@
  * what an artist should see first. The blocked-host cases are the exception:
  * those never reach the vault at all.
  */
-import { sourceAuthority, byAuthority, AUTHORITY, isBlockedSourceHost, sourceTier } from "@/lib/sourceAuthority";
+import { sourceAuthority, byAuthority, AUTHORITY, isBlockedSourceHost, sourceTier } from "@/lib/source/sourceAuthority";
 
 describe("sourceAuthority", () => {
     it("puts a credits database above an aggregator profile", () => {

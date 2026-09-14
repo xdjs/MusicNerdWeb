@@ -1,5 +1,5 @@
-import { momentToLatestItem } from '@/lib/momentToLatestItem';
-import type { Moment } from '@/lib/inprocessTimeline';
+import { momentToLatestItem } from '@/lib/artist/momentToLatestItem';
+import type { Moment } from '@/lib/inprocess/inprocessTimeline';
 
 const moment: Moment = {
     id: 'a04b2285-fd7a-4159-a59d-bf1f4348cc6d',

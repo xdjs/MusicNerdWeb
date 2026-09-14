@@ -1,4 +1,4 @@
-import { momentUrl } from '@/lib/momentUrl';
+import { momentUrl } from '@/lib/inprocess/momentUrl';
 
 const ARTIST_URL = 'https://www.inprocess.world/0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
 

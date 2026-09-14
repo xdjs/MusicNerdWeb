@@ -5,7 +5,7 @@ import { generateArtistBio } from "@/server/utils/queries/artistBioQuery";
 import { requireArtistEditor } from "@/lib/auth-helpers";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import type { ArtistWriteAuth } from '@/server/utils/queries/ownershipWrites';
-import { MAX_BIO_LENGTH, ABOUT_EMPTY_STATE, isRealBio, isAboutEmptyState } from "@/lib/bioConstants";
+import { MAX_BIO_LENGTH, ABOUT_EMPTY_STATE, isRealBio, isAboutEmptyState } from "@/lib/bio/bioConstants";
 
 // This route reads from the DB (getArtistById + the self-heal vault lookup); force dynamic
 // so Next.js never statically caches the response at build time (per CLAUDE.md convention).

@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artistLatest';
-import { MOMENT_KIND_LABELS } from '@/lib/inprocessTimeline';
+import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artist/artistLatest';
+import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
-import type { ProfileLink } from '@/lib/artistProfileLinks';
-import { releaseListeningLinks } from '@/lib/releaseListeningLinks';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
+import { releaseListeningLinks } from '@/lib/artist/releaseListeningLinks';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
 

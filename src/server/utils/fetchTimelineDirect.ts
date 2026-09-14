@@ -1,6 +1,6 @@
-import { inProcessProfileUrl } from '@/lib/inProcessProfileUrl';
-import { normalizeMoment } from '@/lib/normalizeMoment';
-import type { Moment, RawTimelineMoment } from '@/lib/inprocessTimeline';
+import { inProcessProfileUrl } from '@/lib/inprocess/inProcessProfileUrl';
+import { normalizeMoment } from '@/lib/inprocess/normalizeMoment';
+import type { Moment, RawTimelineMoment } from '@/lib/inprocess/inprocessTimeline';
 import { unavailable } from '@/server/utils/unavailable';
 
 const TIMELINE_ENDPOINT = 'https://api.inprocess.world/api/timeline';

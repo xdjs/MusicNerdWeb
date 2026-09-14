@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
-import { ABOUT_EMPTY_STATE } from "@/lib/bioConstants";
+import { ABOUT_EMPTY_STATE } from "@/lib/bio/bioConstants";
 
 // Polyfill Response.json (JSDOM doesn't have it)
 if (!('json' in Response)) {

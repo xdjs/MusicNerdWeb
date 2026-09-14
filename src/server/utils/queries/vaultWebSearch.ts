@@ -1,6 +1,6 @@
 import { insertVaultSource, getVaultSourcesByArtistId } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
-import { SOURCE_TYPES, inferTypeFromUrl, type SourceType } from "@/lib/sourceTypes";
+import { SOURCE_TYPES, inferTypeFromUrl, type SourceType } from "@/lib/source/sourceTypes";
 import { fetchPageContent, isUnsafeUrl, OUTBOUND_LINK_CAP, type PageContent } from "@/server/utils/fetchPageContent";
 import { classifyFetchedSource, isGroundingRedirect, nameAppearsIn } from "@/server/utils/sourceVerification";
 import { webSearch } from "@/server/utils/webSearch";
@@ -9,7 +9,7 @@ import { extractArtistId } from "@/server/utils/services";
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { isReservedHandle } from "@/lib/platformHandles";
-import { isBlockedSourceHost } from "@/lib/sourceAuthority";
+import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { setArtistLink } from "@/server/utils/artistLinkService";
 import {
     PROFILE_LINK_COLUMNS, PLATFORM_DOMAINS, IDENTITY_ANCHOR_COLUMNS,

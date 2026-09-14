@@ -62,7 +62,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
         expect(tx.execute).toHaveBeenCalledTimes(2); // row lock + preserve current bio
         const { PgDialect } = require('drizzle-orm/pg-core');
-        const { ABOUT_EMPTY_STATE } = require('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = require('@/lib/bio/bioConstants');
         const preservation = new PgDialect().sqlToQuery(tx.execute.mock.calls[1][0]);
         expect(preservation.params).toContain(ABOUT_EMPTY_STATE);
         expect(preservation.sql).toContain('btrim(bio');

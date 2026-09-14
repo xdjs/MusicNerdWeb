@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import LatestCards from '../LatestCards';
-import type { ArtistLatestItem } from '@/lib/artistLatest';
+import type { ArtistLatestItem } from '@/lib/artist/artistLatest';
 
 const release: ArtistLatestItem = { id: 'release:1', kind: 'release', title: 'New record', text: 'Single by Test Artist', date: '2026-08', imageUrl: 'https://cdn.example.com/cover.jpg', imageCaption: 'New record artwork', sourceUrl: 'https://www.deezer.com/album/123', sourceLabel: 'Listen on Deezer' };
 const moment: ArtistLatestItem = { id: 'moment:1', kind: 'moment', momentKind: 'video', title: 'studio session 09', text: 'If you watch the full 15 minutes, you’ll recognize the visual theme.\n\n- Dutchyyy', date: '2026-09-09T13:08:00+00:00', imageUrl: 'https://arweave.net/abc', imageCaption: 'studio session 09 artwork', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' };

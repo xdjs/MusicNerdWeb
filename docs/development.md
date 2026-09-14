@@ -53,6 +53,12 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Authorization:** `src/lib/auth-helpers.ts` provides `requireAuth`, `requireAdmin`, and
   `requireWhitelistedOrAdmin`. Artist edits additionally require the existing ownership guard.
   Admin checks must use the live role, not only a stale session claim.
+- **Shared logic layout:** `src/lib` is pure shared logic with no I/O, one exported function
+  per file named after it, with its test beside the other tests of its folder. Files are grouped
+  by domain once a domain has two or more of them (`src/lib/artist/`, `bio/`, `source/`,
+  `inprocess/`); a domain with one file stays flat until a second joins it, and there are no
+  barrel `index.ts` files. `src/server/utils` is server I/O under the same grouping rule
+  (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<function>`.
 - **Source-backed research:** `socialIngest.ts` stores posts; `researchRunner.ts` advances
   `artist_research_jobs` through ingest/extraction slices, with persistence in
   `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.

@@ -1,6 +1,6 @@
 import type { Artist } from '@/server/db/DbTypes';
 import type { ArtistLink } from '@/server/utils/queries/artistQueries';
-import { latestExternalUrl } from '@/lib/artistLatest';
+import { latestExternalUrl } from '@/lib/artist/artistLatest';
 
 export type LinkSection = 'links' | 'support';
 export type ArtistLinkOrder = Partial<Record<LinkSection, string[]>>;

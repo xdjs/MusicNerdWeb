@@ -4,7 +4,7 @@ import type { Artist } from '@/server/db/DbTypes';
 import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
 import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
 import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
-import { orderLatestItems, latestDateLabel, latestExternalUrl, instagramPostImage } from '@/lib/artistLatest';
+import { orderLatestItems, latestDateLabel, latestExternalUrl, instagramPostImage } from '@/lib/artist/artistLatest';
 
 jest.mock('@/server/utils/musicPlatform/latestReleases', () => ({ getLatestArtistReleases: jest.fn() }));
 jest.mock('@/server/utils/questionGenerator', () => ({ sourceUrlsForQuestionKeys: jest.fn() }));
