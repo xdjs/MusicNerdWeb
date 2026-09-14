@@ -1,4 +1,4 @@
-import type { MomentKind } from '@/lib/inprocessTimeline';
+import type { MomentKind } from '@/lib/inprocess/inprocessTimeline';
 
 /** Content type → the badge kind on the card. */
 export function momentKind(mime: string | null | undefined): MomentKind {

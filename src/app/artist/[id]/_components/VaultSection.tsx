@@ -10,22 +10,24 @@ import type { ArtistVaultSource } from "@/server/db/DbTypes";
 
 interface VaultSectionProps {
   children?: ReactNode;
-  summary?: string | null;
   artistId: string;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
 }
 
-export default function VaultSection({ artistId, pendingSources, approvedSources, children, summary }: VaultSectionProps) {
+export default function VaultSection({ artistId, pendingSources, approvedSources, children }: VaultSectionProps) {
   const { isEditing, canEdit } = useContext(EditModeContext);
 
   return (
     <RevealSection className="glass p-4 sm:p-5 space-y-5">
-      <h2 className="text-black dark:text-white text-xl font-bold">Lore</h2>
+      <div className="space-y-2">
+        <h2 className="text-black dark:text-white text-xl font-bold">Lore</h2>
+        <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Stories, interviews, and other sources curated by the artist.</p>
+      </div>
       <div id="mn-sources" className="space-y-3">
       {/* Public carousel only outside edit mode; VaultManager owns the approved
           list while editing (its own optimistic state) to avoid a stale-card flash. */}
-      {!isEditing && <PressAndFeatures sources={approvedSources} summary={summary} />}
+      {!isEditing && <PressAndFeatures sources={approvedSources} />}
       {canEdit && isEditing && (
         <><VaultManager artistId={artistId} pendingSources={pendingSources} approvedSources={approvedSources} />
         <div className="border-t border-black/10 pt-4 dark:border-white/10"><h3 className="mb-2 text-sm font-medium text-black dark:text-white">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></div></>

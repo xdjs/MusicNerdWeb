@@ -2,7 +2,7 @@ import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { getArtistDocContext } from "@/server/utils/artistDocService";
-import { byAuthority, isBlockedSourceHost } from "@/lib/sourceAuthority";
+import { byAuthority, isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { selectPassages } from "@/server/utils/passageSelect";
 import { getSocialCredits } from "@/server/utils/queries/socialCreditQueries";
 import { getRecentOwnPosts } from "@/server/utils/socialIngest";
@@ -35,7 +35,7 @@ const MAX_INTERVIEW_IN_CONTEXT = 12;
 /** The fallback runs only when we already failed, so it gets what is left of
  *  a reader's patience. */
 const GROUNDED_TIMEOUT_MS = 15_000;
-import { isRealBio } from "@/lib/bioConstants";
+import { isRealBio } from "@/lib/bio/bioConstants";
 
 // PUBLIC ENDPOINT — intentionally unauthenticated (rate-limited via middleware STRICT tier).
 //

@@ -63,7 +63,7 @@ describe('persistArtistBio', () => {
         expect(values.mock.invocationCallOrder[1]).toBeLessThan(set.mock.invocationCallOrder[0]);
     });
     it('caches the no-context placeholder without creating a saved bio', async () => {
-        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const { persistArtistBio, set, values } = await setup({ bio: null });
         await persistArtistBio('a1', ABOUT_EMPTY_STATE, { generated: true, expectedBio: null });
         expect(values).not.toHaveBeenCalled();
@@ -106,7 +106,7 @@ describe('persistArtistBio', () => {
         expect(values).not.toHaveBeenCalled();
     });
     it.each(['placeholder', 'whitespace'])('does not snapshot an old %s when publishing a real bio', async kind => {
-        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const bio = kind === 'placeholder' ? ` ${ABOUT_EMPTY_STATE} ` : '   ';
         const { persistArtistBio, values } = await setup({ bio });
         await persistArtistBio('a1', 'Real artist bio', { generated: true, expectedBio: bio });

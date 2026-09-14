@@ -6,7 +6,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import RevealSection from "./RevealSection";
 import { useResearchPump } from "./onboarding/useResearchPump";
 import { getKnowledgeDoc, correctDocClaim, undoDocCorrection } from "@/app/actions/dashboardActions";
-import { parseDocClaims, countClaims, claimKey, type DocSection } from "@/lib/docClaims";
+import { parseDocClaims, countClaims, claimKey, type DocSection } from "@/lib/source/docClaims";
 
 type DocSource = { id: number; kind: string; label?: string; url?: string; publishedAt?: string | null };
 type Correction = { id: string; claim: string; correction: string | null; kind: string };

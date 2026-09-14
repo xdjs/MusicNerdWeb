@@ -26,10 +26,10 @@ import { getDocCorrections } from "@/server/utils/queries/docCorrectionQueries";
 import { getSocialPostsForArtist } from "@/server/utils/socialIngest";
 import { deriveSocialSignals } from "@/server/utils/socialSignals";
 import { creditedCollaborators, selfCredits } from "@/server/utils/socialCredits";
-import { byAuthority } from "@/lib/sourceAuthority";
+import { byAuthority } from "@/lib/source/sourceAuthority";
 import { getSocialCredits } from "@/server/utils/queries/socialCreditQueries";
-import { MAX_BIO_LENGTH, ARTIST_DOC_MAX_CHARS, ARTIST_DOC_CONTEXT_CAP, ABOUT_LENGTH_RULE, ABOUT_STOP_RULE, ABOUT_OPENING_RULE } from "@/lib/bioConstants";
-import { loreSourceKey, type LoreSummary } from "@/lib/loreSummary";
+import { MAX_BIO_LENGTH, ARTIST_DOC_MAX_CHARS, ARTIST_DOC_CONTEXT_CAP, ABOUT_LENGTH_RULE, ABOUT_STOP_RULE, ABOUT_OPENING_RULE } from "@/lib/bio/bioConstants";
+import { loreSourceKey, type LoreSummary } from "@/lib/source/loreSummary";
 import { isCitableSource } from "@/server/utils/sourceVerification";
 
 export { ARTIST_DOC_MAX_CHARS, ARTIST_DOC_CONTEXT_CAP };

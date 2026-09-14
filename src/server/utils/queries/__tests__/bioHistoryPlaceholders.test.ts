@@ -7,7 +7,7 @@ describe('bio history placeholder exclusions', () => {
     beforeEach(() => jest.resetModules());
     it('pinning history does not snapshot the public empty-state prompt', async () => {
         const { db } = await import('@/server/db/drizzle');
-        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const pinned = { id: 'v1', bioText: 'Real saved bio' };
         const where = jest.fn(() => ({ returning: jest.fn().mockResolvedValue([pinned]) }));
         const tx = { execute: jest.fn().mockResolvedValue([]),
@@ -22,7 +22,7 @@ describe('bio history placeholder exclusions', () => {
     it('explicit save rejects the empty-state prompt instead of consuming history capacity', async () => {
         const { db } = await import('@/server/db/drizzle');
         db.transaction = jest.fn();
-        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const { saveBioVersion } = await import('../dashboardQueries');
         await expect(saveBioVersion('a1', ABOUT_EMPTY_STATE, auth)).rejects.toThrow('Write a bio');
         expect(db.transaction).not.toHaveBeenCalled();

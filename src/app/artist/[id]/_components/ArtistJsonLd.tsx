@@ -1,7 +1,7 @@
 import { Artist } from "@/server/db/DbTypes";
-import { absoluteImageUrl } from "@/lib/artistImage";
+import { absoluteImageUrl } from "@/lib/artist/artistImage";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
-import { isRealBio } from "@/lib/bioConstants";
+import { isRealBio } from "@/lib/bio/bioConstants";
 
 /**
  * The page, said in a way a machine can read.

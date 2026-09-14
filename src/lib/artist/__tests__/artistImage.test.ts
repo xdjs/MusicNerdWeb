@@ -1,4 +1,4 @@
-import { absoluteImageUrl, customImageUrl } from '@/lib/artistImage';
+import { absoluteImageUrl, customImageUrl } from '@/lib/artist/artistImage';
 
 describe('customImageUrl', () => {
     it('returns null when the artist has not set one', () => {

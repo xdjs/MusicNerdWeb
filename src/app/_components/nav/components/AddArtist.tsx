@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { Plus } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import DuplicateArtistChoice from "@/app/_components/DuplicateArtistChoice";
-import { parseSupportedArtistUrl } from "@/lib/artistProfileUrl";
+import { parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 
 const formSchema = z.object({
     artistUrl: z.string().refine(

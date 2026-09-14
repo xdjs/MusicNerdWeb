@@ -67,6 +67,20 @@ Never remove coverage/checks just to make a failure green.
 Report what passed, failed, or remained unverified; separate blockers from optional improvements.
 Stop once agreed scope is implemented and sufficiently verified.
 
+## Issue tracking
+
+Before implementing a fix, feature, or substantive investigation, find the existing GitHub
+issue that owns the problem; create a focused issue if none exists. Record the observable
+problem and completion criteria, and reuse related issues instead of making duplicates.
+Every PR must link its owning issue(s) in the description. Use `Refs #123` for partial work
+and `Fixes #123` only when the PR completes the issue; verify closure after the appropriate
+merge because staging PRs may not auto-close issues. Keep unresolved follow-ups explicit.
+When consolidating old issues, preserve their history and link retained work to its replacement
+issue. Work explicitly deferred or declined by the user may remain in the archive with its
+reason and original issue link, without an open replacement. An archival closure is not evidence
+that a defect was fixed; find or create an owning issue before resuming archived work. This rule
+applies to Codex, Claude, and all other assistants through this canonical guide and AGENTS.md.
+
 ## Git, documentation and releases
 
 Feature branch off `staging` → PR to `staging` → release PR from `staging` to `main`.
@@ -85,6 +99,12 @@ diary or a second task tracker. Update it for material state/priority changes, l
 and distinguish locally implemented from shipped. Don't create releases solely to move handoffs.
 
 ## Skills
+
+Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
+and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
+and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
+a documented-vs-observed matrix and captures on the PR, `staging` → release → `main`). Read it
+before writing or updating an issue, opening a PR, or preview-testing one.
 
 Read the available relevant skill before using it: Next.js/React for UI and server boundaries;
 Supabase/Postgres for database work; browser verification for UI flows; deployment/observability

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
     buildCanonicalArtistUrl,
     type SupportedArtistPlatform,
-} from "@/lib/artistProfileUrl";
+} from "@/lib/artist/artistProfileUrl";
 
 export type DuplicateArtistCandidate = {
     id: string;

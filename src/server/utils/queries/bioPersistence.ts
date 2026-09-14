@@ -1,8 +1,8 @@
 import { db } from '@/server/db/drizzle';
 import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { isRealBio } from '@/lib/bioConstants';
-import { BioConflictError } from '@/lib/bioConflict';
+import { isRealBio } from '@/lib/bio/bioConstants';
+import { BioConflictError } from '@/lib/bio/bioConflict';
 import { authorizeLockedArtistWrite, OwnershipChangedError } from './ownershipWrites';
 
 export type BioWriteOwnership = { expectedClaimId: string | null; userId?: string };

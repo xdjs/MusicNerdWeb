@@ -25,7 +25,7 @@ const NoWalletLogin: React.FC<LoginProps> = ({ buttonStyles }) => {
                         href="/admin"
                         title="Admin panel"
                         aria-label="Admin panel"
-                        className={`flex items-center justify-center w-10 h-10 rounded-lg bg-pastypink hover:bg-pastypink/80 transition-colors duration-300 text-white ${buttonStyles}`}
+                        className={`flex items-center justify-center w-10 h-10 rounded-lg bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 text-white ${buttonStyles}`}
                     >
                         <Settings size={18} />
                     </Link>

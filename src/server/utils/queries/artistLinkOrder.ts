@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { artists } from '@/server/db/schema';
 import { withScopedArtistWrite } from './ownershipWrites';
-import type { LinkSection } from '@/lib/artistProfileLinks';
+import type { LinkSection } from '@/lib/artist/artistProfileLinks';
 
 /** The artist lock also serializes saves in the two link groups. */
 export async function saveArtistLinkOrder(artistId: string, section: LinkSection, order: string[]) {

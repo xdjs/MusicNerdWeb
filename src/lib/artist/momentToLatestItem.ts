@@ -1,5 +1,5 @@
-import type { ArtistLatestItem } from '@/lib/artistLatest';
-import { MOMENT_KIND_LABELS, type Moment } from '@/lib/inprocessTimeline';
+import type { ArtistLatestItem } from '@/lib/artist/artistLatest';
+import { MOMENT_KIND_LABELS, type Moment } from '@/lib/inprocess/inprocessTimeline';
 
 /** An In Process moment as a Latest card: the artist's description is the text (the media type when they wrote none), the moment's own page is its source, and the media type rides along for the badge. */
 export function momentToLatestItem(moment: Moment): ArtistLatestItem {

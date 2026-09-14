@@ -1,4 +1,4 @@
-import type { LoreSummary } from '@/lib/loreSummary';
+import type { LoreSummary } from '@/lib/source/loreSummary';
 import { db } from '@/server/db/drizzle';
 import { artistClaims, artistDocs, artistResearchJobs } from '@/server/db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';

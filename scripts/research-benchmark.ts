@@ -23,7 +23,7 @@
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import { isBlockedSourceHost } from "../src/lib/sourceAuthority";
+import { isBlockedSourceHost } from "../src/lib/source/sourceAuthority";
 dotenv.config({ path: ".env.local" });
 
 const PROD_REF = "cbabvmebugudeuylronz";

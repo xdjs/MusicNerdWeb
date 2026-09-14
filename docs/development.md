@@ -46,6 +46,13 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Queries:** server actions in `src/app/actions/` and handlers in `src/app/api/` delegate
   business logic to `src/server/utils/queries/`. Shared model types are in
   `src/server/db/DbTypes.ts`; Drizzle schema/client are beside them.
+- **Artist search:** `searchForArtistByName` matches both spaced queries and their
+  compact form against `artists.lcname`: older records can store `peterango` while
+  newer records preserve spaces. Both count as substring matches before fuzzy ranking
+  and the ten-result limit, so `pete ra` can return the existing Pete Rango profile.
+  The combined search route then applies its existing external-result deduplication.
+  This compatibility read changes no stored names, provider identities or artist records;
+  the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
 - **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
   `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
   `src/app/_components/nav/components/`. Legacy wallets can be linked with `mergeAccounts()`;
@@ -53,6 +60,15 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Authorization:** `src/lib/auth-helpers.ts` provides `requireAuth`, `requireAdmin`, and
   `requireWhitelistedOrAdmin`. Artist edits additionally require the existing ownership guard.
   Admin checks must use the live role, not only a stale session claim.
+- **Shared logic layout:** `src/lib` is pure shared logic with no I/O. Files are grouped by
+  domain once a domain has two or more of them (`src/lib/artist/`, `bio/`, `source/`,
+  `inprocess/`); a domain with one file stays flat until a second joins it, and there are no
+  barrel `index.ts` files. New modules export one function each, named after it, with the
+  test beside the folder's other tests (`inprocess/` is the model). Older multi-export modules
+  (`artist/artistLatest.ts`, `artist/artistProfileLinks.ts`, `source/sourceAuthority.ts`, the
+  `bio/` files) predate that rule and keep their exports until they are next changed; split
+  them then, not in a move. `src/server/utils` is server I/O under the same grouping rule
+  (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<module>`.
 - **Source-backed research:** `socialIngest.ts` stores posts; `researchRunner.ts` advances
   `artist_research_jobs` through ingest/extraction slices, with persistence in
   `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.
@@ -180,3 +196,15 @@ Do not copy permissive policies without confirming the feature's security model.
 `db:generate`, `db:push`, `db:migrate`, `db:studio` exist, but a script's existence is not
 permission to run schema writes. See the [production runbook](rnd/prod-migration-runbook-2026-09-02.md)
 and [prior RLS incident](db-fixes/2026-07-27-prod-rls-fix.md) when doing migration work.
+
+## Lore explanation and account color
+
+September 14, 2026 — Pete approved the fixed Lore introduction: “Stories, interviews,
+and other sources curated by the artist.” It appears under the heading before filters,
+including the empty state. The public page no longer reads the generated Lore summary
+for this introduction; source cards, moderation and stored summaries remain unchanged.
+
+Login/account controls use `highlightpink` (`#ff75d8`), shared with highlighted homepage
+words, including the loading state and a pink hover treatment. The homepage border accent
+uses `brandpink` (`#ff9ce3`); existing artist-page `pastypink` is unchanged.
+Tracked in [#1255](https://github.com/xdjs/MusicNerdWeb/issues/1255).

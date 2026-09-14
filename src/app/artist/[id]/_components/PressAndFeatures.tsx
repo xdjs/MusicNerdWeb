@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
+import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface VaultSource {
@@ -15,7 +15,6 @@ interface VaultSource {
 
 interface PressAndFeaturesProps {
     sources: VaultSource[];
-    summary?: string | null;
 }
 
 function getSourceDomain(url: string): string {
@@ -123,7 +122,7 @@ function SourceCard({ source }: { source: VaultSource }) {
     );
 }
 
-export default function PressAndFeatures({ sources: allSources, summary }: PressAndFeaturesProps) {
+export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
     const sources = allSources.filter((s) => s.type !== "website");
@@ -195,8 +194,6 @@ export default function PressAndFeatures({ sources: allSources, summary }: Press
                     })}
                 </div>
             )}
-
-            {summary && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{summary}</p>}
 
             {/* Carousel */}
             <div className="relative group/carousel">

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { parseDocClaims, countClaims, claimKey, MAX_CLAIM_CHARS } from "@/lib/docClaims";
+import { parseDocClaims, countClaims, claimKey, MAX_CLAIM_CHARS } from "@/lib/source/docClaims";
 
 const DOC = `# PETE RANGO - Artist Knowledge Document
 

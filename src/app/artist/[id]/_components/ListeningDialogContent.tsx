@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import ListeningLinks from './ListeningLinks';
 
 /** The same compact service picker for an artist or a specific release. */

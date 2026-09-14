@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import BlurbSection from "./BlurbSection";
 import ListenPicker from "./ListenPicker";
-import type { ProfileLink } from "@/lib/artistProfileLinks";
+import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeroSectionProps {

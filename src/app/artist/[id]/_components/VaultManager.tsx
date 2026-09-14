@@ -16,7 +16,7 @@ import {
   addVaultSource,
   searchWebForSources,
 } from "@/app/actions/dashboardActions";
-import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
+import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
 

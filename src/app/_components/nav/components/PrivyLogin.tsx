@@ -360,7 +360,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     if (!ready || isLoggingIn) {
       return (
         <Button
-          className="bg-pastypink animate-pulse w-12 h-12 px-0"
+          className="bg-highlightpink animate-pulse w-12 h-12 px-0"
           size="lg"
           type="button"
           disabled
@@ -380,10 +380,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               id="login-btn"
               size="lg"
               type="button"
-              className={`hover:bg-gray-200 transition-colors duration-300 text-white px-0 w-12 h-12 bg-pastypink ${buttonStyles}`}
+              className={`hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
               onClick={handleLogin}
             >
-              <LogIn color="white" size={20} />
+              <LogIn size={20} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={10} collisionPadding={12} className={accountMenuClass}>
@@ -417,7 +417,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               aria-label="Account menu"
               type="button"
               size="lg"
-              className="relative bg-pastypink hover:bg-pastypink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
+              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
             >
               <div className="w-8 h-8 rounded-full overflow-hidden">
                 <img

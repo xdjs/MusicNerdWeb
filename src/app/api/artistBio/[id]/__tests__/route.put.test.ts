@@ -44,7 +44,7 @@ describe('PUT /api/artistBio/[id]', () => {
   it('rejects a bio that exceeds the character cap with a 400', async () => {
     const { requireArtistEditor } = await import('@/lib/auth-helpers');
     const aq = await import('@/server/utils/queries/artistQueries');
-    const { MAX_BIO_LENGTH } = await import('@/lib/bioConstants');
+    const { MAX_BIO_LENGTH } = await import('@/lib/bio/bioConstants');
     (requireArtistEditor as jest.Mock).mockResolvedValue({ authenticated: true, session: {}, userId: 'u1' });
 
     const tooLong = 'a'.repeat(MAX_BIO_LENGTH + 1);

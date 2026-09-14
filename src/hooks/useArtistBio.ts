@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { sanitizeBioText } from '@/lib/bioText';
+import { sanitizeBioText } from '@/lib/bio/bioText';
 
 interface BioCache {
   [artistId: string]: {

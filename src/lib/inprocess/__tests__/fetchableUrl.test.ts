@@ -1,4 +1,4 @@
-import { fetchableUrl } from '@/lib/fetchableUrl';
+import { fetchableUrl } from '@/lib/inprocess/fetchableUrl';
 
 describe('fetchableUrl', () => {
     it('resolves ar:// through the Arweave gateway', () => {
