@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import ListeningDialogContent from './ListeningDialogContent';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 
 export default function ListenPicker({ artistName, links }: { artistName: string; links: ProfileLink[] }) {
     if (!links.length) return null;

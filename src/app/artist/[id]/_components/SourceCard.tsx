@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, ExternalLink, FileText, Image as ImageIcon, Music, File, Trash2 } from "lucide-react";
-import { SOURCE_TYPES, SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
+import { SOURCE_TYPES, SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 
 interface SourceCardProps {

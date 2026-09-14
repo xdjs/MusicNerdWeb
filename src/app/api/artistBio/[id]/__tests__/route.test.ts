@@ -235,7 +235,7 @@ describe('/api/artistBio/[id]', () => {
 
     it('serves a cached claim-nudge WITHOUT regenerating when no vault sources exist', async () => {
       const { GET, mockGetArtistById, mockGenerateArtistBio, mockGetVaultSources } = await setup();
-      const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+      const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
       mockGetArtistById.mockResolvedValue({ id: 'artist-123', bio: ABOUT_EMPTY_STATE, spotify: 'sp1' });
       mockGetVaultSources.mockResolvedValue([]); // still genuinely sourceless
 
@@ -249,7 +249,7 @@ describe('/api/artistBio/[id]', () => {
 
     it('self-heals a cached nudge by regenerating when vault sources have since appeared', async () => {
       const { GET, mockGetArtistById, mockGenerateArtistBio, mockGetVaultSources } = await setup();
-      const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+      const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
       mockGetArtistById.mockResolvedValue({ id: 'artist-123', bio: ABOUT_EMPTY_STATE, spotify: 'sp1' });
       // A truncated discovery inserted pending sources after the nudge was cached.
       mockGetVaultSources.mockImplementation((_id: string, status: string) =>

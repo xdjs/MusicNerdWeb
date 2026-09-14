@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordi
 import { CSS } from '@dnd-kit/utilities';
 import { EditModeContext } from './EditModeContext';
 import EditableLinkIcon from './EditableLinkIcon';
-import { orderProfileLinks, type LinkSection, type ProfileLink } from '@/lib/artistProfileLinks';
+import { orderProfileLinks, type LinkSection, type ProfileLink } from '@/lib/artist/artistProfileLinks';
 
 function LinkItem({ link, artistId, canEdit, editing, saving }: {
     link: ProfileLink; artistId: string; canEdit: boolean; editing: boolean; saving: boolean;

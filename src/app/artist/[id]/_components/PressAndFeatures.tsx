@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/sourceTypes";
+import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface VaultSource {

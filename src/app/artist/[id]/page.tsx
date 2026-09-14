@@ -1,5 +1,5 @@
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
-import { absoluteImageUrl, customImageUrl } from "@/lib/artistImage";
+import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
 import ClaimButton from "./_components/ClaimButton";
@@ -10,7 +10,7 @@ import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
 import EditModeToggle from "@/app/_components/EditModeToggle";
-import { getListeningLinks } from "@/lib/artistProfileLinks";
+import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
 import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
 import HeroSection from "./_components/HeroSection";
 import ProfileSectionNav from "./_components/ProfileSectionNav";
@@ -29,10 +29,10 @@ import OfficialSiteLinks from "./_components/OfficialSiteLinks";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
-import { currentLoreSummary } from "@/lib/loreSummary";
+import { currentLoreSummary } from "@/lib/source/loreSummary";
 import { getArtistDoc, getOnboardingState } from "@/server/utils/queries/onboardingQueries";
-import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artistProfileUrl";
-import { isRealBio } from "@/lib/bioConstants";
+import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
+import { isRealBio } from "@/lib/bio/bioConstants";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;

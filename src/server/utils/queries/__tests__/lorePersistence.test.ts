@@ -42,7 +42,7 @@ describe('Lore publication ownership fence', () => {
 
     it('keeps the last good overview on failure but shows it only for its current inventory', async () => {
         const { persistRefreshedLore, upsert } = await setup('current-claim');
-        const { currentLoreSummary, loreSourceKey } = await import('@/lib/loreSummary');
+        const { currentLoreSummary, loreSourceKey } = await import('@/lib/source/loreSummary');
         const approved = [{ id: 'source-1', title: 'Studio journal', type: 'document' }];
         const stored = { content: 'Old document', loreSummary: { text: 'A studio journal.', sourceKey: loreSourceKey(approved) } };
         upsert.mockImplementation(async ({ set }) => { Object.assign(stored, set); });

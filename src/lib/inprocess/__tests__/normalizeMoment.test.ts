@@ -1,5 +1,5 @@
-import { normalizeMoment } from '@/lib/normalizeMoment';
-import type { RawTimelineMoment } from '@/lib/inprocessTimeline';
+import { normalizeMoment } from '@/lib/inprocess/normalizeMoment';
+import type { RawTimelineMoment } from '@/lib/inprocess/inprocessTimeline';
 
 const ARTIST = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
 const ARTIST_URL = `https://www.inprocess.world/${ARTIST}`;

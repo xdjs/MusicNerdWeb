@@ -1,6 +1,6 @@
 import axios from 'axios';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
-import { latestDateSortTime } from '@/lib/artistLatest';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
+import { latestDateSortTime } from '@/lib/artist/artistLatest';
 import type { Artist } from '@/server/db/DbTypes';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 import { getSpotifyHeaders } from '@/server/utils/queries/externalApiQueries';

@@ -26,7 +26,7 @@ import {
     clearArtistLink,
 } from "@/server/utils/artistLinkService";
 import { regenerateArtistBio } from "@/server/utils/queries/artistBioQuery";
-import { isAboutEmptyState } from "@/lib/bioConstants";
+import { isAboutEmptyState } from "@/lib/bio/bioConstants";
 import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import {
     acquireArtistNameLock,

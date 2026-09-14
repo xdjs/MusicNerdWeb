@@ -3,7 +3,7 @@ import { eq, and, or, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
-import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bioConstants';
+import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.

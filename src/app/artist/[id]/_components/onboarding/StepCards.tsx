@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { MAX_BIO_LENGTH, ARTIST_DOC_MAX_CHARS, ABOUT_TARGET_WORDS } from "@/lib/bioConstants";
+import { MAX_BIO_LENGTH, ARTIST_DOC_MAX_CHARS, ABOUT_TARGET_WORDS } from "@/lib/bio/bioConstants";
 
 // ---------- Profiles: accepted-by-default. Leaving a card as-is IS confirmation. ----------
 

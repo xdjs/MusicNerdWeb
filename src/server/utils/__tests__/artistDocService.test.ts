@@ -151,7 +151,7 @@ describe('artistDocService', () => {
 
         // Assert against the CONSTANT, not its current wording — this test is
         // about both prompts sharing one rule, not about how it is phrased.
-        const { ABOUT_OPENING_RULE } = await import('@/lib/bioConstants');
+        const { ABOUT_OPENING_RULE } = await import('@/lib/bio/bioConstants');
 
         await svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc');
         expect(generateContent.mock.calls[0][0].config.systemInstruction)

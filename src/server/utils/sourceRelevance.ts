@@ -28,7 +28,7 @@
  * judge at all.
  */
 import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
-import { sourceTier } from "@/lib/sourceAuthority";
+import { sourceTier } from "@/lib/source/sourceAuthority";
 
 /** Per-page text handed to the judge. Enough to tell who a page is about —
  *  a page that hasn't said whose it is in 1,500 characters is not a source. */

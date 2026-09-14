@@ -1,7 +1,7 @@
-import type { Moment, RawTimelineMoment } from '@/lib/inprocessTimeline';
-import { fetchableUrl } from '@/lib/fetchableUrl';
-import { momentKind } from '@/lib/momentKind';
-import { momentUrl } from '@/lib/momentUrl';
+import type { Moment, RawTimelineMoment } from '@/lib/inprocess/inprocessTimeline';
+import { fetchableUrl } from '@/lib/inprocess/fetchableUrl';
+import { momentKind } from '@/lib/inprocess/momentKind';
+import { momentUrl } from '@/lib/inprocess/momentUrl';
 import { str } from '@/lib/str';
 
 /**

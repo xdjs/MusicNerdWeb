@@ -1,6 +1,6 @@
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
-import { extractInProcessAddress } from '@/lib/extractInProcessAddress';
-import type { Moment } from '@/lib/inprocessTimeline';
+import { extractInProcessAddress } from '@/lib/inprocess/extractInProcessAddress';
+import type { Moment } from '@/lib/inprocess/inprocessTimeline';
 import { fetchTimelineDirect } from '@/server/utils/fetchTimelineDirect';
 import { TimelineUnavailable } from '@/server/utils/TimelineUnavailable';
 

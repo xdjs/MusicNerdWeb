@@ -43,7 +43,7 @@ jest.mock('@/server/utils/socialIngest', () => ({
     waitForSocialPosts: jest.fn().mockResolvedValue(true),
     hasSocialPosts: jest.fn().mockResolvedValue(true),
 }));
-jest.mock('@/lib/sourceTypes', () => ({ inferTypeFromUrl: jest.fn().mockReturnValue('article') }));
+jest.mock('@/lib/source/sourceTypes', () => ({ inferTypeFromUrl: jest.fn().mockReturnValue('article') }));
 jest.mock('@/server/utils/artistLinkService', () => ({ setArtistLink: jest.fn().mockResolvedValue({ oldValue: null, artistName: 'Nova' }), clearArtistLink: jest.fn().mockResolvedValue({ oldValue: 'x' }) }));
 jest.mock('@/server/utils/services', () => ({ extractArtistId: jest.fn() }));
 // Mocked so a test can assert THIS module is reached from the auto-build. The
@@ -177,7 +177,7 @@ describe('runOnboardingTurn', () => {
     it.each(['open', 'publish'])('a bio conflict in %s never finalizes onboarding or overwrites Lore', async type => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: type === 'open' ? 'profiles' : 'publish' });
-        const { BioConflictError } = await import('@/lib/bioConflict');
+        const { BioConflictError } = await import('@/lib/bio/bioConflict');
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         persistArtistBio.mockRejectedValue(new BioConflictError());
         const { runOnboardingTurn } = await import('../turnHandlers');
@@ -1399,7 +1399,7 @@ describe('runOnboardingTurn', () => {
         expect(draft.expectedBio).toBe('Original');
         artistQ.getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova', bio: 'New edit in other tab' });
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
-        const { BioConflictError } = await import('@/lib/bioConflict');
+        const { BioConflictError } = await import('@/lib/bio/bioConflict');
         persistArtistBio.mockRejectedValue(new BioConflictError());
         await expect(collect(runOnboardingTurn('a1', { type: 'publish', doc: draft.doc, about: draft.about, expectedBio: draft.expectedBio }))).rejects.toThrow('changed or was pinned');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', draft.about, expect.objectContaining({ expectedBio: 'Original' }));
@@ -1507,7 +1507,7 @@ describe('runOnboardingTurn', () => {
     });
 
     it('publish delegates placeholder handling to shared persistence', async () => {
-        const { ABOUT_EMPTY_STATE } = await import('@/lib/bioConstants');
+        const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
         const dq = await import('@/server/utils/queries/dashboardQueries');

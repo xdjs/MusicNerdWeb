@@ -1,6 +1,6 @@
 import { Artist } from "@/server/db/DbTypes";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
-import { isRealBio } from "@/lib/bioConstants";
+import { isRealBio } from "@/lib/bio/bioConstants";
 import { ArtistDetail, SocialLink } from "../types";
 
 export async function toArtistDetail(artist: Artist): Promise<ArtistDetail> {

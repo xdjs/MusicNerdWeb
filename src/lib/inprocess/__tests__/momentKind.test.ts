@@ -1,4 +1,4 @@
-import { momentKind } from '@/lib/momentKind';
+import { momentKind } from '@/lib/inprocess/momentKind';
 
 describe('momentKind', () => {
     it.each([

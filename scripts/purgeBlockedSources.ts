@@ -10,7 +10,7 @@
  */
 import dotenv from "dotenv";
 import postgres from "postgres";
-import { isBlockedSourceHost } from "../src/lib/sourceAuthority";
+import { isBlockedSourceHost } from "../src/lib/source/sourceAuthority";
 
 dotenv.config({ path: ".env.local" });
 

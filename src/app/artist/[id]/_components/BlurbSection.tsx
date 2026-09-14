@@ -5,7 +5,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
-import { renderBioMarkdown } from "@/lib/renderBioMarkdown";
+import { renderBioMarkdown } from "@/lib/bio/renderBioMarkdown";
 import BioVersionHistory from "./BioVersionHistory";
 
 interface BlurbSectionProps {

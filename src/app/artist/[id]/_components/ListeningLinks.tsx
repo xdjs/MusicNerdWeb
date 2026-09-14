@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { ArrowUpRight, Music2 } from 'lucide-react';
 import { useState } from 'react';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 
 function ServiceLogo({ link }: { link: ProfileLink }) {
     const [failed, setFailed] = useState(false);

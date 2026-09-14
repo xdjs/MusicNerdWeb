@@ -20,19 +20,19 @@ import {
     deleteBioVersion,
     unpinArtistBio,
 } from "@/server/utils/queries/dashboardQueries";
-import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/sourceTypes";
+import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/source/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/server/utils/queries/docCorrectionQueries";
-import { claimKey } from "@/lib/docClaims";
+import { claimKey } from "@/lib/source/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
 import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { generateReferenceCode } from "@/lib/referenceCode";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
-import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
+import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 
 // Durable jobs coalesce changes across workers and survive request completion.
 async function scheduleDocRefresh(artistId: string | undefined, expectedClaimId: string | null): Promise<void> {

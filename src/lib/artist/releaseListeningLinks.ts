@@ -1,5 +1,5 @@
-import { latestExternalUrl, type ArtistLatestItem } from '@/lib/artistLatest';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
+import { latestExternalUrl, type ArtistLatestItem } from '@/lib/artist/artistLatest';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 
 export interface ReleaseSource { url: string; title: string | null }
 

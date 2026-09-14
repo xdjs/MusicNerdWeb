@@ -1,5 +1,5 @@
-import type { ProfileLink } from '@/lib/artistProfileLinks';
-import type { MomentKind } from '@/lib/inprocessTimeline';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
+import type { MomentKind } from '@/lib/inprocess/inprocessTimeline';
 
 export type LatestKind = 'release' | 'instagram' | 'interview' | 'moment';
 

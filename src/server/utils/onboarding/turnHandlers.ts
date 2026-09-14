@@ -18,7 +18,7 @@ import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { isUnsafeUrl, fetchPageContent } from "@/server/utils/fetchPageContent";
 import { isCitableSource } from "@/server/utils/sourceVerification";
 import { fetchLinkPreview } from "@/server/utils/linkPreview";
-import { inferTypeFromUrl } from "@/lib/sourceTypes";
+import { inferTypeFromUrl } from "@/lib/source/sourceTypes";
 import {
     type OnboardingStep,
     getOnboardingState,
@@ -47,8 +47,8 @@ import {
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
 import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/utils/linkPresentation";
 import { ONBOARDING_QUESTIONS } from "./questions";
-import { MAX_BIO_LENGTH } from "@/lib/bioConstants";
-import { BioConflictError } from '@/lib/bioConflict';
+import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
+import { BioConflictError } from '@/lib/bio/bioConflict';
 import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";

@@ -5,8 +5,8 @@ import { artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts } from
 import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
 import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
 import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
-import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artistLatest';
-import { momentToLatestItem } from '@/lib/momentToLatestItem';
+import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artist/artistLatest';
+import { momentToLatestItem } from '@/lib/artist/momentToLatestItem';
 
 export interface ArtistLatestResult {
     items: ArtistLatestItem[];

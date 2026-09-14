@@ -1,6 +1,6 @@
 import { Artist, UrlMap } from '@/server/db/DbTypes';
 import { getArtistLinks } from '@/server/utils/queries/artistQueries';
-import { getProfileLinks, orderProfileLinks } from '@/lib/artistProfileLinks';
+import { getProfileLinks, orderProfileLinks } from '@/lib/artist/artistProfileLinks';
 import SortableArtistLinks from './SortableArtistLinks';
 
 interface ArtistLinksGridProps {

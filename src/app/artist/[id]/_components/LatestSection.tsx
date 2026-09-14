@@ -1,7 +1,7 @@
 import type { Artist } from '@/server/db/DbTypes';
 import { getArtistLatest } from '@/server/utils/queries/artistLatestQueries';
-import { releaseListeningLinks, type ReleaseSource } from '@/lib/releaseListeningLinks';
-import type { ProfileLink } from '@/lib/artistProfileLinks';
+import { releaseListeningLinks, type ReleaseSource } from '@/lib/artist/releaseListeningLinks';
+import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import LatestCards from './LatestCards';
 
 export default async function LatestSection({ artist, imageUrl, sources = [], listenLinks = [] }: { artist: Artist; imageUrl: string; sources?: ReleaseSource[]; listenLinks?: ProfileLink[] }) {
