@@ -1,36 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import { ArrowUpRight, Play } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { latestDateLabel } from '@/lib/artistLatest';
 import { MOMENT_KIND_LABELS, type Moment, type MomentKind } from '@/lib/inprocessTimeline';
-
-// Badge ink per kind, on the near-black backdrop from the design record so the
-// label reads on any artwork. Same hues the Lore badges use for their types.
-const badgeInk: Record<MomentKind, string> = {
-    video: 'text-purple-300',
-    audio: 'text-cyan-300',
-    image: 'text-sky-300',
-    writing: 'text-orange-300',
-    other: 'text-gray-300',
-};
+import TimelineArtwork from './TimelineArtwork';
 
 const KIND_ORDER: MomentKind[] = ['video', 'audio', 'image', 'writing', 'other'];
-
-function Artwork({ moment }: { moment: Moment }) {
-    const [failed, setFailed] = useState(false);
-    const src = failed ? null : moment.imageUrl;
-    return <div className="relative h-[138px] overflow-hidden bg-gradient-to-br from-pastypink/10 via-purple-900/20 to-transparent sm:h-[148px]">
-        {src && <Image src={src} alt="" fill unoptimized sizes="(max-width: 640px) 220px, 236px" className="object-cover" onError={() => setFailed(true)} />}
-        <span className={`absolute left-2.5 top-2.5 rounded border border-white/[0.22] bg-[#0c0c0c]/[0.82] px-[7px] py-[3px] text-[10px] font-semibold uppercase leading-3 tracking-[0.06em] backdrop-blur-[6px] ${badgeInk[moment.kind]}`}>
-            {MOMENT_KIND_LABELS[moment.kind]}
-        </span>
-        {(moment.kind === 'video' || moment.kind === 'audio') && <span aria-hidden="true" className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white">
-            <Play size={12} fill="currentColor" />
-        </span>}
-    </div>;
-}
 
 /**
  * Direction A ("Shelf") from the design record: filter pills, a horizontal card row
@@ -75,7 +51,7 @@ export default function TimelineCards({ moments, timelineUrl }: { moments: Momen
             {visible.map(moment =>
                 <a key={moment.id} href={moment.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${moment.title} on In Process`}
                     className="glass-subtle flex w-[220px] shrink-0 snap-start flex-col overflow-hidden transition-shadow hover:shadow-[0_0_30px_rgba(239,149,255,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink sm:w-[236px]">
-                    <Artwork moment={moment} />
+                    <TimelineArtwork moment={moment} />
                     <div className="flex flex-col gap-2.5 p-3">
                         <h3 className="line-clamp-2 text-sm font-semibold leading-[19px] text-black dark:text-white">{moment.title}</h3>
                         <time dateTime={moment.createdAt} className="text-xs text-gray-500 dark:text-gray-400">{latestDateLabel(moment.createdAt)}</time>
