@@ -53,12 +53,15 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Authorization:** `src/lib/auth-helpers.ts` provides `requireAuth`, `requireAdmin`, and
   `requireWhitelistedOrAdmin`. Artist edits additionally require the existing ownership guard.
   Admin checks must use the live role, not only a stale session claim.
-- **Shared logic layout:** `src/lib` is pure shared logic with no I/O, one exported function
-  per file named after it, with its test beside the other tests of its folder. Files are grouped
-  by domain once a domain has two or more of them (`src/lib/artist/`, `bio/`, `source/`,
+- **Shared logic layout:** `src/lib` is pure shared logic with no I/O. Files are grouped by
+  domain once a domain has two or more of them (`src/lib/artist/`, `bio/`, `source/`,
   `inprocess/`); a domain with one file stays flat until a second joins it, and there are no
-  barrel `index.ts` files. `src/server/utils` is server I/O under the same grouping rule
-  (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<function>`.
+  barrel `index.ts` files. New modules export one function each, named after it, with the
+  test beside the folder's other tests (`inprocess/` is the model). Older multi-export modules
+  (`artist/artistLatest.ts`, `artist/artistProfileLinks.ts`, `source/sourceAuthority.ts`, the
+  `bio/` files) predate that rule and keep their exports until they are next changed; split
+  them then, not in a move. `src/server/utils` is server I/O under the same grouping rule
+  (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<module>`.
 - **Source-backed research:** `socialIngest.ts` stores posts; `researchRunner.ts` advances
   `artist_research_jobs` through ingest/extraction slices, with persistence in
   `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.
