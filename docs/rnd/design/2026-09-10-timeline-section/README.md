@@ -53,7 +53,7 @@ At phone width the pills and cards scroll horizontally, matching Latest and Lore
 
 - Section title is **Timeline**, no In Process logo in the header. The scribble mark stays
   on the Support the artist link.
-- Subtitle is the moment count only. Collection names are not shown in v1.
+- Subtitle reads "Latest moments". The timeline API paginates without a total, so a count would only ever be the 12 the section fetches; decided 2026-09-13. Collection names are not shown in v1.
 - Badges over artwork use a near-black backdrop so the label reads on any image.
 - No collect chip or button anywhere. Every action is a read.
 - Placement: after Latest, before Links.
