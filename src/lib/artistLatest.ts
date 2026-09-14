@@ -1,6 +1,7 @@
 import type { ProfileLink } from '@/lib/artistProfileLinks';
+import type { MomentKind } from '@/lib/inprocessTimeline';
 
-export type LatestKind = 'release' | 'instagram' | 'interview';
+export type LatestKind = 'release' | 'instagram' | 'interview' | 'moment';
 
 export interface ArtistLatestItem {
     id: string;
@@ -13,6 +14,8 @@ export interface ArtistLatestItem {
     sourceUrl: string | null;
     sourceLabel: string;
     listeningLinks?: ProfileLink[];
+    /** In Process media type, for `moment` cards only. */
+    momentKind?: MomentKind;
 }
 
 /** Links come from stored sources or catalog responses, never generated prose. */

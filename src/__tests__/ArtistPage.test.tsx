@@ -73,7 +73,6 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
-jest.mock('@/app/artist/[id]/_components/TimelineSection', () => function TimelineSection({ inprocess }: { inprocess: string }) { return <section id="mn-timeline" data-testid="timeline-section" data-url={inprocess}><h2>Timeline</h2></section>; });
 jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null), getOnboardingState: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
@@ -361,21 +360,12 @@ describe('ArtistProfile page', () => {
 
 describe('Museum page composition', () => {
     beforeEach(() => { jest.clearAllMocks(); setupMocks(); });
-    it('shows the Timeline section after Latest only for artists with an In Process link', async () => {
+    it('renders no standalone Timeline section even for artists with an In Process link (moments live in Latest)', async () => {
         const inprocess = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91'; // the column stores the bare address
         setupMocks({ artist: { ...mockArtist, inprocess } });
-        const { container, unmount } = await renderArtistPage();
-        const timeline = container.querySelector('#mn-timeline');
-        expect(timeline).toHaveAttribute('data-url', inprocess);
-        const latest = container.querySelector('#mn-latest');
-        const links = container.querySelector('#mn-links');
-        expect(latest!.compareDocumentPosition(timeline!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(timeline!.compareDocumentPosition(links!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        unmount();
-
-        setupMocks({ artist: { ...mockArtist, inprocess: null } });
-        const second = await renderArtistPage();
-        expect(second.container.querySelector('#mn-timeline')).toBeNull();
+        const { container } = await renderArtistPage();
+        expect(container.querySelector('#mn-timeline')).toBeNull();
+        expect(container.querySelectorAll('#mn-latest')).toHaveLength(1);
     });
 
     it('orders Latest, Links and Lore with About only in the hero', async () => {

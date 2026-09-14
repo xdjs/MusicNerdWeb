@@ -5,13 +5,15 @@ import Image from 'next/image';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artistLatest';
+import { MOMENT_KIND_LABELS } from '@/lib/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/releaseListeningLinks';
 import ListeningDialogContent from './ListeningDialogContent';
+import InProcessIcon from './InProcessIcon';
 
-const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words' };
-const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle };
+const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words', moment: 'In Process' };
+const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle, moment: InProcessIcon };
 
 function CardImage({ item, artistImage, artistName, detail = false }: { item: ArtistLatestItem; artistImage: string; artistName: string; detail?: boolean }) {
     const [failed, setFailed] = useState<string[]>([]);
@@ -94,16 +96,19 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
+                                    {item.momentKind && <span className="rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-purple-200 backdrop-blur-md">{MOMENT_KIND_LABELS[item.momentKind]}</span>}
+                                </span>
                                 <ArrowUpRight size={18} aria-hidden="true" />
                             </div>
                             <div className="relative space-y-2">
                                 <time dateTime={item.date} className="text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>
                                 <h3 className={`font-semibold leading-snug ${item.kind === 'instagram' ? 'sr-only' : 'line-clamp-2 text-lg'}`}>{item.title}</h3>
-                                <p className={`whitespace-pre-line ${item.kind === 'release' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
+                                <p className={`whitespace-pre-line ${item.kind === 'moment' ? 'sr-only' : item.kind === 'release' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
                                 <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-pink-200">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
-                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
+                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
                                 </span>
                             </div>
                         </button>

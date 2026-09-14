@@ -3,11 +3,13 @@ import { db } from '@/server/db/drizzle';
 import type { Artist } from '@/server/db/DbTypes';
 import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
 import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
+import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
 import { orderLatestItems, latestDateLabel, latestExternalUrl, instagramPostImage } from '@/lib/artistLatest';
 
 jest.mock('@/server/utils/musicPlatform/latestReleases', () => ({ getLatestArtistReleases: jest.fn() }));
 jest.mock('@/server/utils/questionGenerator', () => ({ sourceUrlsForQuestionKeys: jest.fn() }));
 jest.mock('@/server/db/drizzle', () => ({ db: { select: jest.fn() } }));
+jest.mock('@/server/utils/fetchArtistTimeline', () => ({ fetchArtistTimeline: jest.fn() }));
 
 const artist = { id: 'artist-1', name: 'Test Artist', deezer: '123', spotify: null } as Artist;
 const sourceUrl = 'https://www.instagram.com/reel/ABC_def/';
@@ -24,6 +26,7 @@ beforeEach(() => {
     jest.mocked(db.select).mockImplementationOnce(() => selectResult([post]) as never).mockImplementationOnce(() => selectResult([answer]) as never);
     jest.mocked(sourceUrlsForQuestionKeys).mockResolvedValue(new Map([[answer.questionKey, sourceUrl]]));
     jest.mocked(getLatestArtistReleases).mockResolvedValue([{ id: 'album-1', title: 'New record', releaseDate: '2026-08-25', url: 'https://www.deezer.com/album/123', imageUrl: 'https://cdn.example.com/album.jpg', kind: 'single', platform: 'deezer' }]);
+    jest.mocked(fetchArtistTimeline).mockResolvedValue([]);
 });
 
 it('combines real read adapters, orders by answer chronology, and projects only public card fields', async () => {
@@ -80,4 +83,22 @@ it('keeps date precision and rejects undated/future activity with deterministic 
     expect(latestDateLabel('2025-02-13')).toBe('Feb 13, 2025');
     const item = { id: 'a', kind: 'interview' as const, title: '', text: '', date: '2026-01-01', imageUrl: null, imageCaption: '', sourceUrl: null, sourceLabel: '' };
     expect(orderLatestItems([item, item, { ...item, id: 'b', date: 'invalid' }, { ...item, id: 'c', date: '2027-01-01' }], Date.parse('2026-09-01'))).toEqual([item]);
+});
+
+it('folds In Process moments into the same ordered gallery when the artist has a link', async () => {
+    const inprocess = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
+    jest.mocked(fetchArtistTimeline).mockResolvedValue([
+        { id: 'm-1', title: 'studio session 09', kind: 'video', imageUrl: 'https://arweave.net/abc', createdAt: '2026-08-28T13:08:00+00:00', url: 'https://www.inprocess.world/collect/base:0xabc/75' },
+    ]);
+    const result = await getArtistLatest({ ...artist, inprocess });
+    expect(fetchArtistTimeline).toHaveBeenCalledWith(inprocess);
+    expect(result.items.map(item => item.kind)).toEqual(['interview', 'moment', 'release', 'instagram']);
+    expect(result.items[1]).toMatchObject({ id: 'moment:m-1', momentKind: 'video', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' });
+});
+
+it('leaves Latest untouched when In Process is empty or the artist has no link', async () => {
+    const result = await getArtistLatest(artist);
+    expect(fetchArtistTimeline).toHaveBeenCalledWith(artist.inprocess);
+    expect(result.items.some(item => item.kind === 'moment')).toBe(false);
+    expect(result.unavailable).toBe(false);
 });

@@ -5,14 +5,14 @@ import { fetchTimelineDirect } from '@/server/utils/fetchTimelineDirect';
 import { TimelineUnavailable } from '@/server/utils/TimelineUnavailable';
 
 /**
- * An artist's In Process moments for the Timeline section: the cached, never-throwing
+ * An artist's In Process moments for the Latest section: the cached, never-throwing
  * boundary over fetchTimelineDirect.
  *
  * Successful responses (including a legitimately empty timeline) are cached per
  * address for ten minutes. Failures are thrown inside the cached function, which
- * unstable_cache does not store, so one slow upstream call cannot blank the section
+ * unstable_cache does not store, so one slow upstream call cannot blank the cards
  * for ten minutes (it did on the 2026-09-13 preview). Cold calls were 3.7 s and warm
- * 1.6 s that day, so the section sits behind Suspense. Public endpoint, no key,
+ * 1.6 s that day; Latest sits behind Suspense. Public endpoint, no key,
  * nothing in env.ts.
  *
  * Tracking issue: xdjs/MusicNerdWeb#1228.
