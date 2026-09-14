@@ -1,5 +1,12 @@
 # Timeline section: In Process moments on the artist page
 
+> **2026-09-14 — folded into Latest.** At standup the team asked for In Process moments to live
+> inside the Latest section next to Releases, Instagram and interview answers, not as a section of
+> their own. Direction A shipped to `staging` as a standalone section (#1250) and was then merged into
+> Latest (#1228, PR row "Merge Timeline into Latest"): moments become Latest cards in the existing
+> card vocabulary, `#mn-timeline` is gone, and the rail keeps its three tabs. The boards below record
+> the standalone direction as built; the open questions about a fourth rail tab are moot.
+
 Design record, 2026-09-10, revised 2026-09-13. Static mockups for the feature Carl proposed at
 the [September 10 R&D sync](../../meetings/2026-09-10.md): show an artist's music NFTs on
 their profile using In Process's existing index and API. Tracking issue: xdjs/MusicNerdWeb#1228.
