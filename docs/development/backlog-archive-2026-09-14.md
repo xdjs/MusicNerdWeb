@@ -35,7 +35,7 @@ Assessment used the September 14 staging checkout. No production database audit,
 | [#983](https://github.com/xdjs/MusicNerdWeb/issues/983) Remove ineffective client-side Twitter CORS validation in AddArtistData | 2026-02-14 | Consolidated into [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264) |
 | [#982](https://github.com/xdjs/MusicNerdWeb/issues/982) Clean up AddArtistData code quality issues | 2026-02-14 | Consolidated into [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264) |
 | [#979](https://github.com/xdjs/MusicNerdWeb/issues/979) Extract shared useUserFetch hook from ClientWrapper components | 2026-02-13 | Consolidated into [#1263](https://github.com/xdjs/MusicNerdWeb/issues/1263) |
-| [#978](https://github.com/xdjs/MusicNerdWeb/issues/978) Add test coverage for restored page components | 2026-02-13 | Consolidated into [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264) |
+| [#978](https://github.com/xdjs/MusicNerdWeb/issues/978) Add test coverage for restored page components | 2026-02-13 | Link-submission coverage in [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264); remaining page coverage in [#1270](https://github.com/xdjs/MusicNerdWeb/issues/1270) |
 | [#977](https://github.com/xdjs/MusicNerdWeb/issues/977) Replace DOM manipulation login pattern with React context/hook | 2026-02-13 | Consolidated into [#1263](https://github.com/xdjs/MusicNerdWeb/issues/1263) |
 | [#971](https://github.com/xdjs/MusicNerdWeb/issues/971) Add enhanced error logging context to user API routes | 2026-02-10 | Archived; deferred or superseded, not fixed |
 | [#970](https://github.com/xdjs/MusicNerdWeb/issues/970) Eliminate double session fetching in removeArtistData route | 2026-02-10 | Archived; deferred or superseded, not fixed |
@@ -660,7 +660,8 @@ This would:
 
 - Original URL: [https://github.com/xdjs/MusicNerdWeb/issues/978](https://github.com/xdjs/MusicNerdWeb/issues/978)
 - Created: `2026-02-13T19:05:05Z`
-- Disposition: Consolidated into [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264).
+- Disposition: Link-submission coverage in [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264); remaining page coverage in [#1270](https://github.com/xdjs/MusicNerdWeb/issues/1270).
+- Decision (2026-09-14): Pete approved retaining the remaining page coverage as one low-priority follow-up for another day; #1270 is not a blocker for this release. No missing tests are claimed as completed.
 - September 14 evidence: Blanket no-coverage claim is stale: AddArtistContent, AddArtistData, PrivyLogin and profile wrapper tests exist. Carry targeted remaining tests into current work; full coverage not established.
 
 <details>

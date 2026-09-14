@@ -25,6 +25,7 @@ and merge; this receipt does not mark them as shipped.
 - [#1262](https://github.com/xdjs/MusicNerdWeb/issues/1262): admin role changes by user ID, including email-only users.
 - [#1263](https://github.com/xdjs/MusicNerdWeb/issues/1263): real-account authentication and session reliability.
 - [#1264](https://github.com/xdjs/MusicNerdWeb/issues/1264): link submission loading/error handling and validation.
+- [#1270](https://github.com/xdjs/MusicNerdWeb/issues/1270): remaining page regression coverage from #978; low priority, scheduled separately from this release.
 - [#1160](https://github.com/xdjs/MusicNerdWeb/issues/1160): platform-ID audit, now including legacy YouTube handles.
 
 [The archive](backlog-archive-2026-09-14.md) preserves original pre-June issue descriptions,
