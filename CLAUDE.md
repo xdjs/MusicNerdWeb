@@ -75,9 +75,11 @@ problem and completion criteria, and reuse related issues instead of making dupl
 Every PR must link its owning issue(s) in the description. Use `Refs #123` for partial work
 and `Fixes #123` only when the PR completes the issue; verify closure after the appropriate
 merge because staging PRs may not auto-close issues. Keep unresolved follow-ups explicit.
-When consolidating old issues, preserve their history and link the replacement; an archival
-closure is not evidence that a defect was fixed. This rule applies to Codex, Claude, and all
-other assistants through this canonical guide and AGENTS.md.
+When consolidating old issues, preserve their history and link retained work to its replacement
+issue. Work explicitly deferred or declined by the user may remain in the archive with its
+reason and original issue link, without an open replacement. An archival closure is not evidence
+that a defect was fixed; find or create an owning issue before resuming archived work. This rule
+applies to Codex, Claude, and all other assistants through this canonical guide and AGENTS.md.
 
 ## Git, documentation and releases
 
