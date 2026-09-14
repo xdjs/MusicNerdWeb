@@ -29,8 +29,7 @@ import OfficialSiteLinks from "./_components/OfficialSiteLinks";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
-import { currentLoreSummary } from "@/lib/source/loreSummary";
-import { getArtistDoc, getOnboardingState } from "@/server/utils/queries/onboardingQueries";
+import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 
@@ -135,13 +134,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     }
     // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
     // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistDoc, artistLinks] = await Promise.all([
+    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistLinks] = await Promise.all([
         musicPlatformData.getArtist(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getVaultSourcesByArtistId(id, "pending"),
-        getArtistDoc(id),
         getArtistLinks(artist),
     ]);
 
@@ -258,7 +256,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection summary={currentLoreSummary(artistDoc?.loreSummary, approvedSources)} artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
+                    <VaultSection artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
             </div>

@@ -1,7 +1,7 @@
-/* Homepage-only tokens. Preserve the global profile palette and login control. */
+/* Homepage layout tokens; highlighted words share the login/account pink. */
 .home {
-    --home-accent: #ff9be3;
-    --home-highlight: #ff75d8;
+    --home-accent: theme("colors.brandpink");
+    --home-highlight: theme("colors.highlightpink");
     --home-hero: #bfbfbf;
     --home-copy: #787878;
     --home-line: #e0dbe2;
@@ -17,7 +17,7 @@
 }
 :global(body):has(.home) { background: #f5f4f5; }
 :global(.dark) .home {
-    --home-accent: #ff9ce3;
+    --home-accent: theme("colors.brandpink");
     --home-hero: #a9a5ac;
     --home-copy: #bfb9c3;
     --home-line: #38343c;
