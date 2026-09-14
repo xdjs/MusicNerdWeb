@@ -28,5 +28,6 @@ export function normalizeMoment(raw: RawTimelineMoment, artistAddress: string, a
         imageUrl: fetchableUrl(str(metadata.image)),
         createdAt,
         url: momentUrl(chainId, address, tokenId, artistUrl),
+        description: str(metadata.description),
     };
 }

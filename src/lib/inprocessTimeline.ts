@@ -21,6 +21,8 @@ export interface Moment {
     createdAt: string;
     /** Where "open" goes: the moment on inprocess.world. */
     url: string;
+    /** The artist's own writing about the moment, trimmed; null when they wrote none. */
+    description: string | null;
 }
 
 export const MOMENT_KIND_LABELS: Record<MomentKind, string> = {
@@ -43,6 +45,7 @@ export interface RawTimelineMoment {
     metadata?: {
         name?: unknown;
         image?: unknown;
+        description?: unknown;
         content?: { mime?: unknown } | null;
     } | null;
 }

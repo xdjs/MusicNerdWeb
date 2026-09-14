@@ -88,12 +88,12 @@ it('keeps date precision and rejects undated/future activity with deterministic 
 it('folds In Process moments into the same ordered gallery when the artist has a link', async () => {
     const inprocess = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
     jest.mocked(fetchArtistTimeline).mockResolvedValue([
-        { id: 'm-1', title: 'studio session 09', kind: 'video', imageUrl: 'https://arweave.net/abc', createdAt: '2026-08-28T13:08:00+00:00', url: 'https://www.inprocess.world/collect/base:0xabc/75' },
+        { id: 'm-1', title: 'studio session 09', kind: 'video', imageUrl: 'https://arweave.net/abc', createdAt: '2026-08-28T13:08:00+00:00', url: 'https://www.inprocess.world/collect/base:0xabc/75', description: 'Rushed the edit on this one.' },
     ]);
     const result = await getArtistLatest({ ...artist, inprocess });
     expect(fetchArtistTimeline).toHaveBeenCalledWith(inprocess);
     expect(result.items.map(item => item.kind)).toEqual(['interview', 'moment', 'release', 'instagram']);
-    expect(result.items[1]).toMatchObject({ id: 'moment:m-1', momentKind: 'video', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' });
+    expect(result.items[1]).toMatchObject({ id: 'moment:m-1', momentKind: 'video', text: 'Rushed the edit on this one.', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' });
 });
 
 it('leaves Latest untouched when In Process is empty or the artist has no link', async () => {

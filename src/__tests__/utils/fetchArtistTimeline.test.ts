@@ -50,6 +50,7 @@ describe('fetchArtistTimeline', () => {
             id: '1', title: 'Moment 1', kind: 'audio', imageUrl: 'https://arweave.net/1',
             createdAt: '2026-09-09T13:08:00+00:00',
             url: 'https://www.inprocess.world/collect/base:0xbfaab156f4d1d7b4f5a3b1f0f5b7a2c3d4e5f607/1',
+            description: null,
         }]);
         expect(errorSpy).not.toHaveBeenCalled();
     });
