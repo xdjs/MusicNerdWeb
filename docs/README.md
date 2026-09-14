@@ -69,3 +69,8 @@ permission is also historical; the current branch and release rules are in `CLAU
 When a change settles a product question, update the decision index and link its evidence.
 When it changes engineering state, update `MEMORY.md`. Put durable implementation detail in
 the relevant reference rather than creating another handoff or agent-specific guide.
+
+## September 14 backlog consolidation
+
+- [Current work and issue links](development/current-work-2026-09-14.md)
+- [Pre-June issue archive and dispositions](development/backlog-archive-2026-09-14.md)

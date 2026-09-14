@@ -67,6 +67,18 @@ Never remove coverage/checks just to make a failure green.
 Report what passed, failed, or remained unverified; separate blockers from optional improvements.
 Stop once agreed scope is implemented and sufficiently verified.
 
+## Issue tracking
+
+Before implementing a fix, feature, or substantive investigation, find the existing GitHub
+issue that owns the problem; create a focused issue if none exists. Record the observable
+problem and completion criteria, and reuse related issues instead of making duplicates.
+Every PR must link its owning issue(s) in the description. Use `Refs #123` for partial work
+and `Fixes #123` only when the PR completes the issue; verify closure after the appropriate
+merge because staging PRs may not auto-close issues. Keep unresolved follow-ups explicit.
+When consolidating old issues, preserve their history and link the replacement; an archival
+closure is not evidence that a defect was fixed. This rule applies to Codex, Claude, and all
+other assistants through this canonical guide and AGENTS.md.
+
 ## Git, documentation and releases
 
 Feature branch off `staging` → PR to `staging` → release PR from `staging` to `main`.
