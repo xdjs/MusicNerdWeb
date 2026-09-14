@@ -33,7 +33,10 @@ function CardImage({ item, artistImage, artistName, detail = false }: { item: Ar
 export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [] }: {
     items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[];
 }) {
-    const [filter, setFilter] = useState<LatestKind | 'all'>('all');
+    const [chosen, setFilter] = useState<LatestKind | 'all'>('all');
+    // The component outlives one artist's items (client navigation between profiles keeps
+    // this state); a kind the new artist does not have falls back to All, as Timeline did.
+    const filter = chosen === 'all' || items.some(item => item.kind === chosen) ? chosen : 'all';
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
     const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
     const galleryRef = useRef<HTMLDivElement>(null);
