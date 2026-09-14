@@ -108,7 +108,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                             <div className="relative space-y-2">
                                 <time dateTime={item.date} className="text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>
                                 <h3 className={`font-semibold leading-snug ${item.kind === 'instagram' ? 'sr-only' : 'line-clamp-2 text-lg'}`}>{item.title}</h3>
-                                <p className={`whitespace-pre-line ${item.kind === 'moment' ? 'sr-only' : item.kind === 'release' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
+                                <p className={`whitespace-pre-line ${item.kind === 'release' || item.kind === 'moment' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
                                 <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-pink-200">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
                                     {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />

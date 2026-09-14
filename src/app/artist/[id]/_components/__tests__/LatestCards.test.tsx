@@ -4,7 +4,7 @@ import LatestCards from '../LatestCards';
 import type { ArtistLatestItem } from '@/lib/artistLatest';
 
 const release: ArtistLatestItem = { id: 'release:1', kind: 'release', title: 'New record', text: 'Single by Test Artist', date: '2026-08', imageUrl: 'https://cdn.example.com/cover.jpg', imageCaption: 'New record artwork', sourceUrl: 'https://www.deezer.com/album/123', sourceLabel: 'Listen on Deezer' };
-const moment: ArtistLatestItem = { id: 'moment:1', kind: 'moment', momentKind: 'video', title: 'studio session 09', text: 'Video on In Process', date: '2026-09-09T13:08:00+00:00', imageUrl: 'https://arweave.net/abc', imageCaption: 'studio session 09 artwork', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' };
+const moment: ArtistLatestItem = { id: 'moment:1', kind: 'moment', momentKind: 'video', title: 'studio session 09', text: 'If you watch the full 15 minutes, you’ll recognize the visual theme.\n\n- Dutchyyy', date: '2026-09-09T13:08:00+00:00', imageUrl: 'https://arweave.net/abc', imageCaption: 'studio session 09 artwork', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' };
 const answer: ArtistLatestItem = { id: 'interview:1', kind: 'interview', title: 'What inspired the record?', text: 'My hometown and its late-night trains.', date: '2026-09-01T12:00:00Z', imageUrl: null, imageCaption: 'Test Artist portrait', sourceUrl: null, sourceLabel: '' };
 
 function setup(items = [answer, release], unavailable = false) {
@@ -130,9 +130,11 @@ it('shows In Process moments as Latest cards with their own filter and a link ou
     expect(within(card).getByText('In Process')).toBeInTheDocument();
     expect(within(card).getByText('Video')).toBeInTheDocument();
     expect(within(card).getByText('Open on In Process')).toBeInTheDocument();
+    expect(within(card).getByText(/If you watch the full 15 minutes/)).not.toHaveClass('sr-only');
     fireEvent.click(card);
     const detail = screen.getByRole('dialog');
     expect(within(detail).getByRole('heading', { name: moment.title })).toBeInTheDocument();
+    expect(within(detail).getByText(/- Dutchyyy$/)).toHaveClass('whitespace-pre-wrap');
     expect(within(detail).getByRole('link', { name: 'Open on In Process' })).toHaveAttribute('href', moment.sourceUrl);
 });
 
