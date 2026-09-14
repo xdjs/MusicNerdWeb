@@ -146,3 +146,20 @@ it('falls back to All when the selected filter no longer exists after navigating
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByRole('article')).toHaveLength(2);
 });
+
+it('remounts the cards for a different artist so an open dialog and filter do not carry over on client navigation', async () => {
+    const { getArtistLatest } = await import('@/server/utils/queries/artistLatestQueries');
+    const { default: LatestSection } = await import('../LatestSection');
+    type Artist = import('@/server/db/DbTypes').Artist;
+    jest.mocked(getArtistLatest).mockResolvedValue({ items: [answer, moment], unavailable: false });
+    const first = await LatestSection({ artist: { id: 'artist-1', name: 'Test Artist' } as Artist, imageUrl: '' });
+    const { rerender } = render(first);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${moment.title}` }));
+    expect(screen.getByRole('dialog')).toHaveTextContent(moment.title);
+    // Client navigation to another artist: the page renders the same section with that artist's items.
+    jest.mocked(getArtistLatest).mockResolvedValue({ items: [release], unavailable: false });
+    rerender(await LatestSection({ artist: { id: 'artist-2', name: 'Other Artist' } as Artist, imageUrl: '' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Read New record' })).toBeInTheDocument();
+});
