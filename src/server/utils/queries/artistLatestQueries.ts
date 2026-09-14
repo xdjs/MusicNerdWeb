@@ -4,7 +4,9 @@ import { db } from '@/server/db/drizzle';
 import { artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts } from '@/server/db/schema';
 import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
 import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
+import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
 import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artistLatest';
+import { momentToLatestItem } from '@/lib/momentToLatestItem';
 
 export interface ArtistLatestResult {
     items: ArtistLatestItem[];
@@ -13,38 +15,44 @@ export interface ArtistLatestResult {
 
 /** Public read only. Scraping, extraction and interview offers stay in their existing workers/actions. */
 export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResult> {
-    const [postsResult, answersResult, releasesResult] = await Promise.allSettled([
-        db.select({
-            id: artistSocialPosts.id, caption: artistSocialPosts.caption, url: artistSocialPosts.url,
-            postedAt: artistSocialPosts.postedAt,
-            // Extract just the image fields rather than loading the full scraped payload.
-            raw: sql<unknown>`jsonb_build_object('displayUrl', ${artistSocialPosts.raw}->'displayUrl', 'thumbnailSrc', ${artistSocialPosts.raw}->'thumbnailSrc', 'images', ${artistSocialPosts.raw}->'images')`,
-        }).from(artistSocialPosts).where(and(
-            eq(artistSocialPosts.artistId, artist.id), eq(artistSocialPosts.platform, 'instagram'),
-            eq(artistSocialPosts.isOwnPost, true), isNotNull(artistSocialPosts.postedAt),
-            sql`${artistSocialPosts.postedAt} <= now()`,
-        )).orderBy(desc(artistSocialPosts.postedAt)).limit(9),
-        db.select({
-            id: artistInterviewAnswers.id, questionKey: artistInterviewAnswers.questionKey,
-            question: artistInterviewAnswers.question, answer: artistInterviewAnswers.answer,
-            createdAt: artistInterviewAnswers.createdAt,
-        }).from(artistInterviewAnswers).where(and(
-            eq(artistInterviewAnswers.artistId, artist.id),
-            // Follow-ups publish on Send. Onboarding answers stay private until
-            // the artist confirms Publish; evaluate both in the same DB snapshot.
-            or(
-                eq(artistInterviewAnswers.source, 'followup'),
-                and(
-                    eq(artistInterviewAnswers.source, 'onboarding'),
-                    sql`EXISTS (SELECT 1 FROM ${artistOnboardingSteps}
-                        WHERE ${artistOnboardingSteps.artistId} = ${artistInterviewAnswers.artistId}
-                        AND ${artistOnboardingSteps.step} = 'publish')`,
+    const [postsResult, answersResult, releasesResult, moments] = await Promise.all([
+        Promise.allSettled([
+            db.select({
+                id: artistSocialPosts.id, caption: artistSocialPosts.caption, url: artistSocialPosts.url,
+                postedAt: artistSocialPosts.postedAt,
+                // Extract just the image fields rather than loading the full scraped payload.
+                raw: sql<unknown>`jsonb_build_object('displayUrl', ${artistSocialPosts.raw}->'displayUrl', 'thumbnailSrc', ${artistSocialPosts.raw}->'thumbnailSrc', 'images', ${artistSocialPosts.raw}->'images')`,
+            }).from(artistSocialPosts).where(and(
+                eq(artistSocialPosts.artistId, artist.id), eq(artistSocialPosts.platform, 'instagram'),
+                eq(artistSocialPosts.isOwnPost, true), isNotNull(artistSocialPosts.postedAt),
+                sql`${artistSocialPosts.postedAt} <= now()`,
+            )).orderBy(desc(artistSocialPosts.postedAt)).limit(9),
+            db.select({
+                id: artistInterviewAnswers.id, questionKey: artistInterviewAnswers.questionKey,
+                question: artistInterviewAnswers.question, answer: artistInterviewAnswers.answer,
+                createdAt: artistInterviewAnswers.createdAt,
+            }).from(artistInterviewAnswers).where(and(
+                eq(artistInterviewAnswers.artistId, artist.id),
+                // Follow-ups publish on Send. Onboarding answers stay private until
+                // the artist confirms Publish; evaluate both in the same DB snapshot.
+                or(
+                    eq(artistInterviewAnswers.source, 'followup'),
+                    and(
+                        eq(artistInterviewAnswers.source, 'onboarding'),
+                        sql`EXISTS (SELECT 1 FROM ${artistOnboardingSteps}
+                            WHERE ${artistOnboardingSteps.artistId} = ${artistInterviewAnswers.artistId}
+                            AND ${artistOnboardingSteps.step} = 'publish')`,
+                    ),
                 ),
-            ),
-            isNotNull(artistInterviewAnswers.answer), sql`length(trim(${artistInterviewAnswers.answer})) > 0`,
-        )).orderBy(desc(artistInterviewAnswers.createdAt)).limit(6),
-        getLatestArtistReleases(artist),
-    ]);
+                isNotNull(artistInterviewAnswers.answer), sql`length(trim(${artistInterviewAnswers.answer})) > 0`,
+            )).orderBy(desc(artistInterviewAnswers.createdAt)).limit(6),
+            getLatestArtistReleases(artist),
+        ]),
+        // In Process moments (issue #1228, folded into Latest 2026-09-14). fetchArtistTimeline
+        // never throws and answers [] for artists without a link, so it sits outside the
+        // partial-failure accounting: a broken In Process means no moment cards, not a notice.
+        fetchArtistTimeline(artist.inprocess),
+    ]).then(([settled, moments]) => [...settled, moments] as const);
     const items: ArtistLatestItem[] = [];
     let unavailable = false;
     for (const [index, result] of [postsResult, answersResult, releasesResult].entries()) {
@@ -86,5 +94,6 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
                 sourceLabel: `Listen on ${release.platform === 'deezer' ? 'Deezer' : 'Spotify'}` });
         }
     }
+    for (const moment of moments) items.push(momentToLatestItem(moment));
     return { items: orderLatestItems(items), unavailable };
 }
