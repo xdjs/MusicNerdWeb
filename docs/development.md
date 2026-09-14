@@ -46,6 +46,13 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Queries:** server actions in `src/app/actions/` and handlers in `src/app/api/` delegate
   business logic to `src/server/utils/queries/`. Shared model types are in
   `src/server/db/DbTypes.ts`; Drizzle schema/client are beside them.
+- **Artist search:** `searchForArtistByName` matches both spaced queries and their
+  compact form against `artists.lcname`: older records can store `peterango` while
+  newer records preserve spaces. Both count as substring matches before fuzzy ranking
+  and the ten-result limit, so `pete ra` can return the existing Pete Rango profile.
+  The combined search route then applies its existing external-result deduplication.
+  This compatibility read changes no stored names, provider identities or artist records;
+  the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
 - **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
   `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
   `src/app/_components/nav/components/`. Legacy wallets can be linked with `mergeAccounts()`;
