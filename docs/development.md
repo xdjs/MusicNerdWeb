@@ -189,3 +189,15 @@ Do not copy permissive policies without confirming the feature's security model.
 `db:generate`, `db:push`, `db:migrate`, `db:studio` exist, but a script's existence is not
 permission to run schema writes. See the [production runbook](rnd/prod-migration-runbook-2026-09-02.md)
 and [prior RLS incident](db-fixes/2026-07-27-prod-rls-fix.md) when doing migration work.
+
+## Lore explanation and account color
+
+September 14, 2026 — Pete approved the fixed Lore introduction: “Stories, interviews,
+and other sources curated by the artist.” It appears under the heading before filters,
+including the empty state. The public page no longer reads the generated Lore summary
+for this introduction; source cards, moderation and stored summaries remain unchanged.
+
+Login/account controls use `highlightpink` (`#ff75d8`), shared with highlighted homepage
+words, including the loading state and a pink hover treatment. The homepage border accent
+uses `brandpink` (`#ff9ce3`); existing artist-page `pastypink` is unchanged.
+Tracked in [#1255](https://github.com/xdjs/MusicNerdWeb/issues/1255).
