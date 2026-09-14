@@ -99,9 +99,11 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-1.5">
-                                    <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
-                                    {item.momentKind && <span className="rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-purple-200 backdrop-blur-md">{MOMENT_KIND_LABELS[item.momentKind]}</span>}
+                                {/* Chips never break inside; when both cannot fit beside the arrow (phone width,
+                                    a long media type), the media-type chip drops to a second row instead. */}
+                                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
+                                    {item.momentKind && <span className="shrink-0 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-purple-200 backdrop-blur-md">{MOMENT_KIND_LABELS[item.momentKind]}</span>}
                                 </span>
                                 <ArrowUpRight size={18} aria-hidden="true" />
                             </div>
