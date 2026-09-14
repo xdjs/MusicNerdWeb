@@ -86,6 +86,12 @@ and distinguish locally implemented from shipped. Don't create releases solely t
 
 ## Skills
 
+Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
+and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
+and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
+a documented-vs-observed matrix and captures on the PR, `staging` → release → `main`). Read it
+before writing or updating an issue, opening a PR, or preview-testing one.
+
 Read the available relevant skill before using it: Next.js/React for UI and server boundaries;
 Supabase/Postgres for database work; browser verification for UI flows; deployment/observability
 for release diagnostics. Load task-specific references, not every installed skill. A tool or
