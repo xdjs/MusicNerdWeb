@@ -19,6 +19,7 @@ function raw(overrides: Partial<RawTimelineMoment> = {}): RawTimelineMoment {
             name: 'Two Human Hands (VISUAL EP) [V.1]',
             image: 'ar://Fi_4NsH2u8UpMScJc0q1U_0qy35q5EVEif5unP3ALcE',
             content: { mime: 'video/mp4' },
+            description: '  If you watch the full 15 minutes, you\'ll recognize the visual theme.\n\n- Dutchyyy  ',
         },
         ...overrides,
     };
@@ -33,7 +34,13 @@ describe('normalizeMoment', () => {
             imageUrl: 'https://arweave.net/Fi_4NsH2u8UpMScJc0q1U_0qy35q5EVEif5unP3ALcE',
             createdAt: '2026-09-09T13:08:00+00:00',
             url: 'https://www.inprocess.world/collect/base:0xbfaab156f4d1d7b4f5a3b1f0f5b7a2c3d4e5f607/75',
+            description: 'If you watch the full 15 minutes, you\'ll recognize the visual theme.\n\n- Dutchyyy',
         });
+    });
+
+    it('carries no description when the artist wrote none', () => {
+        expect(normalizeMoment(raw({ metadata: { name: 'x', description: '   ' } }), ARTIST, ARTIST_URL)?.description).toBeNull();
+        expect(normalizeMoment(raw({ metadata: { name: 'x' } }), ARTIST, ARTIST_URL)?.description).toBeNull();
     });
 
     it('accepts a numeric token id and falls back to the collection name', () => {

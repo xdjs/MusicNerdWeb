@@ -8,6 +8,7 @@ const moment: Moment = {
     imageUrl: 'https://arweave.net/abc',
     createdAt: '2026-09-09T13:08:00+00:00',
     url: 'https://www.inprocess.world/collect/base:0xabc/75',
+    description: 'If you watch the full 15 minutes, you\'ll recognize the visual theme.',
 };
 
 it('projects a moment onto the Latest card shape with a namespaced id and the moment page as its source', () => {
@@ -16,7 +17,7 @@ it('projects a moment onto the Latest card shape with a namespaced id and the mo
         kind: 'moment',
         momentKind: 'video',
         title: moment.title,
-        text: 'Video on In Process',
+        text: moment.description,
         date: moment.createdAt,
         imageUrl: moment.imageUrl,
         imageCaption: `${moment.title} artwork`,
@@ -25,6 +26,6 @@ it('projects a moment onto the Latest card shape with a namespaced id and the mo
     });
 });
 
-it('keeps a missing artwork as null so the card falls back to the artist image', () => {
-    expect(momentToLatestItem({ ...moment, kind: 'writing', imageUrl: null })).toMatchObject({ imageUrl: null, momentKind: 'writing', text: 'Writing on In Process' });
+it('keeps a missing artwork as null and names the media type when the artist wrote no description', () => {
+    expect(momentToLatestItem({ ...moment, kind: 'writing', imageUrl: null, description: null })).toMatchObject({ imageUrl: null, momentKind: 'writing', text: 'Writing on In Process' });
 });

@@ -93,7 +93,7 @@ independent social/interview/catalog/In Process reads â†’ normalized view data â
 | Instagram | Up to nine stored own posts, newest `posted_at` first | Stored display/thumbnail image; original validated Instagram post/Reel URL |
 | Interview | Up to six nonempty answers: immediate follow-ups, or onboarding answers after that artist's Publish confirmation; `created_at` is answer/upsert time | Related stored post image when in the selected set; existing question-key source resolver; no invented link |
 | Release | Up to three already-released items from a bounded catalog, concurrent known Deezer/Spotify IDs, merging exact title/date/kind matches | Provider cover art and validated album URLs plus matching approved release pages; no name-based artist matching |
-| In Process | Up to twelve of the artist's In Process moments (`artists.inprocess`, the bare 0x address), newest `created_at` first; absent when the artist has no link | Gateway-resolved moment artwork; the moment's page on inprocess.world. Folded in from the standalone Timeline section on 2026-09-14 (issue #1228) |
+| In Process | Up to twelve of the artist's In Process moments (`artists.inprocess`, the bare 0x address), newest `created_at` first; absent when the artist has no link. The card text is the artist's own `metadata.description`, verbatim and trimmed; the media type when they wrote none | Gateway-resolved moment artwork; the moment's page on inprocess.world. Folded in from the standalone Timeline section on 2026-09-14 (issue #1228) |
 
 The release adapter reads at most 50 catalog entries per provider, caches the catalog for
 24 hours, and bounds each provider attempt to five seconds. Cache misses share a database-backed
