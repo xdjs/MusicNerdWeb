@@ -135,3 +135,14 @@ it('shows In Process moments as Latest cards with their own filter and a link ou
     expect(within(detail).getByRole('heading', { name: moment.title })).toBeInTheDocument();
     expect(within(detail).getByRole('link', { name: 'Open on In Process' })).toHaveAttribute('href', moment.sourceUrl);
 });
+
+it('falls back to All when the selected filter no longer exists after navigating to another artist', () => {
+    const { rerender } = render(<LatestCards items={[answer, moment, release]} artistName="Test Artist" artistImage="https://cdn.example.com/artist.jpg" unavailable={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'In Process' }));
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    // Client navigation to an artist without moments re-renders the same component with new items.
+    rerender(<LatestCards items={[answer, release]} artistName="Other Artist" artistImage="https://cdn.example.com/other.jpg" unavailable={false} />);
+    expect(screen.queryByRole('button', { name: 'In Process' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+});
