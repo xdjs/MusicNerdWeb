@@ -86,13 +86,14 @@ staging/release review flow. No database migration or bucket/policy change is re
 ## Data path and boundaries
 
 `artist/[id]/page.tsx` → Suspense `LatestSection` → `getArtistLatest` →
-independent social/interview/catalog reads → normalized view data → interactive `LatestCards`.
+independent social/interview/catalog/In Process reads → normalized view data → interactive `LatestCards`.
 
 | Card | Data and time | Image and link |
 | --- | --- | --- |
 | Instagram | Up to nine stored own posts, newest `posted_at` first | Stored display/thumbnail image; original validated Instagram post/Reel URL |
 | Interview | Up to six nonempty answers: immediate follow-ups, or onboarding answers after that artist's Publish confirmation; `created_at` is answer/upsert time | Related stored post image when in the selected set; existing question-key source resolver; no invented link |
 | Release | Up to three already-released items from a bounded catalog, concurrent known Deezer/Spotify IDs, merging exact title/date/kind matches | Provider cover art and validated album URLs plus matching approved release pages; no name-based artist matching |
+| In Process | Up to twelve of the artist's In Process moments (`artists.inprocess`, the bare 0x address), newest `created_at` first; absent when the artist has no link | Gateway-resolved moment artwork; the moment's page on inprocess.world. Folded in from the standalone Timeline section on 2026-09-14 (issue #1228) |
 
 The release adapter reads at most 50 catalog entries per provider, caches the catalog for
 24 hours, and bounds each provider attempt to five seconds. Cache misses share a database-backed
@@ -106,6 +107,12 @@ it does **not** promise a complete discography or the newest item beyond those 5
 Provider year/month date precision is retained; uncertain current-period releases are omitted.
 In the mixed gallery, month/year-only dates are placed at the end of their known period
 as an editorial ordering rule; their labels retain the original precision.
+
+In Process moments come through `fetchArtistTimeline` (public endpoint, no key, ten-minute cache,
+ten-second request bound; failures are logged and never cached). Because that read now sits inside
+the Latest Suspense boundary, a cold In Process call delays the whole Latest section by its latency
+(3.7 s cold, 1.6 s warm on 2026-09-13) rather than a separate panel. An In Process failure yields no
+moment cards and does not raise the partial-failure notice; the other sources render as usual.
 
 Social/interview reads use the existing Drizzle client and `mnweb` role. Only projected image
 fields, selected text and source URLs reach the client, never the complete scraped payload.
