@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+import { PgDialect } from 'drizzle-orm/pg-core';
 
 /**
  * The search query is raw SQL through db.execute, so Postgres column names come
@@ -26,6 +27,34 @@ function sqlText(node: unknown): string {
 
 describe('searchForArtistByName SQL', () => {
     beforeEach(() => { jest.resetModules(); });
+
+    it('matches spaced and legacy compact names before the result limit', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        (db.execute as jest.Mock).mockReset();
+        (db.execute as jest.Mock).mockResolvedValue([]);
+        const { searchForArtistByName } = await import('../artistQueries');
+        await searchForArtistByName('Pete Ra');
+
+        const query = new PgDialect().sqlToQuery((db.execute as jest.Mock).mock.calls[1][0]);
+        expect(query.params).toContain('pete ra');
+        expect(query.params).toContain('petera');
+        const whereClause = query.sql.split('WHERE')[1].split('ORDER BY')[0];
+        expect(whereClause).toMatch(/lcname LIKE.*OR lcname LIKE/s);
+        // Both forms must also rank as substring matches ahead of fuzzy rows.
+        expect(query.sql).toMatch(/CASE WHEN \(lcname LIKE.*OR lcname LIKE.*THEN 0 ELSE 1/s);
+        expect(query.sql).toContain('COALESCE(NULLIF(POSITION(');
+        expect(query.sql).toContain('LIMIT 10');
+    });
+
+    it('does not add a broad empty compact pattern for whitespace-only searches', async () => {
+        const { db } = await import('@/server/db/drizzle');
+        (db.execute as jest.Mock).mockReset();
+        (db.execute as jest.Mock).mockResolvedValue([]);
+        const { searchForArtistByName } = await import('../artistQueries');
+        await searchForArtistByName('   ');
+        const query = new PgDialect().sqlToQuery((db.execute as jest.Mock).mock.calls[1][0]);
+        expect(query.params).not.toContain('');
+    });
 
     it('selects custom_image aliased to customImage', async () => {
         const { db } = await import('@/server/db/drizzle');

@@ -198,6 +198,16 @@ export async function searchForArtistByName(name: string) {
 
         // Normalise the incoming query (lower-case, accents & punctuation removed)
         const normalisedQuery = normaliseText(name);
+        // Older lcname values omit spaces (e.g. "peterango"), while new
+        // records preserve them. Match both forms before limiting the local
+        // results, otherwise an existing artist can appear as external-only.
+        const compactQuery = normalisedQuery.replace(/\s+/g, "");
+        const nameMatch = compactQuery && compactQuery !== normalisedQuery
+            ? sql`(lcname LIKE '%' || ${normalisedQuery} || '%' OR lcname LIKE '%' || ${compactQuery} || '%')`
+            : sql`lcname LIKE '%' || ${normalisedQuery} || '%'`;
+        const matchPosition = compactQuery && compactQuery !== normalisedQuery
+            ? sql`COALESCE(NULLIF(POSITION(${normalisedQuery} IN lcname), 0), POSITION(${compactQuery} IN lcname))`
+            : sql`POSITION(${normalisedQuery} IN lcname)`;
 
         try {
             await db.execute(sql`SET LOCAL pg_trgm.similarity_threshold = 0.3;`);
@@ -210,16 +220,16 @@ export async function searchForArtistByName(name: string) {
             id, name, spotify, deezer, bandcamp, youtube, youtubechannel,
             instagram, x, facebook, tiktok,
             custom_image AS "customImage",
-            CASE WHEN lcname LIKE '%' || ${normalisedQuery} || '%' THEN 0 ELSE 1 END AS match_type
+            CASE WHEN ${nameMatch} THEN 0 ELSE 1 END AS match_type
             FROM artists
             WHERE
-            lcname LIKE '%' || ${normalisedQuery} || '%'
+            ${nameMatch}
             OR lcname % ${normalisedQuery}          -- ← indexable equivalent to similarity(...) >= 0.3
             ORDER BY
             match_type ASC,
             CASE
-                WHEN lcname LIKE '%' || ${normalisedQuery} || '%'
-                THEN -POSITION(${normalisedQuery} IN lcname)
+                WHEN ${nameMatch}
+                THEN -${matchPosition}
                 ELSE -999999
             END DESC,
             similarity(lcname, ${normalisedQuery}) DESC   -- keep for ranking
