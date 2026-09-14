@@ -12,13 +12,13 @@ The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/i
 ## Music Nerd specifics, in one place
 
 - **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `CLAUDE.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
-- **Branches.** Feature branch off `staging` → PR to `staging` → release PR `staging` → `main`. Code branches `sweetmantech/<slug>` (the repo's `username/feature-name` rule), docs-only branches `docs/<slug>`. Conventional commits.
+- **Branches.** Feature branch off `staging` → PR to `staging` → release PR `staging` → `main`. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Docs-only branches may use `docs/<slug>`. Conventional commits.
 - **Merging.** Never merge. Release approval is reviewer green light → Pete tells Carl → Carl merges; feature PRs into `staging` are merged by Pete or a reviewer. Two merges mean two states to record: "merged to `staging`" and "on `main` via #<release>".
 - **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). Attribute decisions to whoever made them and where (standup, R&D sync).
 - **Databases.** Vercel previews and `staging.musicnerd.xyz` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
-- **No local runs.** Env vars are not on the machine. Prove compilation with the documented stub-env build; prove behaviour on the Vercel preview.
+- **Local and preview verification.** When a configured local environment is available, run and review changes locally; respect a requested local review before pushing. Verify the target environment before exercising integrations, preserve existing env files, and keep credentials private. When local configuration is unavailable, use the documented stub-env build to prove compilation. Local checks complement the exact-commit Vercel preview verification below; they do not replace it.
 - **Code shape.** `src/lib` is pure logic grouped by domain (`artist/`, `bio/`, `source/`, `inprocess/`); `src/server/utils` is server I/O under the same grouping. **New modules export one function each, named after the file, with a test beside the folder's other tests.** Older multi-export modules are split when next changed, not in a move. Reviewers ask for this; write it that way from the start.
-- **Browser verification.** 832 px desktop and 390 px phone (2×, touch), both themes (`localStorage` key `musicnerd-theme` = `light` | `dark`). Screenshots are committed to the orphan branch `sweetmantech/pr-screenshots` (worktree `mnw-shots`) and linked from PR comments by `raw.githubusercontent.com/xdjs/MusicNerdWeb/<sha>/<file>.png`; never on the feature branch.
+- **Browser verification.** 832 px desktop and 390 px phone (2×, touch), both themes (`localStorage` key `musicnerd-theme` = `light` | `dark`). Screenshots are committed to the existing shared orphan branch `sweetmantech/pr-screenshots` (shared archive, worktree `mnw-shots`; not a contributor-branch naming template) and linked from PR comments by `raw.githubusercontent.com/xdjs/MusicNerdWeb/<sha>/<file>.png`; never on the feature branch.
 - **Logged-in checks.** Previews use Privy email login. Enter the reviewer's email, ask them in chat for the six-digit code (codes expire fast; use the newest), fill the six `code-N` inputs; the page reloads logged in. A first login shows a "Welcome to Music Nerd!" dialog: *Skip for now*. **Never press Submit in the add-link modal on staging**: it files a real review-queue suggestion.
 - **Runtime evidence.** The Vercel MCP `get_runtime_logs` (project `music-nerd`, team `musicnerd`, environment `preview`, filter by status 500) tells you whether a preview 500 is yours or the environment's. A `(EMAXCONNSESSION) max clients reached` cause is the staging Postgres pool, not your PR: reload, note it, move on.
 
@@ -97,7 +97,7 @@ When the plan reverses (the reference went from a standalone section to cards in
 - Link every claim (PR, short SHA, file path, line range). Hard numbers. ISO dates.
 - Time-stamped test results go in **PR comments**; the issue body is the canonical current state (`gh issue edit <n> --body-file <file>` keeps markdown intact).
 - The **title is maintained state**; when scope changes, edit it.
-- Close only when every item is in Done or explicitly moved to a linked follow-up.
+- Close only when every item is Done, moved to a linked follow-up, or explicitly deferred or declined by the user. For approved deferrals, preserve the original issue link, reason, and dated decision attribution in the archive; an open replacement is not required. Record archival closure as deferred or not planned, never as fixed. Find or create an owning issue before resuming archived work.
 - Smaller issues (a bug, one task): summary, repro, expected vs actual, suspected file:line, done-when. No tracker scaffolding.
 - Scope to the **change**, not the business outcome: state the context once in the lead, keep every done-when checkable by the implementer.
 
@@ -126,7 +126,7 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 - From the issue: the contract, every done-when (your test plan), the merge order, source references (re-check any external API doc; if it is client-rendered, read it in a browser, not with a fetch).
 - `CLAUDE.md`, `docs/development.md`, and the feature's contract doc if one exists (`docs/artist-latest.md` for anything touching Latest).
 - **Find the nearest sibling and mirror it.** The Latest section (`LatestSection` → `getArtistLatest` → `LatestCards`) is the model for a data-backed profile section; `src/lib/inprocess/` is the model for a lib domain. Consistency with the neighbour beats cleverness.
-- Work in a worktree off `staging` (`git worktree add ../mnw-<x> -b sweetmantech/<slug> origin/staging`, symlink `node_modules` from the main checkout). Say up front when a PR is plumbing that renders nothing on its own, so a stacked PR does not surprise the reviewer.
+- Work in a worktree off `staging` (`git worktree add ../mnw-<x> -b <contributor>/<slug> origin/staging`, symlink `node_modules` from the main checkout). Say up front when a PR is plumbing that renders nothing on its own, so a stacked PR does not surprise the reviewer.
 
 ## 2. Docs first
 
