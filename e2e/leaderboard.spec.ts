@@ -46,7 +46,9 @@ for (const width of [832, 390]) {
                         await expect(page.getByRole('button', { name: 'Next', exact: true })).toHaveCount(0);
                     }
                     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-                    await page.screenshot({ path: testInfo.outputPath('leaderboard.png'), fullPage: true });
+                    await page.mouse.move(0, 0);
+                    await page.getByRole('heading', { name: 'Leaderboard', exact: true }).locator('../..')
+                        .screenshot({ path: testInfo.outputPath('leaderboard.png') });
                 });
             }
         });
