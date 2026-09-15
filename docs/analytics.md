@@ -30,9 +30,10 @@ Speed Insights is a separate product with separate billing and is not enabled.
 `SiteAnalytics` renders `<Analytics />` from `@vercel/analytics/next` with a `beforeSend` that
 maps the event URL through `scrubAnalyticsUrl` and drops the event when it returns `null`. The
 component is a client component only because `beforeSend` is a function prop; nothing else in
-the layout changes. There are no environment variables: Vercel injects the script at
-`/_vercel/insights/script.js` for any project with Web Analytics enabled, and the `src/middleware.ts`
-matcher is API-only, so that path passes through untouched.
+the layout changes. There are no environment variables: for a project with Web Analytics
+enabled, `@vercel/analytics` 2.x loads the script from a per-deployment hashed path
+(`/<hash>/script.js`, not `/_vercel/insights/`) and posts page views to `/<hash>/view`. The
+`src/middleware.ts` matcher is API-only, so those paths pass through untouched.
 
 ## The scrub rule
 
@@ -68,13 +69,18 @@ URL but not aggregated.
 
 ## Verifying a change
 
-On a preview deployment for the exact commit:
+On a preview deployment for the exact commit. The script is injected on mount, so it is not in
+the server HTML, and it exits early when `navigator.webdriver` is true — an automated browser
+must mask that (`Object.defineProperty(navigator, 'webdriver', { get: () => false })` before
+any page script) or no beacon is ever sent.
 
-1. The page HTML references `/_vercel/insights/script.js` and that request returns 200.
-2. Navigating between pages sends `POST /_vercel/insights/view` (or `/event` for custom events)
-   whose body `url` has no query string other than `utm_*`.
-3. Visiting `/admin` sends no `view` request.
-4. `?search=abc` on the home page sends a `url` without `search`.
+1. `window.va` is a function and `window.vam` is `production`; the `/<hash>/script.js` request
+   returns 200.
+2. Each full or client-side navigation sends `POST /<hash>/view` (or `/event` for custom
+   events) whose body field `o` is the reported URL and carries no query string other than
+   `utm_*`; `dp` is the route pattern (`/artist/[id]`).
+3. Visiting `/admin` or anything under it sends no `view` request.
+4. `?search=abc` on the home page sends `o` without `search`.
 5. No console errors from the script; both viewports, both themes.
 
 The dashboard shows data for production within a day of the release; the MCP query above should
