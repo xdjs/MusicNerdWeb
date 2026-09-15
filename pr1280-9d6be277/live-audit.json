@@ -1,0 +1,185 @@
+[
+  {
+    "period": "today",
+    "total": 0,
+    "visible": 0,
+    "pageCount": 0,
+    "zeroRows": 0
+  },
+  {
+    "period": "week",
+    "total": 1,
+    "visible": 1,
+    "pageCount": 1,
+    "zeroRows": 0
+  },
+  {
+    "period": "month",
+    "total": 4,
+    "visible": 4,
+    "pageCount": 1,
+    "zeroRows": 0
+  },
+  {
+    "period": "all",
+    "total": 73,
+    "visible": 72,
+    "pageCount": 8,
+    "zeroRows": 0
+  },
+  {
+    "period": "empty",
+    "total": 0,
+    "visible": 0,
+    "pageCount": 0,
+    "zeroRows": 0
+  },
+  {
+    "width": 832,
+    "theme": "light",
+    "period": "Today",
+    "rows": 0,
+    "podium": 0,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "light",
+    "period": "Last Week",
+    "rows": 1,
+    "podium": 1,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "light",
+    "period": "Last Month",
+    "rows": 4,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "light",
+    "period": "All Time",
+    "rows": 10,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "light",
+    "pageErrors": []
+  },
+  {
+    "width": 832,
+    "theme": "dark",
+    "period": "Today",
+    "rows": 0,
+    "podium": 0,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "dark",
+    "period": "Last Week",
+    "rows": 1,
+    "podium": 1,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "dark",
+    "period": "Last Month",
+    "rows": 4,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "dark",
+    "period": "All Time",
+    "rows": 10,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 832,
+    "theme": "dark",
+    "pageErrors": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "period": "Today",
+    "rows": 0,
+    "podium": 0,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "period": "Last Week",
+    "rows": 1,
+    "podium": 1,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "period": "Last Month",
+    "rows": 4,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "period": "All Time",
+    "rows": 10,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "pageErrors": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "period": "Today",
+    "rows": 0,
+    "podium": 0,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "period": "Last Week",
+    "rows": 1,
+    "podium": 1,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "period": "Last Month",
+    "rows": 4,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "period": "All Time",
+    "rows": 10,
+    "podium": 3,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "pageErrors": []
+  }
+]
