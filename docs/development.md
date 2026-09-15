@@ -126,6 +126,15 @@ for data changes, and failure/empty states for integrations. The
 [regression checklist](rnd/pre-push-checklist.md) records concrete past failures, including
 caller wiring, source URL preservation and end-state migration checks.
 
+## Dependency security baseline
+
+Next.js is declared at `^15.5.25` and locked to 15.5.25, which includes the fixes for
+[AVIF image optimization RCE](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4) and
+[Windows-hosted server RCE](https://github.com/advisories/GHSA-p293-qw3h-jr36).
+With the currently locked image library, Next.js passes AVIF inputs through without decoding
+or resizing them. Keep these fixes when updating dependencies.
+The separate high/moderate findings reported by `npm audit` are not resolved by this patch.
+
 ## Verification
 
 `package.json` is the command source of truth:
