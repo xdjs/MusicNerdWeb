@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Footer from "./_components/Footer";
 import Providers from "./_components/Providers";
 import ThemeScript from "./_components/ThemeScript";
-import SiteAnalytics from "./_components/SiteAnalytics";
+import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -60,7 +60,7 @@ export default function RootLayout({
           <Toaster />
           <Footer />
         </Providers>
-        <SiteAnalytics />
+        <Analytics />
       </body>
     </html>
   );
