@@ -3,8 +3,8 @@
 :global(.dark body):has(.concept) { background: #191919; }
 .concept :global(.glass) { background: #ffffff70; border: 1px solid #ffffffb3; box-shadow: inset 0 1px 0 #fff9, 0 8px 30px #693c6510; }
 :global(.dark) .concept :global(.glass) { background: #ffffff08; border-color: #ffffff18; box-shadow: inset 0 1px 0 #ffffff10; }
-:global(body):has(.concept) :global(nav[aria-label="Main navigation"]) { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.76); backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid #e9dce680; }
-:global(.dark body):has(.concept) :global(nav[aria-label="Main navigation"]) { background: rgba(26,26,26,.76); border-color: #ffffff12; }
+:global(body):has(.concept) :global(nav[aria-label="Main navigation"]) { position: sticky; top: 0; z-index: 40; width: 100%; max-width: none; padding: 12px; background: rgba(250,250,250,.94); backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid #e9dce680; }
+:global(.dark body):has(.concept) :global(nav[aria-label="Main navigation"]) { background: rgba(25,25,25,.94); border-color: #ffffff12; }
 :global(body):has(.concept) :global(.profile-account-avatar) { display: none; }
 :global(body):has(.concept) :global(.profile-account-menu-icon) { display: block; }
 :global(body):has(.concept) :global(button[aria-label="Account menu"]) { background: transparent; color: inherit; border: 1px solid #9994; border-radius: 50%; }
@@ -22,3 +22,8 @@
 :global(.dark body):has(.concept) :global(.profile-account-panel) { background: linear-gradient(135deg, #302a35f5, #1b181ef2); border-color: #ffffff20; color: #fff; box-shadow: 0 12px 32px #0005, inset 0 1px 0 #ffffff12; }
 :global(.dark body):has(.concept) :global(.profile-account-panel [role="menuitem"]) { color: #eee9f1; }
 :global(.dark body):has(.concept) :global(.profile-account-panel [role="menuitem"] svg) { color: #c9becf; }
+
+@media (min-width: 640px) {
+  :global(body):has(.concept) :global(nav[aria-label="Main navigation"]) { padding-inline: max(40px, calc((100% - 1152px) / 2 + 40px)); }
+  :global(body):has(.concept) :global(nav[aria-label="Main navigation"] img[alt="logo"]) { width: 48px; height: 48px; }
+}
