@@ -44,7 +44,7 @@
     cursor: grab;
 }
 
-.rail .link[aria-current] { color: #171717; }
+.rail .link[aria-current], .rail .link[aria-pressed="true"] { color: #171717; }
 .link:focus-visible { outline: 2px solid #b74dcc; outline-offset: -3px; }
 .rail[data-dragging="true"] .link { cursor: grabbing; }
 .rail[data-dragging="true"] .lens,
@@ -63,7 +63,7 @@
 }
 
 :global(.dark) .rail .link { color: rgb(255 255 255 / 72%); }
-:global(.dark) .rail .link[aria-current] { color: #fff; }
+:global(.dark) .rail .link[aria-current], :global(.dark) .rail .link[aria-pressed="true"] { color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
     .lens { transition: none; }

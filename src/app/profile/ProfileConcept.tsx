@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './ProfileConcept.module.css';
+import ArtistUpdateFilter from './ArtistUpdateFilter';
 import { ArrowUpRight, Camera, Pencil, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,7 +119,7 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
         <section aria-labelledby="concept-latest" className="border-t border-border pt-7">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4"><h2 id="concept-latest" className="text-2xl font-semibold tracking-tight">Your artists lately</h2><span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">Sample updates</span></div>
           <p className="text-sm text-muted-foreground mb-5">Sample releases, Instagram posts, In-Process moments and artist answers.</p>
-          <div className={`${styles.surface} flex gap-1 mb-5 overflow-x-auto rounded-full p-1 scrollbar-hide`} aria-label="Filter artist updates">{['All', 'Release', 'Instagram', 'Interview', 'In-Process'].map(type => <Button key={type} variant="ghost" size="sm" aria-pressed={updateFilter === type} className={`rounded-full shrink-0 ${updateFilter === type ? 'bg-[#ff75d8] text-black hover:bg-[#ff75d8]/80' : ''}`} onClick={() => setUpdateFilter(type)}>{type === 'Release' ? 'Releases' : type === 'Interview' ? 'In their words' : type}</Button>)}</div>
+          <div className="mb-5 overflow-x-auto rounded-[20px] scrollbar-hide"><ArtistUpdateFilter value={updateFilter} onValueChange={setUpdateFilter} /></div>
           <LatestCards sectionId="profile-lately" heading="Latest updates" hideHeading itemArtistNames={updateArtistNames} itemArtistUrls={updateArtistUrls} artistName="Your artists" artistImage="/musicNerdLogo.png" items={mixedUpdates} unavailable={false} showFilters={false} />
         </section>
       </div>
