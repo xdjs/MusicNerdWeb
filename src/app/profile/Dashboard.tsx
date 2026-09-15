@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { DateRange } from "react-day-picker";
 import { getUgcStatsInRangeAction as getUgcStatsInRange } from "@/app/actions/serverActions";
 import { User } from "@/server/db/DbTypes";
+import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
 import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
@@ -246,18 +247,14 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // always fetch the all-time leaderboard so the stat matches the "UGC Total"
     // values directly above it.
     useEffect(() => {
+        let cancelled = false;
+        setRank(user.isHidden ? -1 : null);
+        setTotalEntries(null);
+        if (isCompactLayout) setUgcStats(null);
+
         async function fetchRank() {
             try {
-                // Check if user is hidden first - if so, set rank to -1 and skip API call
-                if (user.isHidden) {
-                    setRank(-1);
-                    setTotalEntries(null); // Don't show total for hidden users
-                    return;
-                }
-
                 let url = '/api/leaderboard';
-                // In full profile layout, always fetch all-time rank
-                // In compact layout, respect the selected date range
                 const dates = isCompactLayout ? getRangeDates(selectedRangeToUse) : null;
                 if (dates) {
                     url = `/api/leaderboard?from=${encodeURIComponent(dates.from.toISOString())}&to=${encodeURIComponent(dates.to.toISOString())}`;
@@ -265,46 +262,34 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 const resp = await fetch(url);
                 if (!resp.ok) return;
                 const data = await resp.json();
+                if (cancelled) return;
 
-                // Handle both paginated and non-paginated responses
-                const entries = Array.isArray(data) ? data : data.entries;
+                // Both API formats contain eligible contributors only. Match by
+                // account ID: email-only accounts may share a null wallet.
+                const entries: LeaderboardEntry[] = Array.isArray(data) ? data : data.entries;
+                const nonHiddenUsers = entries.filter(entry => !entry.isHidden);
+                const userEntry = entries.find(entry => entry.userId === user.id);
+                const isUserHidden = user.isHidden || userEntry?.isHidden;
+                const rankIndex = nonHiddenUsers.findIndex(entry => entry.userId === user.id);
+                setRank(isUserHidden ? -1 : rankIndex === -1 ? null : rankIndex + 1);
+                setTotalEntries(isUserHidden ? null : nonHiddenUsers.length);
 
-                // Exclude hidden users from total count
-                const nonHiddenUsers = entries.filter((entry: any) => !entry.isHidden);
-                setTotalEntries(nonHiddenUsers.length);
-
-                const idx = entries.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
-
-                if (idx !== -1) {
-                    // Check if the current user is hidden - check both user object and leaderboard entry
-                    const userEntry = entries[idx];
-                    const isUserHidden = user.isHidden || userEntry?.isHidden;
-
-                    if (isUserHidden) {
-                        setRank(-1); // Use -1 to indicate hidden user
-                    } else {
-                        // Calculate rank among non-hidden users only
-                        const nonHiddenIdx = nonHiddenUsers.findIndex((entry: any) => entry.wallet?.toLowerCase() === user.wallet?.toLowerCase());
-                        if (nonHiddenIdx !== -1) {
-                            setRank(nonHiddenIdx + 1);
-                        }
-                    }
-
-                    // Set stats from leaderboard data to ensure consistency (only in compact layout)
-                    if (userEntry && isCompactLayout) {
-                        setUgcStats({
-                            ugcCount: userEntry.ugcCount,
-                            artistsCount: userEntry.artistsCount
-                        });
-                    }
+                // An absent account has no counted contributions in this period.
+                // Never retain another period's rank or fall back to all-time counts.
+                if (isCompactLayout) {
+                    setUgcStats({
+                        ugcCount: userEntry?.ugcCount ?? 0,
+                        artistsCount: userEntry?.artistsCount ?? 0,
+                    });
                 }
             } catch (e) {
-                console.error('Error fetching rank', e);
+                if (!cancelled) console.error('Error fetching rank', e);
             }
         }
 
         fetchRank();
-    }, [selectedRangeToUse, user.wallet, isCompactLayout]);
+        return () => { cancelled = true; };
+    }, [selectedRangeToUse, user.id, user.isHidden, isCompactLayout]);
 
     const isGuestUser = user.username === 'Guest User' || user.id === '00000000-0000-0000-0000-000000000000';
     const displayName = isGuestUser ? 'User Profile' : (user?.username || user?.email || user?.wallet);
@@ -522,7 +507,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
                                         {rank === -1 ? 'N/A' : rank ?? '—'}
                                     </Badge>
-                                    {totalEntries && (
+                                    {rank !== null && totalEntries !== null && totalEntries > 0 && (
                                         <>
                                             <span className="text-sm sm:text-lg">of</span>
                                             <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
@@ -536,7 +521,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">UGC Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
-                                        {isCompactLayout && ugcStats ? ugcStats.ugcCount : (allTimeStats?.ugcCount ?? '—')}
+                                        {ugcStats?.ugcCount ?? '—'}
                                     </Badge>
                                 </div>
 
@@ -544,7 +529,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
 							<div className="flex flex-row flex-nowrap items-center gap-1 text-xs sm:text-lg whitespace-nowrap flex-shrink-0">
                                     <span className="font-semibold text-sm sm:text-lg">Artists Added:</span>
                                     <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-xs sm:text-base px-2 sm:px-4 py-0.5 sm:py-1">
-                                        {isCompactLayout && ugcStats ? ugcStats.artistsCount : (allTimeStats?.artistsCount ?? '—')}
+                                        {ugcStats?.artistsCount ?? '—'}
                                     </Badge>
                                 </div>
                             </div>

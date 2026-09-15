@@ -12,7 +12,10 @@ instead of a rank; hidden accounts with no contributions are omitted too.
 
 The UI renders the returned rows without filling vacant podium positions. An empty
 result says “No contributions in this period yet. Be the first!” and has no pagination
-controls. Highlighting the signed-in account does not add an ineligible row.
+controls. Highlighting the signed-in account does not add an ineligible row. The signed-in
+summary matches by account ID and shows an unranked dash with zero period counts
+when that account is absent (N/A for hidden accounts). Superseded range responses
+cannot restore an earlier rank or count.
 
 Contribution credit policy is unchanged; claimed-artist self-edits are tracked in
 #1134. This read-only change needs no migration, jobs or external-service writes.

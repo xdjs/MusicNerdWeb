@@ -31,8 +31,12 @@ for (const width of [832, 390]) {
                         entries: empty ? [] : contributors, total: empty ? 0 : 2, pageCount: empty ? 0 : 1,
                     } }));
                     await page.goto('/leaderboard');
+                    await expect(page.getByText('Rank:', { exact: true })).toBeVisible();
                     for (const label of ['Today', 'Last Week', 'Last Month', 'All Time']) {
+                        const response = label === 'Today' ? null : page.waitForResponse(resp =>
+                            resp.url().includes('/api/leaderboard?') && resp.url().includes('page=1'));
                         await page.getByRole('button', { name: label, exact: true }).click();
+                        if (response) await response;
                         if (empty) {
                             await expect(page.getByText('No contributions in this period yet. Be the first!')).toBeVisible();
                             await expect(page.locator('[data-podium]')).toHaveCount(0);
@@ -42,6 +46,9 @@ for (const width of [832, 390]) {
                             await expect(page.getByText('Artist Only', { exact: true }).filter({ visible: true })).toBeVisible();
                             await expect(page.getByText('🥉', { exact: true })).toHaveCount(0);
                         }
+                        await expect(page.getByText('Rank:', { exact: true }).locator('..')).toContainText('—');
+                        await expect(page.getByText('UGC Added:', { exact: true }).locator('..')).toContainText('0');
+                        await expect(page.getByText('Artists Added:', { exact: true }).locator('..')).toContainText('0');
                         await expect(page.locator('#leaderboard-current-user')).toHaveCount(0);
                         await expect(page.getByRole('button', { name: 'Next', exact: true })).toHaveCount(0);
                     }
