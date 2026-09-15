@@ -25,6 +25,10 @@ const customJestConfig: Config = {
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
+        // @vercel/analytics resolves to ESM builds under Jest's export conditions; use its CJS builds
+        '^@vercel/analytics$': '<rootDir>/node_modules/@vercel/analytics/dist/index.js',
+        '^@vercel/analytics/next$': '<rootDir>/node_modules/@vercel/analytics/dist/next/index.js',
+        '^@vercel/analytics/server$': '<rootDir>/node_modules/@vercel/analytics/dist/server/index.js',
         // Privy mocks
         '^@privy-io/server-auth$': '<rootDir>/__mocks__/@privy-io/server-auth.js',
         '^@privy-io/react-auth$': '<rootDir>/__mocks__/@privy-io/react-auth.js',
