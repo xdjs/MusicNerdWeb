@@ -10,14 +10,16 @@ function ThemeControl() {
   return <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme}</button>;
 }
 
-function runHeadScript() {
-  const html = renderToString(<ThemeScript />);
+function runHeadScript(previewDeployment = false) {
+  const html = renderToString(<ThemeScript previewDeployment={previewDeployment} />);
   const script = html.slice(html.indexOf('>') + 1, html.lastIndexOf('</script>'));
-  runInNewContext(script, { document, localStorage, window });
+  runInNewContext(script, { document, localStorage, window, URLSearchParams });
 }
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState({}, "", "/");
+  delete document.documentElement.dataset.profilePreviewTheme;
   document.documentElement.className = 'unrelated';
   document.documentElement.style.colorScheme = '';
   jest.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList);
@@ -82,4 +84,24 @@ it('hydrates without mismatched theme markup or resetting the prepaint dark clas
   expect(document.documentElement).toHaveClass('dark');
   await act(async () => root.unmount());
   container.remove();
+});
+
+it('defaults the shared concept to light before paint without replacing the normal saved preference', () => {
+  window.history.replaceState({}, '', '/profile?preview=concept');
+  localStorage.setItem('musicnerd-theme', 'dark');
+  runHeadScript(true);
+  expect(document.documentElement).toHaveClass('light');
+  render(<ThemeProvider><ThemeControl /></ThemeProvider>);
+  fireEvent.click(screen.getByRole('button', {name: 'light'}));
+  expect(document.documentElement).toHaveClass('dark');
+  expect(localStorage.getItem('musicnerd-profile-preview-theme')).toBe('dark');
+  expect(localStorage.getItem('musicnerd-theme')).toBe('dark');
+  runHeadScript(true);
+  expect(document.documentElement).toHaveClass('dark');
+});
+
+it('keeps the ordinary theme behavior outside Vercel previews', () => {
+  window.history.replaceState({}, '', '/profile?preview=concept');
+  runHeadScript(false);
+  expect(document.documentElement).toHaveClass('dark');
 });

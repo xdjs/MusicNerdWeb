@@ -39,16 +39,19 @@ export function ThemeProvider({
     root.style.colorScheme = nextTheme
   }
 
+  const resolvedStorageKey = () => document.documentElement.dataset.profilePreviewTheme === "true" ? "musicnerd-profile-preview-theme" : storageKey
+
   useEffect(() => {
+    const preview = document.documentElement.dataset.profilePreviewTheme === "true"
     let stored: string | null = null
     try {
-      stored = localStorage.getItem(storageKey)
+      stored = localStorage.getItem(preview ? "musicnerd-profile-preview-theme" : storageKey)
     } catch {
       // Storage can be disabled; system preference still works.
     }
     const resolved = stored === "light" || stored === "dark"
       ? stored
-      : defaultTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : (preview ? "light" : defaultTheme) ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
     applyTheme(resolved)
     setTheme(resolved)
   }, [defaultTheme, storageKey])
@@ -57,7 +60,7 @@ export function ThemeProvider({
     theme,
     setTheme: (nextTheme: Theme) => {
       try {
-        localStorage.setItem(storageKey, nextTheme)
+        localStorage.setItem(resolvedStorageKey(), nextTheme)
       } catch {
         // Keep toggling functional even when the preference cannot be persisted.
       }
