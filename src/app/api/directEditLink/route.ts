@@ -61,8 +61,9 @@ export async function POST(req: Request) {
                     platformId: extracted.id,
                     submittedUrl: url,
                 });
+                // A no-op save (same value) is not a profile change; don't count it.
+                await trackServerEvent("profile_edit", { action: "link_add", target: extracted.siteName });
             }
-            await trackServerEvent("profile_edit", { action: "link_add", target: extracted.siteName });
             return Response.json({ success: true, siteName: extracted.siteName, platformName: extracted.cardPlatformName });
         }
 
