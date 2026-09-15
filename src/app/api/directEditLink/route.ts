@@ -12,6 +12,7 @@ import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import { getLoreClaimGeneration } from "@/server/utils/queries/lorePersistence";
 import { withArtistOperation } from "@/server/utils/artistOperationContext";
 import { OwnershipChangedError } from "@/server/utils/queries/ownershipWrites";
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
                     submittedUrl: url,
                 });
             }
+            await trackServerEvent("profile_edit", { action: "link_add", target: extracted.siteName });
             return Response.json({ success: true, siteName: extracted.siteName, platformName: extracted.cardPlatformName });
         }
 
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
                 artistId, { userId: authResult.userId, expectedClaimId },
                 () => clearArtistLink(artistId, siteName),
             );
+            await trackServerEvent("profile_edit", { action: "link_remove", target: siteName });
             return Response.json({ success: true });
         }
 

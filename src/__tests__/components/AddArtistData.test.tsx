@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import { LINK_NOT_SUPPORTED } from '@/lib/linkSubmissionMessages';
 import { addArtistDataAction } from '@/app/actions/serverActions';
 
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 
 const baseProps = {
@@ -40,7 +42,7 @@ describe('AddArtistData "+" trigger', () => {
     const loginClick = jest.fn();
     const getByIdSpy = jest
       .spyOn(document, 'getElementById')
-      .mockReturnValue({ click: loginClick } as unknown as HTMLElement);
+      .mockReturnValue(Object.assign(document.createElement('button'), { click: loginClick }));
 
     render(<AddArtistData {...baseProps} />);
     fireEvent.click(screen.getByRole('button')); // only the trigger renders while the dialog is closed
@@ -160,6 +162,24 @@ describe('AddArtistData "+" trigger', () => {
 
     getByIdSpy.mockRestore();
     warnSpy.mockRestore();
+  });
+
+  it('reports a visitor submission that no platform regex accepts as invalid', async () => {
+    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    const originalFetch = global.fetch;
+    // /api/platformRegexes returns nothing, so no platform matches and the client rejects the URL
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => [] })) as unknown as typeof fetch;
+    try {
+      render(<AddArtistData {...baseProps} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Add a link for Test Artist' }));
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'https://example.com/nobody' } });
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+      await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith('add_link_submit', { platform: null, result: 'invalid' }));
+      expect(addArtistDataAction).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   it('opens the submit modal when logged in', () => {

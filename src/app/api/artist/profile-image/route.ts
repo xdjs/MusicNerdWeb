@@ -7,6 +7,7 @@ import { validateMagicBytes } from "@/server/utils/validateMagicBytes";
 import { db } from "@/server/db/drizzle";
 import { artists } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export const dynamic = "force-dynamic";
 
@@ -154,6 +155,7 @@ export async function POST(req: Request) {
             console.error("[artist/profile-image] Stale image cleanup error:", e);
         }
 
+        await trackServerEvent("profile_edit", { action: "photo", target: null });
         return NextResponse.json({ success: true, imagePath: publicUrl });
     } catch (error) {
         console.error("[artist/profile-image] Error:", error);

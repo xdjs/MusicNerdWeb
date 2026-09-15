@@ -33,6 +33,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID } from "@/lib/linkSubmissionMessages";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 
 type AddArtistDataProps = {
     artist: Artist;
@@ -48,11 +50,7 @@ type AddArtistDataProps = {
 type PlatformRegexStatus = "loading" | "ready" | "error";
 
 function promptLogin() {
-    const loginBtn = document.getElementById("login-btn");
-    if (loginBtn) {
-        loginBtn.click();
-        return true;
-    }
+    if (requestLogin("add_link")) return true;
 
     if (process.env.NODE_ENV !== "production") {
         console.warn("[AddArtistData] #login-btn not found — cannot prompt login");
@@ -245,12 +243,14 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
 
         const isTwitterValid = await validateTwitterLink(formattedUrl);
         if (!isTwitterValid) {
+            if (!directEdit) trackEvent("add_link_submit", { platform: "x", result: "invalid" });
             setAddArtistResp({ status: "error", message: LINK_TWITTER_INVALID });
             setIsLoading(false);
             return;
         }
         const isPlatformValid = await validatePlatformLinkBackend(formattedUrl);
         if (!isPlatformValid) {
+            if (!directEdit) trackEvent("add_link_submit", { platform: null, result: "invalid" });
             setAddArtistResp({ status: "error", message: LINK_NOT_SUPPORTED });
             setIsLoading(false);
             return;
@@ -276,6 +276,8 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
             return;
         }
         const resp = await addArtistData(formattedUrl, artist);
+        // Owners edit through /api/directEditLink above, which reports `profile_edit` server-side.
+        trackEvent("add_link_submit", { platform: resp.siteName ?? null, result: resp.status === "success" ? "success" : "error" });
         if (resp.status === "success") {
             toast({
                 title: `${artist.name}'s ${resp.siteName ?? "data"} added`,

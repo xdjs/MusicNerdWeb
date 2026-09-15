@@ -6,6 +6,8 @@ import { saveArtistLinkOrder } from '@/server/utils/queries/artistLinkOrder';
 import { getActiveArtistOperation } from '@/server/utils/artistOperationContext';
 import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
+const mockTrackServerEvent = jest.fn(async (_name: string, _props: Record<string, unknown>) => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (name: string, props: Record<string, unknown>) => mockTrackServerEvent(name, props) }));
 jest.mock('@/lib/auth-helpers', () => ({ requireAuth: jest.fn() }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getAllLinks: jest.fn() }));
@@ -43,6 +45,7 @@ test('carries the initiating ownership into persistence', async () => {
     });
     expect((await PUT(request())).status).toBe(200);
     expect(saveArtistLinkOrder).toHaveBeenCalledWith(artistId, 'links', ['deezer', 'spotify']);
+    expect(mockTrackServerEvent).toHaveBeenCalledWith('profile_edit', { action: 'reorder', target: 'links' });
 });
 test('fails closed if ownership changes during save', async () => {
     (saveArtistLinkOrder as jest.Mock).mockRejectedValue(new OwnershipChangedError());

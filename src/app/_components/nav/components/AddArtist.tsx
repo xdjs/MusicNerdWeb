@@ -30,6 +30,7 @@ import { Plus } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import DuplicateArtistChoice from "@/app/_components/DuplicateArtistChoice";
 import { parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 const formSchema = z.object({
     artistUrl: z.string().refine(
@@ -144,10 +145,7 @@ export default function AddArtist() {
         if (session) {
             setIsModalOpen(true);
         } else {
-            const loginButton = document.getElementById("login-btn");
-            if (loginButton) {
-                loginButton.click();
-            } else if (process.env.NODE_ENV !== "production") {
+            if (!requestLogin("add_artist") && process.env.NODE_ENV !== "production") {
                 console.warn("[AddArtist] #login-btn not found — cannot prompt login");
             }
         }

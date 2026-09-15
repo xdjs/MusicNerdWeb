@@ -6,6 +6,7 @@ import { saveArtistLinkOrder } from '@/server/utils/queries/artistLinkOrder';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export const dynamic = 'force-dynamic';
 const input = z.object({
@@ -27,6 +28,7 @@ export async function PUT(req: Request) {
         if (order.some(name => !known.has(name))) return Response.json({ error: 'Unknown platform' }, { status: 400 });
         const saved = await withArtistOperation(artistId, { userId: auth.userId, expectedClaimId }, () => saveArtistLinkOrder(artistId, section, order));
         if (!saved) return Response.json({ error: 'Artist not found' }, { status: 404 });
+        await trackServerEvent('profile_edit', { action: 'reorder', target: section });
         return Response.json({ success: true });
     } catch (error) {
         if (error instanceof OwnershipChangedError) return Response.json({ error: error.message }, { status: 403 });

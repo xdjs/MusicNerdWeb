@@ -7,6 +7,7 @@ import { addArtist } from "../../actions/addArtist";
 import { useSession } from "next-auth/react";
 import type { MusicPlatform, MusicPlatformArtist } from "@/server/utils/musicPlatform";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate } from "@/app/_components/DuplicateArtistChoice";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 type PossibleDuplicateResponse = {
     status: "possible_duplicate";
@@ -33,11 +34,7 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
     }, []);
 
     function promptLogin() {
-        const loginBtn = document.getElementById("login-btn");
-        if (!loginBtn) return false;
-
-        loginBtn.click();
-        return true;
+        return requestLogin("add_artist");
     }
 
     function handleResult(result: Awaited<ReturnType<typeof addArtist>>) {

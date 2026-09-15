@@ -34,6 +34,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 type RecentItem = {
     ugcId: string;
@@ -348,10 +349,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // No need for duplicate logic here
 
     function handleLogin() {
-        const navLoginBtn = document.getElementById("login-btn");
-        if (navLoginBtn) {
-            (navLoginBtn as HTMLButtonElement).click();
-        }
+        requestLogin("dashboard");
     }
 
     async function checkUgcStats() {

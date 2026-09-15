@@ -1,13 +1,11 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 export default function PleaseLoginPage({text = "Log in to access this page"}: {text?: string}) {
     function handleLogin() {
-        const loginBtn = document.getElementById("login-btn");
-        if (loginBtn) {
-            loginBtn.click();
-        }
+        requestLogin("please_login");
     }
     
     return (
