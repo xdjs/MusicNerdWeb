@@ -12,7 +12,8 @@ a stub value suffices for that requirement. The declared OpenAI client is unused
 
 New to the project? Start with the [engineering reading path](docs/README.md).
 
-Use npm and the runtime versions declared in [package.json](package.json).
+Use Node 24 LTS and npm as declared in [package.json](package.json).
+Run `nvm install` and `nvm use` to select the version pinned in [.nvmrc](.nvmrc).
 Install the lockfile with `npm ci`, configure a **dev** database and credentials, then run:
 
 ```bash

@@ -235,3 +235,22 @@ Client polls every 30s. Each poll runs 1 lightweight query (UNION ALL with LIMIT
 11. Dark mode: neon pink/cyan/green palette with subtle glow on title
 12. Pulsing green "LIVE" dot animates continuously
 13. Footer ("Made in Seattle...") is above the fold on both desktop and mobile
+
+### UGC persistence regression contract (#1137)
+
+`addArtistData()` must persist one contribution, apply the submitted artist link,
+and mark that contribution accepted with `dateProcessed` for both administrators
+and whitelisted users. The real `getRecentActivity()` query must return that event
+on initial load and when polling from before approval. Regular-user submissions
+remain pending, leave the artist link unchanged, and are absent from accepted activity.
+A repeated URL submitted with the refreshed artist record is rejected without
+adding another contribution or feed event. This is the existing sequential duplicate
+guard, not a concurrency or stale-client guarantee. Claimed-owner activity/credit
+policy remains separate in #1134.
+
+The regression suite uses an ephemeral in-memory PostgreSQL engine (PGlite), with
+DDL generated from the current Drizzle tables. It executes the real submission,
+approval, link-write, user lookup, and feed SQL. Authentication, URL extraction,
+and external notifications are controlled test boundaries. It runs with the normal
+Jest suite without credentials or a database service; it does not verify deployed
+Supabase grants/RLS, production authentication, or browser rendering.

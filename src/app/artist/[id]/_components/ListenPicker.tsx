@@ -14,6 +14,6 @@ export default function ListenPicker({ artistName, links }: { artistName: string
                 Listen <Play size={14} fill="currentColor" aria-hidden="true" />
             </Button>
         </DialogTrigger>
-        <ListeningDialogContent title={`Listen to ${artistName}`} description="Choose where you listen." links={links} />
+        <ListeningDialogContent title={`Listen to ${artistName}`} description="Choose where you listen." links={links} surface="listen" />
     </Dialog>;
 }

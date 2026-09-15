@@ -9,6 +9,7 @@ import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/artist/releaseListeningLinks';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
 
@@ -95,7 +96,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                 {visible.map(item => {
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
-                        <button type="button" onClick={() => setSelected(item)} aria-label={`Read ${item.title}`}
+                        <button type="button" onClick={() => { setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter }); }} aria-label={`Read ${item.title}`}
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
@@ -126,11 +127,11 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
             {selected?.kind === 'release' && <ListeningDialogContent
-                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release
+                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release surface="latest"
                 artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
                     <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                 </div>} />}
-            {selected && selected.kind !== 'release' && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
+            {selected && selected.kind !== 'release' && <DialogContent data-analytics-surface="latest" className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
                 <div className="relative h-56 overflow-hidden rounded-t-2xl">
                     <CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                     <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>

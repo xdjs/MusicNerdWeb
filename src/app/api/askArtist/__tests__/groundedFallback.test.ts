@@ -11,6 +11,8 @@
  */
 import { jest } from '@jest/globals';
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({
     getArtistById: jest.fn(),
     findArtistsByInstagram: jest.fn().mockResolvedValue([]),
@@ -70,6 +72,7 @@ describe('the grounded fallback and the blocklist', () => {
         const { body } = await ask({ text: 'He put out a record.', ...chunksFrom('boomplay.com', 'stereogum.com') });
         expect(body.webDomains).toEqual(['stereogum.com']);
         expect(body.fromOpenWeb).toBe(true);
+        expect(mockTrackServerEvent).toHaveBeenCalledWith('ask_question', { outcome: 'open_web', sources: expect.any(Number) });
     });
 
     it('abstains rather than answering off a scrape farm alone', async () => {
@@ -80,6 +83,7 @@ describe('the grounded fallback and the blocklist', () => {
         expect(body.answer).toBe("I don't have anything on that for Pete Rango yet.");
         expect(body.fromOpenWeb).toBe(false);
         expect(body.webDomains).toEqual([]);
+        expect(mockTrackServerEvent).toHaveBeenCalledWith('ask_question', { outcome: 'answered', sources: expect.any(Number) });
     });
 
     it('still answers normally when nothing it used is blocked', async () => {

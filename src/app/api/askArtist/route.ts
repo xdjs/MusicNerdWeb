@@ -36,6 +36,7 @@ const MAX_INTERVIEW_IN_CONTEXT = 12;
  *  a reader's patience. */
 const GROUNDED_TIMEOUT_MS = 15_000;
 import { isRealBio } from "@/lib/bio/bioConstants";
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 // PUBLIC ENDPOINT — intentionally unauthenticated (rate-limited via middleware STRICT tier).
 //
@@ -508,6 +509,8 @@ ${artistContext}`,
             }))
             .slice(0, MAX_SONGS_LINKED);
 
+        await trackServerEvent("ask_question", { outcome: fromOpenWeb ? "open_web" : "answered", sources: sources.length });
+
         return Response.json({
             answer, suggestions, sources, mentions, songs,
             // The artist's store, for the "where can I hear this" menu under a
@@ -520,6 +523,7 @@ ${artistContext}`,
         });
     } catch (err: any) {
         console.error("[askArtist] Error:", err);
+        await trackServerEvent("ask_question", { outcome: "error", sources: 0 });
         if (err.message === "Gemini timeout") {
             return Response.json({ error: "Request timed out. Try again." }, { status: 408 });
         }

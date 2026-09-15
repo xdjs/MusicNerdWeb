@@ -15,6 +15,7 @@ import { getSocialPostsForArtist, hasOlderPostsLearnedSince } from "@/server/uti
 import { hasOlderCreditsLearnedSince } from "@/server/utils/queries/socialCreditQueries";
 import { isResearchInFlight } from "@/server/utils/queries/researchJobQueries";
 import { getSpotifyCatalogDetail, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 /**
  * The interview, outside the onboarding step machine.
@@ -448,6 +449,7 @@ export async function answerInterviewQuestion(input: {
             // which is what actually happened.
             source: "followup",
         });
+        await trackServerEvent("interview_answer", { question: input.questionKey, skipped: input.answer === null || input.answer.trim() === "" });
         return { success: true };
     } catch (e) {
         console.error("[answerInterviewQuestion] Error:", e);

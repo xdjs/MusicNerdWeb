@@ -1,5 +1,21 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Critical Next.js audit fix — awaiting review
+
+September 15: [issue #1281](https://github.com/xdjs/MusicNerdWeb/issues/1281) tracks the
+critical-only audit fix on `codex/fix-next-critical`. Next.js and its bundled env/SWC packages
+move from 15.5.23 to 15.5.25, covering both critical advisories. Other audit severities remain
+outside this change. Verification and release status are recorded on the issue and its PR.
+
+## Node 24 LTS upgrade — merged to staging
+
+September 15: [PR #1279](https://github.com/xdjs/MusicNerdWeb/pull/1279) merged to staging
+as `c21bb01e`; [issue #1278](https://github.com/xdjs/MusicNerdWeb/issues/1278) tracks rollout.
+`.nvmrc` pins Node 24.21.0 for local setup and CI; package engines constrain deployments to 24.x.
+Local and GitHub CI passed, including 213 suites / 2,477 tests and the production build;
+the exact-commit preview returned healthy database/storage checks. Production release is
+not established by the staging merge.
+
 ## Homepage logo alignment — follow-up before main release
 
 September 13: PR #1243 merged to staging as `63bcc1d` after CI and Codex code/security

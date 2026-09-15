@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { removeArtistData } from '@/server/utils/queries/artistQueries';
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export async function POST(request: Request) {
   const auth = await requireAuth();
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     if (result.status === 'error') {
       return Response.json({ error: result.message }, { status: 403 });
     }
+    await trackServerEvent('profile_edit', { action: 'link_remove', target: siteName });
     return Response.json({ success: true, message: result.message });
   } catch (error) {
     console.error('[removeArtistData] Error:', error);
