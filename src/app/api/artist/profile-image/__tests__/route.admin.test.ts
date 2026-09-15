@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getApprovedClaimByUserId: jest.fn(), getApprovedClaimForArtistByUserId: jest.fn() }));
@@ -50,6 +52,7 @@ describe('POST /api/artist/profile-image admin path', () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
+    expect(mockTrackServerEvent).toHaveBeenCalledWith('profile_edit', { action: 'photo', target: null });
   });
 
   it('rejects a non-admin with no claim', async () => {

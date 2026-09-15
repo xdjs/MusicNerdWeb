@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { claimArtistProfile } from "@/app/actions/dashboardActions";
+import { trackEvent } from "@/lib/analytics/trackEvent";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 
 interface ClaimButtonProps {
     artistId: string;
@@ -70,8 +72,10 @@ export default function ClaimButton({
         try {
             const result = await claimArtistProfile(artistId);
             if (result.success && result.referenceCode) {
+                trackEvent("claim", { step: "submitted" });
                 setReferenceCode(result.referenceCode);
             } else if (result.alreadyClaimed) {
+                trackEvent("claim", { step: "already_claimed" });
                 toast({
                     title: "Already Claimed",
                     description: "This artist profile has already been claimed.",
@@ -79,6 +83,7 @@ export default function ClaimButton({
                 });
                 setModalOpen(false);
             } else {
+                trackEvent("claim", { step: "error" });
                 toast({
                     title: "Error",
                     description: result.error ?? "Failed to claim profile.",
@@ -86,6 +91,7 @@ export default function ClaimButton({
                 });
             }
         } catch {
+            trackEvent("claim", { step: "error" });
             toast({
                 title: "Error",
                 description: "Something went wrong. Please try again.",
@@ -112,11 +118,11 @@ export default function ClaimButton({
                 title="Claim profile"
                 onClick={() => {
                     if (!session) {
-                        // Trigger login via the nav login button
-                        const loginBtn = document.getElementById('login-btn');
-                        if (loginBtn) loginBtn.click();
+                        trackEvent("claim", { step: "login_required" });
+                        requestLogin("claim");
                         return;
                     }
+                    trackEvent("claim", { step: "start" });
                     setModalOpen(true);
                 }}
             >

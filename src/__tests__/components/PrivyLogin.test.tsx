@@ -15,6 +15,8 @@ let mockPrivyState = {
 const mockLogin = jest.fn();
 const mockPrivyLogout = jest.fn();
 
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockPrivyState,
   useLogin: (opts) => {
@@ -153,6 +155,29 @@ describe('PrivyLogin', () => {
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
       expect(screen.getByAltText('Loading...')).toBeInTheDocument();
+    });
+  });
+
+  describe('login event', () => {
+    it('reports a login that completed before the reload, once, with the surface that asked', () => {
+      mockSessionStorage['mn-login-trigger'] = 'claim';
+      mockSessionStorage['mn-login-completed'] = 'new';
+      const { unmount } = render(<PrivyLogin />);
+      expect(mockTrackEvent).toHaveBeenCalledWith('login', { trigger: 'claim', new: true });
+      unmount();
+      mockTrackEvent.mockClear();
+      render(<PrivyLogin />);
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    });
+
+    it('keeps the trigger a prompt recorded when the nav button is clicked programmatically', () => {
+      // requestLogin() records its surface and then calls button.click(); that synthetic
+      // click is not trusted, so it must not be rewritten to `nav`. (jsdom cannot forge
+      // isTrusted, so the real-click path is verified on the preview.)
+      mockSessionStorage['mn-login-trigger'] = 'claim';
+      render(<PrivyLogin />);
+      fireEvent.click(screen.getByTestId('dropdown-trigger').querySelector('button') ?? screen.getByRole('button'));
+      expect(mockSessionStorage['mn-login-trigger']).toBe('claim');
     });
   });
 

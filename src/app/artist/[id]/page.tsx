@@ -17,6 +17,7 @@ import ProfileSectionNav from "./_components/ProfileSectionNav";
 import VaultSection from "./_components/VaultSection";
 import KnowledgeSection from "./_components/KnowledgeSection";
 import ArtistAskSheet from "./_components/ArtistAskSheet";
+import OutboundClickTracker from "./_components/OutboundClickTracker";
 import LatestSection from "./_components/LatestSection";
 import { Suspense } from "react";
 import RevealSection from "./_components/RevealSection";
@@ -261,6 +262,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
             </div>
             <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
+            <OutboundClickTracker />
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />
             <ArtistJsonLd

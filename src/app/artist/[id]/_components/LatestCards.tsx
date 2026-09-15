@@ -9,6 +9,7 @@ import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/artist/releaseListeningLinks';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
 
@@ -95,7 +96,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                 {visible.map(item => {
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
-                        <button type="button" onClick={() => setSelected(item)} aria-label={`Read ${item.title}`}
+                        <button type="button" onClick={() => { setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter }); }} aria-label={`Read ${item.title}`}
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">

@@ -3,6 +3,10 @@
 import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
+import { trackEvent } from '@/lib/analytics/trackEvent';
+import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
+import { takeCompletedLogin } from '@/lib/analytics/takeCompletedLogin';
+import { rememberLoginTrigger } from '@/lib/analytics/rememberLoginTrigger';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -49,6 +53,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const [hasDashboardClaim, setHasDashboardClaim] = useState(false);
     const [claimedArtistId, setClaimedArtistId] = useState<string | null>(null);
     const reloadingRef = useRef(false);
+    // Privy tells us once, in onComplete; the `login` event is sent after the reload.
+    const isNewUserRef = useRef(false);
 
     // Check for approved claim via API (replaces unreliable localStorage check)
     useEffect(() => {
@@ -74,6 +80,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const { login } = useLogin({
       onComplete: async (params) => {
         const { user, isNewUser, wasAlreadyAuthenticated } = params;
+        isNewUserRef.current = Boolean(isNewUser);
         if (isDev) {
           console.log('[PrivyLogin] onComplete called:', {
             userId: user?.id,
@@ -105,6 +112,12 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
         setPendingNextAuthLogin(false);
       },
     });
+
+    // The page reloads after signIn, so the `login` event is sent from the next mount.
+    useEffect(() => {
+      const completed = takeCompletedLogin();
+      if (completed) trackEvent('login', completed);
+    }, []);
 
     // Handle NextAuth login after Privy authentication is complete
     useEffect(() => {
@@ -206,6 +219,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             // propagate to all useSession() consumers. Reload the page to ensure
             // all components (nav, profile, leaderboard) read the new session.
             reloadingRef.current = true;
+            markLoginCompleted(isNewUserRef.current);
             window.location.reload();
           }
         } catch (error) {
@@ -381,7 +395,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               size="lg"
               type="button"
               className={`hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
-              onClick={handleLogin}
+              onClick={event => { if (event.isTrusted) rememberLoginTrigger('nav'); void handleLogin(); }}
             >
               <LogIn size={20} />
             </Button>

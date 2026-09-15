@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock("@/server/utils/analytics/trackServerEvent", () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock("@/lib/auth-helpers", () => ({
     requireAuth: jest.fn(),
 }));
@@ -184,7 +186,7 @@ describe("POST /api/directEditLink", () => {
             expect.stringMatching(
                 /^claimed-artist added Claimed Artist's Instagram: artist \(Submitted URL: https:\/\/instagram\.com\/artist\) \d{4}-\d{2}-\d{2}T/
             )
-        );
+        );        expect(mockTrackServerEvent).toHaveBeenCalledWith("profile_edit", { action: "link_add", target: "instagram" });
     });
 
     it("does not notify Discord when the link value is unchanged", async () => {
@@ -212,6 +214,7 @@ describe("POST /api/directEditLink", () => {
         expect(data.success).toBe(true);
         expect(clearArtistLink).toHaveBeenCalledWith("a1", "instagram");
         expect(sendDiscordMessage).not.toHaveBeenCalled();
+        expect(mockTrackServerEvent).toHaveBeenCalledWith("profile_edit", { action: "link_remove", target: "instagram" });
     });
 
     it("does not notify Discord when setting the link fails", async () => {

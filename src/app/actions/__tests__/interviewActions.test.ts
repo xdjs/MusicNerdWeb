@@ -21,6 +21,8 @@ const hasOlderPostsLearnedSince = jest.fn();
 const hasOlderCreditsLearnedSince = jest.fn();
 const isResearchInFlight = jest.fn();
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn(async () => ({ user: { id: 'u1' } })) }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn(async () => null) }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: (...a) => canEditArtist(...a) }));
@@ -543,6 +545,17 @@ describe('getInterviewInvite', () => {
             questions: [{ key: 'k', question: 'q' }],
         });
         expect(upsertInterviewAnswer.mock.calls[0][0].answer).toHaveLength(2000);
+        expect(mockTrackServerEvent).toHaveBeenCalledWith('interview_answer', { question: 'k', skipped: false });
+    });
+
+    it('reports a skipped question as skipped', async () => {
+        mockTrackServerEvent.mockClear();
+        const { answerInterviewQuestion } = await import('../interviewActions');
+        await answerInterviewQuestion({
+            artistId: 'a1', questionKey: 'k', question: 'q', answer: null,
+            questions: [{ key: 'k', question: 'q' }],
+        });
+        expect(mockTrackServerEvent).toHaveBeenCalledWith('interview_answer', { question: 'k', skipped: true });
     });
 
     it('assigns the sitting before saving an answer that can beat the panel mount effect', async () => {
