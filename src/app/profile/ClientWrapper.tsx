@@ -3,6 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
+import ProfileLoading from "./ProfileLoading";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
@@ -76,14 +77,7 @@ export default function ClientWrapper() {
   }, [status, session]);
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
-          <img className="h-12" src="/spinner.svg" alt="Loading" />
-          <div className="text-xl text-black">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ProfileLoading />;
   }
 
   const guestUser: User = {

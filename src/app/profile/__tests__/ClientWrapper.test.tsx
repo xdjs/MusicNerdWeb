@@ -175,7 +175,7 @@ describe('ClientWrapper', () => {
 
     render(<ClientWrapper />);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading your MusicNerd…')).toBeInTheDocument();
     expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
   });
 });

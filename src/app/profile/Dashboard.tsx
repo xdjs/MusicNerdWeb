@@ -1,6 +1,8 @@
 "use client";
 
 import DatePicker from "./DatePicker";
+import ProfilePhoto from "./ProfilePhoto";
+import useBookmarkedArtistSummaries from "./useBookmarkedArtistSummaries";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -50,7 +52,8 @@ type BookmarkItem = {
 };
 
 // Sortable bookmark item component
-function SortableBookmarkItem({ item, isEditing, onDelete }: {
+function SortableBookmarkItem({ item, isEditing, onDelete, bio }: {
+    bio?: string;
     item: BookmarkItem;
     isEditing: boolean;
     onDelete: (artistId: string) => void;
@@ -88,6 +91,13 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
                     <img src={item.imageUrl || "/default_pfp_pink.png"} alt="" className="aspect-square w-full rounded-xl object-cover mb-3 bg-muted" />
                     <span className="block font-medium text-foreground truncate">{item.artistName ?? 'Unknown Artist'}</span>
                 </Link>
+                {!isEditing && <div className="mt-2 space-y-3">
+                    {bio && <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{bio}</p>}
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                        <Link href={`/artist/${item.artistId}#mn-latest`} className="underline underline-offset-4">Latest</Link>
+                        <Link href={`/artist/${item.artistId}#mn-links`} className="underline underline-offset-4">Links</Link>
+                    </div>
+                </div>}
                 {isEditing && (
                     <button
                         onClick={() => onDelete(item.artistId)}
@@ -104,26 +114,6 @@ function SortableBookmarkItem({ item, isEditing, onDelete }: {
 }
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true, selectedRange }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean; selectedRange?: "today" | "week" | "month" | "all" }) {
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        // Simulate loading time for better UX
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (isLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <img className="h-12 w-12" src="/spinner.svg" alt="Loading..." />
-                                    <p className="text-foreground text-xl">Loading...</p>
-            </div>
-        );
-    }
-
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} selectedRange={selectedRange} /></UgcStatsWrapper>;
 }
 
@@ -232,6 +222,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const currentBookmarks = bookmarks.slice(visibleBookmarkPage * pageSize, visibleBookmarkPage * pageSize + pageSize);
     // In edit mode, show the full list with a scrollbar (no pagination)
     const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
+    const artistSummaries = useBookmarkedArtistSummaries(allowEditUsername ? currentBookmarks.map(item => item.artistId) : []);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
 	    // Range selection (synced with Leaderboard)
@@ -615,7 +606,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                 <div className="mx-auto max-w-6xl space-y-12 pb-12">
                     <header className="flex flex-col gap-6 border-b border-border pb-8 pt-6 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex items-center gap-4 min-w-0">
-                            <img src="/default_pfp_pink.png" alt="" className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shrink-0" />
+                            <ProfilePhoto userId={user.id} />
                             <div className="min-w-0">
                                 <p className="text-sm text-muted-foreground mb-1">Your MusicNerd</p>
                                 <h1 className="text-3xl sm:text-5xl font-bold tracking-tight break-words">{user.username && !user.username.includes('@') ? user.username : 'Your profile'}</h1>
@@ -647,7 +638,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                         <SortableContext items={displayBookmarks.map(item => item.artistId)} strategy={rectSortingStrategy}>
                                             <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
-                                                {displayBookmarks.map(item => <SortableBookmarkItem key={item.artistId} item={item} isEditing={isEditingBookmarks} onDelete={deleteBookmark} />)}
+                                                {displayBookmarks.map(item => <SortableBookmarkItem key={item.artistId} item={item} bio={artistSummaries[item.artistId]} isEditing={isEditingBookmarks} onDelete={deleteBookmark} />)}
                                             </ul>
                                         </SortableContext>
                                     </DndContext>

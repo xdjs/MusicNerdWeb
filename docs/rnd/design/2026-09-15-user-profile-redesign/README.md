@@ -12,3 +12,19 @@ Validation: focused Dashboard/ClientWrapper tests cover existing-bookmark destin
 Local verification: 36 tests across DashboardDesign, ClientWrapper and ArtistPage pass; TypeScript and lint pass (existing warnings). Browser checked at 390 and 832 widths in light/dark, plus the normal desktop viewport. Confirmed existing Add Artist dialog opens without submitting, username editor opens/cancels, artist bookmark persists into the profile collection, and collection editing exposes labeled reorder/remove controls. Restored the existing BookmarkButton on authenticated artist pages because it was no longer mounted. No server-side bookmark mutation or new persistence was introduced.
 
 Not yet run: full pre-PR CI/build for this branch, hosted exact-commit preview, actual Privy sign-in and live username/contribution submissions. Local preview: http://localhost:3017/profile . First design pass awaits Pete's review; nothing pushed.
+
+## Second design pass — September 15
+
+Pete requested the MusicNerd logo loading state, a redesigned history, useful information from bookmarked artists and account-backed profile photos. Profile loading now uses the site logo inline; Dashboard's artificial 500 ms delay was removed. Contribution history is a responsive activity list with labeled search/platform/status/order controls, explicit loading/error/empty states and ten-row pagination. It uses the existing `all=true` own-history API so filtering covers all entries rather than losing pages through competing requests.
+
+Bookmarked cards read a bounded batch of six existing artist biographies (the same real-bio guard as artist pages) and link directly to Latest and Links. This does not generate new research or fetch streaming catalogs. Missing summaries retain useful navigation.
+
+### Profile photos and release setup
+
+Photos use a **private** Supabase Storage bucket `user-profile-images`, keyed by the verified Web account ID: `<user-id>/avatar.webp`. No new database column or migration is needed. Only the server calls storage; browser uploads go through an authenticated same-origin route. Client-provided user IDs are ignored. Accept JPG/PNG/WebP up to 2 MB; Sharp validates/decodes with a pixel cap, normalizes orientation, strips metadata, crops/resizes to 512 square and encodes WebP. Reads issue one-hour signed URLs with private/no-store API responses; overwrites use cacheControl 0 and a fresh URL cache parameter.
+
+Before deployment, provision the private bucket in the target environment with 2 MB maximum object size and only image/webp uploads. Do not add direct client read/write policies. The configured Dev bucket was created and read back as private; a temporary WebP round-trip matched bytes, public URL access failed, and the test object was removed. Production storage was not changed. Profile photo ownership is distinct from artist photos; broader cross-app/legacy-account migration remains outside this pass.
+
+Tests cover unauthenticated reads/writes, cross-origin rejection, malformed image rejection, server-derived ownership, image normalization and signed reads. UI coverage verifies upload then remount reloads the stored account photo. Real two-device Privy login has not been exercised; the local preview uses existing development authentication. No personal photo was uploaded by the agent.
+
+Second-pass validation: full Jest coverage run passed (217 suites, 2,487 tests; six existing skips), TypeScript passed, lint passed with existing warnings. Local browser confirmed new photo control, Pete Rango bio excerpt, restored history after search, and mobile rows/filters without page overflow. Production build and hosted preview remain pre-PR/release checks.
