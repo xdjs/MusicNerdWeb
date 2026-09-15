@@ -164,10 +164,10 @@ export default function UserEntriesTable() {
   }, [entries, filter, sortOrder, artistQuery, statusSort]);
 
   return (
-    <div className="max-w-3xl mx-auto mt-10">
+    <div className="w-full min-w-0">
       {/* Title above the table */}
-      <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold text-[#c6bfc7] outline-none">Your Artist Data Entry</h2>
+      <div className="text-left mb-5">
+        <h2 className="text-2xl font-semibold text-foreground outline-none">Contribution history</h2>
       </div>
       
       <Card className="border-2 border-[#9b83a0] shadow-none max-w-[720px] lg:max-w-none">

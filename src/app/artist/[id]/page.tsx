@@ -1,3 +1,4 @@
+import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
@@ -220,6 +221,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                 </HeroSection>
 
+                {dbUser && <div className="flex justify-end">
+                    <BookmarkButton artistId={artist.id} artistName={artist.name ?? 'Artist'} imageUrl={imageUrl} userId={dbUser.id} />
+                </div>}
                 <ProfileSectionNav key={artist.id} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>

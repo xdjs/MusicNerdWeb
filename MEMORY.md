@@ -1,5 +1,16 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## User profile redesign — local design review
+
+September 15: #1274, branch `pete/user-profile-redesign` off staging `3fd0e220`.
+[Design and validation](docs/rnd/design/2026-09-15-user-profile-redesign/README.md).
+Local http://localhost:3017/profile in an isolated checkout; no push yet. Pete wants the
+existing-capability design approved locally, then staging → main. Only afterwards,
+Spotify integration on a separate preview branch for staging testing. TV navigation,
+shared accounts and provider access changes are outside this design pass. Original
+dirty checkout and its account-backed bookmark migration remain untouched.
+
+
 ## Homepage logo alignment — follow-up before main release
 
 September 13: PR #1243 merged to staging as `63bcc1d` after CI and Codex code/security
