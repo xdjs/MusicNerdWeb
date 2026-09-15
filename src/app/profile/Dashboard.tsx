@@ -659,7 +659,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         </section>
                         <aside className="space-y-7">
                             <div className="rounded-2xl bg-[#ff75d8] text-[#000] p-6">
-                                <h2 className="text-2xl font-semibold tracking-tight leading-tight">You know something<br />we don’t.</h2>
+                                <h2 className="text-2xl font-semibold tracking-tight leading-tight">Know something we don’t?</h2>
                                 <p className="mt-3 text-sm leading-relaxed">Add an artist. Share a link. Help another fan discover more.</p>
                                 <Button variant="outline" className="mt-5 rounded-full border-black/30 bg-transparent text-[#000] hover:bg-black/10" onClick={() => { (document.querySelector('button[aria-label="Add new artist"]') as HTMLButtonElement | null)?.click(); }}><Plus size={16} className="mr-2" />Add an artist</Button>
                             </div>

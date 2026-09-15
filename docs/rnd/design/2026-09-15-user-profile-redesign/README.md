@@ -28,3 +28,17 @@ Before deployment, provision the private bucket in the target environment with 2
 Tests cover unauthenticated reads/writes, cross-origin rejection, malformed image rejection, server-derived ownership, image normalization and signed reads. UI coverage verifies upload then remount reloads the stored account photo. Real two-device Privy login has not been exercised; the local preview uses existing development authentication. No personal photo was uploaded by the agent.
 
 Second-pass validation: full Jest coverage run passed (217 suites, 2,487 tests; six existing skips), TypeScript passed, lint passed with existing warnings. Local browser confirmed new photo control, Pete Rango bio excerpt, restored history after search, and mobile rows/filters without page overflow. Production build and hosted preview remain pre-PR/release checks.
+
+## Creative review — September 15
+
+Pete requested “Know something we don’t?”; the contribution headline is updated locally.
+
+Review recommendations, not additional approved implementation:
+- Make the header about the person: chosen display name and photo, one Edit profile entry, secondary account details. Avoid using the bookmarked artist's name as the user's identity without their choice.
+- Make artist-specific contribution opportunities visible. Existing artists need link contributions as much as the directory needs new artists; the current CTA only covers adding an artist.
+- Reduce the pink invitation's visual dominance and tighten the tall gap before recent contributions; let artist imagery lead.
+- Give the collection an explicit add/search affordance even when populated. Explain browser-local persistence honestly; account-synced photos alongside local-only bookmarks remain a meaningful continuity gap.
+- Prefer fresh, dated artist updates over repeated bio excerpts in a future return-visit feature, using actual available content with no fabricated activity or research-on-read.
+- Use plain-language contribution labels and elevate pending/review outcomes. Keep full history below; avoid adding badges/counters without a useful action.
+
+Recommended next visual pass: personal header and unified editing, contextual contribution entry, tighter layout. New data persistence and fresh-activity aggregation need separately scoped implementation; Spotify/TV remain deferred.
