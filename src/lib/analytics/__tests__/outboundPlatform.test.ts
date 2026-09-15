@@ -16,6 +16,7 @@ describe('outboundPlatform', () => {
         ['https://www.inprocess.world/collect/base:0xabc/75', 'inprocess'],
         ['https://music.apple.com/us/artist/x/1', 'apple'],
         ['https://tidal.com/browse/artist/1', 'tidal'],
+        ['https://kyhlkqriyvevjqtufidu.supabase.co/storage/v1/object/public/vault-files/x.pdf', 'vault'],
     ])('%s → %s', (href, platform) => {
         expect(outboundPlatform(href)).toBe(platform);
     });

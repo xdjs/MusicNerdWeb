@@ -61,7 +61,7 @@ lower-case tokens; free text appears only where the table says so.
 | Event | Fires when | Properties | Side | Question it answers |
 | --- | --- | --- | --- | --- |
 | `search` | A search result is chosen, or a completed search shows "No artists found" (`nav/SearchBar.tsx`) | `outcome` = `existing` · `external` · `none`; `query` = the typed text | client | What do people look for, and how often is it an artist we don't have? |
-| `outbound_click` | Any click on an off-site link on an artist page (`OutboundClickTracker`, one delegated listener) | `platform` = from the hostname (`spotify`, `instagram`, `bandcamp`, `inprocess`, …, else the bare hostname); `surface` = a `data-analytics-surface` on the nearest ancestor (dialogs are portalled out of their section: `latest`, `listen`, `ask`), else the enclosing `mn-*` section id (`about`, `latest`, `links`, `lore`, `sources`, `knowledge`), else `page` | client | Which platforms we send people to, and whether Latest and Ask deliver a listen |
+| `outbound_click` | Any click on an off-site link on an artist page (`OutboundClickTracker`, one delegated listener) | `platform` = from the hostname (`spotify`, `instagram`, `bandcamp`, `inprocess`, …; `vault` for a source file on Supabase storage; else the bare hostname); `surface` = a `data-analytics-surface` on the nearest ancestor (dialogs are portalled out of their section: `latest`, `listen`, `ask`), else the enclosing `mn-*` section id (`about`, `latest`, `links`, `lore`, `sources`, `knowledge`), else `page` | client | Which platforms we send people to, and whether Latest and Ask deliver a listen |
 | `add_link_submit` | A visitor's add-link form resolves (`AddArtistData.tsx`, non-owner path) | `platform` = site name from the response or `null`; `result` = `success` · `invalid` · `error` | client | Are listeners contributing, and where the flow fails |
 | `claim` | Each step of the claim flow (`ClaimButton.tsx`) | `step` = `start` · `login_required` · `submitted` · `already_claimed` · `error` | client | The artist funnel's front door; `start` → `submitted` is the drop-off |
 | `ask_question` | The Ask route returns (`api/askArtist`) | `outcome` = `answered` (from our sources) · `open_web` (Gemini fell back to the open web) · `error`; `sources` = number of cited sources | server | Is Ask used, and does our research answer it? A high `open_web` rate for an artist means their research is thin |
@@ -102,7 +102,9 @@ the point of that event.
 - Dashboard: the project's **Analytics** tab on Vercel (project `music-nerd`).
 - Agents: the Vercel MCP `get_web_analytics` tool with `projectId: "music-nerd"`; `mode:
   "aggregate"` with `by: ["route"]` or `["requestPath"]` for the per-page split; `dataset:
-  "events"` with `by: ["eventName"]` or `["eventData/<property>"]` for custom events. Production
+  "events"` with `by: ["eventName"]` or `["eventData/<property>"]` for custom events. The
+  events dataset defaults to production; add `filter: "environment eq 'preview'"` to see
+  preview data. Production
   only for counts since enablement; previews and staging are separated by the `environment`
   dimension.
 
