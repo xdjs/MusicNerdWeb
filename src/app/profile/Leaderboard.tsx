@@ -416,7 +416,7 @@ export default function Leaderboard({ highlightIdentifier, onRangeChange }: { hi
                     })}
                     {leaderboard.length === 0 && (
                         <p className="text-center text-muted-foreground py-8">
-                            No users have added artists yet. Be the first!
+                            No contributions in this period yet. Be the first!
                         </p>
                     )}
                 </div>

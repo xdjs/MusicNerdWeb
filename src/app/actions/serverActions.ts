@@ -22,8 +22,8 @@ import {
 
 import {
   getUgcStatsInRange as getUgcStatsInRangeQuery,
-  LeaderboardEntry,
-} from "@/server/utils/queries/leaderboardQueries";
+} from "@/server/utils/queries/getUgcStatsInRange";
+import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 
 // ---- Types re-exported for client files ----
 export type { AddArtistDataResp, AddArtistResp, LeaderboardEntry };
