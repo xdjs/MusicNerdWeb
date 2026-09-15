@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import { LegacyAccountModal } from './LegacyAccountModal';
@@ -24,7 +24,7 @@ interface PrivyLoginProps {
 }
 
 const accountMenuItemClass = "min-h-12 cursor-pointer gap-3 rounded-lg px-3 text-sm text-white/85 focus:bg-white/10 focus:text-white [&_svg]:text-white/55";
-const accountMenuClass = "w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/90 bg-gradient-to-br from-white/[0.08] to-transparent p-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150 sm:w-64";
+const accountMenuClass = "profile-account-panel w-72 max-w-[calc(100vw-2rem)] max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/90 bg-gradient-to-br from-white/[0.08] to-transparent p-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150 sm:w-64";
 
 const isDev = process.env.NODE_ENV === 'development';
 const LEGACY_MODAL_SHOWN_KEY = 'legacyModalShown';
@@ -419,7 +419,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               size="lg"
               className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden">
+              <Menu aria-hidden="true" className="profile-account-menu-icon hidden" size={20} /><X aria-hidden="true" className="profile-account-close-icon hidden" size={20} /><div className="profile-account-avatar w-8 h-8 rounded-full overflow-hidden">
                 <img
                   src="/default_pfp_pink.png"
                   alt="Profile"

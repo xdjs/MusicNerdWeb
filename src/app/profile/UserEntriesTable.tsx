@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUpRight, Check, Clock, Search } from "lucide-react";
+import { ArrowUpRight, Check, Clock, Search, SlidersHorizontal } from "lucide-react";
 
-interface UserEntry {
+export interface UserEntry {
   id: string;
   createdAt: string | null;
   artistName: string | null;
@@ -15,7 +15,8 @@ interface UserEntry {
 }
 const PER_PAGE = 10;
 
-export default function UserEntriesTable() {
+export default function UserEntriesTable({ concept = false, artistImages = {}, sampleEntries, statusFilter }: { concept?: boolean; artistImages?: Record<string, string>; sampleEntries?: UserEntry[]; statusFilter?: { value: string } }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [entries, setEntries] = useState<UserEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -25,8 +26,10 @@ export default function UserEntriesTable() {
   const [site, setSite] = useState("all");
   const [status, setStatus] = useState("all");
   const [order, setOrder] = useState("newest");
+  useEffect(() => { if (statusFilter) { setStatus(statusFilter.value); setPage(1); } }, [statusFilter]);
 
   useEffect(() => {
+    if (sampleEntries) { setEntries(sampleEntries); setLoading(false); setError(false); return; }
     const controller = new AbortController();
     setLoading(true);
     setError(false);
@@ -41,7 +44,7 @@ export default function UserEntriesTable() {
       .catch(() => { if (!controller.signal.aborted) setError(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, sampleEntries]);
 
   const filtered = useMemo(() => entries.filter(entry =>
     (entry.artistName ?? '').toLowerCase().includes(query.trim().toLowerCase()) &&
@@ -65,6 +68,8 @@ export default function UserEntriesTable() {
           <Search size={16} className="absolute left-3 top-3 text-muted-foreground" />
           <Input aria-label="Search contribution artists" placeholder="Search artists" value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} className="rounded-full pl-9 text-base" />
         </div>
+        {concept && <Button variant="outline" aria-expanded={filtersOpen} aria-controls="contribution-filters" onClick={() => setFiltersOpen(open => !open)} className="rounded-full bg-neutral-100 dark:bg-[#242424]"><SlidersHorizontal size={15} className="mr-2" />Filters{(site !== 'all' || status !== 'all' || order !== 'newest') ? ' •' : ''}</Button>}
+        <div id="contribution-filters" className={`${concept && !filtersOpen ? 'hidden' : 'flex'} flex-wrap gap-2 ${concept ? 'basis-full pt-2' : ''}`}>
         <select aria-label="Contribution platform" value={site} className={selectClass} onChange={e => { setSite(e.target.value); setPage(1); }}>
           <option value="all">All platforms</option>
           {Array.from(new Set(entries.map(e => e.siteName).filter(Boolean))).sort().map(name => <option key={name} value={name!}>{name}</option>)}
@@ -75,6 +80,7 @@ export default function UserEntriesTable() {
         <select aria-label="Contribution order" value={order} className={selectClass} onChange={e => { setOrder(e.target.value); setPage(1); }}>
           <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
         </select>
+        </div>
       </div>
       {loading ? <p role="status" className="py-8 text-muted-foreground">Loading contributions…</p> : error ? (
         <div role="alert" className="py-6"><p>Couldn’t load your contributions.</p><Button variant="outline" className="mt-3" onClick={() => setAttempt(a => a + 1)}>Try again</Button></div>
@@ -85,10 +91,10 @@ export default function UserEntriesTable() {
             const validDate = date && !Number.isNaN(date.getTime());
             const safeUrl = entry.ugcUrl && /^https?:\/\//i.test(entry.ugcUrl) ? entry.ugcUrl : null;
             return <li key={entry.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 py-5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted"><ArrowUpRight size={18} /></span>
+              {concept && entry.artistName && artistImages[entry.artistName] ? <img src={artistImages[entry.artistName]} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">{sampleEntries ? <span className="text-sm font-semibold">{(entry.artistName || '?').split(' ').map(word => word[0]).join('')}</span> : <ArrowUpRight size={18} />}</span>}
               <div className="min-w-0 flex-1 basis-40">
                 <p className="font-semibold break-words">{entry.artistName || 'Unknown artist'}</p>
-                <p className="text-sm text-muted-foreground mt-1">{entry.siteName ? `${entry.siteName} link` : 'Link contribution'}{validDate && <> <span aria-hidden="true">·</span> <time dateTime={entry.createdAt!} title={date.toLocaleString()}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time></>}</p>
+                <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">{concept && ['spotify', 'deezer', 'soundcloud'].includes((entry.siteName || '').toLowerCase()) && <img src={`/siteIcons/${entry.siteName!.toLowerCase()}_icon.svg`} alt="" className="h-4 w-4 object-contain" />}{entry.siteName ? `${entry.siteName} link` : 'Link contribution'}{validDate && <> <span aria-hidden="true">·</span> <time dateTime={entry.createdAt!} title={date.toLocaleString()}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time></>}</p>
               </div>
               <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${entry.accepted ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/10 text-amber-800 dark:text-amber-300'}`}>
                 {entry.accepted ? <Check size={13} /> : <Clock size={13} />}{entry.accepted ? 'Approved' : 'Pending'}

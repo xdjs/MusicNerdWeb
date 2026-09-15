@@ -1,0 +1,24 @@
+.concept { background: transparent; }
+:global(body):has(.concept) { background: #fafafa; }
+:global(.dark body):has(.concept) { background: #191919; }
+.concept :global(.glass) { background: #ffffff70; border: 1px solid #ffffffb3; box-shadow: inset 0 1px 0 #fff9, 0 8px 30px #693c6510; }
+:global(.dark) .concept :global(.glass) { background: #ffffff08; border-color: #ffffff18; box-shadow: inset 0 1px 0 #ffffff10; }
+:global(body):has(.concept) :global(nav[aria-label="Main navigation"]) { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.76); backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid #e9dce680; }
+:global(.dark body):has(.concept) :global(nav[aria-label="Main navigation"]) { background: rgba(26,26,26,.76); border-color: #ffffff12; }
+:global(body):has(.concept) :global(.profile-account-avatar) { display: none; }
+:global(body):has(.concept) :global(.profile-account-menu-icon) { display: block; }
+:global(body):has(.concept) :global(button[aria-label="Account menu"]) { background: transparent; color: inherit; border: 1px solid #9994; border-radius: 50%; }
+.surface { background: linear-gradient(135deg, #ffffffb8, #fff8); border: 1px solid #e5dce9; box-shadow: inset 0 1px 0 #fff, 0 6px 24px #43264206; backdrop-filter: blur(16px) saturate(160%); }
+:global(.dark) .surface { background: linear-gradient(135deg, #ffffff0e, #ffffff04); border-color: #ffffff14; box-shadow: inset 0 1px 0 #ffffff0a; }
+
+:global(body):has(.concept) :global(button[aria-label="Account menu"][data-state="open"]) { background: #ff75d826; border-color: #ff75d8; box-shadow: 0 0 0 3px #ff75d814; }
+:global(body):has(.concept) :global(button[data-state="open"] .profile-account-menu-icon) { display: none; }
+:global(body):has(.concept) :global(button[data-state="open"] .profile-account-close-icon) { display: block; }
+:global(body):has(.concept) :global(.profile-account-panel) { background: linear-gradient(135deg, #fffffff5, #fff5fcf2); border-color: #e5dce9; color: #201b26; box-shadow: 0 12px 32px #24152c1c, inset 0 1px 0 #fff; transform-origin: var(--radix-dropdown-menu-content-transform-origin); }
+:global(body):has(.concept) :global(.profile-account-panel [role="menuitem"]) { color: #201b26; }
+:global(body):has(.concept) :global(.profile-account-panel [role="menuitem"] svg) { color: #675c6e; }
+:global(body):has(.concept) :global(.profile-account-panel [role="menuitem"][data-highlighted]) { background: #ff75d81a; }
+:global(body):has(.concept) :global(.profile-account-panel [class*="text-white/45"]) { color: #817489; }
+:global(.dark body):has(.concept) :global(.profile-account-panel) { background: linear-gradient(135deg, #302a35f5, #1b181ef2); border-color: #ffffff20; color: #fff; box-shadow: 0 12px 32px #0005, inset 0 1px 0 #ffffff12; }
+:global(.dark body):has(.concept) :global(.profile-account-panel [role="menuitem"]) { color: #eee9f1; }
+:global(.dark body):has(.concept) :global(.profile-account-panel [role="menuitem"] svg) { color: #c9becf; }

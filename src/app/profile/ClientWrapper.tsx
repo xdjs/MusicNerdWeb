@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
 import ProfileLoading from "./ProfileLoading";
+import ProfileConcept from "./ProfileConcept";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 
 type User = {
@@ -23,7 +24,7 @@ type User = {
   legacyId: string | null;
 };
 
-export default function ClientWrapper() {
+export default function ClientWrapper({ designPreview = false }: { designPreview?: boolean }) {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +99,8 @@ export default function ClientWrapper() {
   };
 
   const currentUser = user || guestUser;
+
+  if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} />;
 
   return (
     <>

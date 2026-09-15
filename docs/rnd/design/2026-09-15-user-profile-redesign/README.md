@@ -42,3 +42,19 @@ Review recommendations, not additional approved implementation:
 - Use plain-language contribution labels and elevate pending/review outcomes. Keep full history below; avoid adding badges/counters without a useful action.
 
 Recommended next visual pass: personal header and unified editing, contextual contribution entry, tighter layout. New data persistence and fresh-activity aggregation need separately scoped implementation; Spotify/TV remain deferred.
+
+## Interactive concept preview
+
+Development-only route: `/profile?preview=concept` (local server port 3017). Both page and client wrapper gate this route on development mode. Real browser bookmarks are combined with 18 labeled fictional artists and 24 fictional contributions. Name/photo edits in this concept stay in memory; the regular profile retains its separate account-backed photo implementation.
+
+The compact collection is a horizontal strip of all bookmarks. Search collection and View all open the same searchable, vertically scrolling collection sheet. Account details remain beneath the name; no personal bio. The menu trigger changes to a close icon and highlighted state while open.
+
+Your artists lately is one mixed horizontal gallery using the actual artist-profile LatestCards and shared detail/listening dialogs. The preview sorts newest first, caps each artist at two updates and the gallery at 12, and labels the artist on each card. Source filters include In-Process. The real Pete Rango mix fixture includes verified Deezer album 970786431, Spotify and Apple Music destinations; fictional releases have no invented listening links. Other artist updates remain simulations, not a live aggregation service.
+
+Neutral light/dark backgrounds replace the rejected full-page pink gradient. Pink accents, translucent gallery surfaces and theme-aware glass navigation are scoped to the concept. The contribution invitation offers separate Share a link and Add an artist actions. Contribution summary links filter the simulated history.
+
+Validation: TypeScript passed; LatestCards and UserEntriesTable tests passed (14 tests). Mobile browser verified horizontal gallery scroll, no document overflow, and the real release picker’s three destinations. Nothing from this profile design has been pushed to staging.
+
+## Team design preview — September 15
+
+Pete approved publishing a Vercel preview for team feedback, not a staging or main release. On Vercel preview deployments only, `/profile?preview=concept` renders an unauthenticated sample account with an example.com email and fixed demonstration artists. The sample user does not authenticate anyone or grant API access. Local development continues to use the signed-in user's bookmarks. Production does not expose this concept route. Artist links are omitted for fixtures without verified environment-specific IDs; the real release's public listening links work. Edits remain in memory. Navigation outside the concept uses ordinary application authentication.

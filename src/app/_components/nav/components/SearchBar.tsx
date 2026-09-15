@@ -300,14 +300,9 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
     const isAddInFlight = addingPlatformId !== null || isCreatingSeparate;
 
     return (
-        <div aria-busy={isCreatingSeparate} className={appearance === "home" ? styles.searchRoot : "relative w-full max-w-[400px]"}>
+        <div aria-busy={isCreatingSeparate} className={styles.searchRoot}>
             <div className="relative">
-                {/* The Input primitive ships with no border, height or focus ring (a documented
-                    deviation from stock shadcn), so the search pill's chrome is added here at the
-                    call site rather than by forking the primitive.
-                    Focus tints the hairline to the brand pink (the handoff's spec) AND draws a
-                    ring: the tint alone is a 1px 50%-opacity change, which is too weak to serve as
-                    the sole focus indicator once the browser's default outline is suppressed. */}
+                {/* Shared homepage styling; appearance only controls result behavior. */}
                 <Input
                     type="text"
                     placeholder="Search for an artist..."
@@ -317,10 +312,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                     onBlur={handleBlur}
                     onFocus={handleFocus}
                     aria-label="Search for an artist"
-                    className={appearance === "home" ? styles.searchInput : `pl-10 h-[46px] rounded-full border border-input
-                               transition-colors duration-300
-                               focus:outline-none focus:border-pastypink/50
-                               focus:ring-2 focus:ring-pastypink/40`}
+                    className={styles.searchInput}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>

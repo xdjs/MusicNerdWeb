@@ -2,17 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artist/artistLatest';
 import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/artist/releaseListeningLinks';
+import LatestDetailDialogContent from './LatestDetailDialogContent';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
 
-const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words', moment: 'In Process' };
+const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words', moment: 'In-Process' };
 const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle, moment: InProcessIcon };
 
 function CardImage({ item, artistImage, artistName, detail = false }: { item: ArtistLatestItem; artistImage: string; artistName: string; detail?: boolean }) {
@@ -30,14 +32,18 @@ function CardImage({ item, artistImage, artistName, detail = false }: { item: Ar
     </div>;
 }
 
-export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [] }: {
-    items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[];
+export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {} }: {
+    items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
 }) {
     const [chosen, setFilter] = useState<LatestKind | 'all'>('all');
     // The component outlives one artist's items (client navigation between profiles keeps
     // this state); a kind the new artist does not have falls back to All, as Timeline did.
     const filter = chosen === 'all' || items.some(item => item.kind === chosen) ? chosen : 'all';
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
+    const selectedArtistName = selected ? itemArtistNames[selected.id] || artistName : artistName;
+    const artistAction = selected && itemArtistNames[selected.id] ? (itemArtistUrls[selected.id]
+        ? <Link href={itemArtistUrls[selected.id]} className="inline-flex items-center gap-2 rounded-full border border-white/25 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">View {selectedArtistName}’s profile<ArrowUpRight size={14} aria-hidden="true" /></Link>
+        : <p className="text-xs text-white/60">Fictional artist preview · No artist profile or original source is available.</p>) : undefined;
     const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
     const galleryRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ previous: false, next: false });
@@ -66,9 +72,9 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         // Native scrolling keeps touch/trackpad behavior; CSS respects reduced-motion preferences.
         gallery.scrollBy({ left: direction * (cardWidth + 16) });
     }
-    return <section id="mn-latest" aria-labelledby="latest-heading" className="glass space-y-4 p-4 sm:p-5">
-        <h2 id="latest-heading" className="text-xl font-bold text-black dark:text-white">Latest</h2>
-        {items.length > 0 && <div className="flex flex-wrap gap-2" aria-label="Filter latest activity">
+    return <section id={sectionId} aria-labelledby={`${sectionId}-heading`} className="glass space-y-4 p-4 sm:p-5">
+        <h2 id={`${sectionId}-heading`} className={hideHeading ? "sr-only" : "text-xl font-bold text-black dark:text-white"}>{heading}</h2>
+        {showFilters && items.length > 0 && <div className="flex flex-wrap gap-2" aria-label="Filter latest activity">
             {(['all', ...Object.keys(categories).filter(kind => items.some(item => item.kind === kind))] as const).map(kind =>
                 <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind as LatestKind | 'all')}
                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${filter === kind ? 'border-black/20 bg-black/10 text-foreground dark:border-white/30 dark:bg-white/15' : 'border-black/10 bg-white/60 text-gray-700 hover:border-pastypink dark:border-white/15 dark:bg-white/5 dark:text-gray-300'}`}>
@@ -80,9 +86,9 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         </p> : <>
             {unavailable && <p role="status" className="text-xs text-gray-600 dark:text-gray-400">Some updates couldn’t load. Showing what’s available.</p>}
             <div className="group/gallery relative">
-            <button type="button" aria-label="Previous updates" aria-controls="latest-gallery" disabled={!canScroll.previous} onClick={() => scrollGallery(-1)}
+            <button type="button" aria-label="Previous updates" aria-controls={`${sectionId}-gallery`} disabled={!canScroll.previous} onClick={() => scrollGallery(-1)}
                 className="absolute -left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-md transition-opacity hover:bg-black/80 disabled:pointer-events-none disabled:opacity-0 sm:flex sm:opacity-0 sm:group-hover/gallery:opacity-100 sm:group-focus-within/gallery:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink"><ChevronLeft size={18} aria-hidden="true" /></button>
-            <div ref={galleryRef} id="latest-gallery" role="region" aria-label="Latest updates gallery" tabIndex={0}
+            <div ref={galleryRef} id={`${sectionId}-gallery`} role="region" aria-label="Latest updates gallery" tabIndex={0}
                 onScroll={updateScrollBounds}
                 onKeyDown={event => {
                     if (event.target !== event.currentTarget) return;
@@ -95,6 +101,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                 {visible.map(item => {
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
+                        {itemArtistNames[item.id] && <div className="mb-3 min-h-6 text-sm font-semibold text-foreground">{itemArtistUrls[item.id] ? <Link href={itemArtistUrls[item.id]} className="inline-flex items-center gap-1.5 hover:underline">{itemArtistNames[item.id]}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{itemArtistNames[item.id]} <span className="font-normal text-muted-foreground">· Sample</span></span>}</div>}
                         <button type="button" onClick={() => setSelected(item)} aria-label={`Read ${item.title}`}
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
@@ -113,35 +120,30 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                                 <p className={`whitespace-pre-line ${item.kind === 'release' || item.kind === 'moment' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.text}</p>
                                 <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-pink-200">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
-                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
+                                    {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In-Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
                                 </span>
                             </div>
                         </button>
                     </article>;
                 })}
             </div>
-            <button type="button" aria-label="Next updates" aria-controls="latest-gallery" disabled={!canScroll.next} onClick={() => scrollGallery(1)}
+            <button type="button" aria-label="Next updates" aria-controls={`${sectionId}-gallery`} disabled={!canScroll.next} onClick={() => scrollGallery(1)}
                 className="absolute -right-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-md transition-opacity hover:bg-black/80 disabled:pointer-events-none disabled:opacity-0 sm:flex sm:opacity-0 sm:group-hover/gallery:opacity-100 sm:group-focus-within/gallery:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink"><ChevronRight size={18} aria-hidden="true" /></button>
             </div>
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
             {selected?.kind === 'release' && <ListeningDialogContent
-                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release
+                title={`Listen to ${selected.title}`} description={itemArtistNames[selected.id] || artistName} links={releaseLinks} release footer={artistAction}
                 artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
                     <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                 </div>} />}
-            {selected && selected.kind !== 'release' && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
-                <div className="relative h-56 overflow-hidden rounded-t-2xl">
-                    <CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
-                    <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>
-                </div>
-                <div className="space-y-4 px-5 pb-6">
-                    <DialogTitle className="pr-3 text-xl leading-snug">{selected.title}</DialogTitle>
-                    <DialogDescription className="text-white/60">{artistName} · {latestDateLabel(selected.date)}</DialogDescription>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-white/85">{selected.kind === 'interview' ? `“${selected.text}”` : selected.text}</p>
-                    {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-pastypink/40 bg-pastypink/10 px-4 py-2 text-sm font-semibold text-pastypink hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">{selected.sourceLabel}<ArrowUpRight size={14} aria-hidden="true" /></a>}
-                </div>
-            </DialogContent>}
+            {selected && selected.kind !== 'release' && <LatestDetailDialogContent
+                artwork={<CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />}
+                category={categories[selected.kind]} title={selected.title}
+                description={`${itemArtistNames[selected.id] || artistName} · ${latestDateLabel(selected.date)}`}
+                text={selected.kind === 'interview' ? `“${selected.text}”` : selected.text}
+                sourceUrl={selected.sourceUrl} sourceLabel={selected.sourceLabel} footer={artistAction}
+            />}
         </Dialog>
     </section>;
 }
