@@ -5,9 +5,19 @@ Operating rules live in [CLAUDE.md](../CLAUDE.md); current work lives in
 
 ## Setup
 
-Use npm, not the historical Bun lockfile. `package.json` declares Node >=20.19 and npm >=11.10;
-CI currently selects Node 20 and npm 11.12.1. Use a compatible installed runtime.
-Run `npm ci` to reproduce the committed dependency lockfile.
+Use npm, not the historical Bun lockfile. `package.json` declares Node 24.x LTS and npm >=11.10.
+The `.nvmrc` pins Node 24.21.0 for development and GitHub Actions; CI installs npm 11.12.1.
+With nvm installed, select the project runtime before installing dependencies:
+
+```bash
+nvm install
+nvm use
+npm ci
+```
+
+Other version managers should select the version in `.nvmrc`. The `24.x` engine range also
+selects Node 24 for Vercel deployments; Vercel manages the patch version. Keep `.nvmrc`,
+`package.json`, and the Node type definitions aligned when upgrading the LTS major.
 
 There is currently **no `.env.example`**. Obtain dev credentials through the team's secure
 channel and create `.env.local` only if it doesn't exist. Never overwrite another user's env.
