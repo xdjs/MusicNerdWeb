@@ -30,10 +30,19 @@ untouched.
 
 ## What is in a page URL, and the redaction point
 
-Page views report the URL as-is. Reviewed 2026-09-15 (#1275): the only query strings the app
-puts in a page URL are the nav search (`/?search=<term>`) and `/add-artist?deezer=<id>&spotify=<id>`,
-both public and both useful to see; Privy login is email-only and modal-based, so no OAuth
-codes reach a page URL, and NextAuth lives under `/api/auth/*`, which is not a page view.
+Page views report the URL as-is. Reviewed 2026-09-15 (#1275); the query strings the app puts
+in a page URL are:
+
+| URL | Set by | What it carries |
+| --- | --- | --- |
+| `/?search=<term>` | nav search | what the visitor typed; public, and worth seeing |
+| `/add-artist?deezer=<id>&spotify=<id>` | search → add flow | public catalog ids |
+| `/artist/<id>?addLink=<url>` | `DuplicateArtistChoice` → `AddArtistData` (one-shot handoff, removed with `history.replaceState` once consumed) | a Spotify or Deezer **artist page URL** that already passed `parseSupportedArtistUrl`, which accepts nothing else; public, and headed for the public directory |
+
+Privy login is email-only and modal-based, so no OAuth codes reach a page URL, and NextAuth
+lives under `/api/auth/*`, which is not a page view. The `addLink` handoff can also produce a
+second page view for one visit (the `replaceState` that removes it is a route change to the
+script); that is a rare, authenticated flow and is accepted rather than coded around.
 
 If a route ever carries a token, an email address or user content in its URL, the redaction
 point is the `beforeSend` prop on `<Analytics />` (return the event with a rewritten `url`, or
