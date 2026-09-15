@@ -1,5 +1,14 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## Node 24 LTS upgrade — awaiting review
+
+September 15: [issue #1278](https://github.com/xdjs/MusicNerdWeb/issues/1278), assigned to clt,
+is implemented on `codex/node-24-lts` from staging. `.nvmrc` pins Node 24.21.0 for local setup
+and CI; package engines constrain deployments to 24.x. Node types, setup docs and the droplet
+provisioner are aligned. Clean install and full `npm run ci` pass on Node 24.21.0 / npm 11.12.1:
+213 suites, 2,477 tests passed, six skipped, coverage, lint, types and stub-env build.
+The stub build cannot verify live services; merge and production release remain pending.
+
 ## Homepage logo alignment — follow-up before main release
 
 September 13: PR #1243 merged to staging as `63bcc1d` after CI and Codex code/security

@@ -12,12 +12,12 @@ fi
 echo "=== ID Mapping Agent — Droplet Setup ==="
 echo ""
 
-# Node.js 20 via nodesource
-if command -v node &>/dev/null && [[ "$(node -v)" == v20.* ]]; then
+# Node.js 24 LTS via nodesource
+if command -v node &>/dev/null && [[ "$(node -v)" == v24.* ]]; then
   echo "✓ Node.js $(node -v) already installed"
 else
-  echo "Installing Node.js 20..."
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  echo "Installing Node.js 24 LTS..."
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
   echo "✓ Node.js $(node -v) installed"
 fi
