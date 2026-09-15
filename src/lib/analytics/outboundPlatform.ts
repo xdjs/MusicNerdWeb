@@ -15,6 +15,8 @@ const PLATFORM_HOSTS: ReadonlyArray<readonly [string, string]> = [
     ['inprocess.world', 'inprocess'],
     ['music.apple.com', 'apple'],
     ['tidal.com', 'tidal'],
+    // Vault sources are served from Supabase storage; the project ref is noise, the surface is the vault.
+    ['supabase.co', 'vault'],
 ];
 
 /** The platform behind an off-site link, or its bare hostname when we have no name for it; `null` for a non-URL. */
