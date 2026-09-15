@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type PointerEvent } from "react";
+import profileStyles from "./ProfileConcept.module.css";
 import styles from "@/app/artist/[id]/_components/ProfileSectionNav.module.css";
 
 const sections = [
@@ -95,7 +96,7 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
             }
         }}
     >
-        <span aria-hidden="true" className={styles.lens} style={{ width: `calc((100% - 10px) / ${sections.length})`, transform: `translateX(${(dragPosition ?? active) * 100}%)` }} />
+        <span aria-hidden="true" className={`${styles.lens} ${profileStyles.filterLens}`} style={{ width: `calc((100% - 10px) / ${sections.length})`, transform: `translateX(${(dragPosition ?? active) * 100}%)` }} />
         {sections.map((section, index) => <button type="button"
             key={section.id}
             ref={element => { links.current[index] = element; }}
