@@ -3,26 +3,23 @@ import { outboundClickEvent } from '@/lib/analytics/outboundClickEvent';
 const ORIGIN = 'https://www.musicnerd.xyz';
 
 describe('outboundClickEvent', () => {
-    it('builds platform and surface for an off-site link inside a profile section', () => {
-        expect(outboundClickEvent('https://open.spotify.com/artist/abc', 'mn-links', ORIGIN))
+    it('builds platform and passes the surface through for an off-site link', () => {
+        expect(outboundClickEvent('https://open.spotify.com/artist/abc', 'links', ORIGIN))
             .toEqual({ platform: 'spotify', surface: 'links' });
-        expect(outboundClickEvent('https://www.inprocess.world/collect/base:0x1/2', 'mn-latest', ORIGIN))
+        expect(outboundClickEvent('https://www.inprocess.world/collect/base:0x1/2', 'latest', ORIGIN))
             .toEqual({ platform: 'inprocess', surface: 'latest' });
-    });
-
-    it('reports "page" when the link is not inside a profile section', () => {
-        expect(outboundClickEvent('https://dutchmassive.bandcamp.com', null, ORIGIN))
+        expect(outboundClickEvent('https://dutchmassive.bandcamp.com', 'page', ORIGIN))
             .toEqual({ platform: 'bandcamp', surface: 'page' });
     });
 
     it('ignores links to the site itself', () => {
-        expect(outboundClickEvent(`${ORIGIN}/artist/abc`, 'mn-links', ORIGIN)).toBeNull();
-        expect(outboundClickEvent('/leaderboard', 'mn-links', ORIGIN)).toBeNull();
+        expect(outboundClickEvent(`${ORIGIN}/artist/abc`, 'links', ORIGIN)).toBeNull();
+        expect(outboundClickEvent('/leaderboard', 'links', ORIGIN)).toBeNull();
     });
 
     it('ignores non-http schemes and unparseable hrefs', () => {
-        expect(outboundClickEvent('mailto:x@y.z', 'mn-links', ORIGIN)).toBeNull();
-        expect(outboundClickEvent('javascript:void(0)', null, ORIGIN)).toBeNull();
-        expect(outboundClickEvent('', null, ORIGIN)).toBeNull();
+        expect(outboundClickEvent('mailto:x@y.z', 'links', ORIGIN)).toBeNull();
+        expect(outboundClickEvent('javascript:void(0)', 'page', ORIGIN)).toBeNull();
+        expect(outboundClickEvent('', 'page', ORIGIN)).toBeNull();
     });
 });

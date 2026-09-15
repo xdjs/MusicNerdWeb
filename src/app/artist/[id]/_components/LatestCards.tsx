@@ -127,11 +127,11 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
             {selected?.kind === 'release' && <ListeningDialogContent
-                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release
+                title={`Listen to ${selected.title}`} description={artistName} links={releaseLinks} release surface="latest"
                 artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
                     <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                 </div>} />}
-            {selected && selected.kind !== 'release' && <DialogContent className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
+            {selected && selected.kind !== 'release' && <DialogContent data-analytics-surface="latest" className="max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
                 <div className="relative h-56 overflow-hidden rounded-t-2xl">
                     <CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                     <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{categories[selected.kind]}</span>
