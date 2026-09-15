@@ -30,3 +30,7 @@
 
 .concept .filterLens { border-color: #ff75d866; background: linear-gradient(145deg, #fff9fded, #ffe6f659); box-shadow: inset 0 1px 1px #fffffff2, 0 0 0 1px #ff75d814, 0 3px 14px #ff75d833; }
 :global(.dark) .concept .filterLens { border-color: #ff75d866; background: linear-gradient(135deg, #ff75d826, #ffffff0a); box-shadow: inset 0 1px 1px #ffffff26, 0 0 0 1px #ff75d814, 0 3px 14px #ff75d826; }
+
+@media (max-width: 639px) {
+  .updateFilters [data-section-index] { font-size: 11px; line-height: 1.2; padding-inline: 2px; min-height: 48px; white-space: normal; overflow-wrap: normal; }
+}

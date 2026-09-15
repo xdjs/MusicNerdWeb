@@ -74,8 +74,8 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
 
     return <div role="group"
         aria-label="Filter artist updates"
-        className={styles.rail}
-        style={{gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))`, minWidth: 560}}
+        className={`${styles.rail} ${profileStyles.updateFilters}`}
+        style={{gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))`}}
         data-dragging={dragPosition !== null}
         data-instant={instant}
         onPointerDown={startDrag}

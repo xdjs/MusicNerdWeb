@@ -49,7 +49,7 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
   const [artists, setArtists] = useState<SavedArtist[]>(showcase ? [{artistId: 'showcase-pete', artistName: 'Pete Rango', sample: true}, {artistId: 'showcase-spearfisher', artistName: 'Spearfisher', sample: true}] : []);
   const [name, setName] = useState('Pete Rango');
   const [draftName, setDraftName] = useState(name);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<string | null>('/demo/pete-rango-logo.png');
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -90,7 +90,7 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
 
     <header className="flex flex-wrap items-center gap-3 sm:gap-5 py-6 sm:py-8">
       <div className="h-16 w-16 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-full bg-[#ff75d8] flex items-center justify-center text-[#000]">
-        {photo ? <img src={photo} alt="Preview profile photo" className="h-full w-full object-cover" /> : <span className="text-4xl font-semibold">PR</span>}
+        {photo ? <img src={photo} alt="Preview profile photo" className={`h-full w-full object-cover ${photo === '/demo/pete-rango-logo.png' ? 'invert' : ''}`} /> : <span className="text-4xl font-semibold">PR</span>}
       </div>
       <div className="min-w-0 flex-1">
         <h1 className="text-2xl sm:text-5xl font-semibold tracking-tight break-words">{name}</h1>
@@ -109,8 +109,8 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
             <h2 id="concept-artists" className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">Your artists <span className="inline-flex min-w-7 h-7 items-center justify-center rounded-full bg-black/5 px-2 text-xs font-medium tabular-nums tracking-normal text-muted-foreground dark:bg-white/10">{collection.length}</span></h2>
             <button type="button" className="inline-flex items-center gap-2 text-sm underline underline-offset-4" onClick={() => { setCollectionQuery(''); setCollectionOpen(true); }}><Search size={15} />Search collection</button>
           </div>
-          <ul aria-label="Bookmarked artists" tabIndex={0} className="flex gap-3 sm:gap-5 overflow-x-auto scrollbar-hide overscroll-x-contain snap-x snap-mandatory pb-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-400" onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); event.currentTarget.scrollBy({left: event.key === 'ArrowRight' ? 200 : -200, behavior: 'auto'}); } }}>
-            {collection.map((artist) => <li key={artist.artistId} className="w-[26%] sm:w-[18%] min-w-0 shrink-0 snap-start">{artistCard(artist)}</li>)}
+          <ul aria-label="Bookmarked artists" tabIndex={0} className="flex gap-3 sm:gap-5 overflow-x-auto scrollbar-hide overscroll-x-contain snap-x snap-mandatory pb-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-400" onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); event.currentTarget.scrollBy({left: (event.currentTarget.firstElementChild?.getBoundingClientRect().width || 100) * (event.key === 'ArrowRight' ? 1 : -1), behavior: 'auto'}); } }}>
+            {collection.map((artist) => <li key={artist.artistId} className="w-[calc((100%_-_24px)/3)] sm:w-[calc((100%_-_80px)/5)] min-w-0 shrink-0 snap-start">{artistCard(artist)}</li>)}
           </ul>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><button type="button" className="text-sm underline underline-offset-4" onClick={() => { setCollectionQuery(''); setCollectionOpen(true); }}>View all {collection.length} artists</button><span className="text-xs text-muted-foreground">Swipe to browse</span></div>
           <p className="mt-3 text-xs text-muted-foreground">{showcase ? '20 demonstration artists' : 'Your bookmarks + 18 fictional sample artists'}</p>
@@ -119,7 +119,7 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
         <section aria-labelledby="concept-latest" className="border-t border-border pt-7">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4"><h2 id="concept-latest" className="text-2xl font-semibold tracking-tight">Your artists lately</h2><span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">Sample updates</span></div>
           <p className="text-sm text-muted-foreground mb-5">Sample releases, Instagram posts, In-Process moments and artist answers.</p>
-          <div className="mb-5 overflow-x-auto rounded-[20px] scrollbar-hide"><ArtistUpdateFilter value={updateFilter} onValueChange={setUpdateFilter} /></div>
+          <div className="mb-5"><ArtistUpdateFilter value={updateFilter} onValueChange={setUpdateFilter} /></div>
           <LatestCards sectionId="profile-lately" heading="Latest updates" hideHeading itemArtistNames={updateArtistNames} itemArtistUrls={updateArtistUrls} artistName="Your artists" artistImage="/musicNerdLogo.png" items={mixedUpdates} unavailable={false} showFilters={false} />
         </section>
       </div>
@@ -146,7 +146,7 @@ export default function ProfileConcept({ user, showcase = false }: { user: Pick<
     <Dialog open={editing} onOpenChange={setEditing}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>Edit profile</DialogTitle><DialogDescription>Try your name and photo together. These changes stay in this design preview.</DialogDescription></DialogHeader>
       <form className="space-y-5" onSubmit={event => { event.preventDefault(); setName(draftName.trim() || name); setPhoto(draftPhoto); setEditing(false); }}>
         <div><label htmlFor="concept-name" className="block text-sm mb-2">Display name</label><Input id="concept-name" maxLength={50} value={draftName} onChange={event => setDraftName(event.target.value)} /></div>
-        <div><label htmlFor="concept-photo" className="flex items-center gap-2 text-sm mb-2"><Camera size={16} />Profile photo</label><input id="concept-photo" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" onChange={event => { const file = event.target.files?.[0]; if (!file) return; if (file.size > 2 * 1024 * 1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) { setPhotoError('Choose a JPG, PNG or WebP under 2 MB.'); return; } setPhotoError(''); const reader = new FileReader(); reader.onload = () => setDraftPhoto(String(reader.result)); reader.readAsDataURL(file); }} />{photoError && <p role="alert" className="text-sm mt-2">{photoError}</p>}{draftPhoto && <img src={draftPhoto} alt="Selected preview photo" className="h-16 w-16 rounded-full object-cover mt-3" />}</div>
+        <div><label htmlFor="concept-photo" className="flex items-center gap-2 text-sm mb-2"><Camera size={16} />Profile photo</label><input id="concept-photo" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-sm" onChange={event => { const file = event.target.files?.[0]; if (!file) return; if (file.size > 2 * 1024 * 1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) { setPhotoError('Choose a JPG, PNG or WebP under 2 MB.'); return; } setPhotoError(''); const reader = new FileReader(); reader.onload = () => setDraftPhoto(String(reader.result)); reader.readAsDataURL(file); }} />{photoError && <p role="alert" className="text-sm mt-2">{photoError}</p>}{draftPhoto && <img src={draftPhoto} alt="Selected preview photo" className={`h-16 w-16 rounded-full object-cover mt-3 ${draftPhoto === '/demo/pete-rango-logo.png' ? 'invert' : ''}`} />}</div>
         <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button><Button type="submit" className="bg-[#ff75d8] text-[#000] hover:bg-[#ff75d8]/80">Apply to preview</Button></div>
       </form>
     </DialogContent></Dialog>
