@@ -49,7 +49,7 @@ export default function ArtistAskSheet({ artistId, artistName }: { artistId: str
                 className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-40 min-h-[52px] border border-white/35 bg-pastypink/85 bg-gradient-to-br from-white/25 via-white/5 to-transparent px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_8px_24px_rgba(0,0,0,0.2)] backdrop-blur-xl backdrop-saturate-150 hover:bg-pastypink/95 sm:right-8">
                 <MessageCircle size={20} aria-hidden="true" /><span>{open ? "Minimize" : "Ask"}</span>
             </Button>
-        <aside ref={panelRef} role="dialog" aria-modal="false" aria-labelledby="artist-ask-title" aria-describedby="artist-ask-description"
+        <aside ref={panelRef} role="dialog" data-analytics-surface="ask" aria-modal="false" aria-labelledby="artist-ask-title" aria-describedby="artist-ask-description"
                 data-state={open ? "open" : "closed"}
                 onKeyDown={event => {
                     if (event.key !== "Escape" || (event.target as HTMLElement).closest('[data-song-menu-open="true"]')) return;
