@@ -187,3 +187,13 @@ describe("ActivityFeed", () => {
         expect(rows[0].style.opacity).toBe("1");
     });
 });
+
+it('identifies claimed-owner additions and updates as self-edits', async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [
+        { type: 'self_edit_added', artistId: 'owner1', artistName: 'Owner One', platform: 'instagram', createdAt: '2026-09-16T12:00:00Z' },
+        { type: 'self_edit_updated', artistId: 'owner2', artistName: 'Owner Two', platform: 'bandcamp', createdAt: '2026-09-16T12:01:00Z' },
+    ] });
+    await act(async () => { render(<ActivityFeed />); });
+    expect(screen.getByRole('link', { name: /Instagram link added by Owner One to their profile/ })).toHaveAttribute('href', '/artist/owner1');
+    expect(screen.getByRole('link', { name: /Bandcamp link updated by Owner Two on their profile/ })).toHaveAttribute('href', '/artist/owner2');
+});

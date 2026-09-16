@@ -1,4 +1,4 @@
-import { pgTable, pgPolicy, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { pgTable, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -875,3 +875,22 @@ export const artistSocialPostsRelations = relations(artistSocialPosts, ({one}) =
 export const artistSocialProfilesRelations = relations(artistSocialProfiles, ({one}) => ({
 	artist: one(artists, { fields: [artistSocialProfiles.artistId], references: [artists.id] }),
 }));
+
+// Self-maintenance is activity, never a credited UGC contribution.
+export const artistSelfEdits = pgTable("artist_self_edits", {
+    id: uuid().defaultRandom().primaryKey(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: 'cascade' }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+    siteName: text("site_name").notNull(),
+    oldValue: text("old_value"),
+    newValue: text("new_value").notNull(),
+    submittedUrl: text("submitted_url").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`clock_timestamp()`).notNull(),
+}, table => [
+    index("artist_self_edits_user_time_idx").on(table.userId, table.createdAt.desc(), table.id.desc()),
+    index("artist_self_edits_time_idx").on(table.createdAt.desc()),
+    check("artist_self_edits_changed", sql`${table.oldValue} IS DISTINCT FROM ${table.newValue}`),
+    check("artist_self_edits_nonempty", sql`length(${table.newValue}) > 0`),
+    pgPolicy("mnweb_select_artist_self_edits", { for: 'select', to: ['mnweb'], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_self_edits", { for: 'insert', to: ['mnweb'], withCheck: sql`true` }),
+]).enableRLS();

@@ -6,7 +6,7 @@ import Link from "next/link";
 // --- Types ----------------------------------------------------------------
 
 type ActivityEvent = {
-    type: "agent_mapping" | "ugc_approved" | "artist_added";
+    type: "agent_mapping" | "ugc_approved" | "artist_added" | "self_edit_added" | "self_edit_updated";
     artistId: string;
     artistName: string;
     platform: string | null;
@@ -63,6 +63,10 @@ function eventText(e: ActivityEvent): React.ReactNode {
             return <>{platformLabel(e.platform)} ID mapped for <strong>{e.artistName}</strong></>;
         case "ugc_approved":
             return <>{platformLabel(e.platform)} link added for <strong>{e.artistName}</strong></>;
+        case "self_edit_added":
+            return <>{platformLabel(e.platform)} link added by <strong>{e.artistName}</strong> to their profile</>;
+        case "self_edit_updated":
+            return <>{platformLabel(e.platform)} link updated by <strong>{e.artistName}</strong> on their profile</>;
         case "artist_added":
             return <><strong>{e.artistName}</strong> added to the directory</>;
     }
@@ -125,6 +129,8 @@ const typeBarVar: Record<ActivityEvent["type"], string> = {
     agent_mapping: "var(--feed-bar-agent)",
     ugc_approved: "var(--feed-bar-ugc)",
     artist_added: "var(--feed-bar-new)",
+    self_edit_added: "var(--feed-bar-ugc)",
+    self_edit_updated: "var(--feed-bar-ugc)",
 };
 
 // --- Component ------------------------------------------------------------

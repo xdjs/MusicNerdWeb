@@ -2,7 +2,7 @@ import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 
 export type ActivityEvent = {
-    type: "agent_mapping" | "ugc_approved" | "artist_added";
+    type: "agent_mapping" | "ugc_approved" | "artist_added" | "self_edit_added" | "self_edit_updated";
     artist_id: string;
     artist_name: string;
     platform: string | null;
@@ -31,6 +31,15 @@ export async function getRecentActivity(
          WHERE u.accepted = true AND u.date_processed IS NOT NULL
            AND (${sinceParam}::timestamptz IS NULL OR u.date_processed > ${sinceParam}::timestamptz)
          ORDER BY u.date_processed DESC LIMIT ${limit})
+
+        UNION ALL
+
+        (SELECT CASE WHEN e.old_value IS NULL THEN 'self_edit_added' ELSE 'self_edit_updated' END AS type,
+                e.artist_id, a.name AS artist_name, e.site_name AS platform, e.created_at
+         FROM artist_self_edits e
+         INNER JOIN artists a ON a.id = e.artist_id
+         WHERE (${sinceParam}::timestamptz IS NULL OR e.created_at > ${sinceParam}::timestamptz)
+         ORDER BY e.created_at DESC LIMIT ${limit})
 
         UNION ALL
 

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import UserEntriesTable from "./UserEntriesTable";
+import SelfEditHistory from "./SelfEditHistory";
 import LoadingPage from "../_components/LoadingPage";
 import {
     DndContext,
@@ -827,6 +828,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                     {/* User Artist Data Entries table */}
                     <div className="mt-8 md:mt-0">
                         <UserEntriesTable />
+                        {!isGuestUser && <SelfEditHistory key={user.id} />}
                     </div>
                 </>
             )}

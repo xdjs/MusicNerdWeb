@@ -54,7 +54,7 @@ beforeAll(async () => {
     // maintaining a second copy of the schema. Policies/roles are out of scope.
     const tables = {
         artists: schema.artists, users: schema.users,
-        ugcresearch: schema.ugcresearch, mcpAuditLog: schema.mcpAuditLog,
+        ugcresearch: schema.ugcresearch, mcpAuditLog: schema.mcpAuditLog, artistSelfEdits: schema.artistSelfEdits,
     };
     const statements = await generateMigration(generateDrizzleJson({}), generateDrizzleJson(tables));
     await client.exec(`SET TIME ZONE 'UTC';

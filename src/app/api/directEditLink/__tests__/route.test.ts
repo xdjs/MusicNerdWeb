@@ -162,7 +162,7 @@ describe("POST /api/directEditLink", () => {
         const data = await res.json();
         expect(res.status).toBe(200);
         expect(data.success).toBe(true);
-        expect(setArtistLink).toHaveBeenCalledWith("a1", "x", "testuser");
+        expect(setArtistLink).toHaveBeenCalledWith("a1", "x", "testuser", "https://x.com/testuser");
         expect(sendDiscordMessage).toHaveBeenCalledWith(
             expect.stringMatching(
                 /^admin-user added Test Artist's X: testuser \(Submitted URL: https:\/\/x\.com\/testuser\) \d{4}-\d{2}-\d{2}T/
