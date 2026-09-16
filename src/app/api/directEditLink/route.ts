@@ -51,7 +51,7 @@ export async function POST(req: Request) {
             const user = await getUserById(authResult.userId);
             const { oldValue, artistName } = await withArtistOperation(
                 artistId, { userId: authResult.userId, expectedClaimId },
-                () => setArtistLink(artistId, extracted.siteName, extracted.id),
+                () => setArtistLink(artistId, extracted.siteName, extracted.id, url),
             );
             if (oldValue !== extracted.id) {
                 await notifyDiscordOfArtistLinkAdded({
