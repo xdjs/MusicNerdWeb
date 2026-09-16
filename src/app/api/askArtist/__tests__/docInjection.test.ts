@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/utils/artistDocService', () => ({ getArtistDocContext: jest.fn() }));
@@ -38,6 +40,24 @@ describe('POST /api/askArtist injects the artist doc', () => {
         expect(sys).toContain('water tower');
         expect(sys).toContain('not independent evidence');
         expect(sys).not.toContain('compiled with the artist; treat as ground truth');
+    });
+
+    it('reports an error outcome when the model call fails', async () => {
+        const { getArtistById } = await import('@/server/utils/queries/artistQueries');
+        const { getArtistDocContext } = await import('@/server/utils/artistDocService');
+        const { getGemini } = await import('@/server/lib/gemini');
+        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockRejectedValue(new Error('boom')) } });
+        getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes' });
+        getArtistDocContext.mockResolvedValue(null);
+
+        const { POST } = await import('../route');
+        const res = await POST(new Request('http://x/api/askArtist', {
+            method: 'POST',
+            body: JSON.stringify({ artistId: 'a1', question: 'Anything?' }),
+        }));
+
+        expect(res.status).toBe(500);
+        expect(mockTrackServerEvent).toHaveBeenCalledWith('ask_question', { outcome: 'error', sources: 0 });
     });
 
     it('still answers when doc lookup throws', async () => {

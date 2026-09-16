@@ -10,6 +10,7 @@ import { getVaultUploadByPath, insertVaultSource } from '@/server/utils/queries/
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export const maxDuration = 60;
 
@@ -91,6 +92,7 @@ export async function POST(req: Request) {
         unpublishedPath = undefined;
         const refreshWarning = await refreshAfterUpload(ticket.artistId, expectedClaimId);
         await cleanupSavedUpload(ticket.path);
+        await trackServerEvent('profile_edit', { action: 'vault_upload', target: ticket.type });
         return Response.json({ source, warning: [refreshWarning, ticket.type === 'application/pdf' && !extractedText
             ? 'PDF saved, but no readable text was found. Use a text-based PDF so Lore can read it.' : undefined].filter(Boolean).join(' ') || undefined });
     } catch (error) {

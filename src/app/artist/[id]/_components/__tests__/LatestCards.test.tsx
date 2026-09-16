@@ -1,5 +1,8 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...args: unknown[]) => mockTrackEvent(...args) }));
+
 import LatestCards from '../LatestCards';
 import type { ArtistLatestItem } from '@/lib/artist/artistLatest';
 
@@ -10,6 +13,16 @@ const answer: ArtistLatestItem = { id: 'interview:1', kind: 'interview', title: 
 function setup(items = [answer, release], unavailable = false) {
     return render(<LatestCards items={items} artistName="Test Artist" artistImage="https://cdn.example.com/artist.jpg" unavailable={unavailable} />);
 }
+
+it('reports which card kind was opened under which filter', () => {
+    setup();
+    fireEvent.click(screen.getByRole('button', { name: `Read ${answer.title}` }));
+    expect(mockTrackEvent).toHaveBeenCalledWith('latest_card_open', { kind: 'interview', filter: 'all' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Releases' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Read New record' }));
+    expect(mockTrackEvent).toHaveBeenLastCalledWith('latest_card_open', { kind: 'release', filter: 'release' });
+});
 
 it('keeps the heading simple and hides the native scrollbar', () => {
     setup();

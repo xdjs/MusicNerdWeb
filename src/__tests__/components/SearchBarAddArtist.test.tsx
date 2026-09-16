@@ -8,6 +8,8 @@ const mockToast = jest.fn();
 const mockLogin = jest.fn();
 const mockAddArtist = jest.fn();
 
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
     useSearchParams: () => ({ get: () => null }),
@@ -112,6 +114,8 @@ describe('SearchBar Add Artist Flow', () => {
         expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
         await act(async () => finishSearch({ ok: true, json: async () => ({ results: [] }) }));
         expect(await screen.findByRole('status')).toHaveTextContent('Use + to add the artist');
+        expect(mockTrackEvent).toHaveBeenCalledWith('search', { outcome: 'none', query: 'not-in-directory' });
+        expect(mockTrackEvent).toHaveBeenCalledTimes(1);
         fireEvent.change(input, { target: { value: '' } });
         expect(screen.queryByText('No artists found.')).not.toBeInTheDocument();
     });
@@ -144,6 +148,8 @@ describe('SearchBar Add Artist Flow', () => {
 
         fireEvent.click(screen.getByText('New Artist'));
 
+        expect(mockTrackEvent).toHaveBeenCalledWith('search', expect.objectContaining({ outcome: 'external' }));
+        expect(mockSessionStorage['mn-login-trigger']).toBe('search_add');
         expect(loginClickSpy).toHaveBeenCalled();
         expect(mockAddArtist).not.toHaveBeenCalled();
         expect(mockSessionStorage['pendingAddArtistPlatformId']).toBe('dz123');

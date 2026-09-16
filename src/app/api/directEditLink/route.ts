@@ -12,6 +12,7 @@ import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import { getLoreClaimGeneration } from "@/server/utils/queries/lorePersistence";
 import { withArtistOperation } from "@/server/utils/artistOperationContext";
 import { OwnershipChangedError } from "@/server/utils/queries/ownershipWrites";
+import { trackServerEvent } from "@/server/utils/analytics/trackServerEvent";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
             const user = await getUserById(authResult.userId);
             const { oldValue, artistName } = await withArtistOperation(
                 artistId, { userId: authResult.userId, expectedClaimId },
-                () => setArtistLink(artistId, extracted.siteName, extracted.id),
+                () => setArtistLink(artistId, extracted.siteName, extracted.id, url),
             );
             if (oldValue !== extracted.id) {
                 await notifyDiscordOfArtistLinkAdded({
@@ -60,6 +61,8 @@ export async function POST(req: Request) {
                     platformId: extracted.id,
                     submittedUrl: url,
                 });
+                // A no-op save (same value) is not a profile change; don't count it.
+                await trackServerEvent("profile_edit", { action: "link_add", target: extracted.siteName });
             }
             return Response.json({ success: true, siteName: extracted.siteName, platformName: extracted.cardPlatformName });
         }
@@ -73,6 +76,7 @@ export async function POST(req: Request) {
                 artistId, { userId: authResult.userId, expectedClaimId },
                 () => clearArtistLink(artistId, siteName),
             );
+            await trackServerEvent("profile_edit", { action: "link_remove", target: siteName });
             return Response.json({ success: true });
         }
 

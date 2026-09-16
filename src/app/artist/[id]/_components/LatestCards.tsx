@@ -10,6 +10,7 @@ import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { releaseListeningLinks } from '@/lib/artist/releaseListeningLinks';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 import LatestDetailDialogContent from './LatestDetailDialogContent';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
@@ -102,7 +103,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
                         {itemArtistNames[item.id] && <div className="mb-3 min-h-6 text-sm font-semibold text-foreground">{itemArtistUrls[item.id] ? <Link href={itemArtistUrls[item.id]} className="inline-flex items-center gap-1.5 hover:underline">{itemArtistNames[item.id]}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{itemArtistNames[item.id]} <span className="font-normal text-muted-foreground">· Sample</span></span>}</div>}
-                        <button type="button" onClick={() => setSelected(item)} aria-label={`Read ${item.title}`}
+                        <button type="button" onClick={() => { setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter }); }} aria-label={`Read ${item.title}`}
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
@@ -133,7 +134,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         </>}
         <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
             {selected?.kind === 'release' && <ListeningDialogContent
-                title={`Listen to ${selected.title}`} description={itemArtistNames[selected.id] || artistName} links={releaseLinks} release footer={artistAction}
+                title={`Listen to ${selected.title}`} description={itemArtistNames[selected.id] || artistName} links={releaseLinks} release surface="latest" footer={artistAction}
                 artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
                     <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                 </div>} />}

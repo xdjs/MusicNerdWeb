@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getLeaderboard, getLeaderboardInRange } from "@/server/utils/queries/leaderboardQueries";
+import { getLeaderboard } from "@/server/utils/queries/getLeaderboard";
+import { getLeaderboardInRange } from "@/server/utils/queries/getLeaderboardInRange";
 
 export const dynamic = "force-dynamic";
 

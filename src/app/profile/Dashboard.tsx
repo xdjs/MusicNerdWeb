@@ -15,6 +15,7 @@ import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, Chev
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import SelfEditHistory from "./SelfEditHistory";
 import UserEntriesTable from "./UserEntriesTable";
 import LoadingPage from "../_components/LoadingPage";
 import {
@@ -678,7 +679,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <h2 id="recent-edits-heading" className="text-xl font-semibold mb-5">Artists you’ve contributed to</h2>
                         <ul className="flex flex-wrap gap-x-8 gap-y-4">{recentUGC.map(item => <li key={item.ugcId}><Link href={`/artist/${item.artistId ?? ''}`} className="flex items-center gap-3 hover:underline"><img src={item.imageUrl || '/default_pfp_pink.png'} alt="" className="h-10 w-10 rounded-full object-cover" /><span>{item.artistName ?? 'Unknown artist'}</span></Link></li>)}</ul>
                     </section>}
-                    <section id="contribution-history" className="border-t border-border pt-8 min-w-0"><UserEntriesTable /></section>
+                    <section id="contribution-history" className="border-t border-border pt-8 min-w-0"><UserEntriesTable />{!isGuestUser && <SelfEditHistory key={user.id} />}</section>
                 </div>
             )}
 

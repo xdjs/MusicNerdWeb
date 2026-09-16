@@ -14,6 +14,8 @@ import { addArtist } from "@/app/actions/addArtist";
 import { isDevMode } from "@/lib/dev-mode";
 import DuplicateArtistChoice, { type DuplicateArtistCandidate } from "@/app/_components/DuplicateArtistChoice";
 import type { MusicPlatform } from "@/server/utils/musicPlatform";
+import { requestLogin } from "@/app/_components/nav/components/requestLogin";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -211,6 +213,15 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         enabled: debouncedQuery.trim() !== '',
     });
 
+    // A completed search with nothing to show is the directory-coverage signal; once per query.
+    const emptyReportedRef = useRef<string | null>(null);
+    useEffect(() => {
+        const settled = isSuccess && !isFetching && debouncedQuery.trim() !== '' && results.length === 0;
+        if (!settled || emptyReportedRef.current === debouncedQuery) return;
+        emptyReportedRef.current = debouncedQuery;
+        trackEvent('search', { outcome: 'none', query: debouncedQuery });
+    }, [isSuccess, isFetching, debouncedQuery, results.length]);
+
     useEffect(() => {
         if (debouncedQuery && debouncedQuery.trim() !== '' && results.length > 0) {
             setShowResults(true);
@@ -259,6 +270,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
 
     const handleResultClick = async (result: SearchResult) => {
         if (addRequestInFlightRef.current) return;
+        trackEvent('search', { outcome: result.isExternalOnly ? 'external' : 'existing', query: debouncedQuery });
 
         if (result.isExternalOnly) {
             if (!result.platformId) return;
@@ -268,8 +280,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                     sessionStorage.setItem(PENDING_ADD_KEY, result.platformId);
                     sessionStorage.setItem(PENDING_ADD_PLATFORM_KEY, result.platform || 'deezer');
                     sessionStorage.setItem(PENDING_ADD_TS_KEY, String(Date.now()));
-                    const loginBtn = document.getElementById('login-btn');
-                    loginBtn?.click();
+                    requestLogin('search_add');
                 } catch (e) {
                     console.error("[SearchBar] Login trigger failed:", e);
                 }

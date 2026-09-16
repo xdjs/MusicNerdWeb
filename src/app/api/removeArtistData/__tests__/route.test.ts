@@ -2,6 +2,8 @@
 
 import { jest } from '@jest/globals';
 
+const mockTrackServerEvent = jest.fn(async () => undefined);
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: (...a) => mockTrackServerEvent(...a) }));
 jest.mock('@/lib/auth-helpers', () => ({
   requireAuth: jest.fn(),
 }));
@@ -101,6 +103,7 @@ describe('POST /api/removeArtistData', () => {
     const data = await response.json();
     expect(data.success).toBe(true);
     expect(data.message).toBe('Artist data removed');
+    expect(mockTrackServerEvent).toHaveBeenCalledWith('profile_edit', { action: 'link_remove', target: 'spotify' });
   });
 
   it('returns 403 when business logic fails', async () => {
