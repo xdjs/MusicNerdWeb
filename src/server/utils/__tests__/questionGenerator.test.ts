@@ -63,6 +63,14 @@ describe('generateGroundedQuestions', () => {
         return { ...mod, generateContent, getArtistById, getSocialPostsForArtist, getGemini };
     }
 
+    it('drafts and verifies a recent profile source even without Instagram posts', async () => {
+        const candidate = { signalId: 'recent1', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'In Process: Night textures. Shared September 15.', sourceUrls: ['https://inprocess.world/moment/one'], fallbackQuestion: 'What should we notice?' };
+        const { generateGroundedQuestions, generateContent } = await setup({ posts: [], geminiText: JSON.stringify([{ signalId: 'recent1', question: 'What were you exploring in Night textures?', rationale: 'new work' }]) });
+        const result = await generateGroundedQuestions('a1', { max: 3, profileCandidates: [candidate] });
+        expect(result[0]).toMatchObject({ key: candidate.key, kind: 'recent', sourceUrls: candidate.sourceUrls });
+        expect(generateContent.mock.calls.some(c => c[0].config.systemInstruction.startsWith('You are fact-checking'))).toBe(true);
+    });
+
     it('returns [] when the artist does not exist', async () => {
         const { generateGroundedQuestions, getArtistById } = await setup();
         getArtistById.mockResolvedValue(undefined);

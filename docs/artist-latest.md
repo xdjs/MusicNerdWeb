@@ -161,3 +161,40 @@ The existing development session fallback was active, so this is **not** proof o
 login or production anonymous access. Spotify failures/fallbacks are unit-tested, not live-verified.
 
 Full-suite/build results and remaining release status belong in `MEMORY.md`.
+
+### Interview saves (#1290)
+
+The offered interview uses the shared Radix dialog and the dark glass treatment from
+Add Artist in both themes. Each successful nonempty answer triggers a client router
+refresh: Latest reads the persisted follow-up directly, without waiting for all questions
+or an About rebuild. Closing after one save retains that refresh. Pending saves prevent
+dismissal and repeated submission; failed requests keep the answer editable for retry.
+Skips retain the existing null-answer and sitting semantics. Completion confirms saved
+answers without promising an About rebuild succeeded. No schema, jobs, or external-service
+changes are required.
+
+### Interview source selection (#1290)
+
+The offered interview favors recent profile activity. It reuses `getArtistLatest`
+(including In Process) and approved Lore, excluding interview answers themselves.
+Fresh candidates use publication/sharing time for Latest, and addition/update time
+for approved Lore: a new archive upload is new context, not a newly published event.
+The first-visit window is 90 days; returning sittings use the later of that window
+and the last offer watermark. Only stored content and the existing cached In Process
+reader are used; opening an interview does not scrape or enqueue research.
+
+Fresh Latest and fresh Lore each receive a slot when available. Remaining slots favor
+fresh items. Every third sitting may include one historical post; historical material
+also fills gaps when fresh sources are insufficient. Deduplicate source URLs and
+already offered question keys before selecting. Existing unfinished sittings keep
+stored wording and their original sitting/offered-at identity.
+
+Fresh source material joins the existing question drafting and factual verification
+pipeline with explicit authorship and dates. If generation is unavailable or a draft
+fails verification, use a neutral question referencing the source's stored title/date,
+without adding claims about its contents. Source URLs come from application data,
+never the model. Public Latest source URLs are encoded in stable question keys for
+resume after items leave the bounded gallery; Lore keys reference source IDs and resolve
+only still-approved public URLs. Uploaded-file paths and signed storage URLs are not
+sent to the interview client. New In Process/Latest or approved Lore candidates can
+reopen an interview even without a new Instagram post.
