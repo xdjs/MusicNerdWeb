@@ -8,7 +8,7 @@ Implemented live contribution totals/history, explicit account bookmarks and leg
 
 Staging data prerequisite `0028_famous_captain_britain.sql` is applied and verified as `mnweb` (RLS/CRUD, anonymous denial, column-only self-edit ownership reassignment). The private photo bucket passed write/signed-read/public-denial verification; disposable files were removed. No existing legacy photos needed copying. Automatic migration replay remains blocked by #1148.
 
-Verification so far: 243 Jest suites / 2,646 tests passed (6 skipped), TypeScript and lint passed; production build and live browser checks are still in progress. Disposable Postgres checks passed migration permissions, import idempotency/tombstones, explicit re-add, concurrent writes/merge, and cascading artist deletion. Do not treat this as shipped until the PR, deployment and browser evidence below are updated.
+Verification so far: 243 Jest suites / 2,646 tests passed (6 skipped), TypeScript and lint passed; GitHub CI test/build jobs and the Vercel production build passed at `9e082311`. The local production build compiled but was stopped during type validation because the host was overloaded. Browser verification established real sign-in, cross-browser bookmark persistence/removal/search, private-photo reads and name persistence; responsive captures are in progress. Integrated the independently shipped interview fix #1291 from staging `dc3dd034`. Disposable Postgres checks passed migration permissions, import idempotency/tombstones, explicit re-add, concurrent writes/merge, and cascading artist deletion. Do not treat this as shipped until the PR, deployment and browser evidence below are updated.
 
 ## User profile redesign — local design review
 
