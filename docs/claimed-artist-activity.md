@@ -14,6 +14,8 @@ the authenticated approved claim owner, artist, platform, previous/new value, an
 submitted URL. Non-owner administrator maintenance is not classified as a self-edit.
 The timestamp is the successful edit time. Concurrent identical saves serialize on
 the artist row and produce one event; a failed event insert rolls back the link.
+The event write revalidates and share-locks the approved claim until commit; a
+revocation during the save rolls back the link instead of silently omitting activity.
 No-op saves, removals, denied requests, and failed writes create no event.
 
 ## Read contract

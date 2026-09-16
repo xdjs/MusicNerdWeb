@@ -119,6 +119,20 @@ it('rechecks ownership after URL extraction', async () => {
     expect(await database.query.artistSelfEdits.findMany()).toEqual([]);
 });
 
+it('rolls back a changed save if its claim disappears between authorization and event recording', async () => {
+    await client.exec(`CREATE FUNCTION revoke_claim_during_link_write() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN UPDATE artist_claims SET status = 'rejected' WHERE artist_id = NEW.id; RETURN NEW; END $$;
+        CREATE TRIGGER revoke_claim_during_link_write AFTER UPDATE ON artists
+        FOR EACH ROW EXECUTE FUNCTION revoke_claim_during_link_write();`);
+    try {
+        expect((await POST(request())).status).toBe(403);
+        expect((await database.query.artists.findFirst())?.instagram).toBeNull();
+        expect(await database.query.artistSelfEdits.findMany()).toEqual([]);
+    } finally {
+        await client.exec('DROP TRIGGER revoke_claim_during_link_write ON artists; DROP FUNCTION revoke_claim_during_link_write();');
+    }
+});
+
 it('does not mislabel non-owner admin maintenance as an artist self-edit', async () => {
     await database.update(schema.users).set({ isAdmin: true }).where(eq(schema.users.id, userId));
     await database.update(schema.artistClaims).set({ userId: otherId });
