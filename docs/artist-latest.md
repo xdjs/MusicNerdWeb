@@ -204,3 +204,8 @@ resume after items leave the bounded gallery; Lore keys reference source IDs and
 only still-approved public URLs. Uploaded-file paths and signed storage URLs are not
 sent to the interview client. New In Process/Latest or approved Lore candidates can
 reopen an interview even without a new Instagram post.
+
+> **Decision — 2026-09-16, Pete:** Reading a post’s title and caption/description is
+> sufficient for this interview change. The interviewer cannot yet interpret visual
+> context in images or video. Visual understanding is explicitly deferred for a
+> future product decision and is not a blocker for #1290.
