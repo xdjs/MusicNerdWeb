@@ -102,3 +102,14 @@ it('leaves Latest untouched when In Process is empty or the artist has no link',
     expect(result.items.some(item => item.kind === 'moment')).toBe(false);
     expect(result.unavailable).toBe(false);
 });
+
+
+it('retains In Process and Lore source links on saved interview cards', async () => {
+    const url = 'https://inprocess.world/collect/base:0xabc/75';
+    const key = 'profile_recent_encoded';
+    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([]) as never)
+        .mockImplementationOnce(() => selectResult([{ ...answer, questionKey: key }]) as never);
+    jest.mocked(sourceUrlsForQuestionKeys).mockResolvedValue(new Map([[key, url]]));
+    const result = await getArtistLatest(artist);
+    expect(result.items.find(item => item.kind === 'interview')).toMatchObject({ sourceUrl: url, sourceLabel: 'View the source behind this answer' });
+});

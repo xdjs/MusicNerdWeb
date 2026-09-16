@@ -1,5 +1,8 @@
 "use server";
 
+import { getProfileInterviewCandidates } from "@/server/utils/interview/getProfileInterviewCandidates";
+import { selectProfileInterviewMix } from "@/lib/interview/selectProfileInterviewMix";
+import { INTERVIEW_RECENT_DAYS, type ProfileInterviewCandidate } from "@/lib/interview/profileInterviewTypes";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
@@ -163,8 +166,13 @@ export async function getInterviewInvite(artistId: string): Promise<InterviewInv
         // statements by `postedAt`, so a "learned" reopening scoped to `since`
         // would generate from an empty set and fall through to the static bank
         // — the same failure, one layer down.
+        const previousSources = await sourceUrlsForQuestionKeys(artistId, rows.map(r => r.questionKey))
+            .catch(() => new Map<string, string>());
+        const profileCandidates = stillOpen.length >= QUESTION_COUNT ? [] : await getProfileInterviewCandidates(
+            artistId, since, new Set(rows.map(r => r.questionKey)), new Set(previousSources.values()),
+        ).catch(() => []);
         let window = since;
-        if (since) {
+        if (since && profileCandidates.length === 0) {
             const { published, learned } = await newMaterialSince(artistId, since);
             if (!published && !learned) return { show: false };
             // LEARNED WINS THE WINDOW WHEN BOTH ARE TRUE. Scoping to `since`
@@ -233,6 +241,8 @@ export async function getInterviewInvite(artistId: string): Promise<InterviewInv
                 since,
                 new Set([...answeredKeys, ...resumed.map(q => q.key)]),
                 isFirstInterview,
+                profileCandidates,
+                (stillOpen.length ? stillOpen[0].sitting ?? 1 : Math.max(0, ...rows.map(r => r.sitting ?? 1)) + 1) % 3 === 0,
             );
         const questions = [...resumed, ...generated].slice(0, QUESTION_COUNT);
         if (questions.length === 0) return { show: false };
@@ -346,20 +356,30 @@ async function pickQuestions(
      *  returning artist's sitting up from the static bank asks them "How would
      *  you describe your sound?" for the second time. */
     isFirstInterview: boolean,
+    profileCandidates: ProfileInterviewCandidate[] = [],
+    includeHistory = false,
 ): Promise<InterviewQuestion[]> {
     // `excludeKeys`, not just the filter below. Passing them in removes them
     // from the candidate POOL, so the model spends its picks on things the
     // artist has not been asked yet — filtering afterwards threw away work
     // already done and left the static bank to fill the gap.
-    const grounded = await generateGroundedQuestions(artistId, { max: QUESTION_COUNT, since: generationSince, excludeKeys: answeredKeys })
+    const grounded = await generateGroundedQuestions(artistId, profileCandidates.length ? {
+        max: QUESTION_COUNT, since: null, excludeKeys: answeredKeys, profileCandidates,
+        historyBefore: new Date(Date.now() - INTERVIEW_RECENT_DAYS * 86400_000).toISOString().slice(0, 10),
+    } : { max: QUESTION_COUNT, since: generationSince, excludeKeys: answeredKeys })
         .catch(() => []);
-    const picked: InterviewQuestion[] = grounded
+    const mixed = profileCandidates.length ? selectProfileInterviewMix(grounded, profileCandidates, includeHistory) : grounded;
+    const picked: InterviewQuestion[] = mixed
         .filter(q => !answeredKeys.has(q.key))
         .slice(0, QUESTION_COUNT)
         // Optional chain: the type says sourceUrls is always there, and a
         // question that arrives without one must still be askable rather than
         // throwing and costing the artist the whole interview.
         .map(q => ({ key: q.key, question: q.question, sourceUrl: q.sourceUrls?.[0] }));
+
+    // Fresh activity deserves content-specific questions, not release/title or
+    // introductory templates when generation is unavailable or rejects a draft.
+    if (profileCandidates.length) return picked;
 
     // A RELEASE WITH NO POSTS BEHIND IT STILL DESERVES A QUESTION. Releases
     // trigger the invite, but the generator reads captions — so an artist who

@@ -9,6 +9,8 @@
  */
 import { jest } from '@jest/globals';
 
+const getProfileInterviewCandidates = jest.fn(async () => []);
+jest.mock('@/server/utils/interview/getProfileInterviewCandidates', () => ({ getProfileInterviewCandidates: (...a) => getProfileInterviewCandidates(...a) }));
 const canEditArtist = jest.fn();
 const getInterviewAnswers = jest.fn();
 const upsertInterviewAnswer = jest.fn();
@@ -97,11 +99,37 @@ describe('getInterviewInvite', () => {
         // Per-kind, so a test can tell 'checks the wrong stage' from 'checks correctly'.
         const inFlightKinds = (kinds) => (_a, k) => Promise.resolve((Array.isArray(k) ? k : [k]).some(x => kinds.includes(x)));
         globalThis.__inFlightKinds = inFlightKinds;
+        getProfileInterviewCandidates.mockResolvedValue([]);
         canEditArtist.mockResolvedValue(true);
         getSocialPostsForArtist.mockResolvedValue([]);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: null });
         getSpotifyCatalogDetail.mockResolvedValue([]);
         generateGroundedQuestions.mockResolvedValue([]);
+    });
+
+    it('reopens for fresh In Process or Lore without new Instagram material', async () => {
+        getInterviewAnswers.mockResolvedValue(aFullSitting('2026-08-01T00:00:00Z'));
+        getProfileInterviewCandidates.mockResolvedValue([
+            { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'New In Process moment', sourceUrls: ['https://inprocess.world/moment/one'], fallbackQuestion: 'What should we notice in this moment?' },
+            { signalId: 'lore', key: 'profile_lore_one', kind: 'lore', authoredBy: 'source', material: 'New Lore', sourceUrls: ['https://example.com/article'], fallbackQuestion: 'What would you add to this story?' },
+        ]);
+        generateGroundedQuestions.mockResolvedValue([
+            { key: 'profile_recent_one', kind: 'recent', question: 'Which change made the timeline easier to follow?', sourceUrls: ['https://inprocess.world/moment/one'] },
+            { key: 'profile_lore_one', kind: 'lore', question: 'How did the field recordings change the arrangement?', sourceUrls: ['https://example.com/article'] },
+        ]);
+        const out = await invite();
+        expect(out.show).toBe(true);
+        expect(out.questions.map(q => q.key)).toEqual(['profile_recent_one', 'profile_lore_one']);
+        expect(generateGroundedQuestions).toHaveBeenCalledWith('a1', expect.objectContaining({ profileCandidates: expect.any(Array) }));
+    });
+
+    it('does not pad rejected fresh-source drafts with generic first-interview questions', async () => {
+        getInterviewAnswers.mockResolvedValue([]);
+        getProfileInterviewCandidates.mockResolvedValue([
+            { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'Design caption', sourceUrls: ['https://inprocess.world/moment/one'] },
+        ]);
+        generateGroundedQuestions.mockResolvedValue([]);
+        expect(await invite()).toEqual({ show: false });
     });
 
     it('offers a first interview when nothing has ever been answered', async () => {
