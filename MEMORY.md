@@ -1,5 +1,26 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## User profile delivery — September 16
+
+Pete approved making #1274's design the real signed-in profile and merging to staging, with advisor review. Delivery is tracked by [PR #1292](https://github.com/xdjs/MusicNerdWeb/pull/1292) and [issue #1274](https://github.com/xdjs/MusicNerdWeb/issues/1274); their deployment/merge evidence is authoritative. Branch: `pete/user-profile-staging`, integrated with staging `dc3dd034`. The original local design preview remains on port 3017. Production release is not authorized by this delivery step.
+
+Implemented live contribution totals/history, explicit account bookmarks and legacy-browser import with removal tombstones, profile name/photo persistence, and bounded bookmarked-artist updates. Advisor findings addressed: account-switch cache isolation, mixed-precision date ordering, merge-safe photo identity, and bookmark removal resurrection. See [contract](docs/user-profile.md).
+
+Staging data prerequisite `0028_famous_captain_britain.sql` is applied and verified as `mnweb` (RLS/CRUD, anonymous denial, column-only self-edit ownership reassignment). The private photo bucket passed write/signed-read/public-denial verification; disposable files were removed. No existing legacy photos needed copying. Automatic migration replay remains blocked by #1148.
+
+Verification so far: 243 Jest suites / 2,646 tests passed (6 skipped), TypeScript and lint passed; GitHub CI test/build jobs and the Vercel production build passed at `9e082311`. The local production build compiled but was stopped during type validation because the host was overloaded. Browser verification established real sign-in, cross-browser bookmark persistence/removal/search, private-photo reads and name persistence; both browser flows passed, including 390/832 px in light/dark and restoring the test account after changes. Final preview testing exposed `EMAXCONNSESSION` at the shared staging session pool limit. Advisor-approved mitigation caps each app client at three connections and releases idle sockets after 20 seconds; final verification and merge status remain on PR #1292. Integrated the independently shipped interview fix #1291 from staging `dc3dd034`. Disposable Postgres checks passed migration permissions, import idempotency/tombstones, explicit re-add, concurrent writes/merge, and cascading artist deletion. Do not treat this as shipped until the PR, deployment and browser evidence below are updated.
+
+## User profile redesign — local design review
+
+September 15: #1274, branch `pete/user-profile-redesign` off staging `3fd0e220`.
+[Design and validation](docs/rnd/design/2026-09-15-user-profile-redesign/README.md).
+Local http://localhost:3017/profile in an isolated checkout; no push yet. Pete wants the
+existing-capability design approved locally, then staging → main. Only afterwards,
+Spotify integration on a separate preview branch for staging testing. TV navigation,
+shared accounts and provider access changes are outside this design pass. Original
+dirty checkout and its account-backed bookmark migration remain untouched.
+
+
 ## Critical Next.js audit fix — awaiting review
 
 September 15: [issue #1281](https://github.com/xdjs/MusicNerdWeb/issues/1281) tracks the

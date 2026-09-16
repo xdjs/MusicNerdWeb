@@ -1,334 +1,119 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search as SearchIcon, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import Link from "next/link";
+import { ArrowUpRight, Check, Clock, Search, SlidersHorizontal } from "lucide-react";
 
-interface UserEntry {
+export interface UserEntry {
   id: string;
+  artistId?: string | null;
   createdAt: string | null;
   artistName: string | null;
   siteName: string | null;
   ugcUrl: string | null;
   accepted: boolean | null;
 }
-
-type ApiResponse = {
-  entries: UserEntry[];
-  total: number;
-  pageCount: number;
-};
-
 const PER_PAGE = 10;
 
-const parseUTC = (s: string): Date => {
-  // If string already has timezone info (Z or +/-), keep as is; else assume UTC by appending Z
-  return new Date(/Z|[+-]\d{2}:?\d{2}$/.test(s) ? s : `${s}Z`);
-};
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "";
-  const date = parseUTC(iso);
-  return date.toLocaleDateString();
-};
-
-const formatTime = (iso: string | null) => {
-  if (!iso) return "";
-  const date = parseUTC(iso);
-  return date
-    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
-    .replace(/\s([AP]M)$/i, "\u00A0$1");
-};
-
-export default function UserEntriesTable() {
+export default function UserEntriesTable({ concept = false, artistImages = {}, artistUrls = {}, sampleEntries, statusFilter, serverPagination = false }: { concept?: boolean; serverPagination?: boolean; artistImages?: Record<string, string>; artistUrls?: Record<string, string>; sampleEntries?: UserEntry[]; statusFilter?: { value: string } }) {
+  const [serverTotal, setServerTotal] = useState(0);
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [entries, setEntries] = useState<UserEntry[]>([]);
-  /** Keeps track of which page numbers have been fetched already */
-  const fetchedPages = useRef<Set<number>>(new Set());
-  /** Current page displayed by the table */
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [page, setPage] = useState(1);
-  /** Total number of pages available according to the server */
-  const [pageCount, setPageCount] = useState(1);
-  /** Total number of entries (for information only) */
-  const [total, setTotal] = useState(0);
-  /** Currently selected site filter */
-  const [filter, setFilter] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [artistQuery, setArtistQuery] = useState("");
-  const [statusSort, setStatusSort] = useState<"default" | "approved" | "pending">("default");
-  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [site, setSite] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [order, setOrder] = useState("newest");
+  useEffect(() => { if (statusFilter) { setStatus(statusFilter.value); setPage(1); } }, [statusFilter]);
 
-  const artistInputRef = useRef<HTMLInputElement>(null);
-
-  /**
-   * Fetches a page of entries from the server and merges them into the existing list.
-   * If the page has already been fetched, this function does nothing.
-   */
-  const fetchPage = async (pageToFetch: number) => {
-    // Skip if we've already fetched this page
-    if (fetchedPages.current.has(pageToFetch)) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/userEntries?page=${pageToFetch}`);
-      if (!res.ok) return;
-      const data: ApiResponse = await res.json();
-      fetchedPages.current.add(pageToFetch);
-      // Merge new entries, avoiding duplicates
-      setEntries((prev) => {
-        const existingIds = new Set(prev.map((e) => e.id));
-        const entriesArray = Array.isArray(data.entries) ? data.entries : [];
-        const merged = [...prev, ...entriesArray.filter((e) => !existingIds.has(e.id))];
-        return merged;
-      });
-      setTotal(data.total);
-      setPageCount(data.pageCount);
-    } catch (e) {
-      console.error("[UserEntriesTable] failed to fetch entries", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch first page on mount
   useEffect(() => {
-    fetchPage(1);
-  }, []);
+    if (sampleEntries) { setEntries(sampleEntries); setLoading(false); setError(false); return; }
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+    // The existing all=true endpoint lets filters/sorting cover the whole history.
+    fetch(serverPagination ? `/api/userEntries?${new URLSearchParams({page: String(page), query, siteName: site, status, order})}` : '/api/userEntries?all=true', { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to load contributions');
+        const data = await response.json();
+        if (!Array.isArray(data.entries)) throw new Error('Invalid contributions');
+        if (!controller.signal.aborted) { setEntries(data.entries); setServerTotal(data.total ?? 0); setPlatforms(data.platforms ?? []); }
+      })
+      .catch(() => { if (!controller.signal.aborted) setError(true); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [attempt, sampleEntries, serverPagination, serverPagination ? page : 0, serverPagination ? query : '', serverPagination ? site : '', serverPagination ? status : '', serverPagination ? order : '']);
 
-  // Fetch new page when page changes
-  useEffect(() => {
-    fetchPage(page);
-  }, [page]);
-
-  // Reset pagination when filter changes
-  useEffect(() => {
-    const fetchFiltered = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/userEntries?filter=${filter}`);
-        if (!res.ok) return;
-        const data: ApiResponse = await res.json();
-        // Replace existing entries with filtered result
-        const entriesArray = Array.isArray(data.entries) ? data.entries : [];
-        setEntries(entriesArray);
-        setPage(1);
-        setPageCount(1);
-      } catch (e) {
-        console.error("[UserEntriesTable] failed to fetch filtered entries", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchFiltered();
-  }, [filter]);
-
-  const processed = useMemo(() => {
-    let arr = [...entries];
-    // filter by entry type
-    if (filter !== "all") arr = arr.filter((e) => e.siteName === filter);
-    // filter by artist query
-    if (artistQuery.trim()) {
-      const q = artistQuery.toLowerCase();
-      arr = arr.filter((e) => (e.artistName ?? "").toLowerCase().includes(q));
-    }
-    // sort by full timestamp (most recent first / oldest depending on sortOrder)
-    arr.sort((a, b) => {
-      const tA = parseUTC(a.createdAt ?? "").getTime();
-      const tB = parseUTC(b.createdAt ?? "").getTime();
-      return sortOrder === "asc" ? tA - tB : tB - tA;
-    });
-
-    if (statusSort !== "default") {
-      arr.sort((a, b) => {
-        const aApproved = !!a.accepted;
-        const bApproved = !!b.accepted;
-        if (statusSort === "approved") {
-          // approved first
-          return aApproved === bApproved ? 0 : aApproved ? -1 : 1;
-        } else {
-          // pending first
-          return aApproved === bApproved ? 0 : aApproved ? 1 : -1;
-        }
-      });
-    }
-    return arr;
-  }, [entries, filter, sortOrder, artistQuery, statusSort]);
+  const filtered = useMemo(() => serverPagination ? entries : entries.filter(entry =>
+    (entry.artistName ?? '').toLowerCase().includes(query.trim().toLowerCase()) &&
+    (site === 'all' || entry.siteName === site) &&
+    (status === 'all' || (status === 'approved' ? entry.accepted === true : entry.accepted === false))
+  ).sort((a, b) => {
+    const difference = (Date.parse(a.createdAt ?? '') || 0) - (Date.parse(b.createdAt ?? '') || 0);
+    return order === 'oldest' ? difference : -difference;
+  }), [entries, query, site, status, order, serverPagination]);
+  const total = serverPagination ? serverTotal : filtered.length;
+  const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
+  const selectClass = 'h-10 rounded-full border border-border bg-background px-3 text-sm text-foreground';
 
   return (
-    <div className="max-w-3xl mx-auto mt-10">
-      {/* Title above the table */}
-      <div className="text-center mb-4">
-        <h2 className="text-2xl font-semibold text-[#c6bfc7] outline-none">Your Artist Data Entry</h2>
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
+        <h2 className="text-2xl font-semibold tracking-tight">Contribution history</h2>
+        {!loading && !error && <span className="text-sm text-muted-foreground">{total} {total === 1 ? 'contribution' : 'contributions'}</span>}
       </div>
-      
-      <Card className="border-2 border-[#9b83a0] shadow-none max-w-[720px] lg:max-w-none">
-        {/* Mobile: Single scrollable container for header and table */}
-                                   <div className="overflow-x-auto w-full">
-                                         <div className="min-w-[720px] max-w-[720px] sm:max-w-none">
-                      {/* Table Header */}
-            <div className="bg-[#6f4b75] p-0 rounded-t-md border-b-2 border-[#9b83a0] min-w-full sticky top-0 z-10">
-                         <div className="grid grid-cols-[80px_80px_160px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] text-white w-full">
-              <div
-                className="text-center cursor-pointer select-none py-3 px-1 sm:px-3 border-l border-t border-[#c6bfc7] rounded-tl-md flex items-center justify-center"
-                onClick={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-              >
-                                 <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-base">Date</span>
-                   <ArrowUpDown
-                     className={`w-2 h-2 sm:w-3 sm:h-3 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
-                   />
-                 </div>
-              </div>
-                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
-                 <span className="whitespace-nowrap text-xs sm:text-base">Time</span>
-               </div>
-                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7]">
-                 <div className="flex items-center justify-center gap-1 w-full">
-                   <span className="whitespace-nowrap text-xs sm:text-base">Artist</span>
-                   <div
-                     className="relative flex items-center cursor-text"
-                     onClick={() => artistInputRef.current?.focus()}
-                   >
-                                           <Input
-                        value={artistQuery}
-                        onChange={(e) => setArtistQuery(e.target.value)}
-                        placeholder="Search"
-                        ref={artistInputRef}
-                        className="h-6 pr-6 pl-2 py-1 text-xs w-full sm:h-6 sm:pr-6 sm:pl-2 sm:w-full bg-white border border-gray-300 text-black dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300"
-                      />
-                     <SearchIcon className="absolute right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" strokeWidth={2} />
-                   </div>
-                 </div>
-               </div>
-                             <div className="text-center py-3 px-2 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
-                 <div className="flex items-center justify-center gap-1 w-full">
-                   <span className="whitespace-nowrap text-xs sm:text-base">Entry Type</span>
-                   <select
-                     value={filter}
-                     onChange={(e) => setFilter(e.target.value)}
-                     className="border border-gray-300 rounded-md py-1 px-2 text-xs h-6 w-18 sm:h-6 sm:w-full text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-0 focus:border-gray-300"
-                   >
-                    <option value="all">All</option>
-                    {Array.from(new Set(entries.map((e) => e.siteName).filter(Boolean))).map((site) => (
-                      <option key={site as string} value={site as string}>
-                        {site as string}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-                             <div className="text-center py-3 px-1 sm:px-3 border-t border-[#c6bfc7] flex items-center justify-center">
-                 <span className="whitespace-nowrap text-xs sm:text-base">Site Link</span>
-               </div>
-                             <div
-                 className="text-center py-3 px-1 sm:px-3 cursor-pointer select-none border-t border-r border-[#c6bfc7] rounded-tr-md flex items-center justify-center"
-                 onClick={() =>
-                   setStatusSort((prev) =>
-                     prev === "default" ? "approved" : prev === "approved" ? "pending" : "default"
-                   )
-                 }
-               >
-                 <div className="flex items-center justify-center gap-1">
-                   <span className="whitespace-nowrap text-xs sm:text-base">Status</span>
-                   {statusSort === "approved" ? (
-                     <ArrowUp className="w-2 h-2 sm:w-3 sm:h-3" />
-                   ) : statusSort === "pending" ? (
-                     <ArrowDown className="w-2 h-2 sm:w-3 sm:h-3" />
-                   ) : (
-                     <ArrowUpDown className="w-2 h-2 sm:w-3 sm:h-3" />
-                   )}
-                 </div>
-               </div>
-            </div>
-          </div>
-          
-          {/* Table Body */}
-          <div className="p-0 border-b-2 border-[#9b83a0] min-w-full">
-            {loading ? (
-              <div className="bg-white border-b border-[#c6bfc7] py-4">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#c6bfc7] border-t-transparent"></div>
-                  <span>Loading...</span>
-                </div>
-              </div>
-            ) : processed.length ? (
-              (() => {
-                let lastArtist: string | null = null;
-                const pageStart = (page - 1) * PER_PAGE;
-                const pageEnd = pageStart + PER_PAGE;
-                return processed.slice(pageStart, pageEnd).map((entry) => {
-                  const displayArtist = entry.artistName ?? lastArtist ?? "—";
-                  if (entry.artistName) lastArtist = entry.artistName;
-                  return (
-                                         <div key={entry.id} className="grid grid-cols-[80px_80px_160px_200px_80px_80px] sm:grid-cols-[100px_100px_150px_200px_100px_120px] lg:grid-cols-[1fr_1fr_2fr_2.5fr_0.8fr_1.2fr] bg-white hover:bg-white border-b border-[#9b83a0] w-full">
-                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatDate(entry.createdAt)}</div>
-                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{formatTime(entry.createdAt)}</div>
-                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{displayArtist}</div>
-                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">{entry.siteName ?? "—"}</div>
-                      <div className="text-center px-1 sm:px-3 py-2 border-l border-[#c6bfc7] text-xs sm:text-sm">
-                        {entry.ugcUrl ? (
-                          <Link
-                            className="text-blue-600 underline"
-                            href={entry.ugcUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </div>
-                      <div
-                        className={`text-center px-1 sm:px-3 py-2 border-l border-r border-[#c6bfc7] font-semibold text-xs sm:text-sm ${entry.accepted ? "text-green-600" : "text-yellow-600"}`}
-                      >
-                        {entry.accepted ? "Approved" : "Pending"}
-                      </div>
-                    </div>
-                  );
-                });
-              })()
-            ) : (
-              <div className="bg-white border-b border-[#9b83a0] py-4">
-                <div className="text-center">No entries</div>
-              </div>
-            )}
-                    </div>
-          </div>
+      <div className="flex flex-wrap gap-2 mb-6">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <Search size={16} className="absolute left-3 top-3 text-muted-foreground" />
+          <Input aria-label="Search contribution artists" placeholder="Search artists" value={query} onChange={e => { setQuery(e.target.value); setPage(1); }} className="rounded-full pl-9 text-base" />
         </div>
-        {pageCount > 1 && (
-          <CardFooter className="bg-[#6f4b75] border border-[#6f4b75] rounded-b-md flex justify-end items-center gap-4 p-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-            >
-              Prev
-            </Button>
-            <span className="text-sm text-white">Page {page} of {pageCount}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pageCount}
-              onClick={() => setPage((p) => p + 1)}
-              className="bg-white text-[#6f4b75] border-white hover:bg-gray-100 hover:text-[#6f4b75]"
-            >
-              Next
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
+        {concept && <Button variant="outline" aria-expanded={filtersOpen} aria-controls="contribution-filters" onClick={() => setFiltersOpen(open => !open)} className="rounded-full bg-neutral-100 dark:bg-[#242424]"><SlidersHorizontal size={15} className="mr-2" />Filters{(site !== 'all' || status !== 'all' || order !== 'newest') ? ' •' : ''}</Button>}
+        <div id="contribution-filters" className={`${concept && !filtersOpen ? 'hidden' : 'flex'} flex-wrap gap-2 ${concept ? 'basis-full pt-2' : ''}`}>
+        <select aria-label="Contribution platform" value={site} className={selectClass} onChange={e => { setSite(e.target.value); setPage(1); }}>
+          <option value="all">All platforms</option>
+          {(serverPagination ? platforms : Array.from(new Set(entries.map(e => e.siteName).filter(Boolean))).sort()).map(name => <option key={name} value={name!}>{name}</option>)}
+        </select>
+        <select aria-label="Contribution status" value={status} className={selectClass} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+          <option value="all">All statuses</option><option value="approved">Approved</option><option value="pending">Pending</option>
+        </select>
+        <select aria-label="Contribution order" value={order} className={selectClass} onChange={e => { setOrder(e.target.value); setPage(1); }}>
+          <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
+        </select>
+        </div>
+      </div>
+      {loading ? <p role="status" className="py-8 text-muted-foreground">Loading contributions…</p> : error ? (
+        <div role="alert" className="py-6"><p>Couldn’t load your contributions.</p><Button variant="outline" className="mt-3" onClick={() => setAttempt(a => a + 1)}>Try again</Button></div>
+      ) : filtered.length ? (
+        <ul className="divide-y divide-border border-y border-border">
+          {(serverPagination ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)).map(entry => {
+            const date = entry.createdAt ? new Date(/Z|[+-]\d{2}:?\d{2}$/.test(entry.createdAt) ? entry.createdAt : `${entry.createdAt}Z`) : null;
+            const validDate = date && !Number.isNaN(date.getTime());
+            const safeUrl = entry.ugcUrl && /^https?:\/\//i.test(entry.ugcUrl) ? entry.ugcUrl : null;
+            return <li key={entry.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 py-5">
+              {concept && entry.artistName && artistImages[entry.artistName] ? <img src={artistImages[entry.artistName]} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">{sampleEntries ? <span className="text-sm font-semibold">{(entry.artistName || '?').split(' ').map(word => word[0]).join('')}</span> : <ArrowUpRight size={18} />}</span>}
+              <div className="min-w-0 flex-1 basis-40">
+                <p className="font-semibold break-words">{(entry.artistId || (entry.artistName && artistUrls[entry.artistName])) ? <Link className="underline underline-offset-4 decoration-current/25 hover:decoration-pink-400" href={entry.artistId ? `/artist/${entry.artistId}` : artistUrls[entry.artistName!]}>{entry.artistName}</Link> : entry.artistName || 'Unknown artist'}</p>
+                <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">{concept && ['spotify', 'deezer', 'soundcloud'].includes((entry.siteName || '').toLowerCase()) && <img src={`/siteIcons/${entry.siteName!.toLowerCase()}_icon.svg`} alt="" className="h-4 w-4 object-contain" />}{entry.siteName ? `${entry.siteName} link` : 'Link contribution'}{validDate && <> <span aria-hidden="true">·</span> <time dateTime={entry.createdAt!} title={date.toLocaleString()}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time></>}</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${entry.accepted ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/10 text-amber-800 dark:text-amber-300'}`}>
+                {entry.accepted ? <Check size={13} /> : <Clock size={13} />}{entry.accepted === true ? 'Approved' : entry.accepted === false ? 'Pending' : 'Status unavailable'}
+              </span>
+              {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer" aria-label={`View ${entry.siteName || 'submitted'} link for ${entry.artistName || 'artist'}`} className="inline-flex items-center gap-1 text-sm underline underline-offset-4">View link <ArrowUpRight size={14} /></a>}
+            </li>;
+          })}
+        </ul>
+      ) : <div className="py-10 text-muted-foreground">{entries.length || query || site !== 'all' || status !== 'all' ? 'No contributions match these filters.' : 'Your submitted artist links will appear here, with their review status.'}</div>}
+      {pageCount > 1 && <div className="flex items-center justify-between gap-3 mt-5">
+        <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+        <span className="text-sm text-muted-foreground">{page} / {pageCount}</span>
+        <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(p => p + 1)}>Next</Button>
+      </div>}
     </div>
   );
-} 
+}

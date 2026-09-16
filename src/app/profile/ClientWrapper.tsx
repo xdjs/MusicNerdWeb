@@ -2,8 +2,11 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Dashboard from "./Dashboard";
-import AutoRefresh from "@/app/_components/AutoRefresh";
+import LiveUserProfile from "./LiveUserProfile";
+import Link from "next/link";
+import ProfileLoading from "./ProfileLoading";
+import ProfileConcept from "./ProfileConcept";
+
 
 type User = {
   id: string;
@@ -22,12 +25,18 @@ type User = {
   legacyId: string | null;
 };
 
-export default function ClientWrapper() {
+export default function ClientWrapper({ designPreview = false, emptyPreview = false, emptyCollection = false }: { designPreview?: boolean; emptyPreview?: boolean; emptyCollection?: boolean }) {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
+    setIsLoading(true);
+    setUser(null);
+    setError(false);
     let cancelled = false;
 
     const fetchUser = async () => {
@@ -56,11 +65,11 @@ export default function ClientWrapper() {
             }
             return;
           } else {
-            if (!cancelled) setUser(null);
+            if (!cancelled) setError(true);
           }
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          if (!cancelled) setUser(null);
+          if (!cancelled) setError(true);
         }
       } else {
         if (!cancelled) setUser(null);
@@ -73,47 +82,16 @@ export default function ClientWrapper() {
     }
 
     return () => { cancelled = true; };
-  }, [status, session]);
+  }, [status, session, attempt]);
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg flex flex-col items-center gap-4">
-          <img className="h-12" src="/spinner.svg" alt="Loading" />
-          <div className="text-xl text-black">Loading...</div>
-        </div>
-      </div>
-    );
+    return <ProfileLoading />;
   }
 
-  const guestUser: User = {
-    id: '00000000-0000-0000-0000-000000000000',
-    wallet: '0x0000000000000000000000000000000000000000',
-    email: null,
-    username: 'Guest User',
-    privyUserId: null,
-    isAdmin: false,
-    isWhiteListed: false,
-    isSuperAdmin: false,
-    isHidden: false,
-    legacyLinkDismissed: false,
-    acceptedUgcCount: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    legacyId: null,
-  };
+  if (error) return <div role="alert" className="mx-auto max-w-md px-5 py-12"><p>Your profile couldn’t load.</p><button className="mt-3 underline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>;
 
-  const currentUser = user || guestUser;
+  if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} emptyCollection={emptyCollection} emptyPreview={emptyPreview} />;
 
-  return (
-    <>
-      <AutoRefresh />
-      <Dashboard
-        user={currentUser}
-        showLeaderboard={false}
-        showDateRange={false}
-        allowEditUsername={true}
-      />
-    </>
-  );
+  if (!user) return <div className="mx-auto max-w-md px-5 py-12 text-center"><h1 className="text-2xl font-semibold">Your MusicNerd starts here</h1><p className="mt-3 text-muted-foreground">Log in to see your contributions and saved artists.</p><Link href="/" className="mt-4 inline-block underline">Explore artists</Link></div>;
+  return <LiveUserProfile key={user.id} user={user} />;
 }

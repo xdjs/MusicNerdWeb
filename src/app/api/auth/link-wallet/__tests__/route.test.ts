@@ -7,6 +7,8 @@ jest.mock('@/server/auth', () => ({
   getServerAuthSession: jest.fn(),
 }));
 
+jest.mock('@/server/utils/privy', () => ({ getPrivyUser: jest.fn() }));
+
 jest.mock('@/server/utils/queries/userQueries', () => ({
   getUserByWallet: jest.fn(),
   linkWalletToUser: jest.fn(),
@@ -47,6 +49,11 @@ describe('POST /api/auth/link-wallet', () => {
 
   // Helper to get freshly imported mocks and route handler
   async function setup() {
+    const { getPrivyUser } = await import('@/server/utils/privy');
+    getPrivyUser.mockResolvedValue({ id: authenticatedSession.user.privyUserId, linkedAccounts: [
+      { type: 'wallet', address: validWallet },
+      { type: 'wallet', address: '0xABCDEF1234567890ABCDEF1234567890ABCDEF12' },
+    ] });
     const { getServerAuthSession } = await import('@/server/auth');
     const { getUserByWallet, linkWalletToUser, mergeAccounts } = await import(
       '@/server/utils/queries/userQueries'
@@ -59,10 +66,30 @@ describe('POST /api/auth/link-wallet', () => {
       mockGetUserByWallet: getUserByWallet as jest.Mock,
       mockLinkWalletToUser: linkWalletToUser as jest.Mock,
       mockMergeAccounts: mergeAccounts as jest.Mock,
+      mockGetPrivyUser: getPrivyUser as jest.Mock,
     };
   }
 
   describe('Authentication', () => {
+    it('rejects an unverified wallet before looking up or merging any account', async () => {
+      const { POST, mockGetSession, mockGetPrivyUser, mockGetUserByWallet, mockMergeAccounts } = await setup();
+      mockGetSession.mockResolvedValue(authenticatedSession);
+      mockGetPrivyUser.mockResolvedValue({ id: authenticatedSession.user.privyUserId, linkedAccounts: [] });
+      expect((await POST(createRequest({ walletAddress: validWallet }))).status).toBe(403);
+      expect(mockGetUserByWallet).not.toHaveBeenCalled();
+      expect(mockMergeAccounts).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when Privy is unavailable or returns a different identity', async () => {
+      const { POST, mockGetSession, mockGetPrivyUser, mockGetUserByWallet } = await setup();
+      mockGetSession.mockResolvedValue(authenticatedSession);
+      mockGetPrivyUser.mockResolvedValue(null);
+      expect((await POST(createRequest({ walletAddress: validWallet }))).status).toBe(503);
+      mockGetPrivyUser.mockResolvedValue({ id: 'did:privy:someone-else', linkedAccounts: [{ type: 'wallet', address: validWallet }] });
+      expect((await POST(createRequest({ walletAddress: validWallet }))).status).toBe(403);
+      expect(mockGetUserByWallet).not.toHaveBeenCalled();
+    });
+
     it('returns 401 when no session', async () => {
       const { POST, mockGetSession } = await setup();
       mockGetSession.mockResolvedValue(null);

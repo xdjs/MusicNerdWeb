@@ -1,0 +1,15 @@
+.git
+node_modules
+.next
+coverage
+.env*
+local.env
+*.pem
+certificates
+.codex
+.claude/settings.local.json
+.local-data
+docs/rnd/research/_scratch
+docs/rnd/recipients.md
+.mcp.json
+*.tsbuildinfo

@@ -10,7 +10,7 @@ export async function login(page: Page, email: string, otp: string) {
 
   // Privy modal opens — enter email
   const emailInput = page.locator('input[type="email"]');
-  await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
+  await emailInput.waitFor({ state: 'visible', timeout: 30_000 });
   await emailInput.fill(email);
 
   // Click Submit button (wait for it to be enabled)

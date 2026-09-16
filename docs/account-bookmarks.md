@@ -1,14 +1,13 @@
 # Account bookmarks
 
-> **Unreleased local feature contract (`pete/artist-latest`).** The implementation, migration
-> and test files described below are not included in this documentation release. Read
-> [MEMORY.md](../MEMORY.md) for verification and release gates before using these commands.
+> **Local feature contract.** Read [MEMORY.md](../MEMORY.md) for verification, migration and
+> release status; implementation in a checkout does not imply deployment.
 
 ## User outcome
 
 A signed-in person saves an artist, then sees that bookmark in their account on another device.
-The artist button and profile panel share the same account data. Edits can be reordered or
-removed as a draft; Save persists them, while Cancel leaves the saved list untouched.
+The artist button and profile collection share the same account data. Find artists lets people
+search and save without leaving their profile; the full collection supports removal.
 Failed writes show an error, not a successful bookmark state.
 
 The server is authoritative. Active views refresh every 30 seconds and on window focus; another
@@ -16,11 +15,11 @@ device can also reload immediately. This is polling, not a new realtime subscrip
 
 ## Path and ownership
 
-`BookmarkButton` / profile `BookmarksPanel` → shared `useBookmarks` query/mutation hook →
+`BookmarkButton` / `LiveUserProfile` and the shared profile collection → shared `useBookmarks` query/mutation hook →
 `/api/bookmarks` → `bookmarkQueries` → `user_artist_bookmarks`.
 
 - GET reads only the signed-in account. POST unions artist IDs; DELETE removes one; PATCH
-  explicitly removes listed IDs and reorders existing entries. A stale draft cannot replace the
+  explicitly removes listed IDs and reorders existing entries. A stale edit request cannot replace the
   entire account list, erase another device's additions, or resurrect an already removed entry.
 - Ownership comes from NextAuth, never a body/query parameter. `X-Bookmark-Account` is an expected
   account assertion: a cookie/account change rejects the request before importing or writing.
@@ -48,7 +47,7 @@ snapshot can re-add an artist removed elsewhere during the initial migration per
 
 ## Migration / release gate
 
-`drizzle/0024_user_artist_bookmarks.sql`, its journal entry and snapshot belong together.
+`drizzle/0028_famous_captain_britain.sql`, its journal entry and snapshot belong together.
 This adds one table with user/artist foreign keys, ordering indexes, RLS and `mnweb` grants.
 It does not rewrite existing data. It is **not** a blanket-idempotent migration: inspect whether
 the table exists before applying, and use a transaction for the whole file.
@@ -61,7 +60,7 @@ this file does not mean it has been applied; environment state is in `MEMORY.md`
 
 - Jest covers endpoint ownership/headers/validation, SQL scoping and ordering, merge transfer,
   client import and failure behavior, account switching, independent client caches and real
-  button/panel Save/Cancel behavior.
+  button failure and final-bookmark removal behavior.
 - Verify migration constraints and actual CRUD as `mnweb`, plus denial for `anon` and
   `authenticated`. `scripts/verify-bookmarks-local.ts` exercises the actual migration and query
   implementations, concurrent saves/merges, stale edits and cascading deletion against Postgres.
@@ -70,8 +69,8 @@ this file does not mean it has been applied; environment state is in `MEMORY.md`
   the verification database it created. Never point it at an existing development cluster.
 - The opt-in `e2e/account-bookmarks.spec.ts` uses the existing Privy test login, two browser
   contexts sharing only session cookies, and an artist not already saved by the test account.
-  It saves through the artist button, reads the profile on the second browser, cancels a draft,
-  removes the test bookmark, verifies the first browser and checks anonymous denial.
+  It saves through the artist button, reads the profile on the second browser, removes the
+  test bookmark, then saves it through profile search and checks anonymous denial.
 
 With that disposable cluster running, supply its local administrator and port (no hosted URL):
 
@@ -83,7 +82,7 @@ NODE_ENV=test npx tsx scripts/verify-bookmarks-local.ts
 Stop the disposable cluster afterward. This check does not apply anything to Supabase or prove
 the hosted app's login/browser flow.
 
-After confirming the local app points to **dev**, and applying 0024 there:
+After confirming the local app points to **dev**, and applying 0028 there:
 
 ```bash
 E2E_BOOKMARK_WRITES=1 LATEST_ARTIST_ID=<existing-artist-uuid> \
@@ -96,3 +95,9 @@ It refuses a non-local URL. Test account email/OTP can be supplied via `E2E_BOOK
 `E2E_BOOKMARK_OTP`; otherwise it uses the repository's existing Privy test account.
 The test is skipped unless explicitly enabled. A skip is not a cross-device verification pass.
 Actual results and remaining gaps are recorded in the handoff.
+
+## Live profile integration (September 16, 2026)
+
+The profile delivery branch uses migration `0028_famous_captain_britain.sql` (with its journal and snapshot), reconciled against current staging. `removed_at` retains removal tombstones: old browser imports insert missing relationships only, while an explicit Bookmark action may restore a removed relationship. A surviving account’s tombstone wins during a merge. Reads exclude removed relationships.
+
+The same migration permits `mnweb` to update only the `user_id` column of `artist_self_edits` during authenticated account merges; submitted content remains immutable. Verify this column grant and its UPDATE policy before deploying the merge query.

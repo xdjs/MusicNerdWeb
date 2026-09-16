@@ -373,6 +373,18 @@ describe('Auth - JWT Callback', () => {
     expect(mockGetUserByPrivyId).toHaveBeenCalled();
   });
 
+  it('uses the surviving account ID after a verified Privy account merge', async () => {
+    const { authOptions, mockGetUserByPrivyId } = await setup();
+    mockGetUserByPrivyId.mockResolvedValue({ ...mockDbUser, id: 'surviving-legacy-user' });
+    const result = await authOptions.callbacks.jwt({
+      token: { sub: 'deleted-placeholder', privyUserId: mockDbUser.privyUserId }, trigger: 'update',
+    });
+    expect(mockGetUserByPrivyId).toHaveBeenCalledWith(mockDbUser.privyUserId);
+    expect(result.sub).toBe('surviving-legacy-user');
+    const session = await authOptions.callbacks.session({ session: { user: {} }, token: result });
+    expect(session.user.id).toBe('surviving-legacy-user');
+  });
+
   it('refreshes from DB when critical properties are missing', async () => {
     const { authOptions, mockGetUserByPrivyId } = await setup();
     const jwtCallback = authOptions.callbacks.jwt;

@@ -2,6 +2,7 @@ import { db } from "@/server/db/drizzle";
 import { eq, ilike, inArray, sql } from "drizzle-orm";
 import { users } from "@/server/db/schema";
 import { getServerAuthSession } from "@/server/auth";
+import { lockBookmarkUsers, transferUserBookmarks } from "./bookmarkQueries";
 
 export async function getUserByWallet(wallet: string) {
     try {
@@ -388,11 +389,15 @@ export async function mergeAccounts(
     currentUserId: string,
     legacyUserId: string
 ): Promise<{ success: boolean; error?: string }> {
+    if (currentUserId === legacyUserId) return { success: false, error: 'Cannot merge the same account' };
     try {
         const now = new Date().toISOString();
 
         // Perform all operations in a single transaction to prevent TOCTOU race conditions
         const result = await db.transaction(async (tx) => {
+            // Lock both accounts in stable order before reading or changing either.
+            // Bookmark writes take the same lock, so a concurrent save cannot be lost.
+            await lockBookmarkUsers(tx, [currentUserId, legacyUserId]);
             // Get both users inside transaction to ensure consistency
             const currentUser = await tx.query.users.findFirst({
                 where: eq(users.id, currentUserId)
@@ -408,6 +413,10 @@ export async function mergeAccounts(
 
             if (!currentUser.privyUserId) {
                 return { success: false as const, error: 'Current user has no Privy ID' };
+            }
+
+            if (legacyUser.privyUserId && legacyUser.privyUserId !== currentUser.privyUserId) {
+                return { success: false as const, error: 'Legacy account is already linked to another user' };
             }
 
             // Clear privyUserId from placeholder first to avoid unique constraint violation
@@ -442,7 +451,16 @@ export async function mergeAccounts(
                 WHERE user_id = ${currentUserId}
             `);
 
-            // Delete the current (placeholder) user
+            // Preserve self-edit history before deleting its former owner.
+            await tx.execute(sql`
+                UPDATE artist_self_edits
+                SET user_id = ${legacyUserId}
+                WHERE user_id = ${currentUserId}
+            `);
+
+            await transferUserBookmarks(tx, currentUserId, legacyUserId);
+
+            // Delete the current (placeholder) user; bookmarks are already transferred.
             await tx
                 .delete(users)
                 .where(eq(users.id, currentUserId));
@@ -455,4 +473,4 @@ export async function mergeAccounts(
         console.error('[Merge] Account merge failed:', error);
         return { success: false, error: 'Merge failed' };
     }
-} 
+}

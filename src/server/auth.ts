@@ -85,6 +85,9 @@ export const authOptions = {
                 }
 
                 if (refreshedUser) {
+                  // A verified Privy identity may now belong to the surviving
+                  // legacy account after mergeAccounts removed its placeholder.
+                  token.sub = refreshedUser.id;
                   // Update all user properties from database
                   token.walletAddress = refreshedUser.wallet ?? undefined;
                   token.isWhiteListed = refreshedUser.isWhiteListed;

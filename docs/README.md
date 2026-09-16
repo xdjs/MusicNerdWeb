@@ -41,6 +41,7 @@ admin fallback as a completed integration check.
 | HTTP route contracts and entry points | [API reference](../ApiReadMe.md) |
 | Agent API access and tool authorization | [MCP reference](mcp.md) |
 | Artist Latest | [Feature contract](artist-latest.md); release status in `MEMORY.md` |
+| User profile | [Live profile contract](user-profile.md) and [design previews](rnd/design/2026-09-15-user-profile-redesign/README.md) |
 | Account bookmarks | [Feature contract and migration](account-bookmarks.md); release status in `MEMORY.md` |
 | Web Analytics and URL scrub | [Analytics contract](analytics.md); release status on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) |
 | Database changes | [Migration protocol](development.md#database-migrations) |
