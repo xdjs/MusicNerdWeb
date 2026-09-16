@@ -10,3 +10,5 @@ it('lazily resolves missing provider images and retains an accessible tile on fa
  rerender(<CollectionArtistImage artistId={id} imageUrl="/new-photo.png" className="photo" fallback={<span>DY</span>} />);
  expect(container.querySelector('img')).toHaveAttribute('src','/new-photo.png');
 });
+
+it('resolves provider photos instead of rendering stored placeholders',()=>{const {container}=render(<CollectionArtistImage artistId={id} imageUrl="/default_pfp_pink.png" className="photo" fallback={<span>DY</span>} />);expect(container.querySelector('img')).toHaveAttribute('src',`/api/artist/${id}/image`);});

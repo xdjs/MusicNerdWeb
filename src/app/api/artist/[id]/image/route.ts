@@ -15,7 +15,9 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
   try {
     const artist = await db.query.artists.findFirst({where: eq(artists.id, id)});
     if (!artist) return unavailable(404);
-    const value = customImageUrl(artist.customImage) ?? await musicPlatformData.getArtistImage(artist);
+    const custom = customImageUrl(artist.customImage);
+    const portrait = custom && !/default|placeholder|musicnerdlogo/i.test(custom) ? custom : null;
+    const value = portrait ?? await musicPlatformData.getArtistImage(artist);
     if (!value) return unavailable(404);
     const url = new URL(value, request.url);
     if (url.protocol !== 'https:' || url.username || url.password) return unavailable(404);

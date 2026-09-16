@@ -7,9 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 const STRICT_PATHS = ['/api/funFacts', '/api/artistBio', '/api/askArtist'];
 const MEDIUM_PATHS = ['/api/validateLink', '/api/directEditLink'];
 
-type Tier = 'strict' | 'medium' | 'default';
+type Tier = 'strict' | 'medium' | 'default' | 'artistImage';
 
 function getTier(pathname: string): Tier {
+  if (/^\/api\/artist\/[^/]+\/image$/.test(pathname)) return 'artistImage';
   if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
   if (MEDIUM_PATHS.some((p) => pathname.startsWith(p))) return 'medium';
   return 'default';
@@ -26,6 +27,7 @@ const LIMITS = {
   strict: envInt('RATE_LIMIT_STRICT', 5),
   medium: envInt('RATE_LIMIT_MEDIUM', 20),
   default: envInt('RATE_LIMIT_DEFAULT', 60),
+  artistImage: envInt('RATE_LIMIT_ARTIST_IMAGE', 180),
 } as const;
 const WINDOW_MS = envInt('RATE_LIMIT_WINDOW_MS', 60_000);
 
