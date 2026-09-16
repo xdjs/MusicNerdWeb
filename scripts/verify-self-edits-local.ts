@@ -56,6 +56,30 @@ async function main() {
         assert.equal((await db.query.artists.findFirst())?.instagram, 'concurrent');
         assert.equal((await db.query.ugcresearch.findMany()).length, 0);
         console.log('PASS: 12 simultaneous identical writes -> one event; mnweb link/event writes succeeded; zero UGC rows.');
+        // Reproduce revokeApprovedClaim's claim -> artist order on another connection.
+        // The edit must complete while the revocation holds the claim lock; waiting
+        // for that claim would invert the two lock orders and deadlock.
+        try {
+            await owner.begin(async tx => {
+                await tx`DELETE FROM artist_claims WHERE id = ${claimId}`;
+                let timer: ReturnType<typeof setTimeout> | undefined;
+                try {
+                    await Promise.race([
+                        withArtistOperation(artistId, { userId, expectedClaimId: claimId },
+                            () => setArtistLink(artistId, 'instagram', 'overlap', 'https://instagram.com/overlap')),
+                        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Edit blocked on revocation claim lock')), 3000); }),
+                    ]);
+                    await tx`SELECT id FROM artists WHERE id = ${artistId} FOR UPDATE`;
+                } finally { clearTimeout(timer); }
+                throw new Error('ROLLBACK_DISPOSABLE_REVOCATION');
+            });
+        } catch (error) {
+            if (!(error instanceof Error) || error.message !== 'ROLLBACK_DISPOSABLE_REVOCATION') throw error;
+        }
+        assert.equal((await db.query.artistSelfEdits.findMany()).length, 2);
+        assert.equal((await db.query.artists.findFirst())?.instagram, 'overlap');
+        assert.equal((await db.query.ugcresearch.findMany()).length, 0);
+        console.log('PASS: concurrent claim revocation lock does not block or deadlock self-edit; changed link and event both commit.');
         // postgres-js' production pool remains live; exit after owner cleanup below.
     } finally { await owner.end(); }
 }

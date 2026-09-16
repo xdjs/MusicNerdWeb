@@ -11,13 +11,13 @@ export async function recordArtistSelfEdit(
 ) {
     const ownership = getArtistOperationOwnership(artistId);
     if (!ownership?.userId || !ownership.expectedClaimId || oldValue === newValue) return;
-    // Claim moderation does not take the artist lock. Revalidate and hold this
-    // claim until commit so a concurrent revocation cannot silently drop an event.
+    // Revalidate after the link write and use this snapshot for classification.
+    // Do not lock the claim: revocation takes claim then artist locks, while
+    // this transaction already holds the artist lock.
     const [claim] = await transaction.execute<{ user_id: string }>(sql`
         SELECT user_id FROM artist_claims
         WHERE id = ${ownership.expectedClaimId}::uuid AND artist_id = ${artistId}::uuid
           AND status = 'approved'
-        FOR SHARE
     `);
     if (!claim) throw new OwnershipChangedError();
     if (claim.user_id !== ownership.userId) {

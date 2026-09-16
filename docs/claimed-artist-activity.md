@@ -14,8 +14,10 @@ the authenticated approved claim owner, artist, platform, previous/new value, an
 submitted URL. Non-owner administrator maintenance is not classified as a self-edit.
 The timestamp is the successful edit time. Concurrent identical saves serialize on
 the artist row and produce one event; a failed event insert rolls back the link.
-The event write revalidates and share-locks the approved claim until commit; a
-revocation during the save rolls back the link instead of silently omitting activity.
+The event write revalidates the approved claim and uses that snapshot for attribution.
+A committed revocation observed during the save rolls back the link instead of silently
+omitting activity. It does not acquire a claim lock while holding the artist lock,
+which avoids reversing the administrative revocation lock order.
 No-op saves, removals, denied requests, and failed writes create no event.
 
 ## Read contract
@@ -52,7 +54,8 @@ from the staging add-link modal; disposable database fixtures supply write evide
 
 `scripts/verify-self-edits-local.ts` provisions a **fresh, disposable** localhost
 Postgres database named `self_edit1134` and invokes twelve simultaneous identical
-writes through the real service as `mnweb`. Run with
+writes through the real service as `mnweb`, then overlaps a self-edit with a
+claim revocation transaction to check the lock order. Run with
 `SELF_EDIT_LOCAL_OWNER_URL=postgres://<local-owner>@127.0.0.1:<port>/self_edit1134`
 and the documented stub build variables using `npx tsx scripts/verify-self-edits-local.ts`.
 It refuses remote hosts and other database names. Use a disposable cluster: the
