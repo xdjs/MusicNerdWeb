@@ -163,7 +163,7 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
       </> : <div className="py-1 sm:py-3 max-w-lg">
         <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">Help someone discover their next favorite artist.</h3>
         <p className="mt-3 text-sm text-muted-foreground">Add someone new or help complete an artist’s profile. Your contributions will appear here.</p>
-        <div className="mt-5 flex flex-wrap gap-2"><Button className="rounded-full bg-[#ff75d8] text-black hover:bg-[#ff75d8]/80" onClick={() => (document.querySelector('button[aria-label="Add new artist"]') as HTMLButtonElement | null)?.click()}><Plus size={15} className="mr-1.5" />Add an artist</Button><Button variant="outline" className="rounded-full bg-transparent" onClick={() => setSharingLink(true)}><Pencil size={15} className="mr-1.5" />Update an artist</Button></div>
+        <div className="mt-5 flex flex-wrap gap-2"><Button className="rounded-full bg-[#ff75d8] text-[#000] hover:bg-[#ff75d8]/80" onClick={() => (document.querySelector('button[aria-label="Add new artist"]') as HTMLButtonElement | null)?.click()}><Plus size={15} className="mr-1.5" />Add an artist</Button><Button variant="outline" className="rounded-full bg-transparent" onClick={() => setSharingLink(true)}><Pencil size={15} className="mr-1.5" />Update an artist</Button></div>
       </div>}
     </section>
 

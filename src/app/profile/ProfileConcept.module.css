@@ -37,3 +37,7 @@
 
 :global(.dark body):has(.concept) :global(button[aria-label="Account menu"]) { color: #f5f5f5; border-color: #ffffff30; }
 :global(.dark body):has(.concept) :global(button[aria-label="Account menu"] svg) { color: #f5f5f5; stroke: currentColor; }
+
+/* Keep legacy global dark-mode overrides from flattening the profile hierarchy. */
+:global(.dark) .concept :global(.text-muted-foreground),
+:global(.dark body):has(.concept) :global(.mn-themed-dialog .text-muted-foreground) { color: #aeb6c4 !important; }
