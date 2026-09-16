@@ -8,14 +8,14 @@ export const dynamic = 'force-dynamic';
 const BUCKET = 'user-profile-images';
 const MAX_BYTES = 2 * 1024 * 1024;
 
-export async function GET(request?: Request) {
+export async function GET(request: Request) {
   const auth = await requireAuth();
   if (!auth.authenticated) return auth.response;
   try {
     const privyId = auth.session.user.privyUserId;
     const owner = privyId ? await getUserByPrivyId(privyId) : await getUserById(auth.userId);
     if (!owner) return Response.json({ error: 'Account not found' }, { status: 401 });
-    const expected = request?.headers.get('X-Profile-Account');
+    const expected = request.headers.get('X-Profile-Account');
     if (expected && expected !== owner.id) return Response.json({ error: 'Your account changed. Refresh and try again.' }, { status: 409 });
     const folder = owner.privyUserId ? `identity-${createHash('sha256').update(owner.privyUserId).digest('hex')}` : owner.id;
     const storage = getSupabaseAdmin().storage.from(BUCKET);
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     const privyId = auth.session.user.privyUserId;
     const owner = privyId ? await getUserByPrivyId(privyId) : await getUserById(auth.userId);
     if (!owner) return Response.json({ error: 'Account not found' }, { status: 401 });
-    const expected = request?.headers.get('X-Profile-Account');
+    const expected = request.headers.get('X-Profile-Account');
     if (expected && expected !== owner.id) return Response.json({ error: 'Your account changed. Refresh and try again.' }, { status: 409 });
     const folder = owner.privyUserId ? `identity-${createHash('sha256').update(owner.privyUserId).digest('hex')}` : owner.id;
     const storage = getSupabaseAdmin().storage.from(BUCKET);

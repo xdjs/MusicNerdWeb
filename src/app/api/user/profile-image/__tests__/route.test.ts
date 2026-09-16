@@ -22,7 +22,7 @@ function request(file: File, origin = 'https://musicnerd.test') {
 }
 it('rejects unauthenticated reads and uploads before touching storage', async () => {
   (requireAuth as jest.Mock).mockResolvedValue({ authenticated: false, response: new Response(null, { status: 401 }) });
-  expect((await GET()).status).toBe(401);
+  expect((await GET(new Request('https://musicnerd.test/api/user/profile-image'))).status).toBe(401);
   expect((await POST({} as Request)).status).toBe(401);
   expect(getSupabaseAdmin).not.toHaveBeenCalled();
 });
@@ -46,7 +46,7 @@ it('normalizes images and only writes the authenticated account path', async () 
 it('reads the same owner photo via a fresh signed URL', async () => {
   storage.list.mockResolvedValue({ data: [{ name: 'avatar.webp' }] });
   storage.createSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://storage.test/private?token=test' } });
-  const response = await GET();
+  const response = await GET(new Request('https://musicnerd.test/api/user/profile-image'));
   expect(storage.list).toHaveBeenCalledWith('owner-one', expect.anything());
   expect(storage.createSignedUrl).toHaveBeenCalledWith('owner-one/avatar.webp', 3600);
   expect(response.headers.get('Cache-Control')).toBe('private, no-store');
@@ -57,20 +57,20 @@ it('resolves a merged Privy account before reading its stable photo', async () =
   (getUserByPrivyId as jest.Mock).mockResolvedValue({id: 'survivor', privyUserId: 'did:privy:verified'});
   storage.list.mockResolvedValue({data: [{name: 'avatar.webp'}]});
   storage.createSignedUrl.mockResolvedValue({data: {signedUrl: 'https://storage.test/private?token=test'}});
-  expect((await GET()).status).toBe(200);
+  expect((await GET(new Request('https://musicnerd.test/api/user/profile-image'))).status).toBe(200);
   const key = createHash('sha256').update('did:privy:verified').digest('hex');
   expect(storage.createSignedUrl).toHaveBeenCalledWith(`identity-${key}/avatar.webp`, 3600);
   expect(getUserById).not.toHaveBeenCalled();
 });
 it('rejects a deleted database identity despite a cached session', async () => {
   (getUserById as jest.Mock).mockResolvedValue(null);
-  expect((await GET()).status).toBe(401);
+  expect((await GET(new Request('https://musicnerd.test/api/user/profile-image'))).status).toBe(401);
   expect(getSupabaseAdmin).not.toHaveBeenCalled();
 });
 it('does not fall back to a legacy photo on storage failure', async () => {
   (getUserById as jest.Mock).mockResolvedValue({id: 'owner-one', privyUserId: 'did:privy:verified'});
   storage.list.mockResolvedValue({error: new Error('Storage unavailable')});
-  expect((await GET()).status).toBe(503);
+  expect((await GET(new Request('https://musicnerd.test/api/user/profile-image'))).status).toBe(503);
   expect(storage.list).toHaveBeenCalledTimes(1);
   expect(storage.createSignedUrl).not.toHaveBeenCalled();
 });
@@ -78,6 +78,6 @@ it('only falls back to the surviving account when no stable photo exists', async
   (getUserById as jest.Mock).mockResolvedValue({id: 'owner-one', privyUserId: 'did:privy:verified'});
   storage.list.mockResolvedValueOnce({data: []}).mockResolvedValueOnce({data: [{name: 'avatar.webp'}]});
   storage.createSignedUrl.mockResolvedValue({data: {signedUrl: 'https://storage.test/private?token=test'}});
-  expect((await GET()).status).toBe(200);
+  expect((await GET(new Request('https://musicnerd.test/api/user/profile-image'))).status).toBe(200);
   expect(storage.createSignedUrl).toHaveBeenCalledWith('owner-one/avatar.webp', 3600);
 });
