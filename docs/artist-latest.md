@@ -183,16 +183,22 @@ The first-visit window is 90 days; returning sittings use the later of that wind
 and the last offer watermark. Only stored content and the existing cached In Process
 reader are used; opening an interview does not scrape or enqueue research.
 
-Fresh Latest and fresh Lore each receive a slot when available. Remaining slots favor
+Fresh Latest and fresh Lore each receive a slot when a substantive, verified question is available. Remaining slots favor
 fresh items. Every third sitting may include one historical post; historical material
 also fills gaps when fresh sources are insufficient. Deduplicate source URLs and
 already offered question keys before selecting. Existing unfinished sittings keep
 stored wording and their original sitting/offered-at identity.
 
 Fresh source material joins the existing question drafting and factual verification
-pipeline with explicit authorship and dates. If generation is unavailable or a draft
-fails verification, use a neutral question referencing the source's stored title/date,
-without adding claims about its contents. Source URLs come from application data,
+pipeline with explicit authorship and dates. Questions must engage with a concrete
+detail in the description, caption, or extracted Lore text, then ask an answerable
+follow-up about that detail. A title, platform, date, or generic invitation to explain
+the post does not meet this bar. The verifier checks both factual support and this
+content requirement. In Process supplies the stored description; images, audio, and
+video are not interpreted, so the interviewer must not imply that it inspected them.
+Failed or missing drafts are omitted, never replaced with
+title-based templates. A sitting with fresh sources can contain fewer than three
+questions; release templates and the introductory bank do not pad it. Source URLs come from application data,
 never the model. Public Latest source URLs are encoded in stable question keys for
 resume after items leave the bounded gallery; Lore keys reference source IDs and resolve
 only still-approved public URLs. Uploaded-file paths and signed storage URLs are not

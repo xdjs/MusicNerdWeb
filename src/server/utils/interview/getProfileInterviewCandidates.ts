@@ -35,9 +35,6 @@ export async function getProfileInterviewCandidates(
             signalId: key, key, kind: 'recent', authoredBy: 'profile source; see attribution in material',
             material: `Recent Latest item on ${platform}, shared/published ${item.date}. Title: ${title}.\n${item.text.slice(0, 4000)}\nThe sharing date is NOT proof of when the work was made. Do not infer credits, ownership, or release status beyond this text.`,
             sourceUrls: [url],
-            fallbackQuestion: item.kind === 'instagram'
-                ? `Looking at your Instagram post from ${item.date.slice(0, 10)}, what would you want someone to notice?`
-                : `Your Latest includes “${title}” on ${platform}. What would you like someone to notice about it?`,
         });
         seen.add(url);
         if (candidates.length === 3) break;
@@ -53,7 +50,6 @@ export async function getProfileInterviewCandidates(
             signalId: key, key, kind: 'lore', authoredBy: 'source author; not necessarily the artist',
             material: `Newly added/updated approved Lore source: ${title}. Source publication date: ${source.publishedAt ?? 'unknown'}. Added/updated in Lore: ${source.updatedAt}.\n${(source.extractedText || source.snippet || '').slice(0, 4000)}\nThis is reference material, not necessarily the artist's words. Newly added does NOT mean newly published. Ask the artist for their perspective without attributing the author's claims to them.`,
             sourceUrls: url ? [url] : [],
-            fallbackQuestion: `Your Lore now includes “${title}”. What would you add or clarify about the story it tells?`,
         });
         if (url) seen.add(url);
         if (++loreCount === 3) break;

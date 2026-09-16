@@ -377,6 +377,10 @@ async function pickQuestions(
         // throwing and costing the artist the whole interview.
         .map(q => ({ key: q.key, question: q.question, sourceUrl: q.sourceUrls?.[0] }));
 
+    // Fresh activity deserves content-specific questions, not release/title or
+    // introductory templates when generation is unavailable or rejects a draft.
+    if (profileCandidates.length) return picked;
+
     // A RELEASE WITH NO POSTS BEHIND IT STILL DESERVES A QUESTION. Releases
     // trigger the invite, but the generator reads captions — so an artist who
     // put out a record and said nothing about it on Instagram produced no

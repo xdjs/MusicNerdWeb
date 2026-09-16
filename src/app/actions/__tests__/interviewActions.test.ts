@@ -113,10 +113,23 @@ describe('getInterviewInvite', () => {
             { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'New In Process moment', sourceUrls: ['https://inprocess.world/moment/one'], fallbackQuestion: 'What should we notice in this moment?' },
             { signalId: 'lore', key: 'profile_lore_one', kind: 'lore', authoredBy: 'source', material: 'New Lore', sourceUrls: ['https://example.com/article'], fallbackQuestion: 'What would you add to this story?' },
         ]);
+        generateGroundedQuestions.mockResolvedValue([
+            { key: 'profile_recent_one', kind: 'recent', question: 'Which change made the timeline easier to follow?', sourceUrls: ['https://inprocess.world/moment/one'] },
+            { key: 'profile_lore_one', kind: 'lore', question: 'How did the field recordings change the arrangement?', sourceUrls: ['https://example.com/article'] },
+        ]);
         const out = await invite();
         expect(out.show).toBe(true);
         expect(out.questions.map(q => q.key)).toEqual(['profile_recent_one', 'profile_lore_one']);
         expect(generateGroundedQuestions).toHaveBeenCalledWith('a1', expect.objectContaining({ profileCandidates: expect.any(Array) }));
+    });
+
+    it('does not pad rejected fresh-source drafts with generic first-interview questions', async () => {
+        getInterviewAnswers.mockResolvedValue([]);
+        getProfileInterviewCandidates.mockResolvedValue([
+            { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'Design caption', sourceUrls: ['https://inprocess.world/moment/one'] },
+        ]);
+        generateGroundedQuestions.mockResolvedValue([]);
+        expect(await invite()).toEqual({ show: false });
     });
 
     it('offers a first interview when nothing has ever been answered', async () => {

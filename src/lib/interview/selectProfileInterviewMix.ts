@@ -5,9 +5,9 @@ import type { ProfileInterviewCandidate } from './profileInterviewTypes';
 export function selectProfileInterviewMix(
     verified: GroundedQuestion[], candidates: ProfileInterviewCandidate[], includeHistory: boolean, max = 3,
 ): GroundedQuestion[] {
-    const fresh = candidates.map(candidate => verified.find(q => q.key === candidate.key) ?? {
-        key: candidate.key, kind: candidate.kind, sourceUrls: candidate.sourceUrls,
-        question: candidate.fallbackQuestion, rationale: 'Direct question about an existing profile source.',
+    const fresh = candidates.flatMap(candidate => {
+        const question = verified.find(q => q.key === candidate.key);
+        return question ? [question] : [];
     });
     const historical = verified.filter(q => q.kind !== 'recent' && q.kind !== 'lore');
     const picked: GroundedQuestion[] = [];

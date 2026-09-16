@@ -5,7 +5,6 @@ export interface ProfileInterviewCandidate {
     authoredBy: string;
     material: string;
     sourceUrls: string[];
-    fallbackQuestion: string;
 }
 
 /** A bounded first-visit window; return visits use the later offer watermark. */
