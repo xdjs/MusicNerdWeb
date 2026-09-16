@@ -16,7 +16,7 @@ jest.mock('next-auth/react', () => ({
 }));
 
 // Mock child components so the test focuses on ClientWrapper logic
-jest.mock('../Dashboard', () => {
+jest.mock('../LiveUserProfile', () => {
   return {
     __esModule: true,
     default: ({ user }: { user: { id: string; username?: string | null } }) => (
@@ -121,22 +121,12 @@ describe('ClientWrapper', () => {
   });
 
   // --- 3. Guest / unauthenticated flow ---
-  it('renders Dashboard with guest user when not authenticated', async () => {
+  it('asks anonymous visitors to log in without creating a guest account', async () => {
     mockSessionData = null;
     mockSessionStatus = 'unauthenticated';
-
     render(<ClientWrapper />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('dashboard')).toBeInTheDocument();
-    });
-
-    // Guest user has the well-known zero UUID
-    expect(screen.getByTestId('dashboard')).toHaveAttribute(
-      'data-user-id',
-      '00000000-0000-0000-0000-000000000000'
-    );
-    expect(screen.getByTestId('dashboard')).toHaveAttribute('data-username', 'Guest User');
+    expect(await screen.findByText('Your MusicNerd starts here')).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -156,15 +146,9 @@ describe('ClientWrapper', () => {
 
     render(<ClientWrapper />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('dashboard')).toBeInTheDocument();
-    });
-
-    // Guest user shown, but signOut NOT called
-    expect(screen.getByTestId('dashboard')).toHaveAttribute(
-      'data-user-id',
-      '00000000-0000-0000-0000-000000000000'
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your profile couldn’t load.');
+    expect(screen.getByRole('button', {name: 'Try again'})).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
@@ -175,7 +159,7 @@ describe('ClientWrapper', () => {
 
     render(<ClientWrapper />);
 
-    expect(screen.getByText('Loading your MusicNerd…')).toBeInTheDocument();
+    expect(screen.getByRole('status', {name: 'Loading profile'})).toBeInTheDocument();
     expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
   });
 });

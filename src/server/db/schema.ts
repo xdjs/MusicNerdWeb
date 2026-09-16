@@ -1,4 +1,4 @@
-import { pgTable, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
+import { pgTable, primaryKey, pgPolicy, check, bigint, text, boolean, uuid, timestamp, date, jsonb, numeric, index, uniqueIndex, foreignKey, integer, pgEnum, unique } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 export const platformType = pgEnum("platform_type", ['social', 'web3', 'listen'])
@@ -892,5 +892,23 @@ export const artistSelfEdits = pgTable("artist_self_edits", {
     check("artist_self_edits_changed", sql`${table.oldValue} IS DISTINCT FROM ${table.newValue}`),
     check("artist_self_edits_nonempty", sql`length(${table.newValue}) > 0`),
     pgPolicy("mnweb_select_artist_self_edits", { for: 'select', to: ['mnweb'], using: sql`true` }),
+    pgPolicy("mnweb_reassign_artist_self_edits", { for: 'update', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
     pgPolicy("mnweb_insert_artist_self_edits", { for: 'insert', to: ['mnweb'], withCheck: sql`true` }),
+]).enableRLS();
+
+export const userArtistBookmarks = pgTable("user_artist_bookmarks", {
+	userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+	artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+	position: integer("position").notNull(),
+    removedAt: timestamp("removed_at", { withTimezone: true, mode: "string" }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+	primaryKey({ name: "user_artist_bookmarks_pkey", columns: [table.userId, table.artistId] }),
+	index("user_artist_bookmarks_user_order_idx").on(table.userId, table.position),
+	index("user_artist_bookmarks_artist_idx").on(table.artistId),
+	check("user_artist_bookmarks_position_nonnegative", sql`${table.position} >= 0`),
+	pgPolicy("mnweb_select_user_artist_bookmarks", { for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_user_artist_bookmarks", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_user_artist_bookmarks", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+	pgPolicy("mnweb_delete_user_artist_bookmarks", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();

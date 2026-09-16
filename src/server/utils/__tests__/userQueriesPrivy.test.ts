@@ -2,6 +2,11 @@
 
 import { jest } from '@jest/globals';
 
+jest.mock('@/server/utils/queries/bookmarkQueries', () => ({
+  lockBookmarkUsers: jest.fn(),
+  transferUserBookmarks: jest.fn(),
+}));
+
 // Mock drizzle-orm operators
 jest.mock('drizzle-orm', () => ({
   eq: jest.fn((col, val) => ({ col, val, type: 'eq' })),
@@ -365,6 +370,18 @@ describe('Privy User Query Functions', () => {
       expect(mockTx.delete).toHaveBeenCalled();
     });
 
+    it('locks both accounts and transfers bookmarks before deleting the placeholder', async () => {
+      const { lockBookmarkUsers, transferUserBookmarks } = await import('@/server/utils/queries/bookmarkQueries');
+      mockTx.query.users.findFirst.mockResolvedValueOnce(currentUser).mockResolvedValueOnce(legacyUser);
+
+      expect(await mergeAccounts(currentUser.id, legacyUser.id)).toEqual({ success: true });
+
+      expect(lockBookmarkUsers).toHaveBeenCalledWith(mockTx, [currentUser.id, legacyUser.id]);
+      expect(transferUserBookmarks).toHaveBeenCalledWith(mockTx, currentUser.id, legacyUser.id);
+      expect(lockBookmarkUsers.mock.invocationCallOrder[0]).toBeLessThan(mockTx.query.users.findFirst.mock.invocationCallOrder[0]);
+      expect(transferUserBookmarks.mock.invocationCallOrder[0]).toBeLessThan(mockTx.delete.mock.invocationCallOrder[0]);
+    });
+
     it('returns failure when current user not found', async () => {
       mockTx.query.users.findFirst
         .mockResolvedValueOnce(null)
@@ -395,6 +412,23 @@ describe('Privy User Query Functions', () => {
 
       expect(result).toEqual({ success: false, error: 'Current user has no Privy ID' });
       expect(mockTx.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a legacy account newly linked to another Privy user inside the lock', async () => {
+      mockTx.query.users.findFirst.mockResolvedValueOnce(currentUser)
+        .mockResolvedValueOnce({ ...legacyUser, privyUserId: 'did:privy:someone-else' });
+      expect(await mergeAccounts(currentUser.id, legacyUser.id)).toEqual({
+        success: false, error: 'Legacy account is already linked to another user',
+      });
+      expect(mockTx.update).not.toHaveBeenCalled();
+      expect(mockTx.delete).not.toHaveBeenCalled();
+    });
+
+    it('rejects same-account merges before touching persistence', async () => {
+      expect(await mergeAccounts(currentUser.id, currentUser.id)).toEqual({
+        success: false, error: 'Cannot merge the same account',
+      });
+      expect(transactionFn).not.toHaveBeenCalled();
     });
 
     it('clears privyUserId from placeholder before setting on legacy user', async () => {

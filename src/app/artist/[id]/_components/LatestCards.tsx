@@ -43,8 +43,8 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
     const selectedArtistName = selected ? itemArtistNames[selected.id] || artistName : artistName;
     const artistAction = selected && itemArtistNames[selected.id] ? (itemArtistUrls[selected.id]
-        ? <Link href={itemArtistUrls[selected.id]} className="inline-flex items-center gap-2 rounded-full border border-white/25 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10">View {selectedArtistName}’s profile<ArrowUpRight size={14} aria-hidden="true" /></Link>
-        : <p className="text-xs text-white/60">Fictional artist preview · No artist profile or original source is available.</p>) : undefined;
+        ? <Link href={itemArtistUrls[selected.id]} className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-pastypink/10">View {selectedArtistName}’s profile<ArrowUpRight size={14} aria-hidden="true" /></Link>
+        : <p className="text-xs text-muted-foreground">Fictional artist preview · No artist profile or original source is available.</p>) : undefined;
     const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
     const galleryRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ previous: false, next: false });

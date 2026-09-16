@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 
 type Result = { id: string; name: string; imageUrl?: string | null; isExternalOnly?: boolean };
 
-export default function ShareLinkDialog({ open, onOpenChange, title = "Share a link", onBookmark, bookmarkedIds = [] }: { title?: string; open: boolean; onOpenChange: (open: boolean) => void; onBookmark?: (artist: Result) => void; bookmarkedIds?: string[] }) {
+export default function ShareLinkDialog({ open, onOpenChange, title = "Share a link", onBookmark, bookmarkedIds = [], bookmarkBusy = false, bookmarkError }: { title?: string; open: boolean; onOpenChange: (open: boolean) => void; onBookmark?: (artist: Result) => void | Promise<void>; bookmarkBusy?: boolean; bookmarkError?: string | null; bookmarkedIds?: string[] }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -45,6 +45,7 @@ export default function ShareLinkDialog({ open, onOpenChange, title = "Share a l
         <Input aria-label={onBookmark ? "Search artists to bookmark" : "Search for an artist to share a link"} placeholder="Search for an artist…" value={query} onChange={event => setQuery(event.target.value)} className="min-h-12 rounded-xl border-pastypink/60 bg-white/[0.04] pl-10 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-pastypink/30" />
       </div>
       <div aria-live="polite" className="text-sm text-muted-foreground">
+        {bookmarkError && <p role="alert">{bookmarkError}</p>}
         {status === 'loading' && 'Searching…'}
         {status === 'error' && 'Search couldn’t load. Try searching again.'}
         {status === 'ready' && !results.length && 'No artists found in MusicNerd. Try another name, or add the artist first.'}
@@ -58,7 +59,7 @@ export default function ShareLinkDialog({ open, onOpenChange, title = "Share a l
         </span>;
         return <li key={artist.id}>{onBookmark ? <div className="flex items-center justify-between gap-3 py-3">
           {identity}
-          <Button type="button" variant="outline" disabled={saved} aria-label={`${saved ? 'Bookmarked' : 'Bookmark'} ${artist.name}`} className="shrink-0 rounded-full border-pastypink/40 bg-pastypink/10 text-foreground disabled:opacity-75" onClick={() => onBookmark(artist)}>
+          <Button type="button" variant="outline" disabled={saved || bookmarkBusy} aria-label={`${saved ? 'Bookmarked' : 'Bookmark'} ${artist.name}`} className="shrink-0 rounded-full border-pastypink/40 bg-pastypink/10 text-foreground disabled:opacity-75" onClick={() => onBookmark(artist)}>
             {saved ? <Check size={15} className="mr-1.5" /> : <Bookmark size={15} className="mr-1.5" />}{saved ? 'Saved' : 'Bookmark'}
           </Button>
         </div> : <Link onClick={() => onOpenChange(false)} href={`/artist/${artist.id}#mn-links`} className="flex items-center justify-between gap-3 rounded-lg px-3 py-3 text-foreground hover:bg-pastypink/10 focus-visible:outline focus-visible:outline-pink-400">{identity}<ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" /></Link>}</li>;

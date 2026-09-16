@@ -1,5 +1,15 @@
 # MEMORY.md — Music Nerd engineering handoff
 
+## User profile delivery — September 16, in progress
+
+Pete approved making #1274's design the real signed-in profile and merging to staging, with advisor review. Active branch: `pete/user-profile-staging`, integrated with staging `4b3450ec`. The original local design preview remains on port 3017. Production release is not authorized by this delivery step.
+
+Implemented live contribution totals/history, explicit account bookmarks and legacy-browser import with removal tombstones, profile name/photo persistence, and bounded bookmarked-artist updates. Advisor findings addressed: account-switch cache isolation, mixed-precision date ordering, merge-safe photo identity, and bookmark removal resurrection. See [contract](docs/user-profile.md).
+
+Staging data prerequisite `0028_famous_captain_britain.sql` is applied and verified as `mnweb` (RLS/CRUD, anonymous denial, column-only self-edit ownership reassignment). The private photo bucket passed write/signed-read/public-denial verification; disposable files were removed. No existing legacy photos needed copying. Automatic migration replay remains blocked by #1148.
+
+Verification so far: 243 Jest suites / 2,646 tests passed (6 skipped), TypeScript and lint passed; production build and live browser checks are still in progress. Disposable Postgres checks passed migration permissions, import idempotency/tombstones, explicit re-add, concurrent writes/merge, and cascading artist deletion. Do not treat this as shipped until the PR, deployment and browser evidence below are updated.
+
 ## User profile redesign — local design review
 
 September 15: #1274, branch `pete/user-profile-redesign` off staging `3fd0e220`.

@@ -93,3 +93,7 @@ Find artists opens a themed, centered live search with artist photos and in-plac
 ### September 16 — contributed artists become suggestions
 
 The automatic fallback and repeated “You contributed” labels are superseded in the current iteration. Contributions do not establish a bookmark relationship. In the returning-contributor/no-bookmarks scenario, Your artists starts empty; a compact “Start with artists you’ve helped” list offers up to three deduplicated sample suggestions with explicit Bookmark actions. Selecting one adds it to the collection and removes it from suggestions; remaining suggestions stay available. This is still in-memory preview behavior. The same catalog URL (`collection=empty`) now shows this iteration.
+
+### September 16 — real-account integration
+
+Pete approved making the contribution-first design the regular signed-in `/profile`, with advisor review, then delivering it to staging. `LiveUserProfile` supplies account-owned contributions, persistent photos and bookmarks to the shared presentation; demonstration routes remain separate and retain the state variants above. See [the live contract](../../../user-profile.md) for data semantics and release checks. No automatic bookmarks are created from contributions: people explicitly save suggested artists.

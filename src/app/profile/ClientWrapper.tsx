@@ -2,10 +2,11 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Dashboard from "./Dashboard";
+import LiveUserProfile from "./LiveUserProfile";
+import Link from "next/link";
 import ProfileLoading from "./ProfileLoading";
 import ProfileConcept from "./ProfileConcept";
-import AutoRefresh from "@/app/_components/AutoRefresh";
+
 
 type User = {
   id: string;
@@ -29,7 +30,13 @@ export default function ClientWrapper({ designPreview = false, emptyPreview = fa
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
+    setIsLoading(true);
+    setUser(null);
+    setError(false);
     let cancelled = false;
 
     const fetchUser = async () => {
@@ -58,11 +65,11 @@ export default function ClientWrapper({ designPreview = false, emptyPreview = fa
             }
             return;
           } else {
-            if (!cancelled) setUser(null);
+            if (!cancelled) setError(true);
           }
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          if (!cancelled) setUser(null);
+          if (!cancelled) setError(true);
         }
       } else {
         if (!cancelled) setUser(null);
@@ -75,42 +82,16 @@ export default function ClientWrapper({ designPreview = false, emptyPreview = fa
     }
 
     return () => { cancelled = true; };
-  }, [status, session]);
+  }, [status, session, attempt]);
 
   if (status === "loading" || isLoading) {
     return <ProfileLoading />;
   }
 
-  const guestUser: User = {
-    id: '00000000-0000-0000-0000-000000000000',
-    wallet: '0x0000000000000000000000000000000000000000',
-    email: null,
-    username: 'Guest User',
-    privyUserId: null,
-    isAdmin: false,
-    isWhiteListed: false,
-    isSuperAdmin: false,
-    isHidden: false,
-    legacyLinkDismissed: false,
-    acceptedUgcCount: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    legacyId: null,
-  };
-
-  const currentUser = user || guestUser;
+  if (error) return <div role="alert" className="mx-auto max-w-md px-5 py-12"><p>Your profile couldn’t load.</p><button className="mt-3 underline" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>;
 
   if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} emptyCollection={emptyCollection} emptyPreview={emptyPreview} />;
 
-  return (
-    <>
-      <AutoRefresh />
-      <Dashboard
-        user={currentUser}
-        showLeaderboard={false}
-        showDateRange={false}
-        allowEditUsername={true}
-      />
-    </>
-  );
+  if (!user) return <div className="mx-auto max-w-md px-5 py-12 text-center"><h1 className="text-2xl font-semibold">Your MusicNerd starts here</h1><p className="mt-3 text-muted-foreground">Log in to see your contributions and saved artists.</p><Link href="/" className="mt-4 inline-block underline">Explore artists</Link></div>;
+  return <LiveUserProfile key={user.id} user={user} />;
 }
