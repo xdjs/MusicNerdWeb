@@ -56,12 +56,29 @@ describe('generateGroundedQuestions', () => {
         // rejection say so explicitly.
         const generateContent = generateContentImpl ?? jest.fn(async (req) =>
             String(req?.config?.systemInstruction ?? "").startsWith("You are fact-checking")
-                ? { text: JSON.stringify(Array.from({ length: 10 }, (_, i) => ({ i, ok: true, problem: "" }))) }
+                ? { text: JSON.stringify(Array.from({ length: 10 }, (_, i) => ({ i, ok: true, contentSpecific: true, problem: "" }))) }
                 : { text: geminiText ?? '[]' });
         getGemini.mockReturnValue({ models: { generateContent } });
         const mod = await import('@/server/utils/questionGenerator');
         return { ...mod, generateContent, getArtistById, getSocialPostsForArtist, getGemini };
     }
+
+    it('drafts and verifies a recent profile source even without Instagram posts', async () => {
+        const candidate = { signalId: 'recent1', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'In Process: Night textures. Shared September 15.', sourceUrls: ['https://inprocess.world/moment/one'], fallbackQuestion: 'What should we notice?' };
+        const { generateGroundedQuestions, generateContent } = await setup({ posts: [], geminiText: JSON.stringify([{ signalId: 'recent1', question: 'What were you exploring in Night textures?', rationale: 'new work' }]) });
+        const result = await generateGroundedQuestions('a1', { max: 3, profileCandidates: [candidate] });
+        expect(result[0]).toMatchObject({ key: candidate.key, kind: 'recent', sourceUrls: candidate.sourceUrls });
+        expect(generateContent.mock.calls.some(c => c[0].config.systemInstruction.startsWith('You are fact-checking'))).toBe(true);
+    });
+
+    it('drops factually true profile questions that do not engage with the content', async () => {
+        const candidate = { signalId: 'recent1', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'Description: I replaced the grid with a timeline to show unfinished work.', sourceUrls: ['https://inprocess.world/moment/one'] };
+        const { generateGroundedQuestions } = await setup({ posts: [], generateContentImpl: jest.fn(async req =>
+            String(req.config.systemInstruction).startsWith('You are fact-checking')
+                ? { text: JSON.stringify([{ i: 0, ok: true, contentSpecific: false }]) }
+                : { text: JSON.stringify([{ signalId: 'recent1', question: 'What would you like someone to notice about it?', rationale: 'recent' }]) }) });
+        expect(await generateGroundedQuestions('a1', { max: 3, profileCandidates: [candidate] })).toEqual([]);
+    });
 
     it('returns [] when the artist does not exist', async () => {
         const { generateGroundedQuestions, getArtistById } = await setup();
