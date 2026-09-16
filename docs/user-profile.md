@@ -28,3 +28,5 @@ The shared Postgres.js app client uses at most three connections per process and
 ### Artist photos
 
 Suggested and saved artist images load independently of account data. When no image is supplied, `/api/artist/[id]/image` resolves the artist's custom upload first, then the existing Deezer/Spotify image provider used by artist profiles. Successful redirects cache for one hour; missing/provider failures retain the tile's fallback and do not block profile loading or bookmark writes. This public route returns only an existing public artist image, never account data, and does not generate or scrape content.
+
+Suggested artists’ photo/name links open their canonical artist profile; Bookmark remains a separate action.

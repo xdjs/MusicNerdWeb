@@ -22,12 +22,16 @@ test('suggestions use real provider photos and preserve missing-photo fallback',
    const section=view.getByRole('heading',{name:'Start with artists you’ve helped'}).locator('..');
    await expect(section).toBeVisible({timeout:30_000});
    for(const artist of artists.slice(0,2)) {
-    const row=section.getByText(artist.artistName,{exact:true}).locator('..');
+    const row=section.getByRole('link',{name:artist.artistName,exact:true});
+    await expect(row).toHaveAttribute('href',`/artist/${artist.artistId}`);
     await expect.poll(()=>row.locator('img').evaluateAll(images=>images.some(image=>(image as HTMLImageElement).complete&&(image as HTMLImageElement).naturalWidth>0)),{timeout:30_000}).toBe(true);
    }
    await expect(section.getByText('PS',{exact:true})).toBeVisible({timeout:30_000});
    expect(await view.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
    await section.screenshot({path:`test-results/profile-artist-images-${width}-${theme}.png`});
+   await section.getByRole('link',{name:'Spearfisher',exact:true}).click();
+   await expect(view).toHaveURL(new RegExp(`/artist/${artists[1].artistId}$`));
+   await expect(view.getByRole('heading',{name:'Spearfisher',exact:true}).first()).toBeVisible({timeout:30_000});
   } finally {await context.close();}
  }
 });
