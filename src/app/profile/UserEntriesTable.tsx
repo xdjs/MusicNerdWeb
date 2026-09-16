@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ export interface UserEntry {
 }
 const PER_PAGE = 10;
 
-export default function UserEntriesTable({ concept = false, artistImages = {}, sampleEntries, statusFilter }: { concept?: boolean; artistImages?: Record<string, string>; sampleEntries?: UserEntry[]; statusFilter?: { value: string } }) {
+export default function UserEntriesTable({ concept = false, artistImages = {}, artistUrls = {}, sampleEntries, statusFilter }: { concept?: boolean; artistImages?: Record<string, string>; artistUrls?: Record<string, string>; sampleEntries?: UserEntry[]; statusFilter?: { value: string } }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [entries, setEntries] = useState<UserEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,7 @@ export default function UserEntriesTable({ concept = false, artistImages = {}, s
             return <li key={entry.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 py-5">
               {concept && entry.artistName && artistImages[entry.artistName] ? <img src={artistImages[entry.artistName]} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">{sampleEntries ? <span className="text-sm font-semibold">{(entry.artistName || '?').split(' ').map(word => word[0]).join('')}</span> : <ArrowUpRight size={18} />}</span>}
               <div className="min-w-0 flex-1 basis-40">
-                <p className="font-semibold break-words">{entry.artistName || 'Unknown artist'}</p>
+                <p className="font-semibold break-words">{entry.artistName && artistUrls[entry.artistName] ? <Link className="underline underline-offset-4 decoration-current/25 hover:decoration-pink-400" href={artistUrls[entry.artistName]}>{entry.artistName}</Link> : entry.artistName || 'Unknown artist'}</p>
                 <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">{concept && ['spotify', 'deezer', 'soundcloud'].includes((entry.siteName || '').toLowerCase()) && <img src={`/siteIcons/${entry.siteName!.toLowerCase()}_icon.svg`} alt="" className="h-4 w-4 object-contain" />}{entry.siteName ? `${entry.siteName} link` : 'Link contribution'}{validDate && <> <span aria-hidden="true">·</span> <time dateTime={entry.createdAt!} title={date.toLocaleString()}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time></>}</p>
               </div>
               <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${entry.accepted ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/10 text-amber-800 dark:text-amber-300'}`}>

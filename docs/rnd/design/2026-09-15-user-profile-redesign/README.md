@@ -58,3 +58,38 @@ Validation: TypeScript passed; LatestCards and UserEntriesTable tests passed (14
 ## Team design preview — September 15
 
 Pete approved publishing a Vercel preview for team feedback, not a staging or main release. On Vercel preview deployments only, `/profile?preview=concept` renders an unauthenticated sample account with an example.com email and fixed demonstration artists. The sample user does not authenticate anyone or grant API access. Local development continues to use the signed-in user's bookmarks. Production does not expose this concept route. Artist links are omitted for fixtures without verified environment-specific IDs; the real release's public listening links work. Edits remain in memory. Navigation outside the concept uses ordinary application authentication.
+
+## September 16 — contribution-first local iteration
+
+Team feedback prioritizes recognition of effort above artist browsing. The local concept now leads with compact identity (account details retained), Your impact with approved contribution count, secondary pending count, and three recent contributions. View all contributions opens searchable/filterable history in a dialog; status totals open it with the corresponding filter. Saved artists and Latest remain below. Counts and recent entries remain clearly labeled sample activity. No invented points or new credit rules. This iteration is local-only pending Pete's review; the September 15 Vercel preview remains unchanged.
+
+## Preview catalog — September 16 (local, not yet redeployed)
+
+Keep these query parameters when sharing the next approved Vercel deployment. The public showcase now forwards the same state/collection parameters; this code is local until redeployed. The September 15 hosted preview is stale relative to these iterations.
+
+| Scenario | Local review link | What it demonstrates |
+| --- | --- | --- |
+| Returning contributor, populated bookmarks | http://localhost:3017/profile?preview=concept | Impact, recent contributions, contribution invitation, collection and sample Latest |
+| First contribution, populated bookmarks | http://localhost:3017/profile?preview=concept&state=new | One invitation with Add an artist / Update an artist; no duplicate contribution CTA |
+| Brand-new user, no bookmarks or contributions | http://localhost:3017/profile?preview=concept&state=new&collection=empty | Collection invitation; centered live artist search with direct Bookmark actions |
+| Returning contributor, no bookmarks | http://localhost:3017/profile?preview=concept&collection=empty | Collection falls back to artists from approved sample contributions, explicitly labeled |
+| Profile loading | http://localhost:3017/profile?preview=loading | 64px shared artist-build logo/halo, no visible text (development only) |
+| Actual artist-generation reference | http://localhost:3017/profile?preview=artist-build | Existing BuildStatus with static progress fixture (development only) |
+
+### Collection fallback decision
+
+Pete requested artists the user has added or updated as the fallback when there are no bookmarks. Bookmark collection takes precedence; contributing does not silently create bookmarks. This concept derives a deduplicated fallback from approved sample contribution rows, using real artist metadata where available and labeled fictional fixtures otherwise. Real added/updated artist queries remain implementation work, not proven persistence. Once the first bookmark is selected, the collection shows explicit bookmarks instead of the fallback.
+
+Find artists opens a themed, centered live search with artist photos and in-place Bookmark buttons. Only artists already in MusicNerd are offered; it does not create artists as a search side effect. Preview bookmarks, name and photo edits live in memory and reset on reload. Real browser bookmarks and account records are untouched. The empty-collection variants suppress unrelated fictional Latest updates.
+
+### Sharing checklist for the end of iteration
+
+- Publish only after Pete approves the iteration; record the actual deployment URL and commit here.
+- Share the first four scenario links using that deployment's host; test them signed out and in both themes.
+- Keep sample counts/activities labeled and verify no personal account data is exposed.
+- Recheck mobile widths, search → bookmark → visible collection, edit dialog, both contribution entry actions, collection/history dialogs, and Latest expansion.
+- Loading and artist-build reference URLs remain local-only unless explicitly enabled for public preview later.
+
+### September 16 — contributed artists become suggestions
+
+The automatic fallback and repeated “You contributed” labels are superseded in the current iteration. Contributions do not establish a bookmark relationship. In the returning-contributor/no-bookmarks scenario, Your artists starts empty; a compact “Start with artists you’ve helped” list offers up to three deduplicated sample suggestions with explicit Bookmark actions. Selecting one adds it to the collection and removes it from suggestions; remaining suggestions stay available. This is still in-memory preview behavior. The same catalog URL (`collection=empty`) now shows this iteration.

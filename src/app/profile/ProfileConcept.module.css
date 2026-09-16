@@ -34,3 +34,6 @@
 @media (max-width: 639px) {
   .concept .updateFilters [data-section-index] { font-size: 11px; line-height: 1.2; padding-inline: 2px; min-height: 48px; white-space: normal; overflow-wrap: normal; }
 }
+
+:global(.dark body):has(.concept) :global(button[aria-label="Account menu"]) { color: #f5f5f5; border-color: #ffffff30; }
+:global(.dark body):has(.concept) :global(button[aria-label="Account menu"] svg) { color: #f5f5f5; stroke: currentColor; }

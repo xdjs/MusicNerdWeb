@@ -24,7 +24,7 @@ type User = {
   legacyId: string | null;
 };
 
-export default function ClientWrapper({ designPreview = false }: { designPreview?: boolean }) {
+export default function ClientWrapper({ designPreview = false, emptyPreview = false, emptyCollection = false }: { designPreview?: boolean; emptyPreview?: boolean; emptyCollection?: boolean }) {
   const { status, data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +100,7 @@ export default function ClientWrapper({ designPreview = false }: { designPreview
 
   const currentUser = user || guestUser;
 
-  if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} />;
+  if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} emptyCollection={emptyCollection} emptyPreview={emptyPreview} />;
 
   return (
     <>

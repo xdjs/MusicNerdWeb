@@ -1,10 +1,9 @@
-import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
+import ArtistBuildLoader from "@/app/_components/ArtistBuildLoader";
 
 export default function ProfileLoading() {
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 px-5 text-foreground">
-      <MusicNerdLoader size={72} label="Loading your MusicNerd" />
-      <p className="text-sm text-muted-foreground">Loading your MusicNerd…</p>
+    <div className="flex-1 min-h-64 flex items-center justify-center px-5 text-foreground">
+      <ArtistBuildLoader size={64} label="Loading profile" />
     </div>
   );
 }

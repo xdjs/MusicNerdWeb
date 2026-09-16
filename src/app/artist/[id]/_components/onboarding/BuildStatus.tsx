@@ -1,5 +1,6 @@
 "use client";
 
+import ArtistBuildLoader from "@/app/_components/ArtistBuildLoader";
 import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
 
 /** Progress group ids emitted by runAutoBuild, in the order they run. Kept in
@@ -48,10 +49,7 @@ function Tick({ state }: { state: StageState }) {
         // MusicNerdLoader. A halo behind it carries the same pink as the rest of
         // the card.
         return (
-            <span className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
-                <span aria-hidden="true" className="absolute inset-0 rounded-full bg-pink-500/25 motion-safe:animate-ping" />
-                <MusicNerdLoader size={24} label="Working on this step" className="relative" />
-            </span>
+            <ArtistBuildLoader />
         );
     }
     return (
