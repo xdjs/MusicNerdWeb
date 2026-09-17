@@ -19,7 +19,8 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
     let portrait: string | null = null;
     if (custom && !/default|placeholder|musicnerdlogo/i.test(custom)) {
       try {
-        const candidate = new URL(custom, request.url);
+        const relative = custom.startsWith('/') && !custom.startsWith('//') && !custom.includes('\\');
+        const candidate = relative ? new URL(custom, request.url) : new URL(custom);
         if (candidate.protocol === 'https:' && !candidate.username && !candidate.password) portrait = candidate.toString();
       } catch {
         // Malformed legacy uploads must not suppress a valid provider portrait.
