@@ -1,6 +1,7 @@
 // Intentionally a synchronous head script: next/script scheduling would leave
 // the initial paint dependent on loading the Next.js runtime.
 const themeScript = (previewDeployment: boolean) => `(function () {
+  document.documentElement.dataset.profilePreviewDeployment = "${previewDeployment}";
   var preview = ${previewDeployment} && window.location.pathname === "/profile" && new URLSearchParams(window.location.search).get("preview") === "concept";
   var key = preview ? "musicnerd-profile-preview-theme" : "musicnerd-theme";
   document.documentElement.dataset.profilePreviewTheme = preview ? "true" : "false";
