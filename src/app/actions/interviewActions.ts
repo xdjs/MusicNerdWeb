@@ -73,6 +73,8 @@ export type InterviewInvite =
         /** "first" the artist has never answered anything; "new-material" they
          *  have, and something has happened since. Only the copy differs. */
         reason: "first" | "new-material";
+        resuming?: boolean;
+        draftScope?: string;
         questions: InterviewQuestion[];
     };
 
@@ -250,7 +252,7 @@ export async function getInterviewInvite(artistId: string): Promise<InterviewInv
         // The same fact drives the copy. An artist resuming an abandoned second
         // sitting was being shown the first-interview introduction, because
         // `since` is null while resuming.
-        return { show: true, reason: isFirstInterview ? "first" : "new-material", questions };
+        return { show: true, reason: isFirstInterview ? "first" : "new-material", questions, resuming: stillOpen.length > 0, draftScope: session.user.id };
     } catch (e) {
         console.error("[getInterviewInvite] Error:", e);
         return { show: false };

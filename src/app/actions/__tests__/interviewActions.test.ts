@@ -77,9 +77,8 @@ const stillOpen = (key, sitting = 1, offeredAt = '2026-08-25T00:00:00Z') =>
     ({ questionKey: key, question: 'q', answer: null, createdAt: offeredAt, offeredAt, source: 'offered', sitting });
 /** A COMPLETED sitting. Fewer rows than this means they started and stopped,
  *  and the remaining questions are still owed — the new-material gate does not
- *  apply until a full set has been dealt with, one way or another. Dismissing
- *  the card writes a skip row for every question offered, so an artist only
- *  lingers below three by closing the browser mid-sitting. */
+ *  apply until a full set has been dealt with, one way or another. Postponing
+ *  the card or panel keeps offered rows open; only Skip resolves them without an answer. */
 const aFullSitting = (at) => [
     answered('social_credit_1', at), answered('social_credit_2', at), answered('social_credit_3', at),
 ];
@@ -105,6 +104,13 @@ describe('getInterviewInvite', () => {
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: null });
         getSpotifyCatalogDetail.mockResolvedValue([]);
         generateGroundedQuestions.mockResolvedValue([]);
+    });
+
+    it('identifies a saved sitting without changing its first-versus-return reason', async () => {
+        getInterviewAnswers.mockResolvedValue([stillOpen('social_credit_1', 2), stillOpen('social_credit_2', 2), stillOpen('social_credit_3', 2)]);
+        const result = await invite();
+        expect(result).toMatchObject({show:true, resuming:true, reason:'new-material', draftScope:'u1'});
+        expect(result.questions.map(q => q.key)).toEqual(['social_credit_1','social_credit_2','social_credit_3']);
     });
 
     it('reopens for fresh In Process or Lore without new Instagram material', async () => {

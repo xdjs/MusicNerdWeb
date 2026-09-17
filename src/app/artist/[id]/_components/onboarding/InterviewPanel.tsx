@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Clock3, ExternalLink, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -10,6 +10,10 @@ import {
     markInterviewOffered,
     type InterviewQuestion,
 } from "@/app/actions/interviewActions";
+
+import type { InterviewTransport } from "@/lib/interview/interviewTransport";
+
+const defaultTransport = { offered: markInterviewOffered, answer: answerInterviewQuestion, finish: finishInterview };
 
 /**
  * Three questions, asked one at a time.
@@ -34,16 +38,26 @@ export default function InterviewPanel({
     questions,
     reason,
     onClose,
+    onPause,
+    draftScope,
+    resuming = false,
+    transport = defaultTransport,
 }: {
     artistId: string;
     artistName: string;
     questions: InterviewQuestion[];
     reason: "first" | "new-material";
     onClose: () => void;
+    onPause?: (remaining: InterviewQuestion[]) => void;
+    draftScope?: string;
+    resuming?: boolean;
+    transport?: Pick<InterviewTransport, "offered" | "answer" | "finish">;
 }) {
     const router = useRouter();
     const saving = useRef(false);
     const [index, setIndex] = useState(0);
+    const [round, setRound] = useState(questions);
+    const [deferred, setDeferred] = useState<InterviewQuestion[]>([]);
     const [answer, setAnswer] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,17 +68,60 @@ export default function InterviewPanel({
     // closing the browser can be resumed rather than disappearing behind the
     // new-material gate.
     useEffect(() => {
-        void markInterviewOffered(artistId, questions);
-    }, [artistId, questions]);
+        void transport.offered(artistId, questions);
+    }, [artistId, questions, transport]);
 
-    const current = questions[index];
+    const current = round[index];
+    const draftKey = draftScope && current ? `mn-interview-draft:${JSON.stringify([draftScope, artistId, current.key])}` : null;
+    useEffect(() => {
+        try { setAnswer(draftKey ? localStorage.getItem(draftKey) ?? "" : ""); }
+        catch { setAnswer(""); }
+    }, [draftKey, done]);
+
+    const persistDraft = (value: string) => {
+        if (!draftKey) return !value;
+        try {
+            if (value) localStorage.setItem(draftKey, value);
+            else localStorage.removeItem(draftKey);
+            return true;
+        } catch { return false; }
+    };
+    const closeRound = () => {
+        if (deferred.length && onPause) onPause(deferred);
+        else onClose();
+    };
+    const pause = async (individual = false) => {
+        if (saving.current) return;
+        if (done) { closeRound(); return; }
+        saving.current = true;
+        setBusy(true);
+        setError(null);
+        const remaining = [...deferred, ...round.slice(index)];
+        const stored = persistDraft(answer);
+        const result = stored ? await transport.offered(artistId, questions).catch(() => ({success: false})) : {success: false};
+        saving.current = false;
+        setBusy(false);
+        if (!result.success) {
+            setError("Could not save for later. Your text is still here—please try again.");
+            return;
+        }
+        if (individual && current) {
+            setDeferred([...deferred, current]);
+            setAnswer("");
+            if (index + 1 < round.length) setIndex(index + 1);
+            else setDone(true);
+            return;
+        }
+        if (onPause) onPause(remaining);
+        else onClose();
+    };
 
     const advance = async (text: string | null) => {
         if (!current || saving.current) return;
         saving.current = true;
         setBusy(true);
         setError(null);
-        const res = await answerInterviewQuestion({
+        const res = await transport.answer({
             artistId,
             questionKey: current.key,
             question: current.question,
@@ -83,9 +140,10 @@ export default function InterviewPanel({
             // each confirmed save, including a sitting closed after one answer.
             router.refresh();
         }
+        persistDraft("");
         setAnswer("");
 
-        if (index + 1 < questions.length) {
+        if (index + 1 < round.length) {
             setIndex(index + 1);
             saving.current = false;
             setBusy(false);
@@ -93,7 +151,7 @@ export default function InterviewPanel({
         }
         // Keep the existing end-of-sitting About rebuild. Latest already
         // reflects each saved answer independently of this generation.
-        const finished = await finishInterview(artistId).catch(() => ({ success: false }));
+        const finished = deferred.length ? {success: false} : await transport.finish(artistId).catch(() => ({ success: false }));
         if (finished.success) router.refresh();
         saving.current = false;
         setDone(true);
@@ -101,19 +159,19 @@ export default function InterviewPanel({
     };
 
     return (
-        <Dialog open onOpenChange={open => { if (!open && !saving.current) onClose(); }}>
+        <Dialog open onOpenChange={open => { if (!open && !saving.current) void pause(); }}>
             <DialogContent
                 aria-busy={busy}
                 onEscapeKeyDown={event => { if (saving.current) event.preventDefault(); }}
                 onPointerDownOutside={event => { if (saving.current) event.preventDefault(); }}
-                className="artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6"
+                className="mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6"
             >
                 <DialogHeader className="space-y-2 pr-7 text-left">
                     <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">
-                        {done ? "Thank you" : reason === "new-material" ? "You've been busy" : "A few questions"}
+                        {done ? (deferred.length ? "Saved for another time" : "Thank you") : resuming ? "Pick up where you left off" : reason === "new-material" ? "You've been busy" : "A few questions"}
                     </DialogTitle>
-                    <DialogDescription className="text-sm leading-relaxed text-white/60">
-                        {done ? `Your interview with Music Nerd for ${artistName}.` : reason === "new-material"
+                    <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
+                        {done ? `Your interview with Music Nerd for ${artistName}.` : resuming ? "Your questions are still here. Take your time." : reason === "new-material"
                             ? "We noticed some new things. Three questions, skip any of them."
                             : "Three quick questions, in your own words. Skip any of them."}
                     </DialogDescription>
@@ -121,25 +179,31 @@ export default function InterviewPanel({
 
                 {done ? (
                     <div className="mt-4 space-y-3">
-                        <p className="text-sm text-white">
-                            {answered > 0
+                        <p className="text-sm text-foreground">
+                            {deferred.length ? `${deferred.length} ${deferred.length === 1 ? "question is" : "questions are"} saved for later. Your drafts are kept in this browser.` : answered > 0
                                 ? "Your answers are saved. Find them in Latest, under In their words."
                                 : "No problem. We'll ask again when you've got something new going on."}
                         </p>
+                        {deferred.length > 0 && <button type="button"
+                            onClick={() => {setRound(deferred); setDeferred([]); setIndex(0); setAnswered(0); setDone(false);}}
+                            className="min-h-11 w-full rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111]">
+                            Review saved questions
+                        </button>}
                         <button
                             type="button"
-                            onClick={onClose}
-                            className="w-full rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-black"
+                            onClick={closeRound}
+                            className={deferred.length ? "min-h-11 w-full rounded-xl border border-input py-2.5 text-sm font-semibold text-foreground" : "min-h-11 w-full rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111]"}
                         >
                             Done
                         </button>
                     </div>
                 ) : current ? (
                     <div className="mt-4 space-y-3">
-                        <p className="text-xs text-white/60">
-                            {index + 1} of {questions.length}
+                        <p className="text-xs text-muted-foreground dark:text-white/60">
+                            {index + 1} of {round.length}
                         </p>
-                        <label htmlFor="interview-answer" className="block break-words text-sm font-medium text-white/90">{current.question}</label>
+                        {deferred.length > 0 && <p role="status" className="text-xs text-muted-foreground">{deferred.length} {deferred.length === 1 ? "question" : "questions"} saved for later</p>}
+                        <label htmlFor="interview-answer" className="block break-words text-sm font-medium text-foreground dark:text-white/90">{current.question}</label>
                         {/* THE POST IT CAME FROM.
                           *
                           * These questions are about things the artist wrote,
@@ -160,7 +224,7 @@ export default function InterviewPanel({
                                 href={current.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-white/60 underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink"
+                                className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-white/60 underline underline-offset-2 hover:text-foreground dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink"
                             >
                                 <ExternalLink size={11} />
                                 {current.key.startsWith("profile_") ? "View the source behind this question" : "See the post this came from"}
@@ -170,19 +234,20 @@ export default function InterviewPanel({
                             id="interview-answer"
                             disabled={busy}
                             value={answer}
-                            onChange={e => setAnswer(e.target.value)}
+                            onChange={e => { setAnswer(e.target.value); persistDraft(e.target.value); }}
                             rows={4}
                             maxLength={2000}
                             placeholder="However you'd say it."
-                            className="w-full rounded-xl border border-white/15 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
+                            className="w-full rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm text-foreground placeholder:text-muted-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
                         />
-                        {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+                        <p className="text-xs leading-relaxed text-muted-foreground dark:text-white/50">Drafts stay in this browser. Only sent answers appear on your profile.</p>
+                        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => advance(answer)}
                                 disabled={busy || answer.trim().length === 0}
-                                className="flex-1 rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-black transition-colors hover:bg-pastypink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
+                                className="min-h-11 flex-1 rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-pastypink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
                             >
                                 {busy ? <span role="status" className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" aria-hidden="true" />Saving…</span> : "Send"}
                             </button>
@@ -191,11 +256,15 @@ export default function InterviewPanel({
                                 type="button"
                                 onClick={() => advance(null)}
                                 disabled={busy}
-                                className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white/80 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+                                className="min-h-11 rounded-xl border border-input bg-black/[0.02] dark:bg-white/5 px-4 py-2.5 text-sm text-muted-foreground dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
                             >
                                 Skip
                             </button>
                         </div>
+                        <button type="button" disabled={busy} onClick={() => void pause(true)}
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl text-sm text-muted-foreground dark:text-white/70 transition-colors hover:bg-black/5 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40">
+                            <Clock3 size={15} aria-hidden="true" /> Save for later
+                        </button>
                     </div>
                 ) : null}
             </DialogContent>

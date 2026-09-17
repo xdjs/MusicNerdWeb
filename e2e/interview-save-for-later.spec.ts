@@ -1,0 +1,72 @@
+import {test,expect} from '@playwright/test';
+
+test('review interview pauses, resumes drafts, and keeps skip/send distinct',async({browser,baseURL})=>{
+ test.skip(!baseURL || (!/^https?:\/\/(127\.0\.0\.1|localhost):/.test(baseURL) && process.env.E2E_INTERVIEW_PREVIEW !== '1'),'Opt in to a simulated preview');
+ test.setTimeout(120_000);
+ for(const width of [390,832])for(const theme of ['light','dark']){
+  const context=await browser.newContext({baseURL,viewport:{width,height:844},deviceScaleFactor:2,isMobile:width===390,hasTouch:width===390});
+  await context.addInitScript(t=>{try{localStorage.setItem('musicnerd-theme',t);}catch{}},theme);
+  const page=await context.newPage();
+  try{
+   await page.goto('/dev/interview-preview');
+   await expect(page.getByRole('heading',{name:'Pete Rango',exact:true}).first()).toBeVisible({timeout:30000});
+   await page.getByRole('button',{name:'Not now',exact:true}).click();
+   await expect(page.getByRole('button',{name:'Continue interview'})).toHaveCount(0);
+   await page.reload();
+   await expect(page.getByRole('button',{name:'Continue interview'})).toBeVisible();
+   await expect(page.getByRole('dialog')).toHaveCount(0);
+   await page.getByRole('button',{name:'Continue interview'}).click();
+   const draft='I started with a voice memo and a little rhythm.';
+   await page.getByRole('textbox',{name:'What was the first sound or idea that became your latest track?'}).fill(draft);
+   await page.getByRole('dialog').screenshot({path:`test-results/interview-later-${width}-${theme}-draft.png`});
+   await page.getByRole('button',{name:'Save for later',exact:true}).click();
+   await expect(page.getByRole('textbox',{name:'Was there a moment in the studio that changed the direction of the song?'})).toBeVisible();
+   await expect(page.getByRole('dialog').getByRole('status')).toContainText('1 question saved for later');
+   await page.getByRole('button',{name:'Close',exact:true}).click();
+   await page.reload();
+   await expect(page.getByRole('button',{name:'Continue interview'})).toBeVisible();
+   await expect(page.getByRole('dialog')).toHaveCount(0);
+   await page.screenshot({path:`test-results/interview-later-${width}-${theme}-return.png`});
+   await page.getByRole('button',{name:'Continue interview'}).click();
+   await expect(page.getByRole('textbox',{name:'What was the first sound or idea that became your latest track?'})).toHaveValue(draft);
+   await page.getByRole('button',{name:'Send',exact:true}).click();
+   await expect(page.getByRole('textbox',{name:'Was there a moment in the studio that changed the direction of the song?'})).toBeVisible();
+   await page.getByRole('button',{name:'Skip',exact:true}).click();
+   const last=page.getByRole('textbox',{name:'What would you want someone to notice on their second listen?'});
+   await expect(last).toBeVisible();
+   await last.fill('The quiet harmonies.');
+   await page.getByRole('button',{name:'Close',exact:true}).click();
+   await expect(page.getByRole('button',{name:'Continue interview'})).toHaveCount(0);
+   await page.reload();
+   await page.getByRole('button',{name:'Continue interview'}).click();
+   await expect(last).toHaveValue('The quiet harmonies.');
+   await page.getByRole('button',{name:'Send',exact:true}).click();
+   await expect(page.getByRole('heading',{name:'Thank you'})).toBeVisible();
+   await page.getByRole('button',{name:'Done',exact:true}).click();
+   await page.reload();
+   await expect(page.getByRole('button',{name:'Continue interview'})).toHaveCount(0);
+   await expect(page.locator('#interview-preview blockquote')).toHaveCount(2);
+   await page.locator('#interview-preview summary').click();
+   await page.getByRole('button',{name:'New activity',exact:true}).click();
+   await page.getByRole('button',{name:'Start',exact:true}).click();
+   await page.getByRole('textbox',{name:'What was the first sound or idea that became your latest track?'}).fill(draft);
+   await page.getByRole('button',{name:'Save for later',exact:true}).click();
+   await expect(page.getByRole('textbox',{name:'Was there a moment in the studio that changed the direction of the song?'})).toBeVisible();
+   await page.getByRole('dialog').screenshot({path:`test-results/interview-individual-${width}-${theme}-next.png`});
+   await page.getByRole('button',{name:'Skip',exact:true}).click();
+   await page.getByRole('button',{name:'Skip',exact:true}).click();
+   await expect(page.getByRole('button',{name:'Review saved questions'})).toBeVisible();
+   await page.getByRole('dialog').screenshot({path:`test-results/interview-individual-${width}-${theme}-saved.png`});
+   await page.getByRole('button',{name:'Done',exact:true}).click();
+   await expect(page.getByRole('dialog')).toHaveCount(0);
+   await expect(page.getByRole('button',{name:'Continue interview'})).toHaveCount(0);
+   await page.reload();
+   await page.getByRole('button',{name:'Continue interview'}).click();
+   await expect(page.getByRole('textbox',{name:'What was the first sound or idea that became your latest track?'})).toHaveValue(draft);
+   await page.getByRole('button',{name:'Send',exact:true}).click();
+   await page.getByRole('button',{name:'Done',exact:true}).click();
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   expect(await page.locator('[data-nextjs-dialog]').count()).toBe(0);
+  }finally{await context.close();}
+ }
+});
