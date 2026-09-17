@@ -1,5 +1,7 @@
 "use client";
 
+import CollectionArtistImage from './CollectionArtistImage';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './ProfileConcept.module.css';
@@ -114,7 +116,7 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
       setBookmarkNotice(`${artist.artistName} added to your artists.`);
     } catch { setBookmarkNotice('Could not save your bookmark. Please retry.'); }
   };
-  const artistCard = (artist: SavedArtist) => (artist.sample ? <div><div className="aspect-square rounded-xl flex items-center justify-center overflow-hidden" style={{backgroundColor: sampleColors[Math.max(0, sampleArtists.findIndex(item => item.artistId === artist.artistId)) % sampleColors.length]}}><span className="text-2xl sm:text-4xl font-semibold tracking-tighter text-white/80" aria-hidden="true">{artist.artistName.split(' ').map(word => word[0]).join('')}</span></div><h3 className="text-xs sm:text-base font-semibold mt-2 break-words line-clamp-2">{artist.artistName}</h3></div> : <Link href={`/artist/${artist.artistId}`} className="block group"><div className="aspect-square w-full overflow-hidden rounded-xl bg-[#292529] flex items-center justify-center">{artist.imageUrl && !/default|placeholder|musicnerdlogo/i.test(artist.imageUrl) ? <img src={artist.imageUrl} alt="" className={!live && artist.artistName.toLowerCase() === 'pete rango' ? "h-1/2 w-1/2 object-contain invert mix-blend-screen opacity-80" : "h-full w-full object-cover"} /> : <img src="/musicNerdLogo.png" alt="" className="h-20 w-20 object-contain opacity-80" />}</div><h3 className="text-xs sm:text-base font-semibold mt-2 break-words line-clamp-2 group-hover:underline">{artist.artistName}</h3></Link>);
+  const artistCard = (artist: SavedArtist) => (artist.sample ? <div><div className="aspect-square rounded-xl flex items-center justify-center overflow-hidden" style={{backgroundColor: sampleColors[Math.max(0, sampleArtists.findIndex(item => item.artistId === artist.artistId)) % sampleColors.length]}}><span className="text-2xl sm:text-4xl font-semibold tracking-tighter text-white/80" aria-hidden="true">{artist.artistName.split(' ').map(word => word[0]).join('')}</span></div><h3 className="text-xs sm:text-base font-semibold mt-2 break-words line-clamp-2">{artist.artistName}</h3></div> : <Link href={`/artist/${artist.artistId}`} className="block group"><div className="aspect-square w-full overflow-hidden rounded-xl bg-[#292529] flex items-center justify-center">{artist.imageUrl && !/default|placeholder|musicnerdlogo/i.test(artist.imageUrl) ? <img src={artist.imageUrl} alt="" className={!live && artist.artistName.toLowerCase() === 'pete rango' ? "h-1/2 w-1/2 object-contain invert mix-blend-screen opacity-80" : "h-full w-full object-cover"} /> : <CollectionArtistImage artistId={artist.artistId} className="h-full w-full object-cover" fallback={<img src="/musicNerdLogo.png" alt="" className="h-20 w-20 object-contain opacity-80" />} />}</div><h3 className="text-xs sm:text-base font-semibold mt-2 break-words line-clamp-2 group-hover:underline">{artist.artistName}</h3></Link>);
 
   return <main className={`${styles.concept} mx-auto w-full min-w-0 max-w-6xl px-5 sm:px-10 pb-16 text-foreground`}>
 
@@ -195,10 +197,10 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
             <h3 className="text-sm font-semibold">Start with artists you’ve helped</h3>
             <p className="mt-1 text-xs text-muted-foreground">{live ? 'Artists you’ve added or updated.' : 'Suggestions from your sample contributions.'}</p>
             <ul className="mt-3 divide-y divide-border">{suggestedArtists.map(artist => <li key={artist.artistId} className="flex items-center justify-between gap-3 py-3">
-              <div className="flex min-w-0 items-center gap-3">
-                {artist.imageUrl ? <img src={artist.imageUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">{artist.artistName.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>}
-                <span className="text-sm font-medium break-words">{artist.artistName}</span>
-              </div>
+              <Link href={`/artist/${artist.artistId}`} className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-400">
+                <CollectionArtistImage artistId={artist.artistId} imageUrl={artist.imageUrl} className="h-11 w-11 shrink-0 rounded-full object-cover" fallback={<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">{artist.artistName.split(' ').map(part => part[0]).slice(0, 2).join('')}</span>} />
+                <span className="text-sm font-medium break-words group-hover:underline">{artist.artistName}</span>
+              </Link>
               <Button variant="outline" className="shrink-0 rounded-full bg-transparent" aria-label={`Bookmark ${artist.artistName}`} disabled={live?.bookmarkBusy} onClick={() => void addBookmark(artist)}><Bookmark size={15} className="mr-1.5" />Bookmark</Button>
             </li>)}</ul>
           </div>}

@@ -19,6 +19,7 @@ async function loadMiddleware() {
 beforeEach(() => {
   jest.useFakeTimers();
   delete process.env.RATE_LIMIT_DEFAULT;
+  delete process.env.RATE_LIMIT_ARTIST_IMAGE;
   delete process.env.RATE_LIMIT_STRICT;
   delete process.env.RATE_LIMIT_MEDIUM;
   delete process.env.RATE_LIMIT_WINDOW_MS;
@@ -267,4 +268,13 @@ describe('middleware rate limiting', () => {
     }
     expect(middleware(makeRequest('/artist/abc/llms.txt', ip)).status).toBe(429);
   });
+});
+
+it('isolates artist-image traffic from account API limits while retaining its own cap',async()=>{
+ const {middleware}=await loadMiddleware();
+ const image='/api/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b/image';
+ for(let i=0;i<180;i++)expect(middleware(makeRequest(image)).status).not.toBe(429);
+ expect(middleware(makeRequest(image)).status).toBe(429);
+ expect(middleware(makeRequest('/api/bookmarks')).status).not.toBe(429);
+ expect(middleware(makeRequest('/api/profile/summary')).headers.get('X-RateLimit-Remaining')).toBe('58');
 });
