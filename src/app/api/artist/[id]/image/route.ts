@@ -16,7 +16,15 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
     const artist = await db.query.artists.findFirst({where: eq(artists.id, id)});
     if (!artist) return unavailable(404);
     const custom = customImageUrl(artist.customImage);
-    const portrait = custom && !/default|placeholder|musicnerdlogo/i.test(custom) ? custom : null;
+    let portrait: string | null = null;
+    if (custom && !/default|placeholder|musicnerdlogo/i.test(custom)) {
+      try {
+        const candidate = new URL(custom, request.url);
+        if (candidate.protocol === 'https:' && !candidate.username && !candidate.password) portrait = candidate.toString();
+      } catch {
+        // Malformed legacy uploads must not suppress a valid provider portrait.
+      }
+    }
     const value = portrait ?? await musicPlatformData.getArtistImage(artist);
     if (!value) return unavailable(404);
     const url = new URL(value, request.url);
