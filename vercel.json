@@ -1,0 +1,7 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "sweetmantech/pr-screenshots": false
+    }
+  }
+}
