@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('review interview pauses, resumes drafts, and keeps skip/send distinct',async({browser,baseURL})=>{
- test.skip(!baseURL || (!/^http:\/\/(127\.0\.0\.1|localhost):/.test(baseURL) && process.env.E2E_INTERVIEW_PREVIEW !== '1'),'Opt in to a simulated preview');
+ test.skip(!baseURL || (!/^https?:\/\/(127\.0\.0\.1|localhost):/.test(baseURL) && process.env.E2E_INTERVIEW_PREVIEW !== '1'),'Opt in to a simulated preview');
  test.setTimeout(120_000);
  for(const width of [390,832])for(const theme of ['light','dark']){
   const context=await browser.newContext({baseURL,viewport:{width,height:844},deviceScaleFactor:2,isMobile:width===390,hasTouch:width===390});
