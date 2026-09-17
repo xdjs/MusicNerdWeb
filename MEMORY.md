@@ -207,3 +207,10 @@ Historical schema reconciliation #1148 and RLS drift #1149 remain separate; no f
 replay. CI triage #1150 and server-only secret naming remain separate debt. The previous
 release addresses 10 MB upload transport/copy (#1151); closure requires deployed verification.
 Existing platform advisories are not permission to broaden database grants.
+
+
+## Interview save for later — staging review in progress (September 17)
+
+Issue #1295, branch `pete/interview-save-for-later`, worktree `/private/tmp/musicnerd-interview-later`. Pete approved progressing to staging after checks/review. Save for later defers one question and advances; the final screen can review saved questions or finish. Done, closing and Not now hide the invitation for that page visit; a new visit/refresh restores it. Draft text is browser-local, scoped to account/artist/question. Existing offered rows retain questions, sitting/source/new-material rules remain unchanged. Skip still dismisses, Send still refreshes answers.
+
+Local review uses the real artist page at http://127.0.0.1:3024/dev/interview-preview with simulated interview actions. The review harness is available only in development/Vercel preview; production ignores its query flag. No real interview answers were submitted during verification. See docs/interview-save-for-later.md and #1295 for current verification/PR state. This is not authorization to release main.
