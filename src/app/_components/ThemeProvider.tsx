@@ -1,6 +1,8 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, Suspense, useCallback, useContext, useEffect, useState } from "react"
+
+import ThemeRouteSync from "./ThemeRouteSync"
 
 type Theme = "light" | "dark"
 
@@ -32,17 +34,21 @@ export function ThemeProvider({
   // applies the saved theme before paint; this effect only synchronizes React.
   const [theme, setTheme] = useState<Theme>(defaultTheme ?? "light")
 
-  const applyTheme = (nextTheme: Theme) => {
+  const applyTheme = useCallback((nextTheme: Theme) => {
     const root = document.documentElement
     root.classList.remove("light", "dark")
     root.classList.add(nextTheme)
     root.style.colorScheme = nextTheme
-  }
+  }, [])
 
   const resolvedStorageKey = () => document.documentElement.dataset.profilePreviewTheme === "true" ? "musicnerd-profile-preview-theme" : storageKey
 
-  useEffect(() => {
-    const preview = document.documentElement.dataset.profilePreviewTheme === "true"
+  const syncTheme = useCallback((concept?: boolean) => {
+    const root = document.documentElement
+    const preview = concept === undefined
+      ? root.dataset.profilePreviewTheme === "true"
+      : root.dataset.profilePreviewDeployment === "true" && concept
+    root.dataset.profilePreviewTheme = preview ? "true" : "false"
     let stored: string | null = null
     try {
       stored = localStorage.getItem(preview ? "musicnerd-profile-preview-theme" : storageKey)
@@ -54,7 +60,9 @@ export function ThemeProvider({
       : (preview ? "light" : defaultTheme) ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
     applyTheme(resolved)
     setTheme(resolved)
-  }, [defaultTheme, storageKey])
+  }, [defaultTheme, storageKey, applyTheme])
+
+  useEffect(() => { syncTheme() }, [syncTheme])
 
   const value = {
     theme,
@@ -71,6 +79,7 @@ export function ThemeProvider({
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
+      <Suspense fallback={null}><ThemeRouteSync onRouteChange={syncTheme} /></Suspense>
       {children}
     </ThemeProviderContext.Provider>
   )

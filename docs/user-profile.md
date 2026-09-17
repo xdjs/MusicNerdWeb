@@ -32,3 +32,7 @@ Suggested and saved artist images load independently of account data. When no im
 Suggested artists’ photo/name links open their canonical artist profile; Bookmark remains a separate action.
 
 Stored default/logo placeholders do not override real provider photos. Image requests have a separate best-effort rate-limit bucket (180/minute per IP, configurable with `RATE_LIMIT_ARTIST_IMAGE`) so collection browsing cannot consume the account API quota.
+
+### Preview theme navigation
+
+The concept preview keeps its own light-default theme preference on Vercel previews. Client navigation into or out of that route, including query-only transitions, must switch to the matching stored preference. Regular production pages always use the ordinary account/browser theme key.
