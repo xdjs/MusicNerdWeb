@@ -12,3 +12,5 @@ it('lazily resolves missing provider images and retains an accessible tile on fa
 });
 
 it('resolves provider photos instead of rendering stored placeholders',()=>{const {container}=render(<CollectionArtistImage artistId={id} imageUrl="/default_pfp_pink.png" className="photo" fallback={<span>DY</span>} />);expect(container.querySelector('img')).toHaveAttribute('src',`/api/artist/${id}/image`);});
+
+it.each(['http://example.com/photo.jpg','javascript:alert(1)','//example.com/photo.jpg','https://[broken','garbage','https://user:password@example.com/photo.jpg'])('resolves providers for invalid stored image %s',(imageUrl)=>{const {container}=render(<CollectionArtistImage artistId={id} imageUrl={imageUrl} className="photo" fallback={<span>DY</span>} />);expect(container.querySelector('img')).toHaveAttribute('src',`/api/artist/${id}/image`);});
