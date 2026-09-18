@@ -17,7 +17,7 @@ test('failed profile photo uploads leave the saved and displayed name unchanged'
     const view = await context.newPage();
     let patches = 0;
     await view.route(`**${endpoint}`, async route => {
-      if (route.request().method() === 'PATCH') { patches++; await route.abort(); }
+      if (route.request().method() === 'PATCH') { patches++; await route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({message:'Review: name rejected'})}); }
       else await route.continue();
     });
     try {
@@ -49,6 +49,33 @@ test('failed profile photo uploads leave the saved and displayed name unchanged'
         await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
         await view.unroute('**/api/user/profile-image');
       }
+      let uploads = 0;
+      let photoReadable = false;
+      await view.route('**/api/user/profile-image', async route => {
+        if (route.request().method() === 'POST') {
+          uploads++;
+          return route.fulfill({status:200,contentType:'application/json',body:'{"success":true}'});
+        }
+        await route.fulfill({status:photoReadable ? 200 : 503,contentType:'application/json',body:JSON.stringify({userId:session.body.user.id,url:'/default_pfp_pink.png'})});
+      });
+      await editButton.click();
+      const dialog = view.getByRole('dialog',{name:'Edit profile'});
+      await dialog.getByLabel('Display name').fill('Upload Failure Review');
+      await dialog.getByLabel('Profile photo',{exact:true}).setInputFiles({name:'review.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jh1sAAAAASUVORK5CYII=','base64')});
+      await dialog.getByRole('button',{name:'Save changes',exact:true}).click();
+      await expect(dialog.getByRole('alert')).toContainText('Your photo was saved, but its preview could not load.');
+      expect(uploads).toBe(1);
+      expect(patches).toBe(0);
+      await expect(header.locator('img')).toHaveCount(0);
+      await dialog.screenshot({path:`test-results/profile-photo-refresh-${width}-${theme}.png`});
+      photoReadable = true;
+      await dialog.getByRole('button',{name:'Save changes',exact:true}).click();
+      await expect(dialog.getByRole('alert')).toHaveText('Review: name rejected');
+      expect(uploads).toBe(1);
+      expect(patches).toBe(1);
+      await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+      await expect(header.locator('img')).toHaveAttribute('src','/default_pfp_pink.png');
+      await expect(header.getByRole('heading',{level:1})).toHaveText(originalName);
       expect((await fetchAsUser(view,endpoint)).body.username).toBe(original.body.username);
     } finally {await context.close();}
   }

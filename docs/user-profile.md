@@ -40,3 +40,5 @@ The concept preview keeps its own light-default theme preference on Vercel previ
 ### Profile edit failure boundary
 
 When both fields change, upload and refresh the photo before committing the name. Upload failure leaves the name unchanged and the editor open for retry. A successfully uploaded photo updates the photo cache even if the subsequent name PATCH fails; the two endpoints are not an atomic transaction. A successful name PATCH refreshes the session.
+
+If an upload succeeds but the subsequent photo read fails, discard the stale displayed photo, invalidate its query, and report that the photo saved while the name stayed unchanged. Retrying the same selected file retries the read rather than uploading again. Closing the editor leaves the normal photo-query retry available.
