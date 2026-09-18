@@ -26,7 +26,7 @@ test('failed profile photo uploads leave the saved and displayed name unchanged'
       await expect(editButton).toBeVisible({timeout:30_000});
       const header = view.locator('main header').last();
       const originalName = await header.getByRole('heading',{level:1}).innerText();
-      const originalPhoto = await header.locator('img').getAttribute('src').catch(() => null);
+      const originalPhoto = await header.locator('img').count() ? await header.locator('img').getAttribute('src') : null;
       for (const failure of ['http','network']) {
         await view.route('**/api/user/profile-image', async route => {
           if (route.request().method() !== 'POST') return route.continue();
