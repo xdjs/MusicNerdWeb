@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import type { User } from '@/server/db/DbTypes';
@@ -20,6 +20,7 @@ export default function LiveUserProfile({ user }: { user: Account }) {
   const accountReady = status === 'authenticated' && session.user.id === user.id;
   const saved = useBookmarks(user.id);
   const [updateFilter, setUpdateFilter] = useState('All');
+  const uploadedPhoto = useRef<File | null>(null);
   const summary = useQuery({queryKey: ['profile-summary', user.id], queryFn: ({signal}) => readJson<ProfileSummary>('/api/profile/summary', user.id, signal), refetchOnWindowFocus: true, enabled: accountReady});
   const photo = useQuery({queryKey: ['profile-photo', user.id], queryFn: ({signal}) => readJson<{url: string | null}>('/api/user/profile-image', user.id, signal), staleTime: 45 * 60 * 1000, refetchInterval: 45 * 60 * 1000, refetchOnWindowFocus: true, retry: false, enabled: accountReady});
   const bookmarkIds = saved.bookmarks.map(artist => artist.artistId).join(',');
@@ -50,15 +51,32 @@ export default function LiveUserProfile({ user }: { user: Account }) {
       checkedArtists: feed.data?.pages.at(-1)?.checked ?? 0, hasMoreUpdates: !!feed.hasNextPage,
       loadMoreUpdates: () => { if (feed.error) void feed.refetch(); else void feed.fetchNextPage(); },
       saveProfile: async (name, file) => {
+        let next = {url: photo.data?.url ?? null};
+        if (file) {
+          if (uploadedPhoto.current !== file) {
+            const body = new FormData(); body.append('file', file);
+            let upload: Response;
+            try {
+              upload = await fetch('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
+            } catch {
+              throw new Error('Your photo upload could not be confirmed. Your name has not changed. Please retry.');
+            }
+            if (!upload.ok) throw new Error('Your photo could not be saved. Your name has not changed. Please retry.');
+            uploadedPhoto.current = file;
+          }
+          try {
+            next = await readJson<{url: string | null}>('/api/user/profile-image', user.id);
+          } catch {
+            queryClient.setQueryData(['profile-photo', user.id], {url: null});
+            void queryClient.invalidateQueries({queryKey: ['profile-photo', user.id]});
+            throw new Error('Your photo was saved, but its preview could not load. Your name has not changed. Please retry.');
+          }
+          // The upload is committed independently of the name. Keep it visible
+          // even if the following PATCH is rejected.
+          queryClient.setQueryData(['profile-photo', user.id], next);
+        }
         const response = await fetch(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
         if (!response.ok) { const data = await response.json(); throw new Error(data.message || 'Could not save your name.'); }
-        if (file) {
-          const body = new FormData(); body.append('file', file);
-          const upload = await fetch('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
-          if (!upload.ok) throw new Error('Your name was saved, but your photo could not be saved. Please retry.');
-        }
-        const next = file ? await readJson<{url: string | null}>('/api/user/profile-image', user.id) : {url: photo.data?.url ?? null};
-        queryClient.setQueryData(['profile-photo', user.id], next);
         await update();
         return {name, photo: next.url};
       },
