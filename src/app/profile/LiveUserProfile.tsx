@@ -50,15 +50,23 @@ export default function LiveUserProfile({ user }: { user: Account }) {
       checkedArtists: feed.data?.pages.at(-1)?.checked ?? 0, hasMoreUpdates: !!feed.hasNextPage,
       loadMoreUpdates: () => { if (feed.error) void feed.refetch(); else void feed.fetchNextPage(); },
       saveProfile: async (name, file) => {
-        const response = await fetch(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
-        if (!response.ok) { const data = await response.json(); throw new Error(data.message || 'Could not save your name.'); }
+        let next = {url: photo.data?.url ?? null};
         if (file) {
           const body = new FormData(); body.append('file', file);
-          const upload = await fetch('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
-          if (!upload.ok) throw new Error('Your name was saved, but your photo could not be saved. Please retry.');
+          let upload: Response;
+          try {
+            upload = await fetch('/api/user/profile-image', {method: 'POST', headers: {'X-Profile-Account': user.id}, body});
+          } catch {
+            throw new Error('Your photo upload could not be confirmed. Your name has not changed. Please retry.');
+          }
+          if (!upload.ok) throw new Error('Your photo could not be saved. Your name has not changed. Please retry.');
+          next = await readJson<{url: string | null}>('/api/user/profile-image', user.id);
+          // The upload is committed independently of the name. Keep it visible
+          // even if the following PATCH is rejected.
+          queryClient.setQueryData(['profile-photo', user.id], next);
         }
-        const next = file ? await readJson<{url: string | null}>('/api/user/profile-image', user.id) : {url: photo.data?.url ?? null};
-        queryClient.setQueryData(['profile-photo', user.id], next);
+        const response = await fetch(`/api/user/${user.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: name})});
+        if (!response.ok) { const data = await response.json(); throw new Error(data.message || 'Could not save your name.'); }
         await update();
         return {name, photo: next.url};
       },
