@@ -36,3 +36,7 @@ Stored default/logo placeholders do not override real provider photos. Image req
 ### Preview theme navigation
 
 The concept preview keeps its own light-default theme preference on Vercel previews. Client navigation into or out of that route, including query-only transitions, must switch to the matching stored preference. Regular production pages always use the ordinary account/browser theme key.
+
+### Profile edit failure boundary
+
+When both fields change, upload and refresh the photo before committing the name. Upload failure leaves the name unchanged and the editor open for retry. A successfully uploaded photo updates the photo cache even if the subsequent name PATCH fails; the two endpoints are not an atomic transaction. A successful name PATCH refreshes the session.
