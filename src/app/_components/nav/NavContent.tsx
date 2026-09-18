@@ -36,7 +36,7 @@ export default function NavContent() {
                 </Link>
             </div>
 
-            <div className="flex items-center justify-center gap-2 flex-grow min-w-0">
+            <div className={`${styles.searchRow} flex-grow min-w-0 max-w-[560px]`}>
                 <Suspense>
                     <SearchBar />
                 </Suspense>

@@ -75,12 +75,12 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
     const sources = answers.length ? await sourceUrlsForQuestionKeys(artist.id, answers.map(a => a.questionKey)).catch(() => new Map<string, string>()) : new Map<string, string>();
     for (const answer of answers) {
         if (!answer.answer?.trim()) continue;
-        const sourceUrl = instagramPostUrl(sources.get(answer.questionKey));
+        const sourceUrl = latestExternalUrl(sources.get(answer.questionKey));
         const post = sourceUrl ? posts.find(p => instagramPostUrl(p.url) === sourceUrl) : undefined;
         items.push({ id: `interview:${answer.id}`, kind: 'interview', title: answer.question,
             text: answer.answer, date: answer.createdAt, imageUrl: post ? instagramPostImage(post.raw) : null,
             imageCaption: post ? `The post behind this answer` : `${artist.name ?? 'Artist'} portrait`,
-            sourceUrl, sourceLabel: 'See the post behind this answer' });
+            sourceUrl, sourceLabel: answer.questionKey.startsWith('profile_') ? 'View the source behind this answer' : 'See the post behind this answer' });
     }
     if (releasesResult.status === 'fulfilled') {
         for (const release of releasesResult.value) {

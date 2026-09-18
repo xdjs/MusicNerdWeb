@@ -1,3 +1,4 @@
+import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
@@ -29,6 +30,8 @@ import ArtistJsonLd from "./_components/ArtistJsonLd";
 import OfficialSiteLinks from "./_components/OfficialSiteLinks";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
+import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
+import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
 import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
@@ -36,7 +39,7 @@ import { isRealBio } from "@/lib/bio/bioConstants";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[] }>;
+    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -124,6 +127,7 @@ function summarize(bio: string, max = 300): string {
 export default async function ArtistProfile({ params, searchParams }: ArtistProfileProps) {
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
     const session = await getServerAuthSession() ?? await getDevSession();
     const dbUser = session ? await getUserById(session.user.id) : null;
@@ -184,18 +188,18 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     Note this is the INVERSE of the gate on OnboardingGate below:
                     once complete it stays complete, so unlike that one this
                     cannot be unmounted out from under the tour. */}
-                {isClaimedByUser && onboardingState?.complete && <ProfileTour artistId={artist.id} />}
+                {!interviewPreview && isClaimedByUser && onboardingState?.complete && <ProfileTour artistId={artist.id} />}
 
                 {/* The only part of onboarding where what lands on the page
                     comes from the artist rather than from research. Gated the
                     same way the tour is — onboarding finished, and their own
                     page — and it decides for itself whether there is anything
                     worth asking about. */}
-                {isClaimedByUser && onboardingState?.complete && (
-                    <InterviewOffer artistId={artist.id} artistName={artist.name ?? "your"} />
+                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : isClaimedByUser && onboardingState?.complete && (
+                    <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
-                {onboardingState && !onboardingState.complete && (
+                {!interviewPreview && onboardingState && !onboardingState.complete && (
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
@@ -221,6 +225,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                 </HeroSection>
 
+                {dbUser && <div className="flex justify-end">
+                    <BookmarkButton artistId={artist.id} artistName={artist.name ?? 'Artist'} imageUrl={imageUrl} userId={dbUser.id} />
+                </div>}
                 <ProfileSectionNav key={artist.id} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>

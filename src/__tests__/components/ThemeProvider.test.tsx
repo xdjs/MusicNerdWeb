@@ -5,19 +5,27 @@ import { runInNewContext } from 'node:vm';
 import ThemeScript from '@/app/_components/ThemeScript';
 import { ThemeProvider, useTheme } from '@/app/_components/ThemeProvider';
 
+jest.mock('next/navigation', () => ({
+  usePathname: () => window.location.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
 function ThemeControl() {
   const { theme, setTheme } = useTheme();
   return <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme}</button>;
 }
 
-function runHeadScript() {
-  const html = renderToString(<ThemeScript />);
+function runHeadScript(previewDeployment = false) {
+  const html = renderToString(<ThemeScript previewDeployment={previewDeployment} />);
   const script = html.slice(html.indexOf('>') + 1, html.lastIndexOf('</script>'));
-  runInNewContext(script, { document, localStorage, window });
+  runInNewContext(script, { document, localStorage, window, URLSearchParams });
 }
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState({}, "", "/");
+  delete document.documentElement.dataset.profilePreviewTheme;
+  delete document.documentElement.dataset.profilePreviewDeployment;
   document.documentElement.className = 'unrelated';
   document.documentElement.style.colorScheme = '';
   jest.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList);
@@ -82,4 +90,46 @@ it('hydrates without mismatched theme markup or resetting the prepaint dark clas
   expect(document.documentElement).toHaveClass('dark');
   await act(async () => root.unmount());
   container.remove();
+});
+
+it('defaults the shared concept to light before paint without replacing the normal saved preference', () => {
+  window.history.replaceState({}, '', '/profile?preview=concept');
+  localStorage.setItem('musicnerd-theme', 'dark');
+  runHeadScript(true);
+  expect(document.documentElement).toHaveClass('light');
+  render(<ThemeProvider><ThemeControl /></ThemeProvider>);
+  fireEvent.click(screen.getByRole('button', {name: 'light'}));
+  expect(document.documentElement).toHaveClass('dark');
+  expect(localStorage.getItem('musicnerd-profile-preview-theme')).toBe('dark');
+  expect(localStorage.getItem('musicnerd-theme')).toBe('dark');
+  runHeadScript(true);
+  expect(document.documentElement).toHaveClass('dark');
+});
+
+it('keeps the ordinary theme behavior outside Vercel previews', () => {
+  window.history.replaceState({}, '', '/profile?preview=concept');
+  runHeadScript(false);
+  expect(document.documentElement).toHaveClass('dark');
+});
+
+it('switches theme storage on client navigation into and out of the concept preview', () => {
+  localStorage.setItem('musicnerd-theme', 'dark');
+  localStorage.setItem('musicnerd-profile-preview-theme', 'light');
+  runHeadScript(true);
+  const app = () => <ThemeProvider><ThemeControl /></ThemeProvider>;
+  const view = render(app());
+  expect(document.documentElement).toHaveClass('dark');
+  window.history.replaceState({}, '', '/profile?preview=concept');
+  view.rerender(app());
+  expect(document.documentElement).toHaveClass('light');
+  fireEvent.click(screen.getByRole('button', {name:'light'}));
+  expect(localStorage.getItem('musicnerd-profile-preview-theme')).toBe('dark');
+  fireEvent.click(screen.getByRole('button', {name:'dark'}));
+  expect(localStorage.getItem('musicnerd-theme')).toBe('dark');
+  window.history.replaceState({}, '', '/profile');
+  view.rerender(app());
+  expect(document.documentElement).toHaveClass('dark');
+  expect(document.documentElement.dataset.profilePreviewTheme).toBe('false');
+  fireEvent.click(screen.getByRole('button', {name:'dark'}));
+  expect(localStorage.getItem('musicnerd-theme')).toBe('light');
 });

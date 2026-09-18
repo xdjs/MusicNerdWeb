@@ -9,6 +9,8 @@
  */
 import { jest } from '@jest/globals';
 
+const getProfileInterviewCandidates = jest.fn(async () => []);
+jest.mock('@/server/utils/interview/getProfileInterviewCandidates', () => ({ getProfileInterviewCandidates: (...a) => getProfileInterviewCandidates(...a) }));
 const canEditArtist = jest.fn();
 const getInterviewAnswers = jest.fn();
 const upsertInterviewAnswer = jest.fn();
@@ -75,9 +77,8 @@ const stillOpen = (key, sitting = 1, offeredAt = '2026-08-25T00:00:00Z') =>
     ({ questionKey: key, question: 'q', answer: null, createdAt: offeredAt, offeredAt, source: 'offered', sitting });
 /** A COMPLETED sitting. Fewer rows than this means they started and stopped,
  *  and the remaining questions are still owed — the new-material gate does not
- *  apply until a full set has been dealt with, one way or another. Dismissing
- *  the card writes a skip row for every question offered, so an artist only
- *  lingers below three by closing the browser mid-sitting. */
+ *  apply until a full set has been dealt with, one way or another. Postponing
+ *  the card or panel keeps offered rows open; only Skip resolves them without an answer. */
 const aFullSitting = (at) => [
     answered('social_credit_1', at), answered('social_credit_2', at), answered('social_credit_3', at),
 ];
@@ -97,11 +98,44 @@ describe('getInterviewInvite', () => {
         // Per-kind, so a test can tell 'checks the wrong stage' from 'checks correctly'.
         const inFlightKinds = (kinds) => (_a, k) => Promise.resolve((Array.isArray(k) ? k : [k]).some(x => kinds.includes(x)));
         globalThis.__inFlightKinds = inFlightKinds;
+        getProfileInterviewCandidates.mockResolvedValue([]);
         canEditArtist.mockResolvedValue(true);
         getSocialPostsForArtist.mockResolvedValue([]);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: null });
         getSpotifyCatalogDetail.mockResolvedValue([]);
         generateGroundedQuestions.mockResolvedValue([]);
+    });
+
+    it('identifies a saved sitting without changing its first-versus-return reason', async () => {
+        getInterviewAnswers.mockResolvedValue([stillOpen('social_credit_1', 2), stillOpen('social_credit_2', 2), stillOpen('social_credit_3', 2)]);
+        const result = await invite();
+        expect(result).toMatchObject({show:true, resuming:true, reason:'new-material', draftScope:'u1'});
+        expect(result.questions.map(q => q.key)).toEqual(['social_credit_1','social_credit_2','social_credit_3']);
+    });
+
+    it('reopens for fresh In Process or Lore without new Instagram material', async () => {
+        getInterviewAnswers.mockResolvedValue(aFullSitting('2026-08-01T00:00:00Z'));
+        getProfileInterviewCandidates.mockResolvedValue([
+            { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'New In Process moment', sourceUrls: ['https://inprocess.world/moment/one'], fallbackQuestion: 'What should we notice in this moment?' },
+            { signalId: 'lore', key: 'profile_lore_one', kind: 'lore', authoredBy: 'source', material: 'New Lore', sourceUrls: ['https://example.com/article'], fallbackQuestion: 'What would you add to this story?' },
+        ]);
+        generateGroundedQuestions.mockResolvedValue([
+            { key: 'profile_recent_one', kind: 'recent', question: 'Which change made the timeline easier to follow?', sourceUrls: ['https://inprocess.world/moment/one'] },
+            { key: 'profile_lore_one', kind: 'lore', question: 'How did the field recordings change the arrangement?', sourceUrls: ['https://example.com/article'] },
+        ]);
+        const out = await invite();
+        expect(out.show).toBe(true);
+        expect(out.questions.map(q => q.key)).toEqual(['profile_recent_one', 'profile_lore_one']);
+        expect(generateGroundedQuestions).toHaveBeenCalledWith('a1', expect.objectContaining({ profileCandidates: expect.any(Array) }));
+    });
+
+    it('does not pad rejected fresh-source drafts with generic first-interview questions', async () => {
+        getInterviewAnswers.mockResolvedValue([]);
+        getProfileInterviewCandidates.mockResolvedValue([
+            { signalId: 'moment', key: 'profile_recent_one', kind: 'recent', authoredBy: 'artist', material: 'Design caption', sourceUrls: ['https://inprocess.world/moment/one'] },
+        ]);
+        generateGroundedQuestions.mockResolvedValue([]);
+        expect(await invite()).toEqual({ show: false });
     });
 
     it('offers a first interview when nothing has ever been answered', async () => {

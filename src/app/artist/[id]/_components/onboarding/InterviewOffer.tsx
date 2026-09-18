@@ -1,51 +1,37 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { MessageCircleQuestion, X } from "lucide-react";
+import { MessageCircleQuestion, Clock3 } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
-import { declineInterview, getInterviewInvite, type InterviewInvite, type InterviewQuestion } from "@/app/actions/interviewActions";
+import { markInterviewOffered, answerInterviewQuestion, finishInterview, getInterviewInvite, type InterviewInvite, type InterviewQuestion } from "@/app/actions/interviewActions";
 import InterviewPanel from "./InterviewPanel";
 import { TOUR_FINISHED_EVENT } from "./ProfileTour";
 
-/**
- * When we ask, and how hard.
- *
- * TWO MOMENTS, WITH DIFFERENT WEIGHT.
- *
- * At the END OF THE TOUR the panel opens by itself. The artist is already being
- * walked through their page, the four cards have just finished saying "here is
- * what we found", and the natural next beat is what we could not find out. Any
- * quieter and it would be missed inside a flow they are already in.
- *
- * ON A RETURN VISIT it is a card, not a takeover. Somebody who came back to
- * look at their profile did not come back to be interrupted, and the offer has
- * to survive being ignored — which a modal they dismiss does not.
- *
- * THE RULE BEHIND BOTH: we only come back when we have something new to ask
- * about, which the server decides. So a decline is never permanent and never a
- * nag, because there is nothing to return with until the artist has actually
- * done something.
- *
- * WHICH ONLY HOLDS IF A DECLINE IS WRITTEN DOWN. It was local state at first,
- * so closing the card showed the identical three questions again on the next
- * page load — the exact nagging the rule exists to prevent, from the one place
- * nobody would look for it. Declining now records those questions as skipped,
- * the same way skipping one inside the panel does. Nothing is lost: new
- * material produces new questions.
- */
+import type { InterviewTransport } from "@/lib/interview/interviewTransport";
+const defaultTransport: InterviewTransport = { invite: getInterviewInvite, offered: markInterviewOffered, answer: answerInterviewQuestion, finish: finishInterview };
+
+/** Return visits remain opt-in. Pausing retains offered rows; only Skip declines. */
 export default function InterviewOffer({
     artistId,
     artistName,
+    transport = defaultTransport,
 }: {
     artistId: string;
     artistName: string;
+    transport?: InterviewTransport;
 }) {
     const { canEdit } = useContext(EditModeContext);
     const [questions, setQuestions] = useState<InterviewQuestion[] | null>(null);
     const [reason, setReason] = useState<"first" | "new-material">("first");
+    const [resuming, setResuming] = useState(false);
+    const [draftScope, setDraftScope] = useState<string>();
+    const [pausing, setPausing] = useState(false);
+    const pauseRef = useRef(false);
+    const [error, setError] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
     const openRef = useRef(false);
     const [dismissed, setDismissed] = useState(false);
+    const dismissedRef = useRef(false);
 
     /** One in-flight request, shared. The mount check and the tour-finished
      *  check used to run concurrently: the tour's could open the panel with one
@@ -55,19 +41,22 @@ export default function InterviewOffer({
     const inFlight = useRef<Promise<InterviewInvite> | null>(null);
 
     const check = useCallback(async () => {
+        if (dismissedRef.current) return null;
         if (!inFlight.current) {
-            inFlight.current = getInterviewInvite(artistId)
+            inFlight.current = transport.invite(artistId)
                 .catch(() => ({ show: false }) as InterviewInvite)
                 .finally(() => { inFlight.current = null; });
         }
         const invite = await inFlight.current;
-        if (!invite.show) return null;
+        if (!invite.show || dismissedRef.current) return null;
         // Never while they are answering.
         if (openRef.current) return invite;
         setQuestions(invite.questions);
         setReason(invite.reason);
+        setResuming(!!invite.resuming);
+        setDraftScope(invite.draftScope);
         return invite;
-    }, [artistId]);
+    }, [artistId, transport]);
 
     // The returning case. Costs one query on an owner's own page and nothing at
     // all for a visitor.
@@ -82,9 +71,9 @@ export default function InterviewOffer({
     useEffect(() => {
         if (!canEdit) return;
         const onFinished = async (e: Event) => {
-            if ((e as CustomEvent).detail !== artistId) return;
+            if ((e as CustomEvent).detail !== artistId || dismissedRef.current) return;
             const invite = await check();
-            if (invite?.show) { openRef.current = true; setOpen(true); }
+            if (invite?.show && !invite.resuming) { openRef.current = true; setOpen(true); }
         };
         window.addEventListener(TOUR_FINISHED_EVENT, onFinished);
         return () => window.removeEventListener(TOUR_FINISHED_EVENT, onFinished);
@@ -99,12 +88,22 @@ export default function InterviewOffer({
                 artistName={artistName}
                 questions={questions}
                 reason={reason}
-                onClose={() => {
+                resuming={resuming}
+                draftScope={draftScope}
+                transport={transport}
+                onPause={remaining => {
+                    dismissedRef.current = true;
                     openRef.current = false;
                     setOpen(false);
-                    // Answered or skipped inside the panel either way — every
-                    // question they saw has a row now, so nothing needs
-                    // recording here.
+                    setQuestions(remaining);
+                    setResuming(true);
+                    setDismissed(true);
+                }}
+                onClose={() => {
+                    dismissedRef.current = true;
+                    openRef.current = false;
+                    setOpen(false);
+                    // Only a completed sitting reaches this callback.
                     setDismissed(true);
                 }}
             />
@@ -115,39 +114,46 @@ export default function InterviewOffer({
 
     return (
         <div className="glass flex items-start gap-3 rounded-xl p-4">
-            <MessageCircleQuestion size={18} className="mt-0.5 shrink-0 text-pastypink" />
+            {resuming ? <Clock3 size={18} className="mt-0.5 shrink-0 text-pastypink" /> : <MessageCircleQuestion size={18} className="mt-0.5 shrink-0 text-pastypink" />}
             <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-black dark:text-white">
-                    {reason === "new-material"
+                <p className="text-sm font-semibold text-[#111] dark:text-white">
+                    {resuming ? "Your interview is waiting for you" : reason === "new-material"
                         ? "You've been busy — want to talk about it?"
                         : "Want to be interviewed by Music Nerd?"}
                 </p>
                 <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    {reason === "new-material"
+                    {resuming ? `${questions.length} ${questions.length === 1 ? "question" : "questions"} to come back to. Whenever you’re ready.` : reason === "new-material"
                         ? "Three questions about what you've put out since we last spoke."
                         : "Three questions. Everything on your page right now is research — this part would be you."}
                 </p>
                 <button
                     type="button"
+                    disabled={pausing}
                     onClick={() => { openRef.current = true; setOpen(true); }}
-                    className="mt-2 rounded-lg bg-pastypink px-3 py-1.5 text-xs font-semibold text-black"
+                    className="mt-2 min-h-11 rounded-lg bg-pastypink px-3 py-1.5 text-xs font-semibold text-[#111]"
                 >
-                    Start
+                    {resuming ? "Continue interview" : "Start"}
                 </button>
             </div>
-            <button
+            {!resuming && <button
                 type="button"
-                onClick={() => {
-                    setDismissed(true);
-                    // Recorded, not just hidden — otherwise the same three come
-                    // back on the next page load.
-                    void declineInterview(artistId, questions);
+                disabled={pausing}
+                onClick={async () => {
+                    if (pauseRef.current) return;
+                    pauseRef.current = true;
+                    setPausing(true);
+                    setError(null);
+                    const result = await transport.offered(artistId, questions).catch(() => ({success: false}));
+                    if (result.success) { dismissedRef.current = true; setResuming(true); setDismissed(true); }
+                    else setError("Could not save for later. Please try again.");
+                    pauseRef.current = false;
+                    setPausing(false);
                 }}
-                aria-label="Not now"
-                className="shrink-0 rounded-full p-1 text-gray-500 hover:bg-black/5 dark:hover:bg-white/10"
+                className="min-h-11 shrink-0 rounded-lg px-2 text-xs text-gray-500 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10"
             >
-                <X size={14} />
-            </button>
+                {pausing ? "Saving…" : "Not now"}
+            </button>}
+            {error && <p role="alert" className="text-xs text-red-600 dark:text-red-300">{error}</p>}
         </div>
     );
 }

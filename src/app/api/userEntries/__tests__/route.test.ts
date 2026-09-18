@@ -14,6 +14,7 @@ jest.mock("@/server/db/drizzle", () => ({
       },
     },
     select: jest.fn(),
+    selectDistinct: jest.fn(),
   },
 }));
 
@@ -36,6 +37,8 @@ jest.mock("@/server/db/schema", () => ({
 jest.mock("drizzle-orm", () => ({
   eq: jest.fn((...args) => ({ type: "eq", args })),
   and: jest.fn((...args) => ({ type: "and", args })),
+  asc: jest.fn((col) => ({type: "asc", col})),
+  ilike: jest.fn((...args) => ({type: "ilike", args})),
   desc: jest.fn((col) => ({ type: "desc", col })),
   count: jest.fn(() => ({ type: "count" })),
 }));
@@ -78,6 +81,7 @@ describe("GET /api/userEntries", () => {
   function buildCountChain(total: number) {
     const chain: any = {};
     chain.from = jest.fn(() => chain);
+    chain.leftJoin = jest.fn(() => chain);
     chain.where = jest.fn(() => chain);
     chain.then = (resolve, reject) => Promise.resolve([{ value: total }]).then(resolve, reject);
     return chain;
@@ -100,6 +104,7 @@ describe("GET /api/userEntries", () => {
   function setupDbSelect(mockDb: any, rows: any[], total: number) {
     const countChain = buildCountChain(total);
     const dataChain = buildDataChain(rows);
+    mockDb.selectDistinct.mockReturnValue(buildDataChain([{siteName: "spotify"}]));
     mockDb.select
       .mockReturnValueOnce(countChain)
       .mockReturnValueOnce(dataChain);
@@ -155,7 +160,7 @@ describe("GET /api/userEntries", () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.entries).toEqual(mockEntries);
-    // With a siteName filter, noPaginate = true, so pageCount = 1
+    // One matching row fits on the first filtered page.
     expect(data.pageCount).toBe(1);
   });
 
@@ -195,6 +200,7 @@ describe("GET /api/userEntries", () => {
     // Make the count query fail by returning a rejecting chain
     const failChain: any = {};
     failChain.from = jest.fn(() => failChain);
+    failChain.leftJoin = jest.fn(() => failChain);
     failChain.where = jest.fn(() => failChain);
     failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error("DB error")).then(_resolve, reject);
     mockDb.select.mockReturnValueOnce(failChain);

@@ -1,5 +1,5 @@
 /* Homepage layout tokens; highlighted words share the login/account pink. */
-.home {
+.home, .searchRow {
     --home-accent: theme("colors.brandpink");
     --home-highlight: theme("colors.highlightpink");
     --home-hero: #bfbfbf;
@@ -10,13 +10,15 @@
     --home-blue-border: #81b4c2;
     --home-placeholder: #63748a;
     --home-search-icon: #9da2ae;
+}
+.home {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
     padding: 20px 20px 36px;
 }
 :global(body):has(.home) { background: #f5f4f5; }
-:global(.dark) .home {
+:global(.dark) .home, :global(.dark) .searchRow {
     --home-accent: theme("colors.brandpink");
     --home-hero: #a9a5ac;
     --home-copy: #bfb9c3;

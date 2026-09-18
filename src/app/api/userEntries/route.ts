@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db/drizzle";
 import { ugcresearch, artists } from "@/server/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, count } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const siteFilter = searchParams.get("siteName");
-  const noPaginate = searchParams.get("all") === "true" || (siteFilter && siteFilter !== "all");
+  const noPaginate = searchParams.get("all") === "true";
 
   try {
     const userId = session.user.id;
@@ -31,10 +31,15 @@ export async function GET(request: NextRequest) {
       conditions = and(conditions, eq(ugcresearch.siteName, siteFilter))!;
     }
 
+    const status = searchParams.get('status');
+    if (status === 'approved' || status === 'pending') conditions = and(conditions, eq(ugcresearch.accepted, status === 'approved'))!;
+    const search = searchParams.get('query')?.trim().slice(0, 100);
+    if (search) conditions = and(conditions, ilike(artists.name, `%${search.replace(/[%_\\]/g, '\\$&')}%`))!;
     // Total count
     const [{ value: total }] = await db
       .select({ value: count() })
       .from(ugcresearch)
+      .leftJoin(artists, eq(artists.id, ugcresearch.artistId))
       .where(conditions);
     const pageCount = noPaginate ? 1 : Math.ceil(total / PER_PAGE);
     const offset = noPaginate ? 0 : (page - 1) * PER_PAGE;
@@ -47,17 +52,19 @@ export async function GET(request: NextRequest) {
         ugcUrl: ugcresearch.ugcUrl,
         accepted: ugcresearch.accepted,
         artistName: artists.name,
+        artistId: artists.id,
       })
       .from(ugcresearch)
       .leftJoin(artists, eq(artists.id, ugcresearch.artistId))
       .where(conditions)
-      .orderBy(desc(ugcresearch.createdAt));
+      .orderBy(searchParams.get('order') === 'oldest' ? asc(ugcresearch.createdAt) : desc(ugcresearch.createdAt), desc(ugcresearch.id));
 
     const rows = noPaginate
       ? await baseQuery
       : await baseQuery.limit(PER_PAGE).offset(offset);
 
-    return Response.json({ entries: rows, total, pageCount });
+    const platforms = await db.selectDistinct({siteName: ugcresearch.siteName}).from(ugcresearch).where(eq(ugcresearch.userId, userId));
+    return Response.json({ entries: rows, total, pageCount, platforms: platforms.map(row => row.siteName).filter(Boolean) }, {headers: {'Cache-Control': 'private, no-store'}});
   } catch (error) {
     console.error("[API] userEntries error", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

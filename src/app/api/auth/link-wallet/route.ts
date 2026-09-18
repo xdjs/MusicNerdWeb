@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuthSession } from '@/server/auth';
+import { getPrivyUser } from '@/server/utils/privy';
 import {
   getUserByWallet,
   linkWalletToUser,
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+  if (typeof walletAddress !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
     return NextResponse.json(
       { error: 'Invalid wallet address' },
       { status: 400 }
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
   const normalizedWallet = walletAddress.toLowerCase();
 
   try {
+    // A browser callback is not proof of wallet ownership. Verify the linked
+    // wallet against the authenticated Privy account before exposing/merging data.
+    const privyUser = await getPrivyUser(session.user.privyUserId);
+    if (!privyUser) return NextResponse.json({ error: 'Wallet verification unavailable. Please try again.' }, { status: 503 });
+    const ownsWallet = privyUser.id === session.user.privyUserId && privyUser.linkedAccounts.some(
+      account => account.type === 'wallet' && account.address.toLowerCase() === normalizedWallet
+    );
+    if (!ownsWallet) return NextResponse.json({ error: 'Wallet is not linked to your authenticated account.' }, { status: 403 });
+
     // Check if this wallet belongs to a legacy user
     const legacyUser = await getUserByWallet(normalizedWallet);
 
@@ -62,6 +72,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         merged: true,
+        userId: legacyUser.id,
         message: 'Account merged successfully! Your contribution history has been restored.',
       });
     } else {
