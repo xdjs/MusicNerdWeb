@@ -63,7 +63,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
   };
   const { custom } = await safeProject();
   const verifyDeployment = (deployment, target) => {
-    if (deployment.projectId !== projectId || deployment.gitSource?.sha !== sha ||
+    if ((deployment.projectId ?? deployment.project?.id) !== projectId || deployment.gitSource?.sha !== sha ||
         (deployment.meta?.githubCommitSha && deployment.meta.githubCommitSha !== sha) ||
         deployment.readyState !== 'READY') throw new Error('Deployment identity or state mismatch');
     if (target === 'production' ? deployment.target !== 'production' || deployment.customEnvironment :

@@ -111,3 +111,8 @@ for (const [name, options, message, maximumWrites] of [
   const h = harness({ ...options, env: { RELEASE_ENVIRONMENT: 'production' } });
   await assert.rejects(h.run(), message); assert(mutations(h).length <= maximumWrites);
 });
+
+test('accepts the documented nested project representation', async () => {
+  const h = harness({ deployment: { projectId: undefined, project: { id: 'prj_test' } } });
+  assert.equal((await h.run()).phase, 'assigned');
+});
