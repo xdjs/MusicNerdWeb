@@ -74,7 +74,8 @@ issue that owns the problem; create a focused issue if none exists. Record the o
 problem and completion criteria, and reuse related issues instead of making duplicates.
 Every PR must link its owning issue(s) in the description. Use `Refs #123` for partial work
 and `Fixes #123` only when the PR completes the issue; verify closure after the appropriate
-merge because staging PRs may not auto-close issues. Keep unresolved follow-ups explicit.
+merge and record production promotion separately; a closed issue is not proof of a live
+deployment. Keep unresolved follow-ups explicit.
 When consolidating old issues, preserve their history and link retained work to its replacement
 issue. Work explicitly deferred or declined by the user may remain in the archive with its
 reason and original issue link, without an open replacement. An archival closure is not evidence
@@ -83,10 +84,15 @@ applies to Codex, Claude, and all other assistants through this canonical guide 
 
 ## Git, documentation and releases
 
-Feature branch off `staging` → PR to `staging` → release PR from `staging` to `main`.
-Use `username/feature-name`, conventional commits, and stage only intended named files.
-Docs follow the same route. **Do not merge or deploy without authorization.** Release approval
-remains reviewer green light → Pete tells Carl → Carl merges the release.
+Feature branch off current `origin/main` → PR to `main` → persistent test deployment →
+explicit promotion of the same approved build to production. Do not route new work through
+`staging`. Use `username/feature-name`, link the branch to its issue, use conventional commits,
+and stage only intended named files. Docs follow the same route.
+**Do not merge or promote without authorization.** Keep team review; Pete, Sweetman or Carl
+can promote an approved build once permissions are configured. Main merge and production
+promotion are separate events. The September 18 decision was confirmed by Pete September 21;
+configuration (#1310) and end-to-end verification (#1311) remain pending. For branch-only work,
+prepare branches and local checks; do not infer permission to merge from this policy change.
 
 Schema SQL and the Drizzle journal are one change. Apply required migrations before dependent
 code deploys; follow the [migration protocol](docs/development.md#database-migrations).
@@ -103,7 +109,7 @@ and distinguish locally implemented from shipped. Don't create releases solely t
 Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
 and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
 and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
-a documented-vs-observed matrix and captures on the PR, `staging` → release → `main`). Read it
+a documented-vs-observed matrix and captures on the PR, main-based branches → test deployment → promotion). Read it
 before writing or updating an issue, opening a PR, or preview-testing one.
 
 Read the available relevant skill before using it: Next.js/React for UI and server boundaries;

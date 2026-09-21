@@ -177,6 +177,26 @@ write answers. Latest's read-only test is documented [here](artist-latest.md#ver
 `SMOKE_BASE_URL` checks deployed health. Storage integration tests may write and clean up
 fixtures when storage credentials are available; don't run them against production casually.
 
+## Branching and promotion
+
+Effective policy: September 21, 2026, confirming the [September 18 R&D decision](https://docs.google.com/document/d/1wLmdfcAUakgY7BnUl_62lo24M0y81bIr5XdnviRggGg/edit), 35:59–40:40.
+
+1. Branch features and fixes from current `origin/main`; attach each branch to its issue.
+2. Review a PR to `main`. The staging branch is no longer an integration step.
+3. After an authorized merge, test the resulting build in the persistent test environment.
+4. After team approval and authorization, promote that same build to production without a second build. Pete, Sweetman and Carl should each have this ability.
+5. Record the commit and deployment id; verify production and retain the previous known-good deployment for rollback.
+
+The test environment remains separate from production even though the staging branch goes away.
+Verify data/configuration targets before integration checks; this policy does not authorize
+production writes. Main HEAD need not equal the production deployment.
+
+**Configuration status:** Carl's #1310 and Pete's #1311 remain open. Exact promotion/rollback
+commands or UI steps and shared permissions must be verified against Carl's configured setup,
+not invented here. Branching from main applies now; a merge must not be assumed to deploy only
+to test until that routing is verified. On September 21 Pete requested branch-only work: no PRs,
+merges or production promotions in that session.
+
 ## CI and release verification
 
 `.github/workflows/ci.yml` currently runs on pushes, PRs and manual dispatch. Its `test` job

@@ -1,6 +1,6 @@
 ---
 name: mn-dev
-description: How Music Nerd plans, builds and ships work through GitHub. Two halves — write and maintain a tracking issue (PR matrix, Open→Done closure notes, dated decision callouts), then deliver it (docs first, TDD red→green, one function per file, Vercel preview verification with a documented-vs-observed matrix and screenshots on the PR, staging → release → main). Use when asked to "write / update the issue", "add a row to the PR matrix", "log what shipped", "implement / ship / build out issue #N", "open PRs for the remaining rows", or "preview-test this PR".
+description: How Music Nerd plans, builds and ships work through GitHub. Two halves — write and maintain a tracking issue (PR matrix, Open→Done closure notes, dated decision callouts), then deliver it (docs first, TDD red→green, one function per file, Vercel preview verification with a documented-vs-observed matrix and screenshots on the PR, main-based branches → test deployment → production promotion). Use when asked to "write / update the issue", "add a row to the PR matrix", "log what shipped", "implement / ship / build out issue #N", "open PRs for the remaining rows", or "preview-test this PR".
 ---
 
 # Music Nerd dev loop: track it, then ship it
@@ -9,13 +9,19 @@ The bar for both halves: **the issue, the docs, the code and the live preview al
 
 The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/issues/1228) (the Timeline section, September 2026): seven PRs, a design record, a mid-stream reversal, a release, closed with every row accounted for. Read it and its PRs (#1249, #1250, #1252, #1253) before your first tracker or PR here.
 
+## Workflow decision — September 18, confirmed September 21, 2026
+
+The [Friday R&D transcript](https://docs.google.com/document/d/1wLmdfcAUakgY7BnUl_62lo24M0y81bIr5XdnviRggGg/edit), 35:59–40:40, replaces the staging-branch workflow. Carl described main-based feature branches, PRs back to main, a persistent test deployment, then promotion of the same tested build; Pete agreed. Pete confirmed September 21 that current work is branches only, based on main. Policy applies now; infrastructure cutover and end-to-end verification remain tracked in #1310/#1311 and must not be claimed complete from this documentation change.
+
+Link every working branch in its issue's Development section. For a new remote branch use `gh issue develop <issue> --base main --name <contributor>/<slug>`; create the isolated local branch from `origin/main`, then push only that feature branch when authorized. Confirm with `gh issue develop <issue> --list`. Branch creation/linking does not authorize a merge or production promotion.
+
 ## Music Nerd specifics, in one place
 
 - **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `CLAUDE.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
-- **Branches.** Feature branch off `staging` → PR to `staging` → release PR `staging` → `main`. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Docs-only branches may use `docs/<slug>`. Conventional commits.
-- **Merging.** Never merge. Release approval is reviewer green light → Pete tells Carl → Carl merges; feature PRs into `staging` are merged by Pete or a reviewer. Two merges mean two states to record: "merged to `staging`" and "on `main` via #<release>".
+- **Branches.** Feature branch off current `origin/main` → PR to `main` → persistent test deployment → explicit promotion of the same approved build to production. Do not base new work on or merge through the `staging` branch. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Docs-only branches may use `docs/<slug>`. Conventional commits.
+- **Review and promotion.** Keep team review. Pete, Sweetman or Carl should each be able to promote an approved build; Carl is not the sole release gate. Agents do not merge or promote without user authorization. Record code merged to `main`, deployment tested, and deployment promoted as separate states. A merge is not evidence of production release.
 - **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). Attribute decisions to whoever made them and where (standup, R&D sync).
-- **Databases.** Vercel previews and `staging.musicnerd.xyz` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
+- **Databases.** Keep persistent test/preview data and configuration separate from production; verify the actual deployment target before exercising integrations. Removing the staging branch does not remove the test environment or authorize copying production data. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
 - **Local and preview verification.** When a configured local environment is available, run and review changes locally; respect a requested local review before pushing. Verify the target environment before exercising integrations, preserve existing env files, and keep credentials private. When local configuration is unavailable, use the documented stub-env build to prove compilation. Local checks complement the exact-commit Vercel preview verification below; they do not replace it.
 - **Code shape.** `src/lib` is pure logic grouped by domain (`artist/`, `bio/`, `source/`, `inprocess/`); `src/server/utils` is server I/O under the same grouping. **New modules export one function each, named after the file, with a test beside the folder's other tests.** Older multi-export modules are split when next changed, not in a move. Reviewers ask for this; write it that way from the start.
 - **Browser verification.** 832 px desktop and 390 px phone (2×, touch), both themes (`localStorage` key `musicnerd-theme` = `light` | `dark`). Screenshots are committed to the existing shared orphan branch `sweetmantech/pr-screenshots` (shared archive, worktree `mnw-shots`; not a contributor-branch naming template) and linked from PR comments by `raw.githubusercontent.com/xdjs/MusicNerdWeb/<sha>/<file>.png`; never on the feature branch.
@@ -33,7 +39,7 @@ Sections in this order. Drop what does not apply; never reorder what you keep.
 1. **Lead paragraph, no heading.** What this tracks, who asked and where (linked), the current live status. Below it, blockquotes for the **scope note** and any **dated decision callouts**.
 2. **## Goal.** The end state in concrete terms: what a user sees, on which page, from which data. Name files, routes, tables.
 3. **## PRs (updated <ISO date>).** The matrix, directly under Goal.
-4. **## Design** *(when there is one)*. Link the design record and embed its boards. Records live at `docs/rnd/design/<YYYY-MM-DD>-<slug>/` with a README and PNGs. Link them on `staging` until the release, then repoint to `main`; that repoint is part of the release's done-when.
+4. **## Design** *(when there is one)*. Link the design record and embed its boards. Records live at `docs/rnd/design/<YYYY-MM-DD>-<slug>/` with a README and PNGs. Link them on the feature branch or commit until merged, then repoint to `main`; record production promotion separately.
 5. **## Done.** Closure notes, one per shipped item.
 6. **## Open — <bucket>.** Mini-specs. Buckets by sequence or gate: `Open — in merge order, pick from the top`, `Open — Phase 2 (LAST, only after …)`, `Open — after v1, not scheduled`.
 7. **## Architecture decisions.** Bold the decision, then the why, so it is not re-litigated.
@@ -42,7 +48,7 @@ Sections in this order. Drop what does not apply; never reorder what you keep.
 ## The PR matrix
 
 ```
-## PRs (updated 2026-09-14 — all merged; #1252 on `main` via #1251; #1253 on `staging`)
+## PRs (historical pre-cutover example, updated 2026-09-14 — all merged; #1252 on `main` via #1251; #1253 on `staging`)
 
 | PR | Item | State |
 |----|------|-------|
@@ -52,16 +58,16 @@ Sections in this order. Drop what does not apply; never reorder what you keep.
 | MusicNerdWeb#TBD | Per-source cap on Latest cards | ⏳ not started |
 ```
 
-- **PR**: linked, full ref; planned PRs are `MusicNerdWeb#TBD` rows so the fleet is visible before code exists; every tracker with code has a **release row**.
+- **PR**: linked, full ref; planned PRs are `MusicNerdWeb#TBD` rows so the fleet is visible before code exists; track production promotion separately from code merge; do not create a staging-to-main release PR.
 - **Item**: one line, worded to match the Done or Open item it backs.
-- **State**: `⏳ not started` · `🔄 open — <verification status>` · `✅ merged <ISO> to \`staging\` — see Done` · then `on \`main\` <ISO> via #<release>`.
+- **State**: `⏳ not started` · `🔄 open — <verification status>` · `✅ merged <ISO> to \`main\` — test deployment pending` · `verified test deployment <id/SHA>` · `promoted to production <ISO, deployment id/SHA>`.
 - Below the table, an **order** blockquote when sequence matters; rewrite it as *what happened* once it has (the reference records that #1253 merged one minute after the release and so missed `main`).
 
 **Update a row in the same session its PR changes state.** Replace `#TBD` the moment the PR opens. A stale row misleads everyone who trusts the matrix.
 
 ## Open → Done
 
-An item is **not** closed by flipping the checkbox. When it ships, rewrite it as a closure note under `## Done`:
+An item is **not** closed by flipping the checkbox. When it ships, rewrite it as a closure note under `## Done`. The following is historical release evidence; new closure notes record main merge and production promotion separately:
 
 ```
 - [x] **[MusicNerdWeb#1252](url) — merge Timeline into Latest.**
@@ -112,13 +118,13 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 2. Docs first                      (the contract: docs/<feature>.md, design record, dated notes)
 3. Code by TDD                     (red → green → refactor; one function per file)
 4. npm run ci                      (types, lint, tests; build with the stub env)
-5. Open the PR to staging          (link the issue; update the matrix row now)
+5. Open the PR to main             (link the issue; update the matrix row now)
 6. Wait for the preview            (poll the deployment for YOUR SHA)
 7. Verify on the preview           (every done-when, both viewports, both themes, real data)
 8. Comment: matrix + captures      (documented vs observed, hard numbers, per SHA)
 9. Triage reviews                  (Codex bot and humans: validate, fix, reply with commit + re-verification)
 10. Re-run 6→8 after EVERY behaviour-changing push
-11. Hand off                       (issue row → closure note when merged; release PR next)
+11. Hand off                       (record merge, test deployment, and approved promotion separately)
 ```
 
 ## 1. Read the ground
@@ -126,7 +132,7 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 - From the issue: the contract, every done-when (your test plan), the merge order, source references (re-check any external API doc; if it is client-rendered, read it in a browser, not with a fetch).
 - `CLAUDE.md`, `docs/development.md`, and the feature's contract doc if one exists (`docs/artist-latest.md` for anything touching Latest).
 - **Find the nearest sibling and mirror it.** The Latest section (`LatestSection` → `getArtistLatest` → `LatestCards`) is the model for a data-backed profile section; `src/lib/inprocess/` is the model for a lib domain. Consistency with the neighbour beats cleverness.
-- Work in a worktree off `staging` (`git worktree add ../mnw-<x> -b <contributor>/<slug> origin/staging`, symlink `node_modules` from the main checkout). Say up front when a PR is plumbing that renders nothing on its own, so a stacked PR does not surprise the reviewer.
+- Work in a worktree off `main` (`git worktree add ../mnw-<x> -b <contributor>/<slug> origin/main`, symlink `node_modules` from the main checkout). Say up front when a PR is plumbing that renders nothing on its own, so a stacked PR does not surprise the reviewer.
 
 ## 2. Docs first
 
@@ -152,7 +158,7 @@ The stub build proves compilation, not integrations. Never write those values to
 
 ## 4–5. Open the PR, update the matrix
 
-PR body: what changes and why, in the user's terms; trade-offs you are introducing (a read moved inside a Suspense boundary, a cache TTL); what was verified locally; "preview verification follows in a comment". Base `staging`. Link the issue. **Replace the `#TBD` row on the issue in the same session.**
+PR body: what changes and why, in the user's terms; trade-offs you are introducing (a read moved inside a Suspense boundary, a cache TTL); what was verified locally; "preview verification follows in a comment". Base `main`. Link the issue. **Replace the `#TBD` row on the issue in the same session.**
 
 ## 6. Find the preview for your SHA
 
@@ -198,7 +204,9 @@ The Codex bot (`chatgpt-codex-connector`) reviews every PR with P1/P2 findings. 
 
 ## 10–11. Hand off
 
-Never merge. When a PR is merged (by Pete or a reviewer), move its issue row to `✅` and write the closure note the same session. When the release PR is written, its "What ships" lists every row on `staging` since the last release, with a verification table against `staging.musicnerd.xyz`; when it lands on `main`, verify production, repoint the design-record links, and record which rows it carried. If a chore or fix merges to `staging` after the release, its row says so — it is not on `main` until the next one.
+After an authorized merge to `main`, record its SHA and verify the resulting persistent test deployment. When the team approves it and promotion is authorized, promote that exact build rather than rebuilding it, then verify production and record the deployment id, SHA, promoter and time. Keep rollback to the previous known-good deployment available. Do not equate `main` with the currently serving production build. Repoint design links after merge and close issues only against their actual completion criteria.
+
+Carl owns deployment configuration and shared promotion permissions (#1310); Pete owns workflow verification and these instructions (#1311). Until the configuration is verified, prepare main-based branches and local checks without assuming a merge is safe or that promotion commands exist. A branch-only user instruction means stop before PR/merge/promotion unless they expand that scope.
 
 ## Checklist before you say "done"
 
@@ -210,4 +218,4 @@ Never merge. When a PR is merged (by Pete or a reviewer), move its issue row to 
 - [ ] Verification comment per SHA with a documented-vs-observed table and **captures**; unexercised paths named.
 - [ ] Every behaviour-changing push re-verified on its own preview.
 - [ ] Reviews triaged on the thread with commit + re-verification.
-- [ ] Nothing merged by you; nothing secret in any public text.
+- [ ] No unauthorized merge or promotion; nothing secret in any public text.

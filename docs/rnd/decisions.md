@@ -10,6 +10,10 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-18 · R&D deployment workflow (confirmed September 21)
+
+- Replace the staging branch with main-based feature branches and PRs to main; keep a persistent test environment and promote the same tested build to production. Retain team review, with Pete, Sweetman and Carl able to promote. Carl owns setup (#1310); Pete owns verification/docs (#1311). Policy adopted; infrastructure completion is not implied. — Carl and Pete, [transcript](https://docs.google.com/document/d/1wLmdfcAUakgY7BnUl_62lo24M0y81bIr5XdnviRggGg/edit), 35:59–40:40; Pete's September 21 confirmation.
+
 ## 2026-09-11 · Pete's local profile review
 
 - Choose option 1 for section navigation: a glass segmented bar, supporting both dragging the selection and clicking a section. — Pete
@@ -210,9 +214,6 @@ above supersedes the initial About placement.
 
 Raised, not settled. Move up into a dated section when they close.
 
-- **Drop the staging branch?** Historical proposal from August 20, not adopted in the current
-  guide. All work, including docs, continues through staging. Revisit only as an explicit team
-  workflow decision.
 - **Longer-term profile editing and layout.** August 20 proposed a wizard/per-section
   comparison; September 3 reviewed a working wizard and September 7 reopened the mobile
   layout. No final redesign was selected. Follow the current design task, not a blanket
