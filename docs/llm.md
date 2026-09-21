@@ -104,6 +104,10 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 - **`Promise.race` timeouts** stay as they are: each site keeps its own race, the same number
   and the same error message its callers match on. The SDK call is not aborted when the race is
   lost, which is also what happened before.
+- **Retries** are the SDK's default, 2 on retryable errors (`ai` 7: `maxRetries` "Default: 2").
+  The old client retried more: `@google/genai` 1.45.0 defaulted to 5 attempts including the first
+  (`DEFAULT_RETRY_ATTEMPTS`), on 429 and 5xx, and no site overrode it. A lost race leaves the
+  request retrying in the background under both.
 - **Response text** → `result.text`.
 
 ## Swapping a model
