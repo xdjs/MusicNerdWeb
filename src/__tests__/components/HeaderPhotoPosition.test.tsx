@@ -4,10 +4,11 @@ import HeaderPhotoPosition from '@/app/artist/[id]/_components/HeaderPhotoPositi
 
 const props = { artistId: 'a1', imageUrl: '/photo.jpg', position: 20, onChange: jest.fn(), onClose: jest.fn() };
 beforeEach(() => { jest.clearAllMocks(); });
-it('previews slider changes and cancels without a write', () => {
+it('previews keyboard adjustments on the photo and cancels without a write', () => {
   render(<HeaderPhotoPosition {...props} />);
-  fireEvent.change(screen.getByRole('slider', { name: 'Vertical position' }), { target: { value: '65' } });
-  expect(props.onChange).toHaveBeenLastCalledWith(65);
+  expect(document.querySelector('input[type=range]')).not.toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Photo position' }), { key: 'ArrowUp' });
+  expect(props.onChange).toHaveBeenLastCalledWith(21);
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(props.onChange).toHaveBeenLastCalledWith(20);
   expect(props.onClose).toHaveBeenCalled();
@@ -15,10 +16,10 @@ it('previews slider changes and cancels without a write', () => {
 it('saves the image-specific position, and closes only after success', async () => {
   const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
   render(<HeaderPhotoPosition {...props} />);
-  fireEvent.change(screen.getByRole('slider'), { target: { value: '70' } });
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Photo position' }), { key: 'End' });
   fireEvent.click(screen.getByRole('button', { name: 'Save position' }));
   await waitFor(() => expect(props.onClose).toHaveBeenCalled());
-  expect(fetchMock).toHaveBeenCalledWith('/api/artist/header-position', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ artistId: 'a1', imageUrl: '/photo.jpg', y: 70 }) }));
+  expect(fetchMock).toHaveBeenCalledWith('/api/artist/header-position', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ artistId: 'a1', imageUrl: '/photo.jpg', y: 100 }) }));
   fetchMock.mockRestore();
 });
 it('keeps the draft and permits retry when saving fails', async () => {

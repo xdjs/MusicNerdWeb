@@ -21,7 +21,8 @@ left-aligned within the approved portrait layout; placeholder About is centered.
 ## Photo repositioning — September 21 follow-up
 
 Pete approved the layout fix and requested vertical photo positioning. In edit mode,
-Reposition photo opens drag controls and an accessible vertical-position slider.
+Reposition photo opens direct drag controls. The photo also accepts up/down arrow
+keys when focused; no visible slider or percentage is shown (Pete’s review feedback).
 Save position persists framing; Cancel restores the previously saved position. The
 same percentage is used on desktop/mobile, with a phone crop preview. Existing
 photos remain top-aligned until positioned. Photos with no vertical crop cannot
@@ -43,7 +44,7 @@ Local previews simulate persistence in this browser and are labeled accordingly.
 Local verification for repositioning: route tests cover authentication, edit denial,
 invalid input, persistence errors and missing artists. Component/page tests cover
 Save/Cancel, retry and image-specific framing. Chromium and WebKit checks cover
-832/390 widths, both themes, keyboard controls, mouse drag, reload and no overflow.
+832/390 widths, both themes, keyboard controls on the photo, mouse drag, reload and no overflow.
 An additional Chromium touch-emulation check uses a tall fixture with vertical crop.
 The migration was exercised in isolated PGlite with RLS: mnweb can save/read, and
 anon/authenticated cannot write. This is not live Supabase permission verification;
