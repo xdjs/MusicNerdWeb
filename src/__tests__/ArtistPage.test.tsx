@@ -55,7 +55,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait, initialPosition }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -144,6 +144,16 @@ describe('ArtistProfile page', () => {
         it('uses the current portrait layout for a provider photo before any upload', async () => {
             await renderArtistPage();
             expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'true');
+        });
+
+        it('passes saved framing only for the photo it belongs to', async () => {
+            (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, customImage: '/artist-images/upload.jpg', headerImagePosition: { imageUrl: '/artist-images/upload.jpg', y: 64 } });
+            const { unmount } = await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-position', '64');
+            unmount();
+            (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, customImage: '/artist-images/new.jpg', headerImagePosition: { imageUrl: '/artist-images/upload.jpg', y: 64 } });
+            await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-position', '0');
         });
 
         it('uses the portrait layout for an uploaded photo without a provider photo', async () => {

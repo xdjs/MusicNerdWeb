@@ -83,6 +83,7 @@ const mockArtist: Artist = {
     bluesky: null,
     inprocess: null,
     linkOrder: null,
+    headerImagePosition: null,
 };
 
 // Session removed - authentication disabled

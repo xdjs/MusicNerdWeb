@@ -207,7 +207,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     />
                 )}
 
-                <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
+                <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
+                    initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
                     bio={heroBio} listenLinks={listenLinks}>
