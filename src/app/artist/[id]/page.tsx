@@ -236,7 +236,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </Suspense>
 
                 {/* Listening, social and support links share one destination. */}
-                <RevealSection id="mn-links" className="glass p-4 sm:p-5 space-y-3">
+                <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-black dark:text-white text-xl font-bold">Links</h2>
                         <AddArtistData

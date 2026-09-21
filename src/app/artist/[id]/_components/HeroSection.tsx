@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useContext, useState, useEffect, type ReactNode } from "react";
+import styles from "./EditHighlight.module.css";
 import Image from "next/image";
 import HeaderPhotoPosition from "./HeaderPhotoPosition";
 import { Camera, MoveVertical } from "lucide-react";
@@ -22,7 +23,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
-    const { isEditing } = useContext(EditModeContext);
+    const { isEditing, canEdit } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
     const [portrait, setPortrait] = useState(hasPortrait);
@@ -66,6 +67,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         }
     }
 
+    const highlighted = isEditing && canEdit;
     const photoControl = isEditing && !repositioning && <>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
             onChange={e => {
@@ -92,8 +94,8 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
     </>;
 
-    return <header className="space-y-4">
-        {portrait ? <div data-artist-portrait className="relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl">
+    return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
+        {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
             <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
             <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
             {photoControl}

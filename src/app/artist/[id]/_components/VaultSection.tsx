@@ -19,7 +19,7 @@ export default function VaultSection({ artistId, pendingSources, approvedSources
   const { isEditing, canEdit } = useContext(EditModeContext);
 
   return (
-    <RevealSection className="glass p-4 sm:p-5 space-y-5">
+    <RevealSection editable className="glass p-4 sm:p-5 space-y-5">
       <div className="space-y-2">
         <h2 className="text-black dark:text-white text-xl font-bold">Lore</h2>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Stories, interviews, and other sources curated by the artist.</p>
