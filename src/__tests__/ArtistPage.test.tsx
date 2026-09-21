@@ -141,6 +141,24 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('hero-section')).toBeInTheDocument();
         });
 
+        it('uses the current portrait layout for a provider photo before any upload', async () => {
+            await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'true');
+        });
+
+        it('uses the portrait layout for an uploaded photo without a provider photo', async () => {
+            (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, customImage: '/artist-images/upload.jpg' });
+            (musicPlatformData.getArtist as jest.Mock).mockResolvedValue({ ...mockPlatformArtist, imageUrl: null });
+            await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'true');
+        });
+
+        it('keeps the fallback layout when there is no artist photo', async () => {
+            (musicPlatformData.getArtist as jest.Mock).mockResolvedValue({ ...mockPlatformArtist, imageUrl: null });
+            await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'false');
+        });
+
         it('renders artist links section', async () => {
             await renderArtistPage();
             expect(screen.getAllByTestId('artist-links').length).toBeGreaterThan(0);

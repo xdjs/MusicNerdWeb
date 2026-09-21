@@ -208,7 +208,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 )}
 
                 <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
-                    hasPortrait={!!customImageUrl(artist.customImage)}
+                    hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
                     bio={heroBio} listenLinks={listenLinks}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
