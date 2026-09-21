@@ -1,3 +1,12 @@
+## Main-only release transition — September 21
+
+Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319).
+The workflow/runbook and repository transcript publisher are under implementation; not yet
+shipped. [Release runbook](docs/releases.md) is the intended contract. Live settings, credentials,
+staging validation, human PR review, production approval and live Apps Script verification are
+separate completion gates. Preserve staging until those gates and no-unique-work checks pass.
+Historical handoff sections below retain their original branch/release context.
+
 # MEMORY.md — Music Nerd engineering handoff
 
 ## User profile delivery — September 16

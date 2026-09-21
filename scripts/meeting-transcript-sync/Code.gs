@@ -1,6 +1,6 @@
 /** Google Apps Script V8. Run previewSync, then installTrigger. See README.md. */
 const SYNC = Object.freeze({
-  repo: 'xdjs/MusicNerdWeb', base: 'staging', zone: 'America/New_York',
+  repo: 'xdjs/MusicNerdWeb', base: 'main', zone: 'America/New_York',
   folder: 'docs/rnd/transcripts', lookbackDays: 14, quietMinutes: 15,
   titles: { 'Music Nerd Stand Up': 'standup', 'Music Nerd R&D': 'rnd' },
 });

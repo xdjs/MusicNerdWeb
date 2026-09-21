@@ -71,7 +71,7 @@ test('Markdown preserves Unicode, whitespace and embedded fences; source IDs pre
 });
 
 function githubRuntime() {
-  const files = new Map(), refs = new Set(['staging']), prs = [], calls = [];
+  const files = new Map(), refs = new Set(['main']), prs = [], calls = [];
   let failPR = false;
   const r = runtime();
   r.github_ = (_cfg, method, url, body, missing) => {
@@ -122,8 +122,8 @@ test('rejected content stays closed, and merged unchanged content needs no write
   const before = h.calls.filter(c => c.method !== 'get').length;
   h.r.publish_({}, item);
   assert.equal(h.calls.filter(c => c.method !== 'get').length, before);
-  h.files.set('staging:/contents/' + item.path, { encoding: 'base64', content: Buffer.from(item.content).toString('base64') });
-  assert.equal(h.r.publish_({}, item), 'already on staging');
+  h.files.set('main:/contents/' + item.path, { encoding: 'base64', content: Buffer.from(item.content).toString('base64') });
+  assert.equal(h.r.publish_({}, item), 'already on main');
   assert.equal(h.calls.filter(c => c.method !== 'get').length, before);
 });
 

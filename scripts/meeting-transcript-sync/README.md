@@ -8,8 +8,7 @@ include artist interviews, design sessions, unrelated attachments, or all files 
 Runs in Pete's Google Apps Script account on meeting weekdays, independently of his computer.
 There is no MusicNerdWeb app route, database change, AI summarizer, or hosting dependency.
 Uses read-only Google Calendar, Drive metadata, and Docs access. A repo-scoped GitHub token
-creates transcript branches and PRs targeting `staging`; merges/releases keep their normal
-review path. Branches and PRs are public immediately, before merge.
+creates transcript branches and PRs targeting `main`; squash merges require review and CI, and production remains separately approved. Branches and PRs are public immediately, before merge.
 
 ## Schedule
 
@@ -124,3 +123,11 @@ References: [Apps Script time triggers](https://developers.google.com/apps-scrip
 [Google Docs tabs](https://developers.google.com/workspace/docs/api/how-tos/tabs),
 [Calendar attachments](https://developers.google.com/workspace/calendar/api/v3/reference/events),
 [GitHub file writes](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents).
+
+## Main-only transition (September 2026)
+
+`SYNC.base` is `main`. Updating this repository does not update the running Apps Script.
+In Pete's **Music Nerd — Meeting Transcript Sync** editor, change only `SYNC.base` from
+`staging` to `main`, save, run `previewSync`, and verify the next real transcript PR targets
+main. Existing open PRs must be retargeted separately. No trigger reinstallation, credential
+change or web-app deployment is needed. Keep the old branch until the live change is verified.

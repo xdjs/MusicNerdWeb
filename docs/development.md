@@ -179,16 +179,19 @@ fixtures when storage credentials are available; don't run them against producti
 
 ## CI and release verification
 
-`.github/workflows/ci.yml` currently runs on pushes, PRs and manual dispatch. Its `test` job
-runs type checking, lint and `npm test`; `build` follows. The separate coverage job is disabled.
-Local `npm run ci` uses `test:ci` with coverage, so the local and remote commands are not yet
-identical. A pending local workflow cleanup aligns them and avoids duplicate feature push/PR
-runs; it is not part of this docs release. Post-deploy smoke remains a separate workflow.
+`.github/workflows/ci.yml` runs on main pushes, PRs and manual dispatch. Required `test` runs
+TypeScript, lint, Jest with coverage and release/transcript regression tests; `build` compiles
+with non-secret stubs. These checks cannot establish live integration behavior.
+
+After both pass on main, the gated release jobs build the exact SHA in custom staging, validate
+its immutable URL, and wait for production approval. Production builds the same SHA again with
+production configuration before checks and promotion. See [releases](releases.md) for setup,
+resource isolation, concurrency, migration approval, evidence and rollback. Feature previews
+continue through Vercel Git integration. The separate post-deploy smoke is supplementary.
 
 Check required reviews and checks on the **current head SHA**. For failed checks, read logs
-and separate defects from service outages before retrying. Don't keep requesting reviews that
-add no new evidence. After authorized release, check deployment and smoke for the merged SHA,
-not merely a green PR or a reachable old deployment.
+and separate defects from service outages before retrying. After authorized release, verify
+the deployment record and smoke for the merged SHA, not a reachable old deployment.
 
 ## Database migrations
 
