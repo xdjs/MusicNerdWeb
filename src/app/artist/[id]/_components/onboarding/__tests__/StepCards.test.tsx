@@ -33,7 +33,7 @@ describe('ProfilesCard — accepted-by-default', () => {
         render(<ProfilesCard payload={payload} onConfirm={onConfirm} onFindMore={onFindMore} disabled={false} />);
 
         fireEvent.click(screen.getByLabelText(/remove instagram/i));
-        fireEvent.change(screen.getByPlaceholderText(/paste a profile/i), { target: { value: 'https://tiktok.com/@nova' } });
+        fireEvent.change(screen.getByPlaceholderText(/paste a profile/i), { target: { value: '  tiktok.com/@nova  ' } });
         fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
 
         fireEvent.click(screen.getByRole('button', { name: /look for more/i }));
