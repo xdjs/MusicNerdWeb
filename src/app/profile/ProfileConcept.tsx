@@ -6,7 +6,7 @@ import CollectionArtistImage from './CollectionArtistImage';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './ProfileConcept.module.css';
-import ArtistUpdateFilter from './ArtistUpdateFilter';
+import ArtistUpdateFilter from '@/components/ArtistUpdateFilter';
 import type { LiveProfileModel } from '@/lib/profile/types';
 import SelfEditHistory from './SelfEditHistory';
 import { latestDateSortTime } from '@/lib/artist/artistLatest';

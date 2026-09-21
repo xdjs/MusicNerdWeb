@@ -5,7 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
-import { latestDateLabel, type ArtistLatestItem, type LatestKind } from '@/lib/artist/artistLatest';
+import ArtistUpdateFilter from '@/components/ArtistUpdateFilter';
+import { matchesProfileUpdateFilter } from '@/lib/profile/matchesProfileUpdateFilter';
+import { PROFILE_UPDATE_FILTERS } from '@/lib/profile/profileUpdateFilters';
+import { latestDateLabel, type ArtistLatestItem } from '@/lib/artist/artistLatest';
 import { MOMENT_KIND_LABELS } from '@/lib/inprocess/inprocessTimeline';
 
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
@@ -36,10 +39,8 @@ function CardImage({ item, artistImage, artistName, detail = false }: { item: Ar
 export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {} }: {
     items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
 }) {
-    const [chosen, setFilter] = useState<LatestKind | 'all'>('all');
-    // The component outlives one artist's items (client navigation between profiles keeps
-    // this state); a kind the new artist does not have falls back to All, as Timeline did.
-    const filter = chosen === 'all' || items.some(item => item.kind === chosen) ? chosen : 'all';
+    const [choice, setChoice] = useState({artistName, value: 'All'});
+    const filter = choice.artistName === artistName ? choice.value : 'All';
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
     const selectedArtistName = selected ? itemArtistNames[selected.id] || artistName : artistName;
     const artistAction = selected && itemArtistNames[selected.id] ? (itemArtistUrls[selected.id]
@@ -48,7 +49,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
     const releaseLinks = selected ? releaseListeningLinks(selected, artistName, [], artistListeningLinks) : [];
     const galleryRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ previous: false, next: false });
-    const visible = items.filter(item => filter === 'all' || item.kind === filter);
+    const visible = items.filter(item => matchesProfileUpdateFilter(item.kind, filter));
     const updateScrollBounds = useCallback(() => {
         const gallery = galleryRef.current;
         if (!gallery) return;
@@ -75,13 +76,8 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
     }
     return <section id={sectionId} aria-labelledby={`${sectionId}-heading`} className="glass space-y-4 p-4 sm:p-5">
         <h2 id={`${sectionId}-heading`} className={hideHeading ? "sr-only" : "text-xl font-bold text-black dark:text-white"}>{heading}</h2>
-        {showFilters && items.length > 0 && <div className="flex flex-wrap gap-2" aria-label="Filter latest activity">
-            {(['all', ...Object.keys(categories).filter(kind => items.some(item => item.kind === kind))] as const).map(kind =>
-                <button key={kind} type="button" aria-pressed={filter === kind} onClick={() => setFilter(kind as LatestKind | 'all')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${filter === kind ? 'border-black/20 bg-black/10 text-foreground dark:border-white/30 dark:bg-white/15' : 'border-black/10 bg-white/60 text-gray-700 hover:border-pastypink dark:border-white/15 dark:bg-white/5 dark:text-gray-300'}`}>
-                    {kind === 'all' ? 'All' : categories[kind as LatestKind]}
-                </button>)}
-        </div>}
+        {showFilters && items.length > 0 && <ArtistUpdateFilter value={filter} onValueChange={value => setChoice({artistName, value})} />}
+        {items.length > 0 && visible.length === 0 && <p role="status" className="p-6 text-sm text-muted-foreground">No {PROFILE_UPDATE_FILTERS.find(section => section.id === filter)?.label} updates yet.</p>}
         {items.length === 0 ? <p className="glass rounded-2xl p-6 text-sm text-gray-600 dark:text-gray-300">
             {unavailable ? 'Latest updates couldn’t load right now. Please try again later.' : `When ${artistName} shares new music, Instagram posts or interview answers, they’ll appear here.`}
         </p> : <>
@@ -103,7 +99,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
                         {itemArtistNames[item.id] && <div className="mb-3 min-h-6 text-sm font-semibold text-foreground">{itemArtistUrls[item.id] ? <Link href={itemArtistUrls[item.id]} className="inline-flex items-center gap-1.5 hover:underline">{itemArtistNames[item.id]}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{itemArtistNames[item.id]} <span className="font-normal text-muted-foreground">· Sample</span></span>}</div>}
-                        <button type="button" onClick={() => { setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter }); }} aria-label={`Read ${item.title}`}
+                        <button type="button" onClick={() => { setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter: filter.toLowerCase() }); }} aria-label={`Read ${item.title}`}
                             className="group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                             <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">

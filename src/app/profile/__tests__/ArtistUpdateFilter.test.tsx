@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ArtistUpdateFilter from '../ArtistUpdateFilter';
+import ArtistUpdateFilter from '@/components/ArtistUpdateFilter';
 it('offers four groups and moves the selection with arrow keys and End', ()=>{
   Element.prototype.scrollIntoView=jest.fn();
   function Example(){const [value,setValue]=useState('All');return <ArtistUpdateFilter value={value} onValueChange={setValue}/>;}
