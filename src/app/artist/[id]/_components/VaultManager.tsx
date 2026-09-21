@@ -1,4 +1,6 @@
 "use client";
+import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
+
 
 import { useContext, useState, useRef, useMemo, useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -165,8 +167,12 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleAddUrl() {
-    const url = newUrl.trim();
-    if (!url) return;
+    const url = normalizePublicUrl(newUrl);
+    if (!url) {
+      toast({ title: "Enter a valid website address", description: "For example, yourname.com", variant: "destructive" });
+      return;
+    }
+    setNewUrl(url);
     setAddingUrl(true);
     try {
       const res = await addVaultSource(artistId, url);
@@ -262,7 +268,8 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
       {/* Add a source by URL */}
       <div className="flex gap-2">
         <Input
-          type="url"
+          type="text"
+          inputMode="url"
           placeholder="Add a source by URL…"
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}

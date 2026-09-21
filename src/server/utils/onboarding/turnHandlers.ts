@@ -1,3 +1,4 @@
+import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
 /**
  * The forced onboarding chain. The SERVER owns the step sequence; the model
  * never decides what happens next. Every handler is idempotent — a re-run
@@ -914,7 +915,10 @@ export async function applyProfileLinkDecisions(
     // duplicate paste) are looked up once and skipped rather than
     // re-inserted as a second row.
     let existingVaultStatusByUrl: Map<string, string> | undefined;
-    for (const raw of addedLinks) {
+    for (const entry of addedLinks) {
+        const url = normalizePublicUrl(entry.url);
+        if (!url || isUnsafeUrl(url)) { unrecognized.push(entry.url); continue; }
+        const raw = { ...entry, url };
         let extracted;
         try {
             extracted = await extractArtistId(raw.url);
@@ -1447,7 +1451,9 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
             await updateVaultSourceStatus(decision.sourceId, decision.status);
         }
         // Artist-pasted links go straight to approved — they added them themselves.
-        for (const url of turn.addedUrls ?? []) {
+        for (const rawUrl of turn.addedUrls ?? []) {
+            const url = normalizePublicUrl(rawUrl);
+            if (!url) continue;
             try {
                 if (isUnsafeUrl(url)) continue;
                 const source = await insertVaultSource({ artistId, url, type: inferTypeFromUrl(url), status: "approved" });
