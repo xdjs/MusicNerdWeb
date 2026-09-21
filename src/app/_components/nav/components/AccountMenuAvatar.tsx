@@ -15,7 +15,7 @@ export default function AccountMenuAvatar({userId}: {userId: string}) {
     retry: false,
   });
   const url = photo.isError ? null : photo.data?.url;
-  return <div className="profile-account-avatar w-8 h-8 rounded-full overflow-hidden">
+  return <div className="profile-account-avatar w-full h-full rounded-full overflow-hidden">
     <img src={url && url !== failedUrl ? url : '/default_pfp_pink.png'} alt="Your profile"
       className="w-full h-full rounded-full object-cover" onError={() => setFailedUrl(url ?? null)} />
   </div>;

@@ -432,7 +432,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               aria-label="Account menu"
               type="button"
               size="lg"
-              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
+              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 rounded-full p-0 flex items-center justify-center"
             >
               <X aria-hidden="true" className="profile-account-close-icon hidden" size={20} />
               {session?.user?.id && <AccountMenuAvatar key={session.user.id} userId={session.user.id} />}
