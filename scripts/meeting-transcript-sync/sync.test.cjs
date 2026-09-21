@@ -79,10 +79,11 @@ function githubRuntime() {
     const u = new URL(url, 'https://github.test');
     if (u.pathname === '/pulls' && method === 'get') return prs.filter(p =>
       (u.searchParams.get('state') === 'all' || p.state === 'open') &&
+      (!u.searchParams.get('base') || u.searchParams.get('base') === p.base.ref) &&
       (!u.searchParams.get('head') || u.searchParams.get('head') === 'xdjs:' + p.head.ref));
     if (u.pathname === '/pulls' && method === 'post') {
       if (failPR) { failPR = false; throw new Error('Transient PR failure'); }
-      const pr = { html_url: 'https://github.test/pr/' + (prs.length + 1), state: 'open', head: { ref: body.head, repo: { full_name: 'xdjs/MusicNerdWeb' } } };
+      const pr = { html_url: 'https://github.test/pr/' + (prs.length + 1), state: 'open', base: { ref: body.base }, head: { ref: body.head, repo: { full_name: 'xdjs/MusicNerdWeb' } } };
       prs.push(pr); return pr;
     }
     if (u.pathname.startsWith('/git/ref/heads/')) {
@@ -228,4 +229,15 @@ test('retry skips a completed scan but recovers missing transcripts, failures, b
     h.values['schedule:lastRun'] = state;
     const before = calls; h.r.retryScheduledSync(); assert.equal(calls, before + 1);
   }
+});
+
+for (const oldState of ['closed', 'open']) test(`unchanged transcript PR on former staging base stays ${oldState}`, () => {
+  const h = githubRuntime(), item = h.r.render_(event(), 'standup', 'source', 'Original\n');
+  const receipt = h.r.publish_({}, item);
+  h.prs[0].base.ref = 'staging';
+  h.prs[0].state = oldState;
+  const before = h.calls.filter(c => c.method !== 'get').length;
+  assert.equal(h.r.publish_({}, item), receipt);
+  assert.equal(h.prs.length, 1);
+  assert.equal(h.calls.filter(c => c.method !== 'get').length, before);
 });

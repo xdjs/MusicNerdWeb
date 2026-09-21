@@ -127,7 +127,9 @@ References: [Apps Script time triggers](https://developers.google.com/apps-scrip
 ## Main-only transition (September 2026)
 
 `SYNC.base` is `main`. Updating this repository does not update the running Apps Script.
-In Pete's **Music Nerd — Meeting Transcript Sync** editor, change only `SYNC.base` from
-`staging` to `main`, save, run `previewSync`, and verify the next real transcript PR targets
-main. Existing open PRs must be retargeted separately. No trigger reinstallation, credential
+In Pete's **Music Nerd — Meeting Transcript Sync** editor, change `SYNC.base` from
+`staging` to `main` and remove the `base` query parameter from `publish_`'s all-state PR lookup
+(the `/pulls?state=all&head=...` request). Keeping that lookup independent of base preserves
+previously rejected transcript PRs. Save, run `previewSync`, and verify the next real transcript
+PR targets main. Existing open PRs must be retargeted separately. No trigger reinstallation, credential
 change or web-app deployment is needed. Keep the old branch until the live change is verified.

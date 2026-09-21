@@ -141,8 +141,15 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
   } else {
     // Vercel assigns the custom environment domain when its build becomes Ready.
     // This job remains serialized for the entire build and validation, without cancellation.
-    const alias = await vercel('/v4/aliases/staging.musicnerd.xyz');
-    if (alias.deploymentId !== ready.id) throw new Error('Staging alias assignment mismatch');
+    let assigned = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const status = await vercel(`/v13/deployments/${ready.id}`);
+      if (status.aliasError) throw new Error('Staging alias assignment failed');
+      const alias = await vercel('/v4/aliases/staging.musicnerd.xyz');
+      if (alias.deploymentId === ready.id) { assigned = true; break; }
+      await sleep(2_000);
+    }
+    if (!assigned) throw new Error('Staging alias assignment did not complete');
   }
   evidence.phase = 'assigned';
   record({ ...evidence });

@@ -254,7 +254,7 @@ function publish_(cfg, item) {
   } while (!open && batch.length === 100);
   const branch = open ? open.head.ref : prefix + item.digest.slice(0, 16);
   const prs = github_(cfg, 'get', '/pulls?state=all&head=' + encodeURIComponent('xdjs:' + branch) +
-    '&base=' + encodeURIComponent(SYNC.base) + '&per_page=100');
+    '&per_page=100');
   if (!open && prs.length) return prs[0].html_url; // Do not reopen rejected/merged content.
   let ref = github_(cfg, 'get', '/git/ref/heads/' + branch, null, true);
   if (!ref) {

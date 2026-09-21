@@ -10,7 +10,7 @@ function harness(options = {}) {
     VERCEL_TOKEN: 'private-token', GH_TOKEN: 'github-private-token',
     VERCEL_AUTOMATION_BYPASS_SECRET: 'private-bypass', RELEASE_ENVIRONMENT: 'staging', ...options.env };
   const records = [], calls = [];
-  let created = false, promoted = false, assigned = false, mainCalls = 0;
+  let created = false, promoted = false, assigned = false, mainCalls = 0, aliasCalls = 0;
   const stage = { id: 'dpl_stage', url: 'music-nerd-stage.vercel.app', projectId: 'prj_test',
     gitSource: { sha }, readyState: 'READY', customEnvironment: { id: 'env_stage' }, target: null };
   const candidate = { ...stage, id: 'dpl_candidate', url: 'music-nerd-candidate.vercel.app',
@@ -41,7 +41,10 @@ function harness(options = {}) {
     }
     if (parsed.pathname === '/v10/projects/prj_test/promote/dpl_candidate') { promoted = true; return json({}); }
     if (parsed.pathname === '/v2/deployments/dpl_candidate/aliases') { assigned = true; return json({}); }
-    if (parsed.pathname === '/v4/aliases/staging.musicnerd.xyz') return json({ deploymentId: created ? candidate.id : 'dpl_old' });
+    if (parsed.pathname === '/v4/aliases/staging.musicnerd.xyz') {
+      aliasCalls++;
+      return json({ deploymentId: created && aliasCalls > (options.aliasDelay || 0) ? candidate.id : 'dpl_old' });
+    }
     throw new Error(`Unexpected test request: ${parsed.pathname}`);
   };
   return { env, calls, records, run: () => runRelease({ env, fetchFn,
@@ -115,4 +118,23 @@ for (const [name, options, message, maximumWrites] of [
 test('accepts the documented nested project representation', async () => {
   const h = harness({ deployment: { projectId: undefined, project: { id: 'prj_test' } } });
   assert.equal((await h.run()).phase, 'assigned');
+});
+
+test('waits for staging domain to reach the validated deployment', async () => {
+  const h = harness({ aliasDelay: 2 });
+  assert.equal((await h.run()).phase, 'assigned');
+  assert.equal(h.calls.filter(c => c.url.includes('/v4/aliases/')).length, 3);
+});
+
+test('fails closed when staging domain never reaches the deployment', async () => {
+  const h = harness({ aliasDelay: Infinity });
+  await assert.rejects(h.run(), /Staging alias assignment did not complete/);
+  assert.equal(h.calls.filter(c => c.url.includes('/v4/aliases/')).length, 30);
+  assert(!h.records.some(r => r.phase === 'assigned'));
+});
+
+test('fails immediately on terminal staging alias error', async () => {
+  const h = harness({ aliasDelay: Infinity, deployment: { aliasError: { code: 'error', message: 'private' } } });
+  await assert.rejects(h.run(), /Staging alias assignment failed/);
+  assert(!h.records.some(r => r.phase === 'assigned'));
 });
