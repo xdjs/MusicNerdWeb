@@ -40,7 +40,8 @@
  * are about what an artist is doing now. Credits are biographical: a first
  * bassist is permanently a first bassist. This reads the whole history.
  */
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { z } from "zod";
+import { generateObject } from "@/server/lib/ai/generateObject";
 import type { SocialPostRow } from "@/server/utils/socialSignals";
 import { foldName } from "@/server/utils/nameFold";
 
@@ -287,25 +288,10 @@ function withTimeout<T>(p: Promise<T>, ms: number = TIMEOUT_MS): Promise<T> {
 interface RawCredit { subject?: unknown; isHandle?: unknown; role?: unknown; quote?: unknown; url?: unknown }
 interface RawStatement { quote?: unknown; topic?: unknown; url?: unknown }
 
-function parse(text: string): { credits: RawCredit[]; statements: RawStatement[] } {
-    try {
-        // Models occasionally wrap JSON in a fence despite responseMimeType.
-        const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-        const obj = JSON.parse(cleaned) as Record<string, unknown>;
-        return {
-            credits: Array.isArray(obj.credits) ? (obj.credits as RawCredit[]) : [],
-            statements: Array.isArray(obj.statements) ? (obj.statements as RawStatement[]) : [],
-        };
-    } catch (e) {
-        // Silence here used to be indistinguishable from an artist with nothing
-        // in their captions, and it was not the same thing at all. A model that
-        // writes long clause-shaped roles produces long output, long output
-        // gets truncated at the token ceiling, truncated JSON fails to parse,
-        // and a whole batch of an artist's history disappeared without a word.
-        // Bounding the role made this rare; logging it makes it visible.
-        console.error(`[socialCredits] Could not parse a batch response (${text.length} chars, ends "${text.slice(-60).replace(/\s+/g, " ")}"):`, e);
-        return { credits: [], statements: [] };
-    }
+/** The model answered, but not with the object the schema asks for. The AI SDK
+ *  raises these when the reply is empty or fails validation. */
+function isUnusableOutput(e: unknown): boolean {
+    return /^AI_No(Object|Output)GeneratedError$/.test(String((e as { name?: unknown } | null)?.name));
 }
 
 /**
@@ -421,23 +407,32 @@ async function runBatch(
     const payload = batch.map(p => ({ url: p.url, postedAt: p.postedAt, caption: p.caption }));
     try {
         const response = await withTimeout(
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `CAPTIONS:\n${JSON.stringify(payload, null, 2)}`,
-                config: {
-                    systemInstruction: SYSTEM_INSTRUCTION(artistName, artistHandle),
-                    // Copying text back verbatim is the job; creativity here
-                    // shows up as paraphrase, and paraphrase fails verification.
-                    temperature: 0,
-                    responseMimeType: "application/json",
-                },
+            generateObject({
+                prompt: `CAPTIONS:\n${JSON.stringify(payload, null, 2)}`,
+                instructions: SYSTEM_INSTRUCTION(artistName, artistHandle),
+                // Copying text back verbatim is the job; creativity here
+                // shows up as paraphrase, and paraphrase fails verification.
+                temperature: 0,
+                schema: z.object({
+                    credits: z.array(z.object({ subject: z.string().optional(), isHandle: z.boolean().optional(), role: z.string().optional(), quote: z.string().optional(), url: z.string().optional() })).optional(),
+                    statements: z.array(z.object({ quote: z.string().optional(), topic: z.string().optional(), url: z.string().optional() })).optional(),
+                }),
             }),
             budgetMs,
         );
-        const text = response.text;
-        if (!text) return null;
-        return verifyClaims(parse(text), batch, artistName, artistHandle);
+        const { credits = [], statements = [] } = response.output;
+        return verifyClaims({ credits, statements }, batch, artistName, artistHandle);
     } catch (e) {
+        if (isUnusableOutput(e)) {
+            // Silence here used to be indistinguishable from an artist with
+            // nothing in their captions, and it was not the same thing at all.
+            // Long output gets truncated at the token ceiling, truncated JSON
+            // fails validation, and a whole batch of an artist's history
+            // disappeared without a word. Bounding the role made this rare;
+            // logging it makes it visible.
+            console.error(`[socialCredits] Could not parse a batch response for ${artistName}:`, e);
+            return verifyClaims({ credits: [], statements: [] }, batch, artistName, artistHandle);
+        }
         // A timeout costs the whole batch, and the batch is fifteen posts of an
         // artist's history. Splitting in half and retrying recovers most of it:
         // the cost is roughly proportional to how much the model has to write,

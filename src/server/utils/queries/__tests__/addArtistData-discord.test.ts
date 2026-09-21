@@ -30,7 +30,6 @@ jest.mock("@/server/utils/queries/externalApiQueries", () => ({
     getSpotifyArtist: jest.fn(),
 }));
 
-jest.mock("@/server/lib/openai", () => ({ openai: {} }));
 jest.mock("next/headers", () => ({ headers: jest.fn().mockResolvedValue(new Map()) }));
 
 const MOCK_ARTIST_URL = "https://instagram.com/taylorswift";

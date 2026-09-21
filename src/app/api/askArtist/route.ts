@@ -1,4 +1,6 @@
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { z } from "zod";
+import { generateText } from "@/server/lib/ai/generateText";
+import { generateArray } from "@/server/lib/ai/generateArray";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { getArtistDocContext } from "@/server/utils/artistDocService";
@@ -326,11 +328,9 @@ export async function POST(req: Request) {
         const artistContext = contextParts.join("\n");
 
         const response = await Promise.race([
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `Question about the music artist "${artistName}": ${question.trim()}`,
-                config: {
-                    systemInstruction: `You answer questions about the music artist "${artistName}". Write like a sharp music writer: concrete, specific, no filler.
+            generateText({
+                prompt: `Question about the music artist "${artistName}": ${question.trim()}`,
+                instructions: `You answer questions about the music artist "${artistName}". Write like a sharp music writer: concrete, specific, no filler.
 
 - Answer in 2-4 sentences unless the question genuinely needs more. Don't pad.
 - The verified sources below are ground truth — prioritize them. That includes the artist's own captions, which are quoted verbatim and are the best evidence about them that exists.
@@ -347,14 +347,13 @@ export async function POST(req: Request) {
 
 ARTIST CONTEXT:
 ${artistContext}`,
-                    // NO GROUNDING HERE, deliberately. Google Search grounding
-                    // suppresses custom [n] markers entirely — measured: the same
-                    // prompt and sources emit "[1] [3] [2]" with it off and
-                    // nothing at all with it on. This call answers from what we
-                    // hold and cites it; the grounded fallback below handles
-                    // questions we cannot answer.
-                    temperature: 0.5,
-                },
+                // NO GROUNDING HERE, deliberately. Google Search grounding
+                // suppresses custom [n] markers entirely — measured: the same
+                // prompt and sources emit "[1] [3] [2]" with it off and
+                // nothing at all with it on. This call answers from what we
+                // hold and cites it; the grounded fallback below handles
+                // questions we cannot answer.
+                temperature: 0.5,
             }),
             new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error("Gemini timeout")), 20000)
@@ -381,14 +380,11 @@ ${artistContext}`,
         // does not want them anywhere.
         if (/^INSUFFICIENT\b/i.test(answer) || answer.length === 0) {
             const grounded = await Promise.race([
-                getGemini().models.generateContent({
-                    model: GEMINI_MODEL_FLASH,
-                    contents: question,
-                    config: {
-                        systemInstruction: `You answer questions about the music artist "${artistName}". Write like a sharp music writer: concrete, specific, no filler. Answer in 2-4 sentences. No hype phrases. If you do not know, say so in one line rather than guessing. Never fabricate credits, collaborations or achievements. Rely on publications, the artist's own pages and credits databases. Do not rely on streaming-stat dashboards, follower counters, chart scrapers or catalogue-listing sites — they carry no reporting and saying "I don't know" is better than repeating one.`,
-                        tools: [{ googleSearch: {} }],
-                        temperature: 0.4,
-                    },
+                generateText({
+                    prompt: question,
+                    instructions: `You answer questions about the music artist "${artistName}". Write like a sharp music writer: concrete, specific, no filler. Answer in 2-4 sentences. No hype phrases. If you do not know, say so in one line rather than guessing. Never fabricate credits, collaborations or achievements. Rely on publications, the artist's own pages and credits databases. Do not rely on streaming-stat dashboards, follower counters, chart scrapers or catalogue-listing sites — they carry no reporting and saying "I don't know" is better than repeating one.`,
+                    googleSearch: true,
+                    temperature: 0.4,
                 }),
                 new Promise<null>(resolve => setTimeout(() => resolve(null), GROUNDED_TIMEOUT_MS)),
             ]).catch(() => null);
@@ -397,14 +393,14 @@ ${artistContext}`,
             fromOpenWeb = answer.length > 0;
             // What it actually used, so a grounded answer still shows provenance.
             //
-            // `web.title` on a Google-grounded chunk is the registrable domain,
-            // not a page title — measured: "stereogum.com", "peterango.com",
-            // "reddit.com". So the same host check the vault uses applies here
-            // directly, and there is no page URL to check instead: `web.uri` is
+            // The AI SDK turns each Google-grounded chunk into a source whose
+            // `title` is `web.title`: the registrable domain, not a page title —
+            // measured: "stereogum.com", "peterango.com", "reddit.com". So the
+            // same host check the vault uses applies here directly, and there
+            // is no page URL to check instead: the source `url` is `web.uri`,
             // an opaque vertexaisearch redirect.
-            const chunks = (grounded as { candidates?: Array<{ groundingMetadata?: { groundingChunks?: Array<{ web?: { title?: string } }> } }> } | null)
-                ?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
-            const domains = [...new Set(chunks.map(c => c.web?.title).filter((d): d is string => !!d))];
+            const titles = (grounded?.sources ?? []).map(s => (s.sourceType === "url" ? s.title : undefined));
+            const domains = [...new Set(titles.filter((d): d is string => !!d))];
             const usable = domains.filter(d => !isBlockedSourceHost(`https://${d}`));
             webDomains = usable.slice(0, 6);
 
@@ -554,11 +550,9 @@ async function suggestFollowUps(input: {
     const { artistName, question, answer, unexplored } = input;
     if (unexplored.length === 0) return generateFollowUps(artistName, question, answer);
 
-    const res = await getGemini().models.generateContent({
-        model: GEMINI_MODEL_FLASH,
-        contents: `THINGS WE KNOW ABOUT ${artistName} AND HAVE NOT DISCUSSED:\n${unexplored.slice(0, 20).map(u => `- ${u}`).join("\n")}\n\nJUST ASKED: ${question}\n\nJUST ANSWERED: ${answer.slice(0, 1200)}`,
-        config: {
-            systemInstruction: `Write 4 short follow-up questions a curious listener would ask next about ${artistName}.
+    const res = await generateArray({
+        prompt: `THINGS WE KNOW ABOUT ${artistName} AND HAVE NOT DISCUSSED:\n${unexplored.slice(0, 20).map(u => `- ${u}`).join("\n")}\n\nJUST ASKED: ${question}\n\nJUST ANSWERED: ${answer.slice(0, 1200)}`,
+        instructions: `Write 4 short follow-up questions a curious listener would ask next about ${artistName}.
 
 - Each must be answerable from the material listed. Do not ask about anything not on that list.
 - Do not repeat what the answer already covered.
@@ -566,19 +560,17 @@ async function suggestFollowUps(input: {
 - Short, spoken, no preamble.
 
 Return STRICT JSON: an array of 4 strings. No markdown, no commentary.`,
-            temperature: 0.4,
-            responseMimeType: "application/json",
-            // Writing four short questions from a list is formatting, not
-            // reasoning, and the default thinking budget was costing seconds on
-            // the critical path — the answer was ready and the reader was
-            // watching "Thinking..." while the model deliberated over chips it
-            // had not been asked for.
-            thinkingConfig: { thinkingBudget: 0 },
-        },
+        temperature: 0.4,
+        element: z.string(),
+        // Writing four short questions from a list is formatting, not
+        // reasoning, and the default thinking budget was costing seconds on
+        // the critical path — the answer was ready and the reader was
+        // watching "Thinking..." while the model deliberated over chips it
+        // had not been asked for.
+        thinkingBudget: 0,
     });
 
-    const parsed = JSON.parse((res.text ?? "[]").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
-    const list = Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string" && s.length > 8) : [];
+    const list = res.output.filter(s => s.length > 8);
     // A suggestion answered by the text in front of them is not a follow-up.
     const covered = answer.toLowerCase();
     const fresh = list.filter(s => {

@@ -215,32 +215,6 @@ process.on('uncaughtException', (error) => {
 // @ts-ignore
 delete (process.env as any).DISCORD_WEBHOOK_URL;
 
-// Mock the OpenAI SDK to avoid real API calls and environment errors in JSDOM
-jest.mock('openai', () => {
-    class MockChatCompletion {
-        completions = {
-            create: jest.fn().mockResolvedValue({ choices: [{ message: { content: 'mocked response' } }] })
-        };
-    }
-    return {
-        __esModule: true,
-        default: class MockOpenAI {
-            constructor() {
-                this.chat = new MockChatCompletion();
-            }
-        }
-    };
-});
-
-// Mock the Google GenAI SDK to avoid real API calls
-jest.mock('@google/genai', () => ({
-    GoogleGenAI: class {
-        models = {
-            generateContent: jest.fn().mockResolvedValue({ text: 'mocked gemini response' })
-        };
-    }
-}));
-
 // Mock musicPlatformData to prevent ESM p-limit import chain in consumer tests.
 // Tests for the providers themselves (spotifyProvider.test.ts, deezerProvider.test.ts,
 // artistMusicPlatformDataProvider.test.ts) mock p-limit directly and use jest.resetModules().

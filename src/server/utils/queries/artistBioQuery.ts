@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
+import { generateText } from "@/server/lib/ai/generateText";
+import { MODEL_PRO } from "@/server/lib/ai/models";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
 import { BioConflictError } from '@/lib/bio/bioConflict';
@@ -263,13 +264,11 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     const useGrounding = false;
 
     const response = await Promise.race([
-      getGemini().models.generateContent({
-        model: GEMINI_MODEL_PRO,
-        contents: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
-        config: {
-          systemInstruction: systemPrompt,
-          ...(useGrounding ? { tools: [{ googleSearch: {} }] } : {}),
-        },
+      generateText({
+        model: MODEL_PRO,
+        prompt: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
+        instructions: systemPrompt,
+        googleSearch: useGrounding,
       }),
       new Promise<never>((_, reject) =>
         // Grounding-OFF synthesis measured ~8s; 15s is a generous cap that keeps

@@ -49,7 +49,7 @@ import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/uti
 import { ONBOARDING_QUESTIONS } from "./questions";
 import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 import { BioConflictError } from '@/lib/bio/bioConflict';
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { generateText } from "@/server/lib/ai/generateText";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
 import { waitForSocialPosts } from "@/server/utils/socialIngest";
@@ -370,9 +370,8 @@ async function generateInterviewAck(question: string, answer: string, questionIn
     const fallback = ACK_FALLBACKS[questionIndex % ACK_FALLBACKS.length];
     try {
         const response = await Promise.race([
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `The artist was asked: "${question}" and answered: "${answer}".
+            generateText({
+                prompt: `The artist was asked: "${question}" and answered: "${answer}".
 
 Reply with ONE short, spoken sentence reacting to their answer. Rules:
 - If the answer disputes the question, says it doesn't match anything they posted, or reads as confused about where it came from: acknowledge briefly and plainly, make clear the question came from a specific linked post rather than being made up, and move on. One short sentence, no grovelling.
@@ -382,7 +381,8 @@ Reply with ONE short, spoken sentence reacting to their answer. Rules:
 - No questions, no emoji, no hype words.`,
                 // Thinking defaults ON for gemini-2.5-flash and burns ~1.5s+ on a
                 // one-line reply — enough to lose this 5s race. Off ONLY here.
-                config: { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } },
+                temperature: 0.7,
+                thinkingBudget: 0,
             }),
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error("ack timeout")), 5000)),
         ]);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { generateText } from "@/server/lib/ai/generateText";
 import { funfacts } from "@/server/db/schema";
 import { db } from "@/server/db/drizzle";
 import { eq } from "drizzle-orm";
@@ -98,13 +98,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       const geminiTimeout = 15000; // 15 seconds
 
       const response = await Promise.race([
-        getGemini().models.generateContent({
-          model: GEMINI_MODEL_FLASH,
-          contents: finalPrompt,
-          config: {
-            systemInstruction: "You are a sharp music writer. Follow the user's prompt exactly. Be concrete and specific — name real songs, people, places, and dates. Keep it tight: no filler or hype phrases like \"rising star\", \"eclectic\", or \"undeniable\". Never fabricate or speculate; if you're unsure, leave it out.",
-            temperature: 0.8,
-          },
+        generateText({
+          prompt: finalPrompt,
+          instructions: "You are a sharp music writer. Follow the user's prompt exactly. Be concrete and specific — name real songs, people, places, and dates. Keep it tight: no filler or hype phrases like \"rising star\", \"eclectic\", or \"undeniable\". Never fabricate or speculate; if you're unsure, leave it out.",
+          temperature: 0.8,
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Gemini timeout')), geminiTimeout)

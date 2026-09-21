@@ -8,10 +8,7 @@
 import { jest } from "@jest/globals";
 
 const generateContent = jest.fn();
-jest.mock("@/server/lib/gemini", () => ({
-    getGemini: () => ({ models: { generateContent } }),
-    GEMINI_MODEL_FLASH: "flash",
-}));
+jest.mock("@/server/lib/ai/generateObject", () => ({ generateObject: generateContent }));
 
 import type { SocialPostRow } from "@/server/utils/socialSignals";
 
@@ -33,7 +30,7 @@ function post(i: number): SocialPostRow {
 /** One credit per caption, so a batch's output is predictable. */
 function replyFor(urls: string[]) {
     return {
-        text: JSON.stringify({
+        output: ({
             credits: urls.map(u => ({
                 subject: "someone", isHandle: true, role: "Mixed by",
                 quote: "Mixed by @someone on this one.", url: u,
@@ -46,7 +43,7 @@ function replyFor(urls: string[]) {
 beforeEach(() => {
     generateContent.mockReset();
     generateContent.mockImplementation(async (req: unknown) => {
-        const body = String((req as { contents?: string }).contents ?? "");
+        const body = String((req as { prompt?: string }).prompt ?? "");
         const urls = [...body.matchAll(/https:\/\/www\.instagram\.com\/p\/POST\d+\//g)].map(m => m[0]);
         return replyFor([...new Set(urls)]);
     });
@@ -149,7 +146,7 @@ describe("extractCaptionCredits, sliced", () => {
         await sweepSilentCaptions(posts, claimed, "Artist", "artist");
 
         const asked = generateContent.mock.calls
-            .flatMap(c => [...String((c[0] as { contents?: string })?.contents ?? "")
+            .flatMap(c => [...String((c[0] as { prompt?: string })?.prompt ?? "")
                 .matchAll(/https:\/\/www\.instagram\.com\/p\/POST\d+\//g)].map(m => m[0]));
         // Only the four unclaimed captions. Re-reading the twelve we already
         // understood is what makes a sweep expensive enough to skip.
