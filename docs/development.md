@@ -29,15 +29,16 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID`, `NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET` | Existing catalog credentials; the public secret name is known debt, not a pattern to copy |
 | `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | Session configuration; local URL is HTTPS when using `npm run dev` |
 | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Real Privy login |
-| `OPENAI_API_KEY` | Legacy env validation only; a stub suffices. The declared OpenAI client is unused by current features |
-| `GEMINI_API_KEY` | Research, interview generation, profile synthesis |
+| `AI_GATEWAY_API_KEY` | Every model call (Ask, About, research, interview, onboarding, fun facts) through Vercel AI Gateway; see [llm.md](llm.md). Locally, the OIDC token from `vercel env pull` also works |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
 | `CRON_SECRET` | Scheduled research advancement |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
-Other rate-limit and AI timeout/model settings are declared in their consumers.
+Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
+are declared in their consumers and listed in [llm.md](llm.md). Other rate-limit settings are
+declared in their consumers.
 Do not send production credentials to preview environments or log connection strings.
 
 `npm run dev` serves HTTPS on port 3000; `npm run dev -- --port 3002` selects another port.
@@ -83,6 +84,7 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   `artist_research_jobs` through ingest/extraction slices, with persistence in
   `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.
   `questionGenerator.ts` uses stored sources; `queries/onboardingQueries.ts` saves offers/answers.
+  Every model call goes through `src/server/lib/ai/generateText.ts`; the sites are in [llm.md](llm.md).
   Reuse this path; a request finishing is not evidence its background work finished.
 - **Catalogs:** `src/server/utils/musicPlatform/` handles platform data.
   `cachedOrDirect` preserves function behavior outside Next cache context (e.g. CLIs), falling
@@ -158,13 +160,12 @@ through `test:coverage` and is checked by `test:ci`; no regression suites are re
 `next lint` currently succeeds with warnings and emits a deprecation notice; warning cleanup
 is separate from errors.
 
-A build without an env file needs these three temporary values. They prove compilation, not
+A build without an env file needs these two temporary values. They prove compilation, not
 working external services; don't write them to `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=stub \
-NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stub \
-OPENAI_API_KEY=stub npm run build
+NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stub npm run build
 ```
 
 For a focused Jest run, use `npm test -- --runTestsByPath <test-file> --runInBand`.

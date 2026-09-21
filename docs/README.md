@@ -44,6 +44,7 @@ admin fallback as a completed integration check.
 | User profile | [Live profile contract](user-profile.md) and [design previews](rnd/design/2026-09-15-user-profile-redesign/README.md) |
 | Account bookmarks | [Feature contract and migration](account-bookmarks.md); release status in `MEMORY.md` |
 | Web Analytics and URL scrub | [Analytics contract](analytics.md); release status on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) |
+| Model calls (Ask, About, research, interview) | [LLM contract](llm.md); delivery on [#1265](https://github.com/xdjs/MusicNerdWeb/issues/1265) |
 | Database changes | [Migration protocol](development.md#database-migrations) |
 | Past regressions to check | [Regression checklist](rnd/pre-push-checklist.md) |
 | Meetings and missing records | [Meeting index](rnd/meetings/README.md) |

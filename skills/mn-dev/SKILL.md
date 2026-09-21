@@ -145,7 +145,7 @@ Then the full run, exactly as documented in `docs/development.md`:
 
 ```bash
 npm run type-check && npm run lint && npm run test:ci
-NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=stub NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stub OPENAI_API_KEY=stub npm run build
+NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=stub NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stub npm run build
 ```
 
 The stub build proves compilation, not integrations. Never write those values to `.env.local`.
