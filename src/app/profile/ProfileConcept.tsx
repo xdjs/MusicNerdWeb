@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesProfileUpdateFilter } from '@/lib/profile/matchesProfileUpdateFilter';
 import CollectionArtistImage from './CollectionArtistImage';
 
 import { useEffect, useState } from 'react';
@@ -90,14 +91,14 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
   const updateGroups = [
     ...(featured ? [{name: 'Pete Rango', image: featured.imageUrl || '/musicNerdLogo.png', updates: [peteRelease]}] : []),
     ...['Velvet Current', 'Mira Sol', 'Night Orchard'].map(name => ({name, image: '/musicNerdLogo.png', updates: sampleUpdates.filter(update => update.artist === name)})),
-  ].map((group, groupIndex) => ({...group, id: `profile-latest-${groupIndex}`, items: group.updates.filter(update => updateFilter === 'All' || update.type === updateFilter).map((update, index): ArtistLatestItem => ({
+  ].map((group, groupIndex) => ({...group, id: `profile-latest-${groupIndex}`, items: group.updates.map((update, index): ArtistLatestItem => ({
     id: `${groupIndex}-${index}-${update.title}`, kind: update.type === 'Release' ? 'release' : update.type === 'Instagram' ? 'instagram' : update.type === 'Interview' ? 'interview' : 'moment',
     title: update.title, text: update.actualRelease ? 'Dame Atlas · Pete Rango mix' : `${update.detail}. Fictional sample update.`, date: update.actualRelease ? '2026-05-13' : `2026-09-${update.date.slice(-2)}`,
     imageUrl: update.actualRelease ? releaseArtwork : null, imageCaption: update.actualRelease ? 'Release cover' : 'Sample artwork', sourceUrl: update.actualRelease ? 'https://www.deezer.com/album/970786431' : null, sourceLabel: update.actualRelease ? 'Listen on Deezer' : '',
     listeningLinks: update.actualRelease ? releaseDestinations : [], ...(update.type === 'In-Process' ? {momentKind: update.media === 'Audio' ? 'audio' as const : 'video' as const} : {}),
-  })).sort((a, b) => latestDateSortTime(b.date) - latestDateSortTime(a.date))})).filter(group => group.items.length);
+  })).filter(item => matchesProfileUpdateFilter(item.kind, updateFilter)).sort((a, b) => latestDateSortTime(b.date) - latestDateSortTime(a.date))})).filter(group => group.items.length);
 
-  const mixedUpdates = live ? [...live.updates].filter(item => updateFilter === 'All' || item.kind === ({Release: 'release', Instagram: 'instagram', Interview: 'interview', 'In-Process': 'moment'} as Record<string, string>)[updateFilter]).sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date)) : updateGroups.flatMap(group => group.items.slice(0, 2)).sort((a, b) => latestDateSortTime(b.date) - latestDateSortTime(a.date)).slice(0, 12);
+  const mixedUpdates = live ? [...live.updates].filter(item => matchesProfileUpdateFilter(item.kind, updateFilter)).sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date)) : updateGroups.flatMap(group => group.items.slice(0, 2)).sort((a, b) => latestDateSortTime(b.date) - latestDateSortTime(a.date)).slice(0, 12);
 
   const updateArtistNames = live ? Object.fromEntries(live.updates.map(item => [item.id, item.artistName])) : Object.fromEntries(updateGroups.flatMap(group => group.items.map(item => [item.id, group.name])));
 

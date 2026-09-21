@@ -1,3 +1,5 @@
+import { PROFILE_UPDATE_KINDS } from '@/lib/profile/profileUpdateFilters';
+import { matchesProfileUpdateFilter } from '@/lib/profile/matchesProfileUpdateFilter';
 import { latestDateSortTime } from '@/lib/artist/artistLatest';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/server/db/drizzle';
@@ -19,8 +21,7 @@ export async function GET(request: Request) {
   if (!/^\d{1,6}$/.test(rawOffset)) return Response.json({error: 'Invalid offset'}, {status: 400});
   const offset = Number(rawOffset);
   const filter = new URL(request.url).searchParams.get('kind') ?? 'All';
-  const kinds: Record<string, string> = {Release: 'release', Instagram: 'instagram', Interview: 'interview', 'In-Process': 'moment'};
-  if (filter !== 'All' && !kinds[filter]) return Response.json({error: 'Invalid filter'}, {status: 400});
+  if (!Object.hasOwn(PROFILE_UPDATE_KINDS, filter)) return Response.json({error: 'Invalid filter'}, {status: 400});
   try {
     const owned = and(eq(userArtistBookmarks.userId, auth.userId), isNull(userArtistBookmarks.removedAt));
     const [rows, totals] = await Promise.all([
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
         try {
           const latest = await getArtistLatest(artist);
           unavailable ||= latest.unavailable;
-          items.push(...latest.items.filter(item => filter === 'All' || item.kind === kinds[filter]).slice(0, 2).map(item => ({...item, id: `${artist.id}:${item.id}`, artistId: artist.id, artistName: artist.name || 'Unknown artist'})));
+          items.push(...latest.items.filter(item => matchesProfileUpdateFilter(item.kind, filter)).slice(0, 2).map(item => ({...item, id: `${artist.id}:${item.id}`, artistId: artist.id, artistName: artist.name || 'Unknown artist'})));
         } catch { unavailable = true; }
       }));
     }

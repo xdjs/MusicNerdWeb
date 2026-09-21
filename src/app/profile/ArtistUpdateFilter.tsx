@@ -4,13 +4,8 @@ import { useRef, useState, type PointerEvent } from "react";
 import profileStyles from "./ProfileConcept.module.css";
 import styles from "@/app/artist/[id]/_components/ProfileSectionNav.module.css";
 
-const sections = [
-    { id: 'All', label: 'All' },
-    { id: 'Release', label: 'Releases' },
-    { id: 'Instagram', label: 'Instagram' },
-    { id: 'Interview', label: 'In their words' },
-    { id: 'In-Process', label: 'In-Process' },
-];
+import { PROFILE_UPDATE_FILTERS as sections } from '@/lib/profile/profileUpdateFilters';
+
 const clamp = (value: number) => Math.max(0, Math.min(sections.length - 1, value));
 
 export default function ArtistUpdateFilter({value, onValueChange}: {value: string; onValueChange: (value: string) => void}) {
