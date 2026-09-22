@@ -1,0 +1,1 @@
+PR #1326, commit 114162a5. Local actual /profile entry point with simulated session and API responses, 25 fixture artists. Chromium, 390/832 px, 2x, both themes; WebKit also exercised. Section-only screenshots hide the fixed navigation during capture to avoid obscuring the section. These are UI evidence, not real authenticated hosted data.
