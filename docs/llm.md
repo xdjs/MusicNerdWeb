@@ -89,9 +89,10 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > **Trial 2026-09-22 (Sweetman, #1324): `deepseek/deepseek-v4.1-flash` and `moonshotai/kimi-k3` were
 > each made `MODEL_DEFAULT` for one preview and measured against the Gemini baseline; both
 > degraded About, the lore refresh and caption extraction against the existing 15 s and 60 s
-> budgets, and Kimi cost 5–10× more per call.** Model 3, `xiaomi/mimo-v2.6-pro` (free tier,
-> $0.435 / $0.87 per million, reasoning toggle with `none`), is measured the same way on the next
-> preview. Between trials `MODEL_DEFAULT` returns to Gemini. The routing
+> budgets, and Kimi cost 5–10× more per call. Model 3, `xiaomi/mimo-v2.6-pro`, lost the same
+> races (About once in three, the doc synthesis every time) and the gateway does not enforce a
+> JSON schema for it, so the follow-up chips fell back to the static list.** `MODEL_DEFAULT` is back
+> on Gemini. The routing
 > (`MODEL_GROUNDED` for grounded calls), the provider-aware reasoning mapping and the per-call log
 > line stay. Tables on the PR; the model decision remains #1259's. The "flash" entries in the table below read as `MODEL_DEFAULT` unless the site is grounded.
 
