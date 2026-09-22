@@ -3,9 +3,8 @@
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useBookmarks } from '@/hooks/useBookmarks';
 import type { User } from '@/server/db/DbTypes';
-import type { ProfileSummary, ProfileUpdate } from '@/lib/profile/types';
+import type { ProfileSummary, ProfileUpdate, ProfileArtistsPage } from '@/lib/profile/types';
 import ProfileConcept from './ProfileConcept';
 import ProfileLoading from './ProfileLoading';
 import { readProfileJson as readJson } from '@/lib/profile/readProfileJson';
@@ -18,15 +17,24 @@ export default function LiveUserProfile({ user }: { user: Account }) {
   const queryClient = useQueryClient();
   const { update, data: session, status } = useSession();
   const accountReady = status === 'authenticated' && session.user.id === user.id;
-  const saved = useBookmarks(user.id);
+  const [artistSearch, setArtistSearch] = useState('');
   const [updateFilter, setUpdateFilter] = useState('All');
   const uploadedPhoto = useRef<File | null>(null);
   const summary = useQuery({queryKey: ['profile-summary', user.id], queryFn: ({signal}) => readJson<ProfileSummary>('/api/profile/summary', user.id, signal), refetchOnWindowFocus: true, enabled: accountReady});
   const photo = useQuery({queryKey: ['profile-photo', user.id], queryFn: ({signal}) => readJson<{url: string | null}>('/api/user/profile-image', user.id, signal), staleTime: 45 * 60 * 1000, refetchInterval: 45 * 60 * 1000, refetchOnWindowFocus: true, retry: false, enabled: accountReady});
-  const bookmarkIds = saved.bookmarks.map(artist => artist.artistId).join(',');
-  const feed = useInfiniteQuery({queryKey: ['profile-updates', user.id, bookmarkIds, updateFilter], initialPageParam: 0,
+  const collection = useInfiniteQuery({queryKey: ['profile-artists', user.id], initialPageParam: 0,
+    queryFn: ({signal, pageParam}) => readJson<ProfileArtistsPage>(`/api/profile/artists?offset=${pageParam}`, user.id, signal),
+    getNextPageParam: page => page.next ?? undefined, enabled: accountReady, retry: false, staleTime: 60_000,
+  });
+  const search = useInfiniteQuery({queryKey: ['profile-artists-search', user.id, artistSearch], initialPageParam: 0,
+    queryFn: ({signal, pageParam}) => readJson<ProfileArtistsPage>(`/api/profile/artists?offset=${pageParam}&q=${encodeURIComponent(artistSearch)}`, user.id, signal),
+    getNextPageParam: page => page.next ?? undefined, enabled: accountReady && !!artistSearch.trim(), retry: false, staleTime: 60_000,
+  });
+  const matches = artistSearch.trim() ? search : collection;
+  const artistTotal = collection.data?.pages[0]?.total ?? 0;
+  const feed = useInfiniteQuery({queryKey: ['profile-updates', user.id, updateFilter], initialPageParam: 0,
     queryFn: ({signal, pageParam}) => readJson<FeedPage>(`/api/profile/updates?offset=${pageParam}&kind=${encodeURIComponent(updateFilter)}`, user.id, signal),
-    getNextPageParam: page => page.next ?? undefined, enabled: accountReady && !saved.isLoading && saved.bookmarks.length > 0, retry: false, staleTime: 60_000,
+    getNextPageParam: page => page.next ?? undefined, enabled: accountReady && artistTotal > 0, retry: false, staleTime: 60_000,
   });
   useEffect(() => {
     if (!accountReady || summary.data?.totalContributions === undefined) return;
@@ -41,9 +49,14 @@ export default function LiveUserProfile({ user }: { user: Account }) {
     {photo.error && <p role="status" className="mx-auto w-full max-w-6xl px-5 pt-3 text-sm text-muted-foreground">Your photo couldn’t load. <button className="underline" onClick={() => void photo.refetch()}>Retry photo</button></p>}
     <ProfileConcept user={user} live={{...summary.data,
       name: user.username || 'Your profile', photo: photo.data?.url ?? null,
-      bookmarks: saved.bookmarks, bookmarkBusy: !saved.canMutate,
-      bookmarkError: saved.error || saved.importWarning || null, retryBookmarks: () => void saved.reload(),
-      addBookmark: async id => { await saved.add(id); }, removeBookmark: async id => { await saved.remove(id); },
+      artists: collection.data?.pages.flatMap(page => page.artists) ?? [], artistTotal,
+      artistMatches: matches.data?.pages.flatMap(page => page.artists) ?? [], matchesTotal: matches.data?.pages[0]?.total ?? 0,
+      artistsLoading: collection.isFetching, artistsError: collection.error ? 'Your artists couldn’t load.' : null,
+      matchesLoading: matches.isFetching, matchesError: matches.error ? 'Search couldn’t load.' : null,
+      hasMoreArtists: !!collection.hasNextPage, hasMoreMatches: !!matches.hasNextPage,
+      loadMoreArtists: () => { if (collection.error) void collection.refetch(); else void collection.fetchNextPage(); },
+      loadMoreMatches: () => { if (matches.error) void matches.refetch(); else void matches.fetchNextPage(); },
+      setArtistSearch,
       setUpdateFilter,
       updates: feed.data?.pages.flatMap(page => page.items) ?? [], updatesLoading: feed.isFetching,
       updatesError: feed.error ? 'Some updates couldn’t load. Try again.' : null,
