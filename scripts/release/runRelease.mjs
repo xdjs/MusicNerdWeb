@@ -41,10 +41,13 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
   const json = async response => {
     try { return await response.json(); } catch { throw new Error('Invalid release API response'); }
   };
-  const vercel = async (path, options = {}) => json(await request(
-    `https://api.vercel.com${path}${path.includes('?') ? '&' : '?'}teamId=${encodeURIComponent(teamId)}`,
-    { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-  ));
+  const vercel = async (path, { expectJson = true, ...options } = {}) => {
+    const response = await request(
+      `https://api.vercel.com${path}${path.includes('?') ? '&' : '?'}teamId=${encodeURIComponent(teamId)}`,
+      { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+    );
+    return expectJson ? json(response) : undefined;
+  };
   const currentMain = async () => {
     const result = await json(await request(`https://api.github.com/repos/${repository}/git/ref/heads/main`,
       { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json',
@@ -135,7 +138,8 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
   await currentMain();
   await safeProject();
   if (environment === 'production') {
-    await vercel(`/v10/projects/${projectId}/promote/${ready.id}`, { method: 'POST' });
+    // Promotion acknowledges with an empty 201/202; completion is verified below.
+    await vercel(`/v10/projects/${projectId}/promote/${ready.id}`, { method: 'POST', expectJson: false });
     let promoted = false;
     for (let attempt = 0; attempt < 30; attempt++) {
       const status = await vercel(`/v9/projects/${projectId}`);
