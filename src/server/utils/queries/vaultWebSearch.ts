@@ -9,6 +9,7 @@ import { extractArtistId } from "@/server/utils/services";
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { isReservedHandle } from "@/lib/platformHandles";
+import { isExcludedLoreDiscoveryUrl } from "@/lib/source/isExcludedLoreDiscoveryUrl";
 import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { setArtistLink } from "@/server/utils/artistLinkService";
 import {
@@ -1014,7 +1015,7 @@ async function searchAndPopulateVaultInternal(
             // Viberate stats page for exactly that reason, and Pete Rango's
             // Boomplay page arrived by the other route — unreadable, but its
             // search title carried his full name, so it passed as a lead.
-            if (isBlockedSourceHost(result.url)) {
+            if (isBlockedSourceHost(result.url) || isExcludedLoreDiscoveryUrl(result.url)) {
                 console.log(`[vaultWebSearch] Blocked host, not a source: ${result.url.slice(0, 100)}`);
                 skipped++;
                 continue;
@@ -1055,12 +1056,14 @@ async function searchAndPopulateVaultInternal(
         // insertion, hub adoption and index following all ran regardless — the
         // exact phases that WRITE. Rechecked before each of them now.
         if (outOfBudget("page verification")) return [];
-        const verified = await Promise.all(
+        const verified = (await Promise.all(
             candidates.map(async (result) => ({
                 result,
                 page: await fetchPageContent(result.url, { timeoutMs: VERIFY_TIMEOUT_MS }),
             }))
-        );
+        // A normal URL can redirect to LinkedIn, including a login/bot wall.
+        // Exclude before the relevance judge or any account/source adoption.
+        )).filter(({ page }) => !isExcludedLoreDiscoveryUrl(page.resolvedUrl ?? ""));
 
         // RELEVANCE JUDGEMENT — the model's job, now that retrieval is not.
         //
@@ -1540,7 +1543,9 @@ async function searchAndPopulateVaultInternal(
         // enough for a tag archive of one artist's own coverage, which is the
         // case this exists for — a directory of OTHER people yields links the
         // judge then rejects, costing three fetches and nothing else.
-        const toFollow = [...indexLinks].filter(u => !existingUrls.has(stripQuery(u))).slice(0, MAX_INDEX_FOLLOWS);
+        const toFollow = [...indexLinks]
+            .filter(u => !existingUrls.has(stripQuery(u)) && !isExcludedLoreDiscoveryUrl(u))
+            .slice(0, MAX_INDEX_FOLLOWS);
         if (toFollow.length > 0) {
             console.log(`[vaultWebSearch] Following ${toFollow.length} link(s) out of index page(s)`);
             const followed = await Promise.all(toFollow.map(async url => {
@@ -1548,7 +1553,7 @@ async function searchAndPopulateVaultInternal(
                 catch { return null; }
             }));
             const readable = followed.filter((f): f is { url: string; page: PageContent } =>
-                !!f && (f.page.fullText?.length ?? 0) > 0);
+                !!f && !isExcludedLoreDiscoveryUrl(f.page.resolvedUrl ?? "") && (f.page.fullText?.length ?? 0) > 0);
             if (readable.length > 0) {
                 // Judged exactly like any other candidate — being reached via the
                 // artist's own tag page is a lead, never a verdict.

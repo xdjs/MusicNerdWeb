@@ -1,4 +1,6 @@
 "use client";
+import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
+
 
 import { useState, type ReactNode } from "react";
 import { MAX_BIO_LENGTH, ARTIST_DOC_MAX_CHARS, ABOUT_TARGET_WORDS } from "@/lib/bio/bioConstants";
@@ -561,7 +563,7 @@ export function ProfilesCard({ payload, onConfirm, onFindMore, disabled }: {
                     className="flex-1 rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
-                    onClick={() => { if (draft.trim()) { setAdded(prev => [...prev, draft.trim()]); setDraft(""); } }}
+                    onClick={() => { if (draft.trim()) { setAdded(prev => [...prev, normalizePublicUrl(draft) ?? draft.trim()]); setDraft(""); } }}
                     disabled={disabled || !draft.trim()}
                     className="text-sm px-3 py-2 rounded-lg border border-pink-500 text-pink-500 enabled:hover:bg-pink-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
@@ -723,7 +725,7 @@ export function VaultCard({ payload, onConfirm, disabled }: {
                     className="flex-1 rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
-                    onClick={() => { if (draft.trim()) { setAdded(prev => [...prev, draft.trim()]); setDraft(""); } }}
+                    onClick={() => { if (draft.trim()) { setAdded(prev => [...prev, normalizePublicUrl(draft) ?? draft.trim()]); setDraft(""); } }}
                     disabled={disabled || !draft.trim()}
                     className="text-sm px-3 py-2 rounded-lg border border-pink-500 text-pink-500 enabled:hover:bg-pink-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
