@@ -2,185 +2,122 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    env:
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
-      NEXTAUTH_SECRET: test-secret-for-ci
-      NEXTAUTH_URL: http://localhost:3000
-      SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
-      DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'npm'
-
-    - name: Upgrade npm
-      run: npm install -g npm@11.12.1
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Type check
-      run: npm run type-check || npm run tsc
-
-    - name: Lint
-      run: npm run lint
-
-    - name: Run tests (without coverage)
-      run: npm test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm install -g npm@11.12.1
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm run test:ci
+      - name: Release safety and transcript publisher regression tests
+        run: node --test scripts/release/*.test.mjs scripts/meeting-transcript-sync/sync.test.cjs
 
   build:
     runs-on: ubuntu-latest
     needs: test
-
     env:
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
-      NEXTAUTH_SECRET: test-secret-for-ci
-      NEXTAUTH_URL: http://localhost:3000
-      SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
-      DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: stub
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: stub
+      OPENAI_API_KEY: stub
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm install -g npm@11.12.1
+      - run: npm ci
+      - run: npm run build
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'npm'
-
-    - name: Upgrade npm
-      run: npm install -g npm@11.12.1
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build
-      run: npm run build
-
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: build
-        path: .next/
-        retention-days: 14
-
-  coverage:
+  staging-release:
+    needs: [test, build]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.RELEASES_ENABLED == 'true'
     runs-on: ubuntu-latest
-    needs: build
-    if: false  # Disabled - coverage job not needed
-
-    env:
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
-      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
-      NEXTAUTH_SECRET: test-secret-for-ci
-      NEXTAUTH_URL: http://localhost:3000
-      SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
-      DISCORD_COVERAGE_URL: ${{ secrets.DISCORD_COVERAGE_URL }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
+    timeout-minutes: 30
+    environment:
+      name: staging-release
+      url: https://staging.musicnerd.xyz
+    concurrency:
+      group: musicnerd-staging-release
+      cancel-in-progress: false
+    outputs:
+      record: ${{ steps.release.outputs.record }}
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Build, validate and assign staging
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          RELEASE_ENVIRONMENT: staging
+        run: node scripts/release/runRelease.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-staging-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-record.json
+          if-no-files-found: ignore
+          retention-days: 90
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-        cache: 'npm'
-
-    - name: Upgrade npm
-      run: npm install -g npm@11.12.1
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run tests with coverage
-      run: npm test -- --coverage
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Upload test coverage artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage
-        path: coverage/
-        retention-days: 14
-
-    - name: Send coverage webhook
-      if: always()
-      run: |
-        # Parse coverage summary and generate detailed report
-        if [ -f coverage/coverage-summary.json ]; then
-          echo "Coverage data found, analyzing..."
-          
-          # Generate detailed coverage analysis using our custom script
-          WEBHOOK_PAYLOAD=$(node scripts/analyze-coverage.js)
-          
-          # Send to Discord if configured
-          if [ -n "${{ secrets.DISCORD_COVERAGE_URL }}" ]; then
-            echo "Sending detailed coverage report to Discord..."
-            WEBHOOK_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/discord_response.txt -X POST "${{ secrets.DISCORD_COVERAGE_URL }}" \
-              -H "Content-Type: application/json" \
-              -d "$WEBHOOK_PAYLOAD")
-            
-            echo "Discord webhook response code: $WEBHOOK_RESPONSE"
-            if [ "$WEBHOOK_RESPONSE" != "204" ]; then
-              echo "Discord webhook response body:"
-              cat /tmp/discord_response.txt
-            else
-              echo "✅ Coverage report sent successfully to Discord!"
-            fi
-          fi
-        else
-          echo "❌ Coverage summary file not found!"
-          # Send a failure notification to Discord if configured
-          if [ -n "${{ secrets.DISCORD_COVERAGE_URL }}" ]; then
-            echo "Sending failure notification to Discord..."
-            curl -s -X POST "${{ secrets.DISCORD_COVERAGE_URL }}" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"embeds\": [{
-                  \"title\": \"❌ Coverage Report Failed: ${{ github.repository }}\",
-                  \"description\": \"Branch: ${{ github.ref_name }}\\nCommit: ${GITHUB_SHA:0:7}\\n\\n**Error:** Coverage data not generated!\\n\\nThis could indicate:\\n• Tests failed to run\\n• Coverage collection failed\\n• Jest configuration issue\",
-                  \"color\": 16711680,
-                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-                  \"footer\": {
-                    \"text\": \"Check GitHub Actions logs for details\"
-                  }
-                }]
-              }"
-          fi
-        fi
-
-    # Add a status check summary
-    - name: Check Status
-      if: always()
-      run: |
-        STATUS="${{ job.status }}"
-        echo "Current job status: $STATUS"
-        if [ "$STATUS" = "success" ]; then
-          echo "✅ All checks passed!"
-          exit 0
-        else
-          echo "❌ Some checks failed!"
-          echo "Job status was: $STATUS"
-          exit 1
-        fi 
+  production-release:
+    needs: staging-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Approval includes the manual production-migration checklist in docs/releases.md.
+    environment:
+      name: production-release
+      url: https://www.musicnerd.xyz
+    concurrency:
+      group: musicnerd-production-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Build production candidate, validate and promote
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          RELEASE_ENVIRONMENT: production
+          STAGING_RECORD: ${{ needs.staging-release.outputs.record }}
+        run: node scripts/release/runRelease.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-production-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-record.json
+          if-no-files-found: ignore
+          retention-days: 90

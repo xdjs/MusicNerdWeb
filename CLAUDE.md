@@ -83,10 +83,12 @@ applies to Codex, Claude, and all other assistants through this canonical guide 
 
 ## Git, documentation and releases
 
-Feature branch off `staging` → PR to `staging` → release PR from `staging` to `main`.
-Use `username/feature-name`, conventional commits, and stage only intended named files.
-Docs follow the same route. **Do not merge or deploy without authorization.** Release approval
-remains reviewer green light → Pete tells Carl → Carl merges the release.
+Feature/fix branch off `main` → reviewed PR to `main` → squash merge.
+Use a contributor prefix (Codex uses `codex/`), conventional commits, and stage only intended files.
+Docs follow the same route. **Do not merge or deploy without authorization.** Passing CI deploys
+the exact merged SHA to staging; the protected GitHub `production-release` environment requires
+release approval before building that SHA with production configuration and promoting it.
+Follow [the release runbook](docs/releases.md), including the manual migration gate.
 
 Schema SQL and the Drizzle journal are one change. Apply required migrations before dependent
 code deploys; follow the [migration protocol](docs/development.md#database-migrations).
@@ -103,7 +105,7 @@ and distinguish locally implemented from shipped. Don't create releases solely t
 Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
 and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
 and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
-a documented-vs-observed matrix and captures on the PR, `staging` → release → `main`). Read it
+a documented-vs-observed matrix and captures on the PR, main-only PRs → staging validation → approved production build). Read it
 before writing or updating an issue, opening a PR, or preview-testing one.
 
 Read the available relevant skill before using it: Next.js/React for UI and server boundaries;
