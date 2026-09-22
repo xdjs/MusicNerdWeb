@@ -2,5 +2,5 @@
  *
  *  `MODEL_DEFAULT` is what every site uses unless it asks for Google Search grounding,
  *  which only Gemini provides, so grounded calls use `MODEL_GROUNDED`. */
-export const MODEL_DEFAULT = "moonshotai/kimi-k3";
+export const MODEL_DEFAULT = "google/gemini-2.5-flash";
 export const MODEL_GROUNDED = "google/gemini-2.5-flash";
