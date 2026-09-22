@@ -174,6 +174,9 @@ For browser tests install the matching browser once: `npx playwright install chr
 Inspect a test's effects before using a live URL: some E2Es create fixtures, claim artists or
 write answers. Latest's read-only test is documented [here](artist-latest.md#verification).
 
+`npm run eval` runs an LLM eval suite against real data and spends model tokens; it is not part
+of `npm run ci` and runs on demand, from the Evals workflow. See the [evals contract](evals.md).
+
 `npm run test:smoke` uses the separate smoke config without global mocks.
 `SMOKE_BASE_URL` checks deployed health. Storage integration tests may write and clean up
 fixtures when storage credentials are available; don't run them against production casually.
