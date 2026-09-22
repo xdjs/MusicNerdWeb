@@ -4,7 +4,9 @@ import { eq } from 'drizzle-orm';
 import { getServerAuthSession } from '@/server/auth';
 import { getDevSession } from '@/server/utils/dev-auth';
 import { canEditArtist } from '@/server/utils/artistEditAuth';
-import { db } from '@/server/db/drizzle';
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { withScopedArtistWrite, OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 import { artists } from '@/server/db/schema';
 
 const payload = z.object({
@@ -26,14 +28,22 @@ export async function PATCH(req: Request) {
     if (!parsed.success) return NextResponse.json({ error: 'Invalid photo position' }, { status: 400 });
     const { artistId, imageUrl, y } = parsed.data;
     try {
+        const expectedClaimId = await getLoreClaimGeneration(artistId);
         if (!(await canEditArtist(session.user.id, artistId))) {
             return NextResponse.json({ error: 'Not authorized for this artist' }, { status: 403 });
         }
-        const updated = await db.update(artists).set({ headerImagePosition: { imageUrl, y } })
-            .where(eq(artists.id, artistId)).returning({ id: artists.id });
+        const updated = await withArtistOperation(artistId,
+            { userId: session.user.id, expectedClaimId },
+            () => withScopedArtistWrite(artistId, tx => tx.update(artists)
+                .set({ headerImagePosition: { imageUrl, y } })
+                .where(eq(artists.id, artistId)).returning({ id: artists.id })),
+        );
         if (!updated.length) return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
         return NextResponse.json({ success: true });
-    } catch {
+    } catch (error) {
+        if (error instanceof OwnershipChangedError) {
+            return NextResponse.json({ error: 'Artist ownership changed' }, { status: 403 });
+        }
         return NextResponse.json({ error: 'Could not save photo position' }, { status: 500 });
     }
 }

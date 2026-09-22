@@ -26,7 +26,7 @@ keys when focused; no visible slider or percentage is shown (Pete’s review fee
 Save position persists framing; Cancel restores the previously saved position. The
 same percentage is used on desktop/mobile, with a phone crop preview. Existing
 photos remain top-aligned until positioned. Photos with no vertical crop cannot
-move vertically at that viewport; the slider still sets the crop for other widths.
+move vertically at that viewport; use the phone preview to adjust its crop.
 
 Store `{ imageUrl, y }` in `artists.header_image_position`, with y from 0 (top) to
 100 (bottom). Apply the position only when its image URL matches the displayed
@@ -35,9 +35,11 @@ image or accidentally applying an old crop to a new photo. Repositioning changes
 neither storage objects nor biography, research, jobs, or external providers.
 
 The authenticated PATCH endpoint uses the existing artist-edit permission check
-(approved claimant or admin), validates the full payload, and updates only framing.
+(approved claimant or admin), validates the full payload, rechecks claim ownership under the existing artist row
+lock, and updates only framing.
 Migration 0029 must be applied and verified as mnweb before deploying this code;
-no shared database migration or production change is authorized by this local task.
+staging migration verification is required for this PR. Production migration remains
+a separate release prerequisite.
 Local previews simulate persistence in this browser and are labeled accordingly.
 
 

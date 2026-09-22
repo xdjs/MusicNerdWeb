@@ -3,11 +3,19 @@ import { db } from '@/server/db/drizzle';
 import { PATCH } from '../route';
 import { getServerAuthSession } from '@/server/auth';
 import { getDevSession } from '@/server/utils/dev-auth';
+import { withScopedArtistWrite, OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { canEditArtist } from '@/server/utils/artistEditAuth';
 
 const mockReturning = jest.fn();
 const mockSet = jest.fn(() => ({ where: jest.fn(() => ({ returning: mockReturning })) }));
 jest.mock('@/server/db/drizzle', () => ({ db: { update: jest.fn(() => ({ set: mockSet })) } }));
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn(async () => 'claim-1') }));
+jest.mock('@/server/utils/artistOperationContext', () => ({ withArtistOperation: jest.fn((_id, _auth, fn) => fn()) }));
+jest.mock('@/server/utils/queries/ownershipWrites', () => ({
+  OwnershipChangedError: class OwnershipChangedError extends Error {},
+  withScopedArtistWrite: jest.fn(),
+}));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn() }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }));
@@ -18,6 +26,7 @@ const body = { artistId: '2df8ccbf-6556-41d0-b468-b9cff9d7a16a', imageUrl: 'http
 const request = (value: unknown = body) => new Request('http://localhost/api/artist/header-position', { method: 'PATCH', body: JSON.stringify(value) });
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.mocked(withScopedArtistWrite).mockImplementation(async (_id, write) => write(db as never));
   jest.mocked(db.update).mockReturnValue({ set: mockSet } as never);
   jest.mocked(getServerAuthSession).mockResolvedValue({ user: { id: 'user-1' } } as never);
   jest.mocked(getDevSession).mockResolvedValue(null);
@@ -56,4 +65,16 @@ it('returns 404 if the artist disappeared', async () => {
 it('returns a safe error if persistence fails', async () => {
   mockReturning.mockRejectedValue(new Error('db unavailable'));
   expect((await PATCH(request())).status).toBe(500);
+});
+
+it('reauthorizes framing under the artist ownership lock', async () => {
+  expect((await PATCH(request())).status).toBe(200);
+  expect(withArtistOperation).toHaveBeenCalledWith(body.artistId,
+    { userId: 'user-1', expectedClaimId: 'claim-1' }, expect.any(Function));
+  expect(withScopedArtistWrite).toHaveBeenCalledWith(body.artistId, expect.any(Function));
+});
+it('rejects a claim change before the locked write without changing framing', async () => {
+  jest.mocked(withScopedArtistWrite).mockRejectedValueOnce(new OwnershipChangedError());
+  expect((await PATCH(request())).status).toBe(403);
+  expect(mockSet).not.toHaveBeenCalled();
 });
