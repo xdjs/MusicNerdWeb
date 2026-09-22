@@ -22,7 +22,7 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_DEFAULT` (`deepseek/deepseek-v4.1-flash`), used by every site, and `MODEL_GROUNDED` (`google/gemini-2.5-flash`), used when a site asks for Google Search grounding, which only Gemini provides. |
+| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_DEFAULT`, used by every site, and `MODEL_GROUNDED` (`google/gemini-2.5-flash`), used when a site asks for Google Search grounding, which only Gemini provides. The current value of `MODEL_DEFAULT` is in the file and in the trial callout below. |
 | `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`; picks `MODEL_GROUNDED` when `googleSearch` is set and `MODEL_DEFAULT` otherwise; turns `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`; maps `thinkingBudget` per provider (below). Logs one line per call, `[ai] <model> <ms>ms in=<n> out=<n> reasoning=<n> gen=<generation id>`, so a runtime-log request carries what a cost lookup (`GET /v1/generation?id=`) needs. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
@@ -89,7 +89,9 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > **Trial 2026-09-22 (Sweetman, #1324): `deepseek/deepseek-v4.1-flash` and `moonshotai/kimi-k3` were
 > each made `MODEL_DEFAULT` for one preview and measured against the Gemini baseline; both
 > degraded About, the lore refresh and caption extraction against the existing 15 s and 60 s
-> budgets, and Kimi cost 5–10× more per call.** `MODEL_DEFAULT` is back on Gemini. The routing
+> budgets, and Kimi cost 5–10× more per call.** Model 3, `xiaomi/mimo-v2.6-pro` (free tier,
+> $0.435 / $0.87 per million, reasoning toggle with `none`), is measured the same way on the next
+> preview. Between trials `MODEL_DEFAULT` returns to Gemini. The routing
 > (`MODEL_GROUNDED` for grounded calls), the provider-aware reasoning mapping and the per-call log
 > line stay. Tables on the PR; the model decision remains #1259's. The "flash" entries in the table below read as `MODEL_DEFAULT` unless the site is grounded.
 
