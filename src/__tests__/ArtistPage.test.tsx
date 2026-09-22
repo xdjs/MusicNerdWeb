@@ -246,9 +246,9 @@ describe('ArtistProfile page', () => {
             setupMocks({ session: mockSession });
         });
 
-        it('offers bookmarking for the signed-in user collection', async () => {
+        it('does not offer bookmarks now that profiles reflect contributions', async () => {
             await renderArtistPage();
-            expect(screen.getByTestId('bookmark-button')).toBeInTheDocument();
+            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
         });
 
         it('renders edit mode toggle when admin', async () => {

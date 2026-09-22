@@ -6,14 +6,15 @@ The regular `/profile` requires a real MusicNerd session. It renders the approve
 
 - Identity comes from the session-owned user endpoint. Name edits reuse its validated PATCH. Photos use the private `user-profile-images` bucket, per-account paths and server-issued signed URLs.
 - Impact reports accepted UGC and pending UGC under the existing moderation semantics; self-edits remain separately visible and never count as leaderboard credit. Recent rows and full history preserve canonical artist IDs and dates.
-- Bookmarks are an explicit account-owned relationship. Browser entries are imported without replacing existing remote bookmarks; migration must not resurrect deliberately removed bookmarks on later devices. No contribution creates a bookmark automatically.
-- Added/contributed artists can be suggested when a collection is empty, with explicit Bookmark actions.
-- Latest shows existing published content for bookmarked artists only, bounded and sorted by date with clear partial-failure handling. It triggers no scraping or new research. Listening destinations and source attribution use the artist-profile components.
-- Search, bookmark, remove, profile edit and failure recovery work without a hard reload. The profile remains useful if Latest or photo loading fails.
+- Your artists lists distinct artists added by the user, with approved UGC by that user, or with recorded self-edits by that user. Pending/unapproved suggestions alone do not qualify. See [the contribution contract](contribution-artists.md).
+- Your artists lately uses the same eligible artist query, with six-artist windows, two updates per artist after filtering, and explicit partial coverage. No scraping or new research is triggered by reading the profile.
+- The collection has server-side search across all eligible artists and 24-artist pages. Artist names/photos open their canonical profiles. No save/remove action is required.
+- Bookmarks are removed from the current UI. Existing records and the account bookmark API are retained; the live profile performs no bookmark imports or writes.
+- Profile edits and errors retain their existing behavior. A collection/feed failure does not block identity or contribution history.
 
 ## Release verification
 
-Verify anonymous rejection, two-user isolation, cross-device bookmarks/photos, browser import idempotency and removed-bookmark behavior; name/photo failure states; actual counts versus history; preservation of self-edits; search-to-bookmark and remove on both surfaces; empty and populated collections; mobile and desktop light/dark; existing artist-card expand/listening flows. Apply only the owned schema/storage prerequisites, verify as `mnweb`, and keep production unchanged until its separately approved release.
+Verify anonymous rejection, account switching, qualifying additions/approved contributions/self-edits, repeated-artist deduplication, pending and bookmark-only exclusion, collection search/pagination, feed filter/fanout bounds, and empty/loading/error states. Check phone/desktop in both themes, profile editing and existing card/listening flows. This change requires no migration. Production release remains separately authorized.
 
 ## September 16 integration status
 
@@ -27,9 +28,9 @@ The shared Postgres.js app client uses at most three connections per process and
 
 ### Artist photos
 
-Suggested and saved artist images load independently of account data. When no image is supplied, `/api/artist/[id]/image` resolves the artist's custom upload first, then the existing Deezer/Spotify image provider used by artist profiles. Successful redirects cache for one hour; missing/provider failures retain the tile's fallback and do not block profile loading or bookmark writes. This public route returns only an existing public artist image, never account data, and does not generate or scrape content.
+Suggested and saved artist images load independently of account data. When no image is supplied, `/api/artist/[id]/image` resolves the artist's custom upload first, then the existing Deezer/Spotify image provider used by artist profiles. Successful redirects cache for one hour; missing/provider failures retain the tile's fallback and do not block profile loading. This public route returns only an existing public artist image, never account data, and does not generate or scrape content.
 
-Suggested artists’ photo/name links open their canonical artist profile; Bookmark remains a separate action.
+Artist photo/name links open their canonical artist profile.
 
 Stored default/logo placeholders do not override real provider photos. Image requests have a separate best-effort rate-limit bucket (180/minute per IP, configurable with `RATE_LIMIT_ARTIST_IMAGE`) so collection browsing cannot consume the account API quota.
 

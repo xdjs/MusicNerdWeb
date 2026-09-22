@@ -4,22 +4,18 @@ import ShareLinkDialog from '../ShareLinkDialog';
 const originalFetch = global.fetch;
 afterEach(() => { global.fetch = originalFetch; });
 
-it('searches and bookmarks directly without navigating to the artist', async () => {
-  global.fetch = jest.fn().mockResolvedValue({ok: true, json: async () => ({results: [{id: 'artist-1', name: 'Pete Rango', imageUrl: '/demo/pete-rango-logo.png'}]})});
-  const onBookmark = jest.fn();
-  const { rerender } = render(<ShareLinkDialog open onOpenChange={jest.fn()} onBookmark={onBookmark} />);
-  fireEvent.change(screen.getByLabelText('Search artists to bookmark'), {target: {value: 'Pete'}});
-  fireEvent.click(await screen.findByRole('button', {name: 'Bookmark Pete Rango'}));
-  expect(onBookmark).toHaveBeenCalledWith(expect.objectContaining({id: 'artist-1', name: 'Pete Rango'}));
-  expect(screen.queryByRole('link')).not.toBeInTheDocument();
-  rerender(<ShareLinkDialog open onOpenChange={jest.fn()} onBookmark={onBookmark} bookmarkedIds={['artist-1']} />);
-  expect(screen.getByRole('button', {name: 'Bookmarked Pete Rango'})).toBeDisabled();
+it('searches for an artist to contribute to, without a bookmark action', async () => {
+  global.fetch = jest.fn().mockResolvedValue({ok: true, json: async () => ({results: [{id: 'artist-1', name: 'Pete Rango'}]})});
+  render(<ShareLinkDialog open onOpenChange={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText('Search for an artist to share a link'), {target: {value: 'Pete'}});
+  expect(await screen.findByRole('link', {name: 'Pete Rango'})).toHaveAttribute('href','/artist/artist-1#mn-links');
+  expect(screen.queryByRole('button',{name:/bookmark/i})).not.toBeInTheDocument();
 });
 
-it('does not offer external-only artists as existing bookmarks', async () => {
+it('does not offer external-only artists as contribution targets', async () => {
   global.fetch = jest.fn().mockResolvedValue({ok: true, json: async () => ({results: [{id: 'external-1', name: 'External artist', isExternalOnly: true}]})});
-  render(<ShareLinkDialog open onOpenChange={jest.fn()} onBookmark={jest.fn()} />);
-  fireEvent.change(screen.getByLabelText('Search artists to bookmark'), {target: {value: 'External'}});
+  render(<ShareLinkDialog open onOpenChange={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText('Search for an artist to share a link'), {target: {value: 'External'}});
   await waitFor(() => expect(screen.getByText(/No artists found in MusicNerd/)).toBeInTheDocument());
   expect(screen.queryByRole('button', {name: 'Bookmark External artist'})).not.toBeInTheDocument();
 });

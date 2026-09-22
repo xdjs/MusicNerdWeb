@@ -2,9 +2,7 @@ import { PROFILE_UPDATE_KINDS } from '@/lib/profile/profileUpdateFilters';
 import { matchesProfileUpdateFilter } from '@/lib/profile/matchesProfileUpdateFilter';
 import { latestDateSortTime } from '@/lib/artist/artistLatest';
 import { requireAuth } from '@/lib/auth-helpers';
-import { db } from '@/server/db/drizzle';
-import { artists, userArtistBookmarks } from '@/server/db/schema';
-import { and, asc, eq, isNull, count } from 'drizzle-orm';
+import { getContributedArtists } from '@/server/utils/profile/getContributedArtists';
 import { getArtistLatest } from '@/server/utils/queries/artistLatestQueries';
 import type { ProfileUpdate } from '@/lib/profile/types';
 
@@ -23,16 +21,12 @@ export async function GET(request: Request) {
   const filter = new URL(request.url).searchParams.get('kind') ?? 'All';
   if (!Object.hasOwn(PROFILE_UPDATE_KINDS, filter)) return Response.json({error: 'Invalid filter'}, {status: 400});
   try {
-    const owned = and(eq(userArtistBookmarks.userId, auth.userId), isNull(userArtistBookmarks.removedAt));
-    const [rows, totals] = await Promise.all([
-      db.select({artist: artists}).from(userArtistBookmarks).innerJoin(artists, eq(userArtistBookmarks.artistId, artists.id)).where(owned).orderBy(asc(userArtistBookmarks.position), asc(userArtistBookmarks.createdAt), asc(userArtistBookmarks.artistId)).limit(BATCH).offset(offset),
-      db.select({total: count()}).from(userArtistBookmarks).where(owned),
-    ]);
+    const {artists: rows, total} = await getContributedArtists(auth.userId, {offset, limit: BATCH});
     const items: ProfileUpdate[] = [];
     let unavailable = false;
     // Two artists at a time, with existing provider request budgets/timeouts.
     for (let index = 0; index < rows.length; index += 2) {
-      await Promise.all(rows.slice(index, index + 2).map(async ({artist}) => {
+      await Promise.all(rows.slice(index, index + 2).map(async artist => {
         try {
           const latest = await getArtistLatest(artist);
           unavailable ||= latest.unavailable;
@@ -41,6 +35,6 @@ export async function GET(request: Request) {
       }));
     }
     const checked = offset + rows.length;
-    return Response.json({userId: auth.userId, items: items.sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date) || a.id.localeCompare(b.id)), checked, next: checked < (totals[0]?.total ?? 0) ? checked : null, unavailable}, {headers: {'Cache-Control': 'private, no-store'}});
+    return Response.json({userId: auth.userId, items: items.sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date) || a.id.localeCompare(b.id)), checked, next: checked < total ? checked : null, unavailable}, {headers: {'Cache-Control': 'private, no-store'}});
   } catch { return Response.json({error: 'Could not load artist updates'}, {status: 503}); }
 }

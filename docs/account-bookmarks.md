@@ -1,5 +1,12 @@
 # Account bookmarks
 
+> September 22, 2026 — #1325 supersedes the bookmark-based UI described below.
+> Pete reconfirmed the September 21 decision with Carl: remove bookmarks for now
+> and derive both artist sections from additions/approved contributions/self-edits.
+> See [#1325](https://github.com/xdjs/MusicNerdWeb/issues/1325). Stored bookmark data
+> is preserved; the following is historical design/persistence context.
+
+
 > **Local feature contract.** Read [MEMORY.md](../MEMORY.md) for verification, migration and
 > release status; implementation in a checkout does not imply deployment.
 
