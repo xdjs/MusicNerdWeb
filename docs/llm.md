@@ -22,8 +22,8 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"`. Every site uses it. |
-| `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig` and `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
+| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_DEFAULT`, used by every site, and `MODEL_GROUNDED`, used when a site asks for Google Search grounding, which only Gemini provides. Both are `google/gemini-2.5-flash` until the DeepSeek trial below decides otherwise. |
+| `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`; picks `MODEL_GROUNDED` when `googleSearch` is set and `MODEL_DEFAULT` otherwise; turns `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`; maps `thinkingBudget` per provider (below). Logs one line per call, `[ai] <model> <ms>ms in=<n> out=<n> reasoning=<n> gen=<generation id>`, so a runtime-log request carries what a cost lookup (`GET /v1/generation?id=`) needs. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
 | Each call site (table below) | Imports one of the three and passes exactly the config in its row. Nothing outside `src/server/lib/ai` imports `ai` or `@ai-sdk/google`. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
@@ -91,8 +91,11 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 - **System instruction** → `instructions` (AI SDK 7's name; `system` is the deprecated alias).
   Prompt text is unchanged, byte for byte.
 - **`temperature`** → `temperature`, same value.
-- **`thinkingConfig.thinkingBudget`** → the wrapper's `thinkingBudget`, same number, sent as
-  `providerOptions: { google: { thinkingConfig: { thinkingBudget } } }`. Sites without a budget today pass none.
+- **`thinkingConfig.thinkingBudget`** → the wrapper's `thinkingBudget`, same number. On a Gemini model it
+  is sent as `providerOptions: { google: { thinkingConfig: { thinkingBudget } } }`; on any other provider
+  it becomes the SDK's `reasoning` level, `none` for 0 and `low` otherwise, because token budgets are
+  Gemini-specific. Sites without a budget pass none and get the provider's default, which for a
+  reasoning model means reasoning on.
 - **`responseMimeType: "application/json"` + hand-parsed JSON** → `generateArray({ element })` or
   `generateObject({ schema })` with a zod schema declared at the site, every field optional so the
   shape is exactly what the site already tolerated. The fence-stripping and `JSON.parse` fallbacks

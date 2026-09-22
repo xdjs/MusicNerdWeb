@@ -1,4 +1,6 @@
-/** Gateway model id (`provider/model`). The only place a model is named; see docs/llm.md.
- *  Every site uses Flash: the About used Pro until 2026-09-21, when the gateway refused it on the
- *  free tier and Sweetman moved it to Flash (#1259). */
-export const MODEL_FLASH = "google/gemini-2.5-flash";
+/** Gateway model ids (`provider/model`). The only place a model is named; see docs/llm.md.
+ *
+ *  `MODEL_DEFAULT` is what every site uses unless it asks for Google Search grounding,
+ *  which only Gemini provides, so grounded calls use `MODEL_GROUNDED`. */
+export const MODEL_DEFAULT = "google/gemini-2.5-flash";
+export const MODEL_GROUNDED = "google/gemini-2.5-flash";
