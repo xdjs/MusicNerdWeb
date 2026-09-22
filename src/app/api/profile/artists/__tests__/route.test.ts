@@ -20,3 +20,11 @@ it('denies anonymous and switched-account reads',async()=>{
 });
 it.each(['?offset=-1','?offset=2.2','?offset=1000000',`?q=${'x'.repeat(201)}`])('rejects invalid pagination/search %s',async q=>{expect((await GET(req(q))).status).toBe(400);expect(getContributedArtists).not.toHaveBeenCalled()});
 it('does not substitute sample artists for database failures',async()=>{(getContributedArtists as jest.Mock).mockRejectedValue(new Error('db'));expect((await GET(req())).status).toBe(503)});
+it.each(['http://example.com/photo.jpg','//example.com/photo.jpg','https://user:password@example.com/photo.jpg','https://[broken','garbage','/default_pfp_pink.png'])('removes unsafe or placeholder stored image %s',async customImage=>{
+ (getContributedArtists as jest.Mock).mockResolvedValue({artists:[{id:'artist',name:'Artist',customImage}],total:1});
+ expect((await (await GET(req())).json()).artists[0].imageUrl).toBeNull();
+});
+it.each(['/images/portrait.png','https://example.com/portrait.png'])('preserves a valid stored image %s',async customImage=>{
+ (getContributedArtists as jest.Mock).mockResolvedValue({artists:[{id:'artist',name:'Artist',customImage}],total:1});
+ expect((await (await GET(req())).json()).artists[0].imageUrl).toBe(customImage);
+});

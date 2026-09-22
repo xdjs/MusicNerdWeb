@@ -23,3 +23,5 @@ private/no-store responses, account-scoped query keys and cancellation isolate u
 The design preview uses explicitly labeled contribution fixtures, never browser
 bookmarks. Spotify listening-history integration and reintroducing bookmarks are
 separate future decisions. Existing legacy Dashboard code is not the active profile.
+
+Collection search waits for a 300 ms pause in typing before requesting the server. Stored portrait values are normalized to local paths or credential-free HTTPS URLs; invalid values and placeholders fall back to the existing artist image resolver.

@@ -10,7 +10,7 @@ jest.mock('../ProfileLoading',()=>({__esModule:true,default:()=> <div>Loading ac
 const user=(id:string)=>({id,username:id,email:null,wallet:null,isAdmin:false,isWhiteListed:false,isHidden:false});
 let client:QueryClient;
 beforeEach(()=>{
- mockAccount='a';client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+ jest.clearAllMocks();mockAccount='a';client=new QueryClient({defaultOptions:{queries:{retry:false}}});
  jest.spyOn(global,'fetch').mockImplementation(async(url,init)=>{
  const account=(init?.headers as Record<string,string>)['X-Profile-Account'];const path=String(url);let body;
  if(path.includes('/summary'))body={entries:[],approved:1,pending:0,totalContributions:1,selfEdits:0,artistsAdded:0};
@@ -35,4 +35,18 @@ it('hides the previous account immediately and fetches the next account separate
  mockAccount='b';rerender(tree('a'));expect(screen.queryByTestId('artists')).not.toBeInTheDocument();
  rerender(tree('b'));await waitFor(()=>expect(screen.getByTestId('artists')).toHaveTextContent('b artist'));
  expect(screen.getByTestId('artists')).not.toHaveTextContent('a artist');
+});
+it('waits for a pause in typing before issuing one collection search',async()=>{
+ render(tree('a'));await waitFor(()=>expect(screen.getByTestId('artists')).toHaveTextContent('a artist'));
+ jest.useFakeTimers();
+ try {
+  await act(async()=>mockModel.setArtistSearch('M'));
+  await act(async()=>jest.advanceTimersByTime(100));
+  await act(async()=>mockModel.setArtistSearch('Music'));
+  await act(async()=>jest.advanceTimersByTime(200));
+  expect(jest.mocked(global.fetch).mock.calls.filter(([url])=>String(url).includes('&q='))).toHaveLength(0);
+  await act(async()=>jest.advanceTimersByTime(100));
+  const requests=jest.mocked(global.fetch).mock.calls.filter(([url])=>String(url).includes('&q='));
+  expect(requests).toHaveLength(1);expect(requests[0][0]).toContain('q=Music');
+ } finally {jest.useRealTimers()}
 });

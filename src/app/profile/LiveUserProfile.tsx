@@ -18,6 +18,12 @@ export default function LiveUserProfile({ user }: { user: Account }) {
   const { update, data: session, status } = useSession();
   const accountReady = status === 'authenticated' && session.user.id === user.id;
   const [artistSearch, setArtistSearch] = useState('');
+  const [debouncedArtistSearch, setDebouncedArtistSearch] = useState('');
+  const searchPending = !!artistSearch.trim() && artistSearch.trim() !== debouncedArtistSearch;
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedArtistSearch(artistSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [artistSearch]);
   const [updateFilter, setUpdateFilter] = useState('All');
   const uploadedPhoto = useRef<File | null>(null);
   const summary = useQuery({queryKey: ['profile-summary', user.id], queryFn: ({signal}) => readJson<ProfileSummary>('/api/profile/summary', user.id, signal), refetchOnWindowFocus: true, enabled: accountReady});
@@ -26,9 +32,9 @@ export default function LiveUserProfile({ user }: { user: Account }) {
     queryFn: ({signal, pageParam}) => readJson<ProfileArtistsPage>(`/api/profile/artists?offset=${pageParam}`, user.id, signal),
     getNextPageParam: page => page.next ?? undefined, enabled: accountReady, retry: false, staleTime: 60_000,
   });
-  const search = useInfiniteQuery({queryKey: ['profile-artists-search', user.id, artistSearch], initialPageParam: 0,
-    queryFn: ({signal, pageParam}) => readJson<ProfileArtistsPage>(`/api/profile/artists?offset=${pageParam}&q=${encodeURIComponent(artistSearch)}`, user.id, signal),
-    getNextPageParam: page => page.next ?? undefined, enabled: accountReady && !!artistSearch.trim(), retry: false, staleTime: 60_000,
+  const search = useInfiniteQuery({queryKey: ['profile-artists-search', user.id, debouncedArtistSearch], initialPageParam: 0,
+    queryFn: ({signal, pageParam}) => readJson<ProfileArtistsPage>(`/api/profile/artists?offset=${pageParam}&q=${encodeURIComponent(debouncedArtistSearch)}`, user.id, signal),
+    getNextPageParam: page => page.next ?? undefined, enabled: accountReady && !!artistSearch.trim() && !searchPending, retry: false, staleTime: 60_000,
   });
   const matches = artistSearch.trim() ? search : collection;
   const artistTotal = collection.data?.pages[0]?.total ?? 0;
@@ -50,10 +56,10 @@ export default function LiveUserProfile({ user }: { user: Account }) {
     <ProfileConcept user={user} live={{...summary.data,
       name: user.username || 'Your profile', photo: photo.data?.url ?? null,
       artists: collection.data?.pages.flatMap(page => page.artists) ?? [], artistTotal,
-      artistMatches: matches.data?.pages.flatMap(page => page.artists) ?? [], matchesTotal: matches.data?.pages[0]?.total ?? 0,
+      artistMatches: searchPending ? [] : matches.data?.pages.flatMap(page => page.artists) ?? [], matchesTotal: searchPending ? 0 : matches.data?.pages[0]?.total ?? 0,
       artistsLoading: collection.isFetching, artistsError: collection.error ? 'Your artists couldn’t load.' : null,
-      matchesLoading: matches.isFetching, matchesError: matches.error ? 'Search couldn’t load.' : null,
-      hasMoreArtists: !!collection.hasNextPage, hasMoreMatches: !!matches.hasNextPage,
+      matchesLoading: searchPending || matches.isFetching, matchesError: !searchPending && matches.error ? 'Search couldn’t load.' : null,
+      hasMoreArtists: !!collection.hasNextPage, hasMoreMatches: !searchPending && !!matches.hasNextPage,
       loadMoreArtists: () => { if (collection.error) void collection.refetch(); else void collection.fetchNextPage(); },
       loadMoreMatches: () => { if (matches.error) void matches.refetch(); else void matches.fetchNextPage(); },
       setArtistSearch,

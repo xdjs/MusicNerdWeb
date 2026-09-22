@@ -1,3 +1,4 @@
+import { normalizeStoredArtistImage } from '@/lib/artist/normalizeStoredArtistImage';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getContributedArtists } from '@/server/utils/profile/getContributedArtists';
 
@@ -16,6 +17,6 @@ export async function GET(request: Request) {
   try {
     const result = await getContributedArtists(auth.userId, {offset, limit: PAGE_SIZE, query});
     const next = offset + result.artists.length;
-    return Response.json({userId: auth.userId, artists: result.artists.map(artist => ({artistId: artist.id, artistName: artist.name || 'Unknown artist', imageUrl: artist.customImage})), total: result.total, next: next < result.total ? next : null}, {headers: {'Cache-Control': 'private, no-store'}});
+    return Response.json({userId: auth.userId, artists: result.artists.map(artist => ({artistId: artist.id, artistName: artist.name || 'Unknown artist', imageUrl: normalizeStoredArtistImage(artist.customImage)})), total: result.total, next: next < result.total ? next : null}, {headers: {'Cache-Control': 'private, no-store'}});
   } catch { return Response.json({error: 'Could not load your artists'}, {status: 503}); }
 }
