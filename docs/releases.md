@@ -25,7 +25,9 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    The build validates production's storage URL identity and credential presence without
    making a production storage request.
 5. Check the candidate's immutable URL without writes. Recheck main immediately before
-   promoting the production candidate. Before recording `assigned`, poll until both the
+   promoting the production candidate. Promotion's successful 201/202 acknowledgement can
+   have no response body; accept its HTTP status without parsing JSON. It is not proof that
+   promotion has finished. Before recording `assigned`, poll until both the
    project's production target and `www.musicnerd.xyz` point to the candidate. Fail on a
    deployment alias error or if they do not agree within 30 checks, two seconds apart.
 
@@ -130,6 +132,12 @@ auto-assignment is disabled, so an orphaned
 candidate cannot publish production by itself. Investigate unexpected domain ownership before
 continuing. Staging's alias can serve a failed smoke candidate; production remains gated. Serialized staging
 jobs prevent older builds completing after newer builds during normal workflow execution.
+
+The first approved release on September 22, 2026 became live but failed while parsing the
+empty promotion acknowledgement, leaving its artifact at `validated`. Independent checks
+confirmed the new production deployment and healthy URLs. That failure is not a reason to
+rerun or roll back the healthy deployment; the response fix is verified through a subsequent
+reviewed release. Data-bearing API responses still require valid JSON.
 If manually cancelling staging, wait for or cancel its remote Vercel build before starting another run.
 
 Before transition, privately record Vercel settings, domain assignments, approved production

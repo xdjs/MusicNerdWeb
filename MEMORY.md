@@ -3,28 +3,31 @@
 Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319),
 implemented in [PR #1320](https://github.com/xdjs/MusicNerdWeb/pull/1320), merged to main
 as `2da318e2`. [PR #1331](https://github.com/xdjs/MusicNerdWeb/pull/1331) added the read-only
-preflight and merged as `6770d133`; both main CI runs passed. Retain the old staging branch
-until the live publisher and release path are verified.
-[Release runbook](docs/releases.md) is the intended contract, not a completed release.
+preflight and merged as `6770d133`. [PR #1332](https://github.com/xdjs/MusicNerdWeb/pull/1332)
+corrected provider contracts and merged as `621c6b25`. Retain the old staging branch until
+the live publisher and release path are verified. See the [release runbook](docs/releases.md).
 
-Custom staging serves `9dad2d1a`; production was observed at `f3428e08` before #1320 merged.
-This migration has not promoted production. Production automatic domain assignment is disabled.
-Required review/test/build rules and protected production approval are configured. Releases
-remain disabled pending the corrected preflight and first staging validation. A dedicated
-project-scoped token is installed only in the two GitHub release environments, expires
-December 21, 2026. [Preflight run 35791737153](https://github.com/xdjs/MusicNerdWeb/actions/runs/35791737153)
-verified its API read access; deployment-write permission remains unverified. The run failed
-on an embedded domain assumption and unreadable write-only storage secrets. The follow-up
-uses the dedicated domains API and checks storage inside the Vercel build. Expected URL
-fingerprints are configured separately for staging and production; actual secret identity
-and the staging bucket read still require the first release build. See #1319 for the current
-follow-up PR and verification evidence.
+[Preflight 35794226744](https://github.com/xdjs/MusicNerdWeb/actions/runs/35794226744) passed;
+RELEASES_ENABLED is true. [Release 35794742794](https://github.com/xdjs/MusicNerdWeb/actions/runs/35794742794)
+validated custom staging at `621c6b25`, including its actual storage identity and bucket read.
+After clt approved, its separate production build passed identity and immutable smoke checks
+and became live at the same SHA. Independent checks confirmed production health/home and
+domain identity, but Actions failed after promotion because it parsed the empty success
+response as JSON. Its production artifact remains `validated`. Correct that response handling
+and verify a subsequent reviewed release reaches `assigned`; do not rerun or roll back the
+healthy deployment merely to clear the badge. See #1319 for deployment IDs and evidence.
+
+Production automatic domain assignment is disabled; review/test/build rules and protected
+production approval remain configured. The project-scoped token is installed only in the two
+GitHub release environments and expires December 21, 2026. Read, build and promotion authority
+are now verified. Storage credentials stay write-only; expected URL fingerprints are scoped
+separately to staging and production. No database DDL was performed.
 
 Transcript PRs #1317, #1318 and #1328 target main. The last required a merge of current main
 to preserve its single-file diff after the squash release; transcript content is unchanged.
 The live Apps Script still needs both documented edits and a verified main-targeted run.
-Human PR review, live release-path verification and live publisher access remain external gates. No production release
-or automatic database migration is authorized by this handoff.
+Human PR review, a green production workflow and live publisher access remain external gates.
+This handoff does not authorize another production release or automatic database migration.
 Historical handoff sections below retain their original branch/release context.
 
 # MEMORY.md — Music Nerd engineering handoff

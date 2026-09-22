@@ -23,6 +23,7 @@ function harness(options = {}) {
     const parsed = new URL(url);
     calls.push({ url, ...init, body: init.body ? JSON.parse(init.body) : undefined });
     if (options.failure?.(parsed, init)) return new Response('provider secret material', { status: 403 });
+    if (parsed.pathname === options.emptyJsonPath) return new Response(null, { status: 200 });
     if (parsed.hostname === 'api.github.com') {
       mainCalls++;
       return json({ object: { sha: options.staleAt && mainCalls >= options.staleAt ? 'b'.repeat(40) : sha } });
@@ -47,7 +48,10 @@ function harness(options = {}) {
         checks: { database: !options.unhealthy, storage: true } });
       return new Response(options.home || '<html>Music Nerd</html>', { headers: { 'content-type': 'text/html' } });
     }
-    if (parsed.pathname === '/v10/projects/prj_test/promote/dpl_candidate') { promoted = true; return json({}); }
+    if (parsed.pathname === '/v10/projects/prj_test/promote/dpl_candidate') {
+      promoted = true;
+      return new Response(null, { status: options.promotionStatus || 202 });
+    }
     if (parsed.pathname === '/v2/deployments/dpl_candidate/aliases') { assigned = true; return json({}); }
     if (['/v4/aliases/staging.musicnerd.xyz', '/v4/aliases/www.musicnerd.xyz'].includes(parsed.pathname)) {
       aliasCalls++;
@@ -87,6 +91,34 @@ test('production revalidates staged deployment and builds separate production ca
   assert(h.calls.findIndex(c => c.url.includes('music-nerd-stage.vercel.app/api/health')) < h.calls.indexOf(writes[0]));
   assert(h.calls.findIndex(c => c.url.includes('music-nerd-candidate.vercel.app/api/health')) < h.calls.indexOf(writes[1]));
 });
+
+for (const promotionStatus of [201, 202]) test(`accepts bodyless promotion ${promotionStatus} and verifies completion`, async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, promotionStatus,
+    aliasDelay: 2, productionTargetDelay: 1 });
+  assert.equal((await h.run()).phase, 'assigned');
+  const promotionIndex = h.calls.findIndex(c => c.url.includes('/promote/'));
+  const afterPromotion = h.calls.slice(promotionIndex + 1);
+  assert.equal(afterPromotion.filter(c => c.url.includes('/v9/projects/prj_test')).length, 3);
+  assert.equal(afterPromotion.filter(c => c.url.includes('/v4/aliases/www.musicnerd.xyz')).length, 3);
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated', 'assigned']);
+  assert.equal(mutations(h).length, 2);
+});
+
+test('rejects a failed promotion without polling or recording assignment', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, failure: p => p.pathname.includes('/promote/') });
+  await assert.rejects(h.run(), { message: 'Release request failed (HTTP 403)' });
+  assert.equal(h.calls.at(-1).method, 'POST');
+  assert(h.calls.at(-1).url.includes('/promote/'));
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated']);
+  assert.equal(mutations(h).length, 2);
+});
+
+for (const emptyJsonPath of ['/v9/projects/prj_test', '/v13/deployments'])
+  test(`requires JSON from data-bearing endpoint ${emptyJsonPath}`, async () => {
+    const h = harness({ emptyJsonPath });
+    await assert.rejects(h.run(), { message: 'Invalid release API response' });
+    assert.equal(h.records.length, 0);
+  });
 
 for (const [name, options, message, maximumWrites] of [
   ['PR context', { env: { GITHUB_EVENT_NAME: 'pull_request' } }, /Invalid release context/, 0],
