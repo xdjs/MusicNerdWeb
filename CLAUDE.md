@@ -87,7 +87,8 @@ Feature/fix branch off `main` → reviewed PR to `main` → squash merge.
 Use a contributor prefix (Codex uses `codex/`), conventional commits, and stage only intended files.
 Docs follow the same route. **Do not merge or deploy without authorization.** Passing CI deploys
 the exact merged SHA to staging; the protected GitHub `production-release` environment requires
-release approval before building that SHA with production configuration and promoting it.
+approval from any one of Carl (`clt`), Pete (`p3t3rango`) or Sweetman (`sweetmantech`) before
+building that SHA with production configuration and promoting it.
 Follow [the release runbook](docs/releases.md), including the manual migration gate.
 
 Schema SQL and the Drizzle journal are one change. Apply required migrations before dependent
