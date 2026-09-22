@@ -1,0 +1,47 @@
+name: Evals
+
+# On demand only. Evals spend model tokens, so they run at decision points (a model or
+# prompt change), never on every push (docs/evals.md). Pick the branch whose code you
+# want measured; its default model in src/server/lib/ai/models.ts is the model under test.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite to run: a file under evals/, without .eval.ts"
+        type: choice
+        options:
+          - smoke
+        default: smoke
+
+# The research suite resets fixture artists on the staging database; two runs at once
+# would score each other's writes.
+concurrency:
+  group: evals
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+
+    env:
+      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+      AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+      SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Upgrade npm
+      run: npm install -g npm@11.12.1
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run suite
+      run: npm run eval -- "evals/${{ inputs.suite }}.eval.ts" --no-progress-bars --terminate-on-failure
