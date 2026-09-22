@@ -50,6 +50,30 @@ beforeEach(() => {
 });
 
 describe("extractCaptionCredits, sliced", () => {
+    it("keeps the valid claims when the schema rejects one malformed sibling", async () => {
+        // The hand parser used to pass whatever the model wrote to verifyClaims,
+        // which checks every field itself. A typed schema rejects the whole
+        // reply over one bad item; the raw text on that error is the reply,
+        // so the old lenient parse runs on it and the good items survive.
+        const { extractCaptionCredits } = await import("@/server/utils/socialCredits");
+        const posts = [post(1), post(2)];
+        generateContent.mockImplementation(async () => {
+            throw Object.assign(new Error("No object generated"), {
+                name: "AI_NoObjectGeneratedError",
+                text: JSON.stringify({
+                    credits: [
+                        { subject: "someone", isHandle: true, role: "Mixed by", quote: "Mixed by @someone on this one.", url: posts[0].url },
+                        { subject: 123, isHandle: "yes", role: null, quote: "Mixed by @someone on this one.", url: posts[1].url },
+                    ],
+                    statements: [],
+                }),
+            });
+        });
+        const slice = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 });
+        expect(slice.done).toBe(true);
+        expect(slice.extraction.credits.map(c => c.url)).toEqual([posts[0].url]);
+    });
+
     it("declines to start anything when there is no usable time left", async () => {
         const { extractCaptionCredits } = await import("@/server/utils/socialCredits");
         const posts = Array.from({ length: 40 }, (_, i) => post(i));

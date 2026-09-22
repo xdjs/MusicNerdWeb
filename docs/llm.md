@@ -99,7 +99,9 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
   go away because the SDK validates the reply. A reply that fails validation rejects the call with
   `AI_NoObjectGeneratedError` (or `AI_NoOutputGeneratedError` when empty), and each site maps that
   to the path a parse error took: follow-ups fall back to the static list, the verifier and the
-  relevance judge leave everything undecided, caption extraction records an empty batch.
+  relevance judge leave everything undecided, and caption extraction re-reads the raw reply the
+  error carries with the old lenient parser, so one mistyped item cannot cost a batch its valid
+  siblings (`verifyClaims` checks every field itself).
 - **`tools: [{ googleSearch: {} }]`** → `googleSearch: true`, the provider-executed
   `google.tools.googleSearch({})`. Site 2 reads `result.sources`: the SDK maps each grounding chunk
   to a source whose **`title` is `web.title`, the registrable domain**, and whose `url` is

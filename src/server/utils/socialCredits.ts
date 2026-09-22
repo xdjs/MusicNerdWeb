@@ -289,9 +289,35 @@ interface RawCredit { subject?: unknown; isHandle?: unknown; role?: unknown; quo
 interface RawStatement { quote?: unknown; topic?: unknown; url?: unknown }
 
 /** The model answered, but not with the object the schema asks for. The AI SDK
- *  raises these when the reply is empty or fails validation. */
-function isUnusableOutput(e: unknown): boolean {
+ *  raises these when the reply is empty or fails validation, and carries the
+ *  raw reply as `text`. */
+function isUnusableOutput(e: unknown): e is { text?: unknown } {
     return /^AI_No(Object|Output)GeneratedError$/.test(String((e as { name?: unknown } | null)?.name));
+}
+
+/** The lenient read the hand parser did before the schema existed. The schema
+ *  is the model's output contract; the gate is `verifyClaims`, which checks
+ *  every field itself. One mistyped item must not cost the batch its valid
+ *  siblings, so a reply the schema rejects is read this way instead. */
+function parseLeniently(text: string): { credits: RawCredit[]; statements: RawStatement[] } {
+    try {
+        // Models occasionally wrap JSON in a fence.
+        const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+        const obj = JSON.parse(cleaned) as Record<string, unknown>;
+        return {
+            credits: Array.isArray(obj.credits) ? (obj.credits as RawCredit[]) : [],
+            statements: Array.isArray(obj.statements) ? (obj.statements as RawStatement[]) : [],
+        };
+    } catch (e) {
+        // Silence here used to be indistinguishable from an artist with nothing
+        // in their captions, and it was not the same thing at all. A model that
+        // writes long clause-shaped roles produces long output, long output
+        // gets truncated at the token ceiling, truncated JSON fails to parse,
+        // and a whole batch of an artist's history disappeared without a word.
+        // Bounding the role made this rare; logging it makes it visible.
+        console.error(`[socialCredits] Could not parse a batch response (${text.length} chars, ends "${text.slice(-60).replace(/\s+/g, " ")}"):`, e);
+        return { credits: [], statements: [] };
+    }
 }
 
 /**
@@ -424,14 +450,8 @@ async function runBatch(
         return verifyClaims({ credits, statements }, batch, artistName, artistHandle);
     } catch (e) {
         if (isUnusableOutput(e)) {
-            // Silence here used to be indistinguishable from an artist with
-            // nothing in their captions, and it was not the same thing at all.
-            // Long output gets truncated at the token ceiling, truncated JSON
-            // fails validation, and a whole batch of an artist's history
-            // disappeared without a word. Bounding the role made this rare;
-            // logging it makes it visible.
-            console.error(`[socialCredits] Could not parse a batch response for ${artistName}:`, e);
-            return verifyClaims({ credits: [], statements: [] }, batch, artistName, artistHandle);
+            const text = typeof e.text === "string" ? e.text : "";
+            return verifyClaims(parseLeniently(text), batch, artistName, artistHandle);
         }
         // A timeout costs the whole batch, and the batch is fifteen posts of an
         // artist's history. Splitting in half and retrying recovers most of it:
