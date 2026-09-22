@@ -10,7 +10,7 @@ function harness(options = {}) {
     VERCEL_TOKEN: 'private-token', GH_TOKEN: 'github-private-token',
     VERCEL_AUTOMATION_BYPASS_SECRET: 'private-bypass', RELEASE_ENVIRONMENT: 'staging', ...options.env };
   const records = [], calls = [];
-  let created = false, promoted = false, assigned = false, mainCalls = 0, aliasCalls = 0;
+  let created = false, promoted = false, assigned = false, mainCalls = 0, aliasCalls = 0, productionStatusCalls = 0;
   const stage = { id: 'dpl_stage', url: 'music-nerd-stage.vercel.app', projectId: 'prj_test',
     gitSource: { sha }, readyState: 'READY', customEnvironment: { id: 'env_stage' }, target: null };
   const candidate = { ...stage, id: 'dpl_candidate', url: 'music-nerd-candidate.vercel.app',
@@ -27,13 +27,18 @@ function harness(options = {}) {
       mainCalls++;
       return json({ object: { sha: options.staleAt && mainCalls >= options.staleAt ? 'b'.repeat(40) : sha } });
     }
-    if (parsed.pathname === '/v9/projects/prj_test') return json({ id: 'prj_test',
-      autoAssignCustomDomains: options.autoAssign ?? false,
-      customEnvironments: [{ id: 'env_stage', slug: 'staging', domains: [{ name: 'staging.musicnerd.xyz' }], ...options.custom }],
-      targets: { production: { id: promoted || options.earlyPromotion && created ? candidate.id : 'dpl_old' } } });
+    if (parsed.pathname === '/v9/projects/prj_test') {
+      if (promoted) productionStatusCalls++;
+      const productionCurrent = promoted && productionStatusCalls > (options.productionTargetDelay || 0);
+      return json({ id: 'prj_test',
+        autoAssignCustomDomains: options.autoAssign ?? false,
+        customEnvironments: [{ id: 'env_stage', slug: 'staging', domains: [{ name: 'staging.musicnerd.xyz' }], ...options.custom }],
+        targets: { production: { id: productionCurrent || options.earlyPromotion && created ? candidate.id : 'dpl_old' } } });
+    }
     if (parsed.pathname === '/v13/deployments' && init.method === 'POST') { created = true; return json(candidate); }
     if (parsed.pathname === '/v13/deployments/dpl_stage') return json({ ...stage, ...options.stagedDeployment });
-    if (parsed.pathname === '/v13/deployments/dpl_candidate') return json(candidate);
+    if (parsed.pathname === '/v13/deployments/dpl_candidate') return json({ ...candidate,
+      ...(promoted && options.productionAliasError ? { aliasError: options.productionAliasError } : {}) });
     if (parsed.hostname.endsWith('.vercel.app')) {
       if (parsed.pathname === '/api/health') return json({ ok: !options.unhealthy,
         checks: { database: !options.unhealthy, storage: true } });
@@ -41,9 +46,10 @@ function harness(options = {}) {
     }
     if (parsed.pathname === '/v10/projects/prj_test/promote/dpl_candidate') { promoted = true; return json({}); }
     if (parsed.pathname === '/v2/deployments/dpl_candidate/aliases') { assigned = true; return json({}); }
-    if (parsed.pathname === '/v4/aliases/staging.musicnerd.xyz') {
+    if (['/v4/aliases/staging.musicnerd.xyz', '/v4/aliases/www.musicnerd.xyz'].includes(parsed.pathname)) {
       aliasCalls++;
-      return json({ deploymentId: created && aliasCalls > (options.aliasDelay || 0) ? candidate.id : 'dpl_old' });
+      const eligible = parsed.pathname.endsWith('/www.musicnerd.xyz') ? promoted : created;
+      return json({ deploymentId: eligible && aliasCalls > (options.aliasDelay || 0) ? candidate.id : 'dpl_old' });
     }
     throw new Error(`Unexpected test request: ${parsed.pathname}`);
   };
@@ -137,4 +143,46 @@ test('fails immediately on terminal staging alias error', async () => {
   const h = harness({ aliasDelay: Infinity, deployment: { aliasError: { code: 'error', message: 'private' } } });
   await assert.rejects(h.run(), /Staging alias assignment failed/);
   assert(!h.records.some(r => r.phase === 'assigned'));
+});
+
+test('waits for production domain after the project target changes', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, aliasDelay: 2 });
+  assert.equal((await h.run()).phase, 'assigned');
+  const aliasReads = h.calls.filter(c => c.url.includes('/v4/aliases/www.musicnerd.xyz'));
+  assert.equal(aliasReads.length, 3);
+  assert(h.calls.indexOf(aliasReads[0]) > h.calls.findIndex(c => c.url.includes('/promote/')));
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated', 'assigned']);
+});
+
+test('fails closed when production domain stays on the previous deployment', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, aliasDelay: Infinity });
+  await assert.rejects(h.run(), /Production promotion or alias assignment did not complete/);
+  assert.equal(h.calls.filter(c => c.url.includes('/v4/aliases/www.musicnerd.xyz')).length, 30);
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated']);
+  assert.equal(mutations(h).length, 2); // Failure must not trigger an automatic rollback.
+});
+
+test('fails immediately without exposing a production alias error after promotion', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' },
+    productionAliasError: { code: 'private-code', message: 'private-provider-message' } });
+  await assert.rejects(h.run(), { message: 'Production alias assignment failed' });
+  const afterPromotion = h.calls.slice(h.calls.findIndex(c => c.url.includes('/promote/')) + 1);
+  assert.equal(afterPromotion.filter(c => c.url.includes('/v13/deployments/')).length, 1);
+  assert.equal(afterPromotion.filter(c => c.url.includes('/v4/aliases/')).length, 0);
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated']);
+  assert(!JSON.stringify(h.records).includes('private'));
+  assert.equal(mutations(h).length, 2);
+});
+
+test('waits for the production target even when the domain is assigned first', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, productionTargetDelay: 2 });
+  assert.equal((await h.run()).phase, 'assigned');
+  assert.equal(h.calls.filter(c => c.url.includes('/v4/aliases/www.musicnerd.xyz')).length, 3);
+});
+
+test('fails closed when only the production domain reaches the candidate', async () => {
+  const h = harness({ env: { RELEASE_ENVIRONMENT: 'production' }, productionTargetDelay: Infinity });
+  await assert.rejects(h.run(), /Production promotion or alias assignment did not complete/);
+  assert.equal(h.calls.filter(c => c.url.includes('/v4/aliases/www.musicnerd.xyz')).length, 30);
+  assert.deepEqual(h.records.map(r => r.phase), ['created', 'validated']);
 });

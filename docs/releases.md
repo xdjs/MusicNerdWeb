@@ -20,7 +20,9 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    a new candidate with **production** configuration from that same SHA. Automatic production
    domain assignment must remain disabled; the script refuses to build if it is enabled.
 5. Check the candidate's immutable URL without writes. Recheck main immediately before
-   promoting the production candidate. Record and verify the promoted deployment ID.
+   promoting the production candidate. Before recording `assigned`, poll until both the
+   project's production target and `www.musicnerd.xyz` point to the candidate. Fail on a
+   deployment alias error or if they do not agree within 30 checks, two seconds apart.
 
 Staging and production jobs each use a repository-wide concurrency group with cancellation
 **disabled**. A remote build can outlive its Actions job, so cancelling an older build is not
@@ -77,9 +79,11 @@ configuration, and `/` must return HTML. They do **not** establish real login, s
 worker behavior, schema compatibility or external integrations. Add feature-specific evidence
 before approval; never run fixture-writing production tests as a generic smoke suite.
 
-A failed check leaves production aliases on the previous release. A promotion failure is
-reported, never silently rolled back. If an operator interrupts a job after deployment creation,
-inspect the recorded candidate before retrying; auto-assignment is disabled, so an orphaned
+A failed check before promotion leaves production aliases on the previous release. A promotion
+or alias-verification failure is reported without recording `assigned`; domains may already
+have moved, so inspect their actual assignments. Never silently roll back. If an operator
+interrupts a job after deployment creation, inspect the recorded candidate before retrying;
+auto-assignment is disabled, so an orphaned
 candidate cannot publish production by itself. Investigate unexpected domain ownership before
 continuing. Staging's alias can serve a failed smoke candidate; production remains gated. Serialized staging
 jobs prevent older builds completing after newer builds during normal workflow execution.

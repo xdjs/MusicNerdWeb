@@ -134,10 +134,17 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
     let promoted = false;
     for (let attempt = 0; attempt < 30; attempt++) {
       const status = await vercel(`/v9/projects/${projectId}`);
-      if (status.targets?.production?.id === ready.id) { promoted = true; break; }
+      // The production target can change before the public domain finishes assigning.
+      const deploymentStatus = await vercel(`/v13/deployments/${ready.id}`);
+      if (deploymentStatus.aliasError) throw new Error('Production alias assignment failed');
+      const alias = await vercel('/v4/aliases/www.musicnerd.xyz');
+      if (status.targets?.production?.id === ready.id && alias.deploymentId === ready.id) {
+        promoted = true;
+        break;
+      }
       await sleep(2_000);
     }
-    if (!promoted) throw new Error('Production promotion did not complete');
+    if (!promoted) throw new Error('Production promotion or alias assignment did not complete');
   } else {
     // Vercel assigns the custom environment domain when its build becomes Ready.
     // This job remains serialized for the entire build and validation, without cancellation.
