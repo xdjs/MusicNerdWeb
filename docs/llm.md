@@ -22,7 +22,7 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_DEFAULT`, used by every site, and `MODEL_GROUNDED`, used when a site asks for Google Search grounding, which only Gemini provides. Both are `google/gemini-2.5-flash` until the DeepSeek trial below decides otherwise. |
+| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_DEFAULT` (`deepseek/deepseek-v4.1-flash`), used by every site, and `MODEL_GROUNDED` (`google/gemini-2.5-flash`), used when a site asks for Google Search grounding, which only Gemini provides. |
 | `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`; picks `MODEL_GROUNDED` when `googleSearch` is set and `MODEL_DEFAULT` otherwise; turns `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`; maps `thinkingBudget` per provider (below). Logs one line per call, `[ai] <model> <ms>ms in=<n> out=<n> reasoning=<n> gen=<generation id>`, so a runtime-log request carries what a cost lookup (`GET /v1/generation?id=`) needs. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
@@ -85,6 +85,12 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > (403 `RestrictedModelsError`); Flash is free-tier, About runs ungrounded, and every other site
 > already uses Flash. Pro was the only exception, so `MODEL_PRO` is gone. Free-tier model list:
 > vercel.com/ai-gateway/models?freeTier=true.
+
+> **Trial 2026-09-22 (Sweetman, #1324): `MODEL_DEFAULT` is `deepseek/deepseek-v4.1-flash`.**
+> Grounded calls stay on Gemini. The team moved to the paid gateway tier the same day. DeepSeek
+> reasons by default, so sites with `thinkingBudget: 0` send `reasoning: "none"` and the others
+> get its default; #1324 measures each UX flow on both models and #1259 decides whether this
+> stays. The "flash" entries in the table below read as `MODEL_DEFAULT` unless the site is grounded.
 
 ## How each Gemini option maps
 

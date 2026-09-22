@@ -59,11 +59,11 @@ describe("generateText", () => {
         expect(sdkGenerateText.mock.calls[0][0].model).toBe("google/gemini-2.5-flash-lite");
     });
 
-    it("sends a thinking budget as the Google provider option, and nothing when there is none", async () => {
+    it("sends a thinking budget as the Google provider option on Gemini, and nothing when there is none", async () => {
         const { generateText } = await import("@/server/lib/ai/generateText");
-        await generateText({ prompt: "hi", thinkingBudget: 0 });
+        await generateText({ model: "google/gemini-2.5-flash", prompt: "hi", thinkingBudget: 0 });
         expect(sdkGenerateText.mock.calls[0][0].providerOptions).toEqual({ google: { thinkingConfig: { thinkingBudget: 0 } } });
-        await generateText({ prompt: "hi" });
+        await generateText({ model: "google/gemini-2.5-flash", prompt: "hi" });
         expect(sdkGenerateText.mock.calls[1][0].providerOptions).toBeUndefined();
     });
 
