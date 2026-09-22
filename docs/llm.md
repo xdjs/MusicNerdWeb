@@ -22,7 +22,7 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_FLASH = "google/gemini-2.5-flash"`, `MODEL_PRO = "google/gemini-2.5-pro"`. Constants module; the one allowed multi-export. |
+| `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"`. Every site uses it. |
 | `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig` and `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
@@ -66,7 +66,7 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 1 | `api/askArtist/route.ts` main answer | Answer from our sources, citation markers | flash | temp 0.5 | 20 s → `"Gemini timeout"` → HTTP 408 | Ask (user) |
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
-| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | **pro** | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
+| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | flash (was pro; see below) | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
 | 5 | `artistDocService.ts` `synthesizeArtistDoc` | Knowledge document from sources | flash | temp 0.4, thinking 0 | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
 | 6 | `artistDocService.ts` `generateAboutFromDoc` | About from the document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
@@ -79,6 +79,12 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 14 | `api/funFacts/[type]/route.ts` | Fun fact | flash | temp 0.8 | 15 s → `"Gemini timeout"` → HTTP 408, inside the route's 20 s budget | profile (user) |
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
+
+> **Decision 2026-09-21 (Sweetman, on #1259): About moves from `google/gemini-2.5-pro` to Flash.**
+> The gateway refused Pro on the team's free tier during preview verification of #1322
+> (403 `RestrictedModelsError`); Flash is free-tier, About runs ungrounded, and every other site
+> already uses Flash. Pro was the only exception, so `MODEL_PRO` is gone. Free-tier model list:
+> vercel.com/ai-gateway/models?freeTier=true.
 
 ## How each Gemini option maps
 
@@ -112,7 +118,7 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 
 ## Swapping a model
 
-Change one constant in `src/server/lib/ai/models.ts`. Any gateway model id works
+Change the constant in `src/server/lib/ai/models.ts`, or pass `model` at one site. Any gateway model id works
 (`anthropic/…`, `openai/…`, `deepseek/…`): list them with
 `curl -s https://ai-gateway.vercel.sh/v1/models`. Two things do not carry across providers and
 must be checked before a swap: `google_search` grounding (sites 2 and 4) and the

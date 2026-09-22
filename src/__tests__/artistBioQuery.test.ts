@@ -107,7 +107,6 @@ describe('artistBioQuery - Gemini bio generation', () => {
     // Verify Gemini was called
     expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'google/gemini-2.5-pro',
         prompt: expect.stringContaining('Test Artist'),
         instructions: expect.any(String),
       })

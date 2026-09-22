@@ -131,7 +131,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     expect(data.bio).toBe("mocked gemini response");
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    expect(callArgs.model).toBe("google/gemini-2.5-pro");
+    expect(callArgs.model).toBeUndefined(); // Flash by default; no Pro override since 2026-09-21
     expect(callArgs.prompt).toContain("Test Artist");
     expect(callArgs.prompt).toContain("open.spotify.com/artist/spotify-123");
     expect(callArgs.prompt).not.toContain("Spotify ID: spotify-123"); // no bare ID

@@ -22,8 +22,8 @@ describe("generateText", () => {
 
     it("uses the model it is given", async () => {
         const { generateText } = await import("@/server/lib/ai/generateText");
-        await generateText({ model: "google/gemini-2.5-pro", prompt: "hi" });
-        expect(sdkGenerateText.mock.calls[0][0].model).toBe("google/gemini-2.5-pro");
+        await generateText({ model: "google/gemini-2.5-flash-lite", prompt: "hi" });
+        expect(sdkGenerateText.mock.calls[0][0].model).toBe("google/gemini-2.5-flash-lite");
     });
 
     it("sends a thinking budget as the Google provider option, and nothing when there is none", async () => {

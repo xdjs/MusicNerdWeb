@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { generateText } from "@/server/lib/ai/generateText";
-import { MODEL_PRO } from "@/server/lib/ai/models";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
 import { BioConflictError } from '@/lib/bio/bioConflict';
@@ -264,8 +263,9 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     const useGrounding = false;
 
     const response = await Promise.race([
+      // Flash, like every other site. Pro was refused by the gateway on the free
+      // tier (2026-09-21) and About runs ungrounded, so Flash covers it (#1259).
       generateText({
-        model: MODEL_PRO,
         prompt: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
         instructions: systemPrompt,
         googleSearch: useGrounding,
