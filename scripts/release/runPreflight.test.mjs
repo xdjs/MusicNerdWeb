@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { runPreflight } from './runPreflight.mjs';
 
@@ -25,12 +26,11 @@ function harness(options = {}) {
     calls.push({ url, ...init });
     const u = new URL(url), p = u.pathname;
     if (options.networkError) throw new Error('private response containing vercel-secret');
-    if (options.redirect && u.hostname.endsWith('supabase.co')) return new Response(null, { status: 302 });
     let body;
     if (u.hostname === 'api.github.com') body = { object: { sha: options.stale ? 'b'.repeat(40) : sha } };
-    else if (p === '/v9/projects/prj_test') body = { id: 'prj_test', autoAssignCustomDomains: false,
-      customEnvironments: [{ id: 'env_stage', slug: 'staging', domains: [{ name: 'staging.musicnerd.xyz' }], ...options.custom }] };
-    else if (p === '/v9/projects/prj_test/domains') body = { domains: [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_stage' }] };
+    else if (p === '/v9/projects/prj_test') body = { id: 'prj_test', autoAssignCustomDomains: false, autoExposeSystemEnvs: true, buildCommand: null,
+      customEnvironments: [{ id: 'env_stage', slug: 'staging', ...options.custom }] };
+    else if (p === '/v9/projects/prj_test/domains') body = { domains: options.domains || [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_stage' }], pagination: options.pagination };
     else if (p.startsWith('/v4/aliases/')) body = { deploymentId: p.includes('staging.') ? 'dpl_stage' : 'dpl_prod', ...options.alias };
     else if (p.startsWith('/v13/deployments/')) body = { id: p.split('/').at(-1), projectId: 'prj_test',
       readyState: 'READY', gitSource: options.omitDefaultGitSource && !u.searchParams.has('withGitRepoInfo') ? undefined :
@@ -40,23 +40,26 @@ function harness(options = {}) {
     else if (p === '/v10/projects/prj_test/env') body = { envs: [
       { id: 'env_stage_url', key: 'SUPABASE_URL', customEnvironmentIds: ['env_stage'] },
       { id: 'env_stage_key', key: 'SUPABASE_SERVICE_ROLE_KEY', customEnvironmentIds: ['env_stage'] },
-      { id: 'env_prod_url', key: 'SUPABASE_URL', target: ['production'] }, ...(options.extraEnvs || []) ] };
-    else if (p.startsWith('/v1/projects/prj_test/env/')) body = { value: p.endsWith('env_stage_url') ?
-      options.stageUrl || `https://${stageRef}.supabase.co` : p.endsWith('env_prod_url') ?
-        options.prodUrl || `https://${prodRef}.supabase.co` : 'storage-secret' };
-    else if (u.hostname === `${stageRef}.supabase.co` && p === '/storage/v1/bucket/vault-files') body = { id: 'vault-files' };
+      { id: 'env_prod_url', key: 'SUPABASE_URL', target: ['production'] },
+      { id: 'env_prod_key', key: 'SUPABASE_SERVICE_ROLE_KEY', target: ['production'] },
+      { id: 'hash_stage', key: 'RELEASE_SUPABASE_URL_SHA256', customEnvironmentIds: ['env_stage'] },
+      { id: 'hash_prod', key: 'RELEASE_SUPABASE_URL_SHA256', target: ['production'] }, ...(options.extraEnvs || []) ] };
+    else if (p.startsWith('/v1/projects/prj_test/env/hash_')) body = options.writeOnly ? { decrypted: false } : {
+      value: options.wrongHash ? '0'.repeat(64) : createHash('sha256').update(
+        `https://${p.endsWith('hash_stage') ? stageRef : prodRef}.supabase.co`).digest('hex') };
     else throw new Error('Unexpected request');
     return new Response(JSON.stringify(body), { status: options.status || 200 });
   };
   return { calls, reports, run: () => runPreflight({ env, fetchFn, record: r => reports.push(r) }) };
 }
-test('uses GET only, checks intended storage, and emits no credentials or resource refs', async () => {
+test('uses GET only, validates expected hashes, and never requests write-only storage values', async () => {
   const h = harness(); const r = await h.run();
   assert.equal(r.ok, true);
   assert.ok(h.calls.every(c => c.method === 'GET' && c.redirect === 'error'));
   const storage = h.calls.filter(c => c.url.includes('supabase.co'));
-  assert.equal(storage.length, 1);
-  assert.equal(storage[0].headers.apikey, 'storage-secret');
+  assert.equal(storage.length, 0);
+  assert.ok(!h.calls.some(c => /\/v1\/projects.*\/env\/env_/.test(c.url)));
+  assert.deepEqual(r.pending, ['staging-build-storage-validation', 'production-build-storage-identity']);
   assert.ok(h.calls.some(c => c.url.includes('withGitRepoInfo=true')));
   for (const secret of ['vercel-secret','github-secret','storage-secret',stageRef,prodRef])
     assert.ok(!JSON.stringify(h.reports).includes(secret));
@@ -76,7 +79,7 @@ test('reports missing default gitSource separately from enriched response', asyn
   const h = harness({ omitDefaultGitSource: true }); const r = await h.run();
   assert.equal(r.checks.stagingDefaultGitSource, false);
   assert.equal(r.checks.stagingEnrichedGitSource, true);
-  assert.equal(r.checks.stagingStorageRead, true);
+  assert.equal(r.checks.stagingExpectedStorageHash, true);
   assert.equal(r.ok, false);
 });
 test('accepts different existing staging and production SHAs', async () => {
@@ -88,19 +91,17 @@ test('rejects deployments from another project without exposing their metadata',
   const h = harness({ deployment: { projectId: 'prj_other' } }); const r = await h.run();
   assert.equal(r.ok, false); assert.deepEqual(r.deployments, {});
 });
-for (const stageUrl of [`https://${prodRef}.supabase.co`, 'https://evil.invalid', `https://${stageRef}.supabase.co/extra`]) {
-  test('never sends storage key to a wrong resource or URL', async () => {
-    const h = harness({ stageUrl }); assert.equal((await h.run()).ok, false);
-    assert.ok(!h.calls.some(c => c.url.includes('/storage/v1/')));
-  });
-}
 test('rejects ambiguous staging configuration', async () => {
   const h = harness({ extraEnvs: [{ id: 'duplicate', key: 'SUPABASE_URL', customEnvironmentIds: ['env_stage'] }] });
-  assert.equal((await h.run()).ok, false); assert.ok(!h.calls.some(c => c.url.includes('/storage/v1/')));
+  assert.equal((await h.run()).ok, false);
 });
-test('rejects a storage redirect and does not follow it', async () => {
-  const h = harness({ redirect: true }); const r = await h.run();
-  assert.equal(r.ok, false); assert.equal(r.checks.stagingStorageRead, false);
+for (const options of [{ wrongHash: true }, { writeOnly: true }]) test('requires readable, independently matching expected hashes', async () => {
+  const h = harness(options); const r = await h.run();
+  assert.equal(r.ok, false); assert.equal(r.checks.stagingExpectedStorageHash, false);
+});
+for (const options of [{ domains: [] }, { domains: [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_other' }] },
+  { pagination: { next: 123 } }]) test('rejects incomplete or foreign domain ownership', async () => {
+  assert.equal((await harness(options).run()).ok, false);
 });
 test('sanitizes provider failures', async () => {
   for (const o of [{ status: 403 }, { networkError: true }]) {
@@ -108,9 +109,9 @@ test('sanitizes provider failures', async () => {
     assert.ok(!JSON.stringify(h.reports).includes('secret'));
   }
 });
-test('reports embedded domain contract mismatch while still checking storage', async () => {
-  const h = harness({ custom: { domains: undefined } }); const r = await h.run();
-  assert.equal(r.checks.embeddedStagingDomains, false); assert.equal(r.checks.stagingStorageRead, true);
+test('accepts absent embedded domains after verifying dedicated endpoint', async () => {
+  const r = await harness().run(); assert.equal(r.ok, true); assert.equal(r.checks.stagingDomainOwnership, true);
+  assert.equal(r.checks.embeddedStagingDomains, undefined);
 });
 test('does not follow an untrusted alias deployment ID', async () => {
   const h = harness({ alias: { deploymentId: '../private' } }); assert.equal((await h.run()).ok, false);

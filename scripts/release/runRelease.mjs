@@ -55,9 +55,14 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
     const project = await vercel(`/v9/projects/${encodeURIComponent(projectId)}`);
     if (project.id !== projectId || project.autoAssignCustomDomains !== false)
       throw new Error('Automatic production domain assignment must be disabled');
+    if (project.autoExposeSystemEnvs !== true || ![null, undefined, 'npm run build'].includes(project.buildCommand))
+      throw new Error('Vercel system variables and npm build guard must be enabled');
     const custom = project.customEnvironments?.find(value => value.slug === 'staging');
-    if (!custom?.id || custom.branchMatcher || custom.domains?.length !== 1 ||
-        custom.domains[0].name !== 'staging.musicnerd.xyz')
+    if (!/^env_[A-Za-z0-9_]+$/.test(custom?.id || '') || custom.branchMatcher)
+      throw new Error('Staging must have only its staging domain and no branch tracking');
+    const domains = await vercel(`/v9/projects/${encodeURIComponent(projectId)}/domains?customEnvironmentId=${encodeURIComponent(custom.id)}`);
+    if (domains.pagination?.next != null || domains.domains?.length !== 1 ||
+        domains.domains[0].name !== 'staging.musicnerd.xyz' || domains.domains[0].customEnvironmentId !== custom.id)
       throw new Error('Staging must have only its staging domain and no branch tracking');
     return { project, custom };
   };

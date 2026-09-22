@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -12,7 +13,8 @@ export async function runPreflight({ env = process.env, fetchFn = fetch,
 } = {}) {
   const checks = {}, deployments = {};
   const finish = () => {
-    const report = { ok: Object.values(checks).every(Boolean), checks, deployments };
+    const report = { ok: Object.values(checks).every(Boolean), checks, deployments,
+      pending: ['staging-build-storage-validation', 'production-build-storage-identity'] };
     record(report);
     return report;
   };
@@ -52,14 +54,15 @@ export async function runPreflight({ env = process.env, fetchFn = fetch,
   checks.projectIdentity = project?.id === env.VERCEL_PROJECT_ID;
   if (!checks.projectIdentity) return finish();
   checks.autoPromotionDisabled = project.autoAssignCustomDomains === false;
+  checks.buildGuardConfigured = project.autoExposeSystemEnvs === true &&
+    [null, undefined, 'npm run build'].includes(project.buildCommand);
   const custom = project.customEnvironments?.filter(c => c.slug === 'staging');
   checks.stagingEnvironment = custom?.length === 1 && /^env_[A-Za-z0-9]+$/.test(custom[0].id || '');
   if (!checks.stagingEnvironment) return finish();
   const stage = custom[0];
   checks.noBranchTracking = !stage.branchMatcher;
-  checks.embeddedStagingDomains = stage.domains?.length === 1 && stage.domains[0].name === 'staging.musicnerd.xyz';
   const domains = await vercel('domainAccess', `${projectPath}/domains?customEnvironmentId=${stage.id}`);
-  checks.stagingDomainOwnership = domains?.domains?.length === 1 &&
+  checks.stagingDomainOwnership = domains?.pagination?.next == null && domains?.domains?.length === 1 &&
     domains.domains[0].name === 'staging.musicnerd.xyz' && domains.domains[0].customEnvironmentId === stage.id;
 
   for (const [name, domain] of [['staging', 'staging.musicnerd.xyz'], ['production', 'www.musicnerd.xyz']]) {
@@ -81,29 +84,19 @@ export async function runPreflight({ env = process.env, fetchFn = fetch,
 
   const metadata = await vercel('environmentMetadataAccess', `/v10/projects/${env.VERCEL_PROJECT_ID}/env`);
   const entries = Array.isArray(metadata?.envs) ? metadata.envs : [];
-  const value = async (label, key, predicate) => {
-    const matching = entries.filter(e => e.key === key && !e.gitBranch && predicate(e));
-    checks[`${label}Unique`] = matching.length === 1 && idPattern.test(matching[0].id || '');
-    if (!checks[`${label}Unique`]) return null;
-    const result = await vercel(`${label}Read`, `/v1/projects/${env.VERCEL_PROJECT_ID}/env/${matching[0].id}`);
-    return typeof result?.value === 'string' ? result.value : null;
-  };
-  const stageEntry = e => e.customEnvironmentIds?.includes(stage.id);
-  const prodEntry = e => Array.isArray(e.target) ? e.target.includes('production') : e.target === 'production';
-  const stageUrl = await value('stagingStorageUrl', 'SUPABASE_URL', stageEntry);
-  const prodUrl = await value('productionStorageUrl', 'SUPABASE_URL', prodEntry);
-  const expectedStage = `https://${env.STAGING_SUPABASE_PROJECT_REF}.supabase.co`;
-  const expectedProd = `https://${env.PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`;
-  checks.stagingStorageIdentity = stageUrl === expectedStage || stageUrl === `${expectedStage}/`;
-  checks.productionStorageIdentity = prodUrl === expectedProd || prodUrl === `${expectedProd}/`;
-  checks.stagingStorageRead = false;
-  if (checks.stagingStorageIdentity && checks.productionStorageIdentity) {
-    const key = await value('stagingStorageKey', 'SUPABASE_SERVICE_ROLE_KEY', stageEntry);
-    checks.stagingStorageKeyPresent = Boolean(key);
-    if (key) {
-      const bucket = await get('stagingStorageRead', `${expectedStage}/storage/v1/bucket/vault-files`,
-        { apikey: key, Authorization: `Bearer ${key}` });
-      checks.stagingStorageRead = bucket?.id === 'vault-files';
+  for (const [name, ref, predicate] of [
+    ['staging', env.STAGING_SUPABASE_PROJECT_REF, e => e.customEnvironmentIds?.includes(stage.id)],
+    ['production', env.PRODUCTION_SUPABASE_PROJECT_REF, e => Array.isArray(e.target) ? e.target.includes('production') : e.target === 'production'],
+  ]) {
+    for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RELEASE_SUPABASE_URL_SHA256']) {
+      const matching = entries.filter(e => e.key === key && !e.gitBranch && predicate(e));
+      const unique = matching.length === 1 && idPattern.test(matching[0].id || '');
+      checks[`${name}${key}Unique`] = unique;
+      if (key !== 'RELEASE_SUPABASE_URL_SHA256') continue;
+      const config = unique ? await vercel(`${name}ExpectedHashRead`,
+        `/v1/projects/${env.VERCEL_PROJECT_ID}/env/${matching[0].id}`) : null;
+      const expected = createHash('sha256').update(`https://${ref}.supabase.co`).digest('hex');
+      checks[`${name}ExpectedStorageHash`] = config?.value === expected;
     }
   }
   // All resource identifiers/values above stay in memory; only whitelist-shaped evidence leaves.

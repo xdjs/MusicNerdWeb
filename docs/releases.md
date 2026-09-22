@@ -8,7 +8,10 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
 
 1. CI tests and builds the merged SHA. Only a push or manual CI run on `main` can release.
 2. The `staging-release` job asks Vercel to build that exact Git SHA in the custom `staging`
-   environment. It verifies deployment project, source SHA and environment, then checks the
+   environment. Before Next.js builds, `verifyBuildStorage.mjs` checks the configured storage
+   URL against the independently configured expected URL hash, then reads the existing
+   staging `vault-files` bucket metadata. A mismatch or failed read fails the build before
+   Vercel can assign its domain. It verifies deployment project, source SHA and environment, then checks the
    immutable deployment URL's health and homepage. It records the deployment ID, SHA, URL
    and Actions run. Vercel assigns `staging.musicnerd.xyz` when the staging build becomes Ready; CI verifies
    that alias points to the recorded deployment. A staging smoke failure blocks production.
@@ -19,6 +22,8 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
 4. After approval, recheck the recorded staging deployment and current main SHA. Vercel builds
    a new candidate with **production** configuration from that same SHA. Automatic production
    domain assignment must remain disabled; the script refuses to build if it is enabled.
+   The build validates production's storage URL identity and credential presence without
+   making a production storage request.
 5. Check the candidate's immutable URL without writes. Recheck main immediately before
    promoting the production candidate. Before recording `assigned`, poll until both the
    project's production target and `www.musicnerd.xyz` point to the candidate. Fail on a
@@ -49,6 +54,12 @@ Git is part of the transition; merging the workflow alone does not establish a w
   resources and auth uses the test app/callbacks. Configure its `NEXTAUTH_URL` for staging.
   Inspect credentials privately; record only pass/fail and configuration names in public docs.
   Shared provider keys are not proof of isolated databases/auth. No production DB writes.
+- Keep Vercel system environment variables enabled and the Build Command unset or
+  `npm run build`, so the build guard runs with `VERCEL_TARGET_ENV`. Add a Config variable
+  `RELEASE_SUPABASE_URL_SHA256` separately to custom staging and production. Its value is the
+  SHA-256 hex digest of the independently verified canonical `https://<project-ref>.supabase.co`
+  URL (no trailing slash). Do not copy the hash from the URL being tested. Existing storage
+  credentials stay write-only. Feature previews and local stub builds skip this release guard.
 - The staging domain must have its former `staging` Git-branch assignment removed after a
   known main deployment is healthy. Attach it to the custom `staging` environment, keeping it outside production domain assignment. Test immutable and stable URLs.
 - GitHub Environments `staging-release` and `production-release` accept only branch `main`.
@@ -60,8 +71,10 @@ Git is part of the transition; merging the workflow alone does not establish a w
   can carry broader deployment authority than one environment; protected main and reviewed
   workflow changes remain essential. Configure expiration/rotation with the owner.
 - Repository variables: `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID`. Set `RELEASES_ENABLED=true`
-  only after credentials, resource separation and staging setup have been verified. Until
-  then CI continues but deployment jobs are intentionally skipped.
+  only after the API preflight, independently verified resource references, expected URL
+  hashes and staging setup are ready. The first staging build then validates the actual
+  write-only storage configuration before it can become Ready. Until setup passes, CI
+  continues but deployment jobs are intentionally skipped.
 - Main rules: one approval, dismiss stale reviews, resolve conversations, require GitHub
   Actions `test` and `build` on an up-to-date branch, squash-only merges.
 - Retarget existing PRs to main. Update the repository **and live Apps Script** transcript
@@ -83,15 +96,23 @@ must use secret masking even though they are not authentication keys. Keep their
 of public docs and logs.
 
 The preflight makes GET requests only. It checks project/custom-environment/domain/alias
-contracts, inspects existing deployments both with and without `withGitRepoInfo=true`, and
-privately reads only the required storage configuration values. It checks staging's URL
-against the intended development project before sending its key in a read-only request for
-the existing `vault-files` bucket. Production's configured URL is checked without using its
-storage key. Redirects are rejected. No objects, deployments, domains or database rows change.
+contracts using the dedicated project-domains endpoint, inspects existing deployments both
+with and without `withGitRepoInfo=true`, and checks unique storage-variable metadata and the
+readable expected URL hashes against the privately verified project references. It never
+requests storage secret values. No objects, deployments, domains or database rows change.
 
-The summary contains only named booleans and existing deployment IDs/SHAs. A false result
-blocks readiness; investigate it before enabling releases. This proves read access and API
-shape compatibility, not deployment-write permission, storage writes or real user login.
+The first live run on September 22, 2026 confirmed that domain ownership is available from
+the project-domains endpoint while the embedded custom-environment domain check failed. It also
+confirmed that the configured storage variables are write-only secrets. An API preflight
+cannot prove their contents. The Vercel build guard performs that validation inside the
+environment where the secrets are available, without exporting them or changing their type.
+
+The summary contains only named booleans, pending build checks and existing deployment IDs/SHAs. A false result
+blocks readiness; investigate it before enabling releases. Passing authorizes the first
+staging attempt to validate the actual write-only configuration during its build. It proves
+API read access and setup, not deployment-write permission, storage contents or real login.
+The staging build must pass its storage guard and immutable smoke checks before production
+can request approval. Redirects are rejected and storage failures never print provider bodies.
 The release workflow remains separate and production still requires its own approval.
 
 The Actions job summary and `release-<environment>-<run>-<attempt>` artifact contain only

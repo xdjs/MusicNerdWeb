@@ -1,18 +1,24 @@
 ## Main-only release transition — September 22
 
 Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319),
-implemented in [PR #1320](https://github.com/xdjs/MusicNerdWeb/pull/1320), still awaiting human
-review. The branch now includes main `f3428e08` (profile release #1327). Main and staging
-`fe1b4cab` currently have identical trees but different histories; do not delete staging yet.
+implemented in [PR #1320](https://github.com/xdjs/MusicNerdWeb/pull/1320), merged to main
+as `2da318e2`. [PR #1331](https://github.com/xdjs/MusicNerdWeb/pull/1331) added the read-only
+preflight and merged as `6770d133`; both main CI runs passed. Retain the old staging branch
+until the live publisher and release path are verified.
 [Release runbook](docs/releases.md) is the intended contract, not a completed release.
 
-Custom staging and production still serve the verified `9dad2d1a` deployments; the newer
-main merge is not proof of deployment. Production automatic domain assignment is disabled.
+Custom staging serves `9dad2d1a`; production was observed at `f3428e08` before #1320 merged.
+This migration has not promoted production. Production automatic domain assignment is disabled.
 Required review/test/build rules and protected production approval are configured. Releases
-remain disabled until resource separation and the actual release path are verified. A dedicated
+remain disabled pending the corrected preflight and first staging validation. A dedicated
 project-scoped token is installed only in the two GitHub release environments, expires
-December 21, 2026, and still needs its first authenticated pipeline verification.
-The temporary checkout was restored at `/Users/clt/src/xdjs/MusicNerdWeb-main-only-release`.
+December 21, 2026. [Preflight run 35791737153](https://github.com/xdjs/MusicNerdWeb/actions/runs/35791737153)
+verified its API read access; deployment-write permission remains unverified. The run failed
+on an embedded domain assumption and unreadable write-only storage secrets. The follow-up
+uses the dedicated domains API and checks storage inside the Vercel build. Expected URL
+fingerprints are configured separately for staging and production; actual secret identity
+and the staging bucket read still require the first release build. See #1319 for the current
+follow-up PR and verification evidence.
 
 Transcript PRs #1317, #1318 and #1328 target main. The last required a merge of current main
 to preserve its single-file diff after the squash release; transcript content is unchanged.
