@@ -40,7 +40,8 @@
  * are about what an artist is doing now. Credits are biographical: a first
  * bassist is permanently a first bassist. This reads the whole history.
  */
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { z } from "zod";
+import { generateObject } from "@/server/lib/ai/generateObject";
 import type { SocialPostRow } from "@/server/utils/socialSignals";
 import { foldName } from "@/server/utils/nameFold";
 
@@ -287,9 +288,20 @@ function withTimeout<T>(p: Promise<T>, ms: number = TIMEOUT_MS): Promise<T> {
 interface RawCredit { subject?: unknown; isHandle?: unknown; role?: unknown; quote?: unknown; url?: unknown }
 interface RawStatement { quote?: unknown; topic?: unknown; url?: unknown }
 
-function parse(text: string): { credits: RawCredit[]; statements: RawStatement[] } {
+/** The model answered, but not with the object the schema asks for. The AI SDK
+ *  raises these when the reply is empty or fails validation, and carries the
+ *  raw reply as `text`. */
+function isUnusableOutput(e: unknown): e is { text?: unknown } {
+    return /^AI_No(Object|Output)GeneratedError$/.test(String((e as { name?: unknown } | null)?.name));
+}
+
+/** The lenient read the hand parser did before the schema existed. The schema
+ *  is the model's output contract; the gate is `verifyClaims`, which checks
+ *  every field itself. One mistyped item must not cost the batch its valid
+ *  siblings, so a reply the schema rejects is read this way instead. */
+function parseLeniently(text: string): { credits: RawCredit[]; statements: RawStatement[] } {
     try {
-        // Models occasionally wrap JSON in a fence despite responseMimeType.
+        // Models occasionally wrap JSON in a fence.
         const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
         const obj = JSON.parse(cleaned) as Record<string, unknown>;
         return {
@@ -421,23 +433,26 @@ async function runBatch(
     const payload = batch.map(p => ({ url: p.url, postedAt: p.postedAt, caption: p.caption }));
     try {
         const response = await withTimeout(
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `CAPTIONS:\n${JSON.stringify(payload, null, 2)}`,
-                config: {
-                    systemInstruction: SYSTEM_INSTRUCTION(artistName, artistHandle),
-                    // Copying text back verbatim is the job; creativity here
-                    // shows up as paraphrase, and paraphrase fails verification.
-                    temperature: 0,
-                    responseMimeType: "application/json",
-                },
+            generateObject({
+                prompt: `CAPTIONS:\n${JSON.stringify(payload, null, 2)}`,
+                instructions: SYSTEM_INSTRUCTION(artistName, artistHandle),
+                // Copying text back verbatim is the job; creativity here
+                // shows up as paraphrase, and paraphrase fails verification.
+                temperature: 0,
+                schema: z.object({
+                    credits: z.array(z.object({ subject: z.string().optional(), isHandle: z.boolean().optional(), role: z.string().optional(), quote: z.string().optional(), url: z.string().optional() })).optional(),
+                    statements: z.array(z.object({ quote: z.string().optional(), topic: z.string().optional(), url: z.string().optional() })).optional(),
+                }),
             }),
             budgetMs,
         );
-        const text = response.text;
-        if (!text) return null;
-        return verifyClaims(parse(text), batch, artistName, artistHandle);
+        const { credits = [], statements = [] } = response.output;
+        return verifyClaims({ credits, statements }, batch, artistName, artistHandle);
     } catch (e) {
+        if (isUnusableOutput(e)) {
+            const text = typeof e.text === "string" ? e.text : "";
+            return verifyClaims(parseLeniently(text), batch, artistName, artistHandle);
+        }
         // A timeout costs the whole batch, and the batch is fifteen posts of an
         // artist's history. Splitting in half and retrying recovers most of it:
         // the cost is roughly proportional to how much the model has to write,

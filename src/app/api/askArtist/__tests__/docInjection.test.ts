@@ -6,7 +6,9 @@ jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/utils/artistDocService', () => ({ getArtistDocContext: jest.fn() }));
-jest.mock('@/server/lib/gemini', () => ({ getGemini: jest.fn(), GEMINI_MODEL_FLASH: 'gemini-2.5-flash' }));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: jest.fn() }));
+// Follow-up chips are a separate call; rejecting it takes the static fallback, as an unparseable reply did.
+jest.mock('@/server/lib/ai/generateArray', () => ({ generateArray: jest.fn().mockRejectedValue(new Error('no follow-ups in this test')) }));
 
 if (!('json' in Response)) {
     Response.json = (data, init) =>
@@ -22,9 +24,9 @@ describe('POST /api/askArtist injects the artist doc', () => {
     it('adds the ARTIST DOC block to the system instruction when a doc exists', async () => {
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getArtistDocContext } = await import('@/server/utils/artistDocService');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const generateContent = jest.fn().mockResolvedValue({ text: 'answer' });
-        getGemini.mockReturnValue({ models: { generateContent } });
+        generateText.mockImplementation(generateContent);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes' });
         getArtistDocContext.mockResolvedValue('## Story hooks\n- records in a water tower');
 
@@ -35,7 +37,7 @@ describe('POST /api/askArtist injects the artist doc', () => {
         }));
 
         expect(res.status).toBe(200);
-        const sys = generateContent.mock.calls[0][0].config.systemInstruction;
+        const sys = generateContent.mock.calls[0][0].instructions;
         expect(sys).toContain('--- ARTIST DOC');
         expect(sys).toContain('water tower');
         expect(sys).toContain('not independent evidence');
@@ -45,8 +47,8 @@ describe('POST /api/askArtist injects the artist doc', () => {
     it('reports an error outcome when the model call fails', async () => {
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getArtistDocContext } = await import('@/server/utils/artistDocService');
-        const { getGemini } = await import('@/server/lib/gemini');
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockRejectedValue(new Error('boom')) } });
+        const { generateText } = await import('@/server/lib/ai/generateText');
+        generateText.mockRejectedValue(new Error('boom'));
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes' });
         getArtistDocContext.mockResolvedValue(null);
 
@@ -63,8 +65,8 @@ describe('POST /api/askArtist injects the artist doc', () => {
     it('still answers when doc lookup throws', async () => {
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getArtistDocContext } = await import('@/server/utils/artistDocService');
-        const { getGemini } = await import('@/server/lib/gemini');
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({ text: 'answer' }) } });
+        const { generateText } = await import('@/server/lib/ai/generateText');
+        generateText.mockResolvedValue({ text: 'answer' });
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes' });
         getArtistDocContext.mockRejectedValue(new Error('boom'));
 

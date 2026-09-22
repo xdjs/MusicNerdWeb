@@ -27,7 +27,8 @@
  * deletes an artist's real press when Gemini has a bad day is worse than no
  * judge at all.
  */
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { z } from "zod";
+import { generateArray } from "@/server/lib/ai/generateArray";
 import { sourceTier } from "@/lib/source/sourceAuthority";
 
 /** Per-page text handed to the judge. Enough to tell who a page is about —
@@ -182,46 +183,37 @@ export async function judgeSourceRelevance(
         })
         .join("\n\n");
 
-    let text = "";
+    let rows: { i?: unknown; v?: unknown }[];
     try {
         const response = await Promise.race([
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `ARTIST ANCHOR:\n${anchorBlock(anchor)}\n\nPAGES:\n${pages}`,
-                config: {
-                    systemInstruction: SYSTEM_INSTRUCTION,
-                    temperature: 0,
-                    responseMimeType: "application/json",
-                    thinkingConfig: { thinkingBudget: 0 },
-                },
+            generateArray({
+                prompt: `ARTIST ANCHOR:\n${anchorBlock(anchor)}\n\nPAGES:\n${pages}`,
+                instructions: SYSTEM_INSTRUCTION,
+                temperature: 0,
+                element: z.object({ i: z.number().optional(), v: z.string().optional() }),
+                thinkingBudget: 0,
             }),
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error("relevance judge timeout")), JUDGE_TIMEOUT_MS)),
         ]);
-        text = response.text ?? "";
+        rows = response.output;
     } catch (e) {
+        // Includes output that did not match the schema: unparseable used to
+        // land here too, and every candidate stays undecided either way.
         console.error("[sourceRelevance] judge failed, every candidate stays undecided:", e);
         return verdicts;
     }
 
-    try {
-        const match = text.match(/\[[\s\S]*\]/);
-        if (!match) return verdicts;
-        const parsed: unknown = JSON.parse(match[0]);
-        if (!Array.isArray(parsed)) return verdicts;
-        for (const row of parsed) {
-            if (!row || typeof row !== "object") continue;
-            const { i, v } = row as { i?: unknown; v?: unknown };
-            // Index must land inside the batch we actually sent. An out-of-range
-            // number is a model error, never a source we quietly guess about.
-            if (typeof i !== "number" || !Number.isInteger(i) || i < 0 || i >= judgeable.length) continue;
-            // An unrecognised verdict string stays `undecided` — the caller then
-            // falls back to the name check, which is the safe direction.
-            const mapped = VERDICT_BY_TOKEN[String(v).toLowerCase()];
-            if (!mapped) continue;
-            verdicts.set(judgeable[i].url, mapped);
-        }
-    } catch (e) {
-        console.error("[sourceRelevance] unparseable judge output:", e);
+    for (const row of rows) {
+        if (!row || typeof row !== "object") continue;
+        const { i, v } = row as { i?: unknown; v?: unknown };
+        // Index must land inside the batch we actually sent. An out-of-range
+        // number is a model error, never a source we quietly guess about.
+        if (typeof i !== "number" || !Number.isInteger(i) || i < 0 || i >= judgeable.length) continue;
+        // An unrecognised verdict string stays `undecided` — the caller then
+        // falls back to the name check, which is the safe direction.
+        const mapped = VERDICT_BY_TOKEN[String(v).toLowerCase()];
+        if (!mapped) continue;
+        verdicts.set(judgeable[i].url, mapped);
     }
 
     return verdicts;

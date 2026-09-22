@@ -22,9 +22,11 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place model ids live: `MODEL_FLASH = "google/gemini-2.5-flash"`, `MODEL_PRO = "google/gemini-2.5-pro"`. Constants module; the one allowed multi-export. |
-| `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, timeoutMs, output, tools }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig`, and `timeoutMs` into `abortSignal: AbortSignal.timeout(ms)`. Returns the SDK result (`text`, `output`, `sources`, `usage`). Its test lives beside it. |
-| Each call site (table below) | Imports the wrapper and passes exactly the config in its row. Tests mock the wrapper, as they mock `@/server/lib/gemini` today. |
+| `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"`. Every site uses it. |
+| `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig` and `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
+| `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
+| `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
+| Each call site (table below) | Imports one of the three and passes exactly the config in its row. Nothing outside `src/server/lib/ai` imports `ai` or `@ai-sdk/google`. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
 
 Removed by the switch: `src/server/lib/gemini.ts` (`@google/genai`), `src/server/lib/openai.ts`
 (`openai`, never called at runtime), and the `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`,
@@ -33,9 +35,11 @@ Removed by the switch: `src/server/lib/gemini.ts` (`@google/genai`), `src/server
 Packages, pinned exact: `ai` (7.x) and `@ai-sdk/google` (only for `google.tools.googleSearch`
 and the `providerOptions.google` types). The gateway provider is bundled in `ai`; a plain
 `provider/model` string routes through it. Structured output uses `Output.object({ schema })`
-with zod: Recoup uses `generateObject` on AI SDK 6, and AI SDK 7 deprecates it in favour of
-`generateText` with an `output` setting. The repo's installed zod (3.25.x) satisfies the SDK's
-peer range.
+and `Output.array({ element })` with zod: Recoup uses `generateObject` on AI SDK 6, and AI SDK 7
+deprecates it in favour of `generateText` with an `output` setting. The repo's installed zod
+(3.25.x) satisfies the SDK's peer range. Both packages are ESM-only, so `jest.config.ts` maps
+them to `src/test/__mocks__/ai.ts` and `ai-sdk-google.ts`; the three helpers' own tests replace
+those with explicit `jest.mock` factories.
 
 ## Authentication
 
@@ -62,7 +66,7 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 1 | `api/askArtist/route.ts` main answer | Answer from our sources, citation markers | flash | temp 0.5 | 20 s → `"Gemini timeout"` → HTTP 408 | Ask (user) |
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
-| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | **pro** | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
+| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | flash (was pro; see below) | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
 | 5 | `artistDocService.ts` `synthesizeArtistDoc` | Knowledge document from sources | flash | temp 0.4, thinking 0 | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
 | 6 | `artistDocService.ts` `generateAboutFromDoc` | About from the document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
@@ -76,6 +80,12 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
 
+> **Decision 2026-09-21 (Sweetman, on #1259): About moves from `google/gemini-2.5-pro` to Flash.**
+> The gateway refused Pro on the team's free tier during preview verification of #1322
+> (403 `RestrictedModelsError`); Flash is free-tier, About runs ungrounded, and every other site
+> already uses Flash. Pro was the only exception, so `MODEL_PRO` is gone. Free-tier model list:
+> vercel.com/ai-gateway/models?freeTier=true.
+
 ## How each Gemini option maps
 
 - **System instruction** → `instructions` (AI SDK 7's name; `system` is the deprecated alias).
@@ -83,23 +93,34 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 - **`temperature`** → `temperature`, same value.
 - **`thinkingConfig.thinkingBudget`** → the wrapper's `thinkingBudget`, same number, sent as
   `providerOptions: { google: { thinkingConfig: { thinkingBudget } } }`. Sites without a budget today pass none.
-- **`responseMimeType: "application/json"` + hand-parsed JSON** → `output: Output.object({ schema })`
-  with a zod schema declared beside the site. The shape is the one the site already parses; the
-  fence-stripping and `JSON.parse` fallbacks go away because the SDK validates the object.
-  Invalid output throws, and the site turns that into the same failure path a parse error took.
-- **`tools: [{ googleSearch: {} }]`** → `tools: { google_search: google.tools.googleSearch({}) }`,
-  a provider-executed tool. Site 2 reads `result.sources` (each has a `url`) and takes the URL's
-  hostname for `webDomains` and the blocklist check, replacing today's
-  `groundingMetadata.groundingChunks[].web.title`. The blocklist fixtures in
-  `groundedFallback.test.ts` define the expected outcome and must pass unchanged.
-- **`Promise.race` timeouts** → the wrapper's `timeoutMs`, same number, enforced with
-  `abortSignal: AbortSignal.timeout(ms)`. Each site catches the abort and produces exactly what it
-  produced before: the error message in the table (callers match on it), `null`, or `undefined`.
+- **`responseMimeType: "application/json"` + hand-parsed JSON** → `generateArray({ element })` or
+  `generateObject({ schema })` with a zod schema declared at the site, every field optional so the
+  shape is exactly what the site already tolerated. The fence-stripping and `JSON.parse` fallbacks
+  go away because the SDK validates the reply. A reply that fails validation rejects the call with
+  `AI_NoObjectGeneratedError` (or `AI_NoOutputGeneratedError` when empty), and each site maps that
+  to the path a parse error took: follow-ups fall back to the static list, the verifier and the
+  relevance judge leave everything undecided, and caption extraction re-reads the raw reply the
+  error carries with the old lenient parser, so one mistyped item cannot cost a batch its valid
+  siblings (`verifyClaims` checks every field itself).
+- **`tools: [{ googleSearch: {} }]`** → `googleSearch: true`, the provider-executed
+  `google.tools.googleSearch({})`. Site 2 reads `result.sources`: the SDK maps each grounding chunk
+  to a source whose **`title` is `web.title`, the registrable domain**, and whose `url` is
+  `web.uri`, an opaque vertexaisearch redirect. So `webDomains` and the blocklist check key on
+  `title`, exactly as they keyed on `web.title` before (#1265's note that the URL would be a
+  better key was wrong: there is no page URL to read). The blocklist fixtures in
+  `groundedFallback.test.ts` define the expected outcome.
+- **`Promise.race` timeouts** stay as they are: each site keeps its own race, the same number
+  and the same error message its callers match on. The SDK call is not aborted when the race is
+  lost, which is also what happened before.
+- **Retries** are the SDK's default, 2 on retryable errors (`ai` 7: `maxRetries` "Default: 2").
+  The old client retried more: `@google/genai` 1.45.0 defaulted to 5 attempts including the first
+  (`DEFAULT_RETRY_ATTEMPTS`), on 429 and 5xx, and no site overrode it. A lost race leaves the
+  request retrying in the background under both.
 - **Response text** → `result.text`.
 
 ## Swapping a model
 
-Change one constant in `src/server/lib/ai/models.ts`. Any gateway model id works
+Change the constant in `src/server/lib/ai/models.ts`, or pass `model` at one site. Any gateway model id works
 (`anthropic/…`, `openai/…`, `deepseek/…`): list them with
 `curl -s https://ai-gateway.vercel.sh/v1/models`. Two things do not carry across providers and
 must be checked before a swap: `google_search` grounding (sites 2 and 4) and the
@@ -115,12 +136,14 @@ needs to record them.
 
 ## Tests
 
-Tests mock `@/server/lib/ai/generateText` instead of `@/server/lib/gemini`. Assertions that read
-`generateContent.mock.calls[0][0].config.systemInstruction` read the wrapper's `instructions`,
-`thinkingBudget`, `output` and `tools` arguments instead. No test is removed; the nine files
-affected are the ones that import the old module. The wrapper's own test covers the two
-translations it owns: the thinking budget lands under `providerOptions.google`, and a timeout
-aborts the call.
+Tests mock the helper a site imports (`@/server/lib/ai/generateText`, `generateArray` or
+`generateObject`) instead of `@/server/lib/gemini`, and resolve `{ text }` or `{ output }`.
+Assertions that read `generateContent.mock.calls[0][0].config.systemInstruction` read
+`instructions`, `prompt`, `thinkingBudget` and `googleSearch` instead. The nine affected files are
+the ones that imported the old module. One test file is gone: `src/__tests__/env.test.ts` only
+covered `OPENAI_MODEL`, which this switch removes. The helpers' own tests cover the translations
+they own: model default, thinking budget under `providerOptions.google`, the search tool only when
+asked, and `Output.array` / `Output.object` wrapping.
 
 ## Verification
 
@@ -133,6 +156,7 @@ aborts the call.
 - `/api/research/advance` runs `extractCaptionCredits` and `refreshArtistDoc` on one artist with the
   same outcome as before.
 - The AI Gateway dashboard shows those calls by model with cost.
-- `git grep getGemini` is empty; `npm run ci` is green; the stub build runs without an LLM variable.
+- `git grep getGemini` is empty and nothing outside `src/server/lib/ai` imports `ai`; `npm run ci`
+  is green; the stub build runs without an LLM variable.
 - Per-site timings recorded on the PR next to the pre-switch numbers (the 90 s caption batch is
   the one to watch).

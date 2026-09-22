@@ -88,12 +88,9 @@ jest.mock('@/server/utils/questionGenerator', () => ({
 }));
 // Controlled Gemini double for generateInterviewAck (its only call site in
 // turnHandlers.ts) — lets tests inspect the request config and force the
-// fallback path deterministically, independent of GEMINI_API_KEY in the env.
+// fallback path deterministically, independent of AI_GATEWAY_API_KEY in the env.
 const mockGenerateContent = jest.fn().mockResolvedValue({ text: 'mocked gemini response' });
-jest.mock('@/server/lib/gemini', () => ({
-    getGemini: jest.fn(() => ({ models: { generateContent: mockGenerateContent } })),
-    GEMINI_MODEL_FLASH: 'gemini-2.5-flash',
-}));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: mockGenerateContent }));
 
 async function collect(gen) {
     const events = [];
@@ -1335,9 +1332,7 @@ describe('runOnboardingTurn', () => {
         await collect(runOnboardingTurn('a1', {
             type: 'interview_answer', questionKey: 'sound_in_own_words', answer: 'Dreamy synth-pop',
         }));
-        expect(mockGenerateContent).toHaveBeenCalledWith(expect.objectContaining({
-            config: expect.objectContaining({ thinkingConfig: { thinkingBudget: 0 } }),
-        }));
+        expect(mockGenerateContent).toHaveBeenCalledWith(expect.objectContaining({ thinkingBudget: 0 }));
     });
 
     // Blocker 3 continued: even with thinking off, a run of misses (measured

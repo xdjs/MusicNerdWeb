@@ -40,15 +40,7 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
 }));
 
 const mockGenerateContent = jest.fn().mockResolvedValue({ text: "mocked gemini response" });
-jest.mock("@/server/lib/gemini", () => ({
-  getGemini: jest.fn(() => ({
-    models: {
-      generateContent: mockGenerateContent,
-    },
-  })),
-  GEMINI_MODEL_PRO: "gemini-2.5-pro",
-  GEMINI_MODEL_FLASH: "gemini-2.5-flash",
-}));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: mockGenerateContent }));
 
 // A single discovered source — enough to trigger synthesis (grounding-off write).
 const DISCOVERED = [{ url: "https://d/1", title: "Discovered Source", snippet: "a real snippet", extractedText: "extracted text" }];
@@ -139,15 +131,15 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     expect(data.bio).toBe("mocked gemini response");
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    expect(callArgs.model).toBe("gemini-2.5-pro");
-    expect(callArgs.contents).toContain("Test Artist");
-    expect(callArgs.contents).toContain("open.spotify.com/artist/spotify-123");
-    expect(callArgs.contents).not.toContain("Spotify ID: spotify-123"); // no bare ID
-    expect(callArgs.contents).toContain("Instagram: https://instagram.com/testinsta");
-    expect(callArgs.contents).toContain("X: https://x.com/testx");
+    expect(callArgs.model).toBeUndefined(); // Flash by default; no Pro override since 2026-09-21
+    expect(callArgs.prompt).toContain("Test Artist");
+    expect(callArgs.prompt).toContain("open.spotify.com/artist/spotify-123");
+    expect(callArgs.prompt).not.toContain("Spotify ID: spotify-123"); // no bare ID
+    expect(callArgs.prompt).toContain("Instagram: https://instagram.com/testinsta");
+    expect(callArgs.prompt).toContain("X: https://x.com/testx");
     // Discovered source is injected as SOURCES for synthesis.
-    expect(callArgs.contents).toContain("SOURCES");
-    expect(callArgs.contents).toContain("Discovered Source");
+    expect(callArgs.prompt).toContain("SOURCES");
+    expect(callArgs.prompt).toContain("Discovered Source");
   });
 
   it("enforces guardrails, uses 'Music Nerd' (two words), and tells the model it has NO web access", async () => {
@@ -157,7 +149,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("artist-1");
 
     const call = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    const sys = call.config.systemInstruction;
+    const sys = call.instructions;
     expect(sys).toContain("Music Nerd");
     expect(sys).not.toMatch(/MusicNerd\b/);              // brand fixed
     expect(sys).toMatch(/IDENTITY/i);                     // identity anchoring
@@ -180,7 +172,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("artist-1");
 
-    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].contents;
+    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].prompt;
     expect(contents).toContain("Charleston");        // grounding injected
     expect(contents).toContain("SS23");              // real releases injected
     expect(contents).toContain("Aspiring Gundam Pilot");
@@ -207,7 +199,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("a4");
 
     expect(mockSearchAndPopulate).not.toHaveBeenCalled();
-    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].contents;
+    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].prompt;
     expect(contents).toContain("Approved Source");
   });
 
@@ -222,7 +214,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("a5");
 
     expect(mockSearchAndPopulate).not.toHaveBeenCalled();
-    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].contents;
+    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].prompt;
     expect(contents).toContain("Pending Source");
   });
 
@@ -261,7 +253,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("artist-1");
 
     const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    expect(callArgs.config.tools).toBeUndefined();
+    expect(callArgs.googleSearch).toBeFalsy();
   });
 
   it("saves the synthesized bio to the DB on success", async () => {
@@ -310,8 +302,8 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("artist-1");
 
     const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    expect(callArgs.contents).toContain("YouTube: https://youtube.com/@TestChannel");
-    expect(callArgs.contents).not.toContain("@@");
+    expect(callArgs.prompt).toContain("YouTube: https://youtube.com/@TestChannel");
+    expect(callArgs.prompt).not.toContain("@@");
   });
 
   it("includes soundcloud + youtube channel prompt parts", async () => {
@@ -321,9 +313,9 @@ describe("artistBioQuery (unified sourcing flow)", () => {
     await generateArtistBio("artist-1");
 
     const callArgs = (mockGenerateContent as jest.Mock).mock.calls[0][0];
-    expect(callArgs.contents).toContain("Cool Band");
-    expect(callArgs.contents).toContain("SoundCloud: sc-link");
-    expect(callArgs.contents).toContain("YouTube Channel: yt-channel-id");
+    expect(callArgs.prompt).toContain("Cool Band");
+    expect(callArgs.prompt).toContain("SoundCloud: sc-link");
+    expect(callArgs.prompt).toContain("YouTube Channel: yt-channel-id");
   });
 
   it("passes identifier anchors as full URLs in the prompt", async () => {
@@ -334,7 +326,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("artist-1");
 
-    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].contents;
+    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].prompt;
     expect(contents).toContain("https://en.wikipedia.org/wiki/Test_Artist");
     expect(contents).toContain("https://musicbrainz.org/artist/abc-123");
     expect(contents).toContain("https://www.discogs.com/artist/999");
@@ -350,7 +342,7 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("artist-1");
 
-    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].contents;
+    const contents = (mockGenerateContent as jest.Mock).mock.calls[0][0].prompt;
     expect(contents).not.toContain("wiki/https://");
     expect(contents).toContain("https://en.wikipedia.org/wiki/Test_Artist");
   });

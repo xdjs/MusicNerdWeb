@@ -20,7 +20,9 @@ jest.mock('@/server/utils/queries/artistQueries', () => ({
 }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/utils/artistDocService', () => ({ getArtistDocContext: jest.fn().mockResolvedValue('') }));
-jest.mock('@/server/lib/gemini', () => ({ getGemini: jest.fn(), GEMINI_MODEL_FLASH: 'gemini-2.5-flash' }));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: jest.fn() }));
+// Follow-up chips are a separate call; rejecting it takes the static fallback, as an unparseable reply did.
+jest.mock('@/server/lib/ai/generateArray', () => ({ generateArray: jest.fn().mockRejectedValue(new Error('no follow-ups in this test')) }));
 jest.mock('@/server/utils/queries/externalApiQueries', () => ({
     getSpotifyHeaders: jest.fn().mockResolvedValue({}),
     getSpotifyCatalogDetail: jest.fn().mockResolvedValue([]),
@@ -41,7 +43,9 @@ if (!('json' in Response)) {
 }
 
 const chunksFrom = (...domains) => ({
-    candidates: [{ groundingMetadata: { groundingChunks: domains.map(d => ({ web: { title: d } })) } }],
+    // The AI SDK maps each grounding chunk to a source: `url` is the opaque
+    // vertexaisearch redirect, `title` is the registrable domain.
+    sources: domains.map(d => ({ sourceType: 'url', id: d, url: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/x', title: d })),
 });
 
 /**
@@ -50,11 +54,11 @@ const chunksFrom = (...domains) => ({
  */
 async function ask(groundedReply) {
     const { getArtistById } = await import('@/server/utils/queries/artistQueries');
-    const { getGemini } = await import('@/server/lib/gemini');
+    const { generateText } = await import('@/server/lib/ai/generateText');
     const generateContent = jest.fn()
         .mockResolvedValueOnce({ text: 'INSUFFICIENT' })
         .mockResolvedValue(groundedReply);
-    getGemini.mockReturnValue({ models: { generateContent } });
+    generateText.mockImplementation(generateContent);
     getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango' });
 
     const { POST } = await import('../route');
@@ -103,7 +107,7 @@ describe('the grounded fallback and the blocklist', () => {
 
     it('tells the grounded call not to lean on chart and catalogue sites', async () => {
         const { generateContent } = await ask({ text: 'ok', ...chunksFrom('rvamag.com') });
-        const sys = generateContent.mock.calls[1][0].config.systemInstruction;
+        const sys = generateContent.mock.calls[1][0].instructions;
         expect(sys).toMatch(/chart scrapers|catalogue-listing/);
     });
 
@@ -114,9 +118,9 @@ describe('the grounded fallback and the blocklist', () => {
         // we can give.
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getSpotifyCatalogDetail } = await import('@/server/utils/queries/externalApiQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const generateContent = jest.fn().mockResolvedValue({ text: 'Their latest is "rush" [1].' });
-        getGemini.mockReturnValue({ models: { generateContent } });
+        generateText.mockImplementation(generateContent);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: 'SPOT1' });
         getSpotifyCatalogDetail.mockResolvedValue([{ name: 'rush', releaseDate: '2026-03-01', kind: 'single' }]);
 
@@ -127,7 +131,7 @@ describe('the grounded fallback and the blocklist', () => {
         }));
         const body = await res.json();
 
-        expect(String(generateContent.mock.calls[0][0].config.systemInstruction)).toContain("[1] PETE RANGO'S RELEASES");
+        expect(String(generateContent.mock.calls[0][0].instructions)).toContain("[1] PETE RANGO'S RELEASES");
         expect(body.sources).toEqual([
             { n: 1, title: "Pete Rango's catalogue on Spotify", url: 'https://open.spotify.com/artist/SPOT1' },
         ]);
@@ -138,9 +142,9 @@ describe('the grounded fallback and the blocklist', () => {
         // and the label "AI-generated response" — presenting a link we hold on
         // file as though we made it up.
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const generateContent = jest.fn().mockResolvedValue({ text: 'Buy it on Bandcamp [1] or hear it on Deezer [2].' });
-        getGemini.mockReturnValue({ models: { generateContent } });
+        generateText.mockImplementation(generateContent);
         getArtistById.mockResolvedValue({
             id: 'a1', name: 'Pete Rango', bandcamp: 'peterango', deezer: '123', instagram: 'p3t3rango',
         });
@@ -157,16 +161,16 @@ describe('the grounded fallback and the blocklist', () => {
         ]);
         // A bare handle is identity, not a place: it stays unnumbered, and the
         // posts behind it are already citable on their own.
-        expect(String(generateContent.mock.calls[0][0].config.systemInstruction)).toContain('Instagram: @p3t3rango');
+        expect(String(generateContent.mock.calls[0][0].instructions)).toContain('Instagram: @p3t3rango');
     });
 
     it('links records the answer names, and only ones we hold', async () => {
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getSpotifyCatalogDetail } = await import('@/server/utils/queries/externalApiQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        const { generateText } = await import('@/server/lib/ai/generateText');
+        generateText.mockResolvedValue({
             text: 'He put out "rush" and also mentioned Thriller.',
-        }) } });
+        });
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: 'SPOT1', bandcamp: 'peterango' });
         getSpotifyCatalogDetail.mockResolvedValue([
             { name: 'rush', releaseDate: '2026-04-01', kind: 'single', url: 'https://open.spotify.com/album/RUSH' },
@@ -195,12 +199,12 @@ describe('the grounded fallback and the blocklist', () => {
         // They reach the mention list by both routes: their own handle appears
         // in their own captions, and their name is in the directory.
         const { getArtistById, findUniqueArtistsByName, findArtistsByInstagram } = await import('@/server/utils/queries/artistQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const { creditedCollaborators } = await import('@/server/utils/socialCredits');
 
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        generateText.mockResolvedValue({
             text: 'Pete Rango produced it with Dame Atlas.',
-        }) } });
+        });
         // The bio is part of the material handed to the model, so a name in it
         // is grounded rather than something the model brought from its weights.
         getArtistById.mockResolvedValue({
@@ -231,12 +235,12 @@ describe('the grounded fallback and the blocklist', () => {
         // passed it. Every common instrument, label and place is a potential
         // artist name; a stoplist of them would always be one word short.
         const { getArtistById, findUniqueArtistsByName } = await import('@/server/utils/queries/artistQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const { creditedCollaborators } = await import('@/server/utils/socialCredits');
 
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        generateText.mockResolvedValue({
             text: 'He played Rhodes on it, alongside Cherele and Jesse Boykins III.',
-        }) } });
+        });
         getArtistById.mockResolvedValue({
             id: 'a1', name: 'Pharaoh Sistare',
             bio: 'He played Rhodes on it, alongside Cherele and Jesse Boykins III.',
@@ -269,10 +273,10 @@ describe('the grounded fallback and the blocklist', () => {
         // as a record button.
         const { getArtistById } = await import('@/server/utils/queries/artistQueries');
         const { getSpotifyCatalogDetail } = await import('@/server/utils/queries/externalApiQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        const { generateText } = await import('@/server/lib/ai/generateText');
+        generateText.mockResolvedValue({
             text: 'He has been rushing to finish the record.',
-        }) } });
+        });
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango', spotify: 'SPOT1' });
         getSpotifyCatalogDetail.mockResolvedValue([
             { name: 'rush', releaseDate: '2026-04-01', kind: 'single', url: 'https://open.spotify.com/album/RUSH' },
@@ -290,11 +294,11 @@ describe('the grounded fallback and the blocklist', () => {
         // that the sentence means that row. A name we never supplied — in the
         // vault, the document or the credits — is a guess wearing a link.
         const { getArtistById, findUniqueArtistsByName } = await import('@/server/utils/queries/artistQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
 
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        generateText.mockResolvedValue({
             text: 'He grew up in Los Angeles and worked with Dame Atlas.',
-        }) } });
+        });
         getArtistById.mockResolvedValue({
             id: 'a1', name: 'Pete Rango',
             bio: 'Pete Rango works with Dame Atlas.',   // Los Angeles is NOT in here
@@ -319,12 +323,12 @@ describe('the grounded fallback and the blocklist', () => {
         // Zavodsky", and asWritten then has to hand back that spelling — the
         // raw handle appears nowhere on screen, so the client cannot link it.
         const { getArtistById, findArtistsByInstagram } = await import('@/server/utils/queries/artistQueries');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const { creditedCollaborators } = await import('@/server/utils/socialCredits');
 
-        getGemini.mockReturnValue({ models: { generateContent: jest.fn().mockResolvedValue({
+        generateText.mockResolvedValue({
             text: 'He works with Alan Zavodsky on production.',
-        }) } });
+        });
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Pete Rango' });
         creditedCollaborators.mockReturnValue([
             { subject: 'zavodskyalan', isHandle: true, roles: ['production'] },

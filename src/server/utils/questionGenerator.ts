@@ -19,7 +19,8 @@
 import { createHash } from "node:crypto";
 import type { ProfileInterviewCandidate } from "@/lib/interview/profileInterviewTypes";
 import { profileInterviewSourceUrls } from "@/server/utils/interview/profileInterviewSourceUrls";
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { z } from "zod";
+import { generateArray } from "@/server/lib/ai/generateArray";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getSocialPostsForArtist } from "@/server/utils/socialIngest";
 import { deriveSocialSignals, type SocialSignals } from "@/server/utils/socialSignals";
@@ -764,27 +765,6 @@ function withTimeout<T>(p: Promise<T>): Promise<T> {
     ]);
 }
 
-function stripJsonFences(text: string): string {
-    const trimmed = text.trim();
-    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    return fenced ? fenced[1] : trimmed;
-}
-
-interface ModelAnswer {
-    signalId?: unknown;
-    question?: unknown;
-    rationale?: unknown;
-}
-
-function parseModelAnswers(text: string): ModelAnswer[] {
-    try {
-        const parsed = JSON.parse(stripJsonFences(text));
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
 /**
  * Generates up to `opts.max` (default 6) grounded interview questions from
  * an artist's ingested social posts. Every question traces back to a real
@@ -895,42 +875,31 @@ async function keepOnlySupported(
         .map((d, i) => `--- QUESTION ${i} ---\nKIND: ${d.kind}\nQ: ${d.question}\nSOURCE:\n${d.materials.join("\n---\n")}`)
         .join("\n\n");
 
-    let text = "";
+    let verdicts: { i?: unknown; ok?: unknown; contentSpecific?: unknown; problem?: unknown }[];
     try {
         const res = await Promise.race([
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `The artist is "${artistName}".\n\n${payload}`,
-                config: {
-                    systemInstruction: VERIFIER_INSTRUCTION,
-                    temperature: 0,
-                    responseMimeType: "application/json",
-                    // Thinking was OFF here, on a task that is entirely
-                    // judgement: read a caption, decide whether a sentence
-                    // states a claim. It rejected "you put together a bilingual
-                    // page to help after the earthquake" against a caption
-                    // reading "I put together a simple bilingual page with
-                    // vetted charities" — and named the supported claim as the
-                    // problem, which is what answering without reading looks
-                    // like. Small budget, because VERIFIER_TIMEOUT_MS is 12s.
-                    thinkingConfig: { thinkingBudget: 512 },
-                },
+            generateArray({
+                prompt: `The artist is "${artistName}".\n\n${payload}`,
+                instructions: VERIFIER_INSTRUCTION,
+                temperature: 0,
+                element: z.object({ i: z.number().optional(), ok: z.boolean().optional(), contentSpecific: z.boolean().optional(), problem: z.string().optional() }),
+                // Thinking was OFF here, on a task that is entirely
+                // judgement: read a caption, decide whether a sentence
+                // states a claim. It rejected "you put together a bilingual
+                // page to help after the earthquake" against a caption
+                // reading "I put together a simple bilingual page with
+                // vetted charities" — and named the supported claim as the
+                // problem, which is what answering without reading looks
+                // like. Small budget, because VERIFIER_TIMEOUT_MS is 12s.
+                thinkingBudget: 512,
             }),
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error("verifier timeout")), VERIFIER_TIMEOUT_MS)),
         ]);
-        text = res.text ?? "";
+        verdicts = res.output;
     } catch (e) {
+        // Includes output that did not match the schema; unparseable output
+        // dropped every question before, and still does.
         console.error("[questionGenerator] verifier unavailable, dropping every grounded question:", e);
-        return [];
-    }
-
-    let verdicts: { i?: unknown; ok?: unknown; contentSpecific?: unknown; problem?: unknown; support?: unknown }[];
-    try {
-        const parsed: unknown = JSON.parse(stripJsonFences(text));
-        if (!Array.isArray(parsed)) throw new Error("not an array");
-        verdicts = parsed as typeof verdicts;
-    } catch (e) {
-        console.error("[questionGenerator] unparseable verifier output, dropping every grounded question:", e);
         return [];
     }
 
@@ -1204,35 +1173,29 @@ export async function generateGroundedQuestions(
         const promptPayload = candidates.map(({ signalId, kind, authoredBy, material }) => ({ signalId, kind, authoredBy, material }));
 
         const response = await withTimeout(
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `SIGNALS:\n${JSON.stringify(promptPayload, null, 2)}\n\nChoose at most ${draftTarget} of the most interesting, distinct signals and write one question each, BEST FIRST. Fewer than ${draftTarget} is fine — even zero — if the rest don't clear the bar.`,
-                config: {
-                    systemInstruction: QUESTION_SYSTEM_INSTRUCTION(artistName),
-                    // This was 0.2, to keep WHICH signals get chosen stable
-                    // across the repeated calls an interview makes — churn
-                    // between calls would read as the interviewer changing its
-                    // mind mid-conversation.
-                    //
-                    // That stability is bought elsewhere now, twice over: the
-                    // questions actually put to an artist are PERSISTED when
-                    // they are offered and resumed from those rows, and there
-                    // is a TTL cache in front of this call. So 0.2 was no
-                    // longer preventing churn, only flattening the writing —
-                    // and with the candidate pool as narrow as it was, it
-                    // guaranteed the same handful of questions forever.
-                    // Pete: "that's so low and uncreative... we can't kill
-                    // creativity."
-                    temperature: 0.8,
-                    responseMimeType: "application/json",
-                },
+            generateArray({
+                prompt: `SIGNALS:\n${JSON.stringify(promptPayload, null, 2)}\n\nChoose at most ${draftTarget} of the most interesting, distinct signals and write one question each, BEST FIRST. Fewer than ${draftTarget} is fine — even zero — if the rest don't clear the bar.`,
+                instructions: QUESTION_SYSTEM_INSTRUCTION(artistName),
+                // This was 0.2, to keep WHICH signals get chosen stable
+                // across the repeated calls an interview makes — churn
+                // between calls would read as the interviewer changing its
+                // mind mid-conversation.
+                //
+                // That stability is bought elsewhere now, twice over: the
+                // questions actually put to an artist are PERSISTED when
+                // they are offered and resumed from those rows, and there
+                // is a TTL cache in front of this call. So 0.2 was no
+                // longer preventing churn, only flattening the writing —
+                // and with the candidate pool as narrow as it was, it
+                // guaranteed the same handful of questions forever.
+                // Pete: "that's so low and uncreative... we can't kill
+                // creativity."
+                temperature: 0.8,
+                element: z.object({ signalId: z.string().optional(), question: z.string().optional(), rationale: z.string().optional() }),
             }),
         );
 
-        const text = response.text;
-        if (!text) return [];
-
-        const answers = parseModelAnswers(text);
+        const answers = response.output;
         const drafted: DraftedQuestion[] = [];
 
         // TWO PASSES, so a reservation cannot cost us a draft.
