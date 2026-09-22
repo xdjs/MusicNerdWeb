@@ -32,9 +32,12 @@ function harness(options = {}) {
       const productionCurrent = promoted && productionStatusCalls > (options.productionTargetDelay || 0);
       return json({ id: 'prj_test',
         autoAssignCustomDomains: options.autoAssign ?? false,
-        customEnvironments: [{ id: 'env_stage', slug: 'staging', domains: [{ name: 'staging.musicnerd.xyz' }], ...options.custom }],
+        autoExposeSystemEnvs: options.systemEnvs ?? true, buildCommand: options.buildCommand ?? null,
+        customEnvironments: [{ id: 'env_stage', slug: 'staging', ...options.custom }],
         targets: { production: { id: productionCurrent || options.earlyPromotion && created ? candidate.id : 'dpl_old' } } });
     }
+    if (parsed.pathname === '/v9/projects/prj_test/domains') return json({ domains: options.domains ||
+      [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_stage' }], pagination: options.pagination });
     if (parsed.pathname === '/v13/deployments' && init.method === 'POST') { created = true; return json(candidate); }
     if (parsed.pathname === '/v13/deployments/dpl_stage') return json({ ...stage, ...options.stagedDeployment });
     if (parsed.pathname === '/v13/deployments/dpl_candidate') return json({ ...candidate,
@@ -90,7 +93,11 @@ for (const [name, options, message, maximumWrites] of [
   ['non-main ref', { env: { GITHUB_REF: 'refs/heads/topic' } }, /Invalid release context/, 0],
   ['auto promotion enabled', { autoAssign: true }, /must be disabled/, 0],
   ['custom staging tracks branch', { custom: { branchMatcher: { pattern: 'main' } } }, /no branch tracking/, 0],
-  ['staging has wrong domain', { custom: { domains: [{ name: 'www.musicnerd.xyz' }] } }, /only its staging domain/, 0],
+  ['staging has wrong domain', { domains: [{ name: 'www.musicnerd.xyz', customEnvironmentId: 'env_stage' }] }, /only its staging domain/, 0],
+  ['domain belongs to another environment', { domains: [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_other' }] }, /only its staging domain/, 0],
+  ['unread domains page', { pagination: { next: 123 } }, /only its staging domain/, 0],
+  ['system vars disabled', { systemEnvs: false }, /build guard/, 0],
+  ['build override bypasses guard', { buildCommand: 'next build' }, /build guard/, 0],
   ['stale queued run', { staleAt: 1 }, /Stale release/, 0],
   ['main advances during build', { staleAt: 3 }, /Stale release/, 1],
   ['wrong SHA returned', { deployment: { gitSource: { sha: 'b'.repeat(40) } } }, /identity or state/, 1],
