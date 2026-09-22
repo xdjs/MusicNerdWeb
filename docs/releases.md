@@ -72,6 +72,28 @@ Git is part of the transition; merging the workflow alone does not establish a w
 
 ## Evidence, failure and rollback
 
+### Read-only setup preflight
+
+Before enabling releases, run the **Release preflight** workflow manually on reviewed `main`.
+It uses the existing `staging-release` environment secret and refuses other refs/events or
+an enabled release switch. Configure `STAGING_SUPABASE_PROJECT_REF` and
+`PRODUCTION_SUPABASE_PROJECT_REF` as secrets in that GitHub environment, using the privately
+verified intended projects. GitHub prints step environment inputs, so these private identifiers
+must use secret masking even though they are not authentication keys. Keep their values out
+of public docs and logs.
+
+The preflight makes GET requests only. It checks project/custom-environment/domain/alias
+contracts, inspects existing deployments both with and without `withGitRepoInfo=true`, and
+privately reads only the required storage configuration values. It checks staging's URL
+against the intended development project before sending its key in a read-only request for
+the existing `vault-files` bucket. Production's configured URL is checked without using its
+storage key. Redirects are rejected. No objects, deployments, domains or database rows change.
+
+The summary contains only named booleans and existing deployment IDs/SHAs. A false result
+blocks readiness; investigate it before enabling releases. This proves read access and API
+shape compatibility, not deployment-write permission, storage writes or real user login.
+The release workflow remains separate and production still requires its own approval.
+
 The Actions job summary and `release-<environment>-<run>-<attempt>` artifact contain only
 release metadata. Inspect the exact deployment and SHA, not merely a reachable stable alias.
 Built-in smoke checks are read-only: `/api/health` verifies the app-role DB ping and storage
