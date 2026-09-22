@@ -1,16 +1,11 @@
 "use client";
 
 import { useRef, useState, type PointerEvent } from "react";
-import profileStyles from "./ProfileConcept.module.css";
+import filterStyles from "./ArtistUpdateFilter.module.css";
 import styles from "@/app/artist/[id]/_components/ProfileSectionNav.module.css";
 
-const sections = [
-    { id: 'All', label: 'All' },
-    { id: 'Release', label: 'Releases' },
-    { id: 'Instagram', label: 'Instagram' },
-    { id: 'Interview', label: 'In their words' },
-    { id: 'In-Process', label: 'In-Process' },
-];
+import { PROFILE_UPDATE_FILTERS as sections } from '@/lib/profile/profileUpdateFilters';
+
 const clamp = (value: number) => Math.max(0, Math.min(sections.length - 1, value));
 
 export default function ArtistUpdateFilter({value, onValueChange}: {value: string; onValueChange: (value: string) => void}) {
@@ -74,7 +69,7 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
 
     return <div role="group"
         aria-label="Filter artist updates"
-        className={`${styles.rail} ${profileStyles.updateFilters}`}
+        className={`${styles.rail} ${filterStyles.updateFilters}`}
         style={{gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))`}}
         data-dragging={dragPosition !== null}
         data-instant={instant}
@@ -96,7 +91,7 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
             }
         }}
     >
-        <span aria-hidden="true" className={`${styles.lens} ${profileStyles.filterLens}`} style={{ width: `calc((100% - 10px) / ${sections.length})`, transform: `translateX(${(dragPosition ?? active) * 100}%)` }} />
+        <span aria-hidden="true" className={`${styles.lens} ${filterStyles.filterLens}`} style={{ width: `calc((100% - 10px) / ${sections.length})`, transform: `translateX(${(dragPosition ?? active) * 100}%)` }} />
         {sections.map((section, index) => <button type="button"
             key={section.id}
             ref={element => { links.current[index] = element; }}

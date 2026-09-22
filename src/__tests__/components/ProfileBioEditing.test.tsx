@@ -28,7 +28,7 @@ test('one Save updates the biography and exposes its preserved version in Lore',
         return { ok: true, json: async () => ({ bio: edited }) } as Response;
     });
     render(view());
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     expect(screen.queryByRole('button', { name: 'Save to Lore' })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Show version history (1)' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Show version history (1)' }));
@@ -49,7 +49,7 @@ test('unpin unlocks the existing bio without fetching or generating another bio'
     (unpinBioAction as jest.Mock).mockImplementation(async () => { pinned = false; return { success: true }; });
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ bio: original }) } as Response);
     render(view());
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     await waitFor(() => expect(screen.getByRole('textbox')).toBeDisabled());
     expect(screen.getByRole('button', { name: 'Regenerate' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Unpin to edit' }));

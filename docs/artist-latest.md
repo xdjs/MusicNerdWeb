@@ -4,10 +4,14 @@
 > and test files described below are not included in this documentation release. Read
 > [MEMORY.md](../MEMORY.md) for verification and release gates before using these commands.
 
+## September 21 filter alignment (#1309)
+
+Pete requested the same **All · Releases · Socials · Lore** glass slider used on user profiles. The shared `src/components/ArtistUpdateFilter.tsx` supplies both. Socials includes Instagram and In-Process; Lore includes interview answers. Cards retain their original labels and destinations. Keep all four choices visible when there are updates; an empty category displays a short message. The top-level Latest / Links / Lore navigation is unchanged.
+
 ## User outcome
 
 On an artist profile, a visitor can see dated, image-led updates, filter by releases,
-Instagram or "In their words", open a full card, and follow a real source link.
+Socials or Lore, open a full card, and follow a real source link.
 Cards form one horizontal gallery on mobile and desktop, with native touch/trackpad scrolling,
 previous/next buttons and arrow-key navigation when the gallery is focused. All selected updates
 are in the row; filters reset to the beginning. There is no grid or show-all expansion.

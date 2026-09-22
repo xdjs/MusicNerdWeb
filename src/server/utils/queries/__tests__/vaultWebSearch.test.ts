@@ -264,6 +264,51 @@ describe("searchAndPopulateVault", () => {
     }
   });
 
+  it("excludes LinkedIn namesakes before fetching or judging while retaining real coverage", async () => {
+    const excluded = ["https://www.linkedin.com/in/grimes", "https://uk.linkedin.com/company/grimes", "https://LINKEDIN.COM./feed/update/123", "https://lnkd.in/abc"];
+    mockWebSearch.mockResolvedValue([...excluded.map(url => hit(url, "Grimes musician")), hit("https://example.com/interview")]);
+    mockJudge.mockImplementation(async (_a, candidates) => new Map(candidates.map(c => [c.url, "about-artist"])));
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1");
+    expect(mockInsert.mock.calls.map(c => c[0].url)).toEqual(["https://example.com/interview"]);
+    for (const url of excluded) expect(mockFetchPage).not.toHaveBeenCalledWith(url, expect.anything());
+    expect(mockJudge.mock.calls[0][1].map(c => c.url)).toEqual(["https://example.com/interview"]);
+  });
+
+  it.each([200, 403])("excludes ordinary redirects to LinkedIn even with HTTP %s", async status => {
+    mockWebSearch.mockResolvedValue([hit("https://example.com/short")]);
+    mockFetchPage.mockResolvedValue({ ...goodPage, status, resolvedUrl: "https://www.linkedin.com/in/grimes" });
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1");
+    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockJudge.mock.calls.flatMap(c => c[1])).toEqual([]);
+  });
+
+  it("excludes LinkedIn destinations reached through grounding redirects", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({ url: "https://www.linkedin.com/in/grimes", ok: true } as Response);
+    mockWebSearch.mockResolvedValue([hit("https://vertexaisearch.cloud.google.com/grounding-api-redirect/test")]);
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1");
+    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockFetchPage).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
+  });
+
+  it("filters index-followed LinkedIn URLs before fetching and redirected ones before judging", async () => {
+    const direct = "https://www.linkedin.com/in/grimes";
+    const indirect = "https://example.com/redirect";
+    const article = "https://example.com/interview";
+    const index = "https://example.com/tag/grimes";
+    mockWebSearch.mockResolvedValue([hit(index)]);
+    mockFetchPage.mockImplementation(async url => url === index ? { ...goodPage, links: [direct, indirect, article] } : url === indirect ? { ...goodPage, resolvedUrl: direct } : goodPage);
+    mockJudge.mockImplementation(async (_a, candidates) => new Map(candidates.map(c => [c.url, c.url === index ? "lists-artist" : "about-artist"])));
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1");
+    expect(mockInsert.mock.calls.map(c => c[0].url)).toEqual([article]);
+    expect(mockFetchPage).not.toHaveBeenCalledWith(direct, expect.anything());
+    expect(mockJudge.mock.calls.flatMap(c => c[1].map(r => r.url))).not.toContain(indirect);
+  });
+
   it("tells the judge what tier each candidate's host is", async () => {
     // Ranking orders a list that already exists. The tier is a fact handed to
     // the model WHILE it decides, which is the thing the meeting asked for: a

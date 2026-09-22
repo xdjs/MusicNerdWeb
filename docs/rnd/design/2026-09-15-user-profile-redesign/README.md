@@ -1,5 +1,12 @@
 # User profile redesign (#1274)
 
+> September 22, 2026 — #1325 supersedes the bookmark-based UI described below.
+> Pete reconfirmed the September 21 decision with Carl: remove bookmarks for now
+> and derive both artist sections from additions/approved contributions/self-edits.
+> See [#1325](https://github.com/xdjs/MusicNerdWeb/issues/1325). Stored bookmark data
+> is preserved; the following is historical design/persistence context.
+
+
 September 15: Pete prioritized a shippable visual redesign using existing capabilities. Local approval first, then staging review and main release. Spotify integration follows in a separate preview branch after this design ships; no connection buttons or TV launch in this pass.
 
 The owner profile leads with identity and a visual saved-artist collection. A contribution invitation opens the existing Add Artist dialog; counts, recent edits and the existing filterable contribution history remain visible. Username editing and bookmark removal/reordering retain their current persistence. Bookmarks still live in browser storage; no cross-device claim or migration.

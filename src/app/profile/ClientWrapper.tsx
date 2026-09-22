@@ -92,6 +92,6 @@ export default function ClientWrapper({ designPreview = false, emptyPreview = fa
 
   if (process.env.NODE_ENV === "development" && designPreview && user) return <ProfileConcept user={user} emptyCollection={emptyCollection} emptyPreview={emptyPreview} />;
 
-  if (!user) return <div className="mx-auto max-w-md px-5 py-12 text-center"><h1 className="text-2xl font-semibold">Your MusicNerd starts here</h1><p className="mt-3 text-muted-foreground">Log in to see your contributions and saved artists.</p><Link href="/" className="mt-4 inline-block underline">Explore artists</Link></div>;
+  if (!user) return <div className="mx-auto max-w-md px-5 py-12 text-center"><h1 className="text-2xl font-semibold">Your MusicNerd starts here</h1><p className="mt-3 text-muted-foreground">Log in to see your contributions and the artists you’ve helped.</p><Link href="/" className="mt-4 inline-block underline">Explore artists</Link></div>;
   return <LiveUserProfile key={user.id} user={user} />;
 }

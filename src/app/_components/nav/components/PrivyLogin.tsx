@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
+import AccountMenuAvatar from './AccountMenuAvatar';
 import { LegacyAccountModal } from './LegacyAccountModal';
 import { TOKEN_PREFIXES } from '@/server/utils/privyConstants';
 
@@ -431,15 +432,10 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               aria-label="Account menu"
               type="button"
               size="lg"
-              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 p-0 flex items-center justify-center"
+              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 rounded-full p-0 flex items-center justify-center"
             >
-              <Menu aria-hidden="true" className="profile-account-menu-icon hidden" size={20} /><X aria-hidden="true" className="profile-account-close-icon hidden" size={20} /><div className="profile-account-avatar w-8 h-8 rounded-full overflow-hidden">
-                <img
-                  src="/default_pfp_pink.png"
-                  alt="Profile"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
+              <X aria-hidden="true" className="profile-account-close-icon hidden" size={20} />
+              {session?.user?.id && <AccountMenuAvatar key={session.user.id} userId={session.user.id} />}
               {(hasPendingUGC || hasNewUGC) && (
                 <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
               )}
