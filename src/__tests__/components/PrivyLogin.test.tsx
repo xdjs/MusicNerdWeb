@@ -51,6 +51,11 @@ jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
+// Avatar behavior is covered independently with a real QueryClient.
+jest.mock('@/app/_components/nav/components/AccountMenuAvatar', () => ({
+  __esModule: true, default: () => <img src="/default_pfp_pink.png" alt="Your profile" />,
+}));
+
 // Mock LegacyAccountModal
 jest.mock('@/app/_components/nav/components/LegacyAccountModal', () => ({
   LegacyAccountModal: ({ open, onClose }) =>
@@ -251,7 +256,7 @@ describe('PrivyLogin', () => {
     it('renders profile avatar button', () => {
       render(<PrivyLogin />);
 
-      expect(screen.getByAltText('Profile')).toBeInTheDocument();
+      expect(screen.getByAltText('Your profile')).toBeInTheDocument();
     });
 
     it('shows Leaderboard and User Profile menu items', () => {

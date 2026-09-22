@@ -2,6 +2,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
+jest.mock('@/app/_components/nav/components/AccountMenuAvatar', () => ({
+  __esModule: true, default: () => <img src="/default_pfp_pink.png" alt="Your profile" />,
+}));
+
 let mockPrivyReady = true;
 let mockPrivyAuthenticated = false;
 let mockPrivyUser: any = null;
@@ -169,7 +173,7 @@ describe('Login flow', () => {
 
         it('shows the profile avatar (not the login icon)', () => {
             render(<PrivyLogin />);
-            expect(screen.getByAltText('Profile')).toBeInTheDocument();
+            expect(screen.getByAltText('Your profile')).toBeInTheDocument();
             expect(screen.queryByTestId('login-icon')).not.toBeInTheDocument();
         });
 

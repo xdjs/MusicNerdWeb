@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 const mockTrackEvent = jest.fn();
+beforeEach(() => { Element.prototype.scrollIntoView = jest.fn(); });
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...args: unknown[]) => mockTrackEvent(...args) }));
 
 import LatestCards from '../LatestCards';
@@ -97,7 +98,7 @@ it('keeps every update in one gallery and supports arrow controls and filter res
     expect(scrollBy).toHaveBeenLastCalledWith({ left: -336 });
     fireEvent.keyDown(gallery, { key: 'ArrowRight' });
     expect(scrollBy).toHaveBeenLastCalledWith({ left: 336 });
-    fireEvent.click(screen.getByRole('button', { name: 'In their words' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lore' }));
     expect(gallery.scrollLeft).toBe(0);
     expect(within(gallery).getAllByRole('article')).toHaveLength(1);
 });
@@ -137,7 +138,7 @@ it('carries catalog and approved-source release links through the server section
 
 it('shows In-Process moments as Latest cards with their own filter and a link out to the moment', () => {
     setup([answer, moment, release]);
-    fireEvent.click(screen.getByRole('button', { name: 'In-Process' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Socials' }));
     expect(screen.queryByRole('button', { name: `Read ${answer.title}` })).not.toBeInTheDocument();
     const card = screen.getByRole('button', { name: `Read ${moment.title}` });
     expect(within(card).getByText('In-Process')).toBeInTheDocument();
@@ -153,11 +154,11 @@ it('shows In-Process moments as Latest cards with their own filter and a link ou
 
 it('falls back to All when the selected filter no longer exists after navigating to another artist', () => {
     const { rerender } = render(<LatestCards items={[answer, moment, release]} artistName="Test Artist" artistImage="https://cdn.example.com/artist.jpg" unavailable={false} />);
-    fireEvent.click(screen.getByRole('button', { name: 'In-Process' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Socials' }));
     expect(screen.getAllByRole('article')).toHaveLength(1);
     // Client navigation to an artist without moments re-renders the same component with new items.
     rerender(<LatestCards items={[answer, release]} artistName="Other Artist" artistImage="https://cdn.example.com/other.jpg" unavailable={false} />);
-    expect(screen.queryByRole('button', { name: 'In-Process' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Socials' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByRole('article')).toHaveLength(2);
 });
@@ -177,4 +178,23 @@ it('remounts the cards for a different artist so an open dialog and filter do no
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Read New record' })).toBeInTheDocument();
+});
+
+
+it('groups Instagram and In-Process under Socials without changing card labels', () => {
+    const post: ArtistLatestItem = {...moment, id:'post:1', kind:'instagram', title:'Studio photo', momentKind:undefined};
+    setup([release, answer, moment, post]);
+    fireEvent.click(screen.getByRole('button', {name:'Socials'}));
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    expect(screen.getByText('Instagram')).toBeInTheDocument();
+    expect(screen.getByText('In-Process')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name:'Lore'}));
+    expect(screen.getByRole('button', {name:`Read ${answer.title}`})).toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+});
+it('keeps an empty category selected and explains its empty state', () => {
+    setup([release]);
+    fireEvent.click(screen.getByRole('button', {name:'Lore'}));
+    expect(screen.getByRole('button', {name:'Lore'})).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByText('No Lore updates yet.')).toBeInTheDocument();
 });

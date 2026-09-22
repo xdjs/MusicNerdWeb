@@ -1,0 +1,6 @@
+/* A steady edit-state cue. No layout shift, pulse, or overlay over controls. */
+.highlight.highlight {
+    outline: 1px solid rgba(239, 149, 255, 0.8);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(239, 149, 255, 0.1), 0 0 22px rgba(239, 149, 255, 0.22);
+}

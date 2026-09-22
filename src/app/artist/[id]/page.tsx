@@ -1,4 +1,3 @@
-import BookmarkButton from "@/app/_components/BookmarkButton";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
@@ -207,8 +206,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     />
                 )}
 
-                <HeroSection key={`${artist.id}:${imageUrl}`} imageUrl={imageUrl}
-                    hasPortrait={!!customImageUrl(artist.customImage)}
+                <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
+                    initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
+                    hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
                     bio={heroBio} listenLinks={listenLinks}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
@@ -225,9 +225,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </div>
                 </HeroSection>
 
-                {dbUser && <div className="flex justify-end">
-                    <BookmarkButton artistId={artist.id} artistName={artist.name ?? 'Artist'} imageUrl={imageUrl} userId={dbUser.id} />
-                </div>}
                 <ProfileSectionNav key={artist.id} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
@@ -235,7 +232,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 </Suspense>
 
                 {/* Listening, social and support links share one destination. */}
-                <RevealSection id="mn-links" className="glass p-4 sm:p-5 space-y-3">
+                <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-black dark:text-white text-xl font-bold">Links</h2>
                         <AddArtistData

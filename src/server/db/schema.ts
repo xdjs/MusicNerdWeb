@@ -175,6 +175,7 @@ export const artists = pgTable("artists", {
 	supercollector: text(),
 	bio: text(),
 	customImage: text("custom_image"),
+	headerImagePosition: jsonb("header_image_position").$type<{ imageUrl: string; y: number }>(),
 	linkOrder: jsonb("link_order").$type<import("@/lib/artist/artistProfileLinks").ArtistLinkOrder>(),
 	webmapdata: jsonb(),
 	nodePfp: jsonb("node_pfp"),

@@ -1,5 +1,6 @@
 "use client"
 
+import NonDspArtistRequest from "@/app/_components/NonDspArtistRequest";
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -280,6 +281,7 @@ export default function AddArtist() {
                                     </div>
                                 </form>
                             </Form>
+                            <NonDspArtistRequest />
                         </>
                     )}
                 </DialogContent>

@@ -139,19 +139,19 @@ describe("dashboardActions.addVaultSource", () => {
         expect(insertVaultSource).not.toHaveBeenCalled();
     });
 
-    it("rejects private/loopback hosts", async () => {
+    it.each(["http://169.254.169.254/latest/meta-data/", "169.254.169.254/latest/meta-data/"])("rejects private/loopback host %s", async (url) => {
         const { addVaultSource, insertVaultSource } = await setup();
 
-        const result = await addVaultSource("artist-1", "http://169.254.169.254/latest/meta-data/");
+        const result = await addVaultSource("artist-1", url);
 
         expect(result.success).toBe(false);
         expect(insertVaultSource).not.toHaveBeenCalled();
     });
 
-    it("accepts a normal public https URL", async () => {
+    it.each(["https://pitchfork.com/reviews/albums/example", " pitchfork.com/reviews/albums/example "])("accepts and normalizes public URL %s", async (url) => {
         const { addVaultSource, insertVaultSource } = await setup();
 
-        const result = await addVaultSource("artist-1", "https://pitchfork.com/reviews/albums/example");
+        const result = await addVaultSource("artist-1", url);
 
         expect(result.success).toBe(true);
         expect(insertVaultSource).toHaveBeenCalledTimes(1);
