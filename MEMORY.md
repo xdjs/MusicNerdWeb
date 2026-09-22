@@ -1,10 +1,24 @@
-## Main-only release transition — September 21
+## Main-only release transition — September 22
 
-Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319).
-The workflow/runbook and repository transcript publisher are under implementation; not yet
-shipped. [Release runbook](docs/releases.md) is the intended contract. Live settings, credentials,
-staging validation, human PR review, production approval and live Apps Script verification are
-separate completion gates. Preserve staging until those gates and no-unique-work checks pass.
+Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319),
+implemented in [PR #1320](https://github.com/xdjs/MusicNerdWeb/pull/1320), still awaiting human
+review. The branch now includes main `f3428e08` (profile release #1327). Main and staging
+`fe1b4cab` currently have identical trees but different histories; do not delete staging yet.
+[Release runbook](docs/releases.md) is the intended contract, not a completed release.
+
+Custom staging and production still serve the verified `9dad2d1a` deployments; the newer
+main merge is not proof of deployment. Production automatic domain assignment is disabled.
+Required review/test/build rules and protected production approval are configured. Releases
+remain disabled until resource separation and the actual release path are verified. A dedicated
+project-scoped token is installed only in the two GitHub release environments, expires
+December 21, 2026, and still needs its first authenticated pipeline verification.
+The temporary checkout was restored at `/Users/clt/src/xdjs/MusicNerdWeb-main-only-release`.
+
+Transcript PRs #1317, #1318 and #1328 target main. The last required a merge of current main
+to preserve its single-file diff after the squash release; transcript content is unchanged.
+The live Apps Script still needs both documented edits and a verified main-targeted run.
+Human PR review, live release-path verification and live publisher access remain external gates. No production release
+or automatic database migration is authorized by this handoff.
 Historical handoff sections below retain their original branch/release context.
 
 # MEMORY.md — Music Nerd engineering handoff
