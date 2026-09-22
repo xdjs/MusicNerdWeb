@@ -86,11 +86,12 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > already uses Flash. Pro was the only exception, so `MODEL_PRO` is gone. Free-tier model list:
 > vercel.com/ai-gateway/models?freeTier=true.
 
-> **Trial 2026-09-22 (Sweetman, #1324): `MODEL_DEFAULT` is `deepseek/deepseek-v4.1-flash`.**
-> Grounded calls stay on Gemini. The team moved to the paid gateway tier the same day. DeepSeek
-> reasons by default, so sites with `thinkingBudget: 0` send `reasoning: "none"` and the others
-> get its default; #1324 measures each UX flow on both models and #1259 decides whether this
-> stays. The "flash" entries in the table below read as `MODEL_DEFAULT` unless the site is grounded.
+> **Trial 2026-09-22 (Sweetman, #1324): `MODEL_DEFAULT` was `deepseek/deepseek-v4.1-flash`, then
+> `moonshotai/kimi-k3`, one commit each.** Grounded calls stay on Gemini. The team moved to the
+> paid gateway tier the same day. Both candidates reason by default, so sites with
+> `thinkingBudget: 0` send `reasoning: "none"` and the others get the provider's default; #1324
+> measures each UX flow per model against the Gemini baseline and #1259 decides. DeepSeek degraded
+> About, the lore refresh and caption extraction (tables on the PR). The "flash" entries in the table below read as `MODEL_DEFAULT` unless the site is grounded.
 
 ## How each Gemini option maps
 
