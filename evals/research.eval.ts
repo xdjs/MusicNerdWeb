@@ -3,6 +3,7 @@ import { MODEL_FLASH } from "@/server/lib/ai/models";
 import { experimentName } from "@/lib/evals/experimentName";
 import { RESEARCH_CASES, type ResearchCase } from "@/lib/evals/researchCases";
 import { scoreHandles } from "@/lib/evals/scorers/scoreHandles";
+import { scoreNoWrongHandles } from "@/lib/evals/scorers/scoreNoWrongHandles";
 import { scoreForbiddenHosts } from "@/lib/evals/scorers/scoreForbiddenHosts";
 import { scoreLinkPlacement } from "@/lib/evals/scorers/scoreLinkPlacement";
 import { scoreSourcesKept } from "@/lib/evals/scorers/scoreSourcesKept";
@@ -50,7 +51,10 @@ Eval("music-nerd", {
         return result;
     },
     scores: [
+        // Discovery alone, then the whole flow: the same rules, read at two points.
+        ({ output, expected }) => ({ ...scoreHandles(output.discoveryHandles, expected.expect, expected.forbidHandles), name: "discovery_handles" }),
         ({ output, expected }) => scoreHandles(output.handles, expected.expect, expected.forbidHandles),
+        ({ output, expected }) => scoreNoWrongHandles(output.handles, expected.expect, expected.forbidHandles),
         ({ output, expected }) => scoreForbiddenHosts(output.sourceUrls, expected.forbidHosts),
         ({ output, expected }) => scoreSourcesKept(output.sourceUrls, expected.minSources),
         ({ output, expected }) => scoreLinkPlacement({ links: output.links, loreProfiles: output.loreProfiles, expectedProfiles: expected.expectedProfiles }),

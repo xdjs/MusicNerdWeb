@@ -50,6 +50,8 @@ describe("runResearchCase", () => {
             ...afterSearch,
             // Handles discovery alone got right, so a regression is attributable to the half that caused it.
             profileLinks: 1,
+            // What discovery alone stored, scored on its own so the two halves read apart.
+            discoveryHandles: afterDiscovery.handles,
             alternatives: 0,
             discoveryError: null,
             vaultError: null,

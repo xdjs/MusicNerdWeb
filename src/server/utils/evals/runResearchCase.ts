@@ -10,6 +10,9 @@ export type ResearchResult = ResearchOutcome & {
     /** Known handles profile discovery alone got right, before the source search, so a
      *  regression is attributable to the half that caused it. */
     profileLinks: number;
+    /** Every handle column as profile discovery alone left it, before the source search
+     *  adopts or replaces any, for `discovery_handles`. */
+    discoveryHandles: Record<string, string | null>;
     alternatives: number;
     discoveryError: string | null;
     vaultError: string | null;
@@ -44,7 +47,7 @@ export async function runResearchCase(researchCase: ResearchCase): Promise<Resea
         const seconds = Math.round((Date.now() - started) / 100) / 10;
 
         const outcome = await readResearchOutcome(id);
-        return { ...outcome, profileLinks, alternatives: discovery.alternatives, discoveryError: discovery.discoveryError, vaultError, seconds };
+        return { ...outcome, profileLinks, discoveryHandles: afterDiscovery.handles, alternatives: discovery.alternatives, discoveryError: discovery.discoveryError, vaultError, seconds };
     } finally {
         await restoreArtistDsp(id, snapshot);
     }
