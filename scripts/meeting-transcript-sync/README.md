@@ -8,8 +8,7 @@ include artist interviews, design sessions, unrelated attachments, or all files 
 Runs in Pete's Google Apps Script account on meeting weekdays, independently of his computer.
 There is no MusicNerdWeb app route, database change, AI summarizer, or hosting dependency.
 Uses read-only Google Calendar, Drive metadata, and Docs access. A repo-scoped GitHub token
-creates transcript branches and PRs targeting `staging`; merges/releases keep their normal
-review path. Branches and PRs are public immediately, before merge.
+creates transcript branches and PRs targeting `main`; squash merges require review and CI, and production remains separately approved. Branches and PRs are public immediately, before merge.
 
 ## Schedule
 
@@ -124,3 +123,22 @@ References: [Apps Script time triggers](https://developers.google.com/apps-scrip
 [Google Docs tabs](https://developers.google.com/workspace/docs/api/how-tos/tabs),
 [Calendar attachments](https://developers.google.com/workspace/calendar/api/v3/reference/events),
 [GitHub file writes](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents).
+
+## Main-only transition (September 2026)
+
+Pete recorded the completed live configuration and scan checks in
+[#1336](https://github.com/xdjs/MusicNerdWeb/issues/1336#issuecomment-5787246527). The real scan
+found only unchanged sources and published nothing. On September 23, Carl explicitly waived
+new-transcript publication verification as a prerequisite for retiring the old staging branch
+in [#1337](https://github.com/xdjs/MusicNerdWeb/issues/1337); any later publication failure is bug
+work. The following describes the required configuration, not an outstanding request to edit
+the already-updated live script.
+
+The saved live configuration uses `SYNC.base = 'main'` and omits the `base` query parameter
+only from `publish_`'s all-state PR lookup (the `/pulls?state=all&head=...` request). Keeping that
+lookup independent of base preserves previously rejected transcript PRs. The separate open-PR
+listing retains its base filter. Existing open transcript PRs were retargeted separately.
+Updating this repository does not update the running Apps Script; future script changes still
+require a separate live-editor update by its owner. This cutover required no trigger
+reinstallation, credential change or web-app deployment. The old Git branch is retired;
+its archive and recovery instructions are in [the release runbook](../../docs/releases.md#legacy-staging-branch-archive).

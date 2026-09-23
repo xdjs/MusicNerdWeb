@@ -303,7 +303,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
     };
 
     const shell = (children: React.ReactNode) => (
-        <RevealSection className="glass p-4 sm:p-5 space-y-3">
+        <RevealSection editable className="glass p-4 sm:p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
                 <h2 className="text-black dark:text-white text-xl font-bold">What we know about you</h2>
                     <div className="flex items-center gap-2 shrink-0">

@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useContext, useState, type ReactNode } from "react";
+import { useRef, useContext, useState, useEffect, type ReactNode } from "react";
+import styles from "./EditHighlight.module.css";
 import Image from "next/image";
-import { Camera } from "lucide-react";
+import HeaderPhotoPosition from "./HeaderPhotoPosition";
+import { Camera, MoveVertical } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import BlurbSection from "./BlurbSection";
 import ListenPicker from "./ListenPicker";
@@ -14,17 +16,32 @@ interface HeroSectionProps {
     artistName: string;
     artistId: string;
     hasPortrait?: boolean;
+    initialPosition?: number;
     bio?: string | null;
     listenLinks?: ProfileLink[];
     children?: ReactNode;
 }
 
-export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, bio, listenLinks = [], children }: HeroSectionProps) {
-    const { isEditing } = useContext(EditModeContext);
+export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
+    const { isEditing, canEdit } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
     const [portrait, setPortrait] = useState(hasPortrait);
     const [uploading, setUploading] = useState(false);
+    const [position, setPosition] = useState(initialPosition);
+    const [repositioning, setRepositioning] = useState(false);
+    const repositionButton = useRef<HTMLButtonElement>(null);
+    const originalPosition = useRef(initialPosition);
+    useEffect(() => {
+        if (!isEditing && repositioning) {
+            setPosition(originalPosition.current);
+            setRepositioning(false);
+        }
+    }, [isEditing, repositioning]);
+    function closePosition() {
+        setRepositioning(false);
+        requestAnimationFrame(() => repositionButton.current?.focus());
+    }
     const fileRef = useRef<HTMLInputElement>(null);
 
     async function handleImageUpload(file: File) {
@@ -38,6 +55,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             if (res.ok && data.imagePath) {
                 setImg(data.imagePath);
                 setPortrait(true);
+                setPosition(0);
                 toast({ title: "Photo updated" });
             } else {
                 toast({ title: "Couldn't update photo", description: data.error || "Upload failed", variant: "destructive" });
@@ -49,31 +67,40 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         }
     }
 
-    const photoControl = isEditing && <>
+    const highlighted = isEditing && canEdit;
+    const photoControl = isEditing && !repositioning && <>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
             onChange={e => {
                 const file = e.target.files?.[0];
                 if (file) void handleImageUpload(file);
                 e.target.value = "";
             }} />
+        <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
+        {portrait && <button ref={repositionButton} type="button" disabled={uploading}
+            onClick={() => { originalPosition.current = position; setRepositioning(true); }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-3 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
+            <MoveVertical size={16} aria-hidden="true" />Reposition photo
+        </button>}
         <button type="button" aria-label="Change photo" disabled={uploading}
             onClick={() => fileRef.current?.click()}
-            className="absolute right-4 top-4 z-10 inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-4 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-4 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
             <Camera size={16} aria-hidden="true" />{uploading ? "Uploading…" : "Change photo"}
         </button>
+        </div>
     </>;
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className="mt-3 max-w-xl"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
     </>;
 
-    return <header className="space-y-4">
-        {portrait ? <div data-artist-portrait className="relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl">
-            <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover object-top" />
-            <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
+    return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
+        {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
+            <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
+            <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
             {photoControl}
-            <div className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
+            {isEditing && repositioning && <HeaderPhotoPosition artistId={artistId} imageUrl={img} position={position} onChange={setPosition} onClose={closePosition} />}
+            <div inert={repositioning ? true : undefined} style={{ display: repositioning ? "none" : undefined }} className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
                 {identity}
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                     <ListenPicker artistName={artistName} links={listenLinks} />

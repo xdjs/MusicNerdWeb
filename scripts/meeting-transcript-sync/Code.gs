@@ -1,6 +1,6 @@
 /** Google Apps Script V8. Run previewSync, then installTrigger. See README.md. */
 const SYNC = Object.freeze({
-  repo: 'xdjs/MusicNerdWeb', base: 'staging', zone: 'America/New_York',
+  repo: 'xdjs/MusicNerdWeb', base: 'main', zone: 'America/New_York',
   folder: 'docs/rnd/transcripts', lookbackDays: 14, quietMinutes: 15,
   titles: { 'Music Nerd Stand Up': 'standup', 'Music Nerd R&D': 'rnd' },
 });
@@ -254,7 +254,7 @@ function publish_(cfg, item) {
   } while (!open && batch.length === 100);
   const branch = open ? open.head.ref : prefix + item.digest.slice(0, 16);
   const prs = github_(cfg, 'get', '/pulls?state=all&head=' + encodeURIComponent('xdjs:' + branch) +
-    '&base=' + encodeURIComponent(SYNC.base) + '&per_page=100');
+    '&per_page=100');
   if (!open && prs.length) return prs[0].html_url; // Do not reopen rejected/merged content.
   let ref = github_(cfg, 'get', '/git/ref/heads/' + branch, null, true);
   if (!ref) {

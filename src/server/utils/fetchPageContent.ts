@@ -1,4 +1,6 @@
 export interface PageContent {
+    /** Actual response URL after HTTP redirects, even when the response is not readable. */
+    resolvedUrl?: string;
     title: string;
     snippet?: string;
     extractedText: string | null;
@@ -399,6 +401,7 @@ export async function fetchPageContent(
     url: string,
     opts: { timeoutMs?: number } = {}
 ): Promise<PageContent> {
+    let resolvedUrl: string | undefined;
     let title = "Untitled Source";
     let snippet: string | undefined;
     let extractedText: string | null = null;
@@ -423,6 +426,7 @@ export async function fetchPageContent(
             signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS),
         });
         status = res.status;
+        resolvedUrl = res.url || url;
         if (res.ok) {
             const html = await res.text();
 
@@ -473,5 +477,5 @@ export async function fetchPageContent(
         else failure = "network";
     }
 
-    return { title, snippet, extractedText, ogImage, status, failure, fullText, publishedAt, links, outboundLinks };
+    return { title, snippet, extractedText, ogImage, status, failure, fullText, publishedAt, links, outboundLinks, resolvedUrl };
 }

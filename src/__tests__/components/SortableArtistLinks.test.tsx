@@ -22,7 +22,7 @@ test('the icons themselves are drag buttons; Done persists their order before ex
     const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
     render(view());
     expect(screen.queryByRole('button', { name: 'Reorder Spotify' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     const icon = screen.getByRole('button', { name: 'Reorder Spotify' });
     expect(icon.querySelector('img')).toHaveAttribute('alt', 'Spotify');
     expect(screen.queryByRole('button', { name: 'Save order' })).not.toBeInTheDocument();
@@ -33,7 +33,7 @@ test('the icons themselves are drag buttons; Done persists their order before ex
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Reorder Spotify' })).toBeDisabled();
     await act(async () => finish({ ok: true } as Response));
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/artist/link-order', expect.objectContaining({ body: JSON.stringify({ artistId: 'a1', section: 'links', order: ['deezer', 'spotify'] }) }));
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([links[1].href, links[0].href]);
     expect(refresh).toHaveBeenCalled();
@@ -42,20 +42,20 @@ test('the icons themselves are drag buttons; Done persists their order before ex
 test('failed saves keep the draft and edit mode; Done retries it', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'Failed' }) } as Response).mockResolvedValue({ ok: true } as Response);
     render(view());
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     drag();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Done' })).not.toBeDisabled());
     expect(refresh).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledTimes(2);
     fetchMock.mockRestore();
 });
 test('a refresh that adds a link preserves a pending reorder', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
     const { rerender } = render(view());
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     drag();
     rerender(view([...links, { ...links[0], siteName: 'soundcloud', label: 'SoundCloud' }]));
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -66,9 +66,9 @@ test('a refresh that adds a link preserves a pending reorder', async () => {
 test('Done without a reordered link does not write', async () => {
     const fetchMock = jest.spyOn(global, 'fetch');
     render(view());
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument());
     expect(fetchMock).not.toHaveBeenCalled();
     fetchMock.mockRestore();
 });

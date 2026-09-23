@@ -826,6 +826,44 @@ describe('runOnboardingTurn', () => {
         });
     });
 
+    it('confirm_profiles: a bare website domain is normalized before fetch and persistence', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const { extractArtistId } = await import('@/server/utils/services');
+        extractArtistId.mockResolvedValueOnce(undefined); // not a recognized platform URL
+        const { fetchLinkPreview } = await import('@/server/utils/linkPreview');
+        fetchLinkPreview.mockResolvedValueOnce({ imageUrl: null, title: 'Nova Reyes — Official Site' });
+        const dq = await import('@/server/utils/queries/dashboardQueries');
+        const { fetchPageContent } = await import('@/server/utils/fetchPageContent');
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const events = await collect(runOnboardingTurn('a1', {
+            type: 'confirm_profiles',
+            addedLinks: [{ url: '  novareyesmusic.com/  ' }],
+            removedSiteNames: [],
+        }));
+        expect(dq.insertVaultSource).toHaveBeenCalledWith({
+            artistId: 'a1', url: 'https://novareyesmusic.com/', title: 'Nova Reyes — Official Site',
+            type: 'website', status: 'approved',
+        });
+        const chats = events.filter(e => e.kind === 'chat').map(e => e.text);
+        expect(chats.some(t => t.includes("couldn't recognize"))).toBe(false);
+        expect(chats.some(t => t.includes('added it as a source for your About'))).toBe(true);
+        expect(events.some(e => e.kind === 'error')).toBe(false);
+        // Confirms and advances like any other successful addition.
+        const oqMod = await import('@/server/utils/queries/onboardingQueries');
+        expect(oqMod.confirmOnboardingStep).toHaveBeenCalledWith('a1', 'profiles');
+        // Background enrichment mirrors the vault_review addedUrls pattern —
+        // but must NOT touch title: we already captured a real og:title
+        // ("Nova Reyes — Official Site") synchronously, and fetchPageContent
+        // falls back to a generic "Source from <host>" on any hiccup, which
+        // must never downgrade it.
+        expect(fetchPageContent).toHaveBeenCalledWith('https://novareyesmusic.com/');
+        await new Promise(r => setTimeout(r, 0)); // flush the fire-and-forget .then() chain
+        expect(dq.updateVaultSourceContent).toHaveBeenCalledWith('new-src', {
+            snippet: 's', extractedText: 'e', ogImage: null,
+        });
+    });
+
     it('confirm_profiles → vault: a website routed to the vault this turn does not suppress the web-discovery search for OTHER sources (forceVaultDiscovery)', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });

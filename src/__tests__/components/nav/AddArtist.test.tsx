@@ -61,6 +61,7 @@ jest.mock('next/link', () => {
 });
 
 jest.mock('lucide-react', () => ({
+    ...jest.requireActual('lucide-react'),
     Plus: () => <svg data-testid="plus-icon" />,
 }));
 

@@ -1,7 +1,17 @@
 {
-    "$schema": "https://openapi.vercel.sh/vercel.json",
-    "regions": ["sfo1"],
-    "crons": [
-        { "path": "/api/research/advance", "schedule": "* * * * *" }
-    ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": [
+    "sfo1"
+  ],
+  "crons": [
+    {
+      "path": "/api/research/advance",
+      "schedule": "* * * * *"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  }
 }
