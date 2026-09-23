@@ -11,6 +11,7 @@ on:
         type: choice
         options:
           - smoke
+          - research
         default: smoke
 
 # The research suite resets fixture artists on the staging database; two runs at once
@@ -27,6 +28,11 @@ jobs:
       BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
       AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
       SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
+      # The research suite imports the app's env module, which requires the Spotify pair,
+      # and discovery's last-resort tier searches the web through Tavily (src/env.ts).
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
+      NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
 
     steps:
     - uses: actions/checkout@v4

@@ -10,7 +10,8 @@ type LinkPlacementMetadata = { placed: string[]; missing: string[]; inLore: stri
  *
  * Score is the fraction of expected profiles that ended up in Links, and 0 if anything
  * profile-typed is sitting in Lore, whatever else went right. URLs match ignoring
- * scheme, `www.`, trailing slash, query and case.
+ * scheme, `www.`, trailing slash, query and case; an Apple Music or Beatport artist
+ * URL also matches with or without its name slug, since the numeric id is the identity.
  */
 export function scoreLinkPlacement(input: {
     links: string[];
@@ -36,5 +37,9 @@ function canonical(url: string): string {
         .replace(/^https?:\/\//, "")
         .replace(/^www\./, "")
         .replace(/[?#].*$/, "")
-        .replace(/\/+$/, "");
+        .replace(/\/+$/, "")
+        // music.apple.com/us/artist/pete-rango/1513734272 → music.apple.com/us/artist/1513734272
+        .replace(/^(music\.apple\.com\/[a-z]{2}\/artist\/)[^/]+\/(\d+)$/, "$1$2")
+        // beatport.com/artist/pete-rango/12345 → beatport.com/artist/12345
+        .replace(/^(beatport\.com\/artist\/)[^/]+\/(\d+)$/, "$1$2");
 }

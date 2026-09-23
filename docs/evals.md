@@ -27,7 +27,8 @@ URL, no login, and the suite survives the research endpoint moving to another re
 | --- | --- | --- |
 | Suite | `evals/<suite>.eval.ts` | One `Eval` per file; the file name is the suite name and the workflow's `suite` option. |
 | Scorer | `src/lib/evals/scorers/score<Thing>.ts` | Pure: domain values in, `Score` out (`{ name, score: 0–1, metadata }`), with the evidence for the number in `metadata`. One exported function per file, named after it, with a test in `__tests__/`. The eval file adapts Braintrust's `{ input, output, expected }` into the scorer's arguments. |
-| Task adapter | `src/lib/evals/<verb><Thing>.ts` | Reads real data and calls the code under test; the only file that knows where that code lives. |
+| Dataset | `src/lib/evals/<suite>Cases.ts` | Hand-verified cases as data, with a note per case saying what it tests. |
+| Task adapter | `src/server/utils/evals/<verb><Thing>.ts` | Server I/O: reads real data and calls the code under test. The only files that know where that code lives and how the page reads its results. One function per file, with a test that mocks the database and the pipeline. |
 | Experiment name | `src/lib/evals/experimentName.ts` | `<suite> · <model> · <short sha>`. |
 
 **Deterministic scorers first.** Research has ground truth (handles, namesakes, where a profile
@@ -41,7 +42,7 @@ Scorers in the repo:
 | Scorer | Scores | Used by |
 | --- | --- | --- |
 | `scoreExactMatch` | output equals expected after trimming | smoke |
-| `scoreWithinBudget` | the call finished inside the site's timeout ([llm.md](llm.md)) | every suite that times a site |
+| `scoreWithinBudget` | the call finished inside the site's timeout ([llm.md](llm.md)) | ask, about (research has no documented budget; it records seconds instead) |
 | `scoreHandles` | known handles found, wrong ones penalised, on the research benchmark's rules | research |
 | `scoreForbiddenHosts` | no namesake or blocked host among kept sources | research |
 | `scoreLinkPlacement` | expected profile URLs stored as Links, nothing profile-typed in Lore (#1273) | research |
@@ -67,17 +68,22 @@ is an experiment, not a number in a doc.
 **GitHub Actions**, the normal way: the **Evals** workflow (`.github/workflows/evals.yml`),
 *Run workflow*, pick the branch and the `suite`. One run at a time (a concurrency group), because
 the research suite resets fixture artists on the staging database. Secrets it reads:
-`BRAINTRUST_API_KEY`, `AI_GATEWAY_API_KEY`, `SUPABASE_DB_CONNECTION`. Names only here; nothing
-in this repo holds a value.
+`BRAINTRUST_API_KEY`, `AI_GATEWAY_API_KEY`, `SUPABASE_DB_CONNECTION`, the Spotify client pair
+(`src/env.ts` requires it at import) and `TAVILY_API_KEY` (discovery's web-search tier; empty
+means that tier finds nothing). Names only here; nothing in this repo holds a value.
 
-**Locally**, for whoever has the same three variables in `.env.local`:
+**Locally**, for whoever has the same variables in `.env.local`:
 
 ```bash
 npm run eval -- evals/smoke.eval.ts
 ```
 
 `braintrust eval` bundles the file with esbuild (path aliases from `tsconfig.json`), runs it,
-and prints the experiment link. `--no-send-logs` runs a suite without recording an experiment.
+and prints the experiment link. The script passes `--external-packages=next` because the
+research path imports `next/server`, which esbuild cannot bundle; anything else the suites
+reach is bundled. `--no-send-logs` runs a suite without recording an experiment; `--list`
+bundles and loads every suite without running one, which is the cheap check that a new
+import still works outside Next.
 
 Run the **smoke** suite first after touching the runner, the gateway credential or the
 Braintrust credential: one model call, scored without a model, proving the wiring and nothing
@@ -88,7 +94,7 @@ about quality.
 | Suite | Data | Scorers | Status |
 | --- | --- | --- | --- |
 | `smoke` | one fixed prompt | `scoreExactMatch` | in this PR |
-| `research` | the research benchmark's five hand-verified artists plus the #1273 case | `scoreHandles`, `scoreForbiddenHosts`, `scoreLinkPlacement`, `scoreWithinBudget` | #1329 row 2 |
+| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. | `scoreHandles`, `scoreForbiddenHosts`, `scoreLinkPlacement` | in this PR; baseline pending |
 | `ask`, `about` | Dutchyyy own-source and open-web questions; About regeneration | `scoreCitations`, `scoreWithinBudget`, one judge each | #1329 row 3 |
 
 A site not listed gets a suite when its flow changes, in the PR that changes it. No suite is

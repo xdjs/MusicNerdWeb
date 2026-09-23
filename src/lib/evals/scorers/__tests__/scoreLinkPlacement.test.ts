@@ -33,6 +33,27 @@ describe("scoreLinkPlacement", () => {
         expect(result.score).toBe(1);
     });
 
+    it("matches an Apple Music or Beatport artist URL with or without its name slug", () => {
+        // The stored form carries a slug; the id is the identity (#1273).
+        const appleById = "https://music.apple.com/us/artist/1513734272";
+        expect(scoreLinkPlacement({
+            links: ["https://music.apple.com/us/artist/pete-rango/1513734272"],
+            loreProfiles: [],
+            expectedProfiles: [appleById],
+        }).score).toBe(1);
+        expect(scoreLinkPlacement({
+            links: ["https://www.beatport.com/artist/pete-rango/12345"],
+            loreProfiles: [],
+            expectedProfiles: ["https://www.beatport.com/artist/12345"],
+        }).score).toBe(1);
+        // A different id is a different artist, slug or not.
+        expect(scoreLinkPlacement({
+            links: ["https://music.apple.com/us/artist/pete-rango/1330310245"],
+            loreProfiles: [],
+            expectedProfiles: [appleById],
+        }).score).toBe(0);
+    });
+
     it("with nothing expected, only asks that Lore holds no profile-typed source", () => {
         expect(scoreLinkPlacement({ links: [], loreProfiles: [], expectedProfiles: [] }).score).toBe(1);
         expect(scoreLinkPlacement({ links: [], loreProfiles: [APPLE], expectedProfiles: [] }).score).toBe(0);
