@@ -37,7 +37,16 @@ Eval("music-nerd", {
         expected: { expect: c.expect, forbidHosts: c.forbidHosts, forbidHandles: c.forbidHandles, expectedProfiles: c.expectedProfiles } satisfies Expected,
         metadata: { key: c.key, name: c.name, seed: c.seed, note: c.note },
     })),
-    task: async (input: ResearchCase): Promise<ResearchResult> => runResearchCase(input),
+    task: async (input: ResearchCase): Promise<ResearchResult> => {
+        const result = await runResearchCase(input);
+        // One line per case in the run log, so a reviewer can read a run without
+        // opening Braintrust: what was found, where it went, how long it took.
+        const handles = Object.entries(result.handles).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(" ") || "none";
+        console.log(`[research] ${input.key} ${result.seconds}s discovery=${result.profileLinks}/${Object.keys(input.expect).length} alternatives=${result.alternatives}`
+            + ` handles: ${handles} | sources=${result.sourceUrls.length} links=${result.links.join(",") || "none"} loreProfiles=${result.loreProfiles.join(",") || "none"}`
+            + `${result.discoveryError ? ` discoveryError=${result.discoveryError}` : ""}${result.vaultError ? ` vaultError=${result.vaultError}` : ""}`);
+        return result;
+    },
     scores: [
         ({ output, expected }) => scoreHandles(output.handles, expected.expect, expected.forbidHandles),
         ({ output, expected }) => scoreForbiddenHosts(output.sourceUrls, expected.forbidHosts),
