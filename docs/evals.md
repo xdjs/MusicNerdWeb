@@ -77,8 +77,10 @@ is an experiment, not a number in a doc.
 *Run workflow*, pick the branch and the `suite`. One run at a time (a concurrency group), because
 the research suite resets fixture artists on the staging database. Secrets it reads:
 `BRAINTRUST_API_KEY`, `AI_GATEWAY_API_KEY`, `SUPABASE_DB_CONNECTION`, the Spotify client pair
-(`src/env.ts` requires it at import) and `TAVILY_API_KEY` (discovery's web-search tier; empty
-means that tier finds nothing). Names only here; nothing in this repo holds a value.
+(`src/env.ts` requires it at import) and the web-search key for the branch's provider,
+`EXA_API_KEY` or `TAVILY_API_KEY` (empty means discovery's last tier and the vault search find
+nothing). The provider, like the model, is a property of the branch: its code default in
+`src/env.ts`. Names only here; nothing in this repo holds a value.
 
 **Locally**, for whoever has the same variables in `.env.local`:
 
