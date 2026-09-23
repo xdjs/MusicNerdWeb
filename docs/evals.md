@@ -78,9 +78,9 @@ is an experiment, not a number in a doc.
 the research suite resets fixture artists on the staging database. Secrets it reads:
 `BRAINTRUST_API_KEY`, `AI_GATEWAY_API_KEY`, `SUPABASE_DB_CONNECTION`, the Spotify client pair
 (`src/env.ts` requires it at import) and the web-search key for the branch's provider,
-`EXA_API_KEY` or `TAVILY_API_KEY` (empty means discovery's last tier and the vault search find
-nothing). The provider, like the model, is a property of the branch: its code default in
-`src/env.ts`. Names only here; nothing in this repo holds a value.
+`EXA_API_KEY` and `TAVILY_API_KEY` (the source search runs on Exa, discovery's last tier on
+Tavily; an empty key means that job finds nothing). Providers, like the model, are a property of
+the branch: set in code, never by a workflow input. Names only here; nothing in this repo holds a value.
 
 **Locally**, for whoever has the same variables in `.env.local`:
 

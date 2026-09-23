@@ -31,7 +31,7 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Real Privy login |
 | `AI_GATEWAY_API_KEY` | Every model call (Ask, About, research, interview, onboarding, fun facts) through Vercel AI Gateway; see [llm.md](llm.md). Locally, the OIDC token from `vercel env pull` also works |
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
-| `EXA_API_KEY`, `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Web search for profile discovery's last-resort tier and the vault source search (`src/server/utils/webSearch.ts`). `WEB_SEARCH_PROVIDER` defaults to `exa` in code (Tavily until 2026-09-23, #1265); `tavily` is kept as the rollback. An empty key for the selected provider means no web search: discovery loses that tier and the vault finds no sources |
+| `EXA_API_KEY`, `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Web search, one provider per job (`src/server/utils/webSearch.ts`): the vault source search uses **Exa** (`SOURCE_SEARCH_PROVIDER` in `vaultWebSearch.ts`), profile discovery's last-resort tier uses **Tavily**, the `WEB_SEARCH_PROVIDER` default. Split 2026-09-23 on the research suite's numbers (#1265, #1340): Exa keeps more relevant sources, Tavily finds more of an artist's own accounts. An empty key for a provider means that job finds nothing: no sources, or no last-resort handles |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
 | `CRON_SECRET` | Scheduled research advancement |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
