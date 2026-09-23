@@ -5,6 +5,7 @@ import { RESEARCH_CASES, type ResearchCase } from "@/lib/evals/researchCases";
 import { scoreHandles } from "@/lib/evals/scorers/scoreHandles";
 import { scoreForbiddenHosts } from "@/lib/evals/scorers/scoreForbiddenHosts";
 import { scoreLinkPlacement } from "@/lib/evals/scorers/scoreLinkPlacement";
+import { scoreSourcesKept } from "@/lib/evals/scorers/scoreSourcesKept";
 import { runResearchCase, type ResearchResult } from "@/server/utils/evals/runResearchCase";
 
 /**
@@ -13,7 +14,8 @@ import { runResearchCase, type ResearchResult } from "@/server/utils/evals/runRe
  * Each case is an artist on the staging database, reset to the state one actually
  * arrives in (the DSP ids and nothing else), run through profile discovery and the
  * source search the way onboarding runs them, and scored against hand-verified
- * ground truth: handles found and wrong, namesake and blocked hosts kept, and where
+ * ground truth: handles found and wrong, namesake and blocked hosts kept, enough sources
+ * kept to beat the case's floor, and where
  * an artist-profile URL ended up (#1273, red on the baseline by design). No model
  * judges anything here. Ports scripts/research-benchmark.ts (docs/evals.md).
  *
@@ -26,7 +28,7 @@ const SHA = process.env.GITHUB_SHA ?? "local";
 /** The wrapper's default: what every ungrounded site runs on at this commit. */
 const MODEL = MODEL_FLASH;
 
-type Expected = Pick<ResearchCase, "expect" | "forbidHosts" | "forbidHandles" | "expectedProfiles">;
+type Expected = Pick<ResearchCase, "expect" | "forbidHosts" | "forbidHandles" | "expectedProfiles" | "minSources">;
 
 Eval("music-nerd", {
     experimentName: experimentName("research", MODEL, SHA),
@@ -34,7 +36,7 @@ Eval("music-nerd", {
     maxConcurrency: 1,
     data: () => RESEARCH_CASES.map(c => ({
         input: c,
-        expected: { expect: c.expect, forbidHosts: c.forbidHosts, forbidHandles: c.forbidHandles, expectedProfiles: c.expectedProfiles } satisfies Expected,
+        expected: { expect: c.expect, forbidHosts: c.forbidHosts, forbidHandles: c.forbidHandles, expectedProfiles: c.expectedProfiles, minSources: c.minSources } satisfies Expected,
         metadata: { key: c.key, name: c.name, seed: c.seed, note: c.note },
     })),
     task: async (input: ResearchCase): Promise<ResearchResult> => {
@@ -50,6 +52,7 @@ Eval("music-nerd", {
     scores: [
         ({ output, expected }) => scoreHandles(output.handles, expected.expect, expected.forbidHandles),
         ({ output, expected }) => scoreForbiddenHosts(output.sourceUrls, expected.forbidHosts),
+        ({ output, expected }) => scoreSourcesKept(output.sourceUrls, expected.minSources),
         ({ output, expected }) => scoreLinkPlacement({ links: output.links, loreProfiles: output.loreProfiles, expectedProfiles: expected.expectedProfiles }),
     ],
 });

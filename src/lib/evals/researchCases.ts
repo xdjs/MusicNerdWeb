@@ -3,7 +3,8 @@
  * ground truth. Every handle was checked against a live page and every forbidden host is
  * a namesake this pipeline has actually fallen for. The five benchmark cases are Pete's,
  * from `scripts/research-benchmark.ts` (2026-08-26 → 08-31); the `expectedProfiles` on
- * Pete Rango is the #1273 case, added 2026-09-22.
+ * Pete Rango is the #1273 case, added 2026-09-22; the `minSources` floors were added
+ * 2026-09-23 (#1329 row 2b).
  *
  * Staging ids. The same artist has a different id on production.
  */
@@ -23,6 +24,9 @@ export type ResearchCase = {
     /** Artist-profile URLs that belong in Links, not Lore (#1273). Id form; the scorer
      *  matches the slugged form too. */
     expectedProfiles: string[];
+    /** Sources the pipeline kept for this artist on the research benchmark's 2026-08-31
+     *  run. `scoreSourcesKept` is 1 at or above it. */
+    minSources: number;
     note: string;
 };
 
@@ -44,6 +48,7 @@ export const RESEARCH_CASES: ResearchCase[] = [
         // "Wild Life EP", "Breakdown"). The 1330310245 id stored on production in
         // August returns 404 and is not this artist's page.
         expectedProfiles: ["https://music.apple.com/us/artist/1513734272"],
+        minSources: 9,
         note: "Namesake-dense: a film soundtrack and two famous Petes. Carries the #1273 case.",
     },
     {
@@ -57,6 +62,7 @@ export const RESEARCH_CASES: ResearchCase[] = [
         },
         forbidHosts: ["thereader.com"], // a Lee Brice interview
         expectedProfiles: [],
+        minSources: 9,
         note: "Long tail. Handle is NOT derivable from his name — only his own site states it.",
     },
     {
@@ -75,6 +81,7 @@ export const RESEARCH_CASES: ResearchCase[] = [
         // A Finnish band, an unrelated "Pharaoh", and a different artist called Pharaoh Jo.
         forbidHosts: ["echoesanddust.com", "teethofthedivine.com", "medium.com"],
         expectedProfiles: [],
+        minSources: 2,
         note: "Thin coverage. The test is that thin does not become wrong.",
     },
     {
@@ -96,6 +103,7 @@ export const RESEARCH_CASES: ResearchCase[] = [
             twitch: ["black_davem"],
         },
         expectedProfiles: [],
+        minSources: 5,
         note: "Three Black Daves exist in this directory. Cross-contamination is the failure.",
     },
     {
@@ -117,6 +125,7 @@ export const RESEARCH_CASES: ResearchCase[] = [
             bandcamp: ["black-dave"], twitch: ["black_davem"],
         },
         expectedProfiles: [],
+        minSources: 4,
         note: "Must not inherit the skater-rapper Black Dave's press or handles. Runs two Instagrams; both are his.",
     },
 ];
