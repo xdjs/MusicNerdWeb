@@ -129,7 +129,7 @@ repo. Pete reviews and sends any authorized drafts.
 
 ## Branching
 
-All documentation follows the branch and release rules in [CLAUDE.md](../../CLAUDE.md): feature
+All documentation follows the branch and release rules in [AGENTS.md](../../AGENTS.md): feature
 branch from main → reviewed PR to main → squash merge. Passing CI deploys the merged SHA to
 the persistent staging environment; production requires separate approval. The August 20
 permission for docs-only commits directly to main is historical and does not override current

@@ -6,7 +6,7 @@ listeners learn more about artists through links, sourced profiles and artists' 
 ## First read
 
 1. [Project overview](../README.md) — what the app does and how to start it.
-2. [Agent guide](../CLAUDE.md) — the shared engineering rules. `AGENTS.md` points to this same
+2. [Agent guide](../AGENTS.md) — the shared engineering rules. `CLAUDE.md` points to this same
    guide; there is no separate set of rules for each assistant.
 3. [Engineering handoff](../MEMORY.md) — dated work in progress, verification and release gates.
    Check your branch and the current remote state before treating its status as live.
@@ -52,7 +52,7 @@ admin fallback as a completed integration check.
 
 ## How to read older documents
 
-The implementation and its tests describe behavior in the checkout. `CLAUDE.md` defines working
+The implementation and its tests describe behavior in the checkout. `AGENTS.md` defines working
 conventions, `development.md` explains them, and `MEMORY.md` records dated engineering state.
 Deployment must be verified separately: a local implementation or merged PR is not evidence
 that a feature works in production.
@@ -66,7 +66,7 @@ invent a decision.
 
 In particular, the old SIWE/wallet-first auth analysis and the several Privy migration drafts
 are historical. Current auth uses Privy with NextAuth sessions. Old docs-only direct-to-main
-permission is also historical; the current branch and release rules are in `CLAUDE.md`.
+permission is also historical; the current branch and release rules are in `AGENTS.md`.
 
 When a change settles a product question, update the decision index and link its evidence.
 When it changes engineering state, update `MEMORY.md`. Put durable implementation detail in

@@ -1,10 +1,10 @@
 # Worktrees and assistant configuration
 
-The shared rules are in [CLAUDE.md](../CLAUDE.md). This page describes optional worktree setup,
+The shared rules are in [AGENTS.md](../AGENTS.md). This page describes optional worktree setup,
 not a requirement to use Claude Code, sub-agents or any particular permission configuration.
 
 Use a separate worktree when independent work would otherwise disturb another task. Start its
-feature branch from `staging`, follow the team's branch naming convention, and inspect existing
+feature branch from current `main`, follow the team's branch naming convention, and inspect existing
 worktrees before creating one. Never reset, stash or switch someone else's working changes.
 
 Each worktree needs its own compatible dependencies (`npm ci`) and `.next` output. Obtain dev

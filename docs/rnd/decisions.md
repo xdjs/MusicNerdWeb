@@ -6,9 +6,14 @@ meeting notes — follow the link. Don't restate it here; two copies of the same
 A line goes here when something changes what we build or how we work. Still open? Bottom of the
 file. Meeting decisions record intent at that date, not implementation or deployment. Current
 engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
-[CLAUDE.md](../../CLAUDE.md).
+[AGENTS.md](../../AGENTS.md).
 
 ---
+
+## 2026-09-23 · [standup transcript](https://github.com/xdjs/MusicNerdWeb/pull/1342)
+
+- Keep one assistant guide in `AGENTS.md`; `CLAUDE.md` points to it. The guide records the
+  implemented main-based branch and gated release flow. — Carl, Pete, Sweetman
 
 ## 2026-09-23 · [staging branch retirement](https://github.com/xdjs/MusicNerdWeb/issues/1337)
 
@@ -188,7 +193,7 @@ above supersedes the initial About placement.
 
 - Shared context lives in this repo as markdown, not a separate system. — Carl
 - Docs-only direct-to-`main` permission was given then. **Superseded:** docs now follow reviewed
-  feature PRs to main and the release gate in `CLAUDE.md`; see the September 18 decision above. — Carl
+  feature PRs to main and the release gate in `AGENTS.md`; see the September 18 decision above. — Carl
 - The retro moves to 0:42 with ten minutes, from 0:51 with five. — from the retro
 
 **Direction**
