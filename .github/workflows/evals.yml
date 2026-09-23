@@ -29,9 +29,11 @@ jobs:
       AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
       SUPABASE_DB_CONNECTION: ${{ secrets.SUPABASE_DB_CONNECTION }}
       # The research suite imports the app's env module, which requires the Spotify pair,
-      # and discovery's last-resort tier searches the web through Tavily (src/env.ts).
+      # and discovery's last tier and the vault search go through the branch's web-search
+      # provider (WEB_SEARCH_PROVIDER's code default in src/env.ts; Exa, Tavily the rollback).
       NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: ${{ secrets.SPOTIFY_WEB_CLIENT_ID }}
       NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: ${{ secrets.SPOTIFY_WEB_CLIENT_SECRET }}
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
       TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
 
     steps:

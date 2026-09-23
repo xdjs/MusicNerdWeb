@@ -7,15 +7,10 @@
  * an unrelated page (see the web-search report) — a model deciding whether
  * to search is not a substitute for an actual search API.
  *
- * Tavily is the only IMPLEMENTED backend today — it has a genuinely free
- * tier (1,000 credits/month, no card required), which is why it's the one
- * built first. Perplexity's Search API (`POST
- * https://api.perplexity.ai/search`, `search_domain_filter`) is the intended
- * next backend — same query + domain-filter shape — selected via
- * `WEB_SEARCH_PROVIDER`, but is NOT implemented; see the `PROVIDERS` registry
- * below for the seam. There is deliberately no `perplexitySearch` stub that
- * pretends to work — an unimplemented/unknown provider degrades to `[]`,
- * same as every other failure mode here.
+ * Two backends, selected by `WEB_SEARCH_PROVIDER`: **Exa** (`exaSearch.ts`), the
+ * default since 2026-09-23 by team decision (#1265), and **Tavily** (below), kept as
+ * the rollback until Exa's numbers on `main` match the branch that switched. An
+ * unknown provider degrades to `[]`, same as every other failure mode here.
  *
  * NEVER throws. No API key configured for the selected provider, an unknown
  * provider, a network failure, a non-OK HTTP response, or an unparseable
@@ -23,8 +18,9 @@
  * the onboarding turn" contract every tier in `profileDiscovery.ts` already
  * follows.
  */
-import { TAVILY_API_KEY, WEB_SEARCH_PROVIDER } from "@/env";
+import { EXA_API_KEY, TAVILY_API_KEY, WEB_SEARCH_PROVIDER } from "@/env";
 import { formatWebSearchLog } from "@/lib/search/formatWebSearchLog";
+import { exaSearch } from "@/server/utils/exaSearch";
 
 export interface WebSearchResult {
     url: string;
@@ -39,11 +35,11 @@ export interface WebSearchOptions {
     maxResults?: number;
 }
 
-type ResolvedWebSearchOptions = Required<WebSearchOptions>;
+export type ResolvedWebSearchOptions = Required<WebSearchOptions>;
 
 /** What a provider hands back to `webSearch`: the rows, and on a degrade-to-`[]`
  *  path the kind of failure, which goes on the `[websearch]` log line. */
-type ProviderOutcome = { results: WebSearchResult[]; error?: string };
+export type ProviderOutcome = { results: WebSearchResult[]; error?: string };
 
 /** Per-request hard timeout — mirrors `linkPreview.ts`'s `fetchWithTimeout`
  *  pattern (a short AbortController timeout, never throws). Kept short so a
@@ -151,26 +147,29 @@ async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Prom
  *  again, which is when somebody is likely to be reading. */
 let warnedNoKey = false;
 
-/** Backend registry, selected by `WEB_SEARCH_PROVIDER` (default "tavily").
- *  To add Perplexity: implement `perplexitySearch` against `POST
- *  https://api.perplexity.ai/search` / `search_domain_filter` and add a
- *  `"perplexity"` entry here — no caller-visible change required. This is
- *  the swap seam the module docblock describes; deliberately left as a
- *  registry gap (falls through to the "unknown provider" branch in
- *  `webSearch` below) rather than a stub implementation. */
+/** Backend registry, selected by `WEB_SEARCH_PROVIDER` (code default "exa", src/env.ts).
+ *  Adding a provider is one entry here plus its key in `API_KEYS`; no caller changes. */
 const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) => Promise<ProviderOutcome>> = {
+    exa: exaSearch,
     tavily: tavilySearch,
+};
+
+/** Each provider's key and the variable it comes from, for the missing-key path. */
+const API_KEYS: Record<string, { name: string; value: string }> = {
+    exa: { name: "EXA_API_KEY", value: EXA_API_KEY },
+    tavily: { name: "TAVILY_API_KEY", value: TAVILY_API_KEY },
 };
 
 /** Search the web, provider-agnostic. NEVER throws.
  *  - No API key configured for the selected provider -> returns `[]`
  *    immediately, no network call — this is the expected "not configured
- *    yet" path in any environment without `TAVILY_API_KEY` set.
+ *    yet" path in any environment without `EXA_API_KEY` (or, on the rollback,
+ *    `TAVILY_API_KEY`) set.
  *  - Unknown `WEB_SEARCH_PROVIDER`, or a network/HTTP/parse failure inside
  *    the provider -> logs and returns `[]`.
  */
 export async function webSearch(query: string, opts?: WebSearchOptions): Promise<WebSearchResult[]> {
-    const provider = WEB_SEARCH_PROVIDER || "tavily";
+    const provider = WEB_SEARCH_PROVIDER || "exa";
     const started = Date.now();
     const domains = opts?.includeDomains?.length ?? 0;
     // One line per call, success or not (#1329 row 2c): a provider comparison
@@ -180,7 +179,8 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
         return results;
     };
 
-    if (provider === "tavily" && !TAVILY_API_KEY) {
+    const key = API_KEYS[provider];
+    if (key && !key.value) {
         // Expected in an environment that has not configured it, and
         // catastrophic in one that thinks it has: no key means no sources, no
         // knowledge document and no About, with nothing in the logs to say so.
@@ -190,7 +190,7 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
         // non-actionable lines on any preview deploy without the key.
         if (!warnedNoKey) {
             warnedNoKey = true;
-            console.warn("[webSearch] No TAVILY_API_KEY — web search is OFF. Discovery loses its last-resort tier and the vault finds no sources.");
+            console.warn(`[webSearch] No ${key.name} — web search is OFF. Discovery loses its last-resort tier and the vault finds no sources.`);
         }
         return done({ results: [], error: "no_key" });
     }

@@ -252,3 +252,35 @@ describe("one [websearch] line per call", () => {
         expect(lines(log)).toEqual([expect.stringMatching(/^\[websearch\] perplexity .* error=unknown_provider$/)]);
     });
 });
+
+describe("provider selection", () => {
+    const load = async (env: Record<string, string>) => {
+        jest.resetModules();
+        jest.doMock("@/env", () => env);
+        jest.doMock("../exaSearch", () => ({ exaSearch: jest.fn(async () => ({ results: [{ url: "https://exa.example", title: "", snippet: "" }] })) }));
+        const { webSearch } = await import("../webSearch");
+        const { exaSearch } = await import("../exaSearch");
+        return { webSearch, exaSearch };
+    };
+    beforeEach(() => {
+        jest.spyOn(console, "log").mockImplementation(() => {});
+        jest.spyOn(console, "warn").mockImplementation(() => {});
+    });
+    afterEach(() => { jest.restoreAllMocks(); jest.dontMock("@/env"); jest.dontMock("../exaSearch"); jest.resetModules(); });
+
+    it("routes exa to exaSearch with the resolved options", async () => {
+        const { webSearch, exaSearch } = await load({ EXA_API_KEY: "exa-key", TAVILY_API_KEY: "", WEB_SEARCH_PROVIDER: "exa" });
+        await expect(webSearch("q", { includeDomains: ["x.com"] })).resolves.toEqual([{ url: "https://exa.example", title: "", snippet: "" }]);
+        expect(exaSearch).toHaveBeenCalledWith("q", { includeDomains: ["x.com"], maxResults: 5 });
+    });
+
+    it("returns [] without calling Exa when EXA_API_KEY is missing, and warns once naming it", async () => {
+        const { webSearch, exaSearch } = await load({ EXA_API_KEY: "", TAVILY_API_KEY: "tvly-key", WEB_SEARCH_PROVIDER: "exa" });
+        await expect(webSearch("q")).resolves.toEqual([]);
+        await webSearch("q");
+        expect(exaSearch).not.toHaveBeenCalled();
+        const warns = (console.warn as jest.Mock).mock.calls.flat().join(" ");
+        expect(warns).toMatch(/No EXA_API_KEY/);
+        expect((console.warn as jest.Mock).mock.calls).toHaveLength(1);
+    });
+});

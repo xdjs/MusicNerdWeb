@@ -1,4 +1,5 @@
 import { Eval } from "braintrust";
+import { WEB_SEARCH_PROVIDER } from "@/env";
 import { MODEL_FLASH } from "@/server/lib/ai/models";
 import { experimentName } from "@/lib/evals/experimentName";
 import { RESEARCH_CASES, type ResearchCase } from "@/lib/evals/researchCases";
@@ -37,7 +38,7 @@ type Expected = Pick<ResearchCase, "expect" | "forbidHosts" | "forbidHandles" | 
 
 Eval("music-nerd", {
     experimentName: experimentName("research", MODEL, SHA),
-    metadata: { suite: "research", model: MODEL, sha: SHA },
+    metadata: { suite: "research", model: MODEL, sha: SHA, webSearchProvider: WEB_SEARCH_PROVIDER },
     maxConcurrency: 1,
     data: () => RESEARCH_CASES.map(c => ({
         input: c,
