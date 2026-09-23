@@ -724,6 +724,25 @@ describe('discoverArtistProfiles', () => {
             expect(result).toEqual([]);
         });
 
+        it('rejects a handle that is only one word of a longer name (the Lee Brice namesake Exa returned for "Sherwinn Dupes Brice", #1340)', async () => {
+            const { artistQ, extractArtistId, fetchLinkPreview, musicPlatformData, webSearch, discoverArtistProfiles } = await setup();
+            artistQ.getArtistById.mockResolvedValue({ id: 'a1', name: 'Sherwinn Dupes Brice', deezer: '94933462' });
+            artistQ.getAllLinks.mockResolvedValue(URLMAP_ROWS);
+            musicPlatformData.getArtist.mockResolvedValue({ ...ENRICHMENT, name: 'Sherwinn Dupes Brice' });
+            webSearch.mockImplementation(async (_query: string, opts: { includeDomains?: string[] }) => (
+                opts?.includeDomains?.[0] === 'instagram.com'
+                    ? [{ url: 'https://www.instagram.com/brice', title: '', snippet: '' }]
+                    : []
+            ));
+            extractArtistId.mockImplementation(async (url: string) =>
+                url === 'https://www.instagram.com/brice' ? { siteName: 'instagram', cardPlatformName: 'Instagram', id: 'brice' } : null,
+            );
+            fetchLinkPreview.mockResolvedValue({ imageUrl: 'https://cdn/brice.jpg', title: null });
+
+            const result = await discoverArtistProfiles('a1');
+            expect(result).toEqual([]);
+        });
+
         it('accepts a handle-echo match even when the search result has no usable title text at all', async () => {
             // The handle itself is already strong evidence (see
             // handleEchoesArtistName) — a search result with no title/snippet

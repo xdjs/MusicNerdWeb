@@ -49,8 +49,8 @@
  *            first has to look like an actual profile URL (`looksLikeProfileUrl`
  *            — a search engine returns arbitrary pages, not just profiles,
  *            and `extractArtistId`'s regexes were never designed to tell the
- *            difference), then the resolved HANDLE has to echo the artist's
- *            name (`handleEchoesArtistName` — the primary discriminator; a
+ *            difference), then the resolved HANDLE has to carry every word of the artist's
+ *            name (`handleCoversArtistName` — the primary discriminator; a
  *            title/snippet-only check is too weak for a same-surname
  *            stranger or a common-word artist name — see
  *            `resultPassesNameCheck` for the live-tested detail), before the
@@ -90,6 +90,7 @@ import { webSearch, type WebSearchResult } from "@/server/utils/webSearch";
 import { getArtistMappings } from "@/server/utils/idMappingService";
 import { spotifyArtistFromDeezer } from "@/server/utils/isrcMatch";
 import { foldName } from "@/server/utils/nameFold";
+import { handleCoversArtistName } from "@/server/utils/handleCoversArtistName";
 import {
     PROFILE_DISPLAY_COLUMNS,
     artistHasRawLinkValue,
@@ -855,45 +856,13 @@ function isReservedBandcampSubdomain(rawUrl: string): boolean {
     }
 }
 
-/** Best-effort leetspeak/number-substitution normalization layered on top of
- *  `normalizeForCompare` below — common social handles substitute a digit
- *  for a visually similar letter (`p3t3rango` for "Pete Rango")
- *  SPECIFICALLY because the plain name is already taken elsewhere. Without
- *  this, `handleEchoesArtistName` would reject exactly the real-world
- *  handle shape this feature exists to find (see the module docblock's
- *  "instagram.com/sonsofsilverband" motivating failure — the opposite
- *  problem: a handle with ZERO relation to the artist's name). */
-function deleetHandle(s: string): string {
-    return s.replace(/0/g, "o").replace(/1/g, "i").replace(/3/g, "e").replace(/4/g, "a").replace(/5/g, "s").replace(/7/g, "t");
-}
-
-/** The PRIMARY identity signal for a tier-4 candidate: does the extracted
- *  HANDLE itself echo the artist's name (loose containment, either
- *  direction, tolerating leetspeak)? Live testing turned up same-surname
- *  strangers (artist on file: "shumov"; search hit: an unrelated "Ivan
- *  Shumov" whose handle "inoise" carries zero relation to either name) that
- *  a title-only check does NOT catch — "shumov" is a genuine substring of
- *  "Ivan Shumov", so the title itself is not contradictory evidence, only
- *  the handle is. This is the check that rejects those. It is deliberately
- *  a HARD requirement (not one-of-two-signals) — see `resultPassesNameCheck`
- *  for why title evidence alone can't substitute. */
-function handleEchoesArtistName(handle: string, artistName: string): boolean {
-    const normArtist = normalizeForCompare(artistName);
-    if (!normArtist) return false;
-    for (const candidate of [handle, deleetHandle(handle)]) {
-        const normHandle = normalizeForCompare(candidate);
-        if (normHandle && (normHandle.includes(normArtist) || normArtist.includes(normHandle))) return true;
-    }
-    return false;
-}
-
 /** The name cross-check every tier-4 search RESULT must clear before it's
  *  even considered a candidate:
  *   (1) `looksLikeProfileUrl` — the URL has to look like a profile page in
  *       the first place (see above).
  *   (2) `extractArtistId` resolves it, for the PLATFORM this search was
  *       scoped to (never a different platform's URL slipping through).
- *   (3) `handleEchoesArtistName` — the resolved HANDLE must echo the
+ *   (3) `handleCoversArtistName` — the resolved HANDLE must carry every word of the
  *       artist's name. This is the primary discriminator (see above) and is
  *       REQUIRED, not optional.
  *   (4) if the search result's TITLE (never the snippet — ordinary prose
@@ -923,7 +892,7 @@ async function resultPassesNameCheck(
         return false;
     }
     if (!extracted?.siteName || !extracted?.id || extracted.siteName !== platform) return false;
-    if (!handleEchoesArtistName(extracted.id, artistName)) return false;
+    if (!handleCoversArtistName(extracted.id, artistName)) return false;
 
     const residual = result.title ? stripHandleAndBoilerplate(result.title, extracted.id) : "";
     if (normalizeForCompare(residual) && !titleMatchesArtist(residual, artistName)) return false;
