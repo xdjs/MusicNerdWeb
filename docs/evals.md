@@ -95,7 +95,7 @@ about quality.
 | Suite | Data | Scorers | Status |
 | --- | --- | --- | --- |
 | `smoke` | one fixed prompt | `scoreExactMatch` | in this PR |
-| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. | `scoreHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreLinkPlacement` | in this PR; baseline pending |
+| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. The run log carries one `[websearch] <provider> q=<query length> domains=<n> results=<n> <ms>ms` line per search call, with `error=<kind>` when it degraded to no results, so searches per provider can be counted off a run. | `scoreHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreLinkPlacement` | in this PR; baseline pending |
 | `ask`, `about` | Dutchyyy own-source and open-web questions; About regeneration | `scoreCitations`, `scoreWithinBudget`, one judge each | #1329 row 3 |
 
 A site not listed gets a suite when its flow changes, in the PR that changes it. No suite is
