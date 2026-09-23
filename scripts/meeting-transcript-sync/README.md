@@ -126,6 +126,14 @@ References: [Apps Script time triggers](https://developers.google.com/apps-scrip
 
 ## Main-only transition (September 2026)
 
+Pete recorded the completed live configuration and scan checks in
+[#1336](https://github.com/xdjs/MusicNerdWeb/issues/1336#issuecomment-5787246527). The real scan
+found only unchanged sources and published nothing. On September 23, Carl explicitly waived
+new-transcript publication verification as a prerequisite for retiring the old staging branch
+in [#1337](https://github.com/xdjs/MusicNerdWeb/issues/1337); any later publication failure is bug
+work. The following describes the required configuration, not an outstanding request to edit
+the already-updated live script.
+
 `SYNC.base` is `main`. Updating this repository does not update the running Apps Script.
 In Pete's **Music Nerd — Meeting Transcript Sync** editor, change `SYNC.base` from
 `staging` to `main` and remove the `base` query parameter from `publish_`'s all-state PR lookup
