@@ -33,9 +33,13 @@ URL, no login, and the suite survives the research endpoint moving to another re
 
 **Deterministic scorers first.** Research has ground truth (handles, namesakes, where a profile
 URL was stored); Ask has structure (citation markers, a four-item schema, a time budget). Those
-score for free and catch most regressions. An LLM judge is used only where the question is prose
-quality, and always through the gateway on the wrapper's default model so judge spend lands in
-the same budget as production.
+score for free and catch most regressions. An LLM judge is used only where no ground truth can
+answer the question: prose quality, and whether a kept source is about the artist at all (the
+hand-listed namesakes in `forbidHosts` only catch the ones somebody already found). Judges always
+go through the gateway so their spend lands in the same budget as production. They run on the
+wrapper's default model, except where the judge grades a site that already runs on it: the
+source-relevance judge grades the pipeline's own Flash relevance filter, so it runs on
+`MODEL_JUDGE` (Pro), because the same model would share the filter's blind spots.
 
 Scorers in the repo:
 
@@ -47,6 +51,7 @@ Scorers in the repo:
 | `scoreNoWrongHandles` | 0 when any stored handle is not the artist's (differs from a known one, or belongs to another artist); missing handles do not count. **A research change that drops any case below 1 does not merge**, whatever the averages say: a stranger's account on a profile is worse than any number of missed sources | research |
 | `scoreForbiddenHosts` | no namesake or blocked host among kept sources | research |
 | `scoreSourcesKept` | sources kept against the case's floor (`minSources`, from the 2026-08-31 benchmark run), so a provider that finds nothing cannot pass on precision alone | research |
+| `scoreSourceRelevance` | share of kept sources a Pro judge (`judgeKeptSources`, one call per case) finds to be about this artist, given the case's known accounts and namesake note; the ones it rejects are named with a reason. Precision on sources nobody has listed as namesakes yet | research |
 | `scoreLinkPlacement` | expected profile URLs stored as Links, nothing profile-typed in Lore (#1273) | research |
 | `scoreCitations` | citation markers resolve to sources the answer was given, read as the route reads them | ask |
 
@@ -96,7 +101,7 @@ about quality.
 | Suite | Data | Scorers | Status |
 | --- | --- | --- | --- |
 | `smoke` | one fixed prompt | `scoreExactMatch` | in this PR |
-| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. The run log carries one `[websearch] <provider> q=<query length> domains=<n> results=<n> <ms>ms` line per search call, with `error=<kind>` when it degraded to no results, so searches per provider can be counted off a run. | `scoreHandles` (as `discovery_handles` and `handles`), `scoreNoWrongHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreLinkPlacement` | in this PR; baseline pending |
+| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. The run log carries one `[websearch] <provider> q=<query length> domains=<n> results=<n> <ms>ms` line per search call, with `error=<kind>` when it degraded to no results, so searches per provider can be counted off a run. | `scoreHandles` (as `discovery_handles` and `handles`), `scoreNoWrongHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreSourceRelevance` (the one judge), `scoreLinkPlacement` | in this PR; baseline pending |
 | `ask`, `about` | Dutchyyy own-source and open-web questions; About regeneration | `scoreCitations`, `scoreWithinBudget`, one judge each | #1329 row 3 |
 
 A site not listed gets a suite when its flow changes, in the PR that changes it. No suite is
