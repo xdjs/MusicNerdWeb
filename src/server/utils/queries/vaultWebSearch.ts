@@ -42,7 +42,12 @@ const VERIFY_TIMEOUT_MS = 8000;
 /** Per query, across three queries — so up to 15 candidates before dedupe, which
  *  overlaps heavily in practice. Roughly matches the 8 the old prompt asked for
  *  while giving the dedupe something to work with. */
-const TAVILY_RESULTS_PER_QUERY = 5;
+const RESULTS_PER_QUERY = 5;
+
+/** The source search's web-search backend. Exa, by measurement: on the research suite it
+ *  kept 97.8% of each artist's source floor against Tavily's ≈77%, while Tavily stays
+ *  the better handle finder for profile discovery (#1265, #1340). */
+export const SOURCE_SEARCH_PROVIDER = "exa";
 
 /** The artist's own platform links — mirrors PROFILE_DISPLAY_COLUMNS in
  *  linkPresentation.ts. Used to recognise "this is a profile we already have". */
@@ -906,7 +911,7 @@ async function searchAndPopulateVaultInternal(
 
     try {
         const perQuery = await Promise.all(
-            queries.map(q => webSearch(q, { maxResults: TAVILY_RESULTS_PER_QUERY })),
+            queries.map(q => webSearch(q, { maxResults: RESULTS_PER_QUERY, provider: SOURCE_SEARCH_PROVIDER })),
         );
 
         // MusicBrainz names the artist's official homepage, and until a review

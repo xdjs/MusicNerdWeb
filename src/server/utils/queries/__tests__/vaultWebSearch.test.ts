@@ -130,6 +130,14 @@ describe("searchAndPopulateVault", () => {
     expect(queries).toContain("Grimes");
   });
 
+  it("runs every source query on Exa, the provider this job measured best on (#1340)", async () => {
+    mockWebSearch.mockResolvedValue([hit("https://example.com/a")]);
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1");
+    expect(mockWebSearch).toHaveBeenCalled();
+    for (const call of mockWebSearch.mock.calls) expect(call[1]).toMatchObject({ provider: "exa" });
+  });
+
   it("dedupes the same URL returned by more than one query", async () => {
     mockWebSearch.mockResolvedValue([hit("https://example.com/a"), hit("https://example.com/a")]);
     const { searchAndPopulateVault } = await import("../vaultWebSearch");

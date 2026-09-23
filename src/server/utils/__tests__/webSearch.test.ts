@@ -284,3 +284,35 @@ describe("provider selection", () => {
         expect((console.warn as jest.Mock).mock.calls).toHaveLength(1);
     });
 });
+
+describe("a caller names its provider", () => {
+    afterEach(() => { jest.restoreAllMocks(); jest.dontMock("@/env"); jest.dontMock("../exaSearch"); jest.resetModules(); });
+
+    it("uses the provider in the options over WEB_SEARCH_PROVIDER", async () => {
+        jest.spyOn(console, "log").mockImplementation(() => {});
+        jest.resetModules();
+        jest.doMock("@/env", () => ({ EXA_API_KEY: "exa-key", TAVILY_API_KEY: "tvly-key", WEB_SEARCH_PROVIDER: "tavily" }));
+        jest.doMock("../exaSearch", () => ({ exaSearch: jest.fn(async () => ({ results: [] })) }));
+        global.fetch = jest.fn();
+        const { webSearch } = await import("../webSearch");
+        const { exaSearch } = await import("../exaSearch");
+
+        await webSearch("q", { provider: "exa" });
+
+        expect(exaSearch).toHaveBeenCalledTimes(1);
+        expect(global.fetch).not.toHaveBeenCalled(); // Tavily untouched
+        expect((console.log as jest.Mock).mock.calls.flat().join(" ")).toMatch(/\[websearch\] exa /);
+    });
+
+    it("falls back to WEB_SEARCH_PROVIDER, and to tavily when that is unset", async () => {
+        jest.spyOn(console, "log").mockImplementation(() => {});
+        jest.resetModules();
+        jest.doMock("@/env", () => ({ EXA_API_KEY: "", TAVILY_API_KEY: "tvly-key", WEB_SEARCH_PROVIDER: "" }));
+        global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: [] }) }));
+        const { webSearch } = await import("../webSearch");
+
+        await webSearch("q");
+
+        expect(global.fetch).toHaveBeenCalledWith("https://api.tavily.com/search", expect.anything());
+    });
+});

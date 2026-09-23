@@ -7,10 +7,11 @@
  * an unrelated page (see the web-search report) — a model deciding whether
  * to search is not a substitute for an actual search API.
  *
- * Two backends, selected by `WEB_SEARCH_PROVIDER`: **Exa** (`exaSearch.ts`), the
- * default since 2026-09-23 by team decision (#1265), and **Tavily** (below), kept as
- * the rollback until Exa's numbers on `main` match the branch that switched. An
- * unknown provider degrades to `[]`, same as every other failure mode here.
+ * Two backends, one per job since 2026-09-23 (#1265, measured on #1340): **Exa**
+ * (`exaSearch.ts`) for the vault source search, which names it, and **Tavily** (below)
+ * for everything else, the `WEB_SEARCH_PROVIDER` default. Exa kept more relevant sources;
+ * Tavily's site-restricted search found more of an artist's own accounts. An unknown
+ * provider degrades to `[]`, same as every other failure mode here.
  *
  * NEVER throws. No API key configured for the selected provider, an unknown
  * provider, a network failure, a non-OK HTTP response, or an unparseable
@@ -33,9 +34,12 @@ export interface WebSearchOptions {
      *  through untouched to the provider's own domain-filter field. */
     includeDomains?: string[];
     maxResults?: number;
+    /** Which backend runs this search. A caller that measured one best for its job
+     *  names it (the vault source search names "exa"); otherwise `WEB_SEARCH_PROVIDER`. */
+    provider?: string;
 }
 
-export type ResolvedWebSearchOptions = Required<WebSearchOptions>;
+export type ResolvedWebSearchOptions = Required<Omit<WebSearchOptions, "provider">>;
 
 /** What a provider hands back to `webSearch`: the rows, and on a degrade-to-`[]`
  *  path the kind of failure, which goes on the `[websearch]` log line. */
@@ -147,7 +151,7 @@ async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Prom
  *  again, which is when somebody is likely to be reading. */
 let warnedNoKey = false;
 
-/** Backend registry, selected by `WEB_SEARCH_PROVIDER` (code default "exa", src/env.ts).
+/** Backend registry, selected per call (`opts.provider`) or by `WEB_SEARCH_PROVIDER`.
  *  Adding a provider is one entry here plus its key in `API_KEYS`; no caller changes. */
 const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) => Promise<ProviderOutcome>> = {
     exa: exaSearch,
@@ -169,7 +173,7 @@ const API_KEYS: Record<string, { name: string; value: string }> = {
  *    the provider -> logs and returns `[]`.
  */
 export async function webSearch(query: string, opts?: WebSearchOptions): Promise<WebSearchResult[]> {
-    const provider = WEB_SEARCH_PROVIDER || "exa";
+    const provider = opts?.provider || WEB_SEARCH_PROVIDER || "tavily";
     const started = Date.now();
     const domains = opts?.includeDomains?.length ?? 0;
     // One line per call, success or not (#1329 row 2c): a provider comparison

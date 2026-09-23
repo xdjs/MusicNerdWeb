@@ -22,12 +22,12 @@ export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
 export const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-// Web search (profile discovery's last-resort tier and the vault search — see webSearch.ts).
-// Exa by default since 2026-09-23 (#1265); "tavily" is the rollback. An empty key for the
-// selected provider = webSearch() returns [] immediately, no network call.
+// Web search (see webSearch.ts). The vault source search names Exa; everything else uses
+// WEB_SEARCH_PROVIDER, Tavily (#1265). An empty key for a provider = that job's searches
+// return [] immediately, no network call.
 export const EXA_API_KEY = process.env.EXA_API_KEY ?? "";
 export const TAVILY_API_KEY = process.env.TAVILY_API_KEY ?? "";
-export const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER ?? "exa";
+export const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER ?? "tavily";
 
 // Resend (transactional email — approval notifications). Empty = sends are skipped.
 export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";

@@ -12,6 +12,7 @@ import { scoreSourcesKept } from "@/lib/evals/scorers/scoreSourcesKept";
 import { scoreSourceRelevance, type SourceVerdict } from "@/lib/evals/scorers/scoreSourceRelevance";
 import { scoreSourceCoverage } from "@/lib/evals/scorers/scoreSourceCoverage";
 import { runResearchCase, type ResearchResult } from "@/server/utils/evals/runResearchCase";
+import { SOURCE_SEARCH_PROVIDER } from "@/server/utils/queries/vaultWebSearch";
 import { judgeKeptSources } from "@/server/utils/evals/judgeKeptSources";
 
 /**
@@ -38,7 +39,7 @@ type Expected = Pick<ResearchCase, "expect" | "forbidHosts" | "forbidHandles" | 
 
 Eval("music-nerd", {
     experimentName: experimentName("research", MODEL, SHA),
-    metadata: { suite: "research", model: MODEL, sha: SHA, webSearchProvider: WEB_SEARCH_PROVIDER },
+    metadata: { suite: "research", model: MODEL, sha: SHA, discoverySearch: WEB_SEARCH_PROVIDER || "tavily", sourceSearch: SOURCE_SEARCH_PROVIDER },
     maxConcurrency: 1,
     data: () => RESEARCH_CASES.map(c => ({
         input: c,
