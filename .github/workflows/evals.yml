@@ -13,6 +13,11 @@ on:
           - smoke
           - research
         default: smoke
+  # TEMPORARY, removed in the next commit: GitHub only dispatches a workflow that exists
+  # on the default branch, so research runs on this branch come from a push.
+  push:
+    branches:
+      - sweetmantech/evals-research-stages
 
 # The research suite resets fixture artists on the staging database; two runs at once
 # would score each other's writes.
@@ -50,4 +55,4 @@ jobs:
       run: npm ci
 
     - name: Run suite
-      run: npm run eval -- "evals/${{ inputs.suite }}.eval.ts" --no-progress-bars --terminate-on-failure
+      run: npm run eval -- "evals/${{ inputs.suite || 'research' }}.eval.ts" --no-progress-bars --terminate-on-failure
