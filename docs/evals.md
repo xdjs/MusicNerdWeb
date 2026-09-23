@@ -43,7 +43,8 @@ Scorers in the repo:
 | --- | --- | --- |
 | `scoreExactMatch` | output equals expected after trimming | smoke |
 | `scoreWithinBudget` | the call finished inside the site's timeout ([llm.md](llm.md)) | ask, about (research has no documented budget; it records seconds instead) |
-| `scoreHandles` | known handles found, wrong ones penalised, on the research benchmark's rules | research |
+| `scoreHandles` | known handles found, wrong ones penalised, on the research benchmark's rules | research, twice: `discovery_handles` after profile discovery alone, `handles` after the source search as well, so a regression is attributable to the half that caused it |
+| `scoreNoWrongHandles` | 0 when any stored handle is not the artist's (differs from a known one, or belongs to another artist); missing handles do not count. **A research change that drops any case below 1 does not merge**, whatever the averages say: a stranger's account on a profile is worse than any number of missed sources | research |
 | `scoreForbiddenHosts` | no namesake or blocked host among kept sources | research |
 | `scoreSourcesKept` | sources kept against the case's floor (`minSources`, from the 2026-08-31 benchmark run), so a provider that finds nothing cannot pass on precision alone | research |
 | `scoreLinkPlacement` | expected profile URLs stored as Links, nothing profile-typed in Lore (#1273) | research |
@@ -95,7 +96,7 @@ about quality.
 | Suite | Data | Scorers | Status |
 | --- | --- | --- | --- |
 | `smoke` | one fixed prompt | `scoreExactMatch` | in this PR |
-| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. The run log carries one `[websearch] <provider> q=<query length> domains=<n> results=<n> <ms>ms` line per search call, with `error=<kind>` when it degraded to no results, so searches per provider can be counted off a run. | `scoreHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreLinkPlacement` | in this PR; baseline pending |
+| `research` | `researchCases.ts`: the research benchmark's five hand-verified staging artists, with the #1273 Apple Music case on Pete Rango. Each is reset to its seed DSP ids, run through profile discovery and the source search as onboarding runs them, and read back the way the page reads it (`readResearchOutcome`). Seconds per case and discovery/vault errors ride along in the output. The run log carries one `[websearch] <provider> q=<query length> domains=<n> results=<n> <ms>ms` line per search call, with `error=<kind>` when it degraded to no results, so searches per provider can be counted off a run. | `scoreHandles` (as `discovery_handles` and `handles`), `scoreNoWrongHandles`, `scoreForbiddenHosts`, `scoreSourcesKept`, `scoreLinkPlacement` | in this PR; baseline pending |
 | `ask`, `about` | Dutchyyy own-source and open-web questions; About regeneration | `scoreCitations`, `scoreWithinBudget`, one judge each | #1329 row 3 |
 
 A site not listed gets a suite when its flow changes, in the PR that changes it. No suite is
