@@ -18,7 +18,7 @@ describe("readResearchOutcome", () => {
         execute
             .mockResolvedValueOnce([{ instagram: "p3t3rango", x: "p3t3rango", youtube: null, tiktok: null, facebook: null, soundcloud: "peterango", bandcamp: "peterango", twitch: null }])
             .mockResolvedValueOnce([
-                { url: "https://peterango.com/", type: "website" },
+                { url: "https://peterango.com/", type: "website", title: "Pete Rango", snippet: "Producer" },
                 { url: "https://music.apple.com/us/artist/pete-rango/1330310245", type: "profile" },
                 { url: "https://www.instagram.com/p3t3rango/", type: "profile" },
                 { url: "https://screenrant.com/rango-soundtrack/", type: "article" },
@@ -27,7 +27,7 @@ describe("readResearchOutcome", () => {
         const { readResearchOutcome } = await import("@/server/utils/evals/readResearchOutcome");
         const outcome = await readResearchOutcome(ID);
         expect(execute.mock.calls[0][0].raw).toBe(`select instagram, x, youtube, tiktok, facebook, soundcloud, bandcamp, twitch from artists where id = '${ID}'`);
-        expect(execute.mock.calls[1][0]).toEqual({ template: "select url, type from artist_vault_sources where artist_id = ?::uuid", values: [ID] });
+        expect(execute.mock.calls[1][0]).toEqual({ template: "select url, type, title, snippet from artist_vault_sources where artist_id = ?::uuid", values: [ID] });
         expect(execute.mock.calls[2][0]).toEqual({ template: "select platform, platform_id from artist_id_mappings where artist_id = ?::uuid", values: [ID] });
         expect(outcome).toEqual({
             handles: { instagram: "p3t3rango", x: "p3t3rango", youtube: null, tiktok: null, facebook: null, soundcloud: "peterango", bandcamp: "peterango", twitch: null },
@@ -42,13 +42,20 @@ describe("readResearchOutcome", () => {
             // Lore: profile-typed sources, but only the two platforms #1273 is about;
             // an Instagram profile page in Lore is a different question.
             loreProfiles: ["https://music.apple.com/us/artist/pete-rango/1330310245"],
+            // What a judge reads: each kept source as the page lists it.
+            sources: [
+                { url: "https://peterango.com/", title: "Pete Rango", snippet: "Producer" },
+                { url: "https://music.apple.com/us/artist/pete-rango/1330310245", title: null, snippet: null },
+                { url: "https://www.instagram.com/p3t3rango/", title: null, snippet: null },
+                { url: "https://screenrant.com/rango-soundtrack/", title: null, snippet: null },
+            ],
         });
     });
 
     it("returns empty collections for an artist with nothing", async () => {
         execute.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
         const { readResearchOutcome } = await import("@/server/utils/evals/readResearchOutcome");
-        expect(await readResearchOutcome(ID)).toEqual({ handles: {}, sourceUrls: [], links: [], loreProfiles: [] });
+        expect(await readResearchOutcome(ID)).toEqual({ handles: {}, sourceUrls: [], links: [], loreProfiles: [], sources: [] });
     });
 
     it("maps a beatport mapping to its artist URL too", async () => {

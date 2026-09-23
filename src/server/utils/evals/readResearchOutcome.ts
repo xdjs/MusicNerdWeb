@@ -1,5 +1,6 @@
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
+import type { KeptSource } from "@/server/utils/evals/judgeKeptSources";
 
 /** The social columns research fills; the research benchmark's list. */
 const HANDLE_COLUMNS = ["instagram", "x", "youtube", "tiktok", "facebook", "soundcloud", "bandcamp", "twitch"] as const;
@@ -23,6 +24,8 @@ export type ResearchOutcome = {
     links: string[];
     /** Profile-typed sources on #1273's hosts, which the page shows in Lore. */
     loreProfiles: string[];
+    /** Every vault source as the page lists it, for the relevance judge. */
+    sources: KeptSource[];
 };
 
 /**
@@ -34,7 +37,7 @@ export type ResearchOutcome = {
  */
 export async function readResearchOutcome(artistId: string): Promise<ResearchOutcome> {
     const artist = rows(await db.execute(sql.raw(`select ${HANDLE_COLUMNS.join(", ")} from artists where id = '${artistId}'`)))[0] ?? {};
-    const sources = rows(await db.execute(sql`select url, type from artist_vault_sources where artist_id = ${artistId}::uuid`));
+    const sources = rows(await db.execute(sql`select url, type, title, snippet from artist_vault_sources where artist_id = ${artistId}::uuid`));
     const mappings = rows(await db.execute(sql`select platform, platform_id from artist_id_mappings where artist_id = ${artistId}::uuid`));
 
     const handles: Record<string, string | null> = {};
@@ -48,7 +51,8 @@ export async function readResearchOutcome(artistId: string): Promise<ResearchOut
     const loreProfiles = sources
         .filter(s => s.type === "profile" && PROFILE_HOSTS.some(host => String(s.url).includes(host)))
         .map(s => String(s.url));
-    return { handles, sourceUrls, links, loreProfiles };
+    const kept = sources.map(s => ({ url: String(s.url), title: s.title ?? null, snippet: s.snippet ?? null }));
+    return { handles, sourceUrls, links, loreProfiles, sources: kept };
 }
 
 /** postgres-js returns the row list itself; other drivers wrap it in `{ rows }`. */
