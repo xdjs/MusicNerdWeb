@@ -10,6 +10,20 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-09-23 · [staging branch retirement](https://github.com/xdjs/MusicNerdWeb/issues/1337)
+
+- Archive and retire the legacy Git branch while retaining the persistent staging environment;
+  waive live new-transcript publication verification and handle any later failure as a bug. — Carl
+
+## 2026-09-18 · [main-only workflow decision](https://github.com/xdjs/MusicNerdWeb/issues/1310)
+
+- Features and fixes branch from main and return through reviewed PRs; persistent staging
+  testing and explicit production approval replace the staging-to-main merge. — Carl, Pete
+- The implemented flow uses squash PRs and separate environment-specific builds of the same
+  SHA; any one of Carl, Pete or Sweetman approves production. This supersedes the older
+  staging-branch release rules below. [Implementation evidence](https://github.com/xdjs/MusicNerdWeb/issues/1319)
+  and [release runbook](../releases.md).
+
 ## 2026-09-11 · Pete's local profile review
 
 - Choose option 1 for section navigation: a glass segmented bar, supporting both dragging the selection and clicking a section. — Pete
@@ -173,8 +187,8 @@ above supersedes the initial About placement.
 **How we work** — [reasoning](meetings/2026-08-20.md#shared-context-in-the-repo)
 
 - Shared context lives in this repo as markdown, not a separate system. — Carl
-- Docs-only direct-to-`main` permission was given then. **Superseded by current operating
-  practice:** docs follow feature → staging → main and the release gate in `CLAUDE.md`. — Carl
+- Docs-only direct-to-`main` permission was given then. **Superseded:** docs now follow reviewed
+  feature PRs to main and the release gate in `CLAUDE.md`; see the September 18 decision above. — Carl
 - The retro moves to 0:42 with ten minutes, from 0:51 with five. — from the retro
 
 **Direction**
@@ -210,9 +224,6 @@ above supersedes the initial About placement.
 
 Raised, not settled. Move up into a dated section when they close.
 
-- **Drop the staging branch?** Historical proposal from August 20, not adopted in the current
-  guide. All work, including docs, continues through staging. Revisit only as an explicit team
-  workflow decision.
 - **Longer-term profile editing and layout.** August 20 proposed a wizard/per-section
   comparison; September 3 reviewed a working wizard and September 7 reopened the mobile
   layout. No final redesign was selected. Follow the current design task, not a blanket
