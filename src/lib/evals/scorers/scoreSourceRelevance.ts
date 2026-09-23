@@ -1,7 +1,11 @@
 import type { Score } from "@/lib/evals/Score";
 
+/** What a kept page is: coverage (interview, review, article, feature, podcast), a
+ *  listing (directory, catalogue, database, store or streaming page), or the artist's own. */
+export type SourceKind = "coverage" | "listing" | "own";
+
 /** One kept source as the relevance judge saw it. */
-export type SourceVerdict = { url: string; aboutArtist: boolean; reason: string };
+export type SourceVerdict = { url: string; aboutArtist: boolean; kind: SourceKind; reason: string };
 
 type SourceRelevanceMetadata = { judged: number; about: number; notAbout: string[] };
 

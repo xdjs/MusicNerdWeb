@@ -9,6 +9,7 @@ import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { scoreLinkPlacement } from "@/lib/evals/scorers/scoreLinkPlacement";
 import { scoreSourcesKept } from "@/lib/evals/scorers/scoreSourcesKept";
 import { scoreSourceRelevance, type SourceVerdict } from "@/lib/evals/scorers/scoreSourceRelevance";
+import { scoreSourceCoverage } from "@/lib/evals/scorers/scoreSourceCoverage";
 import { runResearchCase, type ResearchResult } from "@/server/utils/evals/runResearchCase";
 import { judgeKeptSources } from "@/server/utils/evals/judgeKeptSources";
 
@@ -51,12 +52,13 @@ Eval("music-nerd", {
         const rejected = result.sourceVerdicts.filter(v => !v.aboutArtist).map(v => v.url);
         const namesakes = result.sourceUrls.filter(u => input.forbidHosts.some(h => u.includes(h)));
         const blocked = result.sourceUrls.filter(u => isBlockedSourceHost(u));
+        const kinds = scoreSourceCoverage(result.sourceVerdicts).metadata;
         // One line per case in the run log, so a reviewer can read a run without
         // opening Braintrust: what was found, where it went, how long it took.
         const handles = Object.entries(result.handles).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(" ") || "none";
         console.log(`[research] ${input.key} ${result.seconds}s discovery=${result.profileLinks}/${Object.keys(input.expect).length} alternatives=${result.alternatives}`
             + ` handles: ${handles} | sources=${result.sourceUrls.length} links=${result.links.join(",") || "none"} loreProfiles=${result.loreProfiles.join(",") || "none"}`
-            + ` judgedNotAbout=${rejected.join(",") || "none"} namesakes=${namesakes.join(",") || "none"} blocked=${blocked.join(",") || "none"}`
+            + ` coverage=${kinds.coverage} listing=${kinds.listing} own=${kinds.own} judgedNotAbout=${rejected.join(",") || "none"} namesakes=${namesakes.join(",") || "none"} blocked=${blocked.join(",") || "none"}`
             + `${result.discoveryError ? ` discoveryError=${result.discoveryError}` : ""}${result.vaultError ? ` vaultError=${result.vaultError}` : ""}`);
         return result;
     },
@@ -68,6 +70,7 @@ Eval("music-nerd", {
         ({ output, expected }) => scoreForbiddenHosts(output.sourceUrls, expected.forbidHosts),
         ({ output, expected }) => scoreSourcesKept(output.sourceUrls, expected.minSources),
         ({ output }) => scoreSourceRelevance(output.sourceVerdicts),
+        ({ output }) => scoreSourceCoverage(output.sourceVerdicts),
         ({ output, expected }) => scoreLinkPlacement({ links: output.links, loreProfiles: output.loreProfiles, expectedProfiles: expected.expectedProfiles }),
     ],
 });
