@@ -365,6 +365,48 @@ export const artistClaims = pgTable("artist_claims", {
 	pgPolicy("mnweb_update_artist_claims", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
+/**
+ * One execution of artist research: what it looked for, every link it found, what it kept or
+ * dropped and why, and where each kept item went (docs/research-runs.md, #1347). `message` is
+ * one AI SDK UIMessage with a tool part per step, overwritten after each step. Deleted with
+ * the artist; a deleted user leaves the run with no `triggered_by`.
+ */
+export const artistResearchRuns = pgTable("artist_research_runs", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	artistId: uuid("artist_id").notNull(),
+	/** claim_approval | onboarding_build | onboarding_step | lore_search | about_generation */
+	trigger: text().notNull(),
+	triggeredBy: uuid("triggered_by"),
+	status: text().default("running").notNull(),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+	finishedAt: timestamp("finished_at", { withTimezone: true, mode: 'string' }),
+	searches: integer().default(0).notNull(),
+	results: integer().default(0).notNull(),
+	sourcesSaved: integer("sources_saved").default(0).notNull(),
+	linksSaved: integer("links_saved").default(0).notNull(),
+	rejected: integer().default(0).notNull(),
+	message: jsonb().default(sql`'{"role": "assistant", "parts": []}'::jsonb`).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
+}, (table) => [
+	index("idx_artist_research_runs_artist_started").using("btree", table.artistId.asc().nullsLast().op("uuid_ops"), table.startedAt.desc().nullsFirst()),
+	foreignKey({
+		columns: [table.artistId],
+		foreignColumns: [artists.id],
+		name: "artist_research_runs_artist_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.triggeredBy],
+		foreignColumns: [users.id],
+		name: "artist_research_runs_triggered_by_fkey"
+	}).onDelete("set null"),
+	check("artist_research_runs_trigger_check", sql`${table.trigger} IN ('claim_approval', 'onboarding_build', 'onboarding_step', 'lore_search', 'about_generation')`),
+	check("artist_research_runs_status_check", sql`${table.status} IN ('running', 'completed', 'failed')`),
+	pgPolicy("mnweb_select_artist_research_runs", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_artist_research_runs", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_artist_research_runs", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]);
+
 export const artistVaultSources = pgTable("artist_vault_sources", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
@@ -384,10 +426,19 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	// would let the knowledge doc confidently scope a claim to the wrong era.
 	// See migration 0015.
 	publishedAt: date("published_at"),
+	/** The research run that inserted this source (#1347); null for sources added by hand,
+	 *  uploaded, or found before runs were recorded. */
+	runId: uuid("run_id"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
 	index("idx_artist_vault_sources_artist_id").using("btree", table.artistId.asc().nullsLast().op("uuid_ops")),
+	index("idx_artist_vault_sources_run_id").using("btree", table.runId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+		columns: [table.runId],
+		foreignColumns: [artistResearchRuns.id],
+		name: "artist_vault_sources_run_id_fkey"
+	}).onDelete("set null"),
 	foreignKey({
 		columns: [table.artistId],
 		foreignColumns: [artists.id],
