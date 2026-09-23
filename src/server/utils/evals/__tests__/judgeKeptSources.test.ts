@@ -26,8 +26,8 @@ describe("judgeKeptSources", () => {
 
     it("asks the judge model once, at temperature 0, with the artist's identity and every source", async () => {
         generateObject.mockResolvedValue({ output: { verdicts: [
-            { index: 1, aboutArtist: true, reason: "His own site" },
-            { index: 2, aboutArtist: false, reason: "The film" },
+            { index: 1, aboutArtist: true, kind: "own", reason: "His own site" },
+            { index: 2, aboutArtist: false, kind: "coverage", reason: "The film" },
         ] } });
         const { judgeKeptSources } = await import("@/server/utils/evals/judgeKeptSources");
 
@@ -42,18 +42,21 @@ describe("judgeKeptSources", () => {
         expect(call.prompt).toContain("two famous Petes");
         expect(call.prompt).toContain("1. https://peterango.com/");
         expect(call.prompt).toContain("2. https://screenrant.com/rango");
+        // The judge is told what counts as coverage, listing and own.
+        expect(call.instructions).toMatch(/coverage/);
+        expect(call.instructions).toMatch(/listing/);
         expect(verdicts).toEqual([
-            { url: "https://peterango.com/", aboutArtist: true, reason: "His own site" },
-            { url: "https://screenrant.com/rango", aboutArtist: false, reason: "The film" },
+            { url: "https://peterango.com/", aboutArtist: true, kind: "own", reason: "His own site" },
+            { url: "https://screenrant.com/rango", aboutArtist: false, kind: "coverage", reason: "The film" },
         ]);
     });
 
     it("counts a source the judge skipped as not about the artist, so an omission cannot flatter the score", async () => {
-        generateObject.mockResolvedValue({ output: { verdicts: [{ index: 1, aboutArtist: true, reason: "His own site" }] } });
+        generateObject.mockResolvedValue({ output: { verdicts: [{ index: 1, aboutArtist: true, kind: "own", reason: "His own site" }] } });
         const { judgeKeptSources } = await import("@/server/utils/evals/judgeKeptSources");
 
         const verdicts = await judgeKeptSources(CASE, SOURCES);
 
-        expect(verdicts[1]).toEqual({ url: "https://screenrant.com/rango", aboutArtist: false, reason: "no verdict from the judge" });
+        expect(verdicts[1]).toEqual({ url: "https://screenrant.com/rango", aboutArtist: false, kind: "listing", reason: "no verdict from the judge" });
     });
 });
