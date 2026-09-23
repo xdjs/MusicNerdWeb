@@ -15,7 +15,8 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    immutable deployment URL's health and homepage. It records the deployment ID, SHA, URL
    and Actions run. Vercel assigns `staging.musicnerd.xyz` when the staging build becomes Ready; CI verifies
    that alias points to the recorded deployment. A staging smoke failure blocks production.
-3. `production-release` waits for the protected GitHub Environment approval. Review the
+3. `production-release` waits for approval from any one of Carl (`clt`), Pete (`p3t3rango`)
+   or Sweetman (`sweetmantech`) in the protected GitHub Environment. Review the
    staging record and feature-specific evidence. **Before approving, confirm any required
    database migrations were manually applied and verified as `mnweb` in production.**
    The pipeline never executes DDL or migration commands.
@@ -65,8 +66,10 @@ Git is part of the transition; merging the workflow alone does not establish a w
 - The staging domain must have its former `staging` Git-branch assignment removed after a
   known main deployment is healthy. Attach it to the custom `staging` environment, keeping it outside production domain assignment. Test immutable and stable URLs.
 - GitHub Environments `staging-release` and `production-release` accept only branch `main`.
-  Production requires `clt` approval, allows the initiator to approve, and disallows admin
-  bypass. Approval authorizes the production-config build and promotion after its checks.
+  Production lists Carl (`clt`), Pete (`p3t3rango`) and Sweetman (`sweetmantech`) as required
+  reviewers. Approval from **any one** is sufficient; GitHub does not require all three.
+  The initiator may approve their own run, and admin bypass is disabled. Approval authorizes
+  the production-config build and promotion after its checks.
 - Each environment contains `VERCEL_TOKEN` and, when deployment protection is enabled,
   `VERCEL_AUTOMATION_BYPASS_SECRET`. Tokens belong in GitHub secrets, never workflow text,
   shell arguments, chat or artifacts. Use the narrowest Vercel scope available. Use a dedicated music-nerd project-scoped token. Such a token

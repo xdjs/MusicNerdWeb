@@ -13,12 +13,18 @@ validated custom staging at `621c6b25`, including its actual storage identity an
 After clt approved, its separate production build passed identity and immutable smoke checks
 and became live at the same SHA. Independent checks confirmed production health/home and
 domain identity, but Actions failed after promotion because it parsed the empty success
-response as JSON. Its production artifact remains `validated`. Correct that response handling
-and verify a subsequent reviewed release reaches `assigned`; do not rerun or roll back the
-healthy deployment merely to clear the badge. See #1319 for deployment IDs and evidence.
+response as JSON. That historical production artifact remains `validated`.
+[PR #1333](https://github.com/xdjs/MusicNerdWeb/pull/1333) fixed the response handling and merged
+as `288e3b8b`. After clt approved production, [release 35797517232](https://github.com/xdjs/MusicNerdWeb/actions/runs/35797517232)
+passed all four jobs. Staging and production both reached `assigned` at that SHA; immutable
+and public health/home checks and production target/domain identity passed. The old failed run
+was not rerun or rolled back. See #1319 for deployment IDs and evidence.
 
 Production automatic domain assignment is disabled; review/test/build rules and protected
-production approval remain configured. The project-scoped token is installed only in the two
+production approval remain configured. On September 22, at Carl's request, the production
+reviewers expanded to Carl (`clt`), Pete (`p3t3rango`) and Sweetman (`sweetmantech`); any one
+can approve. GitHub configuration was verified: main-only releases, self-approval allowed,
+admin bypass disabled. The project-scoped token is installed only in the two
 GitHub release environments and expires December 21, 2026. Read, build and promotion authority
 are now verified. Storage credentials stay write-only; expected URL fingerprints are scoped
 separately to staging and production. No database DDL was performed.
@@ -26,7 +32,8 @@ separately to staging and production. No database DDL was performed.
 Transcript PRs #1317, #1318 and #1328 target main. The last required a merge of current main
 to preserve its single-file diff after the squash release; transcript content is unchanged.
 The live Apps Script still needs both documented edits and a verified main-targeted run.
-Human PR review, a green production workflow and live publisher access remain external gates.
+The release path is verified; live publisher access and safe retirement of the old staging
+branch remain open in #1319. Human PR review and production approval remain required for new releases.
 This handoff does not authorize another production release or automatic database migration.
 Historical handoff sections below retain their original branch/release context.
 
