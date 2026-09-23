@@ -4,8 +4,10 @@ Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/is
 implemented in [PR #1320](https://github.com/xdjs/MusicNerdWeb/pull/1320), merged to main
 as `2da318e2`. [PR #1331](https://github.com/xdjs/MusicNerdWeb/pull/1331) added the read-only
 preflight and merged as `6770d133`. [PR #1332](https://github.com/xdjs/MusicNerdWeb/pull/1332)
-corrected provider contracts and merged as `621c6b25`. Retain the old staging branch until
-the live publisher and release path are verified. See the [release runbook](docs/releases.md).
+corrected provider contracts and merged as `621c6b25`. The old remote staging branch was
+retired September 23 under [#1337](https://github.com/xdjs/MusicNerdWeb/issues/1337), with its
+final history preserved at annotated tag `archive/staging-2026-09-23` (`fe1b4cab`). The persistent
+staging environment remains available. See the [archive and recovery instructions](docs/releases.md#legacy-staging-branch-archive).
 
 [Preflight 35794226744](https://github.com/xdjs/MusicNerdWeb/actions/runs/35794226744) passed;
 RELEASES_ENABLED is true. [Release 35794742794](https://github.com/xdjs/MusicNerdWeb/actions/runs/35794742794)
@@ -31,9 +33,14 @@ separately to staging and production. No database DDL was performed.
 
 Transcript PRs #1317, #1318 and #1328 target main. The last required a merge of current main
 to preserve its single-file diff after the squash release; transcript content is unchanged.
-The live Apps Script still needs both documented edits and a verified main-targeted run.
-The release path is verified; live publisher access and safe retirement of the old staging
-branch remain open in #1319. Human PR review and production approval remain required for new releases.
+Pete completed both live Apps Script edits and scan checks in [#1336](https://github.com/xdjs/MusicNerdWeb/issues/1336).
+Carl waived new-transcript publication verification on September 23; any later failure is bug
+work, not evidence that publication was tested. The release path passed all four jobs at
+`67f7a2cf` in [run 35800356043](https://github.com/xdjs/MusicNerdWeb/actions/runs/35800356043).
+At branch retirement, eight open PRs had no staging base/head dependency and both public sites
+passed read-only home/health checks. Pete's personal walkthrough remains in #1311; broader
+operator-access and rollback acceptance remains in #1310. Human PR review and production
+approval remain required for new releases.
 This handoff does not authorize another production release or automatic database migration.
 Historical handoff sections below retain their original branch/release context.
 

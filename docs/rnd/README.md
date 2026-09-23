@@ -130,6 +130,8 @@ repo. Pete reviews and sends any authorized drafts.
 ## Branching
 
 All documentation follows the branch and release rules in [CLAUDE.md](../../CLAUDE.md): feature
-branch → staging → main, with the existing review/authorization gate. The August 20 permission
-for docs-only commits directly to main is historical and does not override current practice.
-The suggestion to remove staging was not adopted in the current guide.
+branch from main → reviewed PR to main → squash merge. Passing CI deploys the merged SHA to
+the persistent staging environment; production requires separate approval. The August 20
+permission for docs-only commits directly to main is historical and does not override current
+practice. The main-only workflow was adopted September 18 and the old Git staging branch was
+retired September 23; see the [decision log](decisions.md) and [release runbook](../releases.md).

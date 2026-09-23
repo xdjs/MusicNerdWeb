@@ -82,11 +82,45 @@ Git is part of the transition; merging the workflow alone does not establish a w
   continues but deployment jobs are intentionally skipped.
 - Main rules: one approval, dismiss stale reviews, resolve conversations, require GitHub
   Actions `test` and `build` on an up-to-date branch, squash-only merges.
-- Retarget existing PRs to main. Update the repository **and live Apps Script** transcript
-  publisher (`SYNC.base = 'main'`), then dry-run it and verify the next real PR base.
-- Retire the old staging branch only after the replacement release path and live publisher
-  are verified, all open PRs are retargeted and `main..staging` has no unique commits. Preserve
-  an annotated rollback tag first. Historical meeting notes retain their original context.
+- The repository and live Apps Script transcript publisher now target `main`. Pete recorded
+  the live configuration and scan checks in [#1336](https://github.com/xdjs/MusicNerdWeb/issues/1336#issuecomment-5787246527).
+  Carl waived new-transcript publication verification for retirement on September 23; a later
+  publication failure is handled as a bug. This waiver does not establish successful publication.
+- The legacy Git branch `staging` was retired on September 23, 2026; see the archive and recovery
+  record below. Historical meeting notes retain their original context.
+
+## Legacy staging branch archive
+
+[Retirement #1337](https://github.com/xdjs/MusicNerdWeb/issues/1337) records the audit and deletion
+at 2026-09-23 15:32 UTC. The annotated tag
+[`archive/staging-2026-09-23`](https://github.com/xdjs/MusicNerdWeb/tree/archive/staging-2026-09-23)
+preserves final staging commit `fe1b4cab0852041ae1c7c7fc40841e0a328ade92` and its history.
+Its full tree matched pre-transition main `f3428e08fc1b86c117067e79107e0926c0ac0a20`;
+main was `67f7a2cf749881d008b3e42deb2c1fd716dfe0d4` at retirement. The three staging-only
+ancestry commits had already been delivered through squash merges: unique ancestry is not
+necessarily unreleased work. All eight open PRs targeted main or intentional feature stacks.
+
+The persistent custom staging environment and `staging.musicnerd.xyz` remain in service,
+with branch tracking disabled. Production still requires protected GitHub approval.
+Pete's personal workflow walkthrough remains tracked separately in
+[#1311](https://github.com/xdjs/MusicNerdWeb/issues/1311); successful pipeline release evidence
+is in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319).
+
+If an operator explicitly authorizes restoring the retired Git branch, fetch and inspect the
+archive first. The final command requires the remote branch to be absent; it refuses to
+overwrite a recreated branch. These are recovery instructions, not a routine development step.
+
+```sh
+git fetch origin tag archive/staging-2026-09-23
+git rev-parse 'refs/tags/archive/staging-2026-09-23^{commit}'
+# Expect fe1b4cab0852041ae1c7c7fc40841e0a328ade92 before continuing.
+git push --force-with-lease=refs/heads/staging: origin \
+  'refs/tags/archive/staging-2026-09-23^{commit}:refs/heads/staging'
+```
+
+Restoring this ref does not restore the old deployment configuration or roll production back.
+Keep feature work based on main. Preserve existing local worktrees and recover any unfinished
+work through reviewed PRs to main.
 
 ## Evidence, failure and rollback
 

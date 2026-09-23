@@ -126,10 +126,19 @@ References: [Apps Script time triggers](https://developers.google.com/apps-scrip
 
 ## Main-only transition (September 2026)
 
-`SYNC.base` is `main`. Updating this repository does not update the running Apps Script.
-In Pete's **Music Nerd — Meeting Transcript Sync** editor, change `SYNC.base` from
-`staging` to `main` and remove the `base` query parameter from `publish_`'s all-state PR lookup
-(the `/pulls?state=all&head=...` request). Keeping that lookup independent of base preserves
-previously rejected transcript PRs. Save, run `previewSync`, and verify the next real transcript
-PR targets main. Existing open PRs must be retargeted separately. No trigger reinstallation, credential
-change or web-app deployment is needed. Keep the old branch until the live change is verified.
+Pete recorded the completed live configuration and scan checks in
+[#1336](https://github.com/xdjs/MusicNerdWeb/issues/1336#issuecomment-5787246527). The real scan
+found only unchanged sources and published nothing. On September 23, Carl explicitly waived
+new-transcript publication verification as a prerequisite for retiring the old staging branch
+in [#1337](https://github.com/xdjs/MusicNerdWeb/issues/1337); any later publication failure is bug
+work. The following describes the required configuration, not an outstanding request to edit
+the already-updated live script.
+
+The saved live configuration uses `SYNC.base = 'main'` and omits the `base` query parameter
+only from `publish_`'s all-state PR lookup (the `/pulls?state=all&head=...` request). Keeping that
+lookup independent of base preserves previously rejected transcript PRs. The separate open-PR
+listing retains its base filter. Existing open transcript PRs were retargeted separately.
+Updating this repository does not update the running Apps Script; future script changes still
+require a separate live-editor update by its owner. This cutover required no trigger
+reinstallation, credential change or web-app deployment. The old Git branch is retired;
+its archive and recovery instructions are in [the release runbook](../../docs/releases.md#legacy-staging-branch-archive).
