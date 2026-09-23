@@ -5,6 +5,7 @@ import { RESEARCH_CASES, type ResearchCase } from "@/lib/evals/researchCases";
 import { scoreHandles } from "@/lib/evals/scorers/scoreHandles";
 import { scoreNoWrongHandles } from "@/lib/evals/scorers/scoreNoWrongHandles";
 import { scoreForbiddenHosts } from "@/lib/evals/scorers/scoreForbiddenHosts";
+import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { scoreLinkPlacement } from "@/lib/evals/scorers/scoreLinkPlacement";
 import { scoreSourcesKept } from "@/lib/evals/scorers/scoreSourcesKept";
 import { scoreSourceRelevance, type SourceVerdict } from "@/lib/evals/scorers/scoreSourceRelevance";
@@ -49,12 +50,13 @@ Eval("music-nerd", {
         const result = { ...run, sourceVerdicts: await judgeKeptSources(input, run.sources) };
         const rejected = result.sourceVerdicts.filter(v => !v.aboutArtist).map(v => v.url);
         const namesakes = result.sourceUrls.filter(u => input.forbidHosts.some(h => u.includes(h)));
+        const blocked = result.sourceUrls.filter(u => isBlockedSourceHost(u));
         // One line per case in the run log, so a reviewer can read a run without
         // opening Braintrust: what was found, where it went, how long it took.
         const handles = Object.entries(result.handles).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(" ") || "none";
         console.log(`[research] ${input.key} ${result.seconds}s discovery=${result.profileLinks}/${Object.keys(input.expect).length} alternatives=${result.alternatives}`
             + ` handles: ${handles} | sources=${result.sourceUrls.length} links=${result.links.join(",") || "none"} loreProfiles=${result.loreProfiles.join(",") || "none"}`
-            + ` judgedNotAbout=${rejected.join(",") || "none"} namesakes=${namesakes.join(",") || "none"}`
+            + ` judgedNotAbout=${rejected.join(",") || "none"} namesakes=${namesakes.join(",") || "none"} blocked=${blocked.join(",") || "none"}`
             + `${result.discoveryError ? ` discoveryError=${result.discoveryError}` : ""}${result.vaultError ? ` vaultError=${result.vaultError}` : ""}`);
         return result;
     },
