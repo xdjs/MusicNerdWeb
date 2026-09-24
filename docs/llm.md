@@ -24,9 +24,10 @@ module.
 | --- | --- |
 | `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"`. Every site uses it. |
 | `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig` and `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
+| `src/server/lib/ai/streamText.ts` | One exported function, `streamText`: the same options as `generateText` (no `output`) plus `onTextDelta(delta)`, called with each piece of text as the model writes it. Wraps `ai`'s `streamText`, reads its `fullStream`, and resolves `{ text }` once the stream ends, so a site swaps it in without changing how it reads the reply. An `error` part rejects the call, as `generateText` would have thrown. Sites 5 and 6. |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
-| Each call site (table below) | Imports one of the three and passes exactly the config in its row. Nothing outside `src/server/lib/ai` imports `ai` or `@ai-sdk/google`. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
+| Each call site (table below) | Imports one of the four and passes exactly the config in its row. Nothing outside `src/server/lib/ai` imports `ai` or `@ai-sdk/google`. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
 
 Removed by the switch: `src/server/lib/gemini.ts` (`@google/genai`), `src/server/lib/openai.ts`
 (`openai`, never called at runtime), and the `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`,
@@ -67,8 +68,8 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
 | 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | flash (was pro; see below) | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
-| 5 | `artistDocService.ts` `synthesizeArtistDoc` | Knowledge document from sources | flash | temp 0.4, thinking 0 | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
-| 6 | `artistDocService.ts` `generateAboutFromDoc` | About from the document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
+| 5 | `artistDocService.ts` `synthesizeArtistDoc` | Knowledge document from sources | flash | temp 0.4, thinking 0, streamed | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
+| 6 | `artistDocService.ts` `generateAboutFromDoc` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 8 | `artistDocService.ts` `generateLoreSummary` | Two-sentence Lore inventory overview | flash | temp 0.2, thinking 0 | 12 s → returns `undefined`, never throws | `refreshArtistDoc` (runs alongside #5) |
 | 9 | `questionGenerator.ts` `generateGroundedQuestions` | Interview questions from posts | flash | temp 0.8, JSON schema | 30 s → `"questionGenerator timeout"` | interview, onboarding |
@@ -85,6 +86,28 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > (403 `RestrictedModelsError`); Flash is free-tier, About runs ungrounded, and every other site
 > already uses Flash. Pro was the only exception, so `MODEL_PRO` is gone. Free-tier model list:
 > vercel.com/ai-gateway/models?freeTier=true.
+
+## Streaming into the build popup
+
+> **Decision 2026-09-24 (Sweetman, [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347)).**
+> The onboarding build popup shows the Lore document and the About as the model writes them,
+> instead of one "Writing your About" line over the stage's longest wait. Text only; the model's
+> reasoning stays off (`thinkingBudget: 0`) until a bounded budget is measured against the
+> route's 60 s `maxDuration`.
+
+Sites 5 and 6 call `streamText` and take an optional `{ onTextDelta }` last argument. Only the
+auto-build (`runAutoBuild` in `onboarding/turnHandlers.ts`) passes it; every other caller gets
+the same finished string as before. Timeouts, citation validation (`validateCitations`) and
+length caps run on the finished text exactly as they did; what streams is the raw draft,
+citation markers included, and the page shows the validated version.
+
+`runAutoBuild` turns each delta into a `TurnEvent`
+`{ kind: "text-delta", group: "about-write", call: "doc" | "about", delta }` on the existing
+`/api/onboarding/[artistId]/chat` stream, through `yieldWhileRunning`
+(`src/lib/async/yieldWhileRunning.ts`): a generator cannot `yield` from inside a callback, so the
+helper runs the call, yields what it emits while it runs, and returns its result (or rethrows
+its error) once it settles. `useOnboardingChat` appends deltas to one `writing` item per `call`,
+and `BuildStatus` shows them under "Writing your About".
 
 ## How each Gemini option maps
 
@@ -136,7 +159,7 @@ needs to record them.
 
 ## Tests
 
-Tests mock the helper a site imports (`@/server/lib/ai/generateText`, `generateArray` or
+Tests mock the helper a site imports (`@/server/lib/ai/generateText`, `streamText`, `generateArray` or
 `generateObject`) instead of `@/server/lib/gemini`, and resolve `{ text }` or `{ output }`.
 Assertions that read `generateContent.mock.calls[0][0].config.systemInstruction` read
 `instructions`, `prompt`, `thinkingBudget` and `googleSearch` instead. The nine affected files are
