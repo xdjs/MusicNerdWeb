@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import BuildStatus from '@/app/artist/[id]/_components/onboarding/BuildStatus';
 
 const progress = (group, text, done) => ({ kind: 'progress', group, text, done });
+const writing = (stage, text) => ({ kind: 'writing', stage, text });
 
 describe('BuildStatus', () => {
     it('shows the three build stages, not a chat', () => {
@@ -79,5 +80,63 @@ describe('BuildStatus', () => {
             />,
         );
         expect(screen.getByText(/writing your about/i)).toBeInTheDocument();
+    });
+
+    it('shows the Lore document and the About as they are written, under "Writing your About"', () => {
+        // The longest wait in the build used to be one line and a loader. The
+        // text is the draft the model is writing right now (docs/llm.md).
+        render(
+            <BuildStatus
+                artistName="Pete Rango"
+                items={[
+                    progress('platform-search', 'Found 7 profiles', true),
+                    progress('source-search', 'Read 13 sources', true),
+                    progress('about-write', 'Writing your About', false),
+                    writing('doc', '## Overview\nPete Rango makes records [1].'),
+                    writing('about', 'Pete Rango is a produ'),
+                ]}
+                complete={false}
+                onSkip={jest.fn()}
+                onFinish={jest.fn()}
+            />,
+        );
+        const stage = screen.getByText(/writing your about/i).closest('li');
+        const lore = screen.getByRole('region', { name: /lore document/i });
+        const about = screen.getByRole('region', { name: /^about$/i });
+        expect(stage).toContainElement(lore);
+        expect(stage).toContainElement(about);
+        expect(lore).toHaveTextContent('Pete Rango makes records [1].');
+        expect(about).toHaveTextContent('Pete Rango is a produ');
+    });
+
+    it('shows no draft area before anything has been written', () => {
+        render(
+            <BuildStatus
+                artistName="Pete Rango"
+                items={[progress('about-write', 'Writing your About', false)]}
+                complete={false}
+                onSkip={jest.fn()}
+                onFinish={jest.fn()}
+            />,
+        );
+        expect(screen.queryByRole('region')).toBeNull();
+    });
+
+    it('keeps the full text on screen once the page is ready', () => {
+        render(
+            <BuildStatus
+                artistName="Pete Rango"
+                items={[
+                    progress('about-write', 'Wrote your About', true),
+                    writing('doc', '## Overview\nThe whole document.'),
+                    writing('about', 'The whole About.'),
+                ]}
+                complete
+                onSkip={jest.fn()}
+                onFinish={jest.fn()}
+            />,
+        );
+        expect(screen.getByRole('region', { name: /lore document/i })).toHaveTextContent('The whole document.');
+        expect(screen.getByRole('region', { name: /^about$/i })).toHaveTextContent('The whole About.');
     });
 });

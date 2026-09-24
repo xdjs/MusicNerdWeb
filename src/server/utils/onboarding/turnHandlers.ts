@@ -33,16 +33,16 @@ import {
 } from "@/server/utils/artistIdentityGuards";
 import { extractArtistId } from "@/server/utils/services";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
+import { synthesizeArtistDoc } from "@/server/utils/artistDoc/synthesizeArtistDoc";
+import { generateAboutFromDoc } from "@/server/utils/artistDoc/generateAboutFromDoc";
+import { refreshArtistDoc } from "@/server/utils/artistDoc/refreshArtistDoc";
 import {
-    synthesizeArtistDoc,
-    generateAboutFromDoc,
     synthesizeFallbackAbout,
     buildDocSources,
     extractCitedIds,
     stripCitationMarkers,
     ARTIST_DOC_MAX_CHARS,
     GEMINI_TIMEOUT_MS,
-    refreshArtistDoc,
     type DocSource,
 } from "@/server/utils/artistDocService";
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
@@ -51,6 +51,7 @@ import { ONBOARDING_QUESTIONS } from "./questions";
 import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { generateText } from "@/server/lib/ai/generateText";
+import { yieldWhileRunning } from "@/lib/async/yieldWhileRunning";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
 import { waitForSocialPosts } from "@/server/utils/socialIngest";
@@ -113,6 +114,10 @@ export type TurnEvent =
     // reload/resume), so a client that ignores `candidate` entirely still
     // renders correctly, just without the live-discovery feel.
     | { kind: "candidate"; profile: DiscoveredProfile }
+    // A piece of the Lore document ("doc") or the About ("about") as the model
+    // writes it, auto-build only. The raw draft, citation markers included: the
+    // validated text is what gets saved and what the page shows.
+    | { kind: "text-delta"; group: string; call: "doc" | "about"; delta: string }
     // Platforms where discovery found MORE THAN ONE account that survived every
     // check, so there is a real question to put to the artist: which of these
     // is yours? `chosen` is what the build actually wrote (the primary — tiers
@@ -1278,8 +1283,15 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     let wrote = false;
     try {
         const sources = await buildDocSources(artistId);
-        const doc = await synthesizeArtistDoc(artistId, sources);
-        const about = await generateAboutFromDoc(artistName, doc, sources);
+        // The two slowest calls in the build, streamed so the popup shows the
+        // draft being written instead of one line over the longest wait
+        // (docs/llm.md, "Streaming into the build popup").
+        const doc = yield* yieldWhileRunning<TurnEvent, string>(emit => synthesizeArtistDoc(artistId, sources, {
+            onTextDelta: delta => emit({ kind: "text-delta", group: DOC_GROUP, call: "doc", delta }),
+        }));
+        const about = yield* yieldWhileRunning<TurnEvent, string>(emit => generateAboutFromDoc(artistName, doc, sources, {
+            onTextDelta: delta => emit({ kind: "text-delta", group: DOC_GROUP, call: "about", delta }),
+        }));
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');

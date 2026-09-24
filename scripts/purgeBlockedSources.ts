@@ -51,7 +51,7 @@ async function main() {
     // vault UI triggers a rebuild.
     const affected = [...new Set(blocked.map(r => r.artist_id))];
     console.log(`Rebuilding ${affected.length} document(s)...`);
-    const { refreshArtistDoc } = await import("../src/server/utils/artistDocService");
+    const { refreshArtistDoc } = await import("../src/server/utils/artistDoc/refreshArtistDoc");
     for (const artistId of affected) {
         const name = blocked.find(r => r.artist_id === artistId)?.artist ?? artistId;
         const outcome = await refreshArtistDoc(artistId);

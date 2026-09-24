@@ -223,6 +223,28 @@ describe('useOnboardingChat', () => {
         expect(items[0].group).toBeUndefined();
     });
 
+    it('m) text-delta frames accumulate into one "writing" item per call, doc and About apart, in arrival order', async () => {
+        const frame = (call, delta) => `data: ${JSON.stringify({ kind: 'text-delta', group: 'about-write', call, delta })}\n\n`;
+        (global.fetch as jest.Mock).mockResolvedValueOnce(
+            fakeStreamResponse([
+                frame('doc', '## Overview\n') + frame('doc', 'Nova Reyes '),
+                frame('doc', 'makes records.') + frame('about', 'Nova '),
+                frame('about', 'Reyes is a producer.') + 'data: {"kind":"complete"}\n\n',
+            ])
+        );
+
+        const { result } = renderHook(() => useOnboardingChat('artist-1'));
+        await act(async () => {
+            await result.current.sendTurn({ type: 'open' });
+        });
+
+        const writing = result.current.items.filter(i => i.kind === 'writing');
+        expect(writing.map(i => [i.stage, i.text])).toEqual([
+            ['doc', '## Overview\nNova Reyes makes records.'],
+            ['about', 'Nova Reyes is a producer.'],
+        ]);
+    });
+
     it('e) userEcho — interview_answer with null answer echoes "Skip that one."; with an answer echoes the answer', async () => {
         (global.fetch as jest.Mock).mockResolvedValue(fakeStreamResponse(['']));
 

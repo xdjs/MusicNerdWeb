@@ -5,13 +5,14 @@ import type { ProfileCandidate, DocSource } from "./StepCards";
 
 export type ChatItem = {
     id: string;
-    kind: "bot" | "user" | "progress" | "step" | "draft" | "complete" | "error" | "candidates" | "choices";
+    kind: "bot" | "user" | "progress" | "step" | "draft" | "complete" | "error" | "candidates" | "choices" | "writing";
     text?: string;
     step?: string;
     payload?: unknown;
     doc?: string;
     about?: string | null;
-    // Which half of the publish step this draft is: "doc" = the knowledge document
+    // Which half of the publish step this draft is (or, on a "writing" item, which
+    // one the auto-build is writing right now): "doc" = the knowledge document
     // to read and correct, before any About exists; "about" = the About draft.
     stage?: "doc" | "about";
     // At stage "about", true when the artist chose to write it themselves — the
@@ -95,6 +96,17 @@ export function useOnboardingChat(artistId: string) {
                 if (idx >= 0) {
                     const next = [...prev];
                     next[idx] = { ...next[idx], text: item.text, done: item.done };
+                    return next;
+                }
+            }
+            // The auto-build's draft as the model writes it: every `text-delta`
+            // for one call lands on the same item, so the popup renders one
+            // growing block per call rather than a block per delta.
+            if (item.kind === "writing") {
+                const idx = prev.findIndex(p => p.kind === "writing" && p.stage === item.stage);
+                if (idx >= 0) {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], text: (next[idx].text ?? "") + (item.text ?? "") };
                     return next;
                 }
             }
@@ -186,6 +198,7 @@ export function useOnboardingChat(artistId: string) {
                             // `candidate` events with no `step`/`draft`/`complete`/
                             // `error` still correctly falls into the
                             // no-terminal-frame error path below.
+                            case "text-delta": push({ kind: "writing", stage: event.call, text: event.delta }); break;
                             case "candidate": push({ kind: "candidates", candidates: [event.profile] }); break;
                             case "choices": push({ kind: "choices", platform: event.platform, chosen: event.chosen, candidates: event.options }); break;
                             case "step": push({ kind: "step", step: event.step, payload: event.payload }); receivedTerminalFrame = true; break;

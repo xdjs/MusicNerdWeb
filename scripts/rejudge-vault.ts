@@ -38,7 +38,7 @@ async function main() {
     const { db } = await import("@/server/db/drizzle");
     const { sql } = await import("drizzle-orm");
     const { judgeSourceRelevance, mentionDensity } = await import("@/server/utils/sourceRelevance");
-    const { refreshArtistDoc } = await import("@/server/utils/artistDocService");
+    const { refreshArtistDoc } = await import("@/server/utils/artistDoc/refreshArtistDoc");
     // Same column list discovery uses, so the anchor here cannot drift from it.
     // The narrow list: this is an identity anchor, and an opaque id poisons
     // mentionDensity's paragraph count. Same reason as the discovery path.
