@@ -8,10 +8,7 @@
 import { jest } from "@jest/globals";
 
 const generateContent = jest.fn();
-jest.mock("@/server/lib/gemini", () => ({
-    getGemini: () => ({ models: { generateContent } }),
-    GEMINI_MODEL_FLASH: "flash",
-}));
+jest.mock("@/server/lib/ai/generateObject", () => ({ generateObject: generateContent }));
 
 import type { SocialPostRow } from "@/server/utils/socialSignals";
 
@@ -33,7 +30,7 @@ function post(i: number): SocialPostRow {
 /** One credit per caption, so a batch's output is predictable. */
 function replyFor(urls: string[]) {
     return {
-        text: JSON.stringify({
+        output: ({
             credits: urls.map(u => ({
                 subject: "someone", isHandle: true, role: "Mixed by",
                 quote: "Mixed by @someone on this one.", url: u,
@@ -46,13 +43,37 @@ function replyFor(urls: string[]) {
 beforeEach(() => {
     generateContent.mockReset();
     generateContent.mockImplementation(async (req: unknown) => {
-        const body = String((req as { contents?: string }).contents ?? "");
+        const body = String((req as { prompt?: string }).prompt ?? "");
         const urls = [...body.matchAll(/https:\/\/www\.instagram\.com\/p\/POST\d+\//g)].map(m => m[0]);
         return replyFor([...new Set(urls)]);
     });
 });
 
 describe("extractCaptionCredits, sliced", () => {
+    it("keeps the valid claims when the schema rejects one malformed sibling", async () => {
+        // The hand parser used to pass whatever the model wrote to verifyClaims,
+        // which checks every field itself. A typed schema rejects the whole
+        // reply over one bad item; the raw text on that error is the reply,
+        // so the old lenient parse runs on it and the good items survive.
+        const { extractCaptionCredits } = await import("@/server/utils/socialCredits");
+        const posts = [post(1), post(2)];
+        generateContent.mockImplementation(async () => {
+            throw Object.assign(new Error("No object generated"), {
+                name: "AI_NoObjectGeneratedError",
+                text: JSON.stringify({
+                    credits: [
+                        { subject: "someone", isHandle: true, role: "Mixed by", quote: "Mixed by @someone on this one.", url: posts[0].url },
+                        { subject: 123, isHandle: "yes", role: null, quote: "Mixed by @someone on this one.", url: posts[1].url },
+                    ],
+                    statements: [],
+                }),
+            });
+        });
+        const slice = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 });
+        expect(slice.done).toBe(true);
+        expect(slice.extraction.credits.map(c => c.url)).toEqual([posts[0].url]);
+    });
+
     it("declines to start anything when there is no usable time left", async () => {
         const { extractCaptionCredits } = await import("@/server/utils/socialCredits");
         const posts = Array.from({ length: 40 }, (_, i) => post(i));
@@ -149,7 +170,7 @@ describe("extractCaptionCredits, sliced", () => {
         await sweepSilentCaptions(posts, claimed, "Artist", "artist");
 
         const asked = generateContent.mock.calls
-            .flatMap(c => [...String((c[0] as { contents?: string })?.contents ?? "")
+            .flatMap(c => [...String((c[0] as { prompt?: string })?.prompt ?? "")
                 .matchAll(/https:\/\/www\.instagram\.com\/p\/POST\d+\//g)].map(m => m[0]));
         // Only the four unclaimed captions. Re-reading the twelve we already
         // understood is what makes a sweep expensive enough to skip.

@@ -46,6 +46,20 @@ Historical handoff sections below retain their original branch/release context.
 
 # MEMORY.md — Music Nerd engineering handoff
 
+## AI Gateway switch — September 21
+
+[#1265](https://github.com/xdjs/MusicNerdWeb/issues/1265) row 1, branch `sweetmantech/ai-gateway`
+off `main` (the #1319 main-only transition is in progress; base confirmed on the PR). Docs-first:
+[docs/llm.md](docs/llm.md) is the contract for all fourteen model call sites, the wrapper module
+shape (mirrors recoupable/app), auth (`AI_GATEWAY_API_KEY`, set by Carl 2026-09-15) and the
+verification list; the stub build loses `OPENAI_API_KEY`. The code is a stacked PR on branch
+`sweetmantech/ai-gateway-switch` (base `sweetmantech/ai-gateway`): `src/server/lib/ai/` holds
+`models.ts`, `generateText.ts`, `generateArray.ts`, `generateObject.ts`; all fourteen sites
+converted with their config, timeouts and error messages unchanged; `@google/genai`, `openai`,
+`gemini.ts`, `openai.ts` and the four env exports removed; Jest maps the ESM-only `ai` and
+`@ai-sdk/google` to `src/test/__mocks__`. Model choice stays on #1259. Not shipped until the
+PRs' preview evidence says so.
+
 ## User profile delivery — September 16
 
 Pete approved making #1274's design the real signed-in profile and merging to staging, with advisor review. Delivery is tracked by [PR #1292](https://github.com/xdjs/MusicNerdWeb/pull/1292) and [issue #1274](https://github.com/xdjs/MusicNerdWeb/issues/1274); their deployment/merge evidence is authoritative. Branch: `pete/user-profile-staging`, integrated with staging `dc3dd034`. The original local design preview remains on port 3017. Production release is not authorized by this delivery step.

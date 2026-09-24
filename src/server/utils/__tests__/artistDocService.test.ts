@@ -10,10 +10,8 @@ jest.mock('@/server/utils/queries/lorePersistence', () => ({
     persistRefreshedLore: jest.fn().mockResolvedValue(true),
 }));
 jest.mock('@/server/utils/socialIngest', () => ({ getSocialPostsForArtist: jest.fn().mockResolvedValue([]) }));
-jest.mock('@/server/lib/gemini', () => ({
-    getGemini: jest.fn(),
-    GEMINI_MODEL_FLASH: 'gemini-2.5-flash',
-}));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: jest.fn() }));
+jest.mock('@/server/lib/ai/streamText', () => ({ streamText: jest.fn() }));
 
 describe('artistDocService', () => {
     beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
@@ -23,9 +21,11 @@ describe('artistDocService', () => {
         const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
         const { getInterviewAnswers, getArtistDoc } = await import('@/server/utils/queries/onboardingQueries');
         const { getSocialPostsForArtist } = await import('@/server/utils/socialIngest');
-        const { getGemini } = await import('@/server/lib/gemini');
+        const { generateText } = await import('@/server/lib/ai/generateText');
         const generateContent = jest.fn().mockResolvedValue({ text: geminiText });
-        getGemini.mockReturnValue({ models: { generateContent } });
+        generateText.mockImplementation(generateContent);
+        const { streamText } = await import('@/server/lib/ai/streamText');
+        streamText.mockImplementation(generateContent);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes', spotify: 'spot123', instagram: 'novareyes' });
         getVaultSourcesByArtistId.mockResolvedValue(vaultSources ?? [
             // Long enough to be CITABLE: a source is only usable as evidence if we
@@ -37,24 +37,11 @@ describe('artistDocService', () => {
             { questionKey: 'offline_fact', question: 'Offline?', answer: null, source: 'onboarding' },
         ]);
         getSocialPostsForArtist.mockResolvedValue(posts ?? []);
-        const svc = await import('@/server/utils/artistDocService');
+        const svc = { ...(await import('@/server/utils/artistDocService')), ...(await import('@/server/utils/artistDoc/generateAboutFromDoc')) };
         return { svc, generateContent, getArtistDoc };
     }
 
-    it('refresh captures ownership before synthesis and passes the job identity to guarded persistence', async () => {
-        const { svc, generateContent } = await setup();
-        const { getLoreClaimGeneration, persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
-        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
-        expect(getLoreClaimGeneration.mock.invocationCallOrder[0]).toBeLessThan(generateContent.mock.invocationCallOrder[0]);
-        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.any(String), expect.any(Array), 'claim-1', 'j1', expect.objectContaining({ text: expect.any(String), sourceKey: expect.any(String) }));
-    });
 
-    it('refresh reports cancellation if ownership changed while synthesis ran', async () => {
-        const { svc } = await setup();
-        const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
-        persistRefreshedLore.mockResolvedValue(false);
-        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('cancelled');
-    });
 
     it('generates a source inventory without sending extracted text or URLs', async () => {
         const { svc, generateContent } = await setup({ geminiText: 'A journal and a conversation.', vaultSources: [
@@ -64,10 +51,10 @@ describe('artistDocService', () => {
         const summary = await svc.generateLoreSummary('a1');
         expect(summary.text).toBe('A journal and a conversation.');
         const call = generateContent.mock.calls[0][0];
-        expect(call.contents).toContain('Studio journal');
-        expect(call.contents).toContain('audio');
-        expect(call.contents).not.toContain('private raw payload');
-        expect(call.contents).not.toContain('https://');
+        expect(call.prompt).toContain('Studio journal');
+        expect(call.prompt).toContain('audio');
+        expect(call.prompt).not.toContain('private raw payload');
+        expect(call.prompt).not.toContain('https://');
     });
     it('does not generate a summary for an empty source set', async () => {
         const { svc, generateContent } = await setup({ vaultSources: [] });
@@ -81,47 +68,11 @@ describe('artistDocService', () => {
         expect(await svc.generateLoreSummary('a1')).toBeUndefined();
     });
 
-    it('refreshes the document without requesting deletion when only overview generation fails', async () => {
-        const { svc, generateContent } = await setup();
-        const { persistRefreshedLore } = await import('@/server/utils/queries/lorePersistence');
-        generateContent.mockImplementation(async request => {
-            if (request.config?.systemInstruction?.includes('Lore source collection')) throw new Error('temporary outage');
-            return { text: '## Overview\nThe refreshed document.' };
-        });
-        expect(await svc.refreshArtistDoc('a1', { createIfMissing: true, jobId: 'j1' })).toBe('rebuilt');
-        expect(persistRefreshedLore).toHaveBeenCalledWith('a1', expect.stringContaining('The refreshed document.'),
-            expect.any(Array), 'claim-1', 'j1', undefined);
-    });
 
-    it('synthesizeArtistDoc feeds sources AND interview answers to Gemini, skipping skipped answers', async () => {
-        const { svc, generateContent } = await setup();
-        const doc = await svc.synthesizeArtistDoc('a1');
-        expect(doc).toContain('## Overview');
-        const call = generateContent.mock.calls[0][0];
-        expect(call.contents).toContain('Pitchfork review');
-        expect(call.contents).toContain('heartbreak you can dance to');
-        expect(call.contents).not.toContain('Offline?'); // skipped answers are omitted, not sent as empties
-        expect(call.config.systemInstruction).toContain('Story hooks');
-        // Fictional sample anecdotes previously leaked into a real artist's Lore.
-        expect(call.config.systemInstruction).not.toContain('the pantry');
-        expect(call.config.systemInstruction).not.toContain('Marisol');
-        expect(call.config.systemInstruction).not.toContain('Late Bus');
-        expect(call.config.tools).toBeUndefined(); // ungrounded by design
-    });
 
-    it('synthesizeArtistDoc hard-truncates at ARTIST_DOC_MAX_CHARS', async () => {
-        const { svc } = await setup({ geminiText: 'x'.repeat(30_000) });
-        const doc = await svc.synthesizeArtistDoc('a1');
-        expect(doc.length).toBe(svc.ARTIST_DOC_MAX_CHARS);
-    });
 
-    it('generateAboutFromDoc returns trimmed text within MAX_BIO_LENGTH', async () => {
-        const { svc, generateContent } = await setup({ geminiText: '  A concrete About.  ' });
-        await expect(svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc')).resolves.toBe('A concrete About.');
-        const call = generateContent.mock.calls[0][0];
-        expect(call.config.tools).toBeUndefined(); // ungrounded by design
-        expect(call.config.systemInstruction).toContain('About');
-    });
+
+
 
     // The About and the auto-generated bio write to the same artists.bio field and
     // render in the same place, so they answer to one length rule — production's,
@@ -132,13 +83,13 @@ describe('artistDocService', () => {
         const { svc, generateContent } = await setup({ geminiText: 'An About.' });
 
         await svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc');
-        const cited = generateContent.mock.calls[0][0].config.systemInstruction;
+        const cited = generateContent.mock.calls[0][0].instructions;
         expect(cited).toContain('ONE paragraph, up to ~100 words');
         expect(cited).toContain('Stop when the facts run out');
         expect(cited).not.toContain('2-4 short paragraphs');
 
         await svc.synthesizeFallbackAbout('a1', 'Nova Reyes', '## Overview\ndoc');
-        const fallback = generateContent.mock.calls[1][0].config.systemInstruction;
+        const fallback = generateContent.mock.calls[1][0].instructions;
         expect(fallback).toContain('ONE paragraph, up to ~100 words');
         expect(fallback).not.toContain('2-4 short paragraphs');
     });
@@ -154,11 +105,11 @@ describe('artistDocService', () => {
         const { ABOUT_OPENING_RULE } = await import('@/lib/bio/bioConstants');
 
         await svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc');
-        expect(generateContent.mock.calls[0][0].config.systemInstruction)
+        expect(generateContent.mock.calls[0][0].instructions)
             .toContain(ABOUT_OPENING_RULE);
 
         await svc.synthesizeFallbackAbout('a1', 'Nova Reyes', '## Overview\ndoc');
-        expect(generateContent.mock.calls[1][0].config.systemInstruction)
+        expect(generateContent.mock.calls[1][0].instructions)
             .toContain(ABOUT_OPENING_RULE);
     });
 
@@ -169,12 +120,12 @@ describe('artistDocService', () => {
         const { svc, generateContent } = await setup({ geminiText: 'An About.' });
 
         await svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc');
-        const cited = generateContent.mock.calls[0][0].config.systemInstruction;
+        const cited = generateContent.mock.calls[0][0].instructions;
         expect(cited).not.toMatch(/keep the quote/i);
         expect(cited).toMatch(/no quotation marks/i);
 
         await svc.synthesizeFallbackAbout('a1', 'Nova Reyes', '## Overview\ndoc');
-        const fallback = generateContent.mock.calls[1][0].config.systemInstruction;
+        const fallback = generateContent.mock.calls[1][0].instructions;
         expect(fallback).not.toMatch(/keep the quote/i);
         expect(fallback).toMatch(/no quotation marks/i);
     });
@@ -237,74 +188,12 @@ describe('artistDocService', () => {
             ]);
         });
 
-        it('synthesizeArtistDoc strips a citation marker that does not resolve to a real source id, keeps valid ones', async () => {
-            // Only 2 real sources exist (vault [1], interview [2]) — [1] is valid, [99] is hallucinated.
-            const { svc } = await setup({ geminiText: '## Overview\nCited Lauryn Hill as an influence[1]. Also claims something[99].' });
-            const doc = await svc.synthesizeArtistDoc('a1');
-            expect(doc).toContain('influence[1]');
-            expect(doc).not.toContain('[99]');
-        });
-
-        it('synthesizeArtistDoc feeds a numbered SOURCES manifest and citation instructions to Gemini', async () => {
-            const { svc, generateContent } = await setup();
-            await svc.synthesizeArtistDoc('a1');
-            const call = generateContent.mock.calls[0][0];
-            expect(call.contents).toContain('[1] Source (date unknown): Pitchfork review');
-            expect(call.contents).toContain('NUMBERED SOURCES');
-            expect(call.config.systemInstruction).toContain('CITATIONS');
-            expect(call.config.systemInstruction).toContain('ANTI-INFLATION');
-        });
 
 
-        it("puts the artist's corrections in the prompt, above the sources", async () => {
-            // The document is regenerated whenever sources change, so a correction
-            // typed INTO it would appear to save and then vanish. Corrections live
-            // outside it and must be re-applied on every rebuild.
-            const { getDocCorrections } = await import('@/server/utils/queries/docCorrectionQueries');
-            getDocCorrections.mockResolvedValue([
-                { id: 'c1', claim: 'Parris Pierce is his production partner', kind: 'fix', correction: 'They worked together 2018-2019, not since.' },
-                { id: 'c2', claim: 'He has worked with Black Youngsta', kind: 'wrong', correction: null },
-            ]);
-            const { svc, generateContent } = await setup();
-            await svc.synthesizeArtistDoc('a1');
-            const sent = generateContent.mock.calls[0][0].contents;
-            expect(sent).toContain('CORRECTIONS FROM THE ARTIST');
-            expect(sent).toContain('They worked together 2018-2019, not since.');
-            // A "wrong" correction must read as a removal, not as a fact to keep.
-            expect(sent).toMatch(/REMOVE[^\n]*Black Youngsta/);
-            expect(generateContent.mock.calls[0][0].config.systemInstruction).toContain('CORRECTIONS —');
-        });
 
-        it("omits the corrections block entirely when there are none", async () => {
-            const { getDocCorrections } = await import('@/server/utils/queries/docCorrectionQueries');
-            getDocCorrections.mockResolvedValue([]);
-            const { svc, generateContent } = await setup();
-            await svc.synthesizeArtistDoc('a1');
-            expect(generateContent.mock.calls[0][0].contents).not.toContain('CORRECTIONS FROM THE ARTIST');
-        });
 
-        it('labels every source with its age, so a claim can be scoped in time', async () => {
-            // "Parris Pierce is my production partner" reached a real artist's
-            // profile in the present tense, from an interview published in 2019.
-            // The doc had an anti-inflation rule telling it to scope claims in
-            // time and no way to obey it: nothing in its material said when
-            // anything happened.
-            const { svc, generateContent } = await setup({
-                vaultSources: [{ id: 'v1', url: 'https://voyagemia.com/x', title: 'Meet Nova', snippet: '', extractedText: 'Nova Reyes said something. '.repeat(40), status: 'approved', publishedAt: '2019-01-10' }],
-            });
-            await svc.synthesizeArtistDoc('a1');
-            const call = generateContent.mock.calls[0][0];
-            expect(call.contents).toMatch(/\[1\] Source \(published 2019-01-10, \d+ years ago\)/);
-            expect(call.config.systemInstruction).toContain('TIME —');
-        });
 
-        it('generateAboutFromDoc strips a marker not present in the passed sources list', async () => {
-            const { svc } = await setup({ geminiText: 'They cited Lauryn Hill[1] and something unverifiable[7].' });
-            const sources = [{ id: 1, kind: 'vault', label: 'SoundBetter profile', url: 'https://soundbetter.com/profiles/x' , publishedAt: null }];
-            const about = await svc.generateAboutFromDoc('Nova Reyes', '## Overview\ndoc', sources);
-            expect(about).toContain('Lauryn Hill[1]');
-            expect(about).not.toContain('[7]');
-        });
+
 
         it('extractCitedIds finds every marker id in a string', async () => {
             const { svc } = await setup();

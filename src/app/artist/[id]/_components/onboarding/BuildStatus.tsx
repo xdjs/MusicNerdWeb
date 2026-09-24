@@ -2,33 +2,9 @@
 
 import ArtistBuildLoader from "@/app/_components/ArtistBuildLoader";
 import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
-
-/** Progress group ids emitted by runAutoBuild, in the order they run. Kept in
- *  sync with turnHandlers.ts by hand — a stage that never reports simply stays
- *  pending rather than breaking the view. */
-export const BUILD_STAGES = [
-    { group: "platform-search", label: "Finding your profiles" },
-    { group: "source-search", label: "Reading what people wrote about you" },
-    { group: "about-write", label: "Writing your About" },
-] as const;
-
-type ProgressItem = { kind: string; text?: string; done?: boolean; group?: string };
-
-type StageState = "pending" | "active" | "done";
-
-function stageStates(items: ProgressItem[]): { label: string; detail: string | null; state: StageState }[] {
-    return BUILD_STAGES.map(stage => {
-        const item = items.find(i => i.kind === "progress" && i.group === stage.group);
-        if (!item) return { label: stage.label, detail: null, state: "pending" as StageState };
-        return {
-            // The finished label carries the count ("Found 7 profiles"), which is
-            // the interesting part — show it in place of the generic one.
-            label: item.done && item.text ? item.text : stage.label,
-            detail: null,
-            state: item.done ? ("done" as StageState) : ("active" as StageState),
-        };
-    });
-}
+import BuildDrafts from "./BuildDrafts";
+import { BUILD_STAGES, type BuildItem, type StageState } from "@/lib/onboarding/buildStages";
+import { stageStates } from "@/lib/onboarding/stageStates";
 
 function Tick({ state }: { state: StageState }) {
     if (state === "done") {
@@ -85,7 +61,7 @@ export default function BuildStatus({
     onFinish,
 }: {
     artistName: string;
-    items: ProgressItem[];
+    items: BuildItem[];
     complete: boolean;
     onSkip: () => void;
     onFinish: () => void;
@@ -132,19 +108,23 @@ export default function BuildStatus({
 
             <ul className="relative px-6 py-5 space-y-3.5">
                 {stages.map(stage => (
-                    <li key={stage.label} className="flex items-center gap-3.5">
-                        <Tick state={stage.state} />
-                        <span
-                            className={`text-sm transition-colors duration-500 ${
-                                stage.state === "pending"
-                                    ? "text-gray-400 dark:text-gray-500"
-                                    : stage.state === "active"
-                                        ? "text-black dark:text-white font-medium"
-                                        : "text-gray-700 dark:text-gray-300"
-                            }`}
-                        >
-                            {stage.label}
-                        </span>
+                    <li key={stage.group}>
+                        <div className="flex items-center gap-3.5">
+                            <Tick state={stage.state} />
+                            <span
+                                className={`text-sm transition-colors duration-500 ${
+                                    stage.state === "pending"
+                                        ? "text-gray-400 dark:text-gray-500"
+                                        : stage.state === "active"
+                                            ? "text-black dark:text-white font-medium"
+                                            : "text-gray-700 dark:text-gray-300"
+                                }`}
+                            >
+                                {stage.label}
+                            </span>
+                        </div>
+                        {/* The stage's longest wait, shown as it is written. */}
+                        {stage.group === "about-write" && <BuildDrafts items={items} />}
                     </li>
                 ))}
             </ul>

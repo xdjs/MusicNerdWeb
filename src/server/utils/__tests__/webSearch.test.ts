@@ -201,3 +201,54 @@ describe("failures are logged, never silent", () => {
         } finally { warn.mockRestore(); }
     });
 });
+
+describe("one [websearch] line per call", () => {
+    const load = async (env: { TAVILY_API_KEY?: string; WEB_SEARCH_PROVIDER?: string }) => {
+        jest.resetModules();
+        jest.doMock("@/env", () => ({ TAVILY_API_KEY: env.TAVILY_API_KEY ?? "", WEB_SEARCH_PROVIDER: env.WEB_SEARCH_PROVIDER ?? "tavily" }));
+        return (await import("../webSearch")).webSearch;
+    };
+    const lines = (spy: jest.SpiedFunction<typeof console.log>) =>
+        spy.mock.calls.map(c => String(c[0])).filter(l => l.startsWith("[websearch]"));
+    let log: jest.SpiedFunction<typeof console.log>;
+    beforeEach(() => {
+        log = jest.spyOn(console, "log").mockImplementation(() => {});
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        jest.spyOn(console, "warn").mockImplementation(() => {});
+    });
+    afterEach(() => { jest.restoreAllMocks(); jest.dontMock("@/env"); jest.resetModules(); });
+
+    it("logs provider, query length, domains and results on success", async () => {
+        global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: [{ url: "https://a.example" }, { url: "https://b.example" }] }) }));
+        const webSearch = await load({ TAVILY_API_KEY: "tvly-test" });
+        await webSearch("Pete Rango", { includeDomains: ["instagram.com"] });
+        expect(lines(log)).toHaveLength(1);
+        expect(lines(log)[0]).toMatch(/^\[websearch\] tavily q=10 domains=1 results=2 \d+ms$/);
+    });
+
+    it.each([
+        ["http_432", async () => ({ ok: false, status: 432, text: async () => "" })],
+        ["no_response", async () => { throw new Error("network down"); }],
+        ["unparseable", async () => ({ ok: true, json: async () => { throw new Error("not json"); } })],
+        ["no_results", async () => ({ ok: true, json: async () => ({ results: "nope" }) })],
+    ])("names the failure kind %s", async (kind, impl) => {
+        global.fetch = jest.fn(impl);
+        const webSearch = await load({ TAVILY_API_KEY: "tvly-test" });
+        await expect(webSearch("q")).resolves.toEqual([]);
+        expect(lines(log)).toEqual([expect.stringMatching(new RegExp(`results=0 \\d+ms error=${kind}$`))]);
+    });
+
+    it("logs no_key without calling the provider", async () => {
+        global.fetch = jest.fn();
+        const webSearch = await load({});
+        await webSearch("q");
+        expect(lines(log)).toEqual([expect.stringMatching(/^\[websearch\] tavily .* error=no_key$/)]);
+    });
+
+    it("logs unknown_provider", async () => {
+        global.fetch = jest.fn();
+        const webSearch = await load({ TAVILY_API_KEY: "tvly-test", WEB_SEARCH_PROVIDER: "perplexity" });
+        await webSearch("q");
+        expect(lines(log)).toEqual([expect.stringMatching(/^\[websearch\] perplexity .* error=unknown_provider$/)]);
+    });
+});

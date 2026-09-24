@@ -19,9 +19,8 @@ const saveJobState = jest.fn(async () => {});
 const failJobAtCursor = jest.fn(async () => {});
 const claimResearchJob = jest.fn();
 
-jest.mock("@/server/utils/artistDocService", () => ({
+jest.mock("@/server/utils/artistDoc/refreshArtistDoc", () => ({
     refreshArtistDoc: (...a) => refreshArtistDoc(...a),
-    buildDocSources: jest.fn(async () => []),
 }));
 jest.mock("@/server/utils/queries/researchJobQueries", () => ({
     claimResearchJob: (...a) => claimResearchJob(...a),

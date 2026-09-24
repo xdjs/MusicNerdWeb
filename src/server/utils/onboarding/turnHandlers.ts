@@ -33,16 +33,16 @@ import {
 } from "@/server/utils/artistIdentityGuards";
 import { extractArtistId } from "@/server/utils/services";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
+import { synthesizeArtistDoc } from "@/server/utils/artistDoc/synthesizeArtistDoc";
+import { generateAboutFromDoc } from "@/server/utils/artistDoc/generateAboutFromDoc";
+import { refreshArtistDoc } from "@/server/utils/artistDoc/refreshArtistDoc";
 import {
-    synthesizeArtistDoc,
-    generateAboutFromDoc,
     synthesizeFallbackAbout,
     buildDocSources,
     extractCitedIds,
     stripCitationMarkers,
     ARTIST_DOC_MAX_CHARS,
     GEMINI_TIMEOUT_MS,
-    refreshArtistDoc,
     type DocSource,
 } from "@/server/utils/artistDocService";
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
@@ -50,7 +50,8 @@ import { PROFILE_DISPLAY_COLUMNS, buildLinkPresentationMeta } from "@/server/uti
 import { ONBOARDING_QUESTIONS } from "./questions";
 import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 import { BioConflictError } from '@/lib/bio/bioConflict';
-import { getGemini, GEMINI_MODEL_FLASH } from "@/server/lib/gemini";
+import { generateText } from "@/server/lib/ai/generateText";
+import { yieldWhileRunning } from "@/lib/async/yieldWhileRunning";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
 import { waitForSocialPosts } from "@/server/utils/socialIngest";
@@ -113,6 +114,10 @@ export type TurnEvent =
     // reload/resume), so a client that ignores `candidate` entirely still
     // renders correctly, just without the live-discovery feel.
     | { kind: "candidate"; profile: DiscoveredProfile }
+    // A piece of the Lore document ("doc") or the About ("about") as the model
+    // writes it, auto-build only. The raw draft, citation markers included: the
+    // validated text is what gets saved and what the page shows.
+    | { kind: "text-delta"; group: string; call: "doc" | "about"; delta: string }
     // Platforms where discovery found MORE THAN ONE account that survived every
     // check, so there is a real question to put to the artist: which of these
     // is yours? `chosen` is what the build actually wrote (the primary — tiers
@@ -371,9 +376,8 @@ async function generateInterviewAck(question: string, answer: string, questionIn
     const fallback = ACK_FALLBACKS[questionIndex % ACK_FALLBACKS.length];
     try {
         const response = await Promise.race([
-            getGemini().models.generateContent({
-                model: GEMINI_MODEL_FLASH,
-                contents: `The artist was asked: "${question}" and answered: "${answer}".
+            generateText({
+                prompt: `The artist was asked: "${question}" and answered: "${answer}".
 
 Reply with ONE short, spoken sentence reacting to their answer. Rules:
 - If the answer disputes the question, says it doesn't match anything they posted, or reads as confused about where it came from: acknowledge briefly and plainly, make clear the question came from a specific linked post rather than being made up, and move on. One short sentence, no grovelling.
@@ -383,7 +387,8 @@ Reply with ONE short, spoken sentence reacting to their answer. Rules:
 - No questions, no emoji, no hype words.`,
                 // Thinking defaults ON for gemini-2.5-flash and burns ~1.5s+ on a
                 // one-line reply — enough to lose this 5s race. Off ONLY here.
-                config: { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } },
+                temperature: 0.7,
+                thinkingBudget: 0,
             }),
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error("ack timeout")), 5000)),
         ]);
@@ -1278,8 +1283,15 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     let wrote = false;
     try {
         const sources = await buildDocSources(artistId);
-        const doc = await synthesizeArtistDoc(artistId, sources);
-        const about = await generateAboutFromDoc(artistName, doc, sources);
+        // The two slowest calls in the build, streamed so the popup shows the
+        // draft being written instead of one line over the longest wait
+        // (docs/llm.md, "Streaming into the build popup").
+        const doc = yield* yieldWhileRunning<TurnEvent, string>(emit => synthesizeArtistDoc(artistId, sources, {
+            onTextDelta: delta => emit({ kind: "text-delta", group: DOC_GROUP, call: "doc", delta }),
+        }));
+        const about = yield* yieldWhileRunning<TurnEvent, string>(emit => generateAboutFromDoc(artistName, doc, sources, {
+            onTextDelta: delta => emit({ kind: "text-delta", group: DOC_GROUP, call: "about", delta }),
+        }));
         const cleanAbout = stripCitationMarkers(about).trim();
         if (cleanAbout) {
             const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');

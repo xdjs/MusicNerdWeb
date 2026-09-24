@@ -24,6 +24,7 @@
  * follows.
  */
 import { TAVILY_API_KEY, WEB_SEARCH_PROVIDER } from "@/env";
+import { formatWebSearchLog } from "@/lib/search/formatWebSearchLog";
 
 export interface WebSearchResult {
     url: string;
@@ -39,6 +40,10 @@ export interface WebSearchOptions {
 }
 
 type ResolvedWebSearchOptions = Required<WebSearchOptions>;
+
+/** What a provider hands back to `webSearch`: the rows, and on a degrade-to-`[]`
+ *  path the kind of failure, which goes on the `[websearch]` log line. */
+type ProviderOutcome = { results: WebSearchResult[]; error?: string };
 
 /** Per-request hard timeout — mirrors `linkPreview.ts`'s `fetchWithTimeout`
  *  pattern (a short AbortController timeout, never throws). Kept short so a
@@ -87,7 +92,7 @@ interface TavilyResponseBody {
  *  - response: `results[]` with `{ title, url, content, score, ... }` — note
  *    `content`, not `snippet`; the rename to `snippet` happens at this
  *    boundary so callers never need to know Tavily's field name. */
-async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Promise<WebSearchResult[]> {
+async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Promise<ProviderOutcome> {
     const res = await fetchWithTimeout(TAVILY_ENDPOINT, {
         method: "POST",
         headers: {
@@ -107,14 +112,14 @@ async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Prom
     // plan limit is a real ceiling and this is how it will announce itself.
     if (!res) {
         console.error(`[webSearch] Tavily did not respond (timeout or network) for: ${query.slice(0, 80)}`);
-        return [];
+        return { results: [], error: "no_response" };
     }
     if (!res.ok) {
         // The body carries Tavily's reason — 401 bad key, 429 rate limit, 432
         // plan exhausted. Worth having in the log rather than just the status.
         const detail = await res.text().catch(() => "");
         console.error(`[webSearch] Tavily HTTP ${res.status} for "${query.slice(0, 60)}": ${detail.slice(0, 200)}`);
-        return [];
+        return { results: [], error: `http_${res.status}` };
     }
 
     let body: TavilyResponseBody;
@@ -122,11 +127,11 @@ async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Prom
         body = await res.json();
     } catch (e) {
         console.error(`[webSearch] Tavily returned unparseable JSON for "${query.slice(0, 60)}":`, e);
-        return [];
+        return { results: [], error: "unparseable" };
     }
     if (!Array.isArray(body?.results)) {
         console.error(`[webSearch] Tavily response had no results array for "${query.slice(0, 60)}"`);
-        return [];
+        return { results: [], error: "no_results" };
     }
 
     const out: WebSearchResult[] = [];
@@ -138,7 +143,7 @@ async function tavilySearch(query: string, opts: ResolvedWebSearchOptions): Prom
             snippet: typeof row.content === "string" ? row.content : "",
         });
     }
-    return out;
+    return { results: out };
 }
 
 /** Latched so the missing-key warning is said once, not once per parallel
@@ -153,7 +158,7 @@ let warnedNoKey = false;
  *  the swap seam the module docblock describes; deliberately left as a
  *  registry gap (falls through to the "unknown provider" branch in
  *  `webSearch` below) rather than a stub implementation. */
-const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) => Promise<WebSearchResult[]>> = {
+const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) => Promise<ProviderOutcome>> = {
     tavily: tavilySearch,
 };
 
@@ -166,6 +171,15 @@ const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) 
  */
 export async function webSearch(query: string, opts?: WebSearchOptions): Promise<WebSearchResult[]> {
     const provider = WEB_SEARCH_PROVIDER || "tavily";
+    const started = Date.now();
+    const domains = opts?.includeDomains?.length ?? 0;
+    // One line per call, success or not (#1329 row 2c): a provider comparison
+    // counts searches and results off the run log.
+    const done = ({ results, error }: ProviderOutcome): WebSearchResult[] => {
+        console.log(formatWebSearchLog({ provider, query, domains, results: results.length, ms: Date.now() - started, error }));
+        return results;
+    };
+
     if (provider === "tavily" && !TAVILY_API_KEY) {
         // Expected in an environment that has not configured it, and
         // catastrophic in one that thinks it has: no key means no sources, no
@@ -178,13 +192,13 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
             warnedNoKey = true;
             console.warn("[webSearch] No TAVILY_API_KEY — web search is OFF. Discovery loses its last-resort tier and the vault finds no sources.");
         }
-        return [];
+        return done({ results: [], error: "no_key" });
     }
 
     const run = PROVIDERS[provider];
     if (!run) {
         console.error(`[webSearch] unknown WEB_SEARCH_PROVIDER "${provider}"`);
-        return [];
+        return done({ results: [], error: "unknown_provider" });
     }
 
     const resolvedOpts: ResolvedWebSearchOptions = {
@@ -193,9 +207,9 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
     };
 
     try {
-        return await run(query, resolvedOpts);
+        return done(await run(query, resolvedOpts));
     } catch (e) {
         console.error(`[webSearch] provider "${provider}" failed for query "${query}":`, e);
-        return [];
+        return done({ results: [], error: "threw" });
     }
 }

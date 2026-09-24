@@ -41,9 +41,12 @@ admin fallback as a completed integration check.
 | HTTP route contracts and entry points | [API reference](../ApiReadMe.md) |
 | Agent API access and tool authorization | [MCP reference](mcp.md) |
 | Artist Latest | [Feature contract](artist-latest.md); release status in `MEMORY.md` |
+| Research runs (what research searched, found, kept and why) | [Run contract](research-runs.md); status on [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347) |
 | User profile | [Live profile contract](user-profile.md) and [design previews](rnd/design/2026-09-15-user-profile-redesign/README.md) |
 | Account bookmarks | [Feature contract and migration](account-bookmarks.md); release status in `MEMORY.md` |
 | Web Analytics and URL scrub | [Analytics contract](analytics.md); release status on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) |
+| Model calls (Ask, About, research, interview) | [LLM contract](llm.md); delivery on [#1265](https://github.com/xdjs/MusicNerdWeb/issues/1265) |
+| Measuring a model or prompt change | [Evals contract](evals.md); delivery on [#1329](https://github.com/xdjs/MusicNerdWeb/issues/1329) |
 | Database changes | [Migration protocol](development.md#database-migrations) |
 | Past regressions to check | [Regression checklist](rnd/pre-push-checklist.md) |
 | Meetings and missing records | [Meeting index](rnd/meetings/README.md) |

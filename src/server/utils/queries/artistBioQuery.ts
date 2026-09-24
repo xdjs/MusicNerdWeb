@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGemini, GEMINI_MODEL_PRO } from "@/server/lib/gemini";
+import { generateText } from "@/server/lib/ai/generateText";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { persistArtistBio } from "@/server/utils/queries/bioPersistence";
 import { BioConflictError } from '@/lib/bio/bioConflict';
@@ -263,13 +263,12 @@ You have NO web access for this task. Write the About using ONLY the curated sou
     const useGrounding = false;
 
     const response = await Promise.race([
-      getGemini().models.generateContent({
-        model: GEMINI_MODEL_PRO,
-        contents: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
-        config: {
-          systemInstruction: systemPrompt,
-          ...(useGrounding ? { tools: [{ googleSearch: {} }] } : {}),
-        },
+      // Flash, like every other site. Pro was refused by the gateway on the free
+      // tier (2026-09-21) and About runs ungrounded, so Flash covers it (#1259).
+      generateText({
+        prompt: `Write a bio for the artist "${artist.name!}". Here is what we know about them:\n${artistData}`,
+        instructions: systemPrompt,
+        googleSearch: useGrounding,
       }),
       new Promise<never>((_, reject) =>
         // Grounding-OFF synthesis measured ~8s; 15s is a generous cap that keeps

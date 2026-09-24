@@ -17,16 +17,10 @@ export const SPOTIFY_WEB_CLIENT_SECRET = validateEnv(process.env.NEXT_PUBLIC_SPO
 export const SUPABASE_DB_CONNECTION = process.env.SUPABASE_DB_CONNECTION ?? "";
 export const NEXTAUTH_URL = process.env.NEXTAUTH_URL ?? "";
 export const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL ?? "";
-export const OPENAI_API_KEY = validateEnv(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY', isTestEnv);
-export const OPENAI_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '60000', 10);
-export const OPENAI_MODEL = process.env.OPENAI_MODEL;
 
 // Supabase Storage
 export const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-// Gemini
-export const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
 
 // Web search (profile discovery's last-resort tier — see webSearch.ts).
 // Empty TAVILY_API_KEY = webSearch() returns [] immediately, no network call.

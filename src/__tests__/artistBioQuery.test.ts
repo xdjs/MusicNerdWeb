@@ -17,15 +17,7 @@ jest.mock('next/server', () => ({
 
 // Mock dependencies
 const mockGenerateContent = jest.fn();
-jest.mock('@/server/lib/gemini', () => ({
-  getGemini: jest.fn(() => ({
-    models: {
-      generateContent: mockGenerateContent,
-    },
-  })),
-  GEMINI_MODEL_PRO: 'gemini-2.5-pro',
-  GEMINI_MODEL_FLASH: 'gemini-2.5-flash',
-}));
+jest.mock('@/server/lib/ai/generateText', () => ({ generateText: mockGenerateContent }));
 
 jest.mock('@/server/utils/queries/artistQueries', () => ({
   getArtistById: jest.fn()
@@ -115,11 +107,8 @@ describe('artistBioQuery - Gemini bio generation', () => {
     // Verify Gemini was called
     expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'gemini-2.5-pro',
-        contents: expect.stringContaining('Test Artist'),
-        config: expect.objectContaining({
-          systemInstruction: expect.any(String),
-        }),
+        prompt: expect.stringContaining('Test Artist'),
+        instructions: expect.any(String),
       })
     );
 
@@ -158,7 +147,7 @@ describe('artistBioQuery - Gemini bio generation', () => {
 
     // Grounding (Gemini's own web search) is OFF — the About is synthesized only from curated sources.
     const callArgs = (mockGenerateContent as any).mock.calls[0][0];
-    expect(callArgs.config.tools).toBeUndefined();
+    expect(callArgs.googleSearch).toBeFalsy();
   });
 
   it('should return 404 when artist not found', async () => {
