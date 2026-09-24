@@ -180,7 +180,13 @@ If manually cancelling staging, wait for or cancel its remote Vercel build befor
 Before transition, privately record Vercel settings, domain assignments, approved production
 ID/URL/SHA, GitHub rules and old staging SHA. For an authorized production rollback, restore the
 previous **production-built** deployment through Vercel rollback; verify health and record the
-operator decision. Do not restore auto-promotion merely to get a blocked release through.
+operator decision. To restore the approved newer production build, use a second Instant Rollback
+to select that existing build, then verify domain assignments, health and that automatic domain
+assignment remains disabled. Do not use Vercel's Undo Rollback to restore it: that action can
+re-enable automatic production domain assignment. Do not restore auto-promotion merely to get a
+blocked release through. The [September 23 rollback drill](https://github.com/xdjs/MusicNerdWeb/issues/1310#issuecomment-5798874935)
+verified both switches and read-only health on two production-built deployments. It did not test
+schema rollback, login, writes, workers or external integrations.
 
 ## Local validation
 
