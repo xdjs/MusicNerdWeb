@@ -1,6 +1,6 @@
 # Development reference
 
-Operating rules live in [CLAUDE.md](../CLAUDE.md); current work lives in
+Operating rules live in [AGENTS.md](../AGENTS.md); current work lives in
 [MEMORY.md](../MEMORY.md). This is technical reference, not another task list.
 
 ## Setup

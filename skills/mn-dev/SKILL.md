@@ -11,7 +11,7 @@ The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/i
 
 ## Music Nerd specifics, in one place
 
-- **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `CLAUDE.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
+- **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `AGENTS.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
 - **Branches.** Feature/fix branch off `main` → reviewed PR to `main` → squash merge. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Codex branches use `codex/<slug>`. Docs-only branches may use `docs/<slug>`. Conventional commits.
 - **Merging.** Never merge without authorization or bypass required review. PRs squash into `main` after approval and required `test`/`build` checks. The exact merged SHA deploys to staging; any one of Carl (`clt`), Pete (`p3t3rango`) or Sweetman (`sweetmantech`) approves the protected GitHub production environment before a separate production-config build and promotion. One approval is sufficient, the initiator may approve, and admin bypass is disabled. Record “merged to main”, “validated on staging” and “promoted to production” separately. Follow [the release runbook](../../docs/releases.md), including manual migration verification.
 - **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). All three can approve production releases. Attribute decisions to whoever made them and where (standup, R&D sync).
@@ -112,7 +112,7 @@ When the plan reverses (the reference went from a standalone section to cards in
 Only start from a real spec: Goal, done-when criteria, sequencing, source references. If the issue is vague, upgrade it with Half 1 first. Implementing against a vibe ships the wrong thing.
 
 ```
-1. Read the issue + the ground     (done-when = test plan; CLAUDE.md; the nearest sibling to mirror)
+1. Read the issue + the ground     (done-when = test plan; AGENTS.md; the nearest sibling to mirror)
 2. Docs first                      (the contract: docs/<feature>.md, design record, dated notes)
 3. Code by TDD                     (red → green → refactor; one function per file)
 4. npm run ci                      (types, lint, tests; build with the stub env)
@@ -128,7 +128,7 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 ## 1. Read the ground
 
 - From the issue: the contract, every done-when (your test plan), the merge order, source references (re-check any external API doc; if it is client-rendered, read it in a browser, not with a fetch).
-- `CLAUDE.md`, `docs/development.md`, and the feature's contract doc if one exists (`docs/artist-latest.md` for anything touching Latest).
+- `AGENTS.md`, `docs/development.md`, and the feature's contract doc if one exists (`docs/artist-latest.md` for anything touching Latest).
 - **Find the nearest sibling and mirror it.** The Latest section (`LatestSection` → `getArtistLatest` → `LatestCards`) is the model for a data-backed profile section; `src/lib/inprocess/` is the model for a lib domain. Consistency with the neighbour beats cleverness.
 - Work in a worktree off `main` (`git worktree add ../mnw-<x> -b <contributor>/<slug> origin/main`, symlink `node_modules` from the main checkout). Say up front when a PR is plumbing that renders nothing on its own, so a stacked PR does not surprise the reviewer.
 

@@ -1,11 +1,120 @@
 # MusicNerdWeb — Agent Guide
 
-This file used to mirror `CLAUDE.md` for non-Claude agents (Codex etc.).
-Maintaining two copies invited drift, so it now points at the canonical source.
+Canonical instructions for every coding assistant. `CLAUDE.md` points here.
 
-**Read `CLAUDE.md` in this directory** — the same instructions apply to every assistant.
+New engineers start with the [documentation map](docs/README.md). Historical plans and meeting
+notes preserve their original context; they do not override this guide or authorize old tasks.
 
-The guidance is platform-agnostic: tech stack, project structure, database schema, auth
-flow, MCP server, API conventions, testing patterns, and the git workflow are all there.
-Anything Claude Code-specific (the `Skill` tool, status-line config, etc.) does not
-affect how other agents should work on this codebase — translate to your equivalents.
+## Product and orientation
+
+Music Nerd is an artist directory that deepens listeners' relationships with artists through
+links, source-backed profiles, social research, and artists' own interview answers.
+Next.js 15 App Router, TypeScript, Drizzle/Postgres (Supabase), Privy + NextAuth, Tailwind/Radix.
+
+Read `MEMORY.md` for the engineering handoff and the task's relevant entry in
+[decisions](docs/rnd/decisions.md). Verify worktree, branch, remote heads and PR state rather than
+treating a handoff as live evidence. Preserve user edits and ignored files.
+
+| Area | Entry point |
+| --- | --- |
+| Artist UI | `src/app/artist/[id]/` |
+| Latest cards (unreleased feature contract) | `docs/artist-latest.md` |
+| Routes / actions / business queries | `src/app/api/`, `src/app/actions/`, `src/server/utils/queries/` |
+| Data model / client / types | `src/server/db/schema.ts`, `drizzle.ts`, `DbTypes.ts` |
+| Authentication and authorization | `src/server/auth.ts`, `src/lib/auth-helpers.ts` |
+| Research workers and scheduler | `src/server/utils/researchRunner.ts`, `src/app/api/research/advance/` |
+| MCP tools and shared link writes | `src/app/api/mcp/`, `src/server/utils/artistLinkService.ts` |
+
+[Development reference](docs/development.md) covers setup, test patterns, integrations, and
+migration/release verification. Load only the deeper guidance relevant to the change.
+
+## Critical boundaries
+
+- The app database role is `mnweb`, not the owner. Verify grants **and** RLS policies as/for that
+  role. Role-wide policies are not user isolation; authenticate and authorize every mutation in
+  application code. Never infer working app access from a successful owner SQL query.
+- Interview `sitting` and `offered_at` are fixed at offer time. Answer upserts re-stamp
+  `created_at`; don't use it to reconstruct offers. Preserve artists' words and real source URLs.
+- Durable research belongs in existing jobs, not detached work inside a request. Reading an
+  artist page must not introduce scraping, generation, or new writes.
+- Keep server credentials and raw research payloads out of client props/logs. Use `@/env` for
+  server configuration. Don't broaden permissions or work around release approvals.
+- Development has an admin-session fallback. A dev UI pass does not prove production login or
+  anonymous authorization. Tests mock many integrations; state that limitation.
+
+## Implement and verify
+
+One owner integrates and closes the task. Define completion as something a user can observe.
+Trace the changed path through UI, route/action, persistence, jobs and external services, marking
+non-applicable layers explicitly. Reuse existing mechanisms before adding new infrastructure.
+
+Delegate only independent, bounded work when it reduces total effort; no recursive delegation
+or review ping-pong. Match plan, tests and review to risk. Read failure evidence before retrying;
+repeated identical failures require root-cause investigation, not another blind run.
+
+Use npm (versions in `package.json`; CI configuration in `.github/workflows/ci.yml`).
+Match surrounding style, use `@/` imports, keep components server-side unless interactivity
+requires a client component, and await Next.js route params.
+
+Run focused regression tests while editing. Before a code PR, run `npm run ci`
+(TypeScript, lint, Jest with coverage, production build). Setup and no-secret
+build instructions are in [development](docs/development.md#verification).
+For UI/integration changes, exercise the actual entry point and relevant flow as well:
+mock-only tests aren't end-to-end evidence. Apply the relevant checks from the
+[regression checklist](docs/rnd/pre-push-checklist.md).
+Never remove coverage/checks just to make a failure green.
+
+Report what passed, failed, or remained unverified; separate blockers from optional improvements.
+Stop once agreed scope is implemented and sufficiently verified.
+
+## Issue tracking
+
+Before implementing a fix, feature, or substantive investigation, find the existing GitHub
+issue that owns the problem; create a focused issue if none exists. Record the observable
+problem and completion criteria, and reuse related issues instead of making duplicates.
+Every PR must link its owning issue(s) in the description. Use `Refs #123` for partial work
+and `Fixes #123` only when the PR completes the issue; verify closure after the main merge
+and record production promotion separately. A closed issue is not proof of a live deployment.
+Keep unresolved follow-ups explicit.
+When consolidating old issues, preserve their history and link retained work to its replacement
+issue. Work explicitly deferred or declined by the user may remain in the archive with its
+reason and original issue link, without an open replacement. An archival closure is not evidence
+that a defect was fixed; find or create an owning issue before resuming archived work. This rule
+applies to Codex, Claude, and all other assistants through this guide.
+
+## Git, documentation and releases
+
+Feature/fix branch off `main` → reviewed PR to `main` → squash merge.
+Use a contributor prefix (Codex uses `codex/`), conventional commits, and stage only intended files.
+Docs follow the same route. The legacy Git `staging` branch is retired; the persistent staging
+environment remains. **Do not merge or deploy without authorization.** After main's checks pass,
+the exact merged SHA deploys to `staging.musicnerd.xyz`. A main merge does not publish production.
+The protected GitHub `production-release` job requires approval from any one of Carl (`clt`),
+Pete (`p3t3rango`) or Sweetman (`sweetmantech`). It builds that same SHA with production
+configuration, checks the candidate, then promotes it without rebuilding during promotion.
+Follow [the release runbook](docs/releases.md), including the manual migration gate.
+
+Schema SQL and the Drizzle journal are one change. Apply required migrations before dependent
+code deploys; follow the [migration protocol](docs/development.md#database-migrations).
+Do not trust automated migration replay until issue #1148 is reconciled.
+
+Keep durable public docs tracked; secrets and disposable captures stay ignored. Raw transcripts
+stay private except the explicitly authorized Stand Up and R&D exports described in
+[R&D guidance](docs/rnd/README.md). `MEMORY.md` is the single engineering handoff, not a
+diary or a second task tracker. Update it for material state/priority changes, link evidence,
+and distinguish locally implemented from shipped. Don't create releases solely to move handoffs.
+
+## Skills
+
+Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
+and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
+and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
+a documented-vs-observed matrix and captures on the PR, main-only PRs → staging validation → approved production build). Read it
+before writing or updating an issue, opening a PR, or preview-testing one.
+
+Read the available relevant skill before using it: Next.js/React for UI and server boundaries;
+Supabase/Postgres for database work; browser verification for UI flows; deployment/observability
+for release diagnostics. Load task-specific references, not every installed skill. A tool or
+skill recorded by another assistant may not exist here; translate to available equivalents.
+Repository conventions live here, implementation/runbooks in linked docs, current state in
+`MEMORY.md` — don't duplicate them into new agent-specific guides.
