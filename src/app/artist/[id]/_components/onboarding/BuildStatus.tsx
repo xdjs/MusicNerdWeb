@@ -2,43 +2,9 @@
 
 import ArtistBuildLoader from "@/app/_components/ArtistBuildLoader";
 import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
-import BuildDraft from "./BuildDraft";
-
-/** Progress group ids emitted by runAutoBuild, in the order they run. Kept in
- *  sync with turnHandlers.ts by hand — a stage that never reports simply stays
- *  pending rather than breaking the view. */
-export const BUILD_STAGES = [
-    { group: "platform-search", label: "Finding your profiles" },
-    { group: "source-search", label: "Reading what people wrote about you" },
-    { group: "about-write", label: "Writing your About" },
-] as const;
-
-/** `progress` items drive the stages; `writing` items (with `stage`) carry the
- *  draft the About stage is writing, one per call — see useOnboardingChat. */
-type ProgressItem = { kind: string; text?: string; done?: boolean; group?: string; stage?: "doc" | "about" };
-
-/** The About stage's two calls, in the order they run, and what each writes. */
-const DRAFTS = [
-    { stage: "doc", label: "Lore document" },
-    { stage: "about", label: "About" },
-] as const;
-
-type StageState = "pending" | "active" | "done";
-
-function stageStates(items: ProgressItem[]): { group: string; label: string; detail: string | null; state: StageState }[] {
-    return BUILD_STAGES.map(stage => {
-        const item = items.find(i => i.kind === "progress" && i.group === stage.group);
-        if (!item) return { group: stage.group, label: stage.label, detail: null, state: "pending" as StageState };
-        return {
-            group: stage.group,
-            // The finished label carries the count ("Found 7 profiles"), which is
-            // the interesting part — show it in place of the generic one.
-            label: item.done && item.text ? item.text : stage.label,
-            detail: null,
-            state: item.done ? ("done" as StageState) : ("active" as StageState),
-        };
-    });
-}
+import BuildDrafts from "./BuildDrafts";
+import { BUILD_STAGES, type BuildItem, type StageState } from "@/lib/onboarding/buildStages";
+import { stageStates } from "@/lib/onboarding/stageStates";
 
 function Tick({ state }: { state: StageState }) {
     if (state === "done") {
@@ -95,17 +61,13 @@ export default function BuildStatus({
     onFinish,
 }: {
     artistName: string;
-    items: ProgressItem[];
+    items: BuildItem[];
     complete: boolean;
     onSkip: () => void;
     onFinish: () => void;
 }) {
     const stages = stageStates(items);
     const finishedCount = stages.filter(s => s.state === "done").length;
-    const drafts = DRAFTS.flatMap(({ stage, label }) => {
-        const text = items.find(i => i.kind === "writing" && i.stage === stage)?.text;
-        return text ? [{ label, text }] : [];
-    });
 
     return (
         <div className="glass relative w-full max-w-md overflow-hidden shadow-2xl shadow-black/40">
@@ -161,12 +123,8 @@ export default function BuildStatus({
                                 {stage.label}
                             </span>
                         </div>
-                        {/* The stage's longest wait, shown as it is written; indented to the label. */}
-                        {stage.group === "about-write" && drafts.length > 0 && (
-                            <div className="mt-2.5 ml-[38px] space-y-2">
-                                {drafts.map(d => <BuildDraft key={d.label} label={d.label} text={d.text} />)}
-                            </div>
-                        )}
+                        {/* The stage's longest wait, shown as it is written. */}
+                        {stage.group === "about-write" && <BuildDrafts items={items} />}
                     </li>
                 ))}
             </ul>
