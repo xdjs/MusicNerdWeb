@@ -107,7 +107,7 @@ citation markers included, and the page shows the validated version.
 (`src/lib/async/yieldWhileRunning.ts`): a generator cannot `yield` from inside a callback, so the
 helper runs the call, yields what it emits while it runs, and returns its result (or rethrows
 its error) once it settles. `useOnboardingChat` appends deltas to one `writing` item per `call`,
-and `BuildStatus` shows them under "Writing your About".
+and the [research view](research-view.md) renders them as Markdown under "Writing your About".
 
 ## How each Gemini option maps
 

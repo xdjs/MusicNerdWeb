@@ -10,6 +10,8 @@ const config = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
+    // Streamdown styles its Markdown with Tailwind classes (docs/research-view.md).
+    './node_modules/streamdown/dist/*.js',
 	],
   prefix: "",
   theme: {

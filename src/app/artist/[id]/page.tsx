@@ -33,6 +33,7 @@ import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEna
 import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
 import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
+import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 
@@ -166,6 +167,13 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     // that case — never fall back to a default/guessed state here.
     const onboardingState = isClaimedByUser ? await getOnboardingState(id) : null;
 
+    // The research view's "your music on deezer" covers: the Latest section's own
+    // cached call, started only when the claimant's onboarding view will render,
+    // and passed down unawaited so it never holds up the page (docs/research-view.md).
+    const onboardingReleases = !interviewPreview && onboardingState && !onboardingState.complete
+        ? getLatestArtistReleases(artist).catch(() => [])
+        : undefined;
+
     const pendingSources = canEdit ? pendingSourcesRaw : [];
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
@@ -198,11 +206,13 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
-                {!interviewPreview && onboardingState && !onboardingState.complete && (
+                {onboardingReleases && onboardingState && (
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
                         currentStep={onboardingState.currentStep}
+                        imageUrl={imageUrl}
+                        releases={onboardingReleases}
                     />
                 )}
 

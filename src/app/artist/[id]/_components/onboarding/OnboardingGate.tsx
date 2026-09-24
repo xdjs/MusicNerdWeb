@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import OnboardingChat from "./OnboardingChat";
+import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
 import OnboardingBanner from "./OnboardingBanner";
 import { armTour, tourFlagKey } from "./ProfileTour";
 
@@ -13,6 +14,9 @@ type Props = {
     artistId: string;
     artistName: string;
     currentStep: string | null;
+    /** For the research view's hero (docs/research-view.md). */
+    imageUrl?: string;
+    releases?: Promise<LatestRelease[]>;
 };
 
 /**
@@ -20,7 +24,7 @@ type Props = {
  * state; the skip flag lives in sessionStorage and is invisible to the server
  * component (spec §8). Skip is session-scoped: a later visit reopens the chat.
  */
-export default function OnboardingGate({ artistId, artistName, currentStep }: Props) {
+export default function OnboardingGate({ artistId, artistName, currentStep, imageUrl, releases }: Props) {
     // Start closed and decide after mount — sessionStorage is unavailable during SSR.
     const [mode, setMode] = useState<"closed" | "chat" | "banner">("closed");
 
@@ -35,6 +39,8 @@ export default function OnboardingGate({ artistId, artistName, currentStep }: Pr
             <OnboardingChat
                 artistId={artistId}
                 artistName={artistName}
+                imageUrl={imageUrl}
+                releases={releases}
                 onSkip={() => {
                     sessionStorage.setItem(skipFlagKey(artistId), "1");
                     setMode("banner");

@@ -24,6 +24,8 @@ const customJestConfig: Config = {
         '^@components/(.*)$': '<rootDir>/src/components/$1',
         '^@lib/(.*)$': '<rootDir>/src/lib/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+        // Streamdown is ESM-only; tests render its Markdown as plain text (src/test/__mocks__/streamdown.tsx).
+        '^streamdown$': '<rootDir>/src/test/__mocks__/streamdown.tsx',
         '^jose/(.*)$': '<rootDir>/node_modules/jose/dist/node/cjs/$1',
         // @vercel/analytics resolves to ESM builds under Jest's export conditions; use its CJS builds
         '^@vercel/analytics$': '<rootDir>/node_modules/@vercel/analytics/dist/index.js',

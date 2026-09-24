@@ -18,7 +18,7 @@ export const BUILD_DRAFTS = [
  *  About stage is writing, one per call. */
 export type BuildItem = { kind: string; text?: string; done?: boolean; group?: string; stage?: "doc" | "about" };
 
-export type StageState = "pending" | "active" | "done";
+export type StageState = "pending" | "active" | "done" | "error";
 
 export type StageView = { group: string; label: string; state: StageState };
 
