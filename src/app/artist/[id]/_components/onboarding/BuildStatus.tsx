@@ -2,6 +2,7 @@
 
 import ArtistBuildLoader from "@/app/_components/ArtistBuildLoader";
 import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
+import BuildDraft from "./BuildDraft";
 
 /** Progress group ids emitted by runAutoBuild, in the order they run. Kept in
  *  sync with turnHandlers.ts by hand — a stage that never reports simply stays
@@ -12,15 +13,24 @@ export const BUILD_STAGES = [
     { group: "about-write", label: "Writing your About" },
 ] as const;
 
-type ProgressItem = { kind: string; text?: string; done?: boolean; group?: string };
+/** `progress` items drive the stages; `writing` items (with `stage`) carry the
+ *  draft the About stage is writing, one per call — see useOnboardingChat. */
+type ProgressItem = { kind: string; text?: string; done?: boolean; group?: string; stage?: "doc" | "about" };
+
+/** The About stage's two calls, in the order they run, and what each writes. */
+const DRAFTS = [
+    { stage: "doc", label: "Lore document" },
+    { stage: "about", label: "About" },
+] as const;
 
 type StageState = "pending" | "active" | "done";
 
-function stageStates(items: ProgressItem[]): { label: string; detail: string | null; state: StageState }[] {
+function stageStates(items: ProgressItem[]): { group: string; label: string; detail: string | null; state: StageState }[] {
     return BUILD_STAGES.map(stage => {
         const item = items.find(i => i.kind === "progress" && i.group === stage.group);
-        if (!item) return { label: stage.label, detail: null, state: "pending" as StageState };
+        if (!item) return { group: stage.group, label: stage.label, detail: null, state: "pending" as StageState };
         return {
+            group: stage.group,
             // The finished label carries the count ("Found 7 profiles"), which is
             // the interesting part — show it in place of the generic one.
             label: item.done && item.text ? item.text : stage.label,
@@ -92,6 +102,10 @@ export default function BuildStatus({
 }) {
     const stages = stageStates(items);
     const finishedCount = stages.filter(s => s.state === "done").length;
+    const drafts = DRAFTS.flatMap(({ stage, label }) => {
+        const text = items.find(i => i.kind === "writing" && i.stage === stage)?.text;
+        return text ? [{ label, text }] : [];
+    });
 
     return (
         <div className="glass relative w-full max-w-md overflow-hidden shadow-2xl shadow-black/40">
@@ -132,19 +146,27 @@ export default function BuildStatus({
 
             <ul className="relative px-6 py-5 space-y-3.5">
                 {stages.map(stage => (
-                    <li key={stage.label} className="flex items-center gap-3.5">
-                        <Tick state={stage.state} />
-                        <span
-                            className={`text-sm transition-colors duration-500 ${
-                                stage.state === "pending"
-                                    ? "text-gray-400 dark:text-gray-500"
-                                    : stage.state === "active"
-                                        ? "text-black dark:text-white font-medium"
-                                        : "text-gray-700 dark:text-gray-300"
-                            }`}
-                        >
-                            {stage.label}
-                        </span>
+                    <li key={stage.group}>
+                        <div className="flex items-center gap-3.5">
+                            <Tick state={stage.state} />
+                            <span
+                                className={`text-sm transition-colors duration-500 ${
+                                    stage.state === "pending"
+                                        ? "text-gray-400 dark:text-gray-500"
+                                        : stage.state === "active"
+                                            ? "text-black dark:text-white font-medium"
+                                            : "text-gray-700 dark:text-gray-300"
+                                }`}
+                            >
+                                {stage.label}
+                            </span>
+                        </div>
+                        {/* The stage's longest wait, shown as it is written; indented to the label. */}
+                        {stage.group === "about-write" && drafts.length > 0 && (
+                            <div className="mt-2.5 ml-[38px] space-y-2">
+                                {drafts.map(d => <BuildDraft key={d.label} label={d.label} text={d.text} />)}
+                            </div>
+                        )}
                     </li>
                 ))}
             </ul>

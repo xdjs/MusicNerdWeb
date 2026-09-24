@@ -17,6 +17,7 @@
  * storage and for rendering citation links) without re-running Gemini.
  */
 import { generateText } from "@/server/lib/ai/generateText";
+import { streamText, type StreamTextOptions } from "@/server/lib/ai/streamText";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { getSpotifyCatalogDetail, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
@@ -601,10 +602,15 @@ async function buildDocContext(artistId: string, presetSources?: DocSource[]): P
     return { artistName: material.artistName, context: parts.join("\n"), sources };
 }
 
-export async function synthesizeArtistDoc(artistId: string, presetSources?: DocSource[]): Promise<string> {
+/** The build popup's hook into sites 5 and 6: each piece of the draft as the model
+ *  writes it. Only the onboarding auto-build passes it (docs/llm.md). */
+type StreamOptions = Pick<StreamTextOptions, "onTextDelta">;
+
+export async function synthesizeArtistDoc(artistId: string, presetSources?: DocSource[], { onTextDelta }: StreamOptions = {}): Promise<string> {
     const { artistName, context, sources } = await buildDocContext(artistId, presetSources);
     const response = await withGeminiTimeout(
-        generateText({
+        streamText({
+            onTextDelta,
             prompt: context,
             instructions: DOC_SYSTEM_INSTRUCTION(artistName),
             temperature: 0.4,
@@ -624,9 +630,10 @@ export async function synthesizeArtistDoc(artistId: string, presetSources?: DocS
     return doc.slice(0, ARTIST_DOC_MAX_CHARS);
 }
 
-export async function generateAboutFromDoc(artistName: string, docContent: string, sources: DocSource[] = []): Promise<string> {
+export async function generateAboutFromDoc(artistName: string, docContent: string, sources: DocSource[] = [], { onTextDelta }: StreamOptions = {}): Promise<string> {
     const response = await withGeminiTimeout(
-        generateText({
+        streamText({
+            onTextDelta,
             prompt: `ARTIST KNOWLEDGE DOCUMENT:\n${docContent}`,
             instructions: ABOUT_SYSTEM_INSTRUCTION(artistName),
             temperature: 0.5,

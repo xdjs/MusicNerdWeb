@@ -148,6 +148,58 @@ describe('runOnboardingTurn', () => {
         expect(labels.some(l => /About/i.test(l))).toBe(true);
     });
 
+    it('auto-build streams the Lore document and the About into the popup as they are written', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const docService = await import('@/server/utils/artistDocService');
+        docService.synthesizeArtistDoc.mockImplementationOnce(async (_id, _sources, { onTextDelta }) => {
+            onTextDelta('## Overview\n');
+            await new Promise(resolve => setTimeout(resolve, 0));
+            onTextDelta('doc');
+            return '## Overview\ndoc';
+        });
+        docService.generateAboutFromDoc.mockImplementationOnce(async (_name, _doc, _sources, { onTextDelta }) => {
+            onTextDelta('An ');
+            onTextDelta('About.');
+            return 'An About.';
+        });
+        const { runOnboardingTurn } = await import('../turnHandlers');
+
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+
+        const aboutStage = events.slice(
+            events.findIndex(e => e.kind === 'progress' && e.label === 'Writing your About'),
+            events.findIndex(e => e.kind === 'progress' && e.label === 'Wrote your About') + 1,
+        );
+        expect(aboutStage.filter(e => e.kind === 'text-delta')).toEqual([
+            { kind: 'text-delta', group: 'about-write', call: 'doc', delta: '## Overview\n' },
+            { kind: 'text-delta', group: 'about-write', call: 'doc', delta: 'doc' },
+            { kind: 'text-delta', group: 'about-write', call: 'about', delta: 'An ' },
+            { kind: 'text-delta', group: 'about-write', call: 'about', delta: 'About.' },
+        ]);
+        const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
+        expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', expect.objectContaining({ document: expect.objectContaining({ content: '## Overview\ndoc' }) }));
+        expect(events.some(e => e.kind === 'complete')).toBe(true);
+    });
+
+    it('auto-build still reports a failed Lore document after streaming part of it', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const docService = await import('@/server/utils/artistDocService');
+        docService.synthesizeArtistDoc.mockImplementationOnce(async (_id, _sources, { onTextDelta }) => {
+            onTextDelta('## Over');
+            throw new Error('Gemini timeout');
+        });
+        const { runOnboardingTurn } = await import('../turnHandlers');
+
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+
+        expect(events.filter(e => e.kind === 'text-delta').map(e => e.delta)).toEqual(['## Over']);
+        expect(events.some(e => e.kind === 'error')).toBe(true);
+        expect(events.some(e => e.kind === 'complete')).toBe(false);
+        expect(docService.generateAboutFromDoc).not.toHaveBeenCalled();
+    });
+
     it('auto-build publishes when inherited history has reached the explicit-save cap', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });

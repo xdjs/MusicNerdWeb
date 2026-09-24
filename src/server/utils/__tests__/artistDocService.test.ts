@@ -11,6 +11,7 @@ jest.mock('@/server/utils/queries/lorePersistence', () => ({
 }));
 jest.mock('@/server/utils/socialIngest', () => ({ getSocialPostsForArtist: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/server/lib/ai/generateText', () => ({ generateText: jest.fn() }));
+jest.mock('@/server/lib/ai/streamText', () => ({ streamText: jest.fn() }));
 
 describe('artistDocService', () => {
     beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
@@ -23,6 +24,8 @@ describe('artistDocService', () => {
         const { generateText } = await import('@/server/lib/ai/generateText');
         const generateContent = jest.fn().mockResolvedValue({ text: geminiText });
         generateText.mockImplementation(generateContent);
+        const { streamText } = await import('@/server/lib/ai/streamText');
+        streamText.mockImplementation(generateContent);
         getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes', spotify: 'spot123', instagram: 'novareyes' });
         getVaultSourcesByArtistId.mockResolvedValue(vaultSources ?? [
             // Long enough to be CITABLE: a source is only usable as evidence if we
@@ -110,6 +113,34 @@ describe('artistDocService', () => {
         const { svc } = await setup({ geminiText: 'x'.repeat(30_000) });
         const doc = await svc.synthesizeArtistDoc('a1');
         expect(doc.length).toBe(svc.ARTIST_DOC_MAX_CHARS);
+    });
+
+    it('synthesizeArtistDoc and generateAboutFromDoc stream through streamText and hand each delta to onTextDelta', async () => {
+        const { svc } = await setup();
+        const { streamText } = await import('@/server/lib/ai/streamText');
+        const { generateText } = await import('@/server/lib/ai/generateText');
+        streamText.mockImplementation(async ({ onTextDelta }) => {
+            onTextDelta?.('## Overview\n');
+            onTextDelta?.('A real doc.');
+            return { text: '## Overview\nA real doc.' };
+        });
+        const docDeltas = [];
+        const doc = await svc.synthesizeArtistDoc('a1', undefined, { onTextDelta: d => docDeltas.push(d) });
+        expect(docDeltas).toEqual(['## Overview\n', 'A real doc.']);
+        expect(doc).toBe('## Overview\nA real doc.');
+        const aboutDeltas = [];
+        await svc.generateAboutFromDoc('Nova Reyes', doc, [], { onTextDelta: d => aboutDeltas.push(d) });
+        expect(aboutDeltas).toEqual(['## Overview\n', 'A real doc.']);
+        expect(generateText).not.toHaveBeenCalled();
+    });
+
+    it('synthesizeArtistDoc and generateAboutFromDoc still work for callers that pass no onTextDelta', async () => {
+        const { svc } = await setup({ geminiText: 'A concrete About.' });
+        const { streamText } = await import('@/server/lib/ai/streamText');
+        await expect(svc.synthesizeArtistDoc('a1')).resolves.toBe('A concrete About.');
+        await expect(svc.generateAboutFromDoc('Nova Reyes', 'doc')).resolves.toBe('A concrete About.');
+        expect(streamText).toHaveBeenCalledTimes(2);
+        for (const [options] of streamText.mock.calls) expect(options.onTextDelta).toBeUndefined();
     });
 
     it('generateAboutFromDoc returns trimmed text within MAX_BIO_LENGTH', async () => {
