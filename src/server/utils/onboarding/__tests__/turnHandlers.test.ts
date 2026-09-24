@@ -72,12 +72,23 @@ jest.mock('@/server/utils/profileDiscovery', () => ({
 jest.mock('@/server/utils/artistDocService', () => ({
     ARTIST_DOC_MAX_CHARS: 20000,
     GEMINI_TIMEOUT_MS: 20000,
-    synthesizeArtistDoc: jest.fn().mockResolvedValue('## Overview\ndoc'),
-    generateAboutFromDoc: jest.fn().mockResolvedValue('An About.'),
     buildDocSources: jest.fn().mockResolvedValue([]),
     extractCitedIds: jest.fn().mockReturnValue(new Set()),
     stripCitationMarkers: jest.fn(text => text),
 }));
+jest.mock('@/server/utils/artistDoc/synthesizeArtistDoc', () => ({ synthesizeArtistDoc: jest.fn().mockResolvedValue('## Overview\ndoc') }));
+jest.mock('@/server/utils/artistDoc/generateAboutFromDoc', () => ({ generateAboutFromDoc: jest.fn().mockResolvedValue('An About.') }));
+jest.mock('@/server/utils/artistDoc/refreshArtistDoc', () => ({ refreshArtistDoc: jest.fn() }));
+/** Every doc-service mock in one object — the functions live in separate modules
+ *  (one per file), and tests read them together as `docService.<fn>`. */
+async function docServiceMocks() {
+    return {
+        ...(await import('@/server/utils/artistDocService')),
+        ...(await import('@/server/utils/artistDoc/synthesizeArtistDoc')),
+        ...(await import('@/server/utils/artistDoc/generateAboutFromDoc')),
+        ...(await import('@/server/utils/artistDoc/refreshArtistDoc')),
+    };
+}
 // Default: no grounded questions — every existing test exercises the static
 // fallback path unless it explicitly overrides this per-test. `_PREFIX` is a
 // real constant (not a mock function) since turnHandlers.ts uses its string
@@ -151,7 +162,7 @@ describe('runOnboardingTurn', () => {
     it('auto-build streams the Lore document and the About into the popup as they are written', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.synthesizeArtistDoc.mockImplementationOnce(async (_id, _sources, { onTextDelta }) => {
             onTextDelta('## Overview\n');
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -185,7 +196,7 @@ describe('runOnboardingTurn', () => {
     it('auto-build still reports a failed Lore document after streaming part of it', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.synthesizeArtistDoc.mockImplementationOnce(async (_id, _sources, { onTextDelta }) => {
             onTextDelta('## Over');
             throw new Error('Gemini timeout');
@@ -1525,7 +1536,7 @@ describe('runOnboardingTurn', () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
         const dq = await import('@/server/utils/queries/dashboardQueries');
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.stripCitationMarkers.mockImplementation(text => text.replace(/\[\d+\]/g, ''));
         const { db } = await import('@/server/db/drizzle');
         const where = jest.fn().mockResolvedValue(undefined);
@@ -1706,7 +1717,7 @@ describe('runOnboardingTurn', () => {
     it('publish skips the Gemini retry once the retry budget is exhausted, letting the failure propagate (I2)', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.synthesizeArtistDoc.mockRejectedValueOnce(new Error('gemini boom'));
         const dateSpy = jest.spyOn(Date, 'now')
             .mockReturnValueOnce(0)      // publishStartedAt
@@ -1720,7 +1731,7 @@ describe('runOnboardingTurn', () => {
     it('the About turn skips its retry once past budget too (I2 — the branch that matters for the real worst case)', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.generateAboutFromDoc.mockRejectedValueOnce(new Error('about boom'));
         const dateSpy = jest.spyOn(Date, 'now')
             .mockReturnValueOnce(0)      // startedAt
@@ -1737,7 +1748,7 @@ describe('runOnboardingTurn', () => {
     it('about_choice mode "generate" writes the About from the doc the artist echoed back, corrections included', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.generateAboutFromDoc.mockResolvedValueOnce('An About.');
         const { runOnboardingTurn } = await import('../turnHandlers');
         const corrected = '## Overview\nThe artist corrected this line themselves.';
@@ -1752,7 +1763,7 @@ describe('runOnboardingTurn', () => {
     it('about_choice mode "self" generates nothing and hands back an empty About to write into', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         const { runOnboardingTurn } = await import('../turnHandlers');
         const events = await collect(runOnboardingTurn('a1', { type: 'about_choice', mode: 'self', doc: '## Overview\ndoc' }));
         // Their words are the point — we must not put a draft in their mouth first.
@@ -1766,7 +1777,7 @@ describe('runOnboardingTurn', () => {
     it('about_choice refuses to run before the earlier steps are done', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'vault' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         const { runOnboardingTurn } = await import('../turnHandlers');
         const events = await collect(runOnboardingTurn('a1', { type: 'about_choice', mode: 'generate', doc: '## Overview\ndoc' }));
         expect(docService.generateAboutFromDoc).not.toHaveBeenCalled();
@@ -1776,7 +1787,7 @@ describe('runOnboardingTurn', () => {
     it('publish retries the Gemini call once when still within the retry budget (I2 regression)', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.synthesizeArtistDoc
             .mockRejectedValueOnce(new Error('transient'))
             .mockResolvedValueOnce('## Overview\nrecovered doc');
@@ -1850,7 +1861,7 @@ describe('runOnboardingTurn', () => {
     it('narrates before the card in every draft stage, never after', async () => {
         const oq = await import('@/server/utils/queries/onboardingQueries');
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'publish' });
-        const docService = await import('@/server/utils/artistDocService');
+        const docService = await docServiceMocks();
         docService.synthesizeArtistDoc.mockResolvedValue('## Overview\nA doc.');
         docService.generateAboutFromDoc.mockResolvedValue('An About.');
         const { runOnboardingTurn } = await import('../turnHandlers');

@@ -28,7 +28,7 @@ import {
     startInstagramScrape, checkInstagramScrape, collectInstagramScrape,
 } from "@/server/utils/socialIngest";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
-import { refreshArtistDoc } from "@/server/utils/artistDocService";
+import { refreshArtistDoc } from "@/server/utils/artistDoc/refreshArtistDoc";
 import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 /** Headroom kept back so the slice can persist what it did before the platform

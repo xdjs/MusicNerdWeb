@@ -68,8 +68,8 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
 | 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | flash (was pro; see below) | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
-| 5 | `artistDocService.ts` `synthesizeArtistDoc` | Knowledge document from sources | flash | temp 0.4, thinking 0, streamed | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
-| 6 | `artistDocService.ts` `generateAboutFromDoc` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding |
+| 5 | `artistDoc/synthesizeArtistDoc.ts` | Knowledge document from sources | flash | temp 0.4, thinking 0, streamed | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
+| 6 | `artistDoc/generateAboutFromDoc.ts` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 8 | `artistDocService.ts` `generateLoreSummary` | Two-sentence Lore inventory overview | flash | temp 0.2, thinking 0 | 12 s → returns `undefined`, never throws | `refreshArtistDoc` (runs alongside #5) |
 | 9 | `questionGenerator.ts` `generateGroundedQuestions` | Interview questions from posts | flash | temp 0.8, JSON schema | 30 s → `"questionGenerator timeout"` | interview, onboarding |
@@ -95,7 +95,7 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > reasoning stays off (`thinkingBudget: 0`) until a bounded budget is measured against the
 > route's 60 s `maxDuration`.
 
-Sites 5 and 6 call `streamText` and take an optional `{ onTextDelta }` last argument. Only the
+Sites 5 and 6 (`src/server/utils/artistDoc/synthesizeArtistDoc.ts` and `generateAboutFromDoc.ts`, one function per file) call `streamText` and take an optional `{ onTextDelta }` last argument. Only the
 auto-build (`runAutoBuild` in `onboarding/turnHandlers.ts`) passes it; every other caller gets
 the same finished string as before. Timeouts, citation validation (`validateCitations`) and
 length caps run on the finished text exactly as they did; what streams is the raw draft,

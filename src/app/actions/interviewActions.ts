@@ -488,7 +488,7 @@ export async function finishInterview(artistId: string): Promise<{ success: bool
     if (!session) return { success: false };
     try {
         if (!(await canEditArtist(session.user.id, artistId))) return { success: false };
-        const { refreshArtistDoc } = await import("@/server/utils/artistDocService");
+        const { refreshArtistDoc } = await import("@/server/utils/artistDoc/refreshArtistDoc");
         await refreshArtistDoc(artistId);
         return { success: true };
     } catch (e) {

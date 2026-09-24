@@ -33,16 +33,16 @@ import {
 } from "@/server/utils/artistIdentityGuards";
 import { extractArtistId } from "@/server/utils/services";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
+import { synthesizeArtistDoc } from "@/server/utils/artistDoc/synthesizeArtistDoc";
+import { generateAboutFromDoc } from "@/server/utils/artistDoc/generateAboutFromDoc";
+import { refreshArtistDoc } from "@/server/utils/artistDoc/refreshArtistDoc";
 import {
-    synthesizeArtistDoc,
-    generateAboutFromDoc,
     synthesizeFallbackAbout,
     buildDocSources,
     extractCitedIds,
     stripCitationMarkers,
     ARTIST_DOC_MAX_CHARS,
     GEMINI_TIMEOUT_MS,
-    refreshArtistDoc,
     type DocSource,
 } from "@/server/utils/artistDocService";
 import { discoverArtistProfilesStream, titleMatchesArtist, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
