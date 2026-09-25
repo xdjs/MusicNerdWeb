@@ -262,6 +262,25 @@ describe('useOnboardingChat', () => {
         expect(result.current.items.find(i => i.kind === 'unreachable')?.platforms).toEqual(['Instagram']);
     });
 
+    it('o) source frames arrive one item each, and the sources frame carries every source on the page', async () => {
+        const a = { title: 'A', url: 'https://a.com/1', ogImage: null };
+        const b = { title: 'B', url: 'https://b.com/2', ogImage: 'https://b.com/og.jpg' };
+        (global.fetch as jest.Mock).mockResolvedValueOnce(fakeStreamResponse([
+            `data: ${JSON.stringify({ kind: 'source', source: a })}\n\n`,
+            `data: ${JSON.stringify({ kind: 'source', source: b })}\n\n`,
+            `data: ${JSON.stringify({ kind: 'sources', sources: [a, b] })}\n\n`,
+            'data: {"kind":"complete"}\n\n',
+        ]));
+
+        const { result } = renderHook(() => useOnboardingChat('artist-1'));
+        await act(async () => {
+            await result.current.sendTurn({ type: 'open' });
+        });
+
+        expect(result.current.items.filter(i => i.kind === 'source').map(i => i.saved)).toEqual([[a], [b]]);
+        expect(result.current.items.find(i => i.kind === 'sources')?.saved).toEqual([a, b]);
+    });
+
     it('e) userEcho — interview_answer with null answer echoes "Skip that one."; with an answer echoes the answer', async () => {
         (global.fetch as jest.Mock).mockResolvedValue(fakeStreamResponse(['']));
 

@@ -839,6 +839,10 @@ async function searchAndPopulateVaultInternal(
          *  because it is the only caller that writes handles nobody has
          *  looked at, immediately before calling this. */
         provisionalSiteNames?: string[];
+        /** Told about each source the moment it is saved, so the onboarding
+         *  research view can show it (docs/research-view.md). A throw here is
+         *  swallowed: reporting never costs a source. */
+        onSaved?: (source: ArtistVaultSource) => void;
     },
 ): Promise<ArtistVaultSource[]> {
     const provisional = new Set(opts?.provisionalSiteNames ?? []);
@@ -1103,6 +1107,10 @@ async function searchAndPopulateVaultInternal(
         );
 
         const insertedSources: ArtistVaultSource[] = [];
+        const saved = (source: ArtistVaultSource) => {
+            insertedSources.push(source);
+            try { opts?.onSaved?.(source); } catch (e) { console.error("[vaultWebSearch] onSaved failed:", e); }
+        };
         /** Article URLs harvested from index pages, followed after the main pass. */
         const indexLinks = new Set<string>();
         /** Account URLs the search returned — candidate handles, verified below. */
@@ -1369,7 +1377,7 @@ async function searchAndPopulateVaultInternal(
                     // about a real artist seven years later.
                     publishedAt: page.publishedAt ?? null,
                 });
-                if (source) insertedSources.push(source);
+                if (source) saved(source);
             } catch (e) {
                 console.error("[vaultWebSearch] Failed to insert source:", result.url, e);
             }
@@ -1588,7 +1596,7 @@ async function searchAndPopulateVaultInternal(
                             publishedAt: page.publishedAt ?? null,
                         });
                         if (source) {
-                            insertedSources.push(source);
+                            saved(source);
                             console.log(`[vaultWebSearch] Recovered from index: ${page.title?.slice(0, 70)}`);
                         }
                     } catch (e) {

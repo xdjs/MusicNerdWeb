@@ -382,6 +382,49 @@ describe('runOnboardingTurn', () => {
         expect(events.findIndex(e => e.kind === 'unreachable')).toBeLessThan(done);
     });
 
+    it('auto-build shows each source as it is saved, every source on the page when done, and links the search adopted', async () => {
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const { searchAndPopulateVault } = await import('@/server/utils/queries/vaultWebSearch');
+        const aq = await import('@/server/utils/queries/artistQueries');
+        const dq = await import('@/server/utils/queries/dashboardQueries');
+
+        const row = (url, extra = {}) => ({ id: url, url, title: `About ${url}`, ogImage: null, status: 'pending', snippet: 's', type: 'article', ...extra });
+        let searched = false;
+        searchAndPopulateVault.mockImplementationOnce(async (_id, { onSaved }) => {
+            onSaved(row('https://a.com/1', { ogImage: 'https://a.com/og.jpg' }));
+            await new Promise(resolve => setTimeout(resolve, 0));
+            onSaved(row('https://b.com/2'));
+            searched = true;
+            return [];
+        });
+        aq.getArtistById.mockImplementation(async () => (searched
+            ? { id: 'a1', name: 'Nova Reyes', spotify: 'spot1', instagram: 'nova', bandcamp: 'novareyes' }
+            : { id: 'a1', name: 'Nova Reyes', spotify: 'spot1', instagram: 'nova', bandcamp: null }));
+        aq.getAllLinks.mockResolvedValue([{ siteName: 'bandcamp', cardPlatformName: 'Bandcamp', appStringFormat: 'https://%@.bandcamp.com' }]);
+        dq.getVaultSourcesByArtistId.mockImplementation(async (_id, status) => status === 'approved'
+            ? [row('https://a.com/1', { ogImage: 'https://a.com/og.jpg' }), row('https://b.com/2'), row('https://c.com/old')]
+            : []);
+
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+
+        const start = events.findIndex(e => e.kind === 'progress' && e.group === 'source-search' && !e.done);
+        const done = events.findIndex(e => e.kind === 'progress' && e.group === 'source-search' && e.done);
+        const stage = events.slice(start, done + 1);
+        expect(stage.filter(e => e.kind === 'source').map(e => e.source)).toEqual([
+            { title: 'About https://a.com/1', url: 'https://a.com/1', ogImage: 'https://a.com/og.jpg' },
+            { title: 'About https://b.com/2', url: 'https://b.com/2', ogImage: null },
+        ]);
+        expect(stage.find(e => e.kind === 'sources').sources.map(x => x.url)).toEqual(['https://a.com/1', 'https://b.com/2', 'https://c.com/old']);
+        expect(stage.find(e => e.kind === 'linked').profiles).toEqual([expect.objectContaining({ siteName: 'bandcamp', value: 'novareyes', profileUrl: 'https://novareyes.bandcamp.com' })]);
+        aq.getArtistById.mockReset();
+        aq.getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova Reyes', spotify: 'spot1', instagram: 'nova' });
+        aq.getAllLinks.mockResolvedValue([]);
+        dq.getVaultSourcesByArtistId.mockReset();
+        dq.getVaultSourcesByArtistId.mockResolvedValue([]);
+    });
+
     it('writes ONE account per platform and offers the other as a choice', async () => {
         // Discovery can now return two accounts for one platform. Passing both
         // to applyProfileLinkDecisions made the LAST one win — the silent

@@ -372,6 +372,31 @@ describe("searchAndPopulateVault", () => {
     expect(row.title).toBe("A");               // the PAGE's title, not the search hit's
   });
 
+  it("tells the caller about each source as it is saved, from both save points", async () => {
+    // The research view shows sources as they are saved (docs/research-view.md).
+    const index = "https://example.com/tag/grimes";
+    const article = "https://example.com/grimes-interview";
+    mockWebSearch.mockResolvedValue([hit("https://example.com/a"), hit(index)]);
+    mockFetchPage.mockImplementation(async url => url === index ? { ...goodPage, links: [article] } : goodPage);
+    mockJudge.mockImplementation(async (_a, candidates) => new Map(candidates.map(c => [c.url, c.url === index ? "lists-artist" : "about-artist"])));
+    mockInsert.mockImplementation(async row => ({ id: row.url, url: row.url, title: row.title, ogImage: row.ogImage, status: "pending" }));
+    const saved = [];
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    await searchAndPopulateVault("a1", { onSaved: source => saved.push(source.url) });
+
+    expect(saved).toContain("https://example.com/a");
+    expect(saved).toContain(article);
+    expect(saved).toEqual(mockInsert.mock.calls.map(c => c[0].url));
+  });
+
+  it("a caller whose onSaved throws never costs a source", async () => {
+    mockWebSearch.mockResolvedValue([hit("https://example.com/a"), hit("https://example.com/b")]);
+    const { searchAndPopulateVault } = await import("../vaultWebSearch");
+    const result = await searchAndPopulateVault("a1", { onSaved: () => { throw new Error("view gone"); } });
+    expect(mockInsert).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(2);
+  });
+
   it("drops a candidate whose URL does not exist (404)", async () => {
     mockWebSearch.mockResolvedValue([hit("https://example.com/gone")]);
     mockFetchPage.mockResolvedValue({ title: null, snippet: null, extractedText: null, fullText: null, ogImage: null, status: 404 });

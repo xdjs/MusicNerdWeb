@@ -8,9 +8,11 @@ import { writingDrafts } from "@/lib/onboarding/writingDrafts";
 import { buildFailure } from "@/lib/onboarding/buildFailure";
 import { foundProfiles } from "@/lib/onboarding/foundProfiles";
 import { unreachableNote } from "@/lib/onboarding/unreachableNote";
+import { savedSources } from "@/lib/onboarding/savedSources";
 import ResearchStep from "./ResearchStep";
 import ResearchReleases from "./ResearchReleases";
 import ResearchProfiles from "./ResearchProfiles";
+import ResearchSources from "./ResearchSources";
 
 // Streamdown and its Markdown stack load only once there's a draft to show.
 const ResearchDraft = lazy(() => import("./ResearchDraft"));
@@ -44,6 +46,8 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
     const failure = buildFailure(items);
     const profiles = foundProfiles(items);
     const note = unreachableNote(items);
+    const sources = savedSources(items);
+    const cardCount: Record<string, number> = { "platform-search": profiles.length, "source-search": sources.sources.length };
     // A stage with cards stays open while the build runs and collapses to its
     // summary once the page is ready (docs/research-view.md); the artist can
     // open or close it either way.
@@ -78,7 +82,7 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
 
             <ol aria-label="Research steps" className="m-0 list-none p-0">
                 {stages.map((stage, i) => {
-                    const hasCards = stage.group === "platform-search" && profiles.length > 0;
+                    const hasCards = (cardCount[stage.group] ?? 0) > 0;
                     return (
                         <ResearchStep
                             key={stage.group}
@@ -90,6 +94,9 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
                         >
                             {stage.group === "platform-search" && (profiles.length > 0 || note) && (
                                 <ResearchProfiles profiles={profiles} note={note} collapsed={hasCards && !isOpen(stage.group)} />
+                            )}
+                            {stage.group === "source-search" && hasCards && (
+                                <ResearchSources sources={sources.sources} total={sources.total} collapsed={!isOpen(stage.group)} />
                             )}
                             {stage.state === "error" && failure && (
                                 <div className="flex flex-col items-start gap-3">
