@@ -15,7 +15,7 @@ describe('ResearchReleases', () => {
         expect(await screen.findByRole('img', { name: 'Largos Caminos (2025)' })).toBeInTheDocument();
         expect(screen.getByRole('img', { name: 'Oriza (2016)' })).toBeInTheDocument();
         expect(screen.queryByRole('img', { name: /No Art/ })).toBeNull();
-        expect(screen.getByText(/your music on deezer/i)).toBeInTheDocument();
+        expect(screen.getByText(/your latest releases/i)).toBeInTheDocument();
     });
 
     it('shows nothing when there are no covers', async () => {

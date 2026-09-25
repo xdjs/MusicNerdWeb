@@ -150,7 +150,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     // that case — never fall back to a default/guessed state here.
     const onboardingState = isClaimedByUser ? await getOnboardingState(id) : null;
 
-    // The research view's "your music on deezer" covers: the Latest section's own
+    // The research view's "your latest releases" covers: the Latest section's own
     // cached call, started only when the claimant's onboarding view will render,
     // and passed down unawaited so it never holds up the page (docs/research-view.md).
     const onboardingReleases = !interviewPreview && onboardingState && !onboardingState.complete
