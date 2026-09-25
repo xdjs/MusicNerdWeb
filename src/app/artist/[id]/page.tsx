@@ -1,38 +1,26 @@
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
-import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
-import ClaimButton from "./_components/ClaimButton";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { getClaimByArtistId } from "@/server/utils/queries/dashboardQueries";
 import { notFound } from "next/navigation";
 import { EditModeProvider } from "@/app/_components/EditModeContext";
-import EditModeToggle from "@/app/_components/EditModeToggle";
-import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
-import AddArtistData from "@/app/artist/[id]/_components/AddArtistData";
-import HeroSection from "./_components/HeroSection";
-import ProfileSectionNav from "./_components/ProfileSectionNav";
-import VaultSection from "./_components/VaultSection";
-import KnowledgeSection from "./_components/KnowledgeSection";
-import ArtistAskSheet from "./_components/ArtistAskSheet";
 import OutboundClickTracker from "./_components/OutboundClickTracker";
-import LatestSection from "./_components/LatestSection";
-import { Suspense } from "react";
-import RevealSection from "./_components/RevealSection";
+import ArtistProfileContent from "./_components/ArtistProfileContent";
 import { getVaultSourcesByArtistId } from "@/server/utils/queries/dashboardQueries";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import type { Metadata } from "next";
 import SeoArtistLinks from "./_components/SeoArtistLinks";
 import ArtistJsonLd from "./_components/ArtistJsonLd";
-import OfficialSiteLinks from "./_components/OfficialSiteLinks";
 import OnboardingGate from "./_components/onboarding/OnboardingGate";
 import ProfileTour from "./_components/onboarding/ProfileTour";
 import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
 import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
 import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
+import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 
@@ -154,10 +142,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
-    // Claim owners keep direct editing, including owners who are also admins.
-    // Other admin/whitelisted additions use auto-approved UGC so they appear in the feed.
-    const directEditLinks = isClaimedByUser;
-    const autoApproveLinkSubmissions = isAdmin || !!dbUser?.isWhiteListed;
 
     // Onboarding state costs a query — computed ONLY for the approved claimant.
     // getOnboardingState returns null when the confirmed-steps read FAILED (fail
@@ -166,12 +150,33 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     // that case — never fall back to a default/guessed state here.
     const onboardingState = isClaimedByUser ? await getOnboardingState(id) : null;
 
-    const pendingSources = canEdit ? pendingSourcesRaw : [];
+    // The research view's "your latest releases" covers: the Latest section's own
+    // cached call, started only when the claimant's onboarding view will render,
+    // and passed down unawaited so it never holds up the page (docs/research-view.md).
+    const onboardingReleases = !interviewPreview && onboardingState && !onboardingState.complete
+        ? getLatestArtistReleases(artist).catch(() => [])
+        : undefined;
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
 
-    const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
-    const listenLinks = getListeningLinks(artist, artistLinks, approvedSources);
+    const profile = (
+        <ArtistProfileContent
+            artist={artist}
+            imageUrl={imageUrl}
+            platformImage={platformImage}
+            artistLinks={artistLinks}
+            approvedSources={approvedSources}
+            pendingSources={canEdit ? pendingSourcesRaw : []}
+            urlMapList={urlMapList}
+            addLinkPrefill={addLinkPrefill}
+            isClaimed={isClaimed}
+            isClaimedByUser={isClaimedByUser}
+            isPending={isPending}
+            isPendingByUser={isPendingByUser}
+            canEdit={canEdit}
+            autoApprove={isAdmin || !!dbUser?.isWhiteListed}
+        />
+    );
 
     return (
         <>
@@ -198,74 +203,21 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
-                {!interviewPreview && onboardingState && !onboardingState.complete && (
+                {/* The artist page. While a fresh claim's onboarding runs, the research
+                    view takes its place under the app's nav (docs/research-view.md);
+                    the gate hands it back when the build finishes or is skipped. */}
+                {onboardingReleases && onboardingState ? (
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
                         currentStep={onboardingState.currentStep}
-                    />
-                )}
-
-                <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
-                    initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
-                    hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
-                    artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenLinks={listenLinks}>
-                    <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
-                        <ClaimButton
-                            artistId={artist.id}
-                            isClaimed={isClaimed}
-                            isClaimedByUser={isClaimedByUser}
-                            isPending={isPending}
-                            isPendingByUser={isPendingByUser}
-                            artistInstagram={artist.instagram}
-                            compactOnMobile
-                        />
-                        {canEdit && <EditModeToggle compactOnMobile />}
-                    </div>
-                </HeroSection>
-
-                <ProfileSectionNav key={artist.id} />
-
-                <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
-                    <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
-                </Suspense>
-
-                {/* Listening, social and support links share one destination. */}
-                <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-black dark:text-white text-xl font-bold">Links</h2>
-                        <AddArtistData
-                            artist={artist}
-                            spotifyImg={platformImage ?? ""}
-                            availableLinks={urlMapList}
-                            isOpenOnLoad={!!addLinkPrefill}
-                            prefillUrl={addLinkPrefill}
-                            directEdit={directEditLinks}
-                            autoApprove={autoApproveLinkSubmissions}
-                        />
-                    </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                    <OfficialSiteLinks sources={approvedSources} />
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
-                        <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
-                        <AddArtistData
-                            artist={artist}
-                            spotifyImg={platformImage ?? ""}
-                            availableLinks={urlMapList}
-                            isOpenOnLoad={false}
-                            directEdit={directEditLinks}
-                            autoApprove={autoApproveLinkSubmissions}
-                        />
-                    </div>
-                    <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                </RevealSection>
-                <div id="mn-lore">
-                    <VaultSection artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
-                </div>
-                <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
+                        imageUrl={imageUrl}
+                        releases={onboardingReleases}
+                    >
+                        {profile}
+                    </OnboardingGate>
+                ) : profile}
             </div>
-            <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
             <OutboundClickTracker />
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />

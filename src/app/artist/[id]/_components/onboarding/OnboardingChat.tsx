@@ -1,15 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import BuildStatus from "./BuildStatus";
+import ResearchView from "./ResearchView";
+import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
 import { useOnboardingChat, type ChatItem } from "./useOnboardingChat";
 import { useResearchPump } from "./useResearchPump";
 import { ProfilesCard, VaultCard, InterviewInput, AboutDraftCard, DocReviewCard, LiveDiscoveryFeed, type InterviewPayload } from "./StepCards";
 import ProfileChoice from "./ProfileChoice";
 import MusicNerdLoader from "@/app/_components/MusicNerdLoader";
 
-type Props = { artistId: string; artistName: string; onSkip: () => void; onFinish: () => void };
+type Props = {
+    artistId: string;
+    artistName: string;
+    onSkip: () => void;
+    onFinish: () => void;
+    /** The artist's image and latest releases for the research view's hero (docs/research-view.md). */
+    imageUrl?: string;
+    releases?: Promise<LatestRelease[]>;
+    /** The artist page. The research view takes its place while the build runs;
+     *  the resume path's step cards sit over it. */
+    children?: ReactNode;
+};
 
 // Presentational only — progress rail order + stage derivation for display purposes.
 const STEP_ORDER = ["profiles", "vault", "interview", "publish"] as const;
@@ -39,7 +51,7 @@ function prefersReducedMotion(): boolean {
     return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function OnboardingChat({ artistId, artistName, onSkip, onFinish }: Props) {
+export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, imageUrl, releases, children }: Props) {
     const { items, busy, sendTurn } = useOnboardingChat(artistId);
     // Keeps the scrape and the caption extraction moving while the artist is
     // here. They are minutes of work and no request lives that long, so the
@@ -286,30 +298,32 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish 
     // nothing and the artist answers nothing. A step card appearing is what makes
     // it a conversation again (the resume path, where they really are answering),
     // so that is the discriminator rather than a mode flag that could drift.
-    // An ERROR always falls back to the chat surface. The build card has no way
-    // to show a failure or offer "Try again", so inferring build-mode from "no
-    // step card yet" would strand an artist on a frozen card after a failed
-    // build — with no error and no recovery.
-    const isBuild = !items.some(i => i.kind === "step" || i.kind === "draft" || i.kind === "error");
+    // A failed build stays in the research view, which shows the failed step,
+    // keeps what streamed, and offers "try again" (docs/research-view.md). The
+    // old popup had no way to, so errors used to fall back to the chat surface.
+    const isBuild = !items.some(i => i.kind === "step" || i.kind === "draft");
     if (isBuild) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                <BuildStatus
-                    artistName={artistName}
-                    items={items}
-                    complete={complete}
-                    onSkip={onSkip}
-                    onFinish={() => {
-                        window.scrollTo({ top: 0, behavior: "auto" });
-                        router.refresh();
-                        onFinish();
-                    }}
-                />
-            </div>
+            <ResearchView
+                artistName={artistName}
+                imageUrl={imageUrl}
+                releases={releases}
+                items={items}
+                complete={complete}
+                onSkip={onSkip}
+                onRetry={() => void sendTurn({ type: "open" })}
+                onFinish={() => {
+                    window.scrollTo({ top: 0, behavior: "auto" });
+                    router.refresh();
+                    onFinish();
+                }}
+            />
         );
     }
 
     return (
+        <>
+        {children}
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <div className="w-full max-w-[480px] h-[85vh] glass rounded-2xl flex flex-col overflow-hidden shadow-2xl shadow-black/30 dark:shadow-black/50 animate-onboarding-panel-in">
                 <div className="flex flex-col border-b border-black/10 dark:border-white/10">
@@ -364,5 +378,6 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish 
                 </div>
             </div>
         </div>
+        </>
     );
 }

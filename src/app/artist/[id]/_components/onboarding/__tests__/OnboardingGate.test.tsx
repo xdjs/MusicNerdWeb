@@ -18,10 +18,11 @@ import OnboardingGate, { skipFlagKey } from '../OnboardingGate';
 
 jest.mock('../OnboardingChat', () => ({
     __esModule: true,
-    default: ({ onSkip, onFinish }) => (
+    default: ({ onSkip, onFinish, children }) => (
         <div data-testid="onboarding-chat">
             <button onClick={onSkip}>skip</button>
             <button onClick={onFinish}>finish</button>
+            <div data-testid="passed-page">{children}</div>
         </div>
     ),
 }));
@@ -62,5 +63,25 @@ describe('OnboardingGate', () => {
         expect(sessionStorage.getItem(skipFlagKey('a1'))).toBeNull();
         expect(screen.queryByTestId('onboarding-chat')).not.toBeInTheDocument();
         expect(screen.queryByText(/finish setting up/i)).not.toBeInTheDocument();
+    });
+
+    // The research view replaces the artist page below the app's own nav, so the
+    // gate owns the page: it hands it to the chat (which decides whether to show
+    // it) and shows it itself around the banner and once onboarding closes.
+    it('hands the artist page to the chat while onboarding runs', () => {
+        render(<OnboardingGate artistId="a1" artistName="Nova Reyes" currentStep="profiles"><p>artist page</p></OnboardingGate>);
+        expect(screen.getByTestId('passed-page')).toHaveTextContent('artist page');
+    });
+
+    it('shows the artist page under the banner, and after a real finish', () => {
+        sessionStorage.setItem(skipFlagKey('a1'), '1');
+        const { unmount } = render(<OnboardingGate artistId="a1" artistName="Nova Reyes" currentStep="vault"><p>artist page</p></OnboardingGate>);
+        expect(screen.getByText('artist page')).toBeInTheDocument();
+        unmount();
+        sessionStorage.clear();
+        render(<OnboardingGate artistId="a1" artistName="Nova Reyes" currentStep="publish"><p>artist page</p></OnboardingGate>);
+        fireEvent.click(screen.getByText('finish'));
+        expect(screen.getByText('artist page')).toBeInTheDocument();
+        expect(screen.queryByTestId('onboarding-chat')).not.toBeInTheDocument();
     });
 });

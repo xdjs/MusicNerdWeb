@@ -1,5 +1,10 @@
 # Research runs
 
+> **Superseded 2026-09-24 (Sweetman, team call).** Runs are not stored. Research is shown live
+> instead, in the [research view](research-view.md). This contract stays as the record of the
+> design and its step vocabulary. Migration `0030` (#1349) was closed unmerged and never applied.
+> Carl noted that a debugging log table remains an option if the live view isn't enough.
+
 Tracked on [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347). This is the contract for
 recording what artist research does and for the page that shows it. The schema is migration
 `0030`. The recorder, the triggers and the page follow it; until they ship, runs are not written.

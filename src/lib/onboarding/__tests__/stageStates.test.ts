@@ -28,4 +28,35 @@ describe("stageStates", () => {
         ]);
         expect(states.map(s => s.state)).toEqual(["pending", "pending", "pending"]);
     });
+
+    it("marks the stage that was running as failed when the build ends on an error", () => {
+        const states = stageStates([
+            progress("platform-search", "Found 7 profiles", true),
+            progress("source-search", "Read 17 sources", true),
+            progress("about-write", "Writing your About", false),
+            { kind: "error", text: "Could not publish your About and Lore." },
+        ]);
+        expect(states.map(s => s.state)).toEqual(["done", "done", "error"]);
+    });
+
+    it("marks the first unfinished stage as failed when the error comes before it reports", () => {
+        const states = stageStates([
+            progress("platform-search", "Found 7 profiles", true),
+            { kind: "error", text: "Something went wrong" },
+        ]);
+        expect(states.map(s => s.state)).toEqual(["done", "error", "pending"]);
+    });
+
+    // "Try again" after a dropped connection: the server finished the build
+    // meanwhile, so the new turn answers `complete` without replaying progress.
+    it("marks every stage done once the build completes, even one that never reported done", () => {
+        const states = stageStates([
+            progress("platform-search", "Found 5 profiles", true),
+            progress("source-search", "Looked for sources about you", true),
+            progress("about-write", "Writing your About", false),
+            { kind: "error", text: "Connection dropped" },
+            { kind: "complete" },
+        ]);
+        expect(states.map(s => s.state)).toEqual(["done", "done", "done"]);
+    });
 });

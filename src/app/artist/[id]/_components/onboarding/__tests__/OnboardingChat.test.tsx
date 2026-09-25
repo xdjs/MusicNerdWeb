@@ -55,8 +55,11 @@ describe('OnboardingChat', () => {
     });
 
     it('renders bot, user, progress (pending + done), and error items', () => {
+        // The chat layout is the RESUME path: a step card is what puts it on
+        // screen. Without one, the research view shows the build instead.
         setChat({
             items: [
+                { id: 's0', kind: 'step', step: 'interview', payload: { questionKey: 'offline_fact', question: 'Whats offline?', number: 1, total: 3 } },
                 { id: 'i1', kind: 'bot', text: 'Hey there' },
                 { id: 'i2', kind: 'user', text: 'Sup' },
                 { id: 'i3', kind: 'progress', text: 'Searching the web', done: false },
@@ -146,6 +149,20 @@ describe('OnboardingChat', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /see my page/i }));
         expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    });
+
+    it('keeps a failed build in the research view, with the partial draft, instead of the chat layout', async () => {
+        setChat({
+            items: [
+                { id: 'p1', kind: 'progress', group: 'about-write', text: 'Writing your About', done: false },
+                { id: 'w1', kind: 'writing', stage: 'doc', text: '## overview\nNova Reyes is a' },
+                { id: 'e1', kind: 'error', text: 'Could not publish your About and Lore.' },
+            ],
+        });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()} />);
+        expect(screen.getByRole('list', { name: /research steps/i })).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent('Could not publish your About and Lore.');
+        expect(await screen.findByRole('region', { name: 'Lore document' })).toHaveTextContent('Nova Reyes is a');
     });
 
     it('renders a "Try again" button on the last error item when nothing newer follows it, and it resyncs via sendTurn({type:"open"})', () => {
@@ -282,5 +299,18 @@ describe('OnboardingChat', () => {
 
             expect(screen.queryByText('↓ New messages')).not.toBeInTheDocument();
         });
+    });
+
+    it('shows the research view instead of the artist page while the build runs', () => {
+        setChat({ items: [{ id: 'p1', kind: 'progress', group: 'platform-search', text: 'Finding your profiles', done: false }] });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByRole('list', { name: /research steps/i })).toBeInTheDocument();
+        expect(screen.queryByText('artist page')).toBeNull();
+    });
+
+    it('keeps the artist page under the resume path\'s step cards', () => {
+        setChat({ items: [{ id: 's0', kind: 'step', step: 'interview', payload: { questionKey: 'offline_fact', question: 'Whats offline?', number: 1, total: 3 } }] });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByText('artist page')).toBeInTheDocument();
     });
 });
