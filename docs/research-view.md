@@ -15,7 +15,7 @@ the issue's Design section.
 it rendered the popup. While the auto-build runs (`runAutoBuild` in
 `src/server/utils/onboarding/turnHandlers.ts`) the view **takes the artist page's place, under the
 app's own nav**. There is no overlay and no header of its own (Sweetman, 2026-09-24). The page
-passes its content (hero through the Ask sheet) to the gate as `children`; the gate hands it to the
+passes its content (`ArtistProfileContent`: hero through the Ask sheet) to the gate as `children`; the gate hands it to the
 chat, which shows the view instead of it during the build, and gives it back when the build
 finishes or is skipped. The view sits in the page container (`max-w-[800px]`), so it resizes like
 every other page, with a fluid heading and photo. The resume path, where an artist answers step
