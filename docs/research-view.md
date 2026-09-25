@@ -33,7 +33,7 @@ what had streamed.
 | Stages | `progress` events grouped by `BUILD_STAGES` (`platform-search`, `source-search`, `about-write`), through `stageStates` | A quiet timeline: pending, running (the accent dot), done (a check), failed. The finished label carries the count ("found 7 profiles") |
 | Lore document and About drafts | `writing` items from `text-delta` events ([llm.md](llm.md), "Streaming into the build popup"), through `writingDrafts` | Rendered as Markdown by Streamdown while they stream. `[n]` markers render as quiet superscripts (`citationSuperscripts`); a marker still arriving at the end is held back until it completes, so it never flashes as a half-typed link. The model's internal labels (`[VERIFIED CATALOG]`, "(date unknown)") are hidden (`stripModelLabels`), as `validateCitations` does for the saved text. The page shows the validated version once saved |
 | Failure | The last `error` item | The step that was running is marked failed. Its partial draft stays on screen with "try again", which re-opens the turn (`{ type: "open" }`) |
-| Done | The `complete` item | "see my page" closes the view as the popup did |
+| Done | The `complete` item | Every stage shows done, including one whose own "done" never arrived (a "try again" after a dropped connection gets only `complete`, because the server finished the build meanwhile). "see my page" closes the view as the popup did |
 
 ## Rules
 
