@@ -114,6 +114,13 @@ export type TurnEvent =
     // reload/resume), so a client that ignores `candidate` entirely still
     // renders correctly, just without the live-discovery feel.
     | { kind: "candidate"; profile: DiscoveredProfile }
+    // Auto-build only: the profiles the build WROTE to the artist's row, after
+    // the identity guards. The research view swaps its live candidates for
+    // these, so its cards are what actually landed (docs/research-view.md).
+    | { kind: "linked"; profiles: DiscoveredProfile[] }
+    // Auto-build only: platforms that refused discovery (a login wall or a rate
+    // limit), by display name. Refused is not "not there"; the view says so.
+    | { kind: "unreachable"; platforms: string[] }
     // A piece of the Lore document ("doc") or the About ("about") as the model
     // writes it, auto-build only. The raw draft, citation markers included: the
     // validated text is what gets saved and what the page shows.
@@ -1098,9 +1105,9 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     // 1 — profiles
     yield { kind: "progress", label: "Finding your profiles", done: false, group: PROFILE_SEARCH_GROUP };
     const discovered: DiscoveredProfile[] = [];
-    /** Platforms that refused to answer. The auto-build has no card to put a
-     *  hint on, so it says so in the chat — "we found nothing there" and "they
-     *  would not tell us" are different sentences and only one is true. */
+    /** Platforms that refused to answer. The research view says so in one
+     *  sentence — "we found nothing there" and "they would not tell us" are
+     *  different sentences and only one is true. */
     const unreachable: string[] = [];
     try {
         for await (const event of discoverArtistProfilesStream(artistId)) {
@@ -1158,6 +1165,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         // Kept so the vault's answer can be compared against what discovery
         // actually wrote, once the search has run.
         for (const p of primaries) if (wrote.has(p.siteName)) discoveredBySiteName.set(p.siteName, p);
+        yield { kind: "linked", profiles: [...discoveredBySiteName.values()] };
         // Only where the write actually landed. Asking "which of these two is
         // yours" about a platform whose primary the identity guards refused
         // would be offering the artist a choice we already declined to make.
@@ -1190,12 +1198,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     // their own budget, driven by the client while the artist is still here and
     // by a scheduler when they are not, and the document is rebuilt once the
     // extraction finishes.
-    if (unreachable.length > 0) {
-        yield {
-            kind: "chat",
-            text: `${unreachable.join(" and ")} wouldn't let us look just now, so that's not a "no" — add ${unreachable.length === 1 ? "it" : "them"} from your page any time.`,
-        };
-    }
+    if (unreachable.length > 0) yield { kind: "unreachable", platforms: unreachable };
     await requestArtistResearch(artistId);
     yield {
         kind: "progress",

@@ -1,13 +1,16 @@
 "use client";
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { BuildItem } from "@/lib/onboarding/buildStages";
 import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
 import { stageStates } from "@/lib/onboarding/stageStates";
 import { writingDrafts } from "@/lib/onboarding/writingDrafts";
 import { buildFailure } from "@/lib/onboarding/buildFailure";
+import { foundProfiles } from "@/lib/onboarding/foundProfiles";
+import { unreachableNote } from "@/lib/onboarding/unreachableNote";
 import ResearchStep from "./ResearchStep";
 import ResearchReleases from "./ResearchReleases";
+import ResearchProfiles from "./ResearchProfiles";
 
 // Streamdown and its Markdown stack load only once there's a draft to show.
 const ResearchDraft = lazy(() => import("./ResearchDraft"));
@@ -39,6 +42,14 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
     const stages = stageStates(items);
     const drafts = writingDrafts(items);
     const failure = buildFailure(items);
+    const profiles = foundProfiles(items);
+    const note = unreachableNote(items);
+    // A stage with cards stays open while the build runs and collapses to its
+    // summary once the page is ready (docs/research-view.md); the artist can
+    // open or close it either way.
+    const [toggled, setToggled] = useState<Record<string, boolean>>({});
+    const isOpen = (group: string) => toggled[group] ?? !complete;
+    const toggle = (group: string) => setToggled(t => ({ ...t, [group]: !isOpen(group) }));
 
     // In the page flow, in place of the artist page and under the app's own nav
     // (docs/research-view.md). It inherits the page container, so it resizes the
@@ -66,21 +77,34 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
             </div>
 
             <ol aria-label="Research steps" className="m-0 list-none p-0">
-                {stages.map((stage, i) => (
-                    <ResearchStep key={stage.group} state={stage.state} title={stage.label} last={i === stages.length - 1}>
-                        {stage.state === "error" && failure && (
-                            <div className="flex flex-col items-start gap-3">
-                                <p role="alert" className="m-0 rounded-xl bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">{failure.message}</p>
-                                <button type="button" onClick={onRetry} className={PRIMARY}>try again</button>
-                            </div>
-                        )}
-                        {stage.group === "about-write" && drafts.length > 0 && (
-                            <Suspense fallback={null}>
-                                {drafts.map(d => <ResearchDraft key={d.label} label={d.label} text={d.text} />)}
-                            </Suspense>
-                        )}
-                    </ResearchStep>
-                ))}
+                {stages.map((stage, i) => {
+                    const hasCards = stage.group === "platform-search" && profiles.length > 0;
+                    return (
+                        <ResearchStep
+                            key={stage.group}
+                            state={stage.state}
+                            title={stage.label}
+                            last={i === stages.length - 1}
+                            expanded={hasCards ? isOpen(stage.group) : undefined}
+                            onToggle={hasCards ? () => toggle(stage.group) : undefined}
+                        >
+                            {stage.group === "platform-search" && (profiles.length > 0 || note) && (
+                                <ResearchProfiles profiles={profiles} note={note} collapsed={hasCards && !isOpen(stage.group)} />
+                            )}
+                            {stage.state === "error" && failure && (
+                                <div className="flex flex-col items-start gap-3">
+                                    <p role="alert" className="m-0 rounded-xl bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">{failure.message}</p>
+                                    <button type="button" onClick={onRetry} className={PRIMARY}>try again</button>
+                                </div>
+                            )}
+                            {stage.group === "about-write" && drafts.length > 0 && (
+                                <Suspense fallback={null}>
+                                    {drafts.map(d => <ResearchDraft key={d.label} label={d.label} text={d.text} />)}
+                                </Suspense>
+                            )}
+                        </ResearchStep>
+                    );
+                })}
             </ol>
         </section>
     );

@@ -245,6 +245,23 @@ describe('useOnboardingChat', () => {
         ]);
     });
 
+    it('n) linked and unreachable frames reach the research view as their own items', async () => {
+        const profile = { siteName: 'spotify', displayName: 'Spotify', value: 'bio', profileUrl: 'https://open.spotify.com/artist/bio', logoUrl: null, previewImage: null };
+        (global.fetch as jest.Mock).mockResolvedValueOnce(fakeStreamResponse([
+            `data: ${JSON.stringify({ kind: 'linked', profiles: [profile] })}\n\n`,
+            `data: ${JSON.stringify({ kind: 'unreachable', platforms: ['Instagram'] })}\n\n`,
+            'data: {"kind":"complete"}\n\n',
+        ]));
+
+        const { result } = renderHook(() => useOnboardingChat('artist-1'));
+        await act(async () => {
+            await result.current.sendTurn({ type: 'open' });
+        });
+
+        expect(result.current.items.find(i => i.kind === 'linked')?.candidates).toEqual([profile]);
+        expect(result.current.items.find(i => i.kind === 'unreachable')?.platforms).toEqual(['Instagram']);
+    });
+
     it('e) userEcho — interview_answer with null answer echoes "Skip that one."; with an answer echoes the answer', async () => {
         (global.fetch as jest.Mock).mockResolvedValue(fakeStreamResponse(['']));
 

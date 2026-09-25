@@ -57,6 +57,38 @@ describe('ResearchView', () => {
         expect(onRetry).toHaveBeenCalled();
     });
 
+    it('shows the profiles the build found as cards under their stage, with the refused-platforms sentence', () => {
+        const profile = (siteName, value) => ({ siteName, displayName: siteName, value, profileUrl: null, logoUrl: null, previewImage: null });
+        render(<ResearchView {...base} complete={false} items={[
+            progress('platform-search', 'Finding your profiles', false),
+            { kind: 'candidates', candidates: [profile('spotify', 'Bio Ritmo'), profile('youtube', 'bioritmo')] },
+            { kind: 'unreachable', platforms: ['Instagram'] },
+        ]} />);
+        const stage = screen.getByText('Finding your profiles').closest('li');
+        const cards = screen.getByRole('list', { name: /your profiles/i });
+        expect(stage).toContainElement(cards);
+        expect(cards.querySelectorAll(':scope > li')).toHaveLength(2);
+        expect(stage).toHaveTextContent('instagram wouldn’t let us look just now');
+    });
+
+    it('once the page is ready, collapses the profiles to a summary that opens again', () => {
+        const profile = (siteName) => ({ siteName, displayName: siteName, value: 'bio', profileUrl: null, logoUrl: null, previewImage: null });
+        render(<ResearchView {...base} complete items={[
+            progress('platform-search', 'Found 2 profiles', true),
+            { kind: 'linked', candidates: [profile('spotify'), profile('youtube')] },
+            progress('source-search', 'Read 17 sources', true),
+            progress('about-write', 'Wrote your About', true),
+            { kind: 'complete' },
+        ]} />);
+        expect(screen.queryByRole('list', { name: /your profiles/i })).toBeNull();
+        expect(screen.getByText('spotify and youtube')).toBeInTheDocument();
+        const toggle = screen.getByRole('button', { name: 'Found 2 profiles' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByRole('list', { name: /your profiles/i })).toBeInTheDocument();
+    });
+
     it('hands off when complete, and stops offering skip', () => {
         const onFinish = jest.fn();
         render(<ResearchView {...base} onFinish={onFinish} complete items={[
