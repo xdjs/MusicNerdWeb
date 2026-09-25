@@ -2,6 +2,7 @@
 
 import { Streamdown } from "streamdown";
 import { citationSuperscripts } from "@/lib/onboarding/citationSuperscripts";
+import { stripModelLabels } from "@/lib/onboarding/stripModelLabels";
 
 /** One draft the About stage is writing (the Lore document or the About),
  *  rendered as Markdown while it streams. The raw draft, citation markers
@@ -16,7 +17,7 @@ export default function ResearchDraft({ label, text }: { label: string; text: st
                 allowedTags={{ sup: [] }}
                 components={{ sup: ({ children }) => <sup className="ml-px text-[10px] text-[hsl(var(--muted-foreground))]">{children}</sup> }}
             >
-                {citationSuperscripts(text)}
+                {citationSuperscripts(stripModelLabels(text))}
             </Streamdown>
         </section>
     );

@@ -16,4 +16,9 @@ describe('ResearchDraft', () => {
         expect([...sups].map(s => s.textContent)).toEqual(['[1]', '[2]']);
         expect(sups[0].className).toContain('text-[hsl(var(--muted-foreground))]');
     });
+
+    it('keeps the model\'s internal labels off the artist\'s screen', () => {
+        render(<ResearchDraft label="Lore document" text={'released "Largos Caminos" in 2025 [VERIFIED CATALOG].'} />);
+        expect(screen.getByRole('region', { name: 'Lore document' })).not.toHaveTextContent('VERIFIED CATALOG');
+    });
 });

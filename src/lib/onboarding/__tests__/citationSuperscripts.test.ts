@@ -11,8 +11,14 @@ describe("citationSuperscripts", () => {
             .toBe("see [3](https://example.com) and [the band] here");
     });
 
-    it("leaves a marker that is still streaming in (no closing bracket yet) alone", () => {
-        expect(citationSuperscripts("pioneers [1")).toBe("pioneers [1");
+    it("drops a marker still streaming in at the very end, so Markdown can't draw it as a half-typed link", () => {
+        expect(citationSuperscripts("pioneers [1")).toBe("pioneers ");
+        expect(citationSuperscripts("pioneers [")).toBe("pioneers ");
+        expect(citationSuperscripts("pioneers [12] and [3")).toBe("pioneers <sup>[12]</sup> and ");
+    });
+
+    it("keeps an opening bracket that isn't at the end", () => {
+        expect(citationSuperscripts("a [draft] of [1")).toBe("a [draft] of ");
     });
 
     it("returns text without markers unchanged", () => {
