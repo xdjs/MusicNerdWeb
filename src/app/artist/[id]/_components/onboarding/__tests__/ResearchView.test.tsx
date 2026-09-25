@@ -71,6 +71,22 @@ describe('ResearchView', () => {
         expect(stage).toHaveTextContent('instagram wouldn’t let us look just now');
     });
 
+    it('counts the profiles it shows, not what discovery proposed', () => {
+        // On the #1358 preview discovery proposed 8 and the build wrote 7: the
+        // label said "Found 8 profiles" above seven cards.
+        const profile = (siteName) => ({ siteName, displayName: siteName, value: 'bio', profileUrl: null, logoUrl: null, previewImage: null });
+        const { rerender } = render(<ResearchView {...base} complete={false} items={[
+            progress('platform-search', 'Found 8 profiles', true),
+            { kind: 'linked', candidates: [profile('spotify'), profile('youtube')] },
+        ]} />);
+        expect(screen.getByRole('button', { name: 'Found 2 profiles' })).toBeInTheDocument();
+        rerender(<ResearchView {...base} complete={false} items={[
+            progress('platform-search', 'Found 8 profiles', true),
+            { kind: 'linked', candidates: [profile('spotify')] },
+        ]} />);
+        expect(screen.getByRole('button', { name: 'Found 1 profile' })).toBeInTheDocument();
+    });
+
     it('once the page is ready, collapses the profiles to a summary that opens again', () => {
         const profile = (siteName) => ({ siteName, displayName: siteName, value: 'bio', profileUrl: null, logoUrl: null, previewImage: null });
         render(<ResearchView {...base} complete items={[
