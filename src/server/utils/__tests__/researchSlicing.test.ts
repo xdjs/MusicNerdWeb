@@ -40,6 +40,12 @@ function replyFor(urls: string[]) {
     };
 }
 
+function clockThatAdvancesEachRead() {
+    const start = Date.now();
+    let elapsed = 0;
+    return jest.spyOn(Date, 'now').mockImplementation(() => start + elapsed++);
+}
+
 beforeEach(() => {
     generateContent.mockReset();
     generateContent.mockImplementation(async (req: unknown) => {
@@ -93,7 +99,10 @@ describe("extractCaptionCredits, sliced", () => {
         const posts = Array.from({ length: 40 }, (_, i) => post(i));
 
         // Enough to start, not enough to finish: it must stop and say where.
-        const slice = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 });
+        // The model mock is instant, so make the clock advance between reads.
+        const clock = clockThatAdvancesEachRead();
+        const slice = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 })
+            .finally(() => clock.mockRestore());
         expect(slice.done).toBe(false);
         expect(slice.nextBatch).toBeGreaterThan(0);
         expect(slice.nextBatch).toBeLessThan(slice.totalBatches);
@@ -104,7 +113,10 @@ describe("extractCaptionCredits, sliced", () => {
         const { extractCaptionCredits } = await import("@/server/utils/socialCredits");
         const posts = Array.from({ length: 40 }, (_, i) => post(i));
 
-        const first = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 });
+        const clock = clockThatAdvancesEachRead();
+        const first = await extractCaptionCredits(posts, "Artist", "artist", { budgetMs: 9_000 })
+            .finally(() => clock.mockRestore());
+        expect(first.done).toBe(false);
         const firstUrls = new Set(first.extraction.credits.map(c => c.url));
 
         const second = await extractCaptionCredits(posts, "Artist", "artist", {

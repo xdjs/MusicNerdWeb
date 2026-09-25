@@ -58,7 +58,45 @@ export class ArtistMusicPlatformDataProvider {
 
     async getArtistImage(artist: Artist): Promise<string | null> {
         const { primaryId, fallbackId } = this.resolveIds(artist);
-        return this.withFallback(primaryId, fallbackId, (p, id) => p.getArtistImage(id));
+        // Spotify supplies the preferred artist portrait when both links exist.
+        // Deezer remains primary for non-image artist data and provides the image fallback.
+        if (fallbackId) {
+            try {
+                const image = await this.fallbackProvider.getArtistImage(fallbackId);
+                if (image) return image;
+            } catch (error) {
+                console.error('[AMPDP] Spotify image unavailable, trying Deezer:', error);
+            }
+        }
+        if (primaryId) {
+            try {
+                return await this.primaryProvider.getArtistImage(primaryId);
+            } catch (error) {
+                console.error('[AMPDP] Deezer image unavailable:', error);
+            }
+        }
+        return null;
+    }
+
+    /** Profile hero and share-card image: keep Deezer's large image as fallback. */
+    async getArtistPortrait(artist: Artist): Promise<string | null> {
+        const spotifyId = artist.spotify?.trim();
+        if (spotifyId) {
+            try {
+                const image = await this.fallbackProvider.getArtistImage(spotifyId);
+                if (image) return image;
+            } catch (error) {
+                console.error('[AMPDP] Spotify portrait unavailable, trying Deezer:', error);
+            }
+        }
+        const deezerId = artist.deezer?.trim();
+        if (!deezerId) return null;
+        try {
+            return (await this.primaryProvider.getArtist(deezerId))?.imageUrl ?? null;
+        } catch (error) {
+            console.error('[AMPDP] Deezer portrait unavailable:', error);
+            return null;
+        }
     }
 
     async getTopTrackName(artist: Artist): Promise<string | null> {

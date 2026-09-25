@@ -63,7 +63,8 @@ describe('Spotify API Integration', () => {
                 {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                    },
+                    timeout: 2000
                 }
             );
         });
@@ -258,4 +259,4 @@ describe('Spotify API Integration', () => {
             expect(mockedAxios.get).not.toHaveBeenCalled();
         });
     });
-}); 
+});

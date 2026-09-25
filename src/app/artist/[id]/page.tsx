@@ -47,11 +47,11 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
         };
     }
 
-    const platformData = await musicPlatformData.getArtist(artist);
+    const platformImage = await musicPlatformData.getArtistPortrait(artist);
     const ownImage = customImageUrl(artist.customImage);
     const imageUrl = ownImage
         ? absoluteImageUrl(ownImage)
-        : platformData?.imageUrl || "https://www.musicnerd.xyz/default_pfp_pink.png";
+        : platformImage || "https://www.musicnerd.xyz/default_pfp_pink.png";
     const artistName = artist.name ?? "Unknown Artist";
 
     // The artist's own About, when one has been written, rather than the
@@ -126,16 +126,14 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     }
     // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
     // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformData, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistLinks] = await Promise.all([
-        musicPlatformData.getArtist(artist),
+    const [platformImage, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistLinks] = await Promise.all([
+        musicPlatformData.getArtistPortrait(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
         getVaultSourcesByArtistId(id, "pending"),
         getArtistLinks(artist),
     ]);
-
-    const platformImage = platformData?.imageUrl ?? null;
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";

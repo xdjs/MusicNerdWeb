@@ -58,7 +58,7 @@ export async function refreshSpotifyToken(): Promise<SpotifyHeaderType> {
         const { data } = await axios.post(
             "https://accounts.spotify.com/api/token",
             queryString.stringify(payload),
-            headers
+            { ...headers, timeout: 2000 }
         )
 
         if (!data.access_token) {
@@ -225,7 +225,7 @@ export const getSpotifyImage = cachedOrDirect(async (artistSpotifyId: string | n
     try {
         const artistData = await axios.get(
             `https://api.spotify.com/v1/artists/${artistSpotifyId}`,
-            spotifyHeaders
+            { ...spotifyHeaders, timeout: 2000 }
         );
         return { artistImage: artistData.data.images[0].url, artistId };
     } catch (error) {
@@ -411,5 +411,4 @@ export const getSpotifyCatalogNames = cachedOrDirect(async (
         return { releases: [], topTracks: [] };
     }
 }, ["spotify-catalog-names"], { tags: ["spotify-catalog-names"], revalidate: 60 * 60 * 24 });
-
 

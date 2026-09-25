@@ -11,6 +11,7 @@ type Tier = 'strict' | 'medium' | 'default' | 'artistImage';
 
 function getTier(pathname: string): Tier {
   if (/^\/api\/artist\/[^/]+\/image$/.test(pathname)) return 'artistImage';
+  if (/^\/api\/artist\/[^/]+\/lore-suggestions$/.test(pathname)) return 'medium';
   if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
   if (MEDIUM_PATHS.some((p) => pathname.startsWith(p))) return 'medium';
   return 'default';

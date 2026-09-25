@@ -57,7 +57,8 @@ describe('externalApiQueries', () => {
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-          }
+          },
+          timeout: 2000
         }
       );
 
@@ -368,7 +369,7 @@ describe('externalApiQueries', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'https://api.spotify.com/v1/artists/test_spotify_id',
-        mockHeaders
+        { ...mockHeaders, timeout: 2000 }
       );
 
       expect(result).toEqual({

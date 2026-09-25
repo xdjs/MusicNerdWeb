@@ -42,6 +42,8 @@ admin fallback as a completed integration check.
 | Agent API access and tool authorization | [MCP reference](mcp.md) |
 | Artist Latest | [Feature contract](artist-latest.md); release status in `MEMORY.md` |
 | Research view (what a claimed artist sees while research builds their page) | [View contract](research-view.md); status on [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347). The earlier [stored-run contract](research-runs.md) is superseded |
+| Artist portraits and thumbnails | [Image order](artist-imagery.md) |
+| Artist Lore URL suggestions | [Submission and review flow](artist-lore-submissions.md) |
 | User profile | [Live profile contract](user-profile.md) and [design previews](rnd/design/2026-09-15-user-profile-redesign/README.md) |
 | Account bookmarks | [Feature contract and migration](account-bookmarks.md); release status in `MEMORY.md` |
 | Web Analytics and URL scrub | [Analytics contract](analytics.md); release status on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) |

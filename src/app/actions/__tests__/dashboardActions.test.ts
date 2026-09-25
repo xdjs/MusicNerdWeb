@@ -33,6 +33,9 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     deleteBioVersion: jest.fn(),
     unpinArtistBio: jest.fn(),
 }));
+jest.mock("@/server/utils/queries/getVaultSourceUrlsByArtistId", () => ({
+    getVaultSourceUrlsByArtistId: jest.fn().mockResolvedValue([]),
+}));
 jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
     searchAndPopulateVault: jest.fn().mockResolvedValue(0),
 }));
@@ -162,6 +165,20 @@ describe("dashboardActions.addVaultSource", () => {
         }));
     });
 
+    it("stores the canonical URL without a fragment", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        expect((await addVaultSource("artist-1", "HTTPS://PITCHFORK.COM:443/a#bio")).success).toBe(true);
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }));
+    });
+
+    it("does not add a URL already stored with a fragment", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { getVaultSourceUrlsByArtistId } = await import("@/server/utils/queries/getVaultSourceUrlsByArtistId");
+        getVaultSourceUrlsByArtistId.mockResolvedValueOnce(["https://pitchfork.com/a#bio"]);
+        expect((await addVaultSource("artist-1", "https://pitchfork.com/a")).success).toBe(false);
+        expect(insertVaultSource).not.toHaveBeenCalled();
+    });
+
     it("rejects when session is missing", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         const { getServerAuthSession } = await import("@/server/auth");
@@ -281,6 +298,19 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "approved");
         expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
+    });
+
+    it("approves a visitor-suggested URL without fetching it in the request", async () => {
+        const { updateSourceStatus, dq } = await setup();
+        const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
+        dq.getVaultSourceById.mockResolvedValue({
+            id: "s1", artistId: "a1", url: "https://pitchfork.com/a", title: "Source from pitchfork.com", status: "pending", extractedText: null,
+        });
+
+        expect((await updateSourceStatus("s1", "approved")).success).toBe(true);
+        expect(fetchPageContent).not.toHaveBeenCalled();
+        expect(dq.updateVaultSourceContent).not.toHaveBeenCalled();
+        expect(dq.updateVaultSourceStatus).toHaveBeenCalledWith("s1", "approved");
     });
 
     it("rebuilds the doc when a source is deleted outright", async () => {

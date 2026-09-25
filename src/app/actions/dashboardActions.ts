@@ -27,7 +27,8 @@ import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/server/utils/queries/docCorrectionQueries";
 import { claimKey } from "@/lib/source/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
-import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
+import { canonicalizeLoreUrl } from "@/lib/source/canonicalizeLoreUrl";
+import { getVaultSourceUrlsByArtistId } from "@/server/utils/queries/getVaultSourceUrlsByArtistId";
 import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { generateReferenceCode } from "@/lib/referenceCode";
@@ -80,7 +81,7 @@ async function verifySourceEditable(userId: string, sourceId: string) {
     if (!source) return { authorized: false as const, error: "Source not found" };
     const claimId = await getLoreClaimGeneration(source.artistId);
     if (await canEditArtist(userId, source.artistId)) {
-        return { authorized: true as const, artistId: source.artistId, claimId };
+        return { authorized: true as const, artistId: source.artistId, claimId, source };
     }
     return { authorized: false as const, error: "Not authorized for this source" };
 }
@@ -145,12 +146,17 @@ export async function addVaultSource(
 
         // Reject non-http(s) schemes (javascript:, data:, file:, etc.) and private/local hosts.
         // URLs are rendered as <a href> on the public artist page — unsafe schemes would be stored XSS.
-        const normalizedUrl = normalizePublicUrl(url);
+        const normalizedUrl = canonicalizeLoreUrl(url);
         if (!normalizedUrl || isUnsafeUrl(normalizedUrl)) {
             return { success: false, error: "URL must be a public http or https address" };
         }
 
         url = normalizedUrl;
+
+        const existing = await getVaultSourceUrlsByArtistId(artistId);
+        if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
+            return { success: false, error: "This source has already been added" };
+        }
 
         // Insert immediately with domain-based title, then fetch content in background
         let title = "Untitled Source";
