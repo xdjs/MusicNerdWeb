@@ -14,7 +14,7 @@ export default function ResearchDraft({ label, text }: { label: string; text: st
             <Streamdown
                 className="text-[15px] leading-7 text-foreground [&_h2]:mb-1 [&_h2]:mt-4 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:lowercase [&_ul]:list-disc [&_ul]:pl-5"
                 allowedTags={{ sup: [] }}
-                components={{ sup: ({ children }) => <sup className="ml-px text-[10px] text-muted-foreground">{children}</sup> }}
+                components={{ sup: ({ children }) => <sup className="ml-px text-[10px] text-[hsl(var(--muted-foreground))]">{children}</sup> }}
             >
                 {citationSuperscripts(text)}
             </Streamdown>

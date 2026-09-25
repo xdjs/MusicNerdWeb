@@ -300,4 +300,17 @@ describe('OnboardingChat', () => {
             expect(screen.queryByText('↓ New messages')).not.toBeInTheDocument();
         });
     });
+
+    it('shows the research view instead of the artist page while the build runs', () => {
+        setChat({ items: [{ id: 'p1', kind: 'progress', group: 'platform-search', text: 'Finding your profiles', done: false }] });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByRole('list', { name: /research steps/i })).toBeInTheDocument();
+        expect(screen.queryByText('artist page')).toBeNull();
+    });
+
+    it('keeps the artist page under the resume path\'s step cards', () => {
+        setChat({ items: [{ id: 's0', kind: 'step', step: 'interview', payload: { questionKey: 'offline_fact', question: 'Whats offline?', number: 1, total: 3 } }] });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByText('artist page')).toBeInTheDocument();
+    });
 });

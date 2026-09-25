@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import OnboardingChat from "./OnboardingChat";
 import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
 import OnboardingBanner from "./OnboardingBanner";
@@ -17,6 +17,9 @@ type Props = {
     /** For the research view's hero (docs/research-view.md). */
     imageUrl?: string;
     releases?: Promise<LatestRelease[]>;
+    /** The artist page. While onboarding runs the chat decides whether to show
+     *  it (the research view takes its place); otherwise it's shown as usual. */
+    children?: ReactNode;
 };
 
 /**
@@ -24,7 +27,7 @@ type Props = {
  * state; the skip flag lives in sessionStorage and is invisible to the server
  * component (spec §8). Skip is session-scoped: a later visit reopens the chat.
  */
-export default function OnboardingGate({ artistId, artistName, currentStep, imageUrl, releases }: Props) {
+export default function OnboardingGate({ artistId, artistName, currentStep, imageUrl, releases, children }: Props) {
     // Start closed and decide after mount — sessionStorage is unavailable during SSR.
     const [mode, setMode] = useState<"closed" | "chat" | "banner">("closed");
 
@@ -33,7 +36,7 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
         setMode(skipped ? "banner" : "chat");
     }, [artistId]);
 
-    if (mode === "closed") return null;
+    if (mode === "closed") return <>{children}</>;
     if (mode === "chat") {
         return (
             <OnboardingChat
@@ -61,16 +64,21 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
                     if (!alreadyDone) armTour(artistId);
                     setMode("closed");
                 }}
-            />
+            >
+                {children}
+            </OnboardingChat>
         );
     }
     return (
-        <OnboardingBanner
-            currentStep={currentStep}
-            onContinue={() => {
-                sessionStorage.removeItem(skipFlagKey(artistId));
-                setMode("chat");
-            }}
-        />
+        <>
+            <OnboardingBanner
+                currentStep={currentStep}
+                onContinue={() => {
+                    sessionStorage.removeItem(skipFlagKey(artistId));
+                    setMode("chat");
+                }}
+            />
+            {children}
+        </>
     );
 }

@@ -14,6 +14,6 @@ describe('ResearchDraft', () => {
         render(<ResearchDraft label="About" text="formed in 1991 [1][2]." />);
         const sups = screen.getByRole('region', { name: 'About' }).querySelectorAll('sup');
         expect([...sups].map(s => s.textContent)).toEqual(['[1]', '[2]']);
-        expect(sups[0]).toHaveClass('text-muted-foreground');
+        expect(sups[0].className).toContain('text-[hsl(var(--muted-foreground))]');
     });
 });

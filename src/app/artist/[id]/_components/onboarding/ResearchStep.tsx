@@ -17,7 +17,7 @@ export default function ResearchStep({ state, title, last = false, children }: {
                 {!last && <span className="mt-1.5 w-px flex-grow bg-border" aria-hidden="true" />}
             </div>
             <div className={`min-w-0 flex-grow ${last ? "" : "pb-7"}`}>
-                <span className={`text-[15px] font-medium lowercase ${state === "pending" ? "text-muted-foreground" : "text-foreground"}`}>{title}</span>
+                <span className={`text-[15px] font-medium lowercase ${state === "pending" ? "text-[hsl(var(--muted-foreground))]" : "text-foreground"}`}>{title}</span>
                 {children && <div className="flex flex-col gap-5 pt-3">{children}</div>}
             </div>
         </li>

@@ -69,4 +69,26 @@ describe('ResearchView', () => {
         fireEvent.click(screen.getByRole('button', { name: /see my page/i }));
         expect(onFinish).toHaveBeenCalled();
     });
+
+    it('sits in the page flow under the app\'s own nav: a section named by the artist, no header or landmark of its own', () => {
+        const { container } = render(<ResearchView {...base} items={[]} complete={false} />);
+        const view = screen.getByRole('region', { name: 'Bio Ritmo' });
+        expect(container.firstElementChild).toBe(view);
+        expect(view.className).not.toMatch(/(^|\s)(fixed|absolute)(\s|$)/);
+        expect(view.querySelector('header, main, nav')).toBeNull();
+        expect(screen.queryByText('music nerd')).toBeNull();
+    });
+
+    it('sizes its heading and photo fluidly, so it grows with the window', () => {
+        render(<ResearchView {...base} items={[]} complete={false} />);
+        expect(screen.getByRole('heading', { level: 1 }).className).toContain('clamp(');
+        expect(screen.getByRole('img', { name: 'Bio Ritmo' }).className).toContain('clamp(');
+    });
+
+    it('mutes secondary text through the token itself, which the dark-mode override wall does not reach', () => {
+        render(<ResearchView {...base} items={[]} complete={false} />);
+        const sub = screen.getByText(/we’re reading what the web knows about you/);
+        expect(sub.className).toContain('text-[hsl(var(--muted-foreground))]');
+        expect(sub.className).not.toMatch(/(^|\s)text-muted-foreground(\s|$)/);
+    });
 });

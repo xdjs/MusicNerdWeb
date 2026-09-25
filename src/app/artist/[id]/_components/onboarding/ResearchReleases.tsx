@@ -10,7 +10,7 @@ export default function ResearchReleases({ releases }: { releases: Promise<Lates
     if (covers.length === 0) return null;
     return (
         <div className="flex flex-col gap-2">
-            <span className="text-sm text-muted-foreground">your music on deezer</span>
+            <span className="text-sm text-[hsl(var(--muted-foreground))]">your music on deezer</span>
             <div className="flex gap-2">
                 {covers.map(r => (
                     // eslint-disable-next-line @next/next/no-img-element -- provider artwork, same as the Latest cards
