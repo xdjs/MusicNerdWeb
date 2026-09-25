@@ -185,12 +185,34 @@ describe('SpotifyProvider', () => {
             expect(result).toBe('https://img.spotify.com/artist.jpg');
         });
 
-        it('should return null when image is empty string', async () => {
+        it('uses Spotify oEmbed when the Web API image is unavailable', async () => {
             const { provider, getSpotifyImage } = await setup();
             getSpotifyImage.mockResolvedValue({ artistImage: '', artistId: '' });
+            const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+                ok: true,
+                json: async () => ({ thumbnail_url: 'https://image-cdn-fa.spotifycdn.com/image/artist' }),
+            } as Response);
+
+            const result = await provider.getArtistImage('spotify-123');
+            expect(result).toBe('https://image-cdn-fa.spotifycdn.com/image/artist');
+            expect(fetchMock).toHaveBeenCalledWith(
+                'https://open.spotify.com/oembed?url=https%3A%2F%2Fopen.spotify.com%2Fartist%2Fspotify-123',
+                expect.objectContaining({ next: { revalidate: 86400 } }),
+            );
+            fetchMock.mockRestore();
+        });
+
+        it('returns null when Spotify supplies no usable thumbnail', async () => {
+            const { provider, getSpotifyImage } = await setup();
+            getSpotifyImage.mockResolvedValue({ artistImage: '', artistId: '' });
+            const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+                ok: true,
+                json: async () => ({ thumbnail_url: 'https://untrusted.example/image' }),
+            } as Response);
 
             const result = await provider.getArtistImage('spotify-123');
             expect(result).toBeNull();
+            fetchMock.mockRestore();
         });
     });
 
