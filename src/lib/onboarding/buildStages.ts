@@ -23,11 +23,16 @@ export type ProfileView = {
     previewImage: string | null;
 };
 
+/** A source research saved, as its card or row shows it. */
+export type SourceView = { title: string | null; url: string; ogImage: string | null };
+
 /** One item from useOnboardingChat, as the research view reads it: `progress`
  *  items drive the stages; `writing` items (with `stage`) carry the draft the
  *  About stage is writing, one per call; `candidates` and `linked` items carry
  *  profiles (found live, then written); an `unreachable` item names the
- *  platforms that refused to answer. */
+ *  platforms that refused to answer; `source` items carry the source just saved
+ *  (in `saved`), and one `sources` item every source on the page once the
+ *  stage ends. */
 export type BuildItem = {
     kind: string;
     text?: string;
@@ -36,6 +41,7 @@ export type BuildItem = {
     stage?: "doc" | "about";
     candidates?: ProfileView[];
     platforms?: string[];
+    saved?: SourceView[];
 };
 
 export type StageState = "pending" | "active" | "done" | "error";

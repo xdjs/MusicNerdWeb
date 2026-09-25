@@ -2,10 +2,11 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { ProfileCandidate, DocSource } from "./StepCards";
+import type { SourceView } from "@/lib/onboarding/buildStages";
 
 export type ChatItem = {
     id: string;
-    kind: "bot" | "user" | "progress" | "step" | "draft" | "complete" | "error" | "candidates" | "choices" | "writing" | "linked" | "unreachable";
+    kind: "bot" | "user" | "progress" | "step" | "draft" | "complete" | "error" | "candidates" | "choices" | "writing" | "linked" | "unreachable" | "source" | "sources";
     text?: string;
     step?: string;
     payload?: unknown;
@@ -36,6 +37,9 @@ export type ChatItem = {
     chosen?: string;
     // `unreachable` only: platforms that refused discovery, by display name.
     platforms?: string[];
+    // `source` (the one just saved) and `sources` (every source on the page
+    // once the stage ends): what the research view shows as source cards.
+    saved?: SourceView[];
     // Set only on "progress" items that belong to a collapsible batch (e.g.
     // the profiles step's per-platform search) — see the `push` reconciliation
     // logic below. Undefined for every standalone progress chip.
@@ -206,6 +210,8 @@ export function useOnboardingChat(artistId: string) {
                             // wrote (its cards swap to these), and who refused to answer.
                             case "linked": push({ kind: "linked", candidates: event.profiles }); break;
                             case "unreachable": push({ kind: "unreachable", platforms: event.platforms }); break;
+                            case "source": push({ kind: "source", saved: [event.source] }); break;
+                            case "sources": push({ kind: "sources", saved: event.sources }); break;
                             case "choices": push({ kind: "choices", platform: event.platform, chosen: event.chosen, candidates: event.options }); break;
                             case "step": push({ kind: "step", step: event.step, payload: event.payload }); receivedTerminalFrame = true; break;
                             case "draft": push({ kind: "draft", stage: event.stage ?? "about", doc: event.doc, about: event.about, sources: event.sources, selfWrite: event.selfWrite, expectedBio: event.expectedBio }); receivedTerminalFrame = true; break;

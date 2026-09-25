@@ -52,6 +52,9 @@ import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { generateText } from "@/server/lib/ai/generateText";
 import { yieldWhileRunning } from "@/lib/async/yieldWhileRunning";
+import { toSourceView } from "@/lib/onboarding/toSourceView";
+import type { SourceView } from "@/lib/onboarding/buildStages";
+import { adoptedProfiles } from "./adoptedProfiles";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
 import { waitForSocialPosts } from "@/server/utils/socialIngest";
@@ -121,6 +124,10 @@ export type TurnEvent =
     // Auto-build only: platforms that refused discovery (a login wall or a rate
     // limit), by display name. Refused is not "not there"; the view says so.
     | { kind: "unreachable"; platforms: string[] }
+    // Auto-build only: each source the source search saves, as it saves it,
+    // then every approved source on the artist's page once the stage is done.
+    | { kind: "source"; source: SourceView }
+    | { kind: "sources"; sources: SourceView[] }
     // A piece of the Lore document ("doc") or the About ("about") as the model
     // writes it, auto-build only. The raw draft, citation markers included: the
     // validated text is what gets saved and what the page shows.
@@ -1210,16 +1217,28 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
 
     // 2 — sources
     yield { kind: "progress", label: "Reading what's written about you", done: false, group: VAULT_SEARCH_GROUP };
+    /** The row before the search, so the view can be told which links it adopted. */
+    const beforeSearch = await getArtistById(artistId).catch(() => undefined) as unknown as Record<string, unknown> | undefined;
     try {
         // Same budgeted race the vault step uses — a slow search must not hold
-        // the whole build open past the route's turn deadline.
-        await Promise.race([
-            searchAndPopulateVault(artistId, { deadline: Date.now() + VAULT_DISCOVERY_BUDGET_MS, provisionalSiteNames }),
+        // the whole build open past the route's turn deadline. Each saved source
+        // streams to the research view while it runs; one saved after the race
+        // settles is dropped, because yieldWhileRunning has stopped listening.
+        yield* yieldWhileRunning<TurnEvent, unknown>(emit => Promise.race([
+            searchAndPopulateVault(artistId, {
+                deadline: Date.now() + VAULT_DISCOVERY_BUDGET_MS,
+                provisionalSiteNames,
+                onSaved: source => emit({ kind: "source", source: toSourceView(source) }),
+            }),
             new Promise(resolve => setTimeout(resolve, VAULT_DISCOVERY_BUDGET_MS)),
-        ]);
+        ]));
     } catch (e) {
         console.error("[onboarding] auto-build source discovery failed:", e);
     }
+    const afterSearch = await getArtistById(artistId).catch(() => undefined) as unknown as Record<string, unknown> | undefined;
+    const urlmap = await getAllLinks().catch(() => []);
+    const adopted = adoptedProfiles(beforeSearch, afterSearch, urlmap);
+    if (adopted.length > 0) yield { kind: "linked", profiles: adopted };
 
     // THE TWO-ACCOUNT CASE THAT ACTUALLY HAPPENS.
     //
@@ -1237,8 +1256,8 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
     // is what this whole change exists to stop.
     if (provisionalSiteNames.length > 0) {
         try {
-            const after = (await getArtistById(artistId)) as unknown as Record<string, unknown> | undefined;
-            const urlmapBySiteName = new Map((await getAllLinks()).map(l => [l.siteName, l]));
+            const after = afterSearch;
+            const urlmapBySiteName = new Map(urlmap.map(l => [l.siteName, l]));
             for (const siteName of provisionalSiteNames) {
                 const guessed = discoveredBySiteName.get(siteName);
                 const now = after?.[siteName];
@@ -1270,6 +1289,10 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
         }
     }
     const citable = pending.filter(isCitableSource).length;
+    // Everything on the page now, including sources claim approval's own search
+    // saved before this build started: the research view's total.
+    const onPage = await getVaultSourcesByArtistId(artistId, "approved");
+    yield { kind: "sources", sources: onPage.map(toSourceView) };
     yield {
         kind: "progress",
         label: pending.length > 0 ? `Read ${pending.length} source${pending.length === 1 ? "" : "s"}` : "Looked for sources about you",

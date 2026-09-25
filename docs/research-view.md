@@ -33,6 +33,8 @@ what had streamed.
 | Stages | `progress` events grouped by `BUILD_STAGES` (`platform-search`, `source-search`, `about-write`), through `stageStates` | A quiet timeline: pending, running (the accent dot), done (a check), failed. The finished label carries the count ("found 7 profiles") |
 | Profiles ("finding your profiles") | `candidate` events while discovery runs, then one `linked` event with the profiles the build **wrote** to the artist's row, through `foundProfiles` | The finished stage counts its cards ("Found 7 profiles"), not what discovery proposed. A card per profile: its image (`previewImage`, else the platform logo, else its first letter), the platform icon and name, and the handle. Cards appear as `candidate` events arrive; once `linked` arrives, the cards are exactly what was written, so a profile the identity guards refused, or a second account for a platform, drops out. One `linked` event per write, merged by platform, the latest winning |
 | Refused platforms | One `unreachable` event (the platforms' display names) after discovery, through `unreachableNote` | One plain sentence under the cards: "instagram wouldn't let us look just now, so that's not a 'no'. you can add it from your page." It replaces the chat line the build used to send, which the view never showed |
+| Sources ("reading what's written about you") | A `source` event each time the source search saves one (`onSaved` on `searchAndPopulateVault`, at both of its save points), then one `sources` event with every approved source on the artist's page once the stage is done, through `savedSources` | Up to three sources with a share image (`og_image`) as cards, the domain above the title. Up to four more as compact rows: a letter, the title, the domain. Once `sources` arrives: "17 sources in all. 10 more are in your lore, where you can keep or remove each one." The total counts sources already on the page too, because claim approval runs the same search first. Events sent after the stage's 45 s budget are dropped (`yieldWhileRunning` stops listening when the race settles) |
+| Links the source search adopts | The artist's row read before and after the search, compared by `adoptedProfiles` | Each link column the search filled or changed (MusicBrainz, the artist's own page, search results) is sent as a `linked` event, so it joins the cards under "finding your profiles" |
 | Lore document and About drafts | `writing` items from `text-delta` events ([llm.md](llm.md), "Streaming into the build popup"), through `writingDrafts` | Rendered as Markdown by Streamdown while they stream. `[n]` markers render as quiet superscripts (`citationSuperscripts`); a marker still arriving at the end is held back until it completes, so it never flashes as a half-typed link. The model's internal labels (`[VERIFIED CATALOG]`, "(date unknown)") are hidden (`stripModelLabels`), as `validateCitations` does for the saved text. The page shows the validated version once saved |
 | Failure | The last `error` item | The step that was running is marked failed. Its partial draft stays on screen with "try again", which re-opens the turn (`{ type: "open" }`) |
 | Done | The `complete` item | Every stage shows done, including one whose own "done" never arrived (a "try again" after a dropped connection gets only `complete`, because the server finished the build meanwhile). "see my page" closes the view as the popup did |
@@ -40,7 +42,7 @@ what had streamed.
 A finished stage stays open while the build runs (the approved design shows found profiles under
 a done stage while the Lore is still being written). Once the build completes, a stage with cards
 collapses to an overlapping stack of their images and a one-line summary, via `listSummary`
-("spotify, youtube, bandcamp, soundcloud and 3 more"). A chevron beside the stage's title opens
+("spotify, youtube, bandcamp, soundcloud and 3 more"; for sources, their domains). A chevron beside the stage's title opens
 and closes it (`aria-expanded`).
 
 ## Rules
@@ -57,7 +59,3 @@ and closes it (`aria-expanded`).
   buttons, an ordered list for the stages, the running stage marked `aria-current="step"`, and
   `role="alert"` on a failure.
 
-## Not in this slice
-
-The source cards (slice 3) in the approved design are a later row on #1347. Until they land,
-"reading what's written about you" shows its label and count only.

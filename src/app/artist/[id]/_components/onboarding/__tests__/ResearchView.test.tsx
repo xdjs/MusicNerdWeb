@@ -105,6 +105,37 @@ describe('ResearchView', () => {
         expect(screen.getByRole('list', { name: /your profiles/i })).toBeInTheDocument();
     });
 
+    it('shows each source as it is saved under its stage, then the total once the stage ends', () => {
+        const src = (n, ogImage = null) => ({ title: `Story ${n}`, url: `https://site${n}.com/a`, ogImage });
+        const { rerender } = render(<ResearchView {...base} complete={false} items={[
+            progress('source-search', "Reading what's written about you", false),
+            { kind: 'source', saved: [src(1, 'https://img/1.jpg')] },
+            { kind: 'source', saved: [src(2)] },
+        ]} />);
+        const stage = screen.getByText('Reading what people wrote about you').closest('li');
+        expect(stage).toContainElement(screen.getByRole('list', { name: /sources with images/i }));
+        expect(stage).toHaveTextContent('Story 2');
+        expect(stage).not.toHaveTextContent('in all');
+        rerender(<ResearchView {...base} complete={false} items={[
+            progress('source-search', 'Read 2 sources', true),
+            { kind: 'source', saved: [src(1, 'https://img/1.jpg')] },
+            { kind: 'source', saved: [src(2)] },
+            { kind: 'sources', saved: [src(1, 'https://img/1.jpg'), src(2), src(3)] },
+        ]} />);
+        expect(screen.getByText('Read 2 sources').closest('li')).toHaveTextContent('3 sources in all.');
+    });
+
+    it('once the page is ready, collapses the sources to their domains', () => {
+        const src = (n) => ({ title: `Story ${n}`, url: `https://site${n}.com/a`, ogImage: null });
+        render(<ResearchView {...base} complete items={[
+            progress('source-search', 'Read 2 sources', true),
+            { kind: 'sources', saved: [src(1), src(2)] },
+            { kind: 'complete' },
+        ]} />);
+        expect(screen.getByText('site1.com and site2.com')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Read 2 sources' })).toHaveAttribute('aria-expanded', 'false');
+    });
+
     it('hands off when complete, and stops offering skip', () => {
         const onFinish = jest.fn();
         render(<ResearchView {...base} onFinish={onFinish} complete items={[
