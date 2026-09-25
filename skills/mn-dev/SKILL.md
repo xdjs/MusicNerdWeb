@@ -1,6 +1,6 @@
 ---
 name: mn-dev
-description: How Music Nerd plans, builds and ships work through GitHub. Two halves — write and maintain a tracking issue (PR matrix, Open→Done closure notes, dated decision callouts), then deliver it (docs first, TDD red→green, one function per file, Vercel preview verification with a documented-vs-observed matrix and screenshots on the PR, main → staging validation → approved production build). Use when asked to "write / update the issue", "add a row to the PR matrix", "log what shipped", "implement / ship / build out issue #N", "open PRs for the remaining rows", or "preview-test this PR".
+description: How Music Nerd plans, builds and ships work through GitHub. Two halves — write and maintain a tracking issue (PR matrix, Open→Done closure notes, dated decision callouts), then deliver it (docs first, TDD red→green, one function per file, Vercel preview verification with a documented-vs-observed matrix and screenshots on the PR, merge to main → manual Vercel promotion to production). Use when asked to "write / update the issue", "add a row to the PR matrix", "log what shipped", "implement / ship / build out issue #N", "open PRs for the remaining rows", or "preview-test this PR".
 ---
 
 # Music Nerd dev loop: track it, then ship it
@@ -12,9 +12,9 @@ The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/i
 ## Music Nerd specifics, in one place
 
 - **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `AGENTS.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
-- **Branches.** Feature/fix branch off `main` → reviewed PR to `main` → squash merge. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Codex branches use `codex/<slug>`. Docs-only branches may use `docs/<slug>`. Conventional commits.
-- **Merging.** Never merge without authorization or bypass required review. PRs squash into `main` after approval and required `test`/`build` checks. The exact merged SHA deploys to staging; any one of Carl (`clt`), Pete (`p3t3rango`) or Sweetman (`sweetmantech`) approves the protected GitHub production environment before a separate production-config build and promotion. One approval is sufficient, the initiator may approve, and admin bypass is disabled. Record “merged to main”, “validated on staging” and “promoted to production” separately. Follow [the release runbook](../../docs/releases.md), including manual migration verification.
-- **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). All three can approve production releases. Attribute decisions to whoever made them and where (standup, R&D sync).
+- **Branches.** Every branch starts from `main` and merges back into `main` through a PR (squash merge). There is no `staging` branch any more. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Codex branches use `codex/<slug>`. Docs-only branches may use `docs/<slug>`. Conventional commits.
+- **Merging and releasing.** Any branch can merge to `main` once the required `test` and `build` checks pass. No approval is required. A merge to `main` does **not** release to production. After the merge, someone promotes that SHA's Vercel build to production by hand in the Vercel dashboard. Apply any database migration to production first. Record “merged to main” and “promoted to production” separately.
+- **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). Any of them can promote a build to production. Attribute decisions to whoever made them and where (standup, R&D sync).
 - **Databases.** Vercel previews and `staging.musicnerd.xyz` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
 - **Local and preview verification.** When a configured local environment is available, run and review changes locally; respect a requested local review before pushing. Verify the target environment before exercising integrations, preserve existing env files, and keep credentials private. When local configuration is unavailable, use the documented stub-env build to prove compilation. Local checks complement the exact-commit Vercel preview verification below; they do not replace it.
 - **Code shape.** `src/lib` is pure logic grouped by domain (`artist/`, `bio/`, `source/`, `inprocess/`); `src/server/utils` is server I/O under the same grouping. **New modules export one function each, named after the file, with a test beside the folder's other tests.** Older multi-export modules are split when next changed, not in a move. Reviewers ask for this; write it that way from the start.
@@ -33,7 +33,7 @@ Sections in this order. Drop what does not apply; never reorder what you keep.
 1. **Lead paragraph, no heading.** What this tracks, who asked and where (linked), the current live status. Below it, blockquotes for the **scope note** and any **dated decision callouts**.
 2. **## Goal.** The end state in concrete terms: what a user sees, on which page, from which data. Name files, routes, tables.
 3. **## PRs (updated <ISO date>).** The matrix, directly under Goal.
-4. **## Design** *(when there is one)*. Link the design record and embed its boards. Records live at `docs/rnd/design/<YYYY-MM-DD>-<slug>/` with a README and PNGs. Link to the implementation branch until merge, then to `main`; record the production release run separately.
+4. **## Design** *(when there is one)*. Link the design record and embed its boards. Records live at `docs/rnd/design/<YYYY-MM-DD>-<slug>/` with a README and PNGs. Link to the implementation branch until merge, then to `main`; record the production promotion separately.
 5. **## Done.** Closure notes, one per shipped item.
 6. **## Open — <bucket>.** Mini-specs. Buckets by sequence or gate: `Open — in merge order, pick from the top`, `Open — Phase 2 (LAST, only after …)`, `Open — after v1, not scheduled`.
 7. **## Architecture decisions.** Bold the decision, then the why, so it is not re-litigated.
@@ -41,25 +41,22 @@ Sections in this order. Drop what does not apply; never reorder what you keep.
 
 ## The PR matrix
 
-The examples below preserve the historical two-branch delivery record. For new work use
-“merged to main”, “validated on staging at SHA/deployment” and “production via run/deployment”
-as separate states. A merge to main is not evidence of production promotion.
+A merge to `main` is not evidence of production. Record the promotion as its own state.
 
 ```
-## PRs (updated 2026-09-14 — all merged; #1252 on `main` via #1251; #1253 on `staging`)
+## PRs (updated 2026-09-25 — #1354 on `main`, not yet in production)
 
 | PR | Item | State |
 |----|------|-------|
-| [MusicNerdWeb#1249](url) | In Process client: fetch timeline, normalize to `Moment[]`, cache | ✅ merged 2026-09-14 to `staging`, on `main` 2026-09-14 via #1251 — see Done |
-| [MusicNerdWeb#1251](url) | Release: staging → main | ✅ merged 2026-09-14 to `main` — see Done |
-| [MusicNerdWeb#1253](url) | Chore: group `src/lib` into domain folders (no behaviour change) | ✅ merged 2026-09-14 to `staging` — see Done; reaches `main` with the next release |
-| MusicNerdWeb#TBD | Per-source cap on Latest cards | ⏳ not started |
+| [MusicNerdWeb#1321](url) | Route every model call through AI Gateway | ✅ merged 2026-09-24 to `main` (a9bb7bc0); promoted to production 2026-09-24 — see Done |
+| [MusicNerdWeb#1354](url) | Slice 1: full-screen research view | ✅ merged 2026-09-25 to `main` (95a4eb8b) — production promotion pending |
+| MusicNerdWeb#TBD | Slice 2: "found your profiles" cards | ⏳ not started |
 ```
 
-- **PR**: linked, full ref; planned PRs are `MusicNerdWeb#TBD` rows so the fleet is visible before code exists; every tracker with code has a **production release run row** after the implementation PR.
+- **PR**: linked, full ref; planned PRs are `MusicNerdWeb#TBD` rows so the fleet is visible before code exists; the State column says whether a merged PR has been promoted to production.
 - **Item**: one line, worded to match the Done or Open item it backs.
-- **State**: `⏳ not started` · `🔄 open — <verification status>` · `✅ merged <ISO> to main` · `validated on staging <SHA/deployment>` · `production <run/deployment>`.
-- Below the table, an **order** blockquote when sequence matters; rewrite it as *what happened* once it has (the reference records that #1253 merged one minute after the release and so missed `main`).
+- **State**: `⏳ not started` · `🔄 open — <verification status>` · `✅ merged <ISO> to main (<sha>)` · `promoted to production <ISO>`.
+- Below the table, an **order** blockquote when sequence matters; rewrite it as *what happened* once it has (for example, which PRs a production promotion included).
 
 **Update a row in the same session its PR changes state.** Replace `#TBD` the moment the PR opens. A stale row misleads everyone who trusts the matrix.
 
@@ -69,12 +66,12 @@ An item is **not** closed by flipping the checkbox. When it ships, rewrite it as
 
 ```
 - [x] **[MusicNerdWeb#1252](url) — merge Timeline into Latest.**
-  ✅ Shipped 2026-09-14 to `staging` (merge commit [b2f71cd](url), merged by Pete 19:22Z). Reaches `main` with release #1251.
+  ✅ Merged 2026-09-14 to `main` (merge commit [b2f71cd](url), merged by Pete 19:22Z). Promoted to production 2026-09-14.
   <what changed, technically: 3–6 sentences naming files and behaviour>
   Verified on the preview for the final commit (5e99b9b, both themes, 832 and 390 px): Dutchyyy 24 cards = 12 moments + 3 releases + 9 Instagram; no `#mn-timeline`; soft navigation between artists resets the dialog and filter. Matrices and 11 captures on the PR. CI green.
 ```
 
-PR link · ✅ ISO date · merge commit · who merged · where it sits relative to `main` · what changed · **Verified** (what you exercised, on which SHA, what you observed, with numbers). If a hypothesis was wrong, say so and link the evidence.
+PR link · ✅ ISO date · merge commit · who merged · whether it is in production · what changed · **Verified** (what you exercised, on which SHA, what you observed, with numbers). If a hypothesis was wrong, say so and link the evidence.
 
 ## Open items are mini-specs
 
@@ -122,7 +119,7 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 8. Comment: matrix + captures      (documented vs observed, hard numbers, per SHA)
 9. Triage reviews                  (Codex bot and humans: validate, fix, reply with commit + re-verification)
 10. Re-run 6→8 after EVERY behaviour-changing push
-11. Hand off                       (record main merge, staging validation and approved production run)
+11. Hand off                       (record the main merge, then the manual production promotion)
 ```
 
 ## 1. Read the ground
@@ -202,11 +199,11 @@ The Codex bot (`chatgpt-codex-connector`) reviews every PR with P1/P2 findings. 
 
 ## 10–11. Hand off
 
-After an authorized squash merge, record the main SHA and its validated staging deployment in
-the issue row. Production requires the protected environment approval and manual migration
-checklist in [releases](../../docs/releases.md). Record the separate production build ID,
-immutable-URL checks and promotion evidence. Never call a main merge “shipped to production”
-while approval is pending. Older two-branch records remain historical evidence.
+After the squash merge, record the `main` SHA in the issue row. Production is a separate,
+manual step: in Vercel, promote the build for that SHA to production, after applying any
+database migration to production. Then check the change on `www.musicnerd.xyz` and record the
+promotion on the issue. Until someone promotes it, the row says “merged to main”, never
+“in production”.
 
 ## Checklist before you say "done"
 
@@ -218,4 +215,4 @@ while approval is pending. Older two-branch records remain historical evidence.
 - [ ] Verification comment per SHA with a documented-vs-observed table and **captures**; unexercised paths named.
 - [ ] Every behaviour-changing push re-verified on its own preview.
 - [ ] Reviews triaged on the thread with commit + re-verification.
-- [ ] No merge or promotion without authorization and required review; nothing secret in public text.
+- [ ] Main merge and production promotion recorded separately; nothing secret in public text.
