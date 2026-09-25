@@ -15,7 +15,7 @@ export default function SuggestLoreSource({ artistId, isClaimed }: { artistId: s
   const [error, setError] = useState("");
 
   if (!session) {
-    return <Button type="button" variant="outline" disabled={status === "loading"}
+    return <Button type="button" variant="outline" className="min-h-11 text-black dark:text-white" disabled={status === "loading"}
       onClick={() => requestLogin("add_link")}>Suggest a Lore source</Button>;
   }
 
@@ -57,7 +57,7 @@ export default function SuggestLoreSource({ artistId, isClaimed }: { artistId: s
       <Input id={`lore-source-${artistId}`} type="text" inputMode="url" value={url}
         onChange={event => { setUrl(event.target.value); setMessage(""); setError(""); }}
         placeholder="Article, interview, or other source URL" className="min-h-11 flex-1 text-black dark:text-white" />
-      <Button type="submit" variant="outline" disabled={submitting || !url.trim()}>
+      <Button type="submit" variant="outline" className="min-h-11 text-black dark:text-white" disabled={submitting || !url.trim()}>
         {submitting ? "Submitting…" : "Suggest source"}
       </Button>
     </div>

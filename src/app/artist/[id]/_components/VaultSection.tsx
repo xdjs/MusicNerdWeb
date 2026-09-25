@@ -26,7 +26,7 @@ export default function VaultSection({ artistId, isClaimed, pendingSources, appr
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-black dark:text-white text-xl font-bold">Lore</h2>
-          {canEdit && !isEditing && <Button type="button" size="sm" variant="outline" onClick={toggle}>Add to Lore</Button>}
+          {canEdit && !isEditing && <Button type="button" size="sm" variant="outline" className="text-black dark:text-white" onClick={toggle}>Add to Lore</Button>}
         </div>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Stories, interviews, and other sources curated by the artist.</p>
       </div>
