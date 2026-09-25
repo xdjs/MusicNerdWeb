@@ -83,11 +83,16 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
             <ol aria-label="Research steps" className="m-0 list-none p-0">
                 {stages.map((stage, i) => {
                     const hasCards = (cardCount[stage.group] ?? 0) > 0;
+                    // Once done, say how many cards there are: discovery proposes
+                    // more than the build writes, and the label sits above the cards.
+                    const title = stage.group === "platform-search" && hasCards && stage.state === "done"
+                        ? `Found ${profiles.length} profile${profiles.length === 1 ? "" : "s"}`
+                        : stage.label;
                     return (
                         <ResearchStep
                             key={stage.group}
                             state={stage.state}
-                            title={stage.label}
+                            title={title}
                             last={i === stages.length - 1}
                             expanded={hasCards ? isOpen(stage.group) : undefined}
                             onToggle={hasCards ? () => toggle(stage.group) : undefined}
