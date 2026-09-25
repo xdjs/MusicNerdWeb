@@ -1,12 +1,15 @@
 // @ts-nocheck
 import { POST } from '../route';
 import { requireAuth } from '@/lib/auth-helpers';
-import { getVaultSourcesByArtistId, insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+import { getVaultSourceUrlsByArtistId } from '@/server/utils/queries/getVaultSourceUrlsByArtistId';
 
 jest.mock('@/lib/auth-helpers', () => ({ requireAuth: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({
-  getVaultSourcesByArtistId: jest.fn(),
   insertVaultSource: jest.fn(),
+}));
+jest.mock('@/server/utils/queries/getVaultSourceUrlsByArtistId', () => ({
+  getVaultSourceUrlsByArtistId: jest.fn(),
 }));
 jest.mock('@/server/utils/fetchPageContent', () => ({
   isUnsafeUrl: jest.requireActual('@/server/utils/fetchPageContent').isUnsafeUrl,
@@ -30,7 +33,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (requireAuth as jest.Mock).mockResolvedValue({ authenticated: true, userId: 'visitor-1' });
   (insertVaultSource as jest.Mock).mockResolvedValue({ id: 'source-1' });
-  (getVaultSourcesByArtistId as jest.Mock).mockResolvedValue([]);
+  (getVaultSourceUrlsByArtistId as jest.Mock).mockResolvedValue([]);
 });
 
 it('lets a signed-in visitor suggest a source for artist review', async () => {
@@ -50,8 +53,8 @@ it('strips fragments and serializes the URL before duplicate detection', async (
 });
 
 it('detects a previously stored URL with a fragment as the same source', async () => {
-  (getVaultSourcesByArtistId as jest.Mock).mockResolvedValue([
-    { url: 'https://pitchfork.com/features/bike-lane#bio' },
+  (getVaultSourceUrlsByArtistId as jest.Mock).mockResolvedValue([
+    'https://pitchfork.com/features/bike-lane#bio',
   ]);
   expect((await call('https://pitchfork.com/features/bike-lane')).status).toBe(409);
   expect(insertVaultSource).not.toHaveBeenCalled();

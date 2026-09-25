@@ -228,6 +228,14 @@ describe('ArtistMusicPlatformDataProvider', () => {
             expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
             expect(fallback.getArtistImage).not.toHaveBeenCalled();
         });
+
+        it('returns no portrait after bounded Spotify lookups fail for a Spotify-only artist', async () => {
+            fallback.getArtistImage.mockResolvedValueOnce(null);
+            const artist = makeArtist({ spotify: 'spotify-123' });
+            expect(await ampdp.getArtistPortrait(artist)).toBeNull();
+            expect(fallback.getArtist).not.toHaveBeenCalled();
+            expect(primary.getArtist).not.toHaveBeenCalled();
+        });
     });
 
     describe('searchArtists', () => {

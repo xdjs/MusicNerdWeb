@@ -33,6 +33,9 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     deleteBioVersion: jest.fn(),
     unpinArtistBio: jest.fn(),
 }));
+jest.mock("@/server/utils/queries/getVaultSourceUrlsByArtistId", () => ({
+    getVaultSourceUrlsByArtistId: jest.fn().mockResolvedValue([]),
+}));
 jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
     searchAndPopulateVault: jest.fn().mockResolvedValue(0),
 }));
@@ -170,8 +173,8 @@ describe("dashboardActions.addVaultSource", () => {
 
     it("does not add a URL already stored with a fragment", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
-        const { getVaultSourcesByArtistId } = await import("@/server/utils/queries/dashboardQueries");
-        getVaultSourcesByArtistId.mockResolvedValueOnce([{ url: "https://pitchfork.com/a#bio" }]);
+        const { getVaultSourceUrlsByArtistId } = await import("@/server/utils/queries/getVaultSourceUrlsByArtistId");
+        getVaultSourceUrlsByArtistId.mockResolvedValueOnce(["https://pitchfork.com/a#bio"]);
         expect((await addVaultSource("artist-1", "https://pitchfork.com/a")).success).toBe(false);
         expect(insertVaultSource).not.toHaveBeenCalled();
     });

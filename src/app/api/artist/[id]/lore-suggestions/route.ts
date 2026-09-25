@@ -3,7 +3,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
 import { isUnsafeUrl } from '@/server/utils/fetchPageContent';
-import { getVaultSourcesByArtistId, insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+import { getVaultSourceUrlsByArtistId } from '@/server/utils/queries/getVaultSourceUrlsByArtistId';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,8 +27,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     try {
         // Older editor submissions could retain fragments. Check their
         // canonical forms before relying on the raw-URL unique index.
-        const existing = await getVaultSourcesByArtistId(artistId);
-        if (existing.some(source => source.url && canonicalizeLoreUrl(source.url) === url)) {
+        const existing = await getVaultSourceUrlsByArtistId(artistId);
+        if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }
         const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;

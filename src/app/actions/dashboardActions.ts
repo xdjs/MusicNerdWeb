@@ -28,6 +28,7 @@ import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/s
 import { claimKey } from "@/lib/source/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
 import { canonicalizeLoreUrl } from "@/lib/source/canonicalizeLoreUrl";
+import { getVaultSourceUrlsByArtistId } from "@/server/utils/queries/getVaultSourceUrlsByArtistId";
 import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { generateReferenceCode } from "@/lib/referenceCode";
@@ -152,8 +153,8 @@ export async function addVaultSource(
 
         url = normalizedUrl;
 
-        const existing = await getVaultSourcesByArtistId(artistId);
-        if (existing.some(source => source.url && canonicalizeLoreUrl(source.url) === url)) {
+        const existing = await getVaultSourceUrlsByArtistId(artistId);
+        if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
             return { success: false, error: "This source has already been added" };
         }
 

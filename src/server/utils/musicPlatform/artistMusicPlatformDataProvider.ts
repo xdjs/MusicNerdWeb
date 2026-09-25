@@ -89,7 +89,14 @@ export class ArtistMusicPlatformDataProvider {
                 console.error('[AMPDP] Spotify portrait unavailable, trying Deezer:', error);
             }
         }
-        return (await this.getArtist(artist))?.imageUrl ?? null;
+        const deezerId = artist.deezer?.trim();
+        if (!deezerId) return null;
+        try {
+            return (await this.primaryProvider.getArtist(deezerId))?.imageUrl ?? null;
+        } catch (error) {
+            console.error('[AMPDP] Deezer portrait unavailable:', error);
+            return null;
+        }
     }
 
     async getTopTrackName(artist: Artist): Promise<string | null> {
