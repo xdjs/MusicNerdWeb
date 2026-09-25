@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import ResearchStep from '../ResearchStep';
 
 describe('ResearchStep', () => {
@@ -7,6 +7,22 @@ describe('ResearchStep', () => {
         render(<ol><ResearchStep state="done" title="found 7 profiles"><p>body</p></ResearchStep></ol>);
         expect(screen.getByText('found 7 profiles')).toBeInTheDocument();
         expect(screen.getByText('body')).toBeInTheDocument();
+    });
+
+    it('with onToggle, its title is a button that says whether it is open', () => {
+        const onToggle = jest.fn();
+        const { rerender } = render(<ol><ResearchStep state="done" title="found 7 profiles" expanded={false} onToggle={onToggle} /></ol>);
+        const button = screen.getByRole('button', { name: 'found 7 profiles' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+        fireEvent.click(button);
+        expect(onToggle).toHaveBeenCalled();
+        rerender(<ol><ResearchStep state="done" title="found 7 profiles" expanded onToggle={onToggle} /></ol>);
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('without onToggle, its title is plain text', () => {
+        render(<ol><ResearchStep state="done" title="found 7 profiles" /></ol>);
+        expect(screen.queryByRole('button')).toBeNull();
     });
 
     it('marks the running step as the current one, and only that one', () => {

@@ -340,6 +340,48 @@ describe('runOnboardingTurn', () => {
         }));
     });
 
+    it('auto-build tells the research view which profiles it wrote, and which platforms refused to answer', async () => {
+        // The view shows discovery's candidates live, then exactly what landed
+        // on the artist's row (docs/research-view.md): a profile the identity
+        // guards refused, or a second account, must drop out of the cards.
+        const oq = await import('@/server/utils/queries/onboardingQueries');
+        oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
+        const { discoverArtistProfilesStream } = await import('@/server/utils/profileDiscovery');
+        const { extractArtistId } = await import('@/server/utils/services');
+        const guards = await import('@/server/utils/artistIdentityGuards');
+
+        const p = (siteName, value) => ({
+            siteName, displayName: siteName, value, provisional: false,
+            profileUrl: `https://${siteName}.com/${value}`,
+            logoUrl: null, colorHex: null, previewImage: null, reasoning: null,
+        });
+        discoverArtistProfilesStream.mockImplementationOnce(async function* () {
+            yield { kind: 'found', profile: p('spotify', 'bio') };
+            yield { kind: 'found', profile: p('spotify', 'second') };
+            yield { kind: 'found', profile: p('soundcloud', 'blocked') };
+            yield { kind: 'unreachable', siteName: 'instagram', displayName: 'Instagram' };
+        });
+        extractArtistId.mockImplementation(async (url) => {
+            const [, siteName, value] = url.match(/https:\/\/(\w+)\.com\/(.+)/);
+            return { siteName, id: value };
+        });
+        guards.handleBelongsToAnotherArtist.mockImplementation(async (_id, _site, handle) => handle === 'blocked');
+
+        const { runOnboardingTurn } = await import('../turnHandlers');
+        const events = await collect(runOnboardingTurn('a1', { type: 'open' }));
+
+        const linked = events.filter(e => e.kind === 'linked');
+        expect(linked).toHaveLength(1);
+        expect(linked[0].profiles.map(x => `${x.siteName}=${x.value}`)).toEqual(['spotify=bio']);
+        expect(events.find(e => e.kind === 'unreachable')).toEqual({ kind: 'unreachable', platforms: ['Instagram'] });
+        // Said once, in the view; not also as a chat line nobody sees.
+        expect(events.some(e => e.kind === 'chat' && /let us look/.test(e.text))).toBe(false);
+        // Both arrive before the profiles stage reports done.
+        const done = events.findIndex(e => e.kind === 'progress' && e.group === 'platform-search' && e.done);
+        expect(events.indexOf(linked[0])).toBeLessThan(done);
+        expect(events.findIndex(e => e.kind === 'unreachable')).toBeLessThan(done);
+    });
+
     it('writes ONE account per platform and offers the other as a choice', async () => {
         // Discovery can now return two accounts for one platform. Passing both
         // to applyProfileLinkDecisions made the LAST one win — the silent

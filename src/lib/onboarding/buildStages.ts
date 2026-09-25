@@ -13,10 +13,30 @@ export const BUILD_DRAFTS = [
     { stage: "about", label: "About" },
 ] as const;
 
-/** One item from useOnboardingChat, as the build popup reads it: `progress`
+/** A profile the build found or linked, as its card shows it. */
+export type ProfileView = {
+    siteName: string;
+    displayName: string;
+    value: string;
+    profileUrl: string | null;
+    logoUrl: string | null;
+    previewImage: string | null;
+};
+
+/** One item from useOnboardingChat, as the research view reads it: `progress`
  *  items drive the stages; `writing` items (with `stage`) carry the draft the
- *  About stage is writing, one per call. */
-export type BuildItem = { kind: string; text?: string; done?: boolean; group?: string; stage?: "doc" | "about" };
+ *  About stage is writing, one per call; `candidates` and `linked` items carry
+ *  profiles (found live, then written); an `unreachable` item names the
+ *  platforms that refused to answer. */
+export type BuildItem = {
+    kind: string;
+    text?: string;
+    done?: boolean;
+    group?: string;
+    stage?: "doc" | "about";
+    candidates?: ProfileView[];
+    platforms?: string[];
+};
 
 export type StageState = "pending" | "active" | "done" | "error";
 
