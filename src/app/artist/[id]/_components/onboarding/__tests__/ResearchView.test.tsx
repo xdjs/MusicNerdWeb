@@ -77,6 +77,9 @@ describe('ResearchView', () => {
         expect(view.className).not.toMatch(/(^|\s)(fixed|absolute)(\s|$)/);
         expect(view.querySelector('header, main, nav')).toBeNull();
         expect(screen.queryByText('music nerd')).toBeNull();
+        // In the page flow it inherits the body's colour, which globals.css leaves
+        // black in dark mode, so the view sets the token itself.
+        expect(view).toHaveClass('text-foreground');
     });
 
     it('sizes its heading and photo fluidly, so it grows with the window', () => {

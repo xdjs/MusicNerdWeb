@@ -244,7 +244,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             <VaultSection artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
         </div>
         <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
-                        </>
+        <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
+        </>
     );
 
     return (
@@ -287,7 +288,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </OnboardingGate>
                 ) : profile}
             </div>
-            <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
             <OutboundClickTracker />
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />

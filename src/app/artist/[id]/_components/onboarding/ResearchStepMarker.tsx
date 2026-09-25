@@ -7,7 +7,7 @@ const SR_LABEL: Record<StageState, string> = { done: "done", active: "in progres
  *  stopped, an empty ring before it starts. The state is also spoken. */
 export default function ResearchStepMarker({ state }: { state: StageState }) {
     return (
-        <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-background ring-1 ring-border">
+        <span className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ring-1 ring-border">
             {state === "done" && (
                 <svg viewBox="0 0 16 16" className="h-3 w-3 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M4.5 8.3l2.2 2.2 4.8-4.8" />

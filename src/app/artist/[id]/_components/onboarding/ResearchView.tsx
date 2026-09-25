@@ -44,7 +44,7 @@ export default function ResearchView({ artistName, imageUrl, releases, items, co
     // (docs/research-view.md). It inherits the page container, so it resizes the
     // way every other page does; the heading and photo scale fluidly with it.
     return (
-        <section aria-labelledby="research-view-title" className="flex flex-col gap-10 py-4 sm:gap-14 sm:py-8">
+        <section aria-labelledby="research-view-title" className="flex flex-col gap-10 py-4 text-foreground sm:gap-14 sm:py-8">
             <div className="flex flex-col gap-5">
                 {imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element -- the artist's own image, as in the page hero
