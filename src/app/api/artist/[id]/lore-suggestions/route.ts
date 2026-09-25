@@ -1,0 +1,38 @@
+import { requireAuth } from '@/lib/auth-helpers';
+import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
+import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
+import { isUnsafeUrl } from '@/server/utils/fetchPageContent';
+import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+
+export const dynamic = 'force-dynamic';
+
+/** Save a visitor's URL for the claimed artist (or an admin) to review. */
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const auth = await requireAuth();
+    if (!auth.authenticated) return auth.response;
+
+    const { id: artistId } = await params;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(artistId)) {
+        return Response.json({ error: 'Invalid artist ID' }, { status: 400 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const url = typeof body?.url === 'string' ? normalizePublicUrl(body.url) : null;
+    if (!url || isUnsafeUrl(url) || url.length > 2048) {
+        return Response.json({ error: 'Enter a public website URL' }, { status: 400 });
+    }
+
+    try {
+        const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;
+        const source = await insertVaultSource({
+            artistId, url, title, type: inferTypeFromUrl(url), status: 'pending',
+        });
+        if (!source) {
+            return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
+        }
+        return Response.json({ success: true, message: 'Submitted for artist review.' }, { status: 201 });
+    } catch (error) {
+        console.error('[lore-suggestions] Could not save source', error);
+        return Response.json({ error: 'Could not submit the source. Please try again.' }, { status: 500 });
+    }
+}

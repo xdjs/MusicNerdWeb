@@ -13,7 +13,7 @@ const edited = 'The artist’s revised biography, saved in their own words.';
 function view() {
     return <EditModeProvider canEdit><EditModeToggle />
         <BlurbSection artistId="a1" artistName="Test Artist" initialBio={original} hero portrait />
-        <VaultSection artistId="a1" pendingSources={[]} approvedSources={[]} />
+        <VaultSection artistId="a1" isClaimed pendingSources={[]} approvedSources={[]} />
     </EditModeProvider>;
 }
 beforeEach(() => { jest.clearAllMocks(); });

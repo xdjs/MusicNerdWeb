@@ -17,6 +17,7 @@ jest.mock('@/server/utils/musicPlatform', () => ({
     musicPlatformData: {
         getArtist: jest.fn().mockResolvedValue(null),
         getArtistImage: jest.fn().mockResolvedValue(null),
+        getArtistPortrait: jest.fn().mockResolvedValue(null),
     },
     deezerProvider: { getArtist: jest.fn() },
     spotifyProvider: { getArtist: jest.fn() },

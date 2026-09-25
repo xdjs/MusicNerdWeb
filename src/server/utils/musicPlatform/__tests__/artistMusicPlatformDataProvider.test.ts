@@ -172,6 +172,16 @@ describe('ArtistMusicPlatformDataProvider', () => {
     });
 
     describe('getArtistImage', () => {
+        it('prefers Spotify imagery when both artist IDs exist', async () => {
+            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
+
+            const result = await ampdp.getArtistImage(artist);
+
+            expect(result).toBe('https://spotify.com/image.jpg');
+            expect(fallback.getArtistImage).toHaveBeenCalledWith('spotify-123');
+            expect(primary.getArtistImage).not.toHaveBeenCalled();
+        });
+
         it('should return primary image when deezer ID exists', async () => {
             const artist = makeArtist({ deezer: '4738512' });
 
@@ -180,13 +190,43 @@ describe('ArtistMusicPlatformDataProvider', () => {
             expect(result).toBe('https://deezer.com/image.jpg');
         });
 
-        it('should fall back to Spotify image when Deezer returns null', async () => {
-            primary.getArtistImage.mockResolvedValueOnce(null);
+        it('falls back to Deezer when Spotify has no image', async () => {
+            fallback.getArtistImage.mockResolvedValueOnce(null);
             const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
 
             const result = await ampdp.getArtistImage(artist);
 
-            expect(result).toBe('https://spotify.com/image.jpg');
+            expect(result).toBe('https://deezer.com/image.jpg');
+        });
+
+        it('falls back to Deezer when Spotify image lookup fails', async () => {
+            fallback.getArtistImage.mockRejectedValueOnce(new Error('Spotify unavailable'));
+            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
+
+            const result = await ampdp.getArtistImage(artist);
+
+            expect(result).toBe('https://deezer.com/image.jpg');
+        });
+    });
+
+    describe('getArtistPortrait', () => {
+        it('uses Spotify when both IDs exist', async () => {
+            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
+            expect(await ampdp.getArtistPortrait(artist)).toBe('https://spotify.com/image.jpg');
+            expect(primary.getArtist).not.toHaveBeenCalled();
+        });
+
+        it('keeps the full-size Deezer image when Spotify is unavailable', async () => {
+            fallback.getArtistImage.mockResolvedValueOnce(null);
+            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
+            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(primary.getArtist).toHaveBeenCalledWith('4738512');
+        });
+
+        it('keeps the full-size Deezer image for Deezer-only artists', async () => {
+            const artist = makeArtist({ deezer: '4738512' });
+            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(fallback.getArtistImage).not.toHaveBeenCalled();
         });
     });
 

@@ -101,7 +101,7 @@ export default function ArtistProfileContent({
                     <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection artistId={artist.id} pendingSources={pendingSources} approvedSources={approvedSources} />
+                    <VaultSection artistId={artist.id} isClaimed={isClaimed} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
                 <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />

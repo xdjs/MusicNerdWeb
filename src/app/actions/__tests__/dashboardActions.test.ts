@@ -283,6 +283,19 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
+    it("enriches a visitor-suggested URL when its artist approves it", async () => {
+        const { updateSourceStatus, dq } = await setup();
+        const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
+        dq.getVaultSourceById.mockResolvedValue({
+            id: "s1", artistId: "a1", url: "https://pitchfork.com/a", title: "Source from pitchfork.com", status: "pending", extractedText: null,
+        });
+
+        expect((await updateSourceStatus("s1", "approved")).success).toBe(true);
+        expect(fetchPageContent).toHaveBeenCalledWith("https://pitchfork.com/a");
+        expect(dq.updateVaultSourceContent).toHaveBeenCalledWith("s1", expect.objectContaining({ title: "mock" }));
+        expect(dq.updateVaultSourceStatus).toHaveBeenCalledWith("s1", "approved");
+    });
+
     it("rebuilds the doc when a source is deleted outright", async () => {
         const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");

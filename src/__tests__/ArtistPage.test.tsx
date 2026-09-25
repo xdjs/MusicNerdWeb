@@ -16,6 +16,7 @@ jest.mock('@/server/utils/musicPlatform', () => ({
     musicPlatformData: {
         getArtist: jest.fn(),
         getArtistImage: jest.fn(),
+        getArtistPortrait: jest.fn(),
     },
 }));
 
@@ -55,7 +56,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait, initialPosition }: any) { return <div data-testid="hero-section" data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -109,7 +110,7 @@ function setupMocks({ session = null, artist = mockArtist } = {}) {
     (getServerAuthSession as jest.Mock).mockResolvedValue(session);
     (getArtistById as jest.Mock).mockResolvedValue(artist);
     (musicPlatformData.getArtist as jest.Mock).mockResolvedValue(mockPlatformArtist);
-    (musicPlatformData.getArtistImage as jest.Mock).mockResolvedValue('https://cdn.deezer.com/artist.jpg');
+    (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.deezer.com/artist.jpg');
     (getAllLinks as jest.Mock).mockResolvedValue([]);
 }
 
@@ -146,6 +147,12 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'true');
         });
 
+        it('uses the preferred provider image in the hero', async () => {
+            (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
+            await renderArtistPage();
+            expect(screen.getByTestId('hero-section')).toHaveAttribute('data-image', 'https://cdn.spotify.com/artist.jpg');
+        });
+
         it('passes saved framing only for the photo it belongs to', async () => {
             (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, customImage: '/artist-images/upload.jpg', headerImagePosition: { imageUrl: '/artist-images/upload.jpg', y: 64 } });
             const { unmount } = await renderArtistPage();
@@ -158,13 +165,13 @@ describe('ArtistProfile page', () => {
 
         it('uses the portrait layout for an uploaded photo without a provider photo', async () => {
             (getArtistById as jest.Mock).mockResolvedValue({ ...mockArtist, customImage: '/artist-images/upload.jpg' });
-            (musicPlatformData.getArtist as jest.Mock).mockResolvedValue({ ...mockPlatformArtist, imageUrl: null });
+            (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
             await renderArtistPage();
             expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'true');
         });
 
         it('keeps the fallback layout when there is no artist photo', async () => {
-            (musicPlatformData.getArtist as jest.Mock).mockResolvedValue({ ...mockPlatformArtist, imageUrl: null });
+            (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
             await renderArtistPage();
             expect(screen.getByTestId('hero-section')).toHaveAttribute('data-portrait', 'false');
         });
@@ -330,6 +337,14 @@ describe('ArtistProfile page', () => {
     });
 
     describe('generateMetadata', () => {
+        it('uses the preferred provider image for social previews', async () => {
+            (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
+            const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
+            expect(metadata.openGraph?.images).toEqual(expect.arrayContaining([
+                expect.objectContaining({ url: 'https://cdn.spotify.com/artist.jpg' }),
+            ]));
+        });
+
         it('returns correct title and description for an existing artist', async () => {
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.title).toBe('Test Artist | Music Nerd');

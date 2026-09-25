@@ -6,13 +6,14 @@ import { EditModeContext } from '@/app/_components/EditModeContext';
 
 jest.mock('@/app/artist/[id]/_components/RevealSection', () => function RevealSection({ children }: any) { return <section>{children}</section>; });
 jest.mock('@/app/artist/[id]/_components/VaultManager', () => function VaultManager() { return <div data-testid="vault-manager" />; });
+jest.mock('@/app/artist/[id]/_components/SuggestLoreSource', () => function SuggestLoreSource() { return <div data-testid="suggest-lore-source" />; });
 
 const approved = [{ id: 'a', artistId: 'x', url: 'https://example.com/interview', title: 'Artist interview', status: 'approved' }];
 
 function renderCtx(value: { isEditing: boolean; canEdit: boolean }, props: any) {
   return render(
     <EditModeContext.Provider value={{ ...value, toggle: jest.fn() }}>
-      <VaultSection artistId="x" pendingSources={[]} approvedSources={props.approvedSources} />
+      <VaultSection artistId="x" isClaimed pendingSources={[]} approvedSources={props.approvedSources} />
     </EditModeContext.Provider>
   );
 }

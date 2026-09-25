@@ -155,7 +155,7 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
 | Account bookmarks (local feature; check migration/release status) | [Local feature contract](docs/account-bookmarks.md); `/api/bookmarks` is not in this docs release |
 | Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link handler](src/app/api/auth/link-wallet/route.ts) |
 | Artist questions and interview | [Ask](src/app/api/askArtist/route.ts), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
-| Source research and stored knowledge | [Research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |
+| Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |
 | Uploads | [Vault upload](src/app/api/vault/upload/route.ts), [profile image](src/app/api/artist/profile-image/route.ts) |
 | Admin and worker operations | [Admin routes](src/app/api/admin), [agent routes](src/app/api/agent) |
 | MCP | [Reference](docs/mcp.md) |
