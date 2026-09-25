@@ -40,13 +40,20 @@ it('lets a signed-in visitor suggest a source for artist review', async () => {
   }));
 });
 
+it('strips fragments and serializes the URL before duplicate detection', async () => {
+  expect((await call('HTTPS://PITCHFORK.COM:443/features/bike-lane#bio')).status).toBe(201);
+  expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({
+    url: 'https://pitchfork.com/features/bike-lane',
+  }));
+});
+
 it('requires a signed-in account', async () => {
   (requireAuth as jest.Mock).mockResolvedValue({ authenticated: false, response: Response.json({ error: 'Not authenticated' }, { status: 401 }) });
   expect((await call('https://pitchfork.com/a')).status).toBe(401);
   expect(insertVaultSource).not.toHaveBeenCalled();
 });
 
-it.each(['javascript:alert(1)', 'http://127.0.0.1/private', 'file:///etc/passwd'])(
+it.each(['javascript:alert(1)', 'http://127.0.0.1/private', 'http://127.0.0.2/private', 'http://8.8.8.8/page', 'file:///etc/passwd'])(
   'rejects unsafe URL %s', async url => {
     expect((await call(url)).status).toBe(400);
     expect(insertVaultSource).not.toHaveBeenCalled();

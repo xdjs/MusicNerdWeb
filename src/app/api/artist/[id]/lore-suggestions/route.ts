@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { requireAuth } from '@/lib/auth-helpers';
 import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
 import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
@@ -17,8 +18,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const body = await request.json().catch(() => null);
-    const url = typeof body?.url === 'string' ? normalizePublicUrl(body.url) : null;
-    if (!url || isUnsafeUrl(url) || url.length > 2048) {
+    const normalized = typeof body?.url === 'string' ? normalizePublicUrl(body.url) : null;
+    const canonical = normalized ? new URL(normalized) : null;
+    if (canonical) canonical.hash = '';
+    const url = canonical?.href ?? null;
+    if (!url || isIP(canonical!.hostname) !== 0 || isUnsafeUrl(url) || url.length > 2048) {
         return Response.json({ error: 'Enter a public website URL' }, { status: 400 });
     }
 

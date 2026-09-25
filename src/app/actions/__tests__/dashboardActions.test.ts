@@ -283,7 +283,7 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
     });
 
-    it("enriches a visitor-suggested URL when its artist approves it", async () => {
+    it("approves a visitor-suggested URL without fetching it in the request", async () => {
         const { updateSourceStatus, dq } = await setup();
         const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
         dq.getVaultSourceById.mockResolvedValue({
@@ -291,8 +291,8 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         });
 
         expect((await updateSourceStatus("s1", "approved")).success).toBe(true);
-        expect(fetchPageContent).toHaveBeenCalledWith("https://pitchfork.com/a");
-        expect(dq.updateVaultSourceContent).toHaveBeenCalledWith("s1", expect.objectContaining({ title: "mock" }));
+        expect(fetchPageContent).not.toHaveBeenCalled();
+        expect(dq.updateVaultSourceContent).not.toHaveBeenCalled();
         expect(dq.updateVaultSourceStatus).toHaveBeenCalledWith("s1", "approved");
     });
 

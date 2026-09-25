@@ -102,27 +102,6 @@ export async function updateSourceStatus(
         const ownership = await verifySourceEditable(session.user.id, sourceId);
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
-        // Visitor suggestions are stored as URLs only. Read them after an editor
-        // chooses to approve, so public submissions cannot initiate page fetches.
-        if (status === "approved" && ownership.source.url
-            && ownership.source.title?.startsWith("Source from ")
-            && !ownership.source.extractedText && !ownership.source.filePath) {
-            try {
-                const content = await fetchPageContent(ownership.source.url);
-                if (content.title !== ownership.source.title || content.snippet || content.extractedText || content.ogImage) {
-                    await updateVaultSourceContent(sourceId, {
-                        title: content.title,
-                        snippet: content.snippet,
-                        extractedText: content.extractedText,
-                        ogImage: content.ogImage,
-                        publishedAt: content.publishedAt ?? null,
-                    });
-                }
-            } catch (error) {
-                console.error("[updateSourceStatus] Source enrichment failed; approval continues", error);
-            }
-        }
-
         await updateVaultSourceStatus(sourceId, status);
 
         // The document follows the sources in BOTH directions. Approving is not
