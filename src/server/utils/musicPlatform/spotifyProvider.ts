@@ -90,7 +90,7 @@ export class SpotifyProvider implements MusicPlatformProvider {
         try {
             const artistUrl = `https://open.spotify.com/artist/${encodeURIComponent(id)}`;
             const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(artistUrl)}`, {
-                signal: AbortSignal.timeout(5000),
+                signal: AbortSignal.timeout(2500),
                 next: { revalidate: 60 * 60 * 24 },
             });
             if (!response.ok) return null;

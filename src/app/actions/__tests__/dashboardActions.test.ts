@@ -162,6 +162,20 @@ describe("dashboardActions.addVaultSource", () => {
         }));
     });
 
+    it("stores the canonical URL without a fragment", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        expect((await addVaultSource("artist-1", "HTTPS://PITCHFORK.COM:443/a#bio")).success).toBe(true);
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }));
+    });
+
+    it("does not add a URL already stored with a fragment", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { getVaultSourcesByArtistId } = await import("@/server/utils/queries/dashboardQueries");
+        getVaultSourcesByArtistId.mockResolvedValueOnce([{ url: "https://pitchfork.com/a#bio" }]);
+        expect((await addVaultSource("artist-1", "https://pitchfork.com/a")).success).toBe(false);
+        expect(insertVaultSource).not.toHaveBeenCalled();
+    });
+
     it("rejects when session is missing", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         const { getServerAuthSession } = await import("@/server/auth");

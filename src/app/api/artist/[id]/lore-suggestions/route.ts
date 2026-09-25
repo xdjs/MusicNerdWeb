@@ -1,9 +1,9 @@
 import { isIP } from 'node:net';
 import { requireAuth } from '@/lib/auth-helpers';
-import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
+import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
 import { isUnsafeUrl } from '@/server/utils/fetchPageContent';
-import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
+import { getVaultSourcesByArtistId, insertVaultSource } from '@/server/utils/queries/dashboardQueries';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,15 +18,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const body = await request.json().catch(() => null);
-    const normalized = typeof body?.url === 'string' ? normalizePublicUrl(body.url) : null;
-    const canonical = normalized ? new URL(normalized) : null;
-    if (canonical) canonical.hash = '';
-    const url = canonical?.href ?? null;
-    if (!url || isIP(canonical!.hostname) !== 0 || isUnsafeUrl(url) || url.length > 2048) {
+    const url = typeof body?.url === 'string' ? canonicalizeLoreUrl(body.url) : null;
+    if (!url || isIP(new URL(url).hostname) !== 0 || isUnsafeUrl(url) || url.length > 2048) {
         return Response.json({ error: 'Enter a public website URL' }, { status: 400 });
     }
 
     try {
+        // Older editor submissions could retain fragments. Check their
+        // canonical forms before relying on the raw-URL unique index.
+        const existing = await getVaultSourcesByArtistId(artistId);
+        if (existing.some(source => source.url && canonicalizeLoreUrl(source.url) === url)) {
+            return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
+        }
         const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;
         const source = await insertVaultSource({
             artistId, url, title, type: inferTypeFromUrl(url), status: 'pending',
