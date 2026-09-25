@@ -31,4 +31,15 @@ describe('insertVaultSource', () => {
         await insertVaultSource({ artistId: 'a1', url: 'https://soundbetter.com/x' });
         expect(values).toHaveBeenCalledWith(expect.objectContaining({ publishedAt: null }));
     });
+
+    it('stores one canonical URL even when another writer supplies a fragment', async () => {
+        const values = jest.fn().mockReturnValue({
+            onConflictDoNothing: () => ({ returning: async () => [{ id: 's1' }] }),
+        });
+        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }) } }));
+        const { insertVaultSource } = await import('../dashboardQueries');
+
+        await insertVaultSource({ artistId: 'a1', url: 'HTTPS://EXAMPLE.COM:443/article#bio' });
+        expect(values).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://example.com/article' }));
+    });
 });

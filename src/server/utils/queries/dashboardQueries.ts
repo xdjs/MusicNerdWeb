@@ -4,6 +4,7 @@ import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDoc
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
+import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
 /**
  * Returns the artist's **active** claim (pending or approved), if any.
@@ -372,6 +373,7 @@ export async function insertVaultSource(data: {
     publishedAt?: string | null;
 }, authorization?: { userId: string; expectedClaimId: string | null }) {
     try {
+        const url = canonicalizeLoreUrl(data.url) ?? data.url;
         const write = async (writer: WriteDb) => {
         // onConflictDoNothing pairs with the unique index on (artist_id, url)
         // added in 0014. Dedup used to be a read-then-write with nothing
@@ -381,7 +383,7 @@ export async function insertVaultSource(data: {
             .insert(artistVaultSources)
             .values({
                 artistId: data.artistId,
-                url: data.url,
+                url,
                 title: data.title,
                 snippet: data.snippet,
                 type: data.type ?? "article",
