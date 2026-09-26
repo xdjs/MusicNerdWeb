@@ -20,6 +20,7 @@ import { isUnsafeUrl, fetchPageContent } from "@/server/utils/fetchPageContent";
 import { isCitableSource } from "@/server/utils/sourceVerification";
 import { fetchLinkPreview } from "@/server/utils/linkPreview";
 import { inferTypeFromUrl } from "@/lib/source/sourceTypes";
+import { podcastService } from "@/lib/source/podcastService";
 import {
     type OnboardingStep,
     getOnboardingState,
@@ -1001,7 +1002,7 @@ export async function applyProfileLinkDecisions(
                     status: ownedByArtist ? "approved" : "pending",
                 });
                 existingVaultStatusByUrl.set(raw.url, ownedByArtist ? "approved" : "pending");
-                // Fire-and-forget content enrichment (snippet/extractedText,
+                // Enrich content (snippet/extractedText,
                 // and title too if we don't already have a good one) so doc
                 // synthesis isn't left with a bare URL — mirrors the
                 // vault_review addedUrls background fetch further below.
@@ -1011,15 +1012,16 @@ export async function applyProfileLinkDecisions(
                 // must never be allowed to downgrade the real og:title (e.g.
                 // "Pete Rango") we already captured synchronously above.
                 if (source?.id) {
-                    fetchPageContent(raw.url).then(content => {
+                    const enrichment = fetchPageContent(raw.url).then(content =>
                         updateVaultSourceContent(source.id, {
                             ...content.podcastEpisode,
                             ...(preview.title ? {} : { title: content.title }),
                             snippet: content.snippet,
                             extractedText: content.extractedText,
                             ogImage: content.ogImage,
-                        }).catch(e => console.error("[onboarding] Background content update failed:", e));
-                    }).catch(e => console.error("[onboarding] Background fetch failed:", e));
+                        })
+                    ).catch(e => console.error("[onboarding] Content enrichment failed:", e));
+                    if (podcastService(raw.url)) await enrichment;
                 }
                 (ownedByArtist ? routedToVaultApproved : routedToVaultPending).push(raw.url);
             } catch (e) {
@@ -1496,19 +1498,20 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
             try {
                 if (isUnsafeUrl(url)) continue;
                 const source = await insertVaultSource({ artistId, url, type: inferTypeFromUrl(url), status: "approved" });
-                // Fire-and-forget content enrichment (title/snippet/extractedText) so
+                // Enrich content (title/snippet/extractedText) so
                 // doc synthesis isn't left with a bare URL — mirrors addVaultSource's
                 // background fetch pattern (src/app/actions/dashboardActions.ts).
                 if (source?.id) {
-                    fetchPageContent(url).then(content => {
+                    const enrichment = fetchPageContent(url).then(content =>
                         updateVaultSourceContent(source.id, {
                             ...content.podcastEpisode,
                             title: content.title,
                             snippet: content.snippet,
                             extractedText: content.extractedText,
                             ogImage: content.ogImage,
-                        }).catch(e => console.error("[onboarding] Background content update failed:", e));
-                    }).catch(e => console.error("[onboarding] Background fetch failed:", e));
+                        })
+                    ).catch(e => console.error("[onboarding] Content enrichment failed:", e));
+                    if (podcastService(url)) await enrichment;
                 }
             } catch (e) {
                 console.error(`[onboarding] insertVaultSource failed for ${url}:`, e);

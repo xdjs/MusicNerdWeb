@@ -18,8 +18,9 @@ Raw provider HTML remains outside the repository.
 ## Presentation proposal
 
 One Lore card uses episode artwork, a Podcast badge, show name, episode title and
-separate Apple Podcasts / iHeart links. Neither service is silently chosen for the
-listener; the card itself is not a competing third link. Links open in a new tab.
+one link per listening service (Apple Podcasts / iHeart), even if multiple locale
+variants are stored. Neither service is silently chosen for the listener; the
+card itself is not a competing third link. Links open in a new tab.
 Single sources retain their existing presentation. Counts represent visible stories,
 not the number of listening destinations. This concerns Lore, not Latest.
 
@@ -46,13 +47,15 @@ not the number of listening destinations. This concerns Lore, not Latest.
   **target database**, since staging and production IDs differ. This never
   changes a source's URL, status, provenance or approval decision.
 - URL handling must be provider-specific: Apple's `i` query parameter identifies the
-  episode and must survive normalization. Do not generically strip query strings
+  episode and survives discovery dedup as well as storage. Do not generically strip query strings
   from media links or assume an arbitrary similar path identifies the same recording.
 - Compute public groups deterministically from stored identity each render, so a
   rediscovery of an already-identified episode doesn't add a duplicate visible card.
   A rerun without reliable identity remains separate until verified enrichment.
 - Test distinct episodes on one show, near-identical titles, uncertain/missing metadata,
   locale/tracking variants, separate artists, mixed approval states and reruns.
+- Manual add and onboarding finish podcast metadata writes before returning from
+  their request. Other source enrichment keeps its existing asynchronous path.
 
 The read path is VaultSection → PressAndFeatures. `groupPodcastSources` projects
 approved source rows into cards from persisted identity. Ingestion also covers

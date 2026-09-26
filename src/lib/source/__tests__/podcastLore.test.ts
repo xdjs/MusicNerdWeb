@@ -1,5 +1,6 @@
 import { extractPodcastEpisodeIdentity } from "../podcastEpisodeIdentity";
 import { groupPodcastSources } from "../groupPodcastSources";
+import { normalizeLoreDiscoveryUrl } from "../normalizeLoreDiscoveryUrl";
 
 const apple = "https://podcasts.apple.com/tw/podcast/episode/id1877956390?i=1000780276007&l=en-GB";
 const iheart = "https://www.iheart.com/podcast/269-the-hook-323320053/episode/episode-340460192/";
@@ -45,4 +46,9 @@ describe("public podcast cards", () => {
         expect(groupPodcastSources(rows.filter(row => row.status === "approved"))).toHaveLength(1);
         expect(groupPodcastSources(rows.filter(row => row.status === "approved"))[0].kind).toBe("source");
     });
+});
+
+it("keeps Apple's episode id during discovery dedup but ignores tracking parameters", () => {
+    expect(normalizeLoreDiscoveryUrl(apple)).not.toBe(normalizeLoreDiscoveryUrl(apple.replace("6007", "6008")));
+    expect(normalizeLoreDiscoveryUrl(apple)).toBe(normalizeLoreDiscoveryUrl(apple.replace("&l=en-GB", "&l=fr-FR")));
 });

@@ -10,6 +10,7 @@ import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { isReservedHandle } from "@/lib/platformHandles";
 import { isExcludedLoreDiscoveryUrl } from "@/lib/source/isExcludedLoreDiscoveryUrl";
+import { normalizeLoreDiscoveryUrl as normalizeUrl } from "@/lib/source/normalizeLoreDiscoveryUrl";
 import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { setArtistLink } from "@/server/utils/artistLinkService";
 import {
@@ -786,19 +787,6 @@ function isMachineFormatUrl(raw: string): boolean {
     if (/\.(xml|rss|atom|json)$/.test(url)) return true;
     if (/\/(feed|rss|atom)\/?$/.test(url)) return true;
     return /[?&](feed|format)=(rss|atom|xml|json)/.test(raw.toLowerCase());
-}
-
-/** Normalize a URL for dedup comparison: lowercase, strip protocol/www/trailing slash */
-function normalizeUrl(raw: string): string {
-    try {
-        const u = new URL(raw);
-        const host = u.hostname.replace(/^www\./, "").toLowerCase();
-        const path = u.pathname.replace(/\/+$/, "").toLowerCase();
-        return `${host}${path}`;
-    } catch {
-        // Fallback for malformed URLs
-        return raw.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
-    }
 }
 
 /**

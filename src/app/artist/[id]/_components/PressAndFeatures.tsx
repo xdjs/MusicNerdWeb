@@ -130,6 +130,12 @@ function SourceCard({ source }: { source: VaultSource }) {
 
 function PodcastCard({ sources }: { sources: VaultSource[] }) {
     const preferred = sources.find(source => podcastService(source.url) === "Apple Podcasts") ?? sources[0];
+    const destinationMap = new Map<string, VaultSource>();
+    for (const source of sources) {
+        const service = podcastService(source.url);
+        if (service && !destinationMap.has(service)) destinationMap.set(service, source);
+    }
+    const destinations = [...destinationMap.entries()];
     const artwork = sources.find(source => source.ogImage)?.ogImage;
     const title = sources.find(source => source.podcastEpisodeTitle)?.podcastEpisodeTitle ?? preferred.title ?? "Podcast episode";
     const show = sources.find(source => source.podcastShowTitle)?.podcastShowTitle;
@@ -149,10 +155,10 @@ function PodcastCard({ sources }: { sources: VaultSource[] }) {
                 {show && <p className="text-[11px] text-muted-foreground truncate">{show}</p>}
                 <h3 className="text-sm font-semibold text-black dark:text-white leading-snug line-clamp-2">{title}</h3>
                 <div className="flex flex-wrap gap-2 mt-auto pt-2">
-                    {sources.map(source => (
-                        <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer"
+                    {destinations.map(([service, source]) => (
+                        <a key={service} href={source.url} target="_blank" rel="noopener noreferrer"
                             className="rounded-md border border-pastypink/50 px-2 py-1 text-[11px] font-medium text-black dark:text-white hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">
-                            {podcastService(source.url)}
+                            {service}
                         </a>
                     ))}
                 </div>

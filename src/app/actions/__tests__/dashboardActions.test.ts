@@ -171,6 +171,28 @@ describe("dashboardActions.addVaultSource", () => {
         expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }));
     });
 
+    it("finishes podcast metadata persistence before returning", async () => {
+        const { addVaultSource } = await setup();
+        const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
+        const { updateVaultSourceContent } = await import("@/server/utils/queries/dashboardQueries");
+        (fetchPageContent as jest.Mock).mockResolvedValueOnce({
+            title: "Episode", extractedText: null,
+            podcastEpisode: { podcastEpisodeKey: "buzzsprout:1:2" },
+        });
+        let finishUpdate: (value: unknown) => void;
+        (updateVaultSourceContent as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finishUpdate = resolve; }));
+
+        const action = addVaultSource("artist-1", "https://podcasts.apple.com/us/podcast/episode/id123?i=456");
+        await new Promise(resolve => setImmediate(resolve));
+        let settled = false;
+        void action.then(() => { settled = true; });
+        await Promise.resolve();
+        expect(settled).toBe(false);
+        expect(updateVaultSourceContent).toHaveBeenCalledWith("source-1", expect.objectContaining({ podcastEpisodeKey: "buzzsprout:1:2" }));
+        finishUpdate!({ id: "source-1" });
+        expect((await action).success).toBe(true);
+    });
+
     it("does not add a URL already stored with a fragment", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         const { getVaultSourceUrlsByArtistId } = await import("@/server/utils/queries/getVaultSourceUrlsByArtistId");
