@@ -49,6 +49,17 @@
 .tab svg { flex-shrink: 0; }
 .tab:hover { background: #ff75d80b; }
 .badge { margin-left: auto; font-size: 11px; min-width: 23px; padding: 2px 5px; border-radius: 20px; background: #ff75d816; text-align: center; }
+.mobileSections { display: none; }
+.sectionTrigger { height: 56px; border-radius: 14px; border-color: var(--community-line); background: #ff75d80a; color: var(--community-ink); padding-inline: 16px; gap: 14px; font-weight: 500; }
+.sectionTrigger > span:first-child { display: flex; flex: 1; }
+.sectionOption { display: flex; align-items: center; gap: 12px; width: 100%; }
+.sectionOption svg { flex-shrink: 0; }
+.sectionMenu { background: #fff; width: var(--radix-select-trigger-width); max-height: var(--radix-select-content-available-height); border-radius: 14px; }
+:global(.dark) .sectionMenu { background: #191919; }
+.sectionItem[data-highlighted] { background: #ff75d826; color: inherit; }
+.sectionItem { min-height: 48px; padding-right: 12px; border-radius: 10px; }
+.sectionItem > span:last-child { flex: 1; }
+.sectionItem[data-state="checked"] { background: #ff75d816; }
 .panel { margin: 0; min-width: 0; }
 .panelHeader { margin: 0 0 22px; }
 .panelHeader h2 { font-size: 24px; font-weight: 600; letter-spacing: -.035em; }
@@ -62,8 +73,8 @@
 .panel :global(h3) { color: inherit; }
 @media (max-width: 767px) {
  .workspace { grid-template-columns: minmax(0,1fr); gap: 24px; }
- .tabs { flex-direction: row; overflow-x: auto; padding: 3px 2px 10px; }
- .tab { flex-shrink: 0; }
+ .tabs { display: none; }
+ .mobileSections { display: block; min-width: 0; }
  .header { align-items: start; flex-direction: column; gap: 16px; padding-top: 28px; }
  .reviewOverview { gap: 10px; margin-bottom: 24px; }
  .reviewCard { padding: 18px 15px; gap: 5px; }
