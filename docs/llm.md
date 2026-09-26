@@ -53,9 +53,9 @@ The SDK reads `AI_GATEWAY_API_KEY` first and falls back to the OIDC token. Nothi
 `src/env.ts` validates the key: a missing key fails at the first call, not at build time, which is
 the same boundary `GEMINI_API_KEY` had. The stub build needs no LLM variable.
 
-`GEMINI_API_KEY` and `OPENAI_API_KEY` stay on the Vercel project until the release that carries
-this switch is verified on production, then Pete or Carl remove them (rollback path: revert the
-release; the old keys are still there).
+`GEMINI_API_KEY`, `OPENAI_API_KEY` and `OPENAI_MODEL` were removed from the Vercel project on
+2026-09-25, after the switch had been in production since 2026-09-24. Rolling back past the switch
+now means restoring those keys too.
 
 ## Call sites
 

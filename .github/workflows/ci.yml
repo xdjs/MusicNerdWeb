@@ -32,7 +32,6 @@ jobs:
     env:
       NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID: stub
       NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET: stub
-      OPENAI_API_KEY: stub
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
