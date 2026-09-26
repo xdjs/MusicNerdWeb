@@ -127,3 +127,26 @@
  .panel .ugcReview td[data-column="id"] dd { overflow-wrap: anywhere; max-width: 160px; }
  .panel .ugcReview .approveButton { min-width: 0; padding-inline: 10px; }
 }
+
+.claimFieldLabel { display: none; }
+@media (max-width: 767px) {
+ .panel .claimFilters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .panel .claimFilters button { min-height: 40px; }
+ .panel .claimsReview table, .panel .claimsReview tbody { display: block; }
+ .panel .claimsReview thead { display: none; }
+ .panel .claimsReview tbody tr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; padding: 20px 16px; }
+ .panel .claimsReview td { display: block; padding: 0; max-width: none; min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+ .panel .claimsReview td[colspan] { grid-column: 1 / -1; }
+ .panel .claimsReview td[data-column="artistName"] { grid-column: 1; grid-row: 1; align-self: center; }
+ .panel .claimsReview td[data-column="artistName"] a { color: inherit; font-size: 18px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+ .panel .claimsReview td[data-column="status"] { grid-column: 2; grid-row: 1; align-self: center; }
+ .panel .claimsReview td[data-column="referenceCode"] { grid-column: 1; grid-row: 2; }
+ .panel .claimsReview td[data-column="userEmail"] { grid-column: 1 / -1; grid-row: 3; }
+ .panel .claimsReview td[data-column="artistInstagram"] { grid-column: 1 / -1; grid-row: 4; }
+ .panel .claimsReview td[data-column="artistInstagram"] a { color: var(--community-ink); }
+ .panel .claimsReview td[data-column="createdAt"] { grid-column: 1 / -1; grid-row: 5; }
+ .panel .claimsReview td[data-column="actions"] { grid-column: 1 / -1; grid-row: 6; padding-top: 4px; }
+ .panel .claimsReview td[data-column="actions"] > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+ .panel .claimsReview td[data-column="actions"] button { min-height: 44px; height: auto; padding: 10px 16px; font-size: 14px; }
+ .claimFieldLabel { display: block; margin-bottom: 4px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+}

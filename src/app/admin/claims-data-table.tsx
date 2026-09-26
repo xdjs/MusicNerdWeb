@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { approveClaimAction, rejectClaimAction, revokeClaimAction } from "@/app/actions/adminClaimActions";
 import type { ClaimRow } from "./claims-columns";
+import styles from "@/components/community/Community.module.css";
 
 interface ClaimsDataTableProps {
     columns: ColumnDef<ClaimRow>[];
@@ -80,6 +81,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                             <Button
                                 size="sm"
                                 disabled={isLoading}
+                                aria-label={`Approve claim for ${claim.artistName}`}
                                 onClick={() => handleApprove(claim.id)}
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2"
                             >
@@ -89,6 +91,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                                 size="sm"
                                 variant="destructive"
                                 disabled={isLoading}
+                                aria-label={`Reject claim for ${claim.artistName}`}
                                 onClick={() => handleReject(claim.id)}
                                 className="text-xs h-7 px-2"
                             >
@@ -127,9 +130,9 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
     });
 
     return (
-        <div className="space-y-3">
+        <div className={`${styles.claimsReview} space-y-3`}>
             {/* Status filter chips — all always visible for consistent layout */}
-            <div className="flex flex-wrap gap-2">
+            <div className={`${styles.claimFilters} flex flex-wrap gap-2`}>
                 <button
                     onClick={() => setStatusFilter(null)}
                     aria-pressed={statusFilter === null}
@@ -197,7 +200,8 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} data-column={cell.column.id}>
+                                            {["referenceCode", "artistInstagram", "userEmail", "createdAt"].includes(cell.column.id) && <span className={styles.claimFieldLabel}>{({referenceCode:"Reference code",artistInstagram:"Artist Instagram",userEmail:"Requested by",createdAt:"Submitted"} as Record<string,string>)[cell.column.id]}</span>}
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
