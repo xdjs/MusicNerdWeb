@@ -670,7 +670,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
             {showLeaderboard && (
             <div id="leaderboard-section" className="space-y-4">
                 <Leaderboard
-                    highlightIdentifier={isGuestUser ? undefined : (user.username || user.email || user.wallet || undefined)}
+                    currentUserId={isGuestUser ? undefined : user.id}
                     onRangeChange={selectedRange ? undefined : handleLeaderboardRangeChange}
                 />
             </div>
