@@ -70,4 +70,17 @@ describe("ArtistProfileContent", () => {
         const { container } = render(<ResearchProgressContext.Provider value={stages}><ArtistProfileContent {...base} /></ResearchProgressContext.Provider>);
         expect(container.querySelector("#mn-links [role=status]")).toHaveTextContent("finding your profiles…");
     });
+
+    // Research repaints this page in place (#1365). Two siblings sharing a key
+    // made React leave a second section nav behind when the hero's photo
+    // changed mid-build.
+    it("gives every section a key of its own, so an in-place repaint never duplicates one", () => {
+        const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+        const { rerender } = render(<ArtistProfileContent {...base} />);
+        rerender(<ArtistProfileContent {...base} imageUrl="/spotify.jpg" />);
+        const keyErrors = errors.mock.calls.filter(c => String(c[0]).includes("same key"));
+        errors.mockRestore();
+        expect(keyErrors).toEqual([]);
+    });
 });
+
