@@ -67,9 +67,9 @@ export default function UGCDataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <Button variant="outline" onClick={() => approveSelected()} className="w-fit">
-                {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="whyyyyy" />
-                    : "Approve Selected"}
+            <Button variant="outline" onClick={() => approveSelected()} disabled={uploadStatus.isLoading || !table.getFilteredSelectedRowModel().rows.length} className="w-fit rounded-full">
+                {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="Approving" />
+                    : `Approve selected${table.getFilteredSelectedRowModel().rows.length ? ` (${table.getFilteredSelectedRowModel().rows.length})` : ""}`}
             </Button>
             {uploadStatus.status === "error" && <p className="text-red-500">{uploadStatus.message}</p>}
             <div className="rounded-md border bg-card">
@@ -109,7 +109,7 @@ export default function UGCDataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                    All caught up. New link submissions will appear here.
                                 </TableCell>
                             </TableRow>
                         )}

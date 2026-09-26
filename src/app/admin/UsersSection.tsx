@@ -24,14 +24,15 @@ export default function UsersSection<TData, TValue>({ columns, data }: Props<TDa
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl">Users</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{filteredData.length.toLocaleString()} people</p>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Search people"
           placeholder="Search by username or wallet"
-          className="border border-gray-300 rounded-md px-2 py-1 text-sm w-56 text-black"
+          className="border border-border bg-transparent rounded-full px-4 py-2 text-sm w-full sm:w-72 text-foreground"
         />
       </div>
       <UsersDataTable columns={columns} data={filteredData} />
