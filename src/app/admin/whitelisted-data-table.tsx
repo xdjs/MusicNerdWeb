@@ -21,13 +21,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useEffect, useMemo, useState } from "react";
-import { X, Search as SearchIcon, ArrowUpDown } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
+import { X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {filterPeople,type AdminPerson} from "./filterPeople";
+import styles from "@/components/community/Community.module.css";
 import {
     Dialog,
     DialogContent,
@@ -324,12 +321,12 @@ export function RemoveAdminDialog() {
     );
 }
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends AdminPerson, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
 }
 
-export default function UsersDataTable<TData, TValue>({
+export default function UsersDataTable<TData extends AdminPerson, TValue>({
     columns,
     data,
 }: DataTableProps<TData, TValue>) {
@@ -341,38 +338,17 @@ export default function UsersDataTable<TData, TValue>({
     // Search query is handled by `query` state below. No additional role checkboxes needed.
     const [roleFilter, setRoleFilter] = useState<string>("All");
     const [query, setQuery] = useState<string>("");
+    const [visibility,setVisibility] = useState("All");
 
-    // Reset selection when role filter changes or search query changes (for safety)
     useEffect(() => {
         setRowSelection({});
-    }, [roleFilter]);
-
-    // Apply role filter – memoised for performance
-    const filteredData = useMemo(() => {
-        let arr: any[] = data;
-        if (roleFilter !== "All") {
-            arr = arr.filter((row: any) => {
-                if (roleFilter === "Admin") return row.isAdmin;
-                if (roleFilter === "Whitelisted") return !row.isAdmin && row.isWhiteListed;
-                if (roleFilter === "Hidden") return row.isHidden;
-                if (roleFilter === "User") return !row.isAdmin && !row.isWhiteListed;
-                return true;
-            });
-        }
-        if (query.trim()) {
-            const normalize = (str: string) => str.toLowerCase().replace(/^0x/, "");
-            const qNorm = normalize(query.trim());
-            arr = arr.filter((row: any) => {
-                const walletNorm = normalize(row.wallet ?? "");
-                const username = (row.username ?? "").toLowerCase();
-                return walletNorm.includes(qNorm) || username.includes(qNorm);
-            });
-        }
-        return arr;
-    }, [roleFilter, data, query]);
+        setPagination(previous=>({...previous,pageIndex:0}));
+    }, [roleFilter,query,visibility]);
+    const filteredData = useMemo(()=>filterPeople(data,query,roleFilter,visibility),[data,query,roleFilter,visibility]);
 
     const table = useReactTable({
         data: filteredData,
+        getRowId: row=>row.id,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -438,62 +414,41 @@ export default function UsersDataTable<TData, TValue>({
     }
 
     return (
-        <div className="space-y-4">
+        <div className={`${styles.mobileRecords} ${styles.peopleRecords} space-y-4`}>
             <div className="flex flex-col gap-4 w-full">
-                {/* Top row: Filter and Search */}
-                <div className="flex gap-4 items-center">
-                {/* Role filter dropdown */}
-                <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value)}>
-                    <SelectTrigger className="w-[160px]">
-                        <SelectValue placeholder="Filter Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="All">All Users</SelectItem>
-                        <SelectItem value="Admin">Admins</SelectItem>
-                        <SelectItem value="Whitelisted">Whitelisted Users</SelectItem>
-                        <SelectItem value="Hidden">Hidden Users</SelectItem>
-                        <SelectItem value="User">Users</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                                 {/* Search bar */}
-                 <div className="relative max-w-sm">
-                     <input
-                         type="text"
-                         value={query}
-                         onChange={(e) => setQuery(e.target.value)}
-                         placeholder="Search users by wallet or username..."
-                         className="border border-input rounded-md pl-2 pr-8 h-8 text-sm w-full bg-background text-foreground"
-                     />
-                    <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={2} />
+                <div className={styles.filterBar}>
+                  <input type="search" aria-label="Search people" placeholder="Search username, email or wallet" value={query} onChange={event=>setQuery(event.target.value)}/>
+                  <label>Role<select aria-label="Role" value={roleFilter} onChange={event=>setRoleFilter(event.target.value)}><option value="All">All roles</option><option value="Admin">Admins</option><option value="Whitelisted">Whitelisted</option><option value="User">Standard users</option></select></label>
+                  <label>Leaderboard<select aria-label="Leaderboard visibility" value={visibility} onChange={event=>setVisibility(event.target.value)}><option value="All">All visibility</option><option value="Visible">Visible</option><option value="Hidden">Hidden</option></select></label>
                 </div>
-                </div>
-                
-                {/* Button row */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 w-full">
+                <div className={styles.filterSummary}><span>{filteredData.length} of {data.length} people</span>{(query || roleFilter!=="All" || visibility!=="All") && <button type="button" onClick={()=>{setQuery("");setRoleFilter("All");setVisibility("All");}}>Clear filters</button>}</div>
+                <div className={styles.filterBar}><label>Sort by<select aria-label="People order" value={sorting[0]?.id === "role" ? "role" : sorting[0]?.desc ? "recent" : "oldest"} onChange={event=>setSorting([{id:event.target.value==="role"?"role":"updatedAt",desc:event.target.value==="recent"}])}><option value="recent">Recently updated</option><option value="oldest">Oldest updated</option><option value="role">Role</option></select></label></div>
+                <label className="inline-flex items-center gap-2 text-sm"><Checkbox aria-label="Select people on this page" checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={value=>table.toggleAllPageRowsSelected(!!value)} disabled={!filteredData.length}/>Select this page{table.getFilteredSelectedRowModel().rows.length ? ` · ${table.getFilteredSelectedRowModel().rows.length} selected` : ""}</label>
+                                {/* Button row */}
+                <div className={`${styles.peopleActions} grid grid-cols-2 sm:grid-cols-3 gap-2 w-full`}>
                 {Object.values(rowSelection).some(Boolean) ? (
                     <>
                         {/* Selected state buttons */}
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToWhitelist()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Whitelist"}
                         </Button>
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromWhitelist()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromWhitelist()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Whitelist"}
                         </Button>
 
                         {/* Admin selected buttons */}
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToAdmin()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Add Selected Admin"}
                         </Button>
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromAdmin()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromAdmin()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Remove Selected Admin"}
                         </Button>
 
                         {/* Hidden selected buttons */}
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToHidden()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitAddSelectedToHidden()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Hide Selected"}
                         </Button>
-                        <Button variant="outline" className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromHidden()}>
+                        <Button variant="outline" disabled={uploadStatus.isLoading} className="text-xs px-2 py-1 h-8" onClick={() => commitRemoveFromHidden()}>
                             {uploadStatus.isLoading ? <img className="w-4 h-4" src="/spinner.svg" alt="loading" /> : "Unhide Selected"}
                         </Button>
                     </>
@@ -540,7 +495,8 @@ export default function UsersDataTable<TData, TValue>({
                                 // data-state={row.getIsSelected() && "selected"}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} data-column={cell.column.id}>
+                                            <span className={styles.recordLabel}>{({wallet:"Wallet",email:"Email",username:"Username",role:"Role",updatedAt:"Updated"} as Record<string,string>)[cell.column.id]}</span>
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -549,7 +505,7 @@ export default function UsersDataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                    {data.length ? "No people match these filters." : "No people yet."}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -572,7 +528,7 @@ export default function UsersDataTable<TData, TValue>({
                     </div>
 
                     <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
-                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex + 1} of {Math.max(1,table.getPageCount())}
                     </div>
                     <div className="space-x-2">
                         <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>

@@ -5,7 +5,7 @@ import { UgcResearch, User } from "@/server/db/DbTypes";
 import { ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import WhitelistUserEditDialog from "./WhitelistUserEditDialog";
+import styles from "@/components/community/Community.module.css";
 
 // Helper to format dates in local timezone without seconds
 const formatDate = (value: string | Date | null | undefined): string => {
@@ -38,19 +38,10 @@ const formatDate = (value: string | Date | null | undefined): string => {
   return `${datePart} ${timePart}`;
 };
 
-export const ugcColumns: ColumnDef<UgcResearch>[] = [
+export const ugcColumns: ColumnDef<UgcResearch & { wallet?: string | null; username?: string | null }>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    header: () => <span className="sr-only">Selection</span>,
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -62,98 +53,36 @@ export const ugcColumns: ColumnDef<UgcResearch>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "id",
-    header: "UGC ID",
-  },
-  {
-    accessorKey: "wallet",
-    header: "Wallet Address",
-  },
-  {
-    accessorKey: "username",
-    header: "Username",
-  },
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Created At
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  {
     accessorKey: "name",
-    header: "Artist Name",
-  },
-  // Updated At column intentionally omitted from UI
-  {
-    accessorKey: "siteName",
-    header: "Site Name",
+    header: "Artist",
+    cell: ({ row }) => <span className="font-semibold">{row.original.artistId ? <a href={`/artist/${row.original.artistId}`} className="underline underline-offset-4" title={row.original.artistId}>{row.original.name || "Unknown artist"}</a> : row.original.name || "Unknown artist"}</span>,
   },
   {
     accessorKey: "ugcUrl",
-    header: "UGC URL",
-    cell: ({ getValue }) => {
-      const url = getValue() as string | null | undefined;
-      if (!url) return "";
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline"
-        >
-          {url}
-        </a>
-      );
-    },
+    header: "Suggested link",
+    cell: ({ row }) => <div className="min-w-40 max-w-60"><p className="text-xs text-muted-foreground mb-1">{row.original.siteName}</p><a href={row.original.ugcUrl ?? undefined} target="_blank" rel="noopener noreferrer" className="block truncate underline underline-offset-4" title={row.original.ugcUrl ?? undefined}>{row.original.siteUsername || row.original.ugcUrl || "No link supplied"}</a></div>,
   },
   {
-    accessorKey: "siteUsername",
-    header: "Site Username",
+    accessorKey: "username",
+    header: "Shared by",
+    cell: ({ row }) => <span title={row.original.wallet ?? undefined}>{row.original.username || (row.original.wallet ? `${row.original.wallet.slice(0, 6)}…${row.original.wallet.slice(-4)}` : "Contributor")}</span>,
   },
   {
-    accessorKey: "artistId",
-    header: "Artist ID",
-    cell: ({ getValue }) => {
-      const id = getValue() as string | null | undefined;
-      if (!id) return "";
-      const href = `https://musicnerd.xyz/${id}`;
-      return (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline"
-        >
-          {id}
-        </a>
-      );
-    },
+    accessorKey: "createdAt",
+    header: ({ column }) => <Button variant="ghost" className="px-0 hover:bg-transparent" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Submitted <ArrowUpDown className="ml-2 h-3 w-3" /></Button>,
+    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
-  // Date Processed column intentionally omitted from UI
+  {
+    accessorKey: "id",
+    header: "Details",
+    cell: ({ row }) => <details><summary className="cursor-pointer text-xs">IDs</summary><dl className="mt-2 text-xs"><dt>Submission</dt><dd className="select-all">{row.original.id}</dd><dt className="mt-2">Artist</dt><dd className="select-all">{row.original.artistId}</dd></dl></details>,
+  },
 ];
 
 export const whitelistedColumns: ColumnDef<User>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    header: () => <span className="sr-only">Selection</span>,
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -165,16 +94,9 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "wallet",
-    header: "Wallet Address",
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
-  {
     accessorKey: "username",
-    header: "Username",
+    header: "Person",
+    cell: ({row}) => <><span>{row.original.username || row.original.email || "Unnamed contributor"}</span><details className={styles.personDetails}><summary>Contact and account details</summary><dl><dt>Email</dt><dd>{row.original.email || "Not provided"}</dd><dt>Wallet</dt><dd>{row.original.wallet || "Not linked"}</dd><dt>Updated</dt><dd>{formatDate(row.original.updatedAt)}</dd></dl></details></>,
   },
   {
     id: "role",
@@ -216,19 +138,10 @@ export const whitelistedColumns: ColumnDef<User>[] = [
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Updated At
+        Updated
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const user = row.original as User;
-      return <WhitelistUserEditDialog user={user} />;
-    },
-    enableSorting: false,
-  }
 ];

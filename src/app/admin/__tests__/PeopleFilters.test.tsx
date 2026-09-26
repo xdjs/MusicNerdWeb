@@ -1,0 +1,24 @@
+import {render,screen,fireEvent,waitFor} from '@testing-library/react';
+import UsersSection from '../UsersSection';
+import {whitelistedColumns} from '../columns';
+import type {User} from '@/server/db/DbTypes';
+jest.mock('@/app/actions/serverActions',()=>({}));
+jest.mock('next/navigation',()=>({useRouter:()=>({refresh:jest.fn()})}));
+jest.mock('../UserSearch',()=>()=>null);
+const data:User[]=Array.from({length:12},(_,i)=>({id:`person-${i}`,username:`person-${i}`,email:`person-${i}@example.com`,wallet:`0x${i}`,isAdmin:i===0,isWhiteListed:i===0,isHidden:i===1,isSuperAdmin:false,privyUserId:null,legacyId:null,legacyLinkDismissed:false,acceptedUgcCount:0,createdAt:'2026-09-26T12:00:00Z',updatedAt:'2026-09-26T12:00:00Z'}));
+it('has one identity search and resets selection and pagination as filters change',async()=>{
+ render(<UsersSection columns={whitelistedColumns} data={data}/>);
+ expect(screen.getAllByRole('searchbox')).toHaveLength(1);
+ fireEvent.click(screen.getByRole('button',{name:'Next'}));
+ expect(screen.getByText('Page 2 of 2')).toBeVisible();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Select people on this page'}));
+ expect(screen.getByRole('button',{name:'Hide Selected'})).toBeEnabled();
+ fireEvent.change(screen.getByRole('searchbox',{name:'Search people'}),{target:{value:'PERSON-0@example.com '}});
+ await waitFor(()=>expect(screen.getByText('Page 1 of 1')).toBeVisible());
+ expect(screen.queryByRole('button',{name:'Hide Selected'})).not.toBeInTheDocument();
+ expect(screen.getByText('1 of 12 people')).toBeVisible();
+ fireEvent.change(screen.getByRole('combobox',{name:'Leaderboard visibility'}),{target:{value:'Hidden'}});
+ expect(screen.getByText('No people match these filters.')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Clear filters'}));
+ expect(screen.getByText('12 of 12 people')).toBeVisible();
+});

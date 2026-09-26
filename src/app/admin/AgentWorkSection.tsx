@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import styles from "@/components/community/Community.module.css";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -45,17 +46,17 @@ function timeAgo(dateStr: string | null | undefined): string {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  resolve: "bg-green-500/20 text-green-400",
-  exclude: "bg-yellow-500/20 text-yellow-400",
-  set: "bg-blue-500/20 text-blue-400",
-  delete: "bg-red-500/20 text-red-400",
+  resolve: "bg-green-500/20 text-green-700 dark:text-green-400",
+  exclude: "bg-yellow-500/20 text-amber-700 dark:text-yellow-400",
+  set: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+  delete: "bg-red-500/20 text-red-700 dark:text-red-400",
 };
 
 const STATUS_STYLES: Record<string, { dot: string; bg: string; text: string }> = {
-  running: { dot: "bg-green-500", bg: "border-green-500/30", text: "text-green-400" },
-  idle: { dot: "bg-yellow-500", bg: "border-yellow-500/30", text: "text-yellow-400" },
-  error: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-400" },
-  dead: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-400" },
+  running: { dot: "bg-green-500", bg: "border-green-500/30", text: "text-green-700 dark:text-green-400" },
+  idle: { dot: "bg-yellow-500", bg: "border-yellow-500/30", text: "text-amber-700 dark:text-yellow-400" },
+  error: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-700 dark:text-red-400" },
+  dead: { dot: "bg-red-500", bg: "border-red-500/30", text: "text-red-700 dark:text-red-400" },
   stopped: { dot: "bg-zinc-500", bg: "border-zinc-500/30", text: "text-zinc-400" },
 };
 
@@ -82,15 +83,15 @@ function WorkerStatusPanel({ workers }: { workers: AgentWorkSummary["workers"] }
           const s = STATUS_STYLES[w.computedStatus] ?? STATUS_STYLES.stopped;
           return (
             <div key={w.workerId} className={`rounded-md border ${s.bg} bg-card p-3`}>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className={`inline-block w-2 h-2 rounded-full ${s.dot}`} />
-                <span className="font-mono text-sm font-medium">{w.workerId}</span>
+                <span className="break-all text-sm font-medium">{w.workerId}</span>
                 <span className={`text-xs font-medium ${s.text}`}>{w.computedStatus}</span>
               </div>
               {w.message && (
                 <p className="text-xs text-muted-foreground truncate mb-1">{w.message}</p>
               )}
-              <div className="flex gap-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 {w.currentRun != null && <span>Run #{w.currentRun}</span>}
                 {w.batchPlatform && <span>{w.batchPlatform}</span>}
                 {typeof w.config?.model === "string" && <span>{w.config.model}</span>}
@@ -121,7 +122,7 @@ function ActivityPulseBar({ pulse }: { pulse: AgentWorkSummary["activityPulse"] 
   const dotColor = ms < 5 * 60 * 1000 ? "bg-green-500" : ms < 30 * 60 * 1000 ? "bg-yellow-500" : "bg-red-500";
 
   return (
-    <div className="flex items-center gap-3 rounded-md border bg-card px-4 py-2">
+    <div className="flex flex-wrap items-center gap-3 rounded-md border bg-card px-4 py-2">
       <span className={`inline-block w-2.5 h-2.5 rounded-full ${dotColor}`} />
       <span className="text-sm">
         Last write: <span className="font-medium">{ago}</span>
@@ -179,7 +180,7 @@ function PlatformStatsSection({ stats }: { stats: AgentWorkSummary["stats"] }) {
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               {p.percentage}%
-              {p.todayCount > 0 && <span className="ml-1 text-green-400">+{p.todayCount} today</span>}
+              {p.todayCount > 0 && <span className="ml-1 text-green-700 dark:text-green-400">+{p.todayCount} today</span>}
             </div>
           </div>
         ))}
@@ -191,9 +192,9 @@ function PlatformStatsSection({ stats }: { stats: AgentWorkSummary["stats"] }) {
 // --- Lazy components (loaded on demand) ---
 
 const RUN_STATUS_STYLES: Record<string, string> = {
-  success: "bg-green-500/20 text-green-400",
-  failed: "bg-red-500/20 text-red-400",
-  running: "bg-blue-500/20 text-blue-400",
+  success: "bg-green-500/20 text-green-700 dark:text-green-400",
+  failed: "bg-red-500/20 text-red-700 dark:text-red-400",
+  running: "bg-blue-500/20 text-blue-700 dark:text-blue-400",
 };
 
 function formatDuration(secs: number | null): string {
@@ -214,54 +215,29 @@ function RunHistorySection({ runHistory }: { runHistory: AgentWorkDetails["runHi
   }
 
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
-        Run History ({runHistory.total.toLocaleString()} runs)
-      </h3>
-      <div className="rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Worker</TableHead>
-              <TableHead className="text-right">Run</TableHead>
-              <TableHead>Started</TableHead>
-              <TableHead className="text-right">Duration</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Resolved</TableHead>
-              <TableHead className="text-right">Excluded</TableHead>
-              <TableHead className="text-right">Skipped</TableHead>
-              <TableHead className="text-right">Errors</TableHead>
-              <TableHead className="text-right">Turns</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {runHistory.runs.map((run: AgentRun) => {
-              const statusClass = RUN_STATUS_STYLES[run.status] ?? "bg-muted text-muted-foreground";
-              return (
-                <TableRow key={`${run.workerId}-${run.runNumber}`}>
-                  <TableCell className="font-mono text-sm">{run.workerId}</TableCell>
-                  <TableCell className="text-right">{run.runNumber}</TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">{formatDate(run.startedAt)}</TableCell>
-                  <TableCell className="text-right text-sm">{formatDuration(run.wallTimeSecs)}</TableCell>
-                  <TableCell>
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusClass}`}
-                      title={run.failReason ?? undefined}
-                    >
-                      {run.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">{run.resolved}</TableCell>
-                  <TableCell className="text-right">{run.excluded}</TableCell>
-                  <TableCell className="text-right">{run.skipped}</TableCell>
-                  <TableCell className="text-right">{run.errors}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{run.turns ?? "—"}</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <section aria-label="Run history">
+      <h3 className="text-lg font-semibold mb-3">Run History ({runHistory.total.toLocaleString()} {runHistory.total === 1 ? "run" : "runs"})</h3>
+      <ul className={styles.runList}>
+        {runHistory.runs.map((run: AgentRun) => (
+          <li key={`${run.workerId}-${run.runNumber}`} className={styles.runCard}>
+            <div className={styles.runHeader}>
+              <div><h4>{run.workerId}</h4><p>Run #{run.runNumber} · {formatDate(run.startedAt)}</p></div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${RUN_STATUS_STYLES[run.status] ?? "bg-muted text-muted-foreground"}`}>{run.status}</span>
+            </div>
+            <dl className={styles.runMetrics}>
+              <div><dt>Duration</dt><dd>{formatDuration(run.wallTimeSecs)}</dd></div>
+              <div><dt>Resolved</dt><dd>{run.resolved}</dd></div>
+              <div><dt>Excluded</dt><dd>{run.excluded}</dd></div>
+              <div><dt>Errors</dt><dd>{run.errors}</dd></div>
+            </dl>
+            <details className={styles.runDetails}><summary>Full run statistics</summary>
+              <dl><div><dt>Skipped</dt><dd>{run.skipped}</dd></div><div><dt>Turns</dt><dd>{run.turns ?? "—"}</dd></div></dl>
+            </details>
+            {run.failReason && <p className="mt-3 text-sm text-red-700 dark:text-red-400 break-words">{run.failReason}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -302,17 +278,17 @@ function AgentBreakdownSection({ agents }: { agents: AgentWorkDetails["agentBrea
           <TableBody>
             {agents.map((agent) => (
               <TableRow key={agent.apiKeyHash}>
-                <TableCell className="font-medium">{agent.label ?? agent.apiKeyHash.slice(0, 8) + "..."}</TableCell>
-                <TableCell className="text-right">{agent.resolvedCount}</TableCell>
-                <TableCell className="text-right">{agent.excludedCount}</TableCell>
-                <TableCell className="text-right">{agent.byConfidence.high}</TableCell>
-                <TableCell className="text-right">{agent.byConfidence.medium}</TableCell>
-                <TableCell className="text-right">{agent.byConfidence.low}</TableCell>
-                <TableCell className="text-right">{agent.bySource.wikidata}</TableCell>
-                <TableCell className="text-right">{agent.bySource.musicbrainz}</TableCell>
-                <TableCell className="text-right">{agent.bySource.name_search}</TableCell>
-                <TableCell className="text-right">{agent.bySource.web_search}</TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground">{timeAgo(agent.lastActiveAt)}</TableCell>
+                <TableCell className="font-medium"><span className={styles.recordLabel}>Agent</span>{agent.label ?? agent.apiKeyHash.slice(0, 8) + "..."}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Resolved</span>{agent.resolvedCount}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Excluded</span>{agent.excludedCount}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>High</span>{agent.byConfidence.high}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Medium</span>{agent.byConfidence.medium}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Low</span>{agent.byConfidence.low}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Wikidata</span>{agent.bySource.wikidata}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>MusicBrainz</span>{agent.bySource.musicbrainz}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Name Search</span>{agent.bySource.name_search}</TableCell>
+                <TableCell className="text-right"><span className={styles.recordLabel}>Web Search</span>{agent.bySource.web_search}</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground"><span className={styles.recordLabel}>Last Active</span>{timeAgo(agent.lastActiveAt)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -352,16 +328,16 @@ function AuditLogSection({
             {auditLog.entries.length ? (
               auditLog.entries.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="whitespace-nowrap text-xs">{formatDate(entry.createdAt)}</TableCell>
-                  <TableCell className="text-sm">{entry.agentLabel ?? "unknown"}</TableCell>
-                  <TableCell><ActionBadge action={entry.action} /></TableCell>
-                  <TableCell className="text-sm font-mono">{entry.field}</TableCell>
-                  <TableCell>
-                    <Link href={`/artist/${entry.artistId}`} target="_blank" className="text-sm text-blue-400 hover:underline">
+                  <TableCell className="whitespace-nowrap text-xs"><span className={styles.recordLabel}>Time</span>{formatDate(entry.createdAt)}</TableCell>
+                  <TableCell className="text-sm"><span className={styles.recordLabel}>Agent</span>{entry.agentLabel ?? "unknown"}</TableCell>
+                  <TableCell><span className={styles.recordLabel}>Action</span><ActionBadge action={entry.action} /></TableCell>
+                  <TableCell className="text-sm font-mono"><span className={styles.recordLabel}>Field</span>{entry.field}</TableCell>
+                  <TableCell><span className={styles.recordLabel}>Artist</span>
+                    <Link href={`/artist/${entry.artistId}`} target="_blank" className="text-sm text-blue-700 dark:text-blue-400 hover:underline">
                       {entry.artistName ?? entry.artistId.slice(0, 8)}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                  <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate"><span className={styles.recordLabel}>Old → New</span>
                     {entry.oldValue && entry.newValue
                       ? `${entry.oldValue} → ${entry.newValue}`
                       : entry.newValue ?? entry.oldValue ?? "—"}
@@ -379,7 +355,7 @@ function AuditLogSection({
         </Table>
       </div>
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
           <span className="text-sm text-muted-foreground">
             Page {auditLog.page} of {totalPages}
           </span>
@@ -447,18 +423,18 @@ function ExclusionsSection({ exclusions }: { exclusions: AgentWorkDetails["exclu
                   <TableBody>
                     {data.exclusions.map((exc) => (
                       <TableRow key={exc.id}>
-                        <TableCell>
-                          <Link href={`/artist/${exc.artistId}`} className="text-sm text-blue-400 hover:underline">
+                        <TableCell><span className={styles.recordLabel}>Artist</span>
+                          <Link href={`/artist/${exc.artistId}`} className="text-sm text-blue-700 dark:text-blue-400 hover:underline">
                             {exc.artistName ?? exc.artistId.slice(0, 8)}
                           </Link>
                         </TableCell>
-                        <TableCell>
+                        <TableCell><span className={styles.recordLabel}>Reason</span>
                           <span className="text-xs font-mono">{exc.reason}</span>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">
+                        <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate"><span className={styles.recordLabel}>Details</span>
                           {exc.details ?? "—"}
                         </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{formatDate(exc.createdAt)}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap"><span className={styles.recordLabel}>Date</span>{formatDate(exc.createdAt)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -474,13 +450,15 @@ function ExclusionsSection({ exclusions }: { exclusions: AgentWorkDetails["exclu
 
 // --- Main component ---
 
-export default function AgentWorkSection() {
+export default function AgentWorkSection({dataUrl="/api/admin/agent-work"}:{dataUrl?:string} = {}) {
   const [summary, setSummary] = useState<AgentWorkSummary | null>(null);
   const [details, setDetails] = useState<AgentWorkDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [paginatingAudit, setPaginatingAudit] = useState(false);
   const [error, setError] = useState("");
+  const [detailView,setDetailView] = useState("runs");
+  const [detailsError,setDetailsError] = useState("");
   const [auditPage, setAuditPage] = useState(1);
   const [autoPoll, setAutoPoll] = useState(true);
   const fetchInFlight = useRef(false);
@@ -490,7 +468,7 @@ export default function AgentWorkSection() {
     fetchInFlight.current = true;
     try {
       if (!background) { setLoading(true); setError(""); }
-      const res = await fetch("/api/admin/agent-work");
+      const res = await fetch(dataUrl);
       if (!res.ok) {
         if (!background) {
           const body = await res.json().catch(() => ({}));
@@ -505,24 +483,25 @@ export default function AgentWorkSection() {
       if (!background) setLoading(false);
       fetchInFlight.current = false;
     }
-  }, []);
+  }, [dataUrl]);
 
   const fetchDetails = useCallback(async (page = 1) => {
     try {
+      setDetailsError("");
       if (page === 1) setLoadingDetails(true);
       else setPaginatingAudit(true);
-      const res = await fetch(`/api/admin/agent-work?sections=details&auditPage=${page}&auditLimit=50`);
-      if (!res.ok) return;
+      const res = await fetch(`${dataUrl}?sections=details&auditPage=${page}&auditLimit=50`);
+      if (!res.ok) throw new Error("Details unavailable");
       const data = await res.json();
       setDetails(data);
       setAuditPage(page);
     } catch {
-      // Silently fail — stale details are acceptable
+      setDetailsError("Details couldn’t load. Try again.");
     } finally {
       setLoadingDetails(false);
       setPaginatingAudit(false);
     }
-  }, []);
+  }, [dataUrl]);
 
   const handleRefresh = useCallback(async () => {
     await fetchSummary();
@@ -559,7 +538,7 @@ export default function AgentWorkSection() {
   if (!summary) return null;
 
   return (
-    <div className="space-y-8">
+    <div className={`${styles.mobileRecords} ${styles.agentRecords} space-y-8`}>
       {/* Eager: above the fold */}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh} disabled={loading || loadingDetails}>
@@ -568,7 +547,9 @@ export default function AgentWorkSection() {
         <Button
           variant="ghost"
           size="sm"
-          className={autoPoll ? "text-green-400" : "text-muted-foreground"}
+          className={autoPoll ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}
+          aria-pressed={autoPoll}
+          aria-label="Automatically refresh agent work"
           onClick={() => setAutoPoll(p => !p)}
         >
           <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${autoPoll ? "bg-green-500" : "bg-zinc-500"}`} />
@@ -595,14 +576,16 @@ export default function AgentWorkSection() {
         </div>
       )}
 
+      {detailsError && <p role="alert" className="text-sm text-red-600">{detailsError}<button className="ml-2 underline" onClick={()=>fetchDetails(auditPage)}>Retry details</button></p>}
       {details && (
         <>
-          <RunHistorySection runHistory={details.runHistory} />
-          <AgentBreakdownSection agents={details.agentBreakdown.agents} />
-          <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
+          <div className={styles.filterBar}><label>Show details<select aria-label="Agent detail view" value={detailView} onChange={event=>setDetailView(event.target.value)}><option value="runs">Run history</option><option value="agents">By agent</option><option value="audit">Audit log</option><option value="exclusions">Exclusions</option></select></label></div>
+          {detailView==="runs" && <RunHistorySection runHistory={details.runHistory} />}
+          {detailView==="agents" && <AgentBreakdownSection agents={details.agentBreakdown.agents} />}
+          {detailView==="audit" && <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>
             <AuditLogSection auditLog={details.auditLog} onPageChange={(p) => fetchDetails(p)} />
-          </div>
-          <ExclusionsSection exclusions={details.exclusions} />
+          </div>}
+          {detailView==="exclusions" && <ExclusionsSection exclusions={details.exclusions} />}
         </>
       )}
     </div>

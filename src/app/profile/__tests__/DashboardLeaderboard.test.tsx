@@ -83,3 +83,11 @@ it('ignores a late response from the previous period', async () => {
     expect(stat('UGC Added:')).toHaveTextContent('0');
     expect(stat('Rank:')).toHaveTextContent('—');
 });
+
+it('highlights the embedded leaderboard by account ID for an email-only account', async () => {
+    rows = [other, active];
+    const {container} = render(<Dashboard user={{...user,username:null,email:'listener@example.com'}} selectedRange="all" showLeaderboard showDateRange={false} hideLogin />);
+    await screen.findByRole('heading',{name:'The people behind the profiles'});
+    await waitFor(()=>expect(container.querySelectorAll('#leaderboard-current-user')).toHaveLength(1));
+    expect(container.querySelector('#leaderboard-current-user')).toHaveTextContent('You');
+});

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import styles from "@/components/community/Community.module.css";
 import type {
   ArtistDataSummary,
   PlatformIdCoverageItem,
@@ -35,7 +36,7 @@ function CoverageGrid({ items }: { items: CoverageItem[] }) {
           <div className="text-xs text-muted-foreground mt-1">
             {item.percentage}%
             {item.todayCount > 0 && (
-              <span className="ml-1 text-green-400">+{item.todayCount} today</span>
+              <span className="ml-1 text-green-700 dark:text-green-400">+{item.todayCount} today</span>
             )}
           </div>
         </div>
@@ -66,7 +67,7 @@ function PlatformIdCoverageSection({
         Platform ID Coverage ({totalWithSpotify.toLocaleString()} artists with Spotify)
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Mapped IDs in <span className="font-mono">artist_id_mappings</span> table
+        Artists connected to each music platform.
       </p>
       <CoverageGrid items={items} />
     </div>
@@ -108,7 +109,7 @@ function ArtistLinkCoverageSection({
         Artist Link Coverage ({totalArtists.toLocaleString()} artists)
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Direct columns on <span className="font-mono">artists</span> table
+        Links available on artist profiles, grouped by category.
       </p>
       <div className="space-y-4">
         {sortedCategories.map(([category, items]) => (
@@ -152,21 +153,21 @@ function CompletenessSection({
       <div className="rounded-md border bg-card p-4">
         <div className="space-y-2">
           {distribution.map((b) => (
-            <div key={b.bucket} className="flex items-center gap-3">
-              <span className="w-24 text-sm text-right font-mono">{b.bucket} fields</span>
-              <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
+            <div key={b.bucket} className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
+              <span className="sm:w-24 text-sm sm:text-right">{b.bucket} fields</span>
+              <div className="col-span-2 row-start-2 sm:flex-1 h-4 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full bg-[#9b83a0]"
                   style={{ width: `${Math.min(b.percentage, 100)}%` }}
                 />
               </div>
-              <span className="w-32 text-sm text-muted-foreground text-right">
+              <span className="sm:w-32 text-sm text-muted-foreground text-right">
                 {b.count.toLocaleString()} ({b.percentage}%)
               </span>
             </div>
           ))}
         </div>
-        <div className="flex gap-6 mt-4 text-sm text-muted-foreground border-t pt-3">
+        <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground border-t pt-3">
           <span>
             Median: <strong className="text-foreground">{median}</strong> fields
           </span>
@@ -218,10 +219,11 @@ function EnrichmentReadinessSection({ readiness }: { readiness: EnrichmentReadin
 
 // --- Main component ---
 
-export default function ArtistDataSection() {
+export default function ArtistDataSection({dataUrl="/api/admin/artist-data"}:{dataUrl?:string} = {}) {
   const [data, setData] = useState<ArtistDataSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [view,setView] = useState("all");
   const [autoPoll, setAutoPoll] = useState(false);
   const fetchInFlight = useRef(false);
 
@@ -230,7 +232,7 @@ export default function ArtistDataSection() {
     fetchInFlight.current = true;
     try {
       if (!background) { setLoading(true); setError(""); }
-      const res = await fetch("/api/admin/artist-data");
+      const res = await fetch(dataUrl);
       if (!res.ok) {
         if (!background) {
           const body = await res.json().catch(() => ({}));
@@ -245,7 +247,7 @@ export default function ArtistDataSection() {
       if (!background) setLoading(false);
       fetchInFlight.current = false;
     }
-  }, []);
+  }, [dataUrl]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -291,7 +293,9 @@ export default function ArtistDataSection() {
         <Button
           variant="ghost"
           size="sm"
-          className={autoPoll ? "text-green-400" : "text-muted-foreground"}
+          className={autoPoll ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}
+          aria-pressed={autoPoll}
+          aria-label="Automatically refresh artist data"
           onClick={() => setAutoPoll((p) => !p)}
         >
           <span
@@ -303,24 +307,25 @@ export default function ArtistDataSection() {
         </Button>
       </div>
 
-      <PlatformIdCoverageSection
+      <div className={styles.filterBar}><label>Show data<select aria-label="Artist data view" value={view} onChange={event=>setView(event.target.value)}><option value="all">All data</option><option value="ids">Platform coverage</option><option value="links">Link coverage</option><option value="completeness">Profile completeness</option><option value="readiness">Research readiness</option></select></label></div>
+      {(view==="all" || view==="ids") && <PlatformIdCoverageSection
         coverage={data.platformIdCoverage}
         totalWithSpotify={data.totalWithSpotify}
-      />
+      />}
 
-      <ArtistLinkCoverageSection
+      {(view==="all" || view==="links") && <ArtistLinkCoverageSection
         coverage={data.artistLinkCoverage}
         totalArtists={data.totalArtists}
-      />
+      />}
 
-      <CompletenessSection
+      {(view==="all" || view==="completeness") && <CompletenessSection
         distribution={data.completenessDistribution}
         median={data.medianFields}
         average={data.averageFields}
         totalArtists={data.totalArtists}
-      />
+      />}
 
-      <EnrichmentReadinessSection readiness={data.enrichmentReadiness} />
+      {(view==="all" || view==="readiness") && <EnrichmentReadinessSection readiness={data.enrichmentReadiness} />}
     </div>
   );
 }

@@ -4,16 +4,8 @@ import { getUserById, getAllUsers } from "@/server/utils/queries/userQueries";
 import { getPendingUGC } from "@/server/utils/queries/artistQueries";
 import { getAllClaims } from "@/server/utils/queries/dashboardQueries";
 import { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
-import UGCDataTable from "./ugc-data-table";
-import { ugcColumns, whitelistedColumns } from "./columns";
-import ClaimsDataTable from "./claims-data-table";
-import { claimsColumns } from "./claims-columns";
+import AdminDashboard from "./AdminDashboard";
 import type { ClaimRow } from "./claims-columns";
-import UsersSection from "./UsersSection";
-import AdminTabs from "./AdminTabs";
-import McpKeysSection from "./McpKeysSection";
-import AgentWorkSection from "./AgentWorkSection";
-import ArtistDataSection from "./ArtistDataSection";
 
 export default async function Admin() {
   const session = await getServerAuthSession();
@@ -46,44 +38,5 @@ export default async function Admin() {
     createdAt: claim.createdAt,
   }));
 
-  const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
-
-  return (
-    <section className="admin-page px-4 sm:px-10 py-5 space-y-6">
-      <h1 className="text-3xl font-bold text-center mb-8">Admin Dashboard</h1>
-
-      <AdminTabs
-        ugcCount={pendingUGCData.length}
-        claimsCount={pendingClaimsCount}
-        ugcContent={
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-[#9b83a0]">
-              Pending UGC Submissions ({pendingUGCData.length})
-            </h2>
-            <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
-          </div>
-        }
-        claimsContent={
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-[#9b83a0]">
-              Artist Claims ({allClaims.length})
-            </h2>
-            <ClaimsDataTable columns={claimsColumns} data={allClaims} />
-          </div>
-        }
-        usersContent={
-          <UsersSection columns={whitelistedColumns} data={allUsers || []} />
-        }
-        mcpKeysContent={
-          <McpKeysSection initialKeys={mcpKeys} />
-        }
-        agentWorkContent={
-          <AgentWorkSection />
-        }
-        artistDataContent={
-          <ArtistDataSection />
-        }
-      />
-    </section>
-  );
+  return <AdminDashboard pendingUGCData={pendingUGCData} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} />;
 }

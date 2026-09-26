@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+import styles from "@/components/community/Community.module.css";
 
 interface McpKey {
   id: string;
@@ -47,6 +49,9 @@ const formatDate = (value: string | null | undefined): string => {
 
 export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] }) {
   const [keys, setKeys] = useState<McpKey[]>(initialKeys);
+  const [query,setQuery] = useState("");
+  const [status,setStatus] = useState("all");
+  const filteredKeys = useMemo(()=>keys.filter(key=>(status==="all" || (status==="active" ? !key.revokedAt : !!key.revokedAt)) && [key.label,key.keyHashPrefix].some(value=>value.toLowerCase().includes(query.trim().toLowerCase()))),[keys,query,status]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isKeyShownOpen, setIsKeyShownOpen] = useState(false);
   const [isRevokeOpen, setIsRevokeOpen] = useState(false);
@@ -133,14 +138,16 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className={`${styles.mobileRecords} ${styles.keyRecords} space-y-4`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-[#9b83a0]">
           MCP API Keys ({keys.length})
         </h2>
         <Button onClick={() => { setError(""); setIsCreateOpen(true); }}>Create Key</Button>
       </div>
 
+      <div className={styles.filterBar}><input type="search" aria-label="Search API keys" placeholder="Search key label or prefix" value={query} onChange={event=>setQuery(event.target.value)}/><label>Status<select aria-label="Key status" value={status} onChange={event=>setStatus(event.target.value)}><option value="all">All keys</option><option value="active">Active</option><option value="revoked">Revoked</option></select></label></div>
+      <div className={styles.filterSummary}><span>{filteredKeys.length} of {keys.length} keys</span>{(query || status!=="all") && <button type="button" onClick={()=>{setQuery("");setStatus("all");}}>Clear filters</button>}</div>
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       <div className="rounded-md border bg-card">
@@ -156,25 +163,25 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {keys.length ? (
-              keys.map((key) => (
+            {filteredKeys.length ? (
+              filteredKeys.map((key) => (
                 <TableRow key={key.id}>
-                  <TableCell className="font-medium">{key.label}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium"><span className={styles.recordLabel}>Label</span>{key.label}</TableCell>
+                  <TableCell><span className={styles.recordLabel}>Key prefix</span>
                     <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
                       {key.keyHashPrefix}...
                     </code>
                   </TableCell>
-                  <TableCell>{formatDate(key.createdAt)}</TableCell>
-                  <TableCell>
+                  <TableCell><span className={styles.recordLabel}>Created</span>{formatDate(key.createdAt)}</TableCell>
+                  <TableCell><span className={styles.recordLabel}>Status</span>
                     {key.revokedAt ? (
-                      <span className="text-red-500 font-medium">Revoked</span>
+                      <span className="text-red-700 dark:text-red-400 font-medium">Revoked</span>
                     ) : (
-                      <span className="text-green-500 font-medium">Active</span>
+                      <span className="text-green-700 dark:text-green-400 font-medium">Active</span>
                     )}
                   </TableCell>
-                  <TableCell>{formatDate(key.revokedAt)}</TableCell>
-                  <TableCell>
+                  <TableCell data-empty={!key.revokedAt || undefined}><span className={styles.recordLabel}>Revoked</span>{formatDate(key.revokedAt)}</TableCell>
+                  <TableCell data-empty={!!key.revokedAt || undefined}><span className={styles.recordLabel}>Actions</span>
                     {!key.revokedAt && (
                       <Button
                         variant="destructive"
@@ -195,7 +202,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No API keys.
+                  {keys.length ? "No keys match these filters." : "No API keys."}
                 </TableCell>
               </TableRow>
             )}
