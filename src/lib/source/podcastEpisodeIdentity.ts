@@ -36,9 +36,12 @@ export function extractPodcastEpisodeIdentity(url: string, html: string): Podcas
             || !html.includes(`https://rss.buzzsprout.com/${showId}.rss`))) return null;
 
     const decode = (value: string) => value.replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').trim();
-    const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)?.[1]
-        ?? html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i)?.[1];
-    const rawTitle = ogTitle ? decode(ogTitle) : undefined;
+    let rawTitle: string | undefined;
+    for (const [tag] of html.matchAll(/<meta\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi)) {
+        if (!/\bproperty\s*=\s*(["'])og:title\1/i.test(tag)) continue;
+        const content = tag.match(/\bcontent\s*=\s*(["'])(.*?)\1/i)?.[2];
+        if (content) { rawTitle = decode(content); break; }
+    }
     const series = provider === "apple"
         ? html.match(/"partOfSeries"\s*:\s*\{[^}]{0,500}"name"\s*:\s*"([^"\\]+)"/i)?.[1]
         : rawTitle?.match(/\s{2,}(.+?)\s*\|\s*iHeart$/i)?.[1];

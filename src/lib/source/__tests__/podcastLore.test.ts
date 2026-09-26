@@ -25,6 +25,11 @@ describe("podcast Lore identity", () => {
         expect(extractPodcastEpisodeIdentity(apple.replace("?i=1000780276007", ""), media)).toBeNull();
         expect(extractPodcastEpisodeIdentity("https://example.org/episode", media)).toBeNull();
     });
+
+    it("keeps apostrophes in an episode's og:title attribute", () => {
+        const html = `<meta content="Artist's Story  The Show | iHeart" property="og:title"><script>"mediaUrl","${media}"</script>`;
+        expect(extractPodcastEpisodeIdentity(iheart, html)?.podcastEpisodeTitle).toBe("Artist's Story");
+    });
 });
 
 describe("public podcast cards", () => {
