@@ -1371,6 +1371,7 @@ async function searchAndPopulateVaultInternal(
                     // needed to make already-stored rows behave correctly.
                     extractedText: isVerified ? page.extractedText : null,
                     ogImage: page.ogImage ?? null,
+                    ...(isVerified ? page.podcastEpisode : null),
                     // What the page says about its own age. Without it every claim
                     // in the document reads as current — a 2019 interview saying
                     // "X is my production partner" became a present-tense fact

@@ -1013,6 +1013,7 @@ export async function applyProfileLinkDecisions(
                 if (source?.id) {
                     fetchPageContent(raw.url).then(content => {
                         updateVaultSourceContent(source.id, {
+                            ...content.podcastEpisode,
                             ...(preview.title ? {} : { title: content.title }),
                             snippet: content.snippet,
                             extractedText: content.extractedText,
@@ -1501,6 +1502,7 @@ async function* runAutoBuild(artistId: string): AsyncGenerator<TurnEvent> {
                 if (source?.id) {
                     fetchPageContent(url).then(content => {
                         updateVaultSourceContent(source.id, {
+                            ...content.podcastEpisode,
                             title: content.title,
                             snippet: content.snippet,
                             extractedText: content.extractedText,
