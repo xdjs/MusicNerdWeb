@@ -41,16 +41,7 @@ const formatDate = (value: string | Date | null | undefined): string => {
 export const ugcColumns: ColumnDef<UgcResearch & { wallet?: string | null; username?: string | null }>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    header: () => <span className="sr-only">Selection</span>,
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}

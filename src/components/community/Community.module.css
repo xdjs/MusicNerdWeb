@@ -90,3 +90,29 @@
  .mobileLabel { display: inline; font-size: 11px; font-weight: 400; color: hsl(var(--muted-foreground)); }
  .recent { padding: 0 18px 20px 54px; }
 }
+
+/* Keep the per-submission action reachable while a narrow review table scrolls. */
+.panel .approvalCell { position: sticky; right: 0; z-index: 1; background: #fafafa; box-shadow: -4px 0 10px #201b2606; }
+:global(.dark) .panel .approvalCell { background: #191919; box-shadow: -4px 0 10px #0002; }
+.panel .approveButton { border-color: #ff75d866; background: #ff75d812; color: var(--community-ink); min-width: 100px; }
+.panel .approveButton:hover { background: #ff75d828; }
+
+@media (max-width: 639px) {
+ .panel .ugcReview table, .panel .ugcReview tbody { display: block; }
+ .panel .ugcReview thead { display: none; }
+ .panel .ugcReview tbody tr { display: grid; grid-template-columns: 24px minmax(0,1fr) auto; gap: 10px 8px; padding: 18px 14px; }
+ .panel .ugcReview td { display: block; padding: 0; max-width: none; min-width: 0; overflow: visible; white-space: normal; }
+ .panel .ugcReview td[colspan] { grid-column: 1 / -1; }
+ .panel .ugcReview td[data-column="select"] { grid-column: 1; grid-row: 1; align-self: center; }
+ .panel .ugcReview td[data-column="name"] { grid-column: 2; grid-row: 1; align-self: center; overflow-wrap: anywhere; }
+ .panel .ugcReview td[data-column="review"] { grid-column: 3; grid-row: 1; position: static; background: transparent; box-shadow: none; }
+ .panel .ugcReview td[data-column="ugcUrl"] { grid-column: 2 / -1; grid-row: 2; }
+ .panel .ugcReview td[data-column="ugcUrl"] > div { min-width: 0; max-width: none; }
+ .panel .ugcReview td[data-column="ugcUrl"] a { white-space: normal; overflow-wrap: anywhere; }
+ .panel .ugcReview td[data-column="username"] { grid-column: 2 / -1; grid-row: 3; font-size: 12px; }
+ .panel .ugcReview td[data-column="username"]::before { content: "Shared by "; color: hsl(var(--muted-foreground)); }
+ .panel .ugcReview td[data-column="createdAt"] { grid-column: 2; grid-row: 4; font-size: 11px; color: hsl(var(--muted-foreground)); }
+ .panel .ugcReview td[data-column="id"] { grid-column: 3; grid-row: 4; justify-self: end; }
+ .panel .ugcReview td[data-column="id"] dd { overflow-wrap: anywhere; max-width: 160px; }
+ .panel .ugcReview .approveButton { min-width: 0; padding-inline: 10px; }
+}

@@ -1,3 +1,4 @@
+import type { approveUgcAdminAction } from "@/app/actions/serverActions";
 import type { getPendingUGC } from "@/server/utils/queries/artistQueries";
 import type { getAllUsers } from "@/server/utils/queries/userQueries";
 import type { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
@@ -21,9 +22,10 @@ type Props = {
   allUsers: Awaited<ReturnType<typeof getAllUsers>>;
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
+  onApproveLinks?: typeof approveUgcAdminAction;
 };
 
-export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaims}: Props) {
+export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaims,onApproveLinks}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
@@ -34,7 +36,7 @@ export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaim
         ugcCount={pendingUGCData.length}
         claimsCount={pendingClaimsCount}
         ugcContent={
-          <UGCDataTable columns={ugcColumns} data={pendingUGCData} />
+          <UGCDataTable columns={ugcColumns} data={pendingUGCData} onApprove={onApproveLinks} />
         }
         claimsContent={
           <ClaimsDataTable columns={claimsColumns} data={allClaims} />
