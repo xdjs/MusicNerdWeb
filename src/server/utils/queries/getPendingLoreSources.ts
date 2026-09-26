@@ -5,7 +5,7 @@ import { artists, artistVaultSources } from "@/server/db/schema";
 /** A bounded admin view of the shared pending Lore queue. Authorization is checked by the caller. */
 export async function getPendingLoreSources({ page = 1, query = "" }: { page?: number; query?: string } = {}) {
   const pageSize = 25;
-  const requestedPage = Number.isSafeInteger(page) && page > 0 ? Math.min(page, 1000) : 1;
+  const requestedPage = Number.isSafeInteger(page) && page > 0 ? page : 1;
   const search = query.trim().slice(0, 100);
   const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
   const pending = eq(artistVaultSources.status, "pending");
