@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import ResearchView from "./ResearchView";
-import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
+import ResearchStatusBar from "./ResearchStatusBar";
+import { ResearchProgressContext } from "./ResearchProgressContext";
+import { useStageRefresh } from "./useStageRefresh";
+import { stageStates } from "@/lib/onboarding/stageStates";
+import { currentStage as currentBuildStage } from "@/lib/onboarding/currentStage";
+import { buildFailure } from "@/lib/onboarding/buildFailure";
 import { useOnboardingChat, type ChatItem } from "./useOnboardingChat";
 import { useResearchPump } from "./useResearchPump";
 import { ProfilesCard, VaultCard, InterviewInput, AboutDraftCard, DocReviewCard, LiveDiscoveryFeed, type InterviewPayload } from "./StepCards";
@@ -15,16 +19,15 @@ type Props = {
     artistName: string;
     onSkip: () => void;
     onFinish: () => void;
-    /** The artist's image and latest releases for the research view's hero (docs/research-view.md). */
-    imageUrl?: string;
-    releases?: Promise<LatestRelease[]>;
-    /** The artist page. The research view takes its place while the build runs;
-     *  the resume path's step cards sit over it. */
+    /** The artist page. The build paints it in place (docs/research-view.md,
+     *  "In place"); the resume path's step cards sit over it. */
     children?: ReactNode;
 };
 
 // Presentational only — progress rail order + stage derivation for display purposes.
 const STEP_ORDER = ["profiles", "vault", "interview", "publish"] as const;
+
+const NO_ITEMS: ChatItem[] = [];
 
 // Scroll-anchoring tuning: how close to the true bottom counts as "the user
 // was following along" (vs. deliberately scrolled up to re-read something),
@@ -51,7 +54,7 @@ function prefersReducedMotion(): boolean {
     return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, imageUrl, releases, children }: Props) {
+export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, children }: Props) {
     const { items, busy, sendTurn } = useOnboardingChat(artistId);
     // Keeps the scrape and the caption extraction moving while the artist is
     // here. They are minutes of work and no request lives that long, so the
@@ -294,6 +297,12 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
         }
     };
 
+    // The build paints the artist's own page in place (docs/research-view.md,
+    // "In place"): each finished stage repaints it, and `complete` closes the
+    // build. Only while building: the resume path ends on its own complete card.
+    const isBuild = !items.some(i => i.kind === "step" || i.kind === "draft");
+    useStageRefresh(isBuild ? items : NO_ITEMS, onFinish);
+
     // While the build runs, this is a LOADING state, not a conversation — it asks
     // nothing and the artist answers nothing. A step card appearing is what makes
     // it a conversation again (the resume path, where they really are answering),
@@ -301,23 +310,18 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
     // A failed build stays in the research view, which shows the failed step,
     // keeps what streamed, and offers "try again" (docs/research-view.md). The
     // old popup had no way to, so errors used to fall back to the chat surface.
-    const isBuild = !items.some(i => i.kind === "step" || i.kind === "draft");
     if (isBuild) {
+        const stages = stageStates(items);
         return (
-            <ResearchView
-                artistName={artistName}
-                imageUrl={imageUrl}
-                releases={releases}
-                items={items}
-                complete={complete}
-                onSkip={onSkip}
-                onRetry={() => void sendTurn({ type: "open" })}
-                onFinish={() => {
-                    window.scrollTo({ top: 0, behavior: "auto" });
-                    router.refresh();
-                    onFinish();
-                }}
-            />
+            <ResearchProgressContext.Provider value={stages}>
+                <ResearchStatusBar
+                    step={currentBuildStage(stages)?.label ?? null}
+                    failure={buildFailure(items)?.message ?? null}
+                    onSkip={onSkip}
+                    onRetry={() => void sendTurn({ type: "open" })}
+                />
+                {children}
+            </ResearchProgressContext.Provider>
         );
     }
 

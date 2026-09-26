@@ -7,6 +7,7 @@ import HeaderPhotoPosition from "./HeaderPhotoPosition";
 import { Camera, MoveVertical } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import BlurbSection from "./BlurbSection";
+import ResearchPending from "./onboarding/ResearchPending";
 import ListenPicker from "./ListenPicker";
 import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
@@ -91,7 +92,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><ResearchPending group="about-write" label="writing your about…" hideUntilDone><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></ResearchPending></div>
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>

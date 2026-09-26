@@ -19,6 +19,7 @@ jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <sect
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside data-testid="ask" /> }));
 
 import ArtistProfileContent from "../ArtistProfileContent";
+import { ResearchProgressContext } from "../onboarding/ResearchProgressContext";
 
 const base = {
     artist: { id: "a1", name: "Bio Ritmo", bio: "A salsa band from Richmond.", spotify: null, deezer: "416544" },
@@ -62,5 +63,11 @@ describe("ArtistProfileContent", () => {
             expect(b).toHaveAttribute("data-direct", "false");
             expect(b).toHaveAttribute("data-auto", "true");
         });
+    });
+
+    it("shows a loading line in Links until the profiles stage is done", () => {
+        const stages = [{ group: "platform-search", label: "Finding your profiles", state: "active" as const }];
+        const { container } = render(<ResearchProgressContext.Provider value={stages}><ArtistProfileContent {...base} /></ResearchProgressContext.Provider>);
+        expect(container.querySelector("#mn-links [role=status]")).toHaveTextContent("finding your profiles…");
     });
 });

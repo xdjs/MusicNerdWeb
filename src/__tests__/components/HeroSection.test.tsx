@@ -1,6 +1,7 @@
 /// <reference types="@testing-library/jest-dom" />
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ResearchProgressContext } from '@/app/artist/[id]/_components/onboarding/ResearchProgressContext';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
@@ -60,5 +61,14 @@ describe('Hero biography', () => {
     expect(screen.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
     expect(screen.queryByText(/The final sentence/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Hero About while research writes it', () => {
+  it('shows a loading line in place of the About until the About stage is done', () => {
+    const stages = [{ group: 'about-write', label: 'Writing your About', state: 'active' as const }];
+    render(<ResearchProgressContext.Provider value={stages}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></ResearchProgressContext.Provider>);
+    expect(screen.getByRole('status')).toHaveTextContent('writing your about…');
+    expect(screen.queryByText('Music from Miami.')).toBeNull();
   });
 });

@@ -15,6 +15,7 @@ import LatestSection from "./LatestSection";
 import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
+import ResearchPending from "./onboarding/ResearchPending";
 import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
@@ -85,7 +86,9 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ResearchPending group="platform-search" label="finding your profiles…">
+                        <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    </ResearchPending>
                     <OfficialSiteLinks sources={approvedSources} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
