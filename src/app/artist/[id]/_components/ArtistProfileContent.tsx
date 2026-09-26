@@ -15,6 +15,7 @@ import LatestSection from "./LatestSection";
 import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
+import ResearchPending from "./onboarding/ResearchPending";
 import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
@@ -65,7 +66,7 @@ export default function ArtistProfileContent({
                     </div>
                 </HeroSection>
 
-                <ProfileSectionNav key={artist.id} />
+                <ProfileSectionNav key={`nav:${artist.id}`} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
                     <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
@@ -85,7 +86,9 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ResearchPending group="platform-search" label="finding your profiles…">
+                        <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    </ResearchPending>
                     <OfficialSiteLinks sources={approvedSources} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
@@ -104,7 +107,7 @@ export default function ArtistProfileContent({
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
-                <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
+                <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} />
         </>
     );
 }
