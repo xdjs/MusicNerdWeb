@@ -1,3 +1,24 @@
+## Podcast Lore grouping — September 26
+
+[Issue #1304](https://github.com/xdjs/MusicNerdWeb/issues/1304) is being implemented in
+[PR #1367](https://github.com/xdjs/MusicNerdWeb/pull/1367), branch
+`codex/podcast-lore-grouping-fix-1304` off `main`. Code at `be1045a` persists a
+verified Buzzsprout episode key during Apple/iHeart ingestion and renders one
+public card with one link per service while retaining the original rows and
+approval state. CI test/build passed. The [verification comment](https://github.com/xdjs/MusicNerdWeb/pull/1367#issuecomment-5848658076)
+has the exact-commit preview and local real-component fixture checks plus captures.
+
+Pete approved the separate staging migration. `0030_podcast_episode_identity.sql`
+was applied to the staging database September 26; the nullable fields, `mnweb`
+access and existing RLS policies were verified. Its authorized backfill dry run
+found zero Apple/iHeart rows in staging and changed none. The preview's existing
+Dutchyyy Lore still shows four cards. The Jordan pair was verified locally from
+provider HTML and in the component fixture; staging has no podcast pair for a
+real-data grouped preview. **Production schema and data remain untouched.** Before
+production release, apply `0030` to production, backfill Jordan's existing rows,
+verify as `mnweb`, then follow the main-only release approval flow. Do not infer
+merge or promotion from the passing PR checks.
+
 ## Main-only release transition — September 22
 
 Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319),
