@@ -3,20 +3,22 @@
 import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Link2, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
+import { Link2, BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
 import styles from "@/components/community/Community.module.css";
 import surface from "@/app/profile/ProfileConcept.module.css";
 
 interface AdminTabsProps {
-  ugcContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
+  ugcContent: ReactNode; loreContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
   mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
-  ugcCount: number; claimsCount: number;
+  ugcCount: number; loreCount: number; claimsCount: number;
+  initialSection?: "ugc" | "lore";
 }
 
-export default function AdminTabs({ugcContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,claimsCount}: AdminTabsProps) {
-  const [value,setValue] = useState('ugc');
+export default function AdminTabs({ugcContent,loreContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,initialSection='ugc'}: AdminTabsProps) {
+  const [value,setValue] = useState<string>(initialSection);
   const sections = [
     {value:'ugc',label:'Link submissions',title:'Review submitted links',description:'Check the source and artist before approving a community contribution.',icon:Link2,count:ugcCount,content:ugcContent},
+    {value:'lore',label:'Lore review',title:'Review Lore sources',description:'Check pending sources across artists before adding them to public Lore.',icon:BookOpen,count:loreCount,content:loreContent},
     {value:'claims',label:'Artist claims',title:'Connect artists with their pages',description:'Review ownership requests and manage existing artist claims.',icon:BadgeCheck,count:claimsCount,content:claimsContent},
     {value:'artist-data',label:'Artist data',title:'A fuller picture of the catalog',description:'See platform coverage, profile completeness, and enrichment readiness.',icon:Database,content:artistDataContent},
     {value:'users',label:'People',title:'The people building Music Nerd',description:'Find a contributor and manage their access and leaderboard visibility.',icon:Users,content:usersContent},
@@ -27,6 +29,7 @@ export default function AdminTabs({ugcContent,usersContent,claimsContent,mcpKeys
   return <Tabs value={value} onValueChange={setValue} className={styles.page}>
     <div className={styles.reviewOverview}>
       <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('ugc')} aria-label={`Review ${ugcCount} pending links`}><div><strong>{ugcCount.toLocaleString()}</strong><span>Links awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
+      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('lore')} aria-label={`Review ${loreCount} pending Lore sources`}><div><strong>{loreCount.toLocaleString()}</strong><span>Lore sources awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
       <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('claims')} aria-label={`Review ${claimsCount} pending claims`}><div><strong>{claimsCount.toLocaleString()}</strong><span>Artist claims awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
     </div>
     <div className={styles.workspace}>

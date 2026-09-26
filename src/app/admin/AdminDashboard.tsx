@@ -1,8 +1,10 @@
 import type { approveUgcAdminAction } from "@/app/actions/serverActions";
 import type { getPendingUGC } from "@/server/utils/queries/artistQueries";
+import type { getPendingLoreSources } from "@/server/utils/queries/getPendingLoreSources";
 import type { getAllUsers } from "@/server/utils/queries/userQueries";
 import type { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
 import UGCDataTable from "./ugc-data-table";
+import LoreSubmissionsSection from "./LoreSubmissionsSection";
 import { ugcColumns, whitelistedColumns } from "./columns";
 import ClaimsDataTable from "./claims-data-table";
 import { claimsColumns } from "./claims-columns";
@@ -19,14 +21,16 @@ import styles from "@/components/community/Community.module.css";
 
 type Props = {
   pendingUGCData: Awaited<ReturnType<typeof getPendingUGC>>;
+  pendingLore: Awaited<ReturnType<typeof getPendingLoreSources>>;
   allUsers: Awaited<ReturnType<typeof getAllUsers>>;
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
   onApproveLinks?: typeof approveUgcAdminAction;
+  initialSection?: "ugc" | "lore";
   artistDataUrl?: string; agentWorkUrl?: string;
 };
 
-export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaims,onApproveLinks,artistDataUrl,agentWorkUrl}: Props) {
+export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpKeys,allClaims,onApproveLinks,initialSection,artistDataUrl,agentWorkUrl}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
@@ -35,10 +39,13 @@ export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaim
 
       <AdminTabs
         ugcCount={pendingUGCData.length}
+        loreCount={pendingLore.total}
         claimsCount={pendingClaimsCount}
+        initialSection={initialSection}
         ugcContent={
           <UGCDataTable columns={ugcColumns} data={pendingUGCData} onApprove={onApproveLinks} />
         }
+        loreContent={<LoreSubmissionsSection data={pendingLore} />}
         claimsContent={
           <ClaimsDataTable columns={claimsColumns} data={allClaims} />
         }
