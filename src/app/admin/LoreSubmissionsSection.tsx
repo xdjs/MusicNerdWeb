@@ -29,7 +29,7 @@ export default function LoreSubmissionsSection({ data, onReview = updateSourceSt
     setBusyId(id);
     setFeedback(null);
     try {
-      const result = await onReview(id, status);
+      const result = await onReview(id, status, "pending");
       if (!result.success) {
         setFeedback({ kind: "error", message: result.error ?? "Could not review this Lore source." });
         return;

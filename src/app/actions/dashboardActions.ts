@@ -95,7 +95,8 @@ async function verifyArtistEditable(userId: string, artistId: string): Promise<{
 
 export async function updateSourceStatus(
     sourceId: string,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
+    expectedStatus?: "pending",
 ): Promise<{ success: boolean; error?: string }> {
     const session = await getServerAuthSession() ?? await getDevSession();
     if (!session) return { success: false, error: "Not authenticated" };
@@ -104,7 +105,12 @@ export async function updateSourceStatus(
         const ownership = await verifySourceEditable(session.user.id, sourceId);
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
-        await updateVaultSourceStatus(sourceId, status);
+        const updated = expectedStatus
+            ? await updateVaultSourceStatus(sourceId, status, expectedStatus)
+            : await updateVaultSourceStatus(sourceId, status);
+        if (expectedStatus && !updated) {
+            return { success: false, error: "This Lore source was already reviewed. Refresh the queue to see its current status." };
+        }
 
         // The document follows the sources in BOTH directions. Approving is not
         // the only change that matters: rejecting a source the document cites is

@@ -28,7 +28,7 @@ it('shows the pending artist and source, then approves one Lore row', async () =
   expect(screen.getByRole('link', { name: 'LATASHA' })).toHaveAttribute('href', '/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6');
   expect(screen.getByRole('link', { name: 'https://zine.zora.co/latasha-interview' })).toHaveAttribute('href', 'https://zine.zora.co/latasha-interview');
   fireEvent.click(screen.getByRole('button', { name: 'Approve Lore source for LATASHA' }));
-  await waitFor(() => expect(onReview).toHaveBeenCalledWith(data.items[0].id, 'approved'));
+  await waitFor(() => expect(onReview).toHaveBeenCalledWith(data.items[0].id, 'approved', 'pending'));
   expect(screen.getByRole('status')).toHaveTextContent('Lore source approved');
   expect(screen.queryByRole('link', { name: 'LATASHA' })).not.toBeInTheDocument();
   expect(refresh).toHaveBeenCalled();

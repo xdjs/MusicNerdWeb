@@ -339,7 +339,7 @@ async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWrite
     return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
 }
 
-export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected") {
+export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected", expectedStatus?: "pending") {
     try {
         const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
             .update(artistVaultSources)
@@ -347,7 +347,7 @@ export async function updateVaultSourceStatus(sourceId: string, status: "approve
                 status,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
-            .where(predicate)
+            .where(expectedStatus ? and(predicate, eq(artistVaultSources.status, expectedStatus)) : predicate)
             .returning());
         return updated;
     } catch (e) {
