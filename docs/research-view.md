@@ -9,6 +9,38 @@ the issue's Design section.
 > view reads the build's own stream and writes nothing new. It supersedes the stored-run design
 > in [research-runs.md](research-runs.md).
 
+> **Superseded 2026-09-25 (standup; Carl, Pete, Sweetman): research paints the profile in place**
+> ([#1365](https://github.com/xdjs/MusicNerdWeb/issues/1365)). The full-page view below is being
+> replaced slice by slice. Its events and `src/lib/onboarding/` functions stay; the page section
+> that follows is the current contract, and the rest of this file describes the view until slice 4
+> removes it.
+
+## In place (#1365 slice 1)
+
+While the auto-build runs, the claimant sees **their own profile page**, not the research view.
+`OnboardingChat` renders the page it is given (`children`), and puts the build's stage states in
+`ResearchProgressContext`. Each section that research fills shows a loading line until its stage
+reports done:
+
+| Section | Waits on | While researching |
+|---|---|---|
+| About (`#mn-about`, hero) | `about-write` | "writing your about…" in place of the empty blurb |
+| Links (`#mn-links`) | `platform-search` | "finding your profiles…" above whatever is already linked |
+| Lore (`#mn-lore`) | `source-search` | "reading what's written about you…" above whatever is already there |
+
+Latest (`#mn-latest`) does not depend on research and is unchanged.
+
+- **Repaint:** when a stage reports done (`progress` with `done: true`), the page calls
+  `router.refresh()`, so that section repaints from the database. The database is the source of
+  truth: a reload mid-build shows whatever has been written.
+- **Finish:** on `complete` the page refreshes and the build closes itself; there is no "see my
+  page" step. It does not scroll the artist anywhere.
+- **Status strip:** a one-line strip at the top of the page names the current step and offers
+  "skip for now". A failed step shows its message there with "try again" (`{ type: "open" }`), and
+  what already painted stays. Slice 2 replaces the strip with the designed above-the-fold indicator.
+- **Skip** keeps its session-scoped behaviour (`OnboardingGate`): the banner, and no loading lines.
+- The resume path (step cards) is unchanged.
+
 ## When it shows
 
 `OnboardingGate` renders it for the approved claimant while onboarding is incomplete, exactly as
