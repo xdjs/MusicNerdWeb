@@ -38,9 +38,9 @@ not the number of listening destinations. This concerns Lore, not Latest.
   remain separate until an equally reliable identity extractor exists. The
   artist-page read path never fetches provider pages.
 - Migration `0030_podcast_episode_identity.sql` adds nullable identity and title
-  columns. Apply it to staging before preview verification and to production
-  before deploying dependent code. App role `mnweb` retains its existing table
-  grants and RLS policies; verify access as that role during migration review.
+  columns. Pete authorized its separate application to staging and production
+  September 26. Column privileges for app role `mnweb` and the existing RLS
+  policies were verified in both environments.
 - Existing rows need a separate authorized enrichment pass after migration:
   `npx tsx scripts/backfill-podcast-episode-identity.ts <artist-uuid>` previews
   candidates, then `--write` persists metadata. Use the artist ID for the
@@ -60,7 +60,10 @@ not the number of listening destinations. This concerns Lore, not Latest.
 The read path is VaultSection → PressAndFeatures. `groupPodcastSources` projects
 approved source rows into cards from persisted identity. Ingestion also covers
 manual add and both onboarding enrichment paths; the editor continues to receive
-the original rows. The branch has not changed any live database or source state.
+the original rows. The staging backfill dry run found no podcast rows. Pete also
+authorized a production backfill of Jordan Rein's two approved links: both now
+store the verified Buzzsprout key and titles, with URL, type and approval state
+unchanged. The PR is still open; no application code has been released to production.
 
 ## Local review
 
