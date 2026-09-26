@@ -14,6 +14,7 @@ const data = {
     createdAt: '2026-09-26T22:00:00.000Z',
   }],
   total: 1,
+  pendingTotal: 1,
   page: 1,
   pageSize: 25,
   query: '',

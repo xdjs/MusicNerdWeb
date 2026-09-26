@@ -39,7 +39,7 @@ export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpK
 
       <AdminTabs
         ugcCount={pendingUGCData.length}
-        loreCount={pendingLore.total}
+        loreCount={pendingLore.pendingTotal}
         claimsCount={pendingClaimsCount}
         initialSection={initialSection}
         ugcContent={

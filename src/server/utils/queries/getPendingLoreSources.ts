@@ -13,9 +13,13 @@ export async function getPendingLoreSources({ page = 1, query = "" }: { page?: n
     ? and(pending, or(ilike(artists.name, pattern), ilike(artistVaultSources.title, pattern), ilike(artistVaultSources.url, pattern)))
     : pending;
 
-  const counts = await db.select({ total: count() }).from(artistVaultSources)
-    .innerJoin(artists, eq(artistVaultSources.artistId, artists.id)).where(where);
-  const total = counts[0]?.total ?? 0;
+  const [pendingCounts, matchCounts] = await Promise.all([
+    db.select({ total: count() }).from(artistVaultSources).where(pending),
+    search ? db.select({ total: count() }).from(artistVaultSources)
+      .innerJoin(artists, eq(artistVaultSources.artistId, artists.id)).where(where) : null,
+  ]);
+  const pendingTotal = pendingCounts[0]?.total ?? 0;
+  const total = matchCounts?.[0]?.total ?? pendingTotal;
   const currentPage = Math.min(requestedPage, Math.max(1, Math.ceil(total / pageSize)));
   const items = await db.select({
       id: artistVaultSources.id,
@@ -29,5 +33,5 @@ export async function getPendingLoreSources({ page = 1, query = "" }: { page?: n
     .where(where).orderBy(desc(artistVaultSources.createdAt), desc(artistVaultSources.id))
     .limit(pageSize).offset((currentPage - 1) * pageSize);
 
-  return { items, total, page: currentPage, pageSize, query: search };
+  return { items, total, pendingTotal, page: currentPage, pageSize, query: search };
 }
