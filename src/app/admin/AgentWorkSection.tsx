@@ -215,54 +215,29 @@ function RunHistorySection({ runHistory }: { runHistory: AgentWorkDetails["runHi
   }
 
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-[#9b83a0] mb-3">
-        Run History ({runHistory.total.toLocaleString()} runs)
-      </h3>
-      <div className="rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Worker</TableHead>
-              <TableHead className="text-right">Run</TableHead>
-              <TableHead>Started</TableHead>
-              <TableHead className="text-right">Duration</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Resolved</TableHead>
-              <TableHead className="text-right">Excluded</TableHead>
-              <TableHead className="text-right">Skipped</TableHead>
-              <TableHead className="text-right">Errors</TableHead>
-              <TableHead className="text-right">Turns</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {runHistory.runs.map((run: AgentRun) => {
-              const statusClass = RUN_STATUS_STYLES[run.status] ?? "bg-muted text-muted-foreground";
-              return (
-                <TableRow key={`${run.workerId}-${run.runNumber}`}>
-                  <TableCell className="font-mono text-sm"><span className={styles.recordLabel}>Worker</span>{run.workerId}</TableCell>
-                  <TableCell className="text-right"><span className={styles.recordLabel}>Run</span>{run.runNumber}</TableCell>
-                  <TableCell className="whitespace-nowrap text-xs"><span className={styles.recordLabel}>Started</span>{formatDate(run.startedAt)}</TableCell>
-                  <TableCell className="text-right text-sm"><span className={styles.recordLabel}>Duration</span>{formatDuration(run.wallTimeSecs)}</TableCell>
-                  <TableCell><span className={styles.recordLabel}>Status</span>
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusClass}`}
-                      title={run.failReason ?? undefined}
-                    >
-                      {run.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right"><span className={styles.recordLabel}>Resolved</span>{run.resolved}</TableCell>
-                  <TableCell className="text-right"><span className={styles.recordLabel}>Excluded</span>{run.excluded}</TableCell>
-                  <TableCell className="text-right"><span className={styles.recordLabel}>Skipped</span>{run.skipped}</TableCell>
-                  <TableCell className="text-right"><span className={styles.recordLabel}>Errors</span>{run.errors}</TableCell>
-                  <TableCell className="text-right text-muted-foreground"><span className={styles.recordLabel}>Turns</span>{run.turns ?? "—"}</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <section aria-label="Run history">
+      <h3 className="text-lg font-semibold mb-3">Run History ({runHistory.total.toLocaleString()} {runHistory.total === 1 ? "run" : "runs"})</h3>
+      <ul className={styles.runList}>
+        {runHistory.runs.map((run: AgentRun) => (
+          <li key={`${run.workerId}-${run.runNumber}`} className={styles.runCard}>
+            <div className={styles.runHeader}>
+              <div><h4>{run.workerId}</h4><p>Run #{run.runNumber} · {formatDate(run.startedAt)}</p></div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${RUN_STATUS_STYLES[run.status] ?? "bg-muted text-muted-foreground"}`}>{run.status}</span>
+            </div>
+            <dl className={styles.runMetrics}>
+              <div><dt>Duration</dt><dd>{formatDuration(run.wallTimeSecs)}</dd></div>
+              <div><dt>Resolved</dt><dd>{run.resolved}</dd></div>
+              <div><dt>Excluded</dt><dd>{run.excluded}</dd></div>
+              <div><dt>Errors</dt><dd>{run.errors}</dd></div>
+            </dl>
+            <details className={styles.runDetails}><summary>Full run statistics</summary>
+              <dl><div><dt>Skipped</dt><dd>{run.skipped}</dd></div><div><dt>Turns</dt><dd>{run.turns ?? "—"}</dd></div></dl>
+            </details>
+            {run.failReason && <p className="mt-3 text-sm text-red-700 dark:text-red-400 break-words">{run.failReason}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

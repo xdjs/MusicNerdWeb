@@ -204,3 +204,32 @@
  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 @media (forced-colors: active) { .page select { appearance: auto; background-image: none; } }
+
+/* Keep desktop review rows within the workspace, including narrow desktop windows. */
+.panel .peopleRecords table { width: 100%; table-layout: fixed; }
+.panel .peopleRecords th:first-child { width: 44px; }
+.panel .peopleRecords th:nth-child(3), .panel .peopleRecords th:nth-child(4) { width: 25%; }
+.panel .peopleRecords td { white-space: normal; overflow-wrap: anywhere; }
+.panel .peopleRecords th button { padding-inline: 0; }
+.personDetails { display: block; font-size: 12px; font-weight: 400; margin-top: 8px; }
+.personDetails summary { cursor: pointer; color: hsl(var(--muted-foreground)); padding-block: 6px; }
+.personDetails dt { color: hsl(var(--muted-foreground)); margin-top: 10px; }
+.personDetails dd { margin-top: 3px; overflow-wrap: anywhere; }
+.runList { border: 1px solid var(--community-line); border-radius: 16px; overflow: hidden; }
+.runCard { padding: 22px; border-bottom: 1px solid var(--community-line); }
+.runCard:last-child { border-bottom: 0; }
+.runHeader { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.runHeader > div { min-width: 0; }
+.runHeader h4 { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.runHeader p { margin-top: 5px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.runHeader > span { flex-shrink: 0; }
+.runMetrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-top: 22px; }
+.runMetrics dt, .runDetails dt { font-size: 12px; color: hsl(var(--muted-foreground)); }
+.runMetrics dd { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.runDetails { margin-top: 16px; border-top: 1px solid var(--community-line); padding-top: 10px; font-size: 12px; }
+.runDetails summary { cursor: pointer; padding-block: 8px; }
+.runDetails dl { display: flex; flex-wrap: wrap; gap: 24px; padding-top: 12px; }
+@media (max-width: 479px) {
+ .runCard { padding: 18px; }
+ .runMetrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}

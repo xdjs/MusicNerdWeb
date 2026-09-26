@@ -94,16 +94,8 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "wallet",
-    header: "Wallet Address",
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
-  {
     accessorKey: "username",
-    header: "Username",
+    header: "Person",
     cell: ({row}) => <><span>{row.original.username || row.original.email || "Unnamed contributor"}</span><details className={styles.personDetails}><summary>Contact and account details</summary><dl><dt>Email</dt><dd>{row.original.email || "Not provided"}</dd><dt>Wallet</dt><dd>{row.original.wallet || "Not linked"}</dd><dt>Updated</dt><dd>{formatDate(row.original.updatedAt)}</dd></dl></details></>,
   },
   {
@@ -146,7 +138,7 @@ export const whitelistedColumns: ColumnDef<User>[] = [
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Updated At
+        Updated
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
