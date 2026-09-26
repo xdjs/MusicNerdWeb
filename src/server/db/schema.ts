@@ -379,6 +379,11 @@ export const artistVaultSources = pgTable("artist_vault_sources", {
 	contentType: text("content_type"),
 	extractedText: text("extracted_text"),
 	ogImage: text("og_image"),
+	// Verified recording identity captured during ingestion. Nullable when provider
+	// metadata is absent or ambiguous; never guessed from an episode title.
+	podcastEpisodeKey: text("podcast_episode_key"),
+	podcastShowTitle: text("podcast_show_title"),
+	podcastEpisodeTitle: text("podcast_episode_title"),
 	// When the SOURCE says it was published — not when we scraped it. Nullable:
 	// many pages never say, and a guessed date is worse than none, because it
 	// would let the knowledge doc confidently scope a claim to the wrong era.

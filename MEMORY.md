@@ -1,3 +1,27 @@
+## Podcast Lore grouping — September 26
+
+[Issue #1304](https://github.com/xdjs/MusicNerdWeb/issues/1304) is being implemented in
+[PR #1367](https://github.com/xdjs/MusicNerdWeb/pull/1367), branch
+`codex/podcast-lore-grouping-fix-1304` off `main`. Code at `be1045a` persists a
+verified Buzzsprout episode key during Apple/iHeart ingestion and renders one
+public card with one link per service while retaining the original rows and
+approval state. CI test/build passed. The [verification comment](https://github.com/xdjs/MusicNerdWeb/pull/1367#issuecomment-5848658076)
+has the exact-commit preview and local real-component fixture checks plus captures.
+
+Pete approved separate staging and production migrations. `0030_podcast_episode_identity.sql`
+was applied to both databases September 26; nullable fields, `mnweb` column
+privileges and existing RLS policies were verified. The staging backfill dry run
+found zero Apple/iHeart rows and changed none. The preview's existing Dutchyyy
+Lore still shows four cards. The Jordan pair was verified from current provider
+HTML and in the component fixture; staging has no podcast pair for a real-data
+grouped preview. Pete authorized the production backfill: Jordan's two approved
+Apple/iHeart rows now carry the same Buzzsprout key and titles, while original
+URLs, types and approval state remain unchanged. An app-role query through the
+available SQL connector was unavailable, so grants/RLS introspection and the
+current live artist HTTP 200 are the production checks so far. **No PR merge or
+production code release has occurred.** Follow the main-only review and release
+approval flow before the grouped card is live.
+
 ## Main-only release transition — September 22
 
 Authorized transition tracked in [#1319](https://github.com/xdjs/MusicNerdWeb/issues/1319),

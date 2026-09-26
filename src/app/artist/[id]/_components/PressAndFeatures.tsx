@@ -3,6 +3,8 @@
 import { useState, useRef, useMemo } from "react";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { groupPodcastSources } from "@/lib/source/groupPodcastSources";
+import { podcastService } from "@/lib/source/podcastService";
 
 interface VaultSource {
     id: string;
@@ -11,6 +13,10 @@ interface VaultSource {
     snippet?: string | null;
     type?: string | null;
     ogImage?: string | null;
+    artistId?: string;
+    podcastEpisodeKey?: string | null;
+    podcastShowTitle?: string | null;
+    podcastEpisodeTitle?: string | null;
 }
 
 interface PressAndFeaturesProps {
@@ -122,19 +128,58 @@ function SourceCard({ source }: { source: VaultSource }) {
     );
 }
 
+function PodcastCard({ sources }: { sources: VaultSource[] }) {
+    const preferred = sources.find(source => podcastService(source.url) === "Apple Podcasts") ?? sources[0];
+    const destinationMap = new Map<string, VaultSource>();
+    for (const source of sources) {
+        const service = podcastService(source.url);
+        if (service && !destinationMap.has(service)) destinationMap.set(service, source);
+    }
+    const destinations = [...destinationMap.entries()];
+    const artwork = sources.find(source => source.ogImage)?.ogImage;
+    const title = sources.find(source => source.podcastEpisodeTitle)?.podcastEpisodeTitle ?? preferred.title ?? "Podcast episode";
+    const show = sources.find(source => source.podcastShowTitle)?.podcastShowTitle;
+
+    return (
+        <div className="group flex-shrink-0 w-[260px] sm:w-[320px] h-[300px] sm:h-[320px] glass-subtle overflow-hidden flex flex-col">
+            <div className="relative w-full h-[135px] sm:h-[150px] shrink-0 overflow-hidden bg-gradient-to-br from-pastypink/10 via-purple-900/20 to-transparent">
+                {artwork && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={artwork} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                )}
+                <span className="absolute top-3 left-3 inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide backdrop-blur-md bg-pastypink/90 text-black border border-pastypink">
+                    Podcast
+                </span>
+            </div>
+            <div className="p-4 flex flex-col flex-1 min-h-0">
+                {show && <p className="text-[11px] text-muted-foreground truncate">{show}</p>}
+                <h3 className="text-sm font-semibold text-black dark:text-white leading-snug line-clamp-2">{title}</h3>
+                <div className="flex flex-wrap gap-2 mt-auto pt-2">
+                    {destinations.map(([service, source]) => (
+                        <a key={service} href={source.url} target="_blank" rel="noopener noreferrer"
+                            className="rounded-md border border-pastypink/50 px-2 py-1 text-[11px] font-medium text-black dark:text-white hover:bg-pastypink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">
+                            {service}
+                        </a>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
-    const sources = allSources.filter((s) => s.type !== "website");
+    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => s.type !== "website")), [allSources]);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Build type counts + filtered list (memoized) — must be before early return
     const { types, filtered } = useMemo(() => {
         const counts: Record<string, number> = {};
-        const items: typeof sources = [];
-        for (const s of sources) {
-            const t = s.type ?? "article";
+        const items: typeof cards = [];
+        for (const s of cards) {
+            const t = s.type;
             counts[t] = (counts[t] ?? 0) + 1;
             if (!activeFilter || t === activeFilter) items.push(s);
         }
@@ -142,7 +187,7 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
             types: Object.entries(counts).sort((a, b) => b[1] - a[1]),
             filtered: items,
         };
-    }, [sources, activeFilter]);
+    }, [cards, activeFilter]);
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;
@@ -157,7 +202,7 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
 
     // Check the same filtered inventory we render: official websites live in
     // Links, so website-only profiles also need a visible Lore destination.
-    if (sources.length === 0) return <p className="text-sm text-black/60 dark:text-white/65">No Lore sources to show yet. Articles, interviews and other sources will appear here.</p>;
+    if (cards.length === 0) return <p className="text-sm text-black/60 dark:text-white/65">No Lore sources to show yet. Articles, interviews and other sources will appear here.</p>;
 
     return (
         <div className="space-y-3">
@@ -173,7 +218,7 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                                 : "glass-subtle text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        All ({sources.length})
+                        All ({cards.length})
                     </button>
                     {types.map(([type, count]) => {
                         const colors = SOURCE_TYPE_COLORS[type as SourceType] ?? SOURCE_TYPE_COLORS.article;
@@ -212,9 +257,9 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                     className="flex gap-4 overflow-x-auto overflow-y-visible py-4 px-2 -mx-2 scrollbar-none snap-x snap-mandatory"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
-                    {filtered.map((source) => (
-                        <div key={source.id} className="snap-start" data-vault-card>
-                            <SourceCard source={source} />
+                    {filtered.map((card) => (
+                        <div key={card.id} className="snap-start" data-vault-card>
+                            {card.kind === "podcast" ? <PodcastCard sources={card.sources} /> : <SourceCard source={card.source} />}
                         </div>
                     ))}
                 </div>

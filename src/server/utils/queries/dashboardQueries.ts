@@ -369,6 +369,9 @@ export async function insertVaultSource(data: {
     contentType?: string;
     extractedText?: string | null;
     ogImage?: string | null;
+    podcastEpisodeKey?: string | null;
+    podcastShowTitle?: string | null;
+    podcastEpisodeTitle?: string | null;
     /** ISO date (YYYY-MM-DD) the source says it was published, or null. */
     publishedAt?: string | null;
 }, authorization?: { userId: string; expectedClaimId: string | null }) {
@@ -394,6 +397,9 @@ export async function insertVaultSource(data: {
                 contentType: data.contentType,
                 extractedText: data.extractedText,
                 ogImage: data.ogImage,
+                podcastEpisodeKey: data.podcastEpisodeKey,
+                podcastShowTitle: data.podcastShowTitle,
+                podcastEpisodeTitle: data.podcastEpisodeTitle,
                 publishedAt: data.publishedAt ?? null,
             })
             .onConflictDoNothing({ target: [artistVaultSources.artistId, artistVaultSources.url] })
@@ -462,6 +468,9 @@ export async function updateVaultSourceContent(sourceId: string, data: {
     snippet?: string;
     extractedText?: string | null;
     ogImage?: string;
+    podcastEpisodeKey?: string | null;
+    podcastShowTitle?: string | null;
+    podcastEpisodeTitle?: string | null;
     publishedAt?: string | null;
 }) {
     try {
@@ -472,6 +481,9 @@ export async function updateVaultSourceContent(sourceId: string, data: {
                 ...(data.snippet !== undefined ? { snippet: data.snippet } : {}),
                 ...(data.extractedText !== undefined ? { extractedText: data.extractedText } : {}),
                 ...(data.ogImage !== undefined ? { ogImage: data.ogImage } : {}),
+                ...(data.podcastEpisodeKey !== undefined ? { podcastEpisodeKey: data.podcastEpisodeKey } : {}),
+                ...(data.podcastShowTitle !== undefined ? { podcastShowTitle: data.podcastShowTitle } : {}),
+                ...(data.podcastEpisodeTitle !== undefined ? { podcastEpisodeTitle: data.podcastEpisodeTitle } : {}),
                 ...(data.publishedAt !== undefined ? { publishedAt: data.publishedAt } : {}),
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })

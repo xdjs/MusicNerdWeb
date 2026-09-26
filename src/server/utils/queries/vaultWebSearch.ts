@@ -10,6 +10,7 @@ import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import { isReservedHandle } from "@/lib/platformHandles";
 import { isExcludedLoreDiscoveryUrl } from "@/lib/source/isExcludedLoreDiscoveryUrl";
+import { normalizeLoreDiscoveryUrl as normalizeUrl } from "@/lib/source/normalizeLoreDiscoveryUrl";
 import { isBlockedSourceHost } from "@/lib/source/sourceAuthority";
 import { setArtistLink } from "@/server/utils/artistLinkService";
 import {
@@ -788,19 +789,6 @@ function isMachineFormatUrl(raw: string): boolean {
     return /[?&](feed|format)=(rss|atom|xml|json)/.test(raw.toLowerCase());
 }
 
-/** Normalize a URL for dedup comparison: lowercase, strip protocol/www/trailing slash */
-function normalizeUrl(raw: string): string {
-    try {
-        const u = new URL(raw);
-        const host = u.hostname.replace(/^www\./, "").toLowerCase();
-        const path = u.pathname.replace(/\/+$/, "").toLowerCase();
-        return `${host}${path}`;
-    } catch {
-        // Fallback for malformed URLs
-        return raw.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
-    }
-}
-
 /**
  * Finds articles/interviews/reviews about an artist and inserts them as pending
  * vault sources.
@@ -1371,6 +1359,7 @@ async function searchAndPopulateVaultInternal(
                     // needed to make already-stored rows behave correctly.
                     extractedText: isVerified ? page.extractedText : null,
                     ogImage: page.ogImage ?? null,
+                    ...(isVerified ? page.podcastEpisode : null),
                     // What the page says about its own age. Without it every claim
                     // in the document reads as current — a 2019 interview saying
                     // "X is my production partner" became a present-tense fact

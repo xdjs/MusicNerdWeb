@@ -21,6 +21,7 @@ import {
     unpinArtistBio,
 } from "@/server/utils/queries/dashboardQueries";
 import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/source/sourceTypes";
+import { podcastService } from "@/lib/source/podcastService";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
@@ -177,15 +178,19 @@ export async function addVaultSource(
 
         // Fire background content fetch to populate real title/snippet/extractedText
         if (source?.id) {
-            fetchPageContent(url).then(content => {
+            const enrichment = fetchPageContent(url).then(content =>
                 updateVaultSourceContent(source.id, {
                     title: content.title,
                     snippet: content.snippet,
                     extractedText: content.extractedText,
                     ogImage: content.ogImage,
+                    ...content.podcastEpisode,
                     publishedAt: content.publishedAt ?? null,
-                }).catch(e => console.error("[addVaultSource] Background content update failed:", e));
-            }).catch(e => console.error("[addVaultSource] Background fetch failed:", e));
+                })
+            ).catch(e => console.error("[addVaultSource] Content enrichment failed:", e));
+            // Podcast identity is required for grouping, so finish its write
+            // before a serverless invocation can be frozen after this action.
+            if (podcastService(url)) await enrichment;
         }
 
         return { success: true };

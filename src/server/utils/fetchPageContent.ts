@@ -1,4 +1,7 @@
+import { extractPodcastEpisodeIdentity, type PodcastEpisodeIdentity } from "@/lib/source/podcastEpisodeIdentity";
+
 export interface PageContent {
+    podcastEpisode?: PodcastEpisodeIdentity | null;
     /** Actual response URL after HTTP redirects, even when the response is not readable. */
     resolvedUrl?: string;
     title: string;
@@ -412,6 +415,7 @@ export async function fetchPageContent(
     let publishedAt: string | null = null;
     let links: string[] | undefined;
     let outboundLinks: string[] | undefined;
+    let podcastEpisode: PodcastEpisodeIdentity | null = null;
 
     if (isUnsafeUrl(url)) {
         return { title, extractedText: null, status: null, failure: "network", publishedAt: null };
@@ -429,6 +433,7 @@ export async function fetchPageContent(
         resolvedUrl = res.url || url;
         if (res.ok) {
             const html = await res.text();
+            podcastEpisode = extractPodcastEpisodeIdentity(resolvedUrl, html);
 
             // Extract <title>
             const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -477,5 +482,5 @@ export async function fetchPageContent(
         else failure = "network";
     }
 
-    return { title, snippet, extractedText, ogImage, status, failure, fullText, publishedAt, links, outboundLinks, resolvedUrl };
+    return { title, snippet, extractedText, ogImage, status, failure, fullText, publishedAt, links, outboundLinks, resolvedUrl, podcastEpisode };
 }
