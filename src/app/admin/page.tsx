@@ -8,7 +8,10 @@ import { getAllMcpKeys } from "@/server/utils/queries/mcpKeyQueries";
 import AdminDashboard from "./AdminDashboard";
 import type { ClaimRow } from "./claims-columns";
 
-export default async function Admin({ searchParams }: { searchParams: Promise<{ section?: string; lorePage?: string; loreQuery?: string }> }) {
+type AdminSearchParams = { section?: string | string[]; lorePage?: string | string[]; loreQuery?: string | string[] };
+const firstParam = (value: string | string[] | undefined) => typeof value === "string" ? value : value?.[0] ?? "";
+
+export default async function Admin({ searchParams }: { searchParams: Promise<AdminSearchParams> }) {
   const session = await getServerAuthSession();
 
   if (!session) {
@@ -21,9 +24,11 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   }
 
   const params = await searchParams;
+  const lorePage = Number(firstParam(params.lorePage));
+  const loreQuery = firstParam(params.loreQuery);
   const [pendingUGCData, pendingLore, allUsers, mcpKeys, rawClaims] = await Promise.all([
     getPendingUGC(),
-    getPendingLoreSources({ page: Number(params.lorePage), query: params.loreQuery ?? "" }),
+    getPendingLoreSources({ page: lorePage, query: loreQuery }),
     getAllUsers(),
     getAllMcpKeys(),
     getAllClaims(),
@@ -41,5 +46,5 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     createdAt: claim.createdAt,
   }));
 
-  return <AdminDashboard pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={params.section === "lore" ? "lore" : "ugc"} />;
+  return <AdminDashboard pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={firstParam(params.section) === "lore" ? "lore" : "ugc"} />;
 }

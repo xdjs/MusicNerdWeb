@@ -5,7 +5,7 @@ import { artists, artistVaultSources } from "@/server/db/schema";
 /** A bounded admin view of the shared pending Lore queue. Authorization is checked by the caller. */
 export async function getPendingLoreSources({ page = 1, query = "" }: { page?: number; query?: string } = {}) {
   const pageSize = 25;
-  const currentPage = Number.isSafeInteger(page) && page > 0 ? Math.min(page, 1000) : 1;
+  const requestedPage = Number.isSafeInteger(page) && page > 0 ? Math.min(page, 1000) : 1;
   const search = query.trim().slice(0, 100);
   const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
   const pending = eq(artistVaultSources.status, "pending");
@@ -13,10 +13,11 @@ export async function getPendingLoreSources({ page = 1, query = "" }: { page?: n
     ? and(pending, or(ilike(artists.name, pattern), ilike(artistVaultSources.title, pattern), ilike(artistVaultSources.url, pattern)))
     : pending;
 
-  const [counts, items] = await Promise.all([
-    db.select({ total: count() }).from(artistVaultSources)
-      .innerJoin(artists, eq(artistVaultSources.artistId, artists.id)).where(where),
-    db.select({
+  const counts = await db.select({ total: count() }).from(artistVaultSources)
+    .innerJoin(artists, eq(artistVaultSources.artistId, artists.id)).where(where);
+  const total = counts[0]?.total ?? 0;
+  const currentPage = Math.min(requestedPage, Math.max(1, Math.ceil(total / pageSize)));
+  const items = await db.select({
       id: artistVaultSources.id,
       artistId: artistVaultSources.artistId,
       artistName: artists.name,
@@ -24,10 +25,9 @@ export async function getPendingLoreSources({ page = 1, query = "" }: { page?: n
       url: artistVaultSources.url,
       createdAt: artistVaultSources.createdAt,
     }).from(artistVaultSources)
-      .innerJoin(artists, eq(artistVaultSources.artistId, artists.id))
-      .where(where).orderBy(desc(artistVaultSources.createdAt), desc(artistVaultSources.id))
-      .limit(pageSize).offset((currentPage - 1) * pageSize),
-  ]);
+    .innerJoin(artists, eq(artistVaultSources.artistId, artists.id))
+    .where(where).orderBy(desc(artistVaultSources.createdAt), desc(artistVaultSources.id))
+    .limit(pageSize).offset((currentPage - 1) * pageSize);
 
-  return { items, total: counts[0]?.total ?? 0, page: currentPage, pageSize, query: search };
+  return { items, total, page: currentPage, pageSize, query: search };
 }

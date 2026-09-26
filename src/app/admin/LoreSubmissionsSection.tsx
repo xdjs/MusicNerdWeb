@@ -78,7 +78,7 @@ export default function LoreSubmissionsSection({ data, onReview = updateSourceSt
         </article>;
       })}
     </div> : <p className="rounded-2xl border border-border p-6 text-sm text-muted-foreground">{data.query ? "No pending Lore sources match this search." : "No pending Lore sources on this page."}</p>}
-    {data.total > data.pageSize && <nav aria-label="Lore review pages" className="flex items-center justify-between gap-4 text-sm">
+    {(data.page > 1 || data.total > data.pageSize) && <nav aria-label="Lore review pages" className="flex items-center justify-between gap-4 text-sm">
       {data.page > 1 ? <Link href={pageHref(data.page - 1)} className={styles.pill}>Previous</Link> : <span />}
       <span>Page {data.page} of {Math.ceil(data.total / data.pageSize)}</span>
       {data.page * data.pageSize < data.total ? <Link href={pageHref(data.page + 1)} className={styles.pill}>Next</Link> : <span />}
