@@ -27,9 +27,9 @@ const formatDate = (value: string | null | undefined): string => {
 };
 
 const statusColors: Record<string, string> = {
-    pending: "bg-amber-500/15 text-amber-500",
-    approved: "bg-green-500/15 text-green-500",
-    rejected: "bg-red-500/15 text-red-500",
+    pending: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+    approved: "bg-green-500/15 text-green-700 dark:text-green-400",
+    rejected: "bg-red-500/15 text-red-700 dark:text-red-400",
 };
 
 export const claimsColumns: ColumnDef<ClaimRow>[] = [

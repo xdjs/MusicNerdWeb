@@ -154,13 +154,14 @@ describe("AgentWorkSection", () => {
     });
 
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
 
-    await waitFor(() => {
-      expect(screen.getByText("Per-Agent Breakdown")).toBeInTheDocument();
-    });
     expect(screen.getByText("Beyoncé")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox",{name:"Agent detail view"}),{target:{value:"agents"}});
+    expect(screen.getByText("Per-Agent Breakdown")).toBeInTheDocument();
     expect(screen.getByText("847")).toBeInTheDocument(); // resolvedCount
     expect(screen.getByText("73")).toBeInTheDocument(); // excludedCount
+    fireEvent.change(screen.getByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
     expect(screen.getByText("resolve")).toBeInTheDocument();
     expect(screen.getByText("exclude")).toBeInTheDocument();
     // Show Details button should be gone
@@ -172,6 +173,7 @@ describe("AgentWorkSection", () => {
     await renderComponent();
     await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
     await waitFor(() => { expect(screen.getByText("Next")).toBeInTheDocument(); });
 
     fireEvent.click(screen.getByText("Next"));
@@ -187,6 +189,7 @@ describe("AgentWorkSection", () => {
     await renderComponent();
     await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
     await waitFor(() => { expect(screen.getByText("Previous")).toBeInTheDocument(); });
     expect(screen.getByText("Previous")).toBeDisabled();
   });
@@ -196,6 +199,8 @@ describe("AgentWorkSection", () => {
     await renderComponent();
     await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
+    fireEvent.change(screen.getByRole("combobox",{name:"Agent detail view"}),{target:{value:"exclusions"}});
     await waitFor(() => {
       expect(screen.getByText("deezer (1)")).toBeInTheDocument();
     });
@@ -206,6 +211,7 @@ describe("AgentWorkSection", () => {
     await renderComponent();
     await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
     await waitFor(() => { expect(screen.getByText("Beyoncé")).toBeInTheDocument(); });
     const beyonceLink = screen.getByText("Beyoncé").closest("a");
     expect(beyonceLink).toHaveAttribute("href", "/artist/artist-uuid-1");
@@ -229,6 +235,7 @@ describe("AgentWorkSection", () => {
     await renderComponent();
     await waitFor(() => { expect(screen.getByText("Show Details")).toBeInTheDocument(); });
     fireEvent.click(screen.getByText("Show Details"));
+    fireEvent.change(await screen.findByRole("combobox",{name:"Agent detail view"}),{target:{value:"audit"}});
     await waitFor(() => { expect(screen.getByText("resolve")).toBeInTheDocument(); });
     const resolveBadge = screen.getByText("resolve");
     expect(resolveBadge.className).toContain("bg-green-500");

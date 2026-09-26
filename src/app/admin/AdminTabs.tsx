@@ -42,8 +42,8 @@ export default function AdminTabs({ugcContent,usersContent,claimsContent,mcpKeys
           </SelectContent>
         </Select>
       </div>
-      <TabsList aria-label="Admin sections" className={styles.tabs}>{sections.map(section=><TabsTrigger className={styles.tab} key={section.value} value={section.value}><section.icon size={16} aria-hidden="true"/><span>{section.label}</span>{section.count!==undefined && <span className={styles.badge}>{section.count}</span>}</TabsTrigger>)}</TabsList>
-      <div className="min-w-0">{sections.map(section=><TabsContent className={styles.panel} key={section.value} value={section.value}><header className={styles.panelHeader}><h2>{section.title}</h2><p>{section.description}</p></header>{section.content}</TabsContent>)}</div>
+      <TabsList aria-label="Admin sections" className={styles.tabs}>{sections.map(section=><TabsTrigger id={`admin-section-${section.value}`} aria-controls={`admin-panel-${section.value}`} className={styles.tab} key={section.value} value={section.value}><section.icon size={16} aria-hidden="true"/><span>{section.label}</span>{section.count!==undefined && <span className={styles.badge}>{section.count}</span>}</TabsTrigger>)}</TabsList>
+      <div className="min-w-0">{sections.map(section=><TabsContent id={`admin-panel-${section.value}`} aria-labelledby={`admin-section-${section.value}`} className={styles.panel} key={section.value} value={section.value}><header className={styles.panelHeader}><h2>{section.title}</h2><p>{section.description}</p></header>{section.content}</TabsContent>)}</div>
     </div>
   </Tabs>;
 }

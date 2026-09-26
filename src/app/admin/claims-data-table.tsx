@@ -31,6 +31,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
     const router = useRouter();
     const { toast } = useToast();
     const [loadingId, setLoadingId] = useState<string | null>(null);
+    const [query,setQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
     const { filteredData, pendingCount, approvedCount, rejectedCount } = useMemo(() => {
@@ -40,10 +41,10 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
             if (c.status === "pending") pending++;
             else if (c.status === "approved") approved++;
             else rejected++;
-            if (!statusFilter || c.status === statusFilter) filtered.push(c);
+            if ((!statusFilter || c.status === statusFilter) && [c.artistName,c.referenceCode,c.userName,c.userEmail,c.artistInstagram].some(value=>(value ?? "").toLowerCase().includes(query.trim().toLowerCase()))) filtered.push(c);
         }
         return { filteredData: filtered, pendingCount: pending, approvedCount: approved, rejectedCount: rejected };
-    }, [data, statusFilter]);
+    }, [data, statusFilter, query]);
 
     const handleAction = useCallback(async (action: () => Promise<{ success: boolean; error?: string }>, claimId: string, label: string) => {
         setLoadingId(claimId);
@@ -131,6 +132,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
 
     return (
         <div className={`${styles.claimsReview} space-y-3`}>
+            <div className={styles.filterBar}><input type="search" aria-label="Search artist claims" placeholder="Search artist, requester or reference" value={query} onChange={event=>setQuery(event.target.value)} /></div>
             {/* Status filter chips — all always visible for consistent layout */}
             <div className={`${styles.claimFilters} flex flex-wrap gap-2`}>
                 <button
@@ -138,7 +140,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                     aria-pressed={statusFilter === null}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === null
-                            ? "bg-pastypink text-white"
+                            ? styles.filterActive
                             : "glass-subtle text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -149,7 +151,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                     aria-pressed={statusFilter === "pending"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "pending"
-                            ? "bg-amber-500 text-white"
+                            ? styles.filterActive
                             : "glass-subtle text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -160,7 +162,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                     aria-pressed={statusFilter === "approved"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "approved"
-                            ? "bg-green-600 text-white"
+                            ? styles.filterActive
                             : "glass-subtle text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -171,7 +173,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                     aria-pressed={statusFilter === "rejected"}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         statusFilter === "rejected"
-                            ? "bg-red-500 text-white"
+                            ? styles.filterActive
                             : "glass-subtle text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -179,6 +181,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                 </button>
             </div>
 
+            <div className={styles.filterSummary}><span>{filteredData.length} of {data.length} claims</span>{(query || statusFilter) && <button type="button" onClick={()=>{setQuery("");setStatusFilter(null);}}>Clear filters</button>}</div>
             {/* Table */}
             <div className="rounded-md border">
                 <Table>
@@ -210,7 +213,7 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={allColumns.length} className="h-24 text-center">
-                                    No claims found.
+                                    {data.length ? "No claims match these filters." : "No claims found."}
                                 </TableCell>
                             </TableRow>
                         )}

@@ -23,9 +23,10 @@ type Props = {
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
   onApproveLinks?: typeof approveUgcAdminAction;
+  artistDataUrl?: string; agentWorkUrl?: string;
 };
 
-export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaims,onApproveLinks}: Props) {
+export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaims,onApproveLinks,artistDataUrl,agentWorkUrl}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
@@ -48,10 +49,10 @@ export default function AdminDashboard({pendingUGCData,allUsers,mcpKeys,allClaim
           <McpKeysSection initialKeys={mcpKeys} />
         }
         agentWorkContent={
-          <AgentWorkSection />
+          <AgentWorkSection dataUrl={agentWorkUrl} />
         }
         artistDataContent={
-          <ArtistDataSection />
+          <ArtistDataSection dataUrl={artistDataUrl} />
         }
       />
     </section>

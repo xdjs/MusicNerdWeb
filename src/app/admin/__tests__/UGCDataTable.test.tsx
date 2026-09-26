@@ -67,3 +67,16 @@ it('refreshes partial bulk failures without claiming every submission succeeded'
  expect(screen.queryByRole('status')).not.toBeInTheDocument();
  expect(refresh).toHaveBeenCalled();
 });
+
+it('combines queue filters and clears selection when the visible set changes',()=>{
+ render(<UGCDataTable columns={ugcColumns} data={[data[0]!,{...data[1]!,siteName:'SoundCloud',username:'Sweetman'}]}/>);
+ fireEvent.click(screen.getByRole('checkbox',{name:'Select all'}));
+ fireEvent.change(screen.getByRole('searchbox',{name:'Search link submissions'}),{target:{value:' sweetman '}});
+ expect(screen.queryByRole('link',{name:'First artist'})).not.toBeInTheDocument();
+ expect(screen.getByRole('link',{name:'Second artist'})).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Approve selected'})).toBeDisabled();
+ fireEvent.change(screen.getByRole('combobox',{name:'Platform'}),{target:{value:'Website'}});
+ expect(screen.getByText('No submissions match these filters.')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Clear filters'}));
+ expect(screen.getAllByRole('link',{name:/artist/})).toHaveLength(2);
+});

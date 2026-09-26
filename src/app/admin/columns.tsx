@@ -5,7 +5,7 @@ import { UgcResearch, User } from "@/server/db/DbTypes";
 import { ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import WhitelistUserEditDialog from "./WhitelistUserEditDialog";
+import styles from "@/components/community/Community.module.css";
 
 // Helper to format dates in local timezone without seconds
 const formatDate = (value: string | Date | null | undefined): string => {
@@ -82,16 +82,7 @@ export const ugcColumns: ColumnDef<UgcResearch & { wallet?: string | null; usern
 export const whitelistedColumns: ColumnDef<User>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
+    header: () => <span className="sr-only">Selection</span>,
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -113,6 +104,7 @@ export const whitelistedColumns: ColumnDef<User>[] = [
   {
     accessorKey: "username",
     header: "Username",
+    cell: ({row}) => <><span>{row.original.username || row.original.email || "Unnamed contributor"}</span><details className={styles.personDetails}><summary>Contact and account details</summary><dl><dt>Email</dt><dd>{row.original.email || "Not provided"}</dd><dt>Wallet</dt><dd>{row.original.wallet || "Not linked"}</dd><dt>Updated</dt><dd>{formatDate(row.original.updatedAt)}</dd></dl></details></>,
   },
   {
     id: "role",
@@ -160,13 +152,4 @@ export const whitelistedColumns: ColumnDef<User>[] = [
     ),
     cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
   },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const user = row.original as User;
-      return <WhitelistUserEditDialog user={user} />;
-    },
-    enableSorting: false,
-  }
 ];

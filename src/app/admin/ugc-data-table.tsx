@@ -27,27 +27,33 @@ import { useMemo, useRef, useState } from "react"
 import { Check, Loader2 } from "lucide-react"
 import styles from "@/components/community/Community.module.css"
 
-interface DataTableProps<TData extends { id: string; name?: string | null }, TValue> {
+type Submission = { id: string; name?: string | null; siteName?: string | null; username?: string | null; wallet?: string | null; ugcUrl?: string | null };
+
+interface DataTableProps<TData extends Submission, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     onApprove?: typeof approveUgcAdmin
 }
 
-export default function UGCDataTable<TData extends { id: string; name?: string | null }, TValue>({
+export default function UGCDataTable<TData extends Submission, TValue>({
     columns,
     data,
     onApprove = approveUgcAdmin,
 }: DataTableProps<TData, TValue>) {
     const router = useRouter();
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([{id:"createdAt",desc:false}]);
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
     const [uploadStatus, setUploadStatus] = useState<{ status: "success" | "error", message: string, isLoading: boolean }>({ status: "success", message: "", isLoading: false });
     const inFlight = useRef(false);
     const [activeIds, setActiveIds] = useState<string[]>([]);
     const [approvedIds, setApprovedIds] = useState<Set<string>>(() => new Set());
     const pendingData = useMemo(() => data.filter(row => !approvedIds.has(row.id)), [data, approvedIds]);
+    const [query,setQuery] = useState("");
+    const [platform,setPlatform] = useState("");
+    const platforms = useMemo(()=>Array.from(new Set(data.map(row=>row.siteName).filter((name): name is string=>!!name))).sort(),[data]);
+    const filteredData = useMemo(()=>pendingData.filter(row=>(!platform || row.siteName===platform) && [row.name,row.username,row.wallet,row.ugcUrl].some(value=>(value ?? "").toLowerCase().includes(query.trim().toLowerCase()))),[pendingData,platform,query]);
     const table = useReactTable({
-        data: pendingData,
+        data: filteredData,
         getRowId: row => row.id,
         columns,
         getCoreRowModel: getCoreRowModel(),
@@ -89,9 +95,14 @@ export default function UGCDataTable<TData extends { id: string; name?: string |
 
     return (
         <div className={`${styles.ugcReview} space-y-4`}>
+            <div className={styles.filterBar}>
+              <input type="search" aria-label="Search link submissions" placeholder="Search artist, contributor or URL" value={query} onChange={event=>{setQuery(event.target.value);setRowSelection({});}} />
+              <label>Platform<select aria-label="Platform" value={platform} onChange={event=>{setPlatform(event.target.value);setRowSelection({});}}><option value="">All platforms</option>{platforms.map(name=><option key={name}>{name}</option>)}</select></label>
+            </div>
+            <div className={styles.filterSummary}><span>{filteredData.length} of {pendingData.length} pending submissions</span>{(query || platform) && <button type="button" onClick={()=>{setQuery("");setPlatform("");setRowSelection({});}}>Clear filters</button>}</div>
             <div className="flex flex-wrap items-center gap-3">
             <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox aria-label="Select all" disabled={uploadStatus.isLoading || !pendingData.length}
+                <Checkbox aria-label="Select all" disabled={uploadStatus.isLoading || !filteredData.length}
                     checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
                     onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)} />
                 Select all
@@ -99,7 +110,7 @@ export default function UGCDataTable<TData extends { id: string; name?: string |
             <Button variant="outline" onClick={() => void approve(selectedIds)} disabled={uploadStatus.isLoading || !selectedIds.length} className="w-fit rounded-full">
                 {`Approve selected${selectedIds.length ? ` (${selectedIds.length})` : ""}`}
             </Button>
-            <select aria-label="Submission order" className="sm:hidden rounded-full border border-border bg-transparent px-3 py-2 text-xs text-foreground"
+            <select aria-label="Submission order" className="rounded-full border border-border bg-transparent px-3 py-2 text-xs text-foreground"
                 value={sorting[0]?.id === "createdAt" ? (sorting[0].desc ? "newest" : "oldest") : "default"}
                 onChange={event => setSorting(event.target.value === "default" ? [] : [{id: "createdAt", desc: event.target.value === "newest"}])}>
                 <option value="default">Submission order</option><option value="oldest">Oldest first</option><option value="newest">Newest first</option>
@@ -152,7 +163,7 @@ export default function UGCDataTable<TData extends { id: string; name?: string |
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length + 1} className="h-24 text-center">
-                                    All caught up. New link submissions will appear here.
+                                    {pendingData.length ? "No submissions match these filters." : "All caught up. New link submissions will appear here."}
                                 </TableCell>
                             </TableRow>
                         )}
