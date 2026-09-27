@@ -53,6 +53,18 @@ describe('vault action authorization', () => {
     expect(q.updateVaultSourceStatus).toHaveBeenCalledWith('src-1', 'approved');
   });
 
+  it('does not overwrite a Lore source reviewed after the admin page loaded', async () => {
+    const { actions, users, q } = await setup();
+    (users.getUserById as jest.Mock).mockResolvedValue({ id: 'admin-1', isAdmin: true });
+    (q.getVaultSourceById as jest.Mock).mockResolvedValue({ id: 'src-1', artistId: 'artist-x', status: 'pending' });
+    (q.updateVaultSourceStatus as jest.Mock).mockResolvedValue(undefined);
+
+    const res = await actions.updateSourceStatus('src-1', 'approved', 'pending');
+
+    expect(res).toEqual({ success: false, error: expect.stringMatching(/already reviewed/i) });
+    expect(q.updateVaultSourceStatus).toHaveBeenCalledWith('src-1', 'approved', 'pending');
+  });
+
   it('rejects a non-admin who does not own the source', async () => {
     const { actions, users, q } = await setup();
     (users.getUserById as jest.Mock).mockResolvedValue({ id: 'admin-1', isAdmin: false });

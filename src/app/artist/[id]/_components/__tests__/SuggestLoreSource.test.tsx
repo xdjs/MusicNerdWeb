@@ -20,41 +20,55 @@ describe("SuggestLoreSource", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  it("submits multiple distinct URLs for artist review without losing the form", async () => {
+  it("opens a dialog and submits multiple distinct URLs for artist review", async () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "visitor" } }, status: "authenticated" });
     const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
-    const { container } = render(<SuggestLoreSource artistId={artistId} isClaimed />);
-    const input = screen.getByRole("textbox", { name: "Suggest a Lore source" });
+    render(<SuggestLoreSource artistId={artistId} isClaimed />);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a Lore source" }));
+    const dialog = screen.getByRole("dialog", { name: "Suggest a Lore source" });
+    const input = screen.getByRole("textbox", { name: "Source URL" });
 
     fireEvent.change(input, { target: { value: "pitchfork.com/bike-lane" } });
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.submit(dialog.querySelector("form")!);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Submitted for artist review"));
     expect(input).toHaveValue("");
 
     fireEvent.change(input, { target: { value: "https://example.com/interview" } });
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.submit(dialog.querySelector("form")!);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ url: "https://pitchfork.com/bike-lane" });
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ url: "https://example.com/interview" });
+
+    await waitFor(() => expect(dialog.querySelector("form")).toHaveAttribute("aria-busy", "false"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a Lore source" }));
+    expect(screen.getByRole("textbox", { name: "Source URL" })).toHaveValue("");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("shows a duplicate error and keeps the submitted URL for correction", async () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "visitor" } }, status: "authenticated" });
     jest.spyOn(global, "fetch").mockResolvedValue({ ok: false, json: async () => ({ error: "This source has already been suggested" }) } as Response);
-    const { container } = render(<SuggestLoreSource artistId={artistId} isClaimed />);
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "https://example.com/a" } });
-    fireEvent.submit(container.querySelector("form")!);
+    render(<SuggestLoreSource artistId={artistId} isClaimed />);
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a Lore source" }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(screen.getByRole("textbox", { name: "Source URL" }), { target: { value: "https://example.com/a" } });
+    fireEvent.submit(dialog.querySelector("form")!);
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("already been suggested"));
-    expect(screen.getByRole("textbox")).toHaveValue("https://example.com/a");
+    expect(screen.getByRole("textbox", { name: "Source URL" })).toHaveValue("https://example.com/a");
   });
 
   it("explains admin review when the artist profile is unclaimed", async () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "visitor" } }, status: "authenticated" });
     jest.spyOn(global, "fetch").mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
-    const { container } = render(<SuggestLoreSource artistId={artistId} isClaimed={false} />);
+    render(<SuggestLoreSource artistId={artistId} isClaimed={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a Lore source" }));
+    const dialog = screen.getByRole("dialog");
     expect(screen.getByText(/This profile is unclaimed/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "https://example.com/a" } });
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.change(screen.getByRole("textbox", { name: "Source URL" }), { target: { value: "https://example.com/a" } });
+    fireEvent.submit(dialog.querySelector("form")!);
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/An admin can approve it/));
   });
 });
