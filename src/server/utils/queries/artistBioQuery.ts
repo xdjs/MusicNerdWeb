@@ -74,7 +74,10 @@ async function gatherContextualSources(artistId: string, ownership: BioWriteOwne
     // writes to the vault as pending) and synthesize from what returns. Bounded by
     // withTimeout so a slow/hung run can't starve synthesis of the route's budget.
     const discovered = await withTimeout(
-      searchAndPopulateVault(artistId, { ownership }).catch((e) => {
+      searchAndPopulateVault(artistId, {
+        ownership: { ...ownership, trigger: ownership.userId ? 'about_editor' : 'automatic_about' },
+        actorKind: ownership.userId ? 'user' : 'system',
+      }).catch((e) => {
         console.error("[bio] discovery failed:", e);
         return [] as ArtistVaultSource[];
       }),

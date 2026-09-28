@@ -18,6 +18,14 @@ generation in #1372 remains outstanding. #1373 is ready for review. These are
 foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
 jobs and separate review attribution remain planned; bulk backfill is deferred.
 
+September 28 review follow-up: #1373's account-history redesign was verified at
+`0f979311`, but passing CI was not Codex approval. The three review findings are
+being corrected on that branch: durable source search propagates provider/write
+failures and exhausted deadlines to retry, while existing automatic About search
+and publication record system / automatic_about rather than unknown/editor work.
+Regression tests cover genuine empty-search completion, failure retry and editor
+attribution. Check the latest PR review before merging; no merge or release is authorized.
+
 Pete also clarified Admin needs a selected user's contributions across UGC types,
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter
 for manual review. Count real submissions across the full dataset; user-triggered

@@ -18,6 +18,13 @@ it('uses the persisted approving admin and event when the worker runs later', as
   expect(await runSourceSearchJob(job, Date.now() + 50_000)).toMatchObject({ done: true });
   expect(observed).toMatchObject({ userId: 'approving-admin', activityId: 'event', sourceOrigin: 'research', expectedClaimId: 'claim', trigger: 'claim_approval' });
   expect(completeResearchJob).toHaveBeenCalledWith('job');
+  expect(searchAndPopulateVault).toHaveBeenCalledWith('a1', expect.objectContaining({ requireComplete: true }));
+  expect(getActiveArtistOperation()).toBeUndefined();
+});
+it('leaves failed searches for the scheduler retry policy instead of completing them', async () => {
+  (searchAndPopulateVault as jest.Mock).mockRejectedValue(new Error('search provider unavailable'));
+  await expect(runSourceSearchJob(job, Date.now() + 50_000)).rejects.toThrow('search provider unavailable');
+  expect(completeResearchJob).not.toHaveBeenCalled();
   expect(getActiveArtistOperation()).toBeUndefined();
 });
 it('does not start a partial search when the worker lacks a full slice', async () => {

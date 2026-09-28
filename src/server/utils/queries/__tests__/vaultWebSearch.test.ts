@@ -100,6 +100,39 @@ describe("searchAndPopulateVault", () => {
   });
 
   // ---- Retrieval ---------------------------------------------------------
+  it('propagates provider failures for durable searches, retaining best-effort interactive search', async () => {
+    mockWebSearch.mockRejectedValue(new Error('provider unavailable'));
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).rejects.toThrow('provider unavailable');
+    expect(mockWebSearch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ throwOnError: true }));
+    await expect(searchAndPopulateVault('a1')).resolves.toEqual([]);
+  });
+
+  it('propagates a failed source write instead of completing partial queued work', async () => {
+    mockWebSearch.mockResolvedValue([hit('https://example.com/a')]);
+    mockInsert.mockRejectedValue(new Error('source database unavailable'));
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).rejects.toThrow('source database unavailable');
+  });
+
+  it('does not report a successful search when the durable deadline is exhausted', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true, deadline: Date.now() - 1 })).rejects.toThrow('deadline');
+    expect(mockWebSearch).not.toHaveBeenCalled();
+  });
+
+  it('allows a confirmed zero-result durable search to finish', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).resolves.toEqual([]);
+  });
+
+  it('records an explicitly identified system search without inventing a user', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    const { recordArtistActivity } = await import('../../activity/recordArtistActivity');
+    await searchAndPopulateVault('a1', { ownership: { expectedClaimId: null, trigger: 'automatic_about' }, actorKind: 'system' });
+    expect(recordArtistActivity).toHaveBeenCalledWith('a1', 'source_search', { actorKind: 'system' });
+  });
+
   // Retrieval must be a search API, never a model. The previous implementation
   // enabled googleSearch grounding and then asked Gemini to "return ONLY a JSON
   // array", so the model AUTHORED the URLs — nothing bound its output to what

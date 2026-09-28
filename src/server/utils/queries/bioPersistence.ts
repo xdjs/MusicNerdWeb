@@ -64,7 +64,12 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: text, isPinned: false });
         }
         await tx.update(artists).set({ bio }).where(eq(artists.id, artistId));
-        await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', { userId: options.ownership.userId, trigger: options.document ? 'onboarding' : 'about_editor' }, tx);
+        const automatic = options.generated && !options.ownership.userId && !options.document;
+        await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', {
+            userId: options.ownership.userId,
+            actorKind: options.ownership.userId ? 'user' : automatic ? 'system' : 'unknown',
+            trigger: options.document ? 'onboarding' : automatic ? 'automatic_about' : 'about_editor',
+        }, tx);
         return bio;
     });
 }

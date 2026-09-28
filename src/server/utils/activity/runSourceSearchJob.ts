@@ -23,7 +23,7 @@ export async function runSourceSearchJob(job: ResearchJob, deadline: number) {
     userId: event.actorUserId ?? undefined,
     expectedClaimId: typeof job.state.claimId === 'string' ? job.state.claimId : null,
     trigger: event.trigger, activityId: event.id, sourceOrigin: 'research',
-  }, () => searchAndPopulateVault(job.artistId, { deadline }));
+  }, () => searchAndPopulateVault(job.artistId, { deadline, requireComplete: true }));
   await completeResearchJob(job.id);
   return { progress: `Source search finished, ${sources.length} sources added`, done: true };
 }

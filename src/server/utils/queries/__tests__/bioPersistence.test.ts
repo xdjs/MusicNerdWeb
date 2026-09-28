@@ -63,6 +63,16 @@ describe('persistArtistBio', () => {
         expect(set).toHaveBeenCalledWith({ bio: 'New artist bio' });
         expect(values.mock.invocationCallOrder[1]).toBeLessThan(set.mock.invocationCallOrder[0]);
     });
+    it.each([undefined, 'editor'])('attributes generated About to system or authenticated editor (%s)', async userId => {
+        const { persistArtistBio, tx } = await setup({ bio: null });
+        const { recordArtistActivity } = await import('../../activity/recordArtistActivity');
+        await persistArtistBio('a1', 'Generated About', {
+            ownership: { expectedClaimId: null, userId }, generated: true, expectedBio: null,
+        });
+        expect(recordArtistActivity).toHaveBeenCalledWith('a1', 'about_generated', {
+            userId, actorKind: userId ? 'user' : 'system', trigger: userId ? 'about_editor' : 'automatic_about',
+        }, tx);
+    });
     it('caches the no-context placeholder without creating a saved bio', async () => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
         const { persistArtistBio, set, values } = await setup({ bio: null });

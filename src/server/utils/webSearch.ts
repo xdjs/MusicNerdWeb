@@ -17,11 +17,11 @@
  * pretends to work — an unimplemented/unknown provider degrades to `[]`,
  * same as every other failure mode here.
  *
- * NEVER throws. No API key configured for the selected provider, an unknown
+ * Best-effort by default. No API key configured for the selected provider, an unknown
  * provider, a network failure, a non-OK HTTP response, or an unparseable
  * body all degrade to `[]` — the same "a discovery failure can never break
  * the onboarding turn" contract every tier in `profileDiscovery.ts` already
- * follows.
+ * follows. Durable callers use `throwOnError` to preserve retryable failures.
  */
 import { TAVILY_API_KEY, WEB_SEARCH_PROVIDER } from "@/env";
 import { formatWebSearchLog } from "@/lib/search/formatWebSearchLog";
@@ -37,9 +37,11 @@ export interface WebSearchOptions {
      *  through untouched to the provider's own domain-filter field. */
     includeDomains?: string[];
     maxResults?: number;
+    /** Durable jobs distinguish a failed search from a successful empty search. */
+    throwOnError?: boolean;
 }
 
-type ResolvedWebSearchOptions = Required<WebSearchOptions>;
+type ResolvedWebSearchOptions = Required<Omit<WebSearchOptions, 'throwOnError'>>;
 
 /** What a provider hands back to `webSearch`: the rows, and on a degrade-to-`[]`
  *  path the kind of failure, which goes on the `[websearch]` log line. */
@@ -162,7 +164,7 @@ const PROVIDERS: Record<string, (query: string, opts: ResolvedWebSearchOptions) 
     tavily: tavilySearch,
 };
 
-/** Search the web, provider-agnostic. NEVER throws.
+/** Search the web, provider-agnostic. Best-effort unless `throwOnError` is set.
  *  - No API key configured for the selected provider -> returns `[]`
  *    immediately, no network call — this is the expected "not configured
  *    yet" path in any environment without `TAVILY_API_KEY` set.
@@ -177,6 +179,7 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
     // counts searches and results off the run log.
     const done = ({ results, error }: ProviderOutcome): WebSearchResult[] => {
         console.log(formatWebSearchLog({ provider, query, domains, results: results.length, ms: Date.now() - started, error }));
+        if (error && opts?.throwOnError) throw new Error(`Web search failed (${provider}: ${error})`);
         return results;
     };
 
@@ -206,10 +209,12 @@ export async function webSearch(query: string, opts?: WebSearchOptions): Promise
         maxResults: opts?.maxResults ?? DEFAULT_MAX_RESULTS,
     };
 
+    let outcome: ProviderOutcome;
     try {
-        return done(await run(query, resolvedOpts));
+        outcome = await run(query, resolvedOpts);
     } catch (e) {
         console.error(`[webSearch] provider "${provider}" failed for query "${query}":`, e);
-        return done({ results: [], error: "threw" });
+        outcome = { results: [], error: "threw" };
     }
+    return done(outcome);
 }

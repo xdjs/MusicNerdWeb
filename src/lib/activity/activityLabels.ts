@@ -10,5 +10,5 @@ export const triggerLabels: Record<string, string> = {
   editor_source: 'Add to Lore', upload: 'File upload', claim_approval: 'Claim approval',
   manual_refresh: 'Look again', source_change: 'Source change', lore_correction: 'Lore correction',
   source_review: 'Source review',
-  about_editor: 'About editor', unrecorded: 'Trigger not recorded',
+  about_editor: 'About editor', automatic_about: 'Automatic About generation', unrecorded: 'Trigger not recorded',
 };
