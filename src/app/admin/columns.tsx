@@ -96,7 +96,7 @@ export const whitelistedColumns: ColumnDef<User>[] = [
   {
     accessorKey: "username",
     header: "Person",
-    cell: ({row}) => <><span>{row.original.username || row.original.email || "Unnamed contributor"}</span><details className={styles.personDetails}><summary>Contact and account details</summary><dl><dt>Email</dt><dd>{row.original.email || "Not provided"}</dd><dt>Wallet</dt><dd>{row.original.wallet || "Not linked"}</dd><dt>Updated</dt><dd>{formatDate(row.original.updatedAt)}</dd></dl></details></>,
+    cell: ({row}) => <><span>{row.original.username || row.original.email || "Unnamed contributor"}</span><a href={`/admin/contributions?userId=${row.original.id}&status=all`} className="mt-2 inline-flex min-h-11 items-center text-sm underline">View contributions</a><details className={styles.personDetails}><summary>Contact and account details</summary><dl><dt>Email</dt><dd>{row.original.email || "Not provided"}</dd><dt>Wallet</dt><dd>{row.original.wallet || "Not linked"}</dd><dt>Updated</dt><dd>{formatDate(row.original.updatedAt)}</dd></dl></details></>,
   },
   {
     id: "role",

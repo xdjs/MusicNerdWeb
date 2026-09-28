@@ -209,6 +209,7 @@ export const artists = pgTable("artists", {
 ]);
 
 export const ugcresearch = pgTable("ugcresearch", {
+	origin: text("origin").default("unknown").notNull(),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),

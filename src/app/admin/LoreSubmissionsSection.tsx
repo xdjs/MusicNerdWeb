@@ -47,13 +47,14 @@ export default function LoreSubmissionsSection({ data, onReview = updateSourceSt
   }
 
   return <div className="space-y-5">
+    <Link href="/admin/contributions?origin=user&status=pending" className="inline-flex min-h-11 items-center text-sm underline">User submissions and contribution counts</Link>
     <form action="/admin" method="get" className={styles.filterBar} key={`${data.query}:${data.origin}:${data.claim}`}>
       <input type="hidden" name="section" value="lore" />
       <input type="search" name="loreQuery" aria-label="Search pending Lore" placeholder="Search artist, source, or contributor" defaultValue={data.query} maxLength={100} />
       <label className="flex min-w-0 flex-col gap-1 text-sm">Origin
         <select name="loreOrigin" defaultValue={data.origin ?? ''}>
-          <option value="">All origins</option><option value="submission">People’s submissions</option>
-          <option value="research">Research discoveries</option><option value="upload">Uploads</option><option value="unknown">Origin not recorded</option>
+          <option value="">All origins</option><option value="submission">User submissions</option>
+          <option value="research">Automated research</option><option value="upload">Uploads</option><option value="unknown">Unknown origin</option>
         </select>
       </label>
       <label className="flex min-w-0 flex-col gap-1 text-sm">Profile

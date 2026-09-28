@@ -21,10 +21,15 @@ Pete also clarified Admin needs a selected user's contributions across UGC types
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter
 for manual review. Count real submissions across the full dataset; user-triggered
 research stays automated, and historical user IDs alone do not prove direct user submission.
-These views/counts are planned, not live in #1373.
+These views/counts are implemented in draft #1373 at `/admin/contributions`, linked from People.
+Local PostgreSQL/browser checks cover scoped counts, pagination, empty results and
+individual link/Lore moderation at 832px/390px in both themes. They used disposable
+data and a temporary auth fixture, not a deployed login; no real queue was changed.
+New website link writes record direct submission origin via migration 0032; old rows
+remain unknown. A real backlog inventory still needs the migrated staging check.
 
 Do not roll out the two foundations as the completed solution before the
-unclaimed-profile path passes staging verification. Migration 0031 is unapplied;
+unclaimed-profile path passes staging verification. Migrations 0031 and 0032 are unapplied;
 assessment/review work may need a subsequent migration. The revision did not
 authorize staging/production DDL, merge, release or a paid backfill. Historical
 unknown actors stay unknown. Music Nerd TV is separate work.

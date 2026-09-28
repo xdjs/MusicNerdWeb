@@ -8,7 +8,7 @@ jest.mock('@/app/actions/serverActions',()=>({approveUgcAdminAction:jest.fn()}))
 jest.mock('next/navigation',()=>({useRouter:jest.fn()}));
 jest.mock('../WhitelistUserEditDialog',()=>()=>null);
 const refresh=jest.fn();
-const submission=(id:string,name:string)=>({id,name,artistId:`artist-${id}`,artistUri:null,userId:null,accepted:false,ugcUrl:'https://example.com',siteName:'Website',siteUsername:null,createdAt:null,updatedAt:null,dateProcessed:null});
+const submission=(id:string,name:string)=>({id,name,origin:"unknown",artistId:`artist-${id}`,artistUri:null,userId:null,accepted:false,ugcUrl:'https://example.com',siteName:'Website',siteUsername:null,createdAt:null,updatedAt:null,dateProcessed:null});
 const data=[submission('one','First artist'),submission('two','Second artist')];
 beforeEach(()=>{
  jest.clearAllMocks();

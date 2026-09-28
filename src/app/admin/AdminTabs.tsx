@@ -11,7 +11,7 @@ interface AdminTabsProps {
   ugcContent: ReactNode; loreContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
   mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
   ugcCount: number; loreCount: number; claimsCount: number;
-  initialSection?: "ugc" | "lore" | "activity";
+  initialSection?: "ugc" | "lore" | "activity" | "users";
   activityContent?: ReactNode;
 }
 

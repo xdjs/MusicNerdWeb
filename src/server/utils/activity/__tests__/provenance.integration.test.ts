@@ -71,6 +71,11 @@ it('persists authenticated submissions and does not reattribute duplicate URLs',
   const result = await queue({ origin: 'submission' });
   expect(result.items[0]).toMatchObject({ actorId: user, activityId: first?.activityId });
 });
+it('does not classify an unattributed file import as a user submission', async () => {
+  const { insertVaultSource } = await import('../../queries/insertVaultSource');
+  const row = await insertVaultSource({ artistId: artist, url: 'https://example.test/import', filePath: 'legacy.pdf', status: 'pending' });
+  expect(row).toMatchObject({ origin: 'unknown' });
+});
 it('retains the initiating user through child jobs and progress-state replacement', async () => {
   const { withArtistOperation } = await import('../../artistOperationContext');
   const { enqueueResearchJob, saveJobState } = await import('../../queries/researchJobQueries');

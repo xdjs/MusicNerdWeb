@@ -31,7 +31,7 @@ export async function insertVaultSource(data: {
         const write = async (writer: WriteDb) => {
         const context = getArtistOperationOwnership(data.artistId);
         const userId = provenance?.userId ?? authorization?.userId ?? context?.userId;
-        const origin = context?.sourceOrigin ?? (data.filePath ? 'upload' : userId ? 'submission' : 'unknown');
+        const origin = context?.sourceOrigin ?? (userId ? data.filePath ? 'upload' : 'submission' : 'unknown');
         const activityId = context?.activityId ?? await recordArtistActivity(data.artistId,
             origin === 'upload' ? 'source_upload' : origin === 'submission' ? 'source_submission' : 'source_added', {
                 userId, trigger: provenance?.trigger ?? (data.filePath ? 'upload' : context?.trigger ?? 'editor_source'),

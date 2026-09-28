@@ -49,5 +49,5 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Ad
     createdAt: claim.createdAt,
   }));
 
-  return <AdminDashboard key={firstParam(params.section)} activityContent={<ArtistActivitySection data={activity} />} pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={firstParam(params.section) === "activity" ? "activity" : firstParam(params.section) === "lore" ? "lore" : "ugc"} />;
+  return <AdminDashboard key={firstParam(params.section)} activityContent={<ArtistActivitySection data={activity} />} pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={firstParam(params.section) === "users" ? "users" : firstParam(params.section) === "activity" ? "activity" : firstParam(params.section) === "lore" ? "lore" : "ugc"} />;
 }
