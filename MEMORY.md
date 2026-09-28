@@ -10,10 +10,11 @@ missing-bio backfill on September 28; tooling/execution are unscheduled and do n
 block the current rollout.
 
 Draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) implements read-only
-About and generation from saved Lore. Draft [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373)
+About and generation from saved Lore. [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373)
 implements source origins, initiating events, durable attribution and initial
 Admin views. Local CI and recorded preview checks passed for their implementation
-commits; authenticated generation/Admin checks remain outstanding. These are
+commits. Signed-in Admin checks passed at `d215c5f5`; authenticated About
+generation in #1372 remains outstanding. #1373 is ready for review. These are
 foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
 jobs and separate review attribution remain planned; bulk backfill is deferred.
 
@@ -21,7 +22,7 @@ Pete also clarified Admin needs a selected user's contributions across UGC types
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter
 for manual review. Count real submissions across the full dataset; user-triggered
 research stays automated, and historical user IDs alone do not prove direct user submission.
-These views/counts are implemented in draft #1373 at `/admin/contributions`, linked from People.
+These views/counts are implemented in #1373 at `/admin/contributions`, linked from People.
 Local PostgreSQL/browser checks cover scoped counts, pagination, empty results and
 individual link/Lore moderation at 832px/390px in both themes. They used disposable
 data and a temporary auth fixture, not a deployed login; no real queue was changed.
@@ -35,8 +36,9 @@ unclaimed-profile path passes staging verification. Pete explicitly approved sta
 SELECT/INSERT only, browser-role denial, RLS and final column/constraint checks.
 Staging default CRUD grants required an explicit mnweb revoke before the narrow
 grant; a real-SQL regression covers that default. The SQL-editor transaction did
-not reconcile old migration history (#1148). Signed-in preview validation remains
-pending. Production DDL, merge, release and bulk backfill remain unauthorized;
+not reconcile old migration history (#1148). [Signed-in preview verification](https://github.com/xdjs/MusicNerdWeb/pull/1373#issuecomment-5878788592)
+passed for counts, filters, pagination, per-user history and both responsive themes.
+Only disposable local data was used for mutation checks; the real queue was unchanged. Production DDL, merge, release and bulk backfill remain unauthorized;
 assessment/review work may need a subsequent migration. Historical
 unknown actors stay unknown. Music Nerd TV is separate work.
 

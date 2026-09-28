@@ -1,6 +1,6 @@
 # Lore provenance and activity
 
-Tracking: [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). The implemented attribution foundation is in draft [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373); the About containment fix is in draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372). Neither alone completes the revised plan below.
+Tracking: [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). The implemented attribution foundation is in [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373); the About containment fix is in draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372). Neither alone completes the revised plan below.
 
 ## Decision — September 28, 2026
 
@@ -64,7 +64,7 @@ Counts must cover the full matching dataset, not just the current page, and coun
 
 ### Contributions for a selected user
 
-Pete clarified Carl's meeting request as **Admin → People → select a user → Contributions**. Provide an account-scoped view across link submissions, Lore submissions/uploads and research initiated by that account. Show contribution type, origin, artist, date, status and a link to the underlying item; share the origin/status filters and full-dataset counts. Distinguish the user's direct submissions from research results attributed to their request. This is implemented in #1373 alongside the initial Lore/research Activity section, with migrated, authenticated staging verification still pending.
+Pete clarified Carl's meeting request as **Admin → People → select a user → Contributions**. Provide an account-scoped view across link submissions, Lore submissions/uploads and research initiated by that account. Show contribution type, origin, artist, date, status and a link to the underlying item; share the origin/status filters and full-dataset counts. Distinguish the user's direct submissions from research results attributed to their request. This is implemented in #1373 alongside the initial Lore/research Activity section, with migrated, authenticated staging read/layout verification completed at `d215c5f5`.
 
 ## Delivery order and acceptance
 
@@ -84,7 +84,7 @@ If resumed, first obtain missing-bio counts and a cost estimate, then plan cappe
 
 Migration SQL and Drizzle journal ship together. The audit table enables RLS, revokes browser-role access, and grants only SELECT/INSERT to mnweb; server application checks provide user authorization. Source and job attribution columns are nullable for existing data. Apply and verify the migration as the app role before deploying dependent code. Verify `artist_activity_events` grants/policies, both nullable `activity_id` columns, `artist_vault_sources.origin` defaulting to unknown, the expanded job-kind constraint including `source_search`, and child-job inheritance. The SQL explicitly replaces the existing constraint from migration 0024; older Drizzle snapshots did not track it. The About-only PR has no migration dependency.
 
-## Implemented Admin contribution review — staging verification pending
+## Implemented Admin contribution review — staging reads verified
 
 #1373 extends the attribution branch with `/admin/contributions`: one bounded, server-filtered inventory of link submissions and Lore sources/uploads, including an account-scoped view linked from People. Origin summaries show all-status and pending counts across that account/type/search scope; the selected origin/status narrows the item list. User submissions includes explicit source submissions/uploads and newly recorded website link submissions. Old link rows default to unknown; no actor inference or backfill. Existing link approval and Lore approve/reject actions are reused; link rejection is not added in this slice. Moderation refreshes server counts and the filtered queue. Processed, non-accepted links are excluded from the pending queue. A selected account also links to its research Activity history; research requests are not counted as submitted sources.
 
@@ -94,4 +94,4 @@ Migration `0032_ugc_submission_origin.sql` adds `ugcresearch.origin` with defaul
 
 After explicit approval from Pete, migrations 0031 and 0032 were applied together in a staging SQL-editor transaction. Preflight confirmed the audit table and attribution columns were absent. Staging default grants include mnweb CRUD, so 0031 explicitly revokes mnweb privileges before granting SELECT/INSERT; the migration regression now includes that default-grant pattern. Postflight through the actual mnweb connection verified the four columns/defaults/nullability, the source-search job constraint, audit RLS and its two role-specific policies, app SELECT/INSERT without UPDATE/DELETE/TRUNCATE, and browser-role denial. Manual schema application does not reconcile historical migration tracking (#1148).
 
-A read-only staging inventory found 173 pending Lore sources. All pre-existing contribution origins remain unknown; no actor was inferred and no sources were approved. This is staging data, not the production backlog. Signed-in preview validation remains pending; production migrations and release are not authorized.
+A read-only staging inventory found 173 pending Lore sources. All pre-existing contribution origins remain unknown; no actor was inferred and no sources were approved. This is staging data, not the production backlog. Signed-in preview read/layout validation passed at `d215c5f5`: counts, combined filters, pagination, selected-account history, linked Activity, rejected history and 832px/390px layouts in both themes. [Verification and captures](https://github.com/xdjs/MusicNerdWeb/pull/1373#issuecomment-5878788592). Live moderation was not performed; mutation checks use disposable local data. Production migrations and release are not authorized.
