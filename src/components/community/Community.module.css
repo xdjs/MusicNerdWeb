@@ -194,6 +194,9 @@
  .panel .peopleRecords td[data-column="select"] .recordLabel { display: none; }
 }
 
+.personIdentity { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.personIdentity > span { font-size: 16px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.personContributions { display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; font-size: 13px; font-weight: 400; line-height: 1.4; color: var(--community-ink); text-decoration: underline; text-underline-offset: 4px; }
 .personDetails { display: none; }
 @container admin-panel (max-width: 900px) {
  .filterBar input, .filterBar select { font-size: 16px; }
