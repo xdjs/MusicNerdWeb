@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 import { ABOUT_EMPTY_STATE } from "@/lib/bio/bioConstants";
 
 const mockRegenerate = jest.fn();
-jest.mock("@/server/utils/queries/artistBioQuery", () => ({
+jest.mock("@/server/utils/queries/regenerateArtistBio", () => ({
   regenerateArtistBio: (...a: unknown[]) => mockRegenerate(...a),
 }));
 

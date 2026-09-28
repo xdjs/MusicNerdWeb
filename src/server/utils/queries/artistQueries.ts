@@ -25,7 +25,7 @@ import {
     setArtistLink,
     clearArtistLink,
 } from "@/server/utils/artistLinkService";
-import { regenerateArtistBio } from "@/server/utils/queries/artistBioQuery";
+import { regenerateArtistBio } from "@/server/utils/queries/regenerateArtistBio";
 import { isAboutEmptyState } from "@/lib/bio/bioConstants";
 import { LINK_NOT_SUPPORTED_LONG } from "@/lib/linkSubmissionMessages";
 import {
@@ -1075,8 +1075,7 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
     try {
         if (regenerate) {
             // Snapshot the current About so we can tell a real regeneration apart from a
-            // no-op (discovery is flaky; when it finds nothing new the clobber-guard in
-            // generateArtistBio preserves the existing bio unchanged).
+            // no-op (a pinned bio is deliberately returned unchanged).
             const priorBio = (await getArtistById(artistId))?.bio ?? null;
             const generatedBio = await regenerateArtistBio(artistId, ownership);
             if (!generatedBio) {
@@ -1089,7 +1088,7 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
             }
             // Discovery found nothing new — the existing About was preserved, not regenerated.
             if (priorBio !== null && generatedBio === priorBio) {
-                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise no new verified information was found.", data: generatedBio };
+                return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise the saved Lore produced the same text.", data: generatedBio };
             }
             return { status: "success", message: "Bio regenerated", data: generatedBio };
         } else {

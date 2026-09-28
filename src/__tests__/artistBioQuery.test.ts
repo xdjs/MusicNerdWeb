@@ -1,169 +1,22 @@
-// @ts-nocheck
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { NextResponse } from 'next/server';
-jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue(null) }));
-
-// Mock NextResponse
-const mockNextResponseJson = jest.fn().mockImplementation((data, options) => ({
-  json: () => Promise.resolve(data),
-  status: (options as any)?.status ?? 200,
-}));
-
-jest.mock('next/server', () => ({
-  NextResponse: {
-    json: mockNextResponseJson
-  }
-}));
-
-// Mock dependencies
-const mockGenerateContent = jest.fn();
-jest.mock('@/server/lib/ai/generateText', () => ({ generateText: mockGenerateContent }));
-
-jest.mock('@/server/utils/queries/artistQueries', () => ({
-  getArtistById: jest.fn()
-}));
-
-jest.mock('@/server/db/drizzle', () => ({
-  db: {
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn(() => Promise.resolve()),
-      }),
-    }),
-  },
-}));
-
-jest.mock('@/server/db/schema', () => ({
-  artists: {}
-}));
-
-jest.mock('drizzle-orm', () => ({
-  eq: jest.fn()
-}));
-
-jest.mock('@/server/utils/queries/externalApiQueries', () => ({
-  getArtistTopTrackName: jest.fn(),
-  getNumberOfSpotifyReleases: jest.fn(),
-  getSpotifyArtist: jest.fn(),
-  getSpotifyHeaders: jest.fn()
-}));
-
-jest.mock('@/server/utils/queries/dashboardQueries', () => ({
-  getBioVersionsByArtistId: jest.fn().mockResolvedValue([]),
-  getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
-}));
-
-// Discovery is awaited in the unified flow; mock it to return a source so synthesis runs.
-jest.mock('@/server/utils/queries/vaultWebSearch', () => ({
-  searchAndPopulateVault: jest.fn().mockResolvedValue([
-    { url: 'https://d/1', title: 'Discovered', snippet: 's', extractedText: 't' },
-  ]),
-}));
-
-describe('artistBioQuery - Gemini bio generation', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.resetModules();
-    mockNextResponseJson.mockClear();
-    mockGenerateContent.mockClear();
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  it('should generate a bio using Gemini', async () => {
-    // Mock the artist data
-    const mockArtist = {
-      id: 'test-id',
-      name: 'Test Artist',
-      spotify: null,
-      instagram: null,
-      x: null,
-      soundcloud: null,
-      youtube: null,
-      youtubechannel: null,
-      wikipedia: null
-    } as any;
-
-    // Mock the Gemini response
-    const mockGeminiResponse = {
-      text: 'Generated bio text from Gemini'
-    } as any;
-
-    // Import mocked modules
-    const { getArtistById } = await import('@/server/utils/queries/artistQueries');
-
-    // Setup mocks
-    (getArtistById as any).mockResolvedValue(mockArtist);
-    mockGenerateContent.mockResolvedValue(mockGeminiResponse);
-
-    // Import and call the function
-    const { generateArtistBio } = await import('@/server/utils/queries/artistBioQuery');
-    await generateArtistBio('test-id');
-
-    // Verify Gemini was called
-    expect(mockGenerateContent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: expect.stringContaining('Test Artist'),
-        instructions: expect.any(String),
-      })
-    );
-
-    // Verify NextResponse.json was called with the bio
-    expect(mockNextResponseJson).toHaveBeenCalledWith({ bio: 'Generated bio text from Gemini' });
-  });
-
-  it('does NOT use Google Search grounding — synthesis is offline (conflation fix)', async () => {
-    const mockArtist = {
-      id: 'test-id',
-      name: 'Test Artist',
-      spotify: null,
-      instagram: null,
-      x: null,
-      soundcloud: null,
-      youtube: null,
-      youtubechannel: null,
-      wikipedia: null
-    } as any;
-
-    const mockGeminiResponse = {
-      text: 'Bio with vault context'
-    } as any;
-
-    const { getArtistById } = await import('@/server/utils/queries/artistQueries');
-    const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
-
-    (getArtistById as any).mockResolvedValue(mockArtist);
-    mockGenerateContent.mockResolvedValue(mockGeminiResponse);
-    (getVaultSourcesByArtistId as any).mockResolvedValue([
-      { url: 'https://example.com/article', title: 'Test Article', snippet: 'A snippet', extractedText: 'Some text' },
-    ]);
-
-    const { generateArtistBio } = await import('@/server/utils/queries/artistBioQuery');
-    await generateArtistBio('test-id');
-
-    // Grounding (Gemini's own web search) is OFF — the About is synthesized only from curated sources.
-    const callArgs = (mockGenerateContent as any).mock.calls[0][0];
-    expect(callArgs.googleSearch).toBeFalsy();
-  });
-
-  it('should return 404 when artist not found', async () => {
-    const { getArtistById } = await import('@/server/utils/queries/artistQueries');
-    (getArtistById as any).mockResolvedValue(null);
-
-    const { generateArtistBio } = await import('@/server/utils/queries/artistBioQuery');
-    await generateArtistBio('nonexistent-id');
-
-    expect(mockNextResponseJson).toHaveBeenCalledWith(
-      { error: "Artist not found" },
-      { status: 404 }
-    );
-  });
+/** @jest-environment node */
+jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
+jest.mock('@/server/utils/queries/dashboardQueries', () => ({ getBioVersionsByArtistId: jest.fn().mockResolvedValue([]) }));
+jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDocStrict: jest.fn() }));
+jest.mock('@/server/utils/queries/bioPersistence', () => ({ persistArtistBio: jest.fn((_id, bio) => Promise.resolve(bio)) }));
+jest.mock('@/server/lib/ai/streamText', () => ({ streamText: jest.fn() }));
+import { generateArtistBio } from '@/server/utils/queries/artistBioQuery';
+import { getArtistById } from '@/server/utils/queries/artistQueries';
+import { getArtistDocStrict } from '@/server/utils/queries/onboardingQueries';
+import { streamText } from '@/server/lib/ai/streamText';
+if (!Response.json) Response.json = (data, init) => new Response(JSON.stringify(data), { ...init, headers: { 'Content-Type': 'application/json' } });
+it('uses the real Lore-to-About helper, preserves valid citations, and never enables search', async () => {
+  (getArtistById as jest.Mock).mockResolvedValue({ name: 'Artist', bio: null });
+  (getArtistDocStrict as jest.Mock).mockResolvedValue({ content: 'The actual Lore [1]', sources: [{ id: 1, kind: 'vault', label: 'Interview', url: 'https://example.org/interview' }] });
+  (streamText as jest.Mock).mockResolvedValue({ text: 'About from Lore [1] with a bogus citation [8].' });
+  const response = await generateArtistBio('a1', { userId: 'editor', expectedClaimId: null });
+  const result = await response.json();
+  expect(result.bio).toContain('[1]');
+  expect(result.bio).not.toContain('[8]');
+  expect(streamText).toHaveBeenCalledWith(expect.objectContaining({ prompt: 'ARTIST KNOWLEDGE DOCUMENT:\nThe actual Lore [1]' }));
+  expect((streamText as jest.Mock).mock.calls[0][0].googleSearch).toBeUndefined();
 });
-
-jest.mock('@/server/utils/queries/bioPersistence', () => ({
-  persistArtistBio: jest.fn(async (_id: string, bio: string) => bio),
-}));

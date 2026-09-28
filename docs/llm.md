@@ -63,9 +63,9 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 1 | `api/askArtist/route.ts` main answer | Answer from our sources, citation markers | flash | temp 0.5 | 20 s → `"Gemini timeout"` → HTTP 408 | Ask (user) |
 | 2 | `api/askArtist/route.ts` open-web fallback | Answer with Google Search grounding; `webDomains` + blocklist | flash | temp 0.4, `google_search` | 15 s → resolves `null`, route answers "don't know" | Ask (user) |
 | 3 | `api/askArtist/route.ts` `suggestFollowUps` | 4 follow-up questions | flash | temp 0.4, JSON schema, thinking 0 | 4 s outer race → `generateFollowUps` fallback | Ask (user) |
-| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About bio, grounded when `useGrounding` | flash (was pro; see below) | `google_search` when grounded | 15 s → `"Gemini timeout"` → route's 408 | `/api/artistBio/[id]`, `regenerateArtistBio`, `scripts/backfill-ai-bios.ts` |
+| 4 | `queries/artistBioQuery.ts` `generateArtistBio` | About from saved Lore; delegates to #6 | flash | no web tools | #6 timeout → error, existing bio preserved | Explicit editor regeneration / backfill; ordinary GET never generates |
 | 5 | `artistDoc/synthesizeArtistDoc.ts` | Knowledge document from sources | flash | temp 0.4, thinking 0, streamed | 15 s → `"Gemini timeout"` | onboarding, `refreshArtistDoc` |
-| 6 | `artistDoc/generateAboutFromDoc.ts` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding |
+| 6 | `artistDoc/generateAboutFromDoc.ts` | About from the document | flash | temp 0.5, thinking 0, streamed | 12 s → `"Gemini timeout"` | onboarding and explicit About regeneration |
 | 7 | `artistDocService.ts` `synthesizeFallbackAbout` | About without a document | flash | temp 0.5, thinking 0 | 12 s → `"Gemini timeout"` | onboarding |
 | 8 | `artistDocService.ts` `generateLoreSummary` | Two-sentence Lore inventory overview | flash | temp 0.2, thinking 0 | 12 s → returns `undefined`, never throws | `refreshArtistDoc` (runs alongside #5) |
 | 9 | `questionGenerator.ts` `generateGroundedQuestions` | Interview questions from posts | flash | temp 0.8, JSON schema | 30 s → `"questionGenerator timeout"` | interview, onboarding |
