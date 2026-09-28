@@ -1,16 +1,25 @@
-## Lore provenance and About containment — September 28
+## Lore provenance and unclaimed-artist bios — September 28
 
-Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Draft
-[PR #1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) makes public About reads
-side-effect-free and explicit generation use stored Lore only; local full CI and
-exact-SHA HTTP preview checks passed. Authenticated generation remains unexercised live.
-The independent `codex/lore-attribution-admin` branch implements source origin,
-initiating-account events, durable research attribution and Admin filters/activity.
-See [the contract and migration gate](docs/lore-provenance.md). Migration 0031 must
-be applied and verified on staging before authenticated preview verification, and
-on production before dependent code release. Neither PR is merged or live; no
-migration has been applied. Historical unknown actors must not be inferred from
-ownership or timestamps. Music Nerd TV is separate work.
+Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Pete approved a
+**plan revision**: unclaimed artists need a sourced-bio path without waiting for
+artist/admin source approval. Claim ownership, automatic evidence acceptance and
+human review must be separate. [The revised plan](docs/lore-provenance.md) defines
+an attributed research → eligible sources → stored Lore → About pipeline,
+review/acceptance visibility in Admin, and a controlled missing-bio backfill.
+
+Draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) implements read-only
+About and generation from saved Lore. Draft [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373)
+implements source origins, initiating events, durable attribution and initial
+Admin views. Local CI and recorded preview checks passed for their implementation
+commits; authenticated generation/Admin checks remain outstanding. These are
+foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
+jobs, separate review attribution and backfill support remain planned.
+
+Do not roll out the two foundations as the completed solution before the
+unclaimed-profile path passes staging verification. Migration 0031 is unapplied;
+assessment/review work may need a subsequent migration. The revision did not
+authorize staging/production DDL, merge, release or a paid backfill. Historical
+unknown actors stay unknown. Music Nerd TV is separate work.
 
 ## Podcast Lore grouping — September 26
 
