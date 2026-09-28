@@ -3,6 +3,7 @@
 import { useRef, useContext, useState, useEffect, type ReactNode } from "react";
 import styles from "./EditHighlight.module.css";
 import Image from "next/image";
+import ArtistPhotoChoice from "./ArtistPhotoChoice";
 import HeaderPhotoPosition from "./HeaderPhotoPosition";
 import { Camera, MoveVertical } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
@@ -27,6 +28,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
     const [portrait, setPortrait] = useState(hasPortrait);
+    const [choosingPhoto, setChoosingPhoto] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [position, setPosition] = useState(initialPosition);
     const [repositioning, setRepositioning] = useState(false);
@@ -43,6 +45,11 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         requestAnimationFrame(() => repositionButton.current?.focus());
     }
     const fileRef = useRef<HTMLInputElement>(null);
+    const changePhotoButton = useRef<HTMLButtonElement>(null);
+    function closePhotoChoice() {
+        setChoosingPhoto(false);
+        requestAnimationFrame(() => changePhotoButton.current?.focus());
+    }
 
     async function handleImageUpload(file: File) {
         setUploading(true);
@@ -68,7 +75,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     }
 
     const highlighted = isEditing && canEdit;
-    const photoControl = isEditing && !repositioning && <>
+    const photoControl = isEditing && canEdit && !repositioning && <>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
             onChange={e => {
                 const file = e.target.files?.[0];
@@ -81,8 +88,8 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-3 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
             <MoveVertical size={16} aria-hidden="true" />Reposition photo
         </button>}
-        <button type="button" aria-label="Change photo" disabled={uploading}
-            onClick={() => fileRef.current?.click()}
+        <button ref={changePhotoButton} type="button" aria-label="Change photo" disabled={uploading}
+            onClick={() => setChoosingPhoto(true)}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-4 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
             <Camera size={16} aria-hidden="true" />{uploading ? "Uploading…" : "Change photo"}
         </button>
@@ -95,6 +102,9 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
+        {choosingPhoto && isEditing && canEdit && <ArtistPhotoChoice artistId={artistId} currentImage={img}
+            onClose={closePhotoChoice} onUpload={() => fileRef.current?.click()}
+            onSaved={(image, y) => { setImg(image); setPortrait(true); setPosition(y); toast({ title: "Photo updated" }); }} />}
         {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
             <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
             <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />

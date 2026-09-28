@@ -26,7 +26,7 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
         // Malformed legacy uploads must not suppress a valid provider portrait.
       }
     }
-    const value = portrait ?? await musicPlatformData.getArtistImage(artist);
+    const value = portrait ?? await musicPlatformData.getArtistImage({ ...artist, customImage: null });
     if (!value) return unavailable(404);
     const url = new URL(value, request.url);
     if (url.protocol !== 'https:' || url.username || url.password) return unavailable(404);
