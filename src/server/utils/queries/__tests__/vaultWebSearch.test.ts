@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
+jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 const mockWebSearch = jest.fn();
 jest.mock("@/server/utils/webSearch", () => ({
@@ -149,7 +150,7 @@ describe("searchAndPopulateVault", () => {
     });
     const { searchAndPopulateVault } = await import("../vaultWebSearch");
     await searchAndPopulateVault("a1", { ownership: { userId: "owner", expectedClaimId: "original-claim" } });
-    expect(observed).toEqual([{ artistId: "a1", userId: "owner", expectedClaimId: "original-claim" }]);
+    expect(observed).toEqual([{ artistId: "a1", userId: "owner", expectedClaimId: "original-claim", activityId: "activity-1", sourceOrigin: "research" }]);
     expect(getActiveArtistOperation()).toBeUndefined();
   });
 

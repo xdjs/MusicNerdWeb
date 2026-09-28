@@ -1,9 +1,9 @@
 import {render, screen, fireEvent} from '@testing-library/react';
 import AdminTabs from '../AdminTabs';
 
-it('keeps all seven tools reachable and opens the matching review queue from its summary', () => {
+it('keeps all eight tools reachable and opens the matching review queue from its summary', () => {
   render(<AdminTabs ugcCount={3} loreCount={4} claimsCount={2} ugcContent={<p>Submitted links table</p>} loreContent={<p>Pending Lore sources</p>} claimsContent={<p>Ownership requests</p>} usersContent={<p>User controls</p>} artistDataContent={<p>Coverage data</p>} mcpKeysContent={<p>Key controls</p>} agentWorkContent={<p>Worker controls</p>}/>);
-  expect(screen.getAllByRole('tab')).toHaveLength(7);
+  expect(screen.getAllByRole('tab')).toHaveLength(8);
   expect(screen.getByText('Submitted links table')).toBeVisible();
   fireEvent.click(screen.getByRole('button',{name:'Review 4 pending Lore sources'}));
   expect(screen.getByText('Pending Lore sources')).toBeVisible();

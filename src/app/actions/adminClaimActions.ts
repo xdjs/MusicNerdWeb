@@ -3,7 +3,8 @@
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, getAllClaims, getClaimById, revokeApprovedClaim } from "@/server/utils/queries/dashboardQueries";
-import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
+import { enqueueResearchJob } from "@/server/utils/queries/researchJobQueries";
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { sendClaimApprovedEmail } from "@/server/utils/email";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
@@ -32,9 +33,10 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
         const claim = await approveClaim(claimId);
         if (!claim) return { success: false, error: "Claim not found" };
 
-        searchAndPopulateVault(claim.artistId).catch(e =>
-            console.error("[approveClaimAction] Background web search failed:", e)
-        );
+        const queued = await withArtistOperation(claim.artistId,
+            { userId: session.user.id, expectedClaimId: claim.id, trigger: 'claim_approval' },
+            () => enqueueResearchJob(claim.artistId, 'source_search', { state: { claimId: claim.id } }));
+        if (!queued) console.error('[approveClaimAction] Claim approved; source research could not be queued');
 
         // Approval email — AWAITED (not fire-and-forget). On Vercel a serverless
         // lambda can freeze immediately after the action returns, so a floating

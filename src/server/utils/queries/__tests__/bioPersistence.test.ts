@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 describe('persistArtistBio', () => {
     beforeEach(() => { jest.resetModules(); });

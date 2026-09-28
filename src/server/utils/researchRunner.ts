@@ -1,3 +1,4 @@
+import { runSourceSearchJob } from './activity/runSourceSearchJob';
 /**
  * One slice of research, per invocation.
  *
@@ -66,7 +67,9 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "lore_refresh"
+        const result = job.kind === "source_search"
+            ? await runSourceSearchJob(job, deadline)
+            : job.kind === "lore_refresh"
             ? await runLoreRefresh(job, deadline)
             : job.kind === "social_ingest"
             ? await runIngest(job, deadline)

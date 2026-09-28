@@ -7,7 +7,8 @@ it("reaches pages beyond 1000 when the pending queue has more than 25,000 rows",
   const offset = jest.fn().mockResolvedValue([]);
   (db.select as jest.Mock)
     .mockReturnValueOnce({ from: () => ({ where: () => Promise.resolve([{ total: 25026 }]) }) })
-    .mockReturnValueOnce({ from: () => ({ innerJoin: () => ({ where: () => ({ orderBy: () => ({ limit: () => ({ offset }) }) }) }) }) });
+    .mockReturnValueOnce({ from: () => ({ innerJoin: () => ({ leftJoin: () => ({ leftJoin: () => ({ where: () => Promise.resolve([{ total: 25026 }]) }) }) }) }) })
+    .mockReturnValueOnce({ from: () => ({ innerJoin: () => ({ leftJoin: () => ({ leftJoin: () => ({ where: () => ({ orderBy: () => ({ limit: () => ({ offset }) }) }) }) }) }) }) });
 
   const result = await getPendingLoreSources({ page: 1001 });
 

@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;
         const source = await insertVaultSource({
             artistId, url, title, type: inferTypeFromUrl(url), status: 'pending',
-        });
+        }, undefined, { userId: auth.userId, trigger: 'visitor_suggestion' });
         if (!source) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }

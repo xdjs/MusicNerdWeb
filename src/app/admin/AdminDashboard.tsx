@@ -26,11 +26,12 @@ type Props = {
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
   onApproveLinks?: typeof approveUgcAdminAction;
-  initialSection?: "ugc" | "lore";
+  initialSection?: "ugc" | "lore" | "activity";
+  activityContent?: React.ReactNode;
   artistDataUrl?: string; agentWorkUrl?: string;
 };
 
-export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpKeys,allClaims,onApproveLinks,initialSection,artistDataUrl,agentWorkUrl}: Props) {
+export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpKeys,allClaims,onApproveLinks,initialSection,activityContent,artistDataUrl,agentWorkUrl}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
@@ -46,6 +47,7 @@ export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpK
           <UGCDataTable columns={ugcColumns} data={pendingUGCData} onApprove={onApproveLinks} />
         }
         loreContent={<LoreSubmissionsSection data={pendingLore} />}
+        activityContent={activityContent}
         claimsContent={
           <ClaimsDataTable columns={claimsColumns} data={allClaims} />
         }

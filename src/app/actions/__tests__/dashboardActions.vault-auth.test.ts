@@ -85,7 +85,7 @@ describe('vault action authorization', () => {
     const res = await actions.searchWebForSources('artist-they-dont-own');
 
     expect(res.success).toBe(true);
-    expect(searchAndPopulateVault).toHaveBeenCalledWith('artist-they-dont-own', { ownership: { userId: 'admin-1', expectedClaimId: 'claim-1' } });
+    expect(searchAndPopulateVault).toHaveBeenCalledWith('artist-they-dont-own', { ownership: { userId: 'admin-1', expectedClaimId: 'claim-1', trigger: 'editor_search' } });
   });
 
   it('admin removeVaultSources is allowed across artists (per-source canEditArtist)', async () => {

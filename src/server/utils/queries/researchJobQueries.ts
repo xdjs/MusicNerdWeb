@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 /**
  * The queue. Enqueue, claim, record progress, finish.
  *
@@ -10,7 +11,7 @@ import { db } from "@/server/db/drizzle";
 import { withResearchJobWrite, withScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
@@ -26,6 +27,7 @@ export interface ResearchJob {
      *  read undefined and never fire — an artist could re-trigger an expensive
      *  scrape immediately. */
     updatedAt: string | null;
+    activityId?: string | null;
 }
 
 /** How long a claim is good for. An invocation the platform kills leaves its
@@ -49,6 +51,7 @@ function toJob(row: Record<string, unknown>): ResearchJob {
         total: row.total === null || row.total === undefined ? null : Number(row.total),
         attempts: Number(row.attempts ?? 0),
         state: (row.state as Record<string, unknown>) ?? {},
+        activityId: (row.activity_id ?? row.activityId ?? null) as string | null,
         updatedAt: (row.updated_at ?? row.updatedAt) ? String(row.updated_at ?? row.updatedAt) : null,
     };
 }
@@ -72,9 +75,13 @@ export async function enqueueResearchJob(
 ): Promise<boolean> {
     if (!artistId) return false;
     try {
-        const write = async (tx: WriteDb) => { await tx.execute(sql`
-            insert into artist_research_jobs (artist_id, kind, total, state)
-            values (${artistId}::uuid, ${kind}, ${opts?.total ?? null}, ${JSON.stringify(opts?.state ?? {})}::jsonb)
+        const write = async (tx: WriteDb) => {
+            // Child work retains the root initiator, outside replaceable progress state.
+            const activityId = opts?.parentJobId ? null : await recordArtistActivity(artistId, kind, {}, tx);
+            await tx.execute(sql`
+            insert into artist_research_jobs (artist_id, kind, total, state, activity_id)
+            values (${artistId}::uuid, ${kind}, ${opts?.total ?? null}, ${JSON.stringify(opts?.state ?? {})}::jsonb,
+                ${opts?.parentJobId ? sql`(select activity_id from artist_research_jobs where id = ${opts.parentJobId}::uuid and artist_id = ${artistId}::uuid)` : sql`${activityId}::uuid`})
             on conflict do nothing`); };
         if (opts?.parentJobId) await withResearchJobWrite(artistId, opts.parentJobId, write); else await withScopedArtistWrite(artistId, write);
         return true;

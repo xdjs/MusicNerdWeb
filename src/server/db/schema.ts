@@ -365,7 +365,30 @@ export const artistClaims = pgTable("artist_claims", {
 	pgPolicy("mnweb_update_artist_claims", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
+// Actor metadata is private to Admin. Append-only under the application role.
+export const artistActivityEvents = pgTable("artist_activity_events", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorKind: text("actor_kind").notNull(),
+    action: text().notNull(),
+    trigger: text().notNull(),
+    // IDs are retained after source/job deletion; no private payload snapshots.
+    sourceId: uuid("source_id"),
+    parentActivityId: uuid("parent_activity_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, table => [
+    check("artist_activity_actor_kind", sql`${table.actorKind} in ('user', 'system', 'unknown')`),
+    index("artist_activity_created_at").on(table.createdAt.desc(), table.id),
+    index("artist_activity_artist_created_at").on(table.artistId, table.createdAt.desc()),
+    index("artist_activity_actor_created_at").on(table.actorUserId, table.createdAt.desc()),
+    pgPolicy("mnweb_select_artist_activity", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_activity", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
 export const artistVaultSources = pgTable("artist_vault_sources", {
+    origin: text().default('unknown').notNull(),
+    activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
 	url: text().notNull(),
@@ -683,6 +706,7 @@ export const artistSocialPosts = pgTable("artist_social_posts", {
 // Long research work that outlives the request that asked for it. See
 // drizzle/0021 for why status and cursor exist rather than "are there rows yet".
 export const artistResearchJobs = pgTable("artist_research_jobs", {
+    activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	artistId: uuid("artist_id").notNull(),
 	/** 'social_ingest' = fetch the feed; 'caption_extract' = read the captions. */
@@ -701,6 +725,7 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search')`),
 	index("artist_research_jobs_claimable").using("btree", table.status.asc().nullsLast(), table.claimedAt.asc().nullsLast(), table.createdAt.asc().nullsLast()),
 	foreignKey({
 		columns: [table.artistId],

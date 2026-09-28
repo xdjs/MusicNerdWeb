@@ -5,6 +5,7 @@ const refresh = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 
 const data = {
+  origin: '', claim: '',
   items: [{
     id: '8b3d9163-a184-468e-8772-cdd73f260835',
     artistId: '3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6',
@@ -12,6 +13,7 @@ const data = {
     title: 'Source from zine.zora.co',
     url: 'https://zine.zora.co/latasha-interview',
     createdAt: '2026-09-26T22:00:00.000Z',
+    origin: 'unknown', actorKind: null, actorName: null, actorId: null, actorEmail: null, trigger: null, activityId: null, claimed: false,
   }],
   total: 1,
   pendingTotal: 1,
@@ -48,5 +50,16 @@ it('keeps a way back when the last pending source on a later page is reviewed', 
   render(<LoreSubmissionsSection data={{ ...data, page: 2, total: 26 }} onReview={onReview} />);
   fireEvent.click(screen.getByRole('button', { name: 'Approve Lore source for LATASHA' }));
   await waitFor(() => expect(screen.queryByRole('link', { name: 'LATASHA' })).not.toBeInTheDocument());
-  expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '/admin?section=lore&lorePage=1&loreQuery=');
+  expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '/admin?section=lore&lorePage=1&loreQuery=&loreOrigin=&loreClaim=');
+});
+
+it('separates a research initiator from a submitter and exposes claim state', () => {
+  render(<LoreSubmissionsSection data={{ ...data, items: [{ ...data.items[0], origin: 'research', actorKind: 'user', actorName: 'pete', actorId: 'editor', actorEmail: null, trigger: 'editor_search', activityId: 'event-1', claimed: false }] }} />);
+  expect(screen.getByText(/Research requested by pete/)).toBeInTheDocument();
+  expect(screen.getByText('Unclaimed profile')).toBeInTheDocument();
+  expect(screen.queryByText(/Submitted by pete/)).not.toBeInTheDocument();
+});
+it('labels historical records honestly', () => {
+  render(<LoreSubmissionsSection data={data} />);
+  expect(screen.getByText(/Origin not recorded/, { selector: 'p' })).toBeInTheDocument();
 });

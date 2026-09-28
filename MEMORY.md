@@ -1,3 +1,17 @@
+## Lore provenance and About containment — September 28
+
+Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Draft
+[PR #1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) makes public About reads
+side-effect-free and explicit generation use stored Lore only; local full CI and
+exact-SHA HTTP preview checks passed. Authenticated generation remains unexercised live.
+The independent `codex/lore-attribution-admin` branch implements source origin,
+initiating-account events, durable research attribution and Admin filters/activity.
+See [the contract and migration gate](docs/lore-provenance.md). Migration 0031 must
+be applied and verified on staging before authenticated preview verification, and
+on production before dependent code release. Neither PR is merged or live; no
+migration has been applied. Historical unknown actors must not be inferred from
+ownership or timestamps. Music Nerd TV is separate work.
+
 ## Podcast Lore grouping — September 26
 
 [Issue #1304](https://github.com/xdjs/MusicNerdWeb/issues/1304) is being implemented in

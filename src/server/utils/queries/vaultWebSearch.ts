@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { insertVaultSource, getVaultSourcesByArtistId } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
 import { SOURCE_TYPES, inferTypeFromUrl, type SourceType } from "@/lib/source/sourceTypes";
@@ -814,7 +815,11 @@ export async function searchAndPopulateVault(
 ): Promise<ArtistVaultSource[]> {
     const ownership = opts?.ownership ?? getArtistOperationOwnership(artistId)
         ?? { expectedClaimId: await getLoreClaimGeneration(artistId) };
-    return withArtistOperation(artistId, ownership, () => searchAndPopulateVaultInternal(artistId, opts));
+    return withArtistOperation(artistId, ownership, async () => {
+        const activityId = ownership.activityId ?? await recordArtistActivity(artistId, 'source_search');
+        return withArtistOperation(artistId, { ...ownership, activityId, sourceOrigin: 'research' },
+            () => searchAndPopulateVaultInternal(artistId, opts));
+    });
 }
 
 async function searchAndPopulateVaultInternal(

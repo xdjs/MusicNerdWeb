@@ -45,6 +45,13 @@ describe('Look again refreshes documents independently of social cooldown', () =
         expect((await res.json()).message).toContain('already queued or was checked recently');
         expect(runner.requestArtistResearch).toHaveBeenCalledWith('artist', { force: true });
     });
+    it('does not treat an active source search as a social refresh', async () => {
+        const { call, runner } = await setup();
+        const jobs = await import('@/server/utils/queries/researchJobQueries');
+        jobs.getResearchJobs.mockResolvedValue([{ kind: 'source_search', status: 'running', updatedAt: new Date().toISOString() }]);
+        expect((await call()).status).toBe(200);
+        expect(runner.requestArtistResearch).toHaveBeenCalledWith('artist', { force: true });
+    });
     it('carries the original claim through job reopen and social scheduling', async () => {
         const { call, runner } = await setup();
         const jobs = await import('@/server/utils/queries/researchJobQueries');
@@ -54,7 +61,7 @@ describe('Look again refreshes documents independently of social cooldown', () =
         jobs.reopenResearchJob.mockImplementation(async () => { contexts.push(getActiveArtistOperation()); });
         runner.requestArtistResearch.mockImplementation(async () => { contexts.push(getActiveArtistOperation()); });
         expect((await call()).status).toBe(200);
-        expect(contexts).toEqual(Array(3).fill({ artistId: 'artist', userId: 'owner', expectedClaimId: 'claim-1' }));
+        expect(contexts).toEqual(Array(3).fill({ artistId: 'artist', userId: 'owner', expectedClaimId: 'claim-1', trigger: 'manual_refresh' }));
         expect(getActiveArtistOperation()).toBeUndefined();
     });
 });
