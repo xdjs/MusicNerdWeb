@@ -38,3 +38,7 @@ Photo and crop saves can replace the keyed hero during a profile refresh. The se
 navigation and Ask sheet must have distinct sibling keys; sharing the artist ID
 caused React to duplicate the navigation above the hero. Regression coverage refreshes
 the image and crop repeatedly and checks one navigation immediately below one hero.
+
+Successful uploads and provider selections refresh the server profile through the
+existing edit-mode refresh callback, keeping Latest fallback portraits and structured
+data synchronized with the hero immediately after saving. Cancel/failure does not refresh.

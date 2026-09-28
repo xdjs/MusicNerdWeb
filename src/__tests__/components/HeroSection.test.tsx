@@ -4,9 +4,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
-function renderWith(isEditing: boolean) {
+function renderWith(isEditing: boolean, refreshProfile = jest.fn()) {
   return render(
-    <EditModeContext.Provider value={{ isEditing, canEdit: true, toggle: jest.fn() }}>
+    <EditModeContext.Provider value={{ isEditing, canEdit: true, toggle: jest.fn(), refreshProfile }}>
       <HeroSection imageUrl="/x.png" artistName="Test" artistId="a1" />
     </EditModeContext.Provider>
   );
@@ -41,10 +41,12 @@ describe('Museum hero', () => {
   });
   it('switches to the portrait after an authorized successful photo upload', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ imagePath: '/new.jpg' }) } as Response);
-    const { container } = renderWith(true);
+    const refreshProfile = jest.fn();
+    const { container } = renderWith(true, refreshProfile);
     fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [new File(['image'], 'portrait.png', { type: 'image/png' })] } });
     await waitFor(() => expect(container.querySelector('[data-artist-portrait]')).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith('/api/artist/profile-image', expect.objectContaining({ method: 'POST', body: expect.any(FormData) }));
+    expect(refreshProfile).toHaveBeenCalledTimes(1);
     fetchMock.mockRestore();
   });
 });
@@ -61,4 +63,17 @@ describe('Hero biography', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
     expect(screen.queryByText(/The final sentence/)).not.toBeInTheDocument();
   });
+});
+
+it('refreshes all server-provided portrait consumers after provider selection', async () => {
+  const refreshProfile = jest.fn();
+  const fetchMock = jest.spyOn(global, 'fetch')
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ expectedCustomImage: null, options: [{ source: 'spotify', providerId: 'sp', imageUrl: 'https://i.scdn.co/image/chosen' }] }) } as Response)
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ imagePath: 'https://i.scdn.co/image/chosen', position: 0 }) } as Response);
+  renderWith(true, refreshProfile);
+  fireEvent.click(screen.getByRole('button', { name: 'Change photo' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Choose Spotify photo' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save photo' }));
+  await waitFor(() => expect(refreshProfile).toHaveBeenCalledTimes(1));
+  fetchMock.mockRestore();
 });

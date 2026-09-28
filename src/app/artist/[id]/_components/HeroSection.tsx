@@ -24,7 +24,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
-    const { isEditing, canEdit } = useContext(EditModeContext);
+    const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
     const [portrait, setPortrait] = useState(hasPortrait);
@@ -63,6 +63,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 setImg(data.imagePath);
                 setPortrait(true);
                 setPosition(0);
+                refreshProfile?.();
                 toast({ title: "Photo updated" });
             } else {
                 toast({ title: "Couldn't update photo", description: data.error || "Upload failed", variant: "destructive" });
@@ -104,7 +105,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
         {choosingPhoto && isEditing && canEdit && <ArtistPhotoChoice artistId={artistId} currentImage={img}
             onClose={closePhotoChoice} onUpload={() => fileRef.current?.click()}
-            onSaved={(image, y) => { setImg(image); setPortrait(true); setPosition(y); toast({ title: "Photo updated" }); }} />}
+            onSaved={(image, y) => { setImg(image); setPortrait(true); setPosition(y); refreshProfile?.(); toast({ title: "Photo updated" }); }} />}
         {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
             <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
             <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
