@@ -6,7 +6,7 @@ Tracking: [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). The impleme
 
 Pete requested this revision after identifying that the initial plan would leave unclaimed artists without a path to a new bio: discovery saves pending sources, while Lore consumes approved sources. Claiming governs artist control over the profile; it must not determine whether Music Nerd can publish a sourced directory bio. About still summarizes stored Lore and never starts research. This supersedes the earlier two-PR rollout plan, not the read-only About or attribution contracts.
 
-The sections below distinguish the **implemented foundation** from the **planned work**. Automated source acceptance, automatic bios for unclaimed artists, review attribution and backfill support are not implemented in #1372/#1373. No migration or release is authorized by this plan revision.
+The sections below distinguish the **implemented foundation** from the **planned work**. Automated source acceptance, automatic bios for unclaimed artists, and review attribution are not implemented in #1372/#1373. Bulk backfill is deferred below. No migration or release is authorized by this plan revision.
 
 ## Implemented foundation
 
@@ -59,7 +59,11 @@ Default the human review queue to items needing attention. Automatically accepte
 3. Implement the attributed creation/request → research → Lore → About pipeline for unclaimed artists, with an explicit system-write policy, idempotency and cost limits.
 4. Extend Admin and public generation labels, then verify the combined flow in staging. Required cases: unclaimed artist with sufficient evidence gets a cited bio without human approval; ambiguous/no evidence stays ungenerated; page views enqueue nothing; duplicate requests do not duplicate work; rejection overrides automatic acceptance; claim changes/concurrent edits cannot overwrite artist work; source and bio revisions retain the initiator.
 5. Release only after this unclaimed-profile path is verified. The two existing PRs are not the complete production rollout. Apply the final coordinated schema changes before their dependent code; migration 0031 may need a subsequent migration for assessment/review fields.
-6. Prepare an explicit backfill for existing artists with missing bios. Produce a dry-run count and cost estimate, support capped/resumable batches and cancellation, and record the initiating admin/system operation. Execution is a separate rollout action, not authorized by this plan. Start small and inspect results before expansion; never bulk-approve the old pending queue or overwrite existing/pinned bios.
+## Deferred — bulk backfill
+
+September 28, 2026 — Pete: “lets leave bulk backfill for later.” Bulk missing-bio backfill, its tooling and batch execution are deferred with no scheduled date. They are not requirements for the current rollout or issue completion. Current work remains attribution, source eligibility/review, the generation flow for newly added artists or explicit research requests, and Admin visibility.
+
+If resumed, first obtain missing-bio counts and a cost estimate, then plan capped/resumable batches, cancellation and a named initiating operation. Inspect a small sample before expansion. Never bulk-approve historical pending sources or overwrite existing/pinned bios. This retained outline is not authorization to implement or run the backfill.
 
 ## Migration and release
 

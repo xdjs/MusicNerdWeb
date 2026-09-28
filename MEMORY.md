@@ -5,7 +5,9 @@ Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Pete appro
 artist/admin source approval. Claim ownership, automatic evidence acceptance and
 human review must be separate. [The revised plan](docs/lore-provenance.md) defines
 an attributed research → eligible sources → stored Lore → About pipeline,
-review/acceptance visibility in Admin, and a controlled missing-bio backfill.
+and review/acceptance visibility in Admin. Pete subsequently deferred bulk
+missing-bio backfill on September 28; tooling/execution are unscheduled and do not
+block the current rollout.
 
 Draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) implements read-only
 About and generation from saved Lore. Draft [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373)
@@ -13,7 +15,7 @@ implements source origins, initiating events, durable attribution and initial
 Admin views. Local CI and recorded preview checks passed for their implementation
 commits; authenticated generation/Admin checks remain outstanding. These are
 foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
-jobs, separate review attribution and backfill support remain planned.
+jobs and separate review attribution remain planned; bulk backfill is deferred.
 
 Do not roll out the two foundations as the completed solution before the
 unclaimed-profile path passes staging verification. Migration 0031 is unapplied;
