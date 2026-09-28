@@ -20,25 +20,27 @@ A companion section, [Known inconsistencies to reconcile](#known-inconsistencies
 
 ## Brand for media (videos, social, decks)
 
-A stable, prescriptive subset for anything made *about* Music Nerd rather than *in* it. It picks one
-answer where the inventory below records several; the inventory stays the engineering source of truth.
+A stable, prescriptive subset for anything made *about* Music Nerd rather than *in* it, read from the
+production site (2026-09-28, deploy `a0d8e0b1`). It picks one answer per role where the inventory below
+records several; the inventory stays the engineering source of truth.
 
 | Element | Use | Source |
 |---|---|---|
-| **Logo** | `public/musicNerdLogo.png` (4000×4000): the black spectacles on a pink disc (`#fb57c0`). Small: `public/music_nerd_logo_sm.png`. Never recolour or crop the disc. | public assets |
-| **Wordmark** | lowercase **music nerd**, bold, tight negative tracking, `#ff9ce3` with a soft pink glow (`0 0 40px rgba(255,156,227,0.25)`). | `HomePageSplash.tsx` |
-| **The pink** | `#ff9ce3`, the pink people actually see. Text and icons on pink are black. | 57 uses; [decision](docs/rnd/decisions.md): black on pink |
-| **Accents** | cyan `#2ad4fc` and mint `#19ffb8` as punctuation (live dots, checks, highlights), never as fills. A pink→violet wash (`#ef95ff` → `#7c3aed`, low opacity) behind artist imagery. | `tailwind.config.ts`, `HeroSection.tsx` |
+| **Logo** | `public/musicNerdLogo.png` (4000×4000): the black spectacles on a pink disc (`#fb57c0`); small: `public/music_nerd_logo_sm.png`. Secondary mark: the black-and-white **MUSIC NERD** box, `public/music-nerd-parental-advisory.png` (footer). Never recolour or crop either. | public assets, `Footer.tsx` |
+| **Headline** | the homepage manifesto style: bold, tight tracking (`-0.045em`), grey on charcoal (`#a9a5ac` dark, `#bfbfbf` light) with the key words in `highlightpink` `#ff75d8`, closing on "We are **music nerd**". No glow. | `HomePageSplash.module.css` |
+| **Actions** | the solid pink the artist taps (Listen, Ask, Log in): `pastypink` `#ef95ff`, **black text**. The CTA pill in media uses it. | live site; [decision](docs/rnd/decisions.md): black on pink |
+| **Accents** | cyan `#2ad4fc` (the add button, links in dark) and mint `#19ffb8` (the live dot) as punctuation, never fills. A pink→violet wash (`#ef95ff` → `#7c3aed`, low opacity) behind artist imagery. | `tailwind.config.ts`, `HeroSection.tsx` |
 | **Surfaces** | dark by default for video: canvas `#1a1a1a`, frosted charcoal glass panels (`rgba(30,30,30,0.55)`, `blur(20px) saturate(180%)`, 1px `rgba(255,255,255,0.08)` edge, `1rem` radius). Light variant: white with white glass. | `.glass`; decision: charcoal glass overlays |
 | **Shape** | round everything: circular avatars, pill badges, 0.75–2rem radii. | Components |
-| **Type** | the app's system sans (`-apple-system, system-ui, "Segoe UI", Roboto, sans-serif`); big lowercase headlines with tight tracking. Not KoHo: it never loads in the app. | Typography |
+| **Type** | the app's system sans (`-apple-system, system-ui, "Segoe UI", Roboto, sans-serif`); bold, sentence-case headlines with tight tracking. Not KoHo: it never loads in the app. | Typography |
 | **Motion** | calm and ambient: slow spins, a live ping, staggered 30ms fades, gentle parallax. Nothing frantic. | Motion |
-| **Voice** | lowercase, friendly, a little self-aware; credit real people ("made in Seattle by @cxy @clt and friends"). Speak to the artist as "you". | Copy |
+| **Voice** | short, warm and first-person plural ("We listen with intent", "Help build the artist's world with us"); credit the people ("Made by @p3t3rango @sweetmantech @cxy @clt"). Speak to the artist as "you". | `HomePageSplash.tsx`, `Footer.tsx` |
 | **Real UI** | show the product as it ships (the claim button, the research view, found-profile cards) rather than inventing screens. | App |
 
 **The call to action is claiming the profile.** An artist searches their name at
-`https://www.musicnerd.xyz`, opens their page and taps **Claim** (shield icon; it shows *Pending
-verification* until approved, then *Claimed*). Say it as one line: "claim your profile at musicnerd.xyz".
+`https://www.musicnerd.xyz`, opens their page and taps **Claim**: the frosted glass button with a shield
+icon beside the pink Listen button. It opens *Claim This Profile*, shows *Pending verification* until
+approved, then *Claimed*. Say it as one line: "claim your profile at musicnerd.xyz".
 Use the `www` URL in links; the bare domain does not resolve.
 
 ## Design philosophy
