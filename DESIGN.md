@@ -18,6 +18,29 @@ A companion section, [Known inconsistencies to reconcile](#known-inconsistencies
 
 ---
 
+## Brand for media (videos, social, decks)
+
+A stable, prescriptive subset for anything made *about* Music Nerd rather than *in* it. It picks one
+answer where the inventory below records several; the inventory stays the engineering source of truth.
+
+| Element | Use | Source |
+|---|---|---|
+| **Logo** | `public/musicNerdLogo.png` (4000×4000): the black spectacles on a pink disc (`#fb57c0`). Small: `public/music_nerd_logo_sm.png`. Never recolour or crop the disc. | public assets |
+| **Wordmark** | lowercase **music nerd**, bold, tight negative tracking, `#ff9ce3` with a soft pink glow (`0 0 40px rgba(255,156,227,0.25)`). | `HomePageSplash.tsx` |
+| **The pink** | `#ff9ce3`, the pink people actually see. Text and icons on pink are black. | 57 uses; [decision](docs/rnd/decisions.md): black on pink |
+| **Accents** | cyan `#2ad4fc` and mint `#19ffb8` as punctuation (live dots, checks, highlights), never as fills. A pink→violet wash (`#ef95ff` → `#7c3aed`, low opacity) behind artist imagery. | `tailwind.config.ts`, `HeroSection.tsx` |
+| **Surfaces** | dark by default for video: canvas `#1a1a1a`, frosted charcoal glass panels (`rgba(30,30,30,0.55)`, `blur(20px) saturate(180%)`, 1px `rgba(255,255,255,0.08)` edge, `1rem` radius). Light variant: white with white glass. | `.glass`; decision: charcoal glass overlays |
+| **Shape** | round everything: circular avatars, pill badges, 0.75–2rem radii. | Components |
+| **Type** | the app's system sans (`-apple-system, system-ui, "Segoe UI", Roboto, sans-serif`); big lowercase headlines with tight tracking. Not KoHo: it never loads in the app. | Typography |
+| **Motion** | calm and ambient: slow spins, a live ping, staggered 30ms fades, gentle parallax. Nothing frantic. | Motion |
+| **Voice** | lowercase, friendly, a little self-aware; credit real people ("made in Seattle by @cxy @clt and friends"). Speak to the artist as "you". | Copy |
+| **Real UI** | show the product as it ships (the claim button, the research view, found-profile cards) rather than inventing screens. | App |
+
+**The call to action is claiming the profile.** An artist searches their name at
+`https://www.musicnerd.xyz`, opens their page and taps **Claim** (shield icon; it shows *Pending
+verification* until approved, then *Claimed*). Say it as one line: "claim your profile at musicnerd.xyz".
+Use the `www` URL in links; the bare domain does not resolve.
+
 ## Design philosophy
 
 MusicNerd is a **playful, indie, candy-neon music directory dressed in Apple-style frosted glass.** The personality lives in a handful of electric accent colors — a hot orchid pink, a bright cyan, and a jelly mint-green — set against a light-forward, rounded, glassmorphic surface language, with a lowercase-casual voice ("music nerd", "Made in Seattle by @cxy @clt and friends"). Underneath, the structural chrome (buttons, cards, inputs, semantic tokens) is stock shadcn slate — brand character is layered on top as ad-hoc hex accents and glass utilities.
