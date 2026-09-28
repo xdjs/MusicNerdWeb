@@ -12,7 +12,14 @@ description: 'Make short videos that get artists to claim their Music Nerd profi
 Every video ends on one action: **claim your profile at musicnerd.xyz**. Views are a leading indicator; claims
 are the result. If a run cannot measure claims, say so in writing.
 
-## Step 0: accounts and workspace
+## Step 0: prerequisites, accounts and workspace
+
+**Requires the `recoup-internal-marketing` skill** for the shared video mechanics
+(`npx skills add recoupable/skills`). **Presenter:** a dedicated Music Nerd character (owner ruling
+2026-09-28), built with that skill's `references/character-sheet.md`; never Recoup's Jenny. **Reference
+project:** created by the first slate (a how-to-claim short) and recorded here when it exists; until then,
+clone the Recoup Builder Diary engine and re-theme it to Brand for media.
+
 
 Videos post from the account owner's personal socials (approved by Pete and CY). Account ids, the post log and
 drafts live in the owner's **account workspace** (its `ACCOUNT.md` and `posts-log.md`), never in this public
