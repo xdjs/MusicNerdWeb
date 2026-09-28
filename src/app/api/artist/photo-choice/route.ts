@@ -1,3 +1,4 @@
+import { trackServerEvent } from '@/server/utils/analytics/trackServerEvent';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
@@ -68,6 +69,7 @@ export async function PATCH(req: Request) {
                 .returning({ imagePath: artists.customImage, position: artists.headerImagePosition })),
         );
         if (!updated.length) return json({ error: 'The profile changed. Close and reopen photo choices.' }, 409);
+        await trackServerEvent('profile_edit', { action: 'photo', target: null });
         return json({ success: true, imagePath: updated[0]!.imagePath, position: updated[0]!.position?.y ?? 0 });
     } catch (error) {
         if (error instanceof OwnershipChangedError) return json({ error: 'Artist ownership changed' }, 403);

@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock('@/server/utils/analytics/trackServerEvent', () => ({ trackServerEvent: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/dev-auth', () => ({ getDevSession: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/server/utils/artistEditAuth', () => ({ canEditArtist: jest.fn() }));
@@ -9,6 +10,7 @@ jest.mock('@/server/utils/queries/ownershipWrites', () => ({
     withScopedArtistWrite: jest.fn(), OwnershipChangedError: class extends Error {},
 }));
 jest.mock('@/server/db/drizzle', () => ({ db: { query: { artists: { findFirst: jest.fn() } } } }));
+import { trackServerEvent } from '@/server/utils/analytics/trackServerEvent';
 import { GET, PATCH } from '../route';
 import { getServerAuthSession } from '@/server/auth';
 import { canEditArtist } from '@/server/utils/artistEditAuth';
@@ -65,10 +67,12 @@ it('saves only a server-resolved photo under the ownership guard', async () => {
     expect(result.status).toBe(200);
     expect(await result.json()).toEqual({ success: true, imagePath: imageUrl, position: 0 });
     expect(withScopedArtistWrite).toHaveBeenCalledWith(artistId, expect.any(Function));
+    expect(trackServerEvent).toHaveBeenCalledWith('profile_edit', { action: 'photo', target: null });
 });
 it('reports a concurrent image save without overwriting it', async () => {
     (withScopedArtistWrite as jest.Mock).mockResolvedValue([]);
     expect((await PATCH(request())).status).toBe(409);
+    expect(trackServerEvent).not.toHaveBeenCalled();
 });
 it('reports revoked ownership during provider lookup', async () => {
     (withScopedArtistWrite as jest.Mock).mockRejectedValue(new OwnershipChangedError());
