@@ -2,7 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ContributionReview from '../ContributionReview';
 import type { getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
 const refresh = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+const push = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push }) }));
 jest.mock('@/app/actions/serverActions', () => ({ approveUgcAdminAction: jest.fn() }));
 jest.mock('@/app/actions/dashboardActions', () => ({ updateSourceStatus: jest.fn() }));
 const data: Awaited<ReturnType<typeof getAdminContributions>> = {
@@ -11,7 +12,9 @@ const data: Awaited<ReturnType<typeof getAdminContributions>> = {
 };
 it('shows full totals, preserves account in filters/pages and identifies research requester', () => {
  render(<ContributionReview data={data} />);
- expect(screen.getByRole('link', {name:'User submissions 30 pending 40 total'})).toBeInTheDocument();
+ expect(screen.getByRole('option', {name:'User submissions (40 total)'})).toBeInTheDocument();
+ expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('55');
+ expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('37 awaiting review');
  expect(screen.getByText('Research initiated by Demo user')).toBeInTheDocument();
  expect(screen.queryByText('Submitted by Demo user')).not.toBeInTheDocument();
  expect(screen.getByRole('link', {name:'Next'}).getAttribute('href')).toContain('userId=account');
@@ -28,4 +31,9 @@ it('reviews a single Lore source with pending-state protection and refreshes the
 it('does not offer review actions for completed submissions', () => {
  render(<ContributionReview data={{...data,items:[{...data.items[0],status:'approved'}]}} />);
  expect(screen.queryByRole('button', {name:'Approve Interview'})).not.toBeInTheDocument();
+});
+
+it('hides the user review shortcut when no user submissions are pending', () => {
+ render(<ContributionReview data={{...data,counts:{...data.counts,user:{total:40,pending:0}}}} />);
+ expect(screen.queryByRole('link',{name:'Review pending user submissions'})).not.toBeInTheDocument();
 });
