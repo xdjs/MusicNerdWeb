@@ -26,12 +26,18 @@ Local PostgreSQL/browser checks cover scoped counts, pagination, empty results a
 individual link/Lore moderation at 832px/390px in both themes. They used disposable
 data and a temporary auth fixture, not a deployed login; no real queue was changed.
 New website link writes record direct submission origin via migration 0032; old rows
-remain unknown. A real backlog inventory still needs the migrated staging check.
+remain unknown. The read-only staging inventory found 173 pending Lore sources; all existing
+records remain unknown origin. This is not a production backlog inventory.
 
 Do not roll out the two foundations as the completed solution before the
-unclaimed-profile path passes staging verification. Migrations 0031 and 0032 are unapplied;
-assessment/review work may need a subsequent migration. The revision did not
-authorize staging/production DDL, merge, release or a paid backfill. Historical
+unclaimed-profile path passes staging verification. Pete explicitly approved staging migrations on September 28. Migrations 0031 and
+0032 are applied to staging and verified through the `mnweb` connection: audit
+SELECT/INSERT only, browser-role denial, RLS and final column/constraint checks.
+Staging default CRUD grants required an explicit mnweb revoke before the narrow
+grant; a real-SQL regression covers that default. The SQL-editor transaction did
+not reconcile old migration history (#1148). Signed-in preview validation remains
+pending. Production DDL, merge, release and bulk backfill remain unauthorized;
+assessment/review work may need a subsequent migration. Historical
 unknown actors stay unknown. Music Nerd TV is separate work.
 
 ## Podcast Lore grouping — September 26

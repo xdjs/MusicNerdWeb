@@ -31,6 +31,9 @@ beforeAll(async () => {
     insert into users values ('${user}', 'contributor', 'contributor@example.test');
     insert into artist_vault_sources (id, artist_id, status, title, url) values ('${source}', '${artist}', 'pending', 'Legacy source', 'https://example.test/legacy');
   `);
+  // Staging grants mnweb CRUD by default; the audit migration must narrow that
+  // inherited grant as well as deny the public Data API roles.
+  await client.exec('alter default privileges in schema public grant select, insert, update, delete on tables to mnweb, anon, authenticated');
   await client.exec(readFileSync('drizzle/0031_lore_attribution.sql', 'utf8'));
 }, 30000);
 afterAll(async () => { await client.close(); });

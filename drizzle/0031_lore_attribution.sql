@@ -28,6 +28,6 @@ ALTER TABLE "artist_research_jobs" ADD CONSTRAINT "artist_research_jobs_kind_che
 CREATE POLICY "mnweb_select_artist_activity" ON "artist_activity_events" AS PERMISSIVE FOR SELECT TO "mnweb" USING (true);--> statement-breakpoint
 CREATE POLICY "mnweb_insert_artist_activity" ON "artist_activity_events" AS PERMISSIVE FOR INSERT TO "mnweb" WITH CHECK (true);
 --> statement-breakpoint
-REVOKE ALL ON TABLE public.artist_activity_events FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.artist_activity_events FROM PUBLIC, anon, authenticated, mnweb;
 --> statement-breakpoint
 GRANT SELECT, INSERT ON TABLE public.artist_activity_events TO mnweb;
