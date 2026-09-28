@@ -29,6 +29,7 @@ import {
 } from "@/server/utils/socialIngest";
 import { forgetGroundedQuestions } from "@/server/utils/questionGenerator";
 import { refreshArtistDoc } from "@/server/utils/artistDoc/refreshArtistDoc";
+import { runScheduledInstagram } from './instagramRefresh/runScheduledInstagram';
 import { OwnershipChangedError } from '@/server/utils/queries/ownershipWrites';
 
 /** Headroom kept back so the slice can persist what it did before the platform
@@ -66,7 +67,9 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "lore_refresh"
+        const result = job.kind === "social_ingest" && job.state.scheduledInstagram === true
+            ? await runScheduledInstagram(job, deadline)
+            : job.kind === "lore_refresh"
             ? await runLoreRefresh(job, deadline)
             : job.kind === "social_ingest"
             ? await runIngest(job, deadline)

@@ -41,3 +41,6 @@ export const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN ?? "";
 // Empty = /api/research/advance's GET stays as open as its POST already is,
 // which is what local and preview environments need.
 export const CRON_SECRET = process.env.CRON_SECRET ?? "";
+
+/** Scheduled collection remains opt-in per deployment/environment. */
+export const INSTAGRAM_REFRESH_ENABLED = process.env.INSTAGRAM_REFRESH_ENABLED === "true";

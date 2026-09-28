@@ -50,4 +50,15 @@ describe('ownership-sensitive write transactions', () => {
         expect(s.tx.query.artistResearchJobs.findFirst.mock.invocationCallOrder[0]).toBeLessThan(s.write.mock.invocationCallOrder[0]);
         expect(s.write).toHaveBeenCalledWith(s.tx);
     });
+    it('blocks a scheduled write when the saved claim or handle no longer matches', async () => {
+        const s = await setup({ job: { id: 'j1', state: { scheduledInstagram: true } } });
+        await expect(s.withResearchJobWrite('a1', 'j1', s.write)).rejects.toBeInstanceOf(s.OwnershipChangedError);
+        expect(s.write).not.toHaveBeenCalled();
+    });
+    it('allows a scheduled write when the locked eligibility check still matches', async () => {
+        const s = await setup({ job: { id: 'j1', state: { scheduledInstagram: true } } });
+        s.tx.execute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'a1' }]);
+        expect(await s.withResearchJobWrite('a1', 'j1', s.write)).toBe('saved');
+    });
+
 });

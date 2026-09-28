@@ -11,6 +11,8 @@
  */
 import { jest } from "@jest/globals";
 
+const runScheduledInstagram = jest.fn(async () => ({ done: true, progress: 'scheduled collection done' }));
+jest.mock('@/server/utils/instagramRefresh/runScheduledInstagram', () => ({ runScheduledInstagram: (...args) => runScheduledInstagram(...args) }));
 const refreshArtistDoc = jest.fn();
 const completeResearchJob = jest.fn(async () => {});
 const failResearchJob = jest.fn(async () => {});
@@ -226,4 +228,15 @@ describe("an extraction job that has read everything", () => {
         expect(completeResearchJob).not.toHaveBeenCalled();
         expect(result.done).toBe(false);
     });
+    it('dispatches scheduled ingest to collection-only work without ordinary research', async () => {
+        const scheduled = { ...job, kind: 'social_ingest', state: { scheduledInstagram: true } };
+        claimResearchJob.mockResolvedValueOnce(scheduled);
+        const { advanceResearch } = await import('@/server/utils/researchRunner');
+        expect(await advanceResearch({ budgetMs: 60000 })).toMatchObject({ done: true, progress: 'scheduled collection done' });
+        expect(runScheduledInstagram).toHaveBeenCalledWith(scheduled, expect.any(Number));
+        expect(refreshArtistDoc).not.toHaveBeenCalled();
+        const { enqueueResearchJob } = await import('@/server/utils/queries/researchJobQueries');
+        expect(enqueueResearchJob).not.toHaveBeenCalled();
+    });
+
 });

@@ -53,6 +53,13 @@ export async function withResearchJobWrite<T>(artistId: string, jobId: string, w
             where: and(eq(artistResearchJobs.id, jobId), eq(artistResearchJobs.artistId, artistId)),
         });
         if (!job) throw new OwnershipChangedError();
+        if ((job.state as Record<string, unknown> | null)?.scheduledInstagram === true) {
+            const eligible = await tx.execute(sql`
+                select a.id from artists a join artist_claims c on c.artist_id = a.id and c.status = 'approved'
+                where a.id = ${artistId}::uuid and c.id::text = ${String((job.state as Record<string, unknown>).claimId)}
+                  and lower(trim(leading '@' from btrim(a.instagram))) = ${String((job.state as Record<string, unknown>).instagramHandle)}`);
+            if (!eligible.length) throw new OwnershipChangedError();
+        }
         return write(tx);
     });
 }

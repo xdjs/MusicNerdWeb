@@ -213,3 +213,9 @@ reopen an interview even without a new Instagram post.
 > sufficient for this interview change. The interviewer cannot yet interpret visual
 > context in images or video. Visual understanding is explicitly deferred for a
 > future product decision and is not a blocker for #1290.
+
+## Scheduled Instagram collection
+
+The opt-in daily scheduler, eligibility, budget reservations and bounded recent-post
+collection are documented in [Scheduled Instagram updates](scheduled-instagram.md).
+That feature must be migrated and enabled before it changes production freshness.

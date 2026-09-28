@@ -91,3 +91,19 @@ it('reuses stored post thumbnails across refresh jobs while updating captions an
     expect(written.filter(row => row.platformPostId === '1').every(row => row.raw.displayUrl === metadata.url && row.caption === 'Updated caption')).toBe(true);
     db.query.artistSocialPosts.findMany.mockResolvedValue([]);
 });
+
+it('bounds scheduled collection and drops old pinned posts and collaborator posts before thumbnail work', async () => {
+    revoked = false;
+    db.query.artistSocialPosts.findMany.mockResolvedValue([]);
+    const items = [
+        { id: 'old', ownerUsername: 'artist', timestamp: '2020-01-01T00:00:00Z', url: 'https://instagram.com/p/old/' },
+        { id: 'foreign', ownerUsername: 'other', timestamp: '2026-09-28T00:00:00Z', url: 'https://instagram.com/p/foreign/' },
+        ...Array.from({ length: 20 }, (_, i) => ({ id: String(i), ownerUsername: 'artist', timestamp: '2026-09-28T00:00:00Z', url: `https://instagram.com/p/${i}/` })),
+    ];
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => items }));
+    retain.mockClear(); retain.mockImplementation(async rows => rows);
+    const result = await collectInstagramScrape('artist-id', 'artist', 'dataset', 'job', 0, { limit: 9, since: '2026-09-27T00:00:00Z' });
+    expect(global.fetch.mock.calls[0][0]).toContain('limit=9');
+    expect(result).toEqual({ ingested: 9, ownPosts: 9, collabPosts: 0 });
+    expect(retain.mock.calls[0][0].map(row => row.platformPostId)).toEqual(['0','1','2','3','4','5','6','7','8']);
+});

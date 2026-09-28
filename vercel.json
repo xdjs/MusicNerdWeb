@@ -7,6 +7,10 @@
     {
       "path": "/api/research/advance",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/research/instagram-refresh",
+      "schedule": "0 10 * * *"
     }
   ],
   "git": {

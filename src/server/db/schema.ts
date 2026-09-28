@@ -918,3 +918,20 @@ export const userArtistBookmarks = pgTable("user_artist_bookmarks", {
 	pgPolicy("mnweb_update_user_artist_bookmarks", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 	pgPolicy("mnweb_delete_user_artist_bookmarks", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
+
+// Durable cost reservations deliberately outlive jobs and claim revocations.
+export const instagramRefreshReservations = pgTable("instagram_refresh_reservations", {
+    jobId: uuid("job_id").primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull(),
+    reservedCents: integer("reserved_cents").notNull(),
+    reservedAt: timestamp("reserved_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }),
+    runId: text("run_id"),
+}, table => [
+    check("instagram_refresh_positive_reservation", sql`${table.reservedCents} > 0`),
+    index("instagram_refresh_reserved_at").on(table.reservedAt),
+    index("instagram_refresh_artist_reserved_at").on(table.artistId, table.reservedAt),
+    pgPolicy("mnweb_select_instagram_refresh", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_instagram_refresh", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_update_instagram_refresh", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
