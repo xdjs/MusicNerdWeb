@@ -18,9 +18,9 @@ foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
 jobs and separate review attribution remain planned; bulk backfill is deferred.
 
 Pete also clarified Admin needs a selected user's contributions across UGC types,
-plus a read-only human/automated/unknown inventory and a Human + Pending filter
+plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter
 for manual review. Count real submissions across the full dataset; user-triggered
-research stays automated, and historical user IDs alone do not prove human origin.
+research stays automated, and historical user IDs alone do not prove direct user submission.
 These views/counts are planned, not live in #1373.
 
 Do not roll out the two foundations as the completed solution before the
