@@ -31,3 +31,10 @@ Before release, compare Bike Lane and Pete Rango's portrait URLs and crop positi
 against the live baseline; confirm the pin on each target database through `mnweb`.
 Verify picker save/reload/cancel/failure, unauthorized requests and both mobile/desktop
 themes. Executing the preservation SQL, merging and production promotion are separate release steps.
+
+## Save and refresh regression
+
+Photo and crop saves can replace the keyed hero during a profile refresh. The section
+navigation and Ask sheet must have distinct sibling keys; sharing the artist ID
+caused React to duplicate the navigation above the hero. Regression coverage refreshes
+the image and crop repeatedly and checks one navigation immediately below one hero.
