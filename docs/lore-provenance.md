@@ -52,13 +52,26 @@ Extend #1373 to show origin, requested by, request trigger/time, automated asses
 
 Default the human review queue to items needing attention. Automatically accepted items are available through filters/history without being mislabeled as human approvals or filling the pending-review count. Keep actionable filters for assessment, human review, claim state and contributor; preserve them through pagination. Make research/Lore/About failures and insufficient-evidence outcomes visible, and link resulting sources and document/bio revisions to the initiating job. Keep personal account data behind live Admin authorization.
 
+### Human contribution counts and manual review
+
+September 28 — Pete requested a count of human/user-contributed Lore and other UGC, plus filters that make those submissions easy to accept manually. First perform a read-only inventory using recorded origin/channel and submitter evidence. Report human contributions, automated/agent contributions and unknown-origin records separately, with total and pending counts for each contribution type. The existing backlog cannot be labeled human merely because it has a user ID: an agent may act for that account. Retain unknown where UI/API/MCP provenance or other direct audit evidence cannot establish origin. Do not infer origin from timestamps, current claim ownership or URL patterns.
+
+Admin should offer an origin filter (Human contributions / Automated or agent contributions / Unknown / All), contribution-type filters (Link / Lore source / Upload), and review-status filters. Provide a one-click **Human contributions · Pending** view for manual moderation, with named contributor, artist, submission time and visible per-item Approve/Reject actions. Research initiated by a user remains automated origin and separately displays the initiating user; it must not inflate the human-submission count. Unknown records remain available in their own review queue.
+
+Counts must cover the full matching dataset, not just the current page, and count each submitted item once rather than counting discovery/review/activity events. Make pending versus all-status counts explicit, keep filters through pagination, and update both the queue and counts after moderation. No bulk acceptance is authorized by the inventory or filter work. Acceptance checks must include mixed human/research/unknown records, user-triggered research, duplicate discoveries, more than one page and approval/rejection changing the pending count.
+
+### Contributions for a selected user
+
+Pete clarified Carl's meeting request as **Admin → People → select a user → Contributions**. Provide an account-scoped view across link submissions, Lore submissions/uploads and research initiated by that account. Show contribution type, origin, artist, date, status and a link to the underlying item; share the origin/status filters and full-dataset counts. Distinguish the user's direct submissions from research results attributed to their request. This is planned work beyond #1373's initial Lore/research Activity section.
+
 ## Delivery order and acceptance
 
 1. Retain #1372/#1373 as the foundations; finish their outstanding migration and authenticated checks as part of the coordinated staging validation.
 2. Implement and test source eligibility and review attribution first. Before any automatic publication, run a non-publishing assessment on representative readable, unreadable, namesake, rejected and sparse-evidence cases; inspect the proposed sources and generated claims.
 3. Implement the attributed creation/request → research → Lore → About pipeline for unclaimed artists, with an explicit system-write policy, idempotency and cost limits.
-4. Extend Admin and public generation labels, then verify the combined flow in staging. Required cases: unclaimed artist with sufficient evidence gets a cited bio without human approval; ambiguous/no evidence stays ungenerated; page views enqueue nothing; duplicate requests do not duplicate work; rejection overrides automatic acceptance; claim changes/concurrent edits cannot overwrite artist work; source and bio revisions retain the initiator.
+4. Extend Admin with the human-contribution inventory/filter and selected-user contribution view above, plus public generation labels, then verify the combined flow in staging. Required cases: unclaimed artist with sufficient evidence gets a cited bio without human approval; ambiguous/no evidence stays ungenerated; page views enqueue nothing; duplicate requests do not duplicate work; rejection overrides automatic acceptance; claim changes/concurrent edits cannot overwrite artist work; source and bio revisions retain the initiator.
 5. Release only after this unclaimed-profile path is verified. The two existing PRs are not the complete production rollout. Apply the final coordinated schema changes before their dependent code; migration 0031 may need a subsequent migration for assessment/review fields.
+
 ## Deferred — bulk backfill
 
 September 28, 2026 — Pete: “lets leave bulk backfill for later.” Bulk missing-bio backfill, its tooling and batch execution are deferred with no scheduled date. They are not requirements for the current rollout or issue completion. Current work remains attribution, source eligibility/review, the generation flow for newly added artists or explicit research requests, and Admin visibility.

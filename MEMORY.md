@@ -17,6 +17,12 @@ commits; authenticated generation/Admin checks remain outstanding. These are
 foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
 jobs and separate review attribution remain planned; bulk backfill is deferred.
 
+Pete also clarified Admin needs a selected user's contributions across UGC types,
+plus a read-only human/automated/unknown inventory and a Human + Pending filter
+for manual review. Count real submissions across the full dataset; user-triggered
+research stays automated, and historical user IDs alone do not prove human origin.
+These views/counts are planned, not live in #1373.
+
 Do not roll out the two foundations as the completed solution before the
 unclaimed-profile path passes staging verification. Migration 0031 is unapplied;
 assessment/review work may need a subsequent migration. The revision did not
