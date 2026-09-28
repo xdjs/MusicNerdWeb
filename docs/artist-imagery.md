@@ -1,7 +1,23 @@
 # Artist imagery
 
-Artist portraits use the artist's own uploaded `customImage` first. When an artist has a Spotify ID, use Spotify's artist image next; if it is unavailable, use Deezer's image. The pink default avatar is last.
+Artist portraits use the artist's saved `customImage` first, whether uploaded or
+explicitly selected from a provider through Change photo. Without a saved selection,
+use Deezer's artist image, then Spotify if Deezer is unavailable. The pink default
+avatar is last. This supersedes the automatic Spotify preference introduced by #1352;
+see [photo choices and preservation requirements](artist-photo-choice.md) for #1378.
 
-This ordering applies to the artist page hero, Open Graph and Twitter preview, and shared artist thumbnails. The profile hero and social preview use `getArtistPortrait`, which retains Deezer's large image when Spotify has no photo. Thumbnail contexts use `getArtistImage`. `musicPlatformData.getArtist` still uses Deezer as the primary provider for non-image data. Adding a Spotify artist URL saves its ID through the existing link submission path; no separate image upload or migration is required. A page refresh picks up the new provider image.
+This ordering applies to the artist page hero, Open Graph and Twitter preview, and
+shared artist thumbnails. `getArtistPortrait` uses Deezer's large image for the hero
+and social preview; thumbnail contexts use `getArtistImage`. Non-image artist data
+also keeps Deezer as the primary provider through `musicPlatformData.getArtist`.
 
-The authenticated Spotify Web API supplies the preferred image. If that lookup fails or has no image, Spotify's public oEmbed thumbnail is used before falling back to Deezer. Provider failures leave the existing fallback available. An artist-uploaded portrait is never replaced by a provider image.
+Spotify image lookup tries its authenticated Web API and then its public oEmbed
+thumbnail. Those are fallback sources for automatic imagery, or explicit choices
+in the photo chooser. Adding a Spotify link does not replace a saved image or a usable
+automatic Deezer photo. Selecting a provider photo saves that particular URL only
+after an authorized user confirms it; previewing or cancelling does not change it.
+
+Existing saved photos, including Pete Rango's and Dutchyyy's, retain priority.
+Before the default changes reach production, preserve Bike Lane's existing Spotify
+portrait with the non-overwriting [release SQL](../scripts/release/preserve-bike-lane-portrait.sql).
+Preserve existing crop positions and verify all three profiles before and after release.
