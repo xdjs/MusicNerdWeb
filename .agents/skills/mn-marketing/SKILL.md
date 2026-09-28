@@ -15,10 +15,9 @@ are the result. If a run cannot measure claims, say so in writing.
 ## Step 0: prerequisites, accounts and workspace
 
 **Requires the `recoup-internal-marketing` skill** for the shared video mechanics
-(`npx skills add recoupable/skills`). **Presenter:** a dedicated Music Nerd character (owner ruling
+(`npx skills add recoupable/skills`). **Presenter:** Sarah, a dedicated Music Nerd character (owner ruling
 2026-09-28), built with that skill's `references/character-sheet.md`; never Recoup's Jenny. **Reference
-project:** created by the first slate (a how-to-claim short) and recorded here when it exists; until then,
-clone the Recoup Builder Diary engine and re-theme it to Brand for media.
+project:** see *Product demo scenes* below.
 
 
 Videos post from the account owner's personal socials (approved by Pete and CY). Account ids, the post log and
@@ -74,6 +73,27 @@ Same order as `recoup-internal-marketing` Step 4; every stage is a file the owne
 **Look:** dark charcoal glass on `#1a1a1a`; headlines in the homepage manifesto style (grey, key words in
 `#ff75d8`); the CTA pill in the action pink `#ef95ff` with black text; cyan and mint as small accents; the
 spectacles logo; round shapes; calm motion. End card: logo, "claim your profile", `musicnerd.xyz`.
+
+## Product demo scenes (owner, 2026-09-28: "static web page images put me to sleep")
+
+Never a parked screenshot with a slow push. Every demo beat is a named move, tied to the word that names it:
+
+| Beat | Build | Moves |
+|---|---|---|
+| Phone flow (search, claim) | the GLTF iPhone from the `vfx-iphone-device` registry block, with the **real production captures drawn onto its screen** as a canvas texture (the block's live-HTML capture needs a newer renderer than `hyperframes@0.7.5`) | crash-in entry, push to the element being named, zoom-through swap at peak speed, tap ripple painted into the screen, whip exit |
+| A message or code | split into layers | depth-scatter assemble, kinetic slam + glow on the key word |
+| Web view (research view) | screenshot in a glass window | crash zoom, pull back, push to the region, rack focus when the labels land |
+
+Doctrine (from the `product-launch-video` and `hyperframes-animation` skills): fast `power3` push, then hold; reveals
+land on the VO word; one bold transition, the rest hard cuts at peak velocity; nothing drifts slowly. Fade the
+chrome while the phone fills the frame. Keep everything read inside the 4:5 safe zone.
+
+**Captures:** iPhone 16 Pro in the browser (3× density), **signed out** so no admin controls show, and never press
+Submit Claim (it files a real claim). **Type:** the renderer cannot load the system font the site uses, so video type
+is Inter. **Captions:** merge spoken URLs and handles back to `musicnerd.xyz` and `@musicnerdxyz`.
+
+**Reference project:** the first how-to-claim short, in the owner's account workspace
+(`content/mn-claim-howto/`: the themed engine, the 3D phone generator, the captures). Clone it.
 
 ## Step 5: publish and measure
 
