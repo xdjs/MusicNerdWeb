@@ -171,70 +171,40 @@ describe('ArtistMusicPlatformDataProvider', () => {
         });
     });
 
-    describe('getArtistImage', () => {
-        it('prefers Spotify imagery when both artist IDs exist', async () => {
-            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
-
-            const result = await ampdp.getArtistImage(artist);
-
-            expect(result).toBe('https://spotify.com/image.jpg');
-            expect(fallback.getArtistImage).toHaveBeenCalledWith('spotify-123');
+    describe('saved photos and automatic defaults', () => {
+        it('keeps Pete Rango and other saved portraits without provider calls', async () => {
+            const artist = makeArtist({ customImage: 'https://storage.example/pete.png', deezer: '1', spotify: 'sp' });
+            expect(await ampdp.getArtistImage(artist)).toBe(artist.customImage);
+            expect(await ampdp.getArtistPortrait(artist)).toBe(artist.customImage);
             expect(primary.getArtistImage).not.toHaveBeenCalled();
-        });
-
-        it('should return primary image when deezer ID exists', async () => {
-            const artist = makeArtist({ deezer: '4738512' });
-
-            const result = await ampdp.getArtistImage(artist);
-
-            expect(result).toBe('https://deezer.com/image.jpg');
-        });
-
-        it('falls back to Deezer when Spotify has no image', async () => {
-            fallback.getArtistImage.mockResolvedValueOnce(null);
-            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
-
-            const result = await ampdp.getArtistImage(artist);
-
-            expect(result).toBe('https://deezer.com/image.jpg');
-        });
-
-        it('falls back to Deezer when Spotify image lookup fails', async () => {
-            fallback.getArtistImage.mockRejectedValueOnce(new Error('Spotify unavailable'));
-            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
-
-            const result = await ampdp.getArtistImage(artist);
-
-            expect(result).toBe('https://deezer.com/image.jpg');
-        });
-    });
-
-    describe('getArtistPortrait', () => {
-        it('uses Spotify when both IDs exist', async () => {
-            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
-            expect(await ampdp.getArtistPortrait(artist)).toBe('https://spotify.com/image.jpg');
-            expect(primary.getArtist).not.toHaveBeenCalled();
-        });
-
-        it('keeps the full-size Deezer image when Spotify is unavailable', async () => {
-            fallback.getArtistImage.mockResolvedValueOnce(null);
-            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123' });
-            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
-            expect(primary.getArtist).toHaveBeenCalledWith('4738512');
-        });
-
-        it('keeps the full-size Deezer image for Deezer-only artists', async () => {
-            const artist = makeArtist({ deezer: '4738512' });
-            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
             expect(fallback.getArtistImage).not.toHaveBeenCalled();
         });
-
-        it('returns no portrait after bounded Spotify lookups fail for a Spotify-only artist', async () => {
+        it('preserves Bike Lane after her existing Spotify photo is pinned', async () => {
+            const artist = makeArtist({ name: 'Bike Lane', spotify: '4hmP7SKOIhC8e1PZo8UG7f', deezer: '1', customImage: 'https://i.scdn.co/image/ab6761610000e5eb082c9de8bc6a6e4fbc5c808b' });
+            expect(await ampdp.getArtistPortrait(artist)).toBe(artist.customImage);
+            expect(await ampdp.getArtistImage(artist)).toBe(artist.customImage);
+        });
+        it('uses Deezer first for thumbnails and large portraits', async () => {
+            const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123', customImage: '  ' });
+            expect(await ampdp.getArtistImage(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(primary.getArtist).toHaveBeenCalledWith('4738512');
+            expect(fallback.getArtistImage).not.toHaveBeenCalled();
+        });
+        it('falls back to Spotify on missing Deezer images', async () => {
+            primary.getArtistImage.mockResolvedValueOnce(null);
+            primary.getArtist.mockResolvedValueOnce({ ...mockDeezerResult, imageUrl: null });
+            const artist = makeArtist({ deezer: '1', spotify: 'sp' });
+            expect(await ampdp.getArtistImage(artist)).toBe(mockSpotifyResult.imageUrl);
+            expect(await ampdp.getArtistPortrait(artist)).toBe(mockSpotifyResult.imageUrl);
+        });
+        it('survives Deezer failures and missing Spotify images', async () => {
+            primary.getArtist.mockRejectedValueOnce(new Error('Unavailable'));
             fallback.getArtistImage.mockResolvedValueOnce(null);
-            const artist = makeArtist({ spotify: 'spotify-123' });
-            expect(await ampdp.getArtistPortrait(artist)).toBeNull();
-            expect(fallback.getArtist).not.toHaveBeenCalled();
-            expect(primary.getArtist).not.toHaveBeenCalled();
+            expect(await ampdp.getArtistPortrait(makeArtist({ deezer: '1', spotify: 'sp' }))).toBeNull();
+        });
+        it('keeps Spotify-only artists working', async () => {
+            expect(await ampdp.getArtistPortrait(makeArtist({ spotify: 'sp' }))).toBe(mockSpotifyResult.imageUrl);
         });
     });
 

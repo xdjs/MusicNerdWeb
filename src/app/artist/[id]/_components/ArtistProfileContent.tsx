@@ -65,7 +65,7 @@ export default function ArtistProfileContent({
                     </div>
                 </HeroSection>
 
-                <ProfileSectionNav key={artist.id} />
+                <ProfileSectionNav key={`sections:${artist.id}`} />
 
                 <Suspense fallback={<section id="mn-latest" className="glass p-5" aria-busy="true"><h2 className="text-xl font-bold">Latest</h2><p role="status" className="mt-2 text-sm text-muted-foreground">Loading updates…</p></section>}>
                     <LatestSection artist={artist} imageUrl={imageUrl} sources={approvedSources.map(({ url, title }) => ({ url, title }))} listenLinks={listenLinks} />
@@ -104,7 +104,7 @@ export default function ArtistProfileContent({
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
-                <ArtistAskSheet key={artist.id} artistId={artist.id} artistName={artist.name ?? "this artist"} />
+                <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} />
         </>
     );
 }
