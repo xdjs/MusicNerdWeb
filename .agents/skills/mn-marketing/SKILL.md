@@ -76,13 +76,20 @@ spectacles logo; round shapes; calm motion. End card: logo, "claim your profile"
 
 ## Product demo scenes (owner, 2026-09-28: "static web page images put me to sleep")
 
-Never a parked screenshot with a slow push. Every demo beat is a named move, tied to the word that names it:
+**Every product demo runs on the 3D iPhone** (owner, 2026-09-28): search, claim, the DM with the code, and the
+research view that builds the page. The phone is the GLTF iPhone from the `vfx-iphone-device` registry block with the
+**real production captures drawn onto its screen** as a canvas texture (the block's live-HTML capture needs a newer
+renderer than `hyperframes@0.7.5`). Never a parked screenshot with a slow push; every beat is a named move, tied to
+the word that names it:
 
-| Beat | Build | Moves |
-|---|---|---|
-| Phone flow (search, claim) | the GLTF iPhone from the `vfx-iphone-device` registry block, with the **real production captures drawn onto its screen** as a canvas texture (the block's live-HTML capture needs a newer renderer than `hyperframes@0.7.5`) | crash-in entry, push to the element being named, zoom-through swap at peak speed, tap ripple painted into the screen, whip exit |
-| A message or code | split into layers | depth-scatter assemble, kinetic slam + glow on the key word |
-| Web view (research view) | screenshot in a glass window | crash zoom, pull back, push to the region, rack focus when the labels land |
+| Beat | Moves |
+|---|---|
+| Entry | crash-in from a turned phone |
+| A step (search, claim, submit, send) | push to the element being named, tap ripple painted into the screen, zoom-through swap at peak speed |
+| Between steps | one bold transition (a spin), the rest hard cuts |
+| A message or code | push onto the bubble as the VO says it, tap glow on the key word |
+| Web view (research view) | the phone capture of the page, push to the region being named, swap on the result |
+| Exit | whip out before the presenter returns |
 
 Doctrine (from the `product-launch-video` and `hyperframes-animation` skills): fast `power3` push, then hold; reveals
 land on the VO word; one bold transition, the rest hard cuts at peak velocity; nothing drifts slowly. Fade the
