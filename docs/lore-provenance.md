@@ -24,7 +24,7 @@ A duplicate source-search enqueue succeeds only when the existing live job belon
 
 Source-addition activity is created only after a new source wins the URL uniqueness check, then linked within that same transaction. Losing duplicates leave no addition event; audit failure rolls the source back. Durable discovery checks its deadline before following index links, judging followed pages and each followed-source write, as well as before completion.
 
-Admin Lore review shows source origin, account identity when recorded, trigger, Added time and current claim state. Search matches artist, source or contributor. Origin and claim filters combine with search; pagination preserves them. A separate Activity section lists attributable research/content actions with actor and artist search. Both use bounded server queries after a live admin check. The public source object carries only an event ID, never private actor fields; only Admin joins users.
+Admin Lore review shows source origin, account identity when recorded, trigger, Added time and current claim state. Search matches artist, source or contributor. Origin and claim filters combine with search; pagination preserves them. A separate Activity section lists attributable research/content actions with actor and artist search. Both use bounded server queries after a live admin check. The public source object carries only an event ID, never private actor fields. Admin retains the full audit view. Authorized artist reviewers additionally receive a non-hidden contributor username for direct submissions/uploads, as defined in [artist Lore attribution](artist-lore-attribution.md); public visitors receive no contributor enrichment.
 
 ## Planned source eligibility and review
 

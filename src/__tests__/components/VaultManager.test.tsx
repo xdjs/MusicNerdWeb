@@ -173,3 +173,17 @@ describe('VaultManager', () => {
     expect(screen.queryByText('Article Source')).not.toBeInTheDocument();
   });
 });
+
+it('retains contributor attribution through approval and receives refreshed display names', async () => {
+  const entry = { ...pending[0], origin: 'submission', contributorName: 'First name', createdAt: '2026-09-29T13:15:00Z' };
+  const view = (name: string) => <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+    <VaultManager artistId="a1" pendingSources={[{ ...entry, contributorName: name }]} approvedSources={[]} />
+  </EditModeContext.Provider>;
+  const { rerender } = render(view('First name'));
+  expect(screen.getByText('Suggested by First name')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Approve$/i })).not.toBeInTheDocument());
+  expect(screen.getByText('Suggested by First name')).toBeInTheDocument();
+  rerender(view('Updated name'));
+  expect(screen.getByText('Suggested by Updated name')).toBeInTheDocument();
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import SourceAttribution from "./SourceAttribution";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -147,6 +148,7 @@ export default function SourceCard({ source, onApprove, onReject, onDelete, onTy
                     )}
                 </div>
             </div>
+            <SourceAttribution source={source} />
             {source.snippet && (
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-2">
                     {source.snippet}

@@ -366,7 +366,8 @@ export const artistClaims = pgTable("artist_claims", {
 	pgPolicy("mnweb_update_artist_claims", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
-// Actor metadata is private to Admin. Append-only under the application role.
+// Raw actor metadata is private to Admin; artist reviewers receive only safe contributor names.
+// Append-only under the application role.
 export const artistActivityEvents = pgTable("artist_activity_events", {
     id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
     artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),

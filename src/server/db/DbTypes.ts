@@ -3,7 +3,10 @@ import { artists, artistClaims, artistVaultSources, featured, ugcresearch, urlma
 
 export type Artist = InferSelectModel<typeof artists>;
 export type ArtistClaim = InferSelectModel<typeof artistClaims>;
-export type ArtistVaultSource = InferSelectModel<typeof artistVaultSources>;
+export type ArtistVaultSource = InferSelectModel<typeof artistVaultSources> & {
+  /** Safe display name, projected only for authorized artist reviewers. */
+  contributorName?: string | null;
+};
 export type Featured = InferSelectModel<typeof featured>;
 export type UgcResearch = InferSelectModel<typeof ugcresearch>;
 export type UrlMap = InferSelectModel<typeof urlmap>;

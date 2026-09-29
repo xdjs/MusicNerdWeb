@@ -32,6 +32,11 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   const { isEditing } = useContext(EditModeContext);
   const { toast } = useToast();
   const router = useRouter();
+  // Server refreshes can resolve a newly uploaded source's contributor while
+  // the local lists preserve optimistic approvals/deletions.
+  const contributorNames = useMemo(() => new Map(
+    [...pendingSources, ...approvedSources].map(source => [source.id, source.contributorName])
+  ), [pendingSources, approvedSources]);
   const [pending, setPending] = useState(pendingSources);
   const [approved, setApproved] = useState(approvedSources);
   const [searching, setSearching] = useState(false);
@@ -325,7 +330,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">Pending review ({pending.length})</h3>
           {pending.map(s => (
-            <SourceCard key={s.id} source={s} showActions
+            <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions
               onApprove={handleApprove} onReject={handleReject}
               onDelete={handleDelete} onTypeChange={handleTypeChange} />
           ))}
@@ -394,7 +399,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
           </div>
 
           {filteredApproved.map(s => (
-            <SourceCard key={s.id} source={s} showActions={false}
+            <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions={false}
               onDelete={handleDelete} onTypeChange={handleTypeChange}
               selected={selectedIds.has(s.id)} onSelect={toggleSelect} />
           ))}
