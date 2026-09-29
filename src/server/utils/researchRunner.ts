@@ -1,3 +1,5 @@
+import { runLatestRefresh } from './latest/runLatestRefresh';
+import { authorizeLatestRefresh } from './latest/authorizeLatestRefresh';
 import { runSourceSearchJob } from './activity/runSourceSearchJob';
 /**
  * One slice of research, per invocation.
@@ -18,7 +20,7 @@ import { artists } from "@/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import {
     claimResearchJob, saveJobProgress, saveJobState, completeResearchJob, failResearchJob,
-    failJobAtCursor, enqueueResearchJob, type ResearchJob,
+    failJobAtCursor, enqueueResearchJob, type ResearchJob, type JobKind,
 } from "@/server/utils/queries/researchJobQueries";
 import {
     clearSocialCredits, appendSocialCredits, claimedSourceUrls,
@@ -61,13 +63,16 @@ export interface AdvanceResult {
  * Returns `{ ran: false }` when there is nothing to do, which is the normal
  * case and not an error.
  */
-export async function advanceResearch(opts: { budgetMs: number; artistId?: string; excludeJobIds?: string[] }): Promise<AdvanceResult> {
-    const job = await claimResearchJob({ artistId: opts.artistId, excludeIds: opts.excludeJobIds });
+export async function advanceResearch(opts: { budgetMs: number; artistId?: string; excludeJobIds?: string[]; kinds?: JobKind[] }): Promise<AdvanceResult> {
+    const job = await claimResearchJob({ artistId: opts.artistId, excludeIds: opts.excludeJobIds, ...(opts.kinds ? { kinds: opts.kinds } : {}) });
     if (!job) return { ran: false };
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "source_search"
+        if (job.kind === "latest_refresh") await authorizeLatestRefresh(job);
+        const result = job.kind === "latest_refresh"
+            ? await runLatestRefresh(job, deadline)
+            : job.kind === "source_search"
             ? await runSourceSearchJob(job, deadline)
             : job.kind === "lore_refresh"
             ? await runLoreRefresh(job, deadline)
@@ -405,8 +410,8 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
 export async function requestArtistResearch(
     artistId: string,
     opts?: { force?: boolean },
-): Promise<void> {
-    await enqueueResearchJob(artistId, "social_ingest", {
+): Promise<boolean> {
+    return enqueueResearchJob(artistId, "social_ingest", {
         state: opts?.force ? { force: true } : {},
     });
 }

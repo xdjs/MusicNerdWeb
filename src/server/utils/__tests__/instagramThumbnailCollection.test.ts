@@ -91,3 +91,17 @@ it('reuses stored post thumbnails across refresh jobs while updating captions an
     expect(written.filter(row => row.platformPostId === '1').every(row => row.raw.displayUrl === metadata.url && row.caption === 'Updated caption')).toBe(true);
     db.query.artistSocialPosts.findMany.mockResolvedValue([]);
 });
+
+it('Latest refresh stores at most nine recent own posts, excluding old and collaborator posts', async () => {
+    revoked = false;
+    const own = Array.from({length: 12}, (_,i)=>({id:`latest${i}`,ownerUsername:'artist',url:`https://www.instagram.com/p/latest${i}/`,timestamp:new Date().toISOString()}));
+    const items = [{...own[0],id:'old',timestamp:'2020-01-01T00:00:00Z'},{...own[0],id:'other',ownerUsername:'someone-else'},...own];
+    global.fetch = jest.fn(async()=>({ok:true,json:async()=>items}));
+    db.query.artists.findFirst.mockResolvedValue({name:'Artist'});
+    const written=[];
+    db.insert.mockReturnValue({values:row=>{written.push(row);return {onConflictDoUpdate:jest.fn(async()=>{})};}});
+    retain.mockImplementation(async rows=>rows);
+    const result=await collectInstagramScrape('artist-id','artist','dataset','job',0,{latestOnly:true});
+    expect(result).toEqual({ingested:9,ownPosts:9,collabPosts:0});
+    expect(written.map(row=>row.platformPostId)).toEqual(own.slice(0,9).map(row=>row.id));
+});

@@ -52,6 +52,23 @@ describe('Look again refreshes documents independently of social cooldown', () =
         expect((await call()).status).toBe(200);
         expect(runner.requestArtistResearch).toHaveBeenCalledWith('artist', { force: true });
     });
+    it('reports an active Latest Instagram check without queuing another scrape', async () => {
+        const { call, runner } = await setup();
+        const jobs = await import('@/server/utils/queries/researchJobQueries');
+        jobs.getResearchJobs.mockResolvedValue([{ kind: 'latest_refresh', status: 'running', state: { sources: { instagram: { status: 'pending' } } } }]);
+        const result = await call();
+        expect((await result.json()).message).toContain('Update Latest is already checking Instagram');
+        expect(runner.requestArtistResearch).not.toHaveBeenCalled();
+        expect(jobs.reopenResearchJob).not.toHaveBeenCalled();
+    });
+    it('does not claim a scrape started if Latest won the enqueue race', async () => {
+        const { call, runner } = await setup();
+        const jobs = await import('@/server/utils/queries/researchJobQueries');
+        jobs.getResearchJobs.mockResolvedValue([]);
+        runner.requestArtistResearch.mockResolvedValue(false);
+        const result = await call();
+        expect((await result.json()).message).toContain('Social research could not start');
+    });
     it('carries the original claim through job reopen and social scheduling', async () => {
         const { call, runner } = await setup();
         const jobs = await import('@/server/utils/queries/researchJobQueries');

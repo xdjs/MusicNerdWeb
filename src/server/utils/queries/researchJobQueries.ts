@@ -1,3 +1,4 @@
+import { getArtistOperationOwnership } from '../artistOperationContext';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 /**
  * The queue. Enqueue, claim, record progress, finish.
@@ -8,10 +9,10 @@ import { recordArtistActivity } from '../activity/recordArtistActivity';
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
-import { withResearchJobWrite, withScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
+import { withResearchJobWrite, withScopedArtistWrite, lockScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search" | "latest_refresh";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
@@ -68,7 +69,8 @@ const rowsOf = (r: unknown): Record<string, unknown>[] => {
  *
  * Returns true when a job is live afterwards, whether or not this call made it.
  * Source searches only coalesce with work for the same claim; a stale conflict
- * returns false so the caller can surface the existing recovery action.
+ * returns false so the caller can surface the existing recovery action. Social ingest
+ * returns false while Latest owns an Instagram check; it must not start a competing scrape.
  */
 export async function enqueueResearchJob(
     artistId: string,
@@ -78,6 +80,13 @@ export async function enqueueResearchJob(
     if (!artistId) return false;
     try {
         const write = async (tx: WriteDb) => {
+            if (kind === 'social_ingest') {
+                const latest = rowsOf(await tx.execute(sql`select id from artist_research_jobs
+                    where artist_id=${artistId}::uuid and kind='latest_refresh'
+                    and status in ('pending','running') and state->'sources'->'instagram'->>'status'='pending'
+                    limit 1`));
+                if (latest.length) return false;
+            }
             // Child work retains the root initiator, outside replaceable progress state.
             const activityId = opts?.parentJobId ? null : await recordArtistActivity(artistId, kind, {}, tx);
             const inserted = await tx.execute(sql`
@@ -99,9 +108,16 @@ export async function enqueueResearchJob(
             return (typeof liveClaim === 'string' ? liveClaim : null)
                 === (typeof requestedClaim === 'string' ? requestedClaim : null);
         };
-        return opts?.parentJobId
-            ? await withResearchJobWrite(artistId, opts.parentJobId, write)
-            : await withScopedArtistWrite(artistId, write);
+        if (opts?.parentJobId) return await withResearchJobWrite(artistId, opts.parentJobId, write);
+        if (kind === 'social_ingest') {
+            // Match Latest's artist lock even for unscoped/system enqueue callers.
+            return await db.transaction(async tx => {
+                if (getArtistOperationOwnership(artistId)) await lockScopedArtistWrite(tx, artistId);
+                else await tx.execute(sql`select id from artists where id=${artistId}::uuid for update`);
+                return write(tx);
+            });
+        }
+        return await withScopedArtistWrite(artistId, write);
     } catch (e) {
         if (e instanceof OwnershipChangedError) throw e;
         console.error("[enqueueResearchJob] Error:", e);
@@ -125,7 +141,7 @@ export async function enqueueResearchJob(
  * on releasing the claim; the lease here means a claim that is never released
  * expires instead of wedging.
  */
-export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: string[] }): Promise<ResearchJob | null> {
+export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: string[]; kinds?: JobKind[] }): Promise<ResearchJob | null> {
     try {
         const scope = opts?.artistId
             ? sql`and artist_id = ${opts.artistId}::uuid`
@@ -150,6 +166,7 @@ export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: 
                     and attempts < ${MAX_ATTEMPTS}
                     and (claimed_at is null or claimed_at < now() - interval '${sql.raw(String(LEASE_MS))} milliseconds')
                     ${scope}
+                    ${opts?.kinds?.length ? sql`and kind in (${sql.join(opts.kinds.map(k => sql`${k}`), sql`, `)})` : sql``}
                     ${skip}
                   order by created_at
                   limit 1

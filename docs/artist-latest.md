@@ -213,3 +213,9 @@ reopen an interview even without a new Instagram post.
 > sufficient for this interview change. The interviewer cannot yet interpret visual
 > context in images or video. Visual understanding is explicitly deferred for a
 > future product decision and is not a blocker for #1290.
+
+## Manual multi-source refresh — September 29, 2026
+
+The artist/admin **Update Latest** flow is specified in [latest-refresh](latest-refresh.md),
+issue #1376. It is collection-only and independent of About/Lore generation. Its
+queue migration and API cutover compatibility must be verified before release.
