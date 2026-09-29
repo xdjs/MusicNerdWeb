@@ -95,6 +95,11 @@ Doctrine (from the `product-launch-video` and `hyperframes-animation` skills): f
 land on the VO word; one bold transition, the rest hard cuts at peak velocity; nothing drifts slowly. Fade the
 chrome while the phone fills the frame. Keep everything read inside the 4:5 safe zone.
 
+**Screen layout, the same on every screen** (owner, 2026-09-28): a status bar and the header fully below it, never
+cramped against the top edge; the page cut at the last whole line that fits, so the bottom edge has breathing room and
+no line is split; fixed controls (the Ask button) moved inside that area; a message screen shows the keyboard, with the
+input above it. The reference project's generator frames every capture this way; add a capture there, not by hand.
+
 **Captures:** iPhone 16 Pro in the browser (3× density), **signed out** so no admin controls show, and never press
 Submit Claim (it files a real claim). **Type:** the renderer cannot load the system font the site uses, so video type
 is Inter. **Captions:** merge spoken URLs and handles back to `musicnerd.xyz` and `@musicnerdxyz`.
