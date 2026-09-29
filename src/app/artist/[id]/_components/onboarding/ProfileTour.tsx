@@ -301,7 +301,7 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
                     )}
                     <button
                         onClick={() => (isLast ? finish(true) : setIndex(i => i + 1))}
-                        className="flex-1 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold py-2 rounded-lg"
+                        className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
                     >
                         {isLast ? "Got it" : "Next"}
                     </button>

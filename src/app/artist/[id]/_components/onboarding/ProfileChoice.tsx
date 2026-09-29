@@ -104,7 +104,7 @@ export default function ProfileChoice({
                                 className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                                     isLinked
                                         ? "text-green-700 dark:text-green-400"
-                                        : "bg-pastypink text-black disabled:opacity-40"
+                                        : "button-pink bg-highlightpink text-black disabled:opacity-40"
                                 }`}
                             >
                                 {busy === option.value

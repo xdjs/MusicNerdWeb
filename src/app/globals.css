@@ -653,8 +653,7 @@ body {
 }
 
 .pink-btn {
-  background-color: #EDADF8;
-  color: #422B46;
+  @apply bg-highlightpink text-black hover:bg-highlightpink/80 active:bg-highlightpink/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlightpink focus-visible:ring-offset-2;
   font-family: "KoHo", sans-serif;
   border-radius: 5px;
   padding-top: 5px;
@@ -825,6 +824,8 @@ body {
 /* Pink actions keep black labels/icons in both themes. These scoped rules must
    follow the legacy dark-mode text-black and svg[stroke-width] overrides. */
 .button-pink,
+.pink-btn,
+.dark .pink-btn,
 .button-pink span,
 .button-pink svg,
 .dark .button-pink,

@@ -442,7 +442,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                  {!hideLogin && (
                      <Button
                          size="lg"
-                         className="bg-[#ff75d8] hover:bg-[#ff75d8]/80 text-[#000] rounded-full px-8 py-4 text-lg"
+                         className="button-pink bg-highlightpink hover:bg-highlightpink/80 text-black rounded-full px-8 py-4 text-lg"
                          onClick={handleLogin}
                      >
                          Log In
@@ -606,7 +606,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                         <form className="flex flex-wrap items-end gap-3 max-w-xl" onSubmit={e => { e.preventDefault(); void saveUsername(); }}>
                             <div className="flex-1 min-w-40"><label htmlFor="profile-username" className="block text-sm mb-2">User name</label>
                             <Input id="profile-username" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="text-base" /></div>
-                            <Button type="submit" disabled={savingUsername || !usernameInput} className="bg-[#ff75d8] text-[#000] hover:bg-[#ff75d8]/80">{savingUsername ? 'Saving…' : 'Save'}</Button>
+                            <Button type="submit" disabled={savingUsername || !usernameInput} className="button-pink bg-highlightpink text-black hover:bg-highlightpink/80">{savingUsername ? 'Saving…' : 'Save'}</Button>
                             <Button type="button" variant="ghost" onClick={() => { setUsernameInput(user.username ?? ''); setIsEditingUsername(false); }}>Cancel</Button>
                         </form>
                     )}
@@ -637,7 +637,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                                     <Bookmark className="mx-auto mb-5 text-[#ff75d8]" size={32} />
                                     <h3 className="text-xl font-semibold">Keep your artists close.</h3>
                                     <p className="mx-auto mt-2 mb-6 max-w-xs text-sm text-muted-foreground">Find an artist and tap the bookmark on their profile to save them here.</p>
-                                    <Button asChild className="rounded-full bg-[#ff75d8] text-[#000] hover:bg-[#ff75d8]/80"><Link href="/">Find an artist <ArrowUpRight size={16} className="ml-2" /></Link></Button>
+                                    <Button asChild className="rounded-full button-pink bg-highlightpink text-black hover:bg-highlightpink/80"><Link href="/">Find an artist <ArrowUpRight size={16} className="ml-2" /></Link></Button>
                                 </div>
                             )}
                         </section>

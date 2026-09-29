@@ -214,7 +214,7 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                         aria-pressed={activeFilter === null}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             activeFilter === null
-                                ? "bg-pastypink text-black"
+                                ? "button-pink bg-highlightpink text-black"
                                 : "glass-subtle text-muted-foreground hover:text-foreground"
                         }`}
                     >

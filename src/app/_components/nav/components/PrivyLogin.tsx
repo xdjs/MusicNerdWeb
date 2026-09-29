@@ -366,7 +366,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     if (!ready || isLoggingIn) {
       return (
         <Button
-          className="bg-highlightpink animate-pulse w-12 h-12 px-0"
+          className="button-pink bg-highlightpink animate-pulse w-12 h-12 px-0"
           size="lg"
           type="button"
           disabled
@@ -386,7 +386,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               id="login-btn"
               size="lg"
               type="button"
-              className={`hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
+              className={`button-pink focus-visible:ring-highlightpink active:bg-highlightpink/70 hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
               onClick={event => { if (event.isTrusted) rememberLoginTrigger('nav'); void handleLogin(); }}
             >
               <LogIn size={20} />
@@ -423,7 +423,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               aria-label="Account menu"
               type="button"
               size="lg"
-              className="relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 rounded-full p-0 flex items-center justify-center"
+              className="button-pink focus-visible:ring-highlightpink active:bg-highlightpink/70 relative bg-highlightpink hover:bg-highlightpink/80 transition-colors duration-300 w-12 h-12 rounded-full p-0 flex items-center justify-center"
             >
               <X aria-hidden="true" className="profile-account-close-icon hidden" size={20} />
               {session?.user?.id && <AccountMenuAvatar key={session.user.id} userId={session.user.id} />}

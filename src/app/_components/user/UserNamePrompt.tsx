@@ -26,7 +26,7 @@ export default function UserNamePrompt({ name, onSave, onDismiss }: {
         <div><label htmlFor="welcome-user-name" className="mb-2 block text-sm">User name</label>
           <Input id="welcome-user-name" value={value} disabled={saving} maxLength={50} autoComplete="nickname" className="min-h-12 text-base" onChange={event => setValue(event.target.value)} /></div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <Button variant="pink" type="submit" disabled={saving || !value.trim()} className="w-full min-h-12 bg-highlightpink text-black hover:bg-highlightpink/80">{saving ? 'Saving…' : 'Continue'}</Button>
+        <Button variant="pink" type="submit" disabled={saving || !value.trim()} className="w-full min-h-12">{saving ? 'Saving…' : 'Continue'}</Button>
         <p className="text-xs text-muted-foreground">You can change your user name anytime in your profile.</p>
       </form>
     </DialogContent>

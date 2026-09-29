@@ -573,7 +573,7 @@ export function ProfilesCard({ payload, onConfirm, onFindMore, disabled }: {
             <button
                 onClick={() => onConfirm(decisions())}
                 disabled={disabled}
-                className="w-full bg-pink-500 enabled:hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold py-2.5 rounded-lg mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2.5 rounded-lg mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isEmpty ? "Continue" : "Looks good, continue"}
             </button>
@@ -735,7 +735,7 @@ export function VaultCard({ payload, onConfirm, disabled }: {
             <button
                 onClick={submit}
                 disabled={disabled}
-                className="w-full bg-pink-500 enabled:hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold py-2.5 rounded-lg mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2.5 rounded-lg mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {payload.sources.length > 0 ? "Keep these, continue" : "Continue"}
             </button>
@@ -811,7 +811,7 @@ export function InterviewInput({ payload, onAnswer, disabled }: {
                 <button
                     onClick={() => onAnswer({ questionKey: payload.questionKey, answer: draft.trim() })}
                     disabled={disabled || !draft.trim()}
-                    className="bg-pink-500 enabled:hover:bg-pink-600 transition-colors text-white font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 transition-colors text-black font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     Send
                 </button>
@@ -1045,7 +1045,7 @@ export function DocReviewCard({ doc, sources = [], onChoose, disabled }: {
                 <button
                     onClick={() => onChoose({ mode: "generate", doc: docText })}
                     disabled={blocked}
-                    className="w-full bg-pink-500 enabled:hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     This is right — write my About from it
                 </button>
@@ -1146,7 +1146,7 @@ export function AboutDraftCard({ doc, about, sources = [], startEditing = false,
                 <button
                     onClick={() => onPublish({ doc, about: aboutText })}
                     disabled={publishDisabled}
-                    className="flex-1 bg-pink-500 enabled:hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Publish this
                 </button>

@@ -130,7 +130,7 @@ export default function InterviewOffer({
                     type="button"
                     disabled={pausing}
                     onClick={() => { openRef.current = true; setOpen(true); }}
-                    className="mt-2 min-h-11 rounded-lg bg-pastypink px-3 py-1.5 text-xs font-semibold text-[#111]"
+                    className="mt-2 min-h-11 rounded-lg button-pink bg-highlightpink px-3 py-1.5 text-xs font-semibold text-[#111]"
                 >
                     {resuming ? "Continue interview" : "Start"}
                 </button>
