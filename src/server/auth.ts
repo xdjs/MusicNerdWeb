@@ -1,4 +1,4 @@
-import { setUserName } from '@/server/utils/user/setUserName';
+import { assignSessionUserName } from '@/server/utils/user/assignSessionUserName';
 import { needsUserName } from '@/lib/user/needsUserName';
 import NextAuth, { getServerSession } from "next-auth/next";
 import type { JWT } from "next-auth/jwt";
@@ -43,6 +43,7 @@ export const authOptions = {
         token.walletAddress = user.walletAddress;
         token.email = user.email;
         token.name = user.name || user.username;
+        token.userNamePending = needsUserName({username: token.name, wallet: user.walletAddress});
         token.isWhiteListed = user.isWhiteListed;
         token.isAdmin = user.isAdmin;
         token.isSuperAdmin = user.isSuperAdmin;
@@ -56,6 +57,7 @@ export const authOptions = {
         // 3. Missing critical properties
         const shouldRefresh =
           trigger === "update" ||
+          token.userNamePending === true ||
           !token.lastRefresh ||
           (Date.now() - (token.lastRefresh as number)) > 5 * 60 * 1000 || // 5 minutes
           token.isAdmin === undefined ||
@@ -87,7 +89,7 @@ export const authOptions = {
                 }
 
                 if (refreshedUser) {
-                  if (needsUserName(refreshedUser)) refreshedUser = { ...refreshedUser, ...await setUserName(refreshedUser.id) };
+                  refreshedUser = await assignSessionUserName(refreshedUser);
                   // A verified Privy identity may now belong to the surviving
                   // legacy account after mergeAccounts removed its placeholder.
                   token.sub = refreshedUser.id;
@@ -99,6 +101,7 @@ export const authOptions = {
                   token.isHidden = refreshedUser.isHidden;
                   token.email = refreshedUser.email ?? undefined;
                   token.name = refreshedUser.username ?? undefined;
+                  token.userNamePending = needsUserName(refreshedUser);
                   token.needsLegacyLink = !refreshedUser.wallet && !refreshedUser.legacyLinkDismissed;
                   token.lastRefresh = Date.now();
                 }
@@ -218,7 +221,7 @@ export const authOptions = {
             return null;
           }
 
-          if (needsUserName(user)) user = { ...user, ...await setUserName(user.id) };
+          user = await assignSessionUserName(user);
 
           if (process.env.NODE_ENV === 'development') {
             console.log('[Auth] Privy login successful', { userId: user.id, privyUserId: user.privyUserId });

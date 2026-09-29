@@ -64,3 +64,9 @@ Separate pre-existing merge limitation: deleting the placeholder account current
 its activity-event actor reference. Preserving those Lore identities through account deletion
 is tracked in [#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389). Ordinary name edits keep
 the same account ID and update past credits without this merge limitation.
+
+If allocation fails after identity verification (for example a transient database write
+failure), authentication still succeeds with no public name in the session. Never use the
+email or wallet as its public-name fallback. An internal pending JWT marker retries on the
+next authenticated session request; role/account refresh continues even if allocation fails.
+The welcome prompt becomes available once a generated name is saved successfully.
