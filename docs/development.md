@@ -232,5 +232,11 @@ for this introduction; source cards, moderation and stored summaries remain unch
 
 Login/account controls use `highlightpink` (`#ff75d8`), shared with highlighted homepage
 words, including the loading state and a pink hover treatment. The homepage border accent
-uses `brandpink` (`#ff9ce3`); existing artist-page `pastypink` is unchanged.
-Tracked in [#1255](https://github.com/xdjs/MusicNerdWeb/issues/1255).
+uses `brandpink` (`#ff9ce3`). Original decision: [#1255](https://github.com/xdjs/MusicNerdWeb/issues/1255).
+
+September 29, 2026 — Pete chose the same `highlightpink` for all solid pink action buttons
+([#1394](https://github.com/xdjs/MusicNerdWeb/issues/1394)). Prefer `Button variant="pink"`;
+native action controls reuse the token and `button-pink` label/icon color guard. The shared
+variant uses 80% hover and 70% active fills and the same focus-ring hue. Its default fill is
+opaque, including the floating Ask action. Black labels/icons remain black in both themes.
+This is presentation only: routes, persistence, jobs and external-service calls are unchanged.

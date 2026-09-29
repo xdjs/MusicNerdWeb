@@ -28,7 +28,7 @@ records several; the inventory stays the engineering source of truth.
 |---|---|---|
 | **Logo** | `public/musicNerdLogo.png` (4000×4000): the black spectacles on a pink disc (`#fb57c0`); small: `public/music_nerd_logo_sm.png`. Secondary mark: the black-and-white **MUSIC NERD** box, `public/music-nerd-parental-advisory.png` (footer). Never recolour or crop either. | public assets, `Footer.tsx` |
 | **Headline** | the homepage manifesto style: bold, tight tracking (`-0.045em`), grey on charcoal (`#a9a5ac` dark, `#bfbfbf` light) with the key words in `highlightpink` `#ff75d8`, closing on "We are **music nerd**". No glow. | `HomePageSplash.module.css` |
-| **Actions** | the solid pink the artist taps (Listen, Ask, Log in): `pastypink` `#ef95ff`, **black text**. The CTA pill in media uses it. | live site; [decision](docs/rnd/decisions.md): black on pink |
+| **Actions** | Solid pink action buttons use `highlightpink` `#ff75d8`, matching the header/login button, with **black text and icons** in both themes. Use `Button variant="pink"`; native action controls use the same token. | Pete’s 2026-09-29 choice; [#1394](https://github.com/xdjs/MusicNerdWeb/issues/1394) |
 | **Accents** | cyan `#2ad4fc` (the add button, links in dark) and mint `#19ffb8` (the live dot) as punctuation, never fills. A pink→violet wash (`#ef95ff` → `#7c3aed`, low opacity) behind artist imagery. | `tailwind.config.ts`, `HeroSection.tsx` |
 | **Surfaces** | dark by default for video: canvas `#1a1a1a`, frosted charcoal glass panels (`rgba(30,30,30,0.55)`, `blur(20px) saturate(180%)`, 1px `rgba(255,255,255,0.08)` edge, `1rem` radius). Light variant: white with white glass. | `.glass`; decision: charcoal glass overlays |
 | **Shape** | round everything: circular avatars, pill badges, 0.75–2rem radii. | Components |
@@ -78,6 +78,8 @@ MusicNerd is a **playful, indie, candy-neon music directory dressed in Apple-sty
 ---
 
 ## Color
+
+> **2026-09-29 action-color correction ([#1394](https://github.com/xdjs/MusicNerdWeb/issues/1394)):** Pete selected the existing header/login pink, `highlightpink` (`#ff75d8`), for pink action buttons. This supersedes the older lavender `pastypink` action guidance below. The shared pink Button uses this opaque fill with black labels/icons, 80% hover and 70% pressed fills, and a matching keyboard focus ring. Ask keeps its rounded shape, border and inset shadow; its translucent lavender fill and white gradient are removed so its base color matches. Decorative accents and imagery retain their existing colors. Historical color-inventory observations below are not the action-button contract.
 
 MusicNerdWeb's color system is **three disconnected layers that never reconcile**: a 4-color brand palette in `tailwind.config.ts`, a stock untouched shadcn "slate" semantic-token layer in `globals.css`, and a dead SCSS file (`_colors.scss`) that redefines the brand under different names and is imported nowhere. The visual identity is applied almost entirely through hardcoded hex literals (200+ occurrences) and `!important` dark-mode overrides — **not** through tokens. The brand pink alone exists as **three different hex values**.
 
