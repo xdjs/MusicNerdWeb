@@ -239,6 +239,13 @@
       "when": 1790697117938,
       "tag": "0033_user_names",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790705300000,
+      "tag": "0034_latest_refresh",
+      "breakpoints": true
     }
   ]
 }

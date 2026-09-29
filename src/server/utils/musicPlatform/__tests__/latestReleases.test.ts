@@ -220,9 +220,13 @@ describe('getLatestArtistReleases', () => {
 
     it('serves a warm catalog without admission and still admits releases as their date arrives', async () => {
         const { unstable_cache } = await import('next/cache');
-        jest.mocked(unstable_cache).mockImplementationOnce((fn) => {
-            let cached: Promise<unknown> | undefined;
-            return ((...args: Parameters<typeof fn>) => cached ??= fn(...args)) as typeof fn;
+        const cached = new Map<string, Promise<unknown>>();
+        jest.mocked(unstable_cache).mockImplementation((fn, keyParts) => {
+            return ((...args: Parameters<typeof fn>) => {
+                const key = JSON.stringify([keyParts, args]);
+                if (!cached.has(key)) cached.set(key, fn(...args));
+                return cached.get(key);
+            }) as typeof fn;
         });
         const { getLatestArtistReleases, axiosGet, budget } = await setup();
         axiosGet.mockResolvedValueOnce({ data: { data: [deezerAlbum(1, '2026-09-07')] } });
@@ -231,6 +235,7 @@ describe('getLatestArtistReleases', () => {
         expect(await getLatestArtistReleases({ ...artist, spotify: null })).toMatchObject([{ id: '1' }]);
         expect(budget).toHaveBeenCalledTimes(1);
         expect(axiosGet).toHaveBeenCalledTimes(1);
+        jest.mocked(unstable_cache).mockImplementation(fn => fn);
     });
 
     it('never contacts providers when the shared budget denies both catalogs', async () => {

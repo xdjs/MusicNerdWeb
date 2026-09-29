@@ -1,3 +1,18 @@
+## Manual Latest refresh — September 29
+
+Pete approved an artist/admin **Update Latest** action covering Instagram, In Process,
+Spotify/Deezer releases and published answers. Work is on `codex/manual-latest-refresh`,
+tracked in [#1376](https://github.com/xdjs/MusicNerdWeb/issues/1376); see
+[the contract](docs/latest-refresh.md). Scheduled draft #1377 is deferred.
+The new attributed queue job only collects content; it does not rebuild Lore/About.
+Local tests and simulated UI checks are not live-provider verification. Staging migration,
+authenticated canary and the #1365 API cutover contract remain release gates.
+Username PR #1388 merged first; this change uses migration 0034. Its SQL constraint
+change was already applied on staging, and Pete Rango/Dutchyyy refresh canaries completed
+with attributed requests. Live phone/desktop captures and SQL evidence are on PR #1391.
+Pete authorized staging verification and merging on September 29. Production promotion
+remains a separate protected release gate.
+
 ## Lore provenance and unclaimed-artist bios — September 28
 
 Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Pete approved a

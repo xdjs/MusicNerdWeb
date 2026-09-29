@@ -53,6 +53,13 @@ export async function withResearchJobWrite<T>(artistId: string, jobId: string, w
             where: and(eq(artistResearchJobs.id, jobId), eq(artistResearchJobs.artistId, artistId)),
         });
         if (!job) throw new OwnershipChangedError();
+        if (job.kind === 'latest_refresh') {
+            const state = job.state as { userId?: string; claimId?: string | null; instagram?: string };
+            if (!state.userId || !Object.hasOwn(state, 'claimId')) throw new OwnershipChangedError();
+            await authorizeLockedArtistWrite(tx, artistId, {userId:state.userId, expectedClaimId:state.claimId ?? null});
+            const [artist] = await tx.execute(sql`select instagram from artists where id=${artistId}::uuid`);
+            if (String(artist?.instagram ?? '') !== state.instagram) throw new OwnershipChangedError();
+        }
         return write(tx);
     });
 }

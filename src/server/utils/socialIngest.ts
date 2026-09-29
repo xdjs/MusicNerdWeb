@@ -697,6 +697,7 @@ export async function collectInstagramScrape(
     datasetId: string,
     jobId?: string,
     cursor = 0,
+    options?: { latestOnly?: boolean },
 ): Promise<IngestResult | null> {
     if (!APIFY_API_TOKEN) return null;
     try {
@@ -716,7 +717,9 @@ export async function collectInstagramScrape(
             .filter((r): r is SocialPostInsert => r !== null);
         // A worker invocation has sixty seconds. At most nine thumbnails (three
         // concurrent, nine seconds each) fit alongside collection and DB work.
-        const bounded = rows.slice(0, MAX_LIMIT);
+        const bounded = options?.latestOnly
+            ? rows.filter(row => row.isOwnPost && row.postedAt && Date.parse(String(row.postedAt)) >= Date.now() - 30 * 86400000).slice(0, 9)
+            : rows.slice(0, MAX_LIMIT);
         const batch = jobId ? bounded.slice(cursor, cursor + 9) : bounded;
         const scope: ThumbnailUploadScope | undefined = jobId ? { jobId, attemptedPaths: new Set() } : undefined;
         // Reject an already revoked job before creating any storage objects.

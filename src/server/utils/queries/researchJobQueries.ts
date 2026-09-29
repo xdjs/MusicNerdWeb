@@ -11,7 +11,7 @@ import { db } from "@/server/db/drizzle";
 import { withResearchJobWrite, withScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search" | "latest_refresh";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
@@ -125,7 +125,7 @@ export async function enqueueResearchJob(
  * on releasing the claim; the lease here means a claim that is never released
  * expires instead of wedging.
  */
-export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: string[] }): Promise<ResearchJob | null> {
+export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: string[]; kinds?: JobKind[] }): Promise<ResearchJob | null> {
     try {
         const scope = opts?.artistId
             ? sql`and artist_id = ${opts.artistId}::uuid`
@@ -150,6 +150,7 @@ export async function claimResearchJob(opts?: { artistId?: string; excludeIds?: 
                     and attempts < ${MAX_ATTEMPTS}
                     and (claimed_at is null or claimed_at < now() - interval '${sql.raw(String(LEASE_MS))} milliseconds')
                     ${scope}
+                    ${opts?.kinds?.length ? sql`and kind in (${sql.join(opts.kinds.map(k => sql`${k}`), sql`, `)})` : sql``}
                     ${skip}
                   order by created_at
                   limit 1

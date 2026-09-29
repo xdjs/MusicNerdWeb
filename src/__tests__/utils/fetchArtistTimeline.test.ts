@@ -122,16 +122,15 @@ describe('fetchArtistTimeline', () => {
     it('does not cache a failure: the next call goes back to In Process', async () => {
         jest.resetModules();
         // Memoize resolved values the way unstable_cache does; rejections are not stored.
-        jest.doMock('next/cache', () => ({ unstable_cache: jest.fn((fn: (...a: unknown[]) => Promise<unknown>) => {
-            const memo = new Map<string, unknown>();
+        jest.doMock('next/cache', () => { const memo = new Map<string, unknown>(); return ({ unstable_cache: jest.fn((fn: (...a: unknown[]) => Promise<unknown>, keyParts: string[]) => {
             return async (...args: unknown[]) => {
-                const key = JSON.stringify(args);
+                const key = JSON.stringify([keyParts, args]);
                 if (memo.has(key)) return memo.get(key);
                 const value = await fn(...args);
                 memo.set(key, value);
                 return value;
             };
-        }) }));
+        }) }); });
         const fetchArtistTimeline = (await import('@/server/utils/fetchArtistTimeline')).fetchArtistTimeline;
         fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'upstream hiccup' }, 502));
         expect(await fetchArtistTimeline(ARTIST)).toEqual([]);

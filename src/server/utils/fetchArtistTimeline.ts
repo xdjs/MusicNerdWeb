@@ -20,7 +20,7 @@ import { TimelineUnavailable } from '@/server/utils/TimelineUnavailable';
 
 const CACHE_SECONDS = 600;
 
-const cachedTimeline = cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-timeline-v1'], { revalidate: CACHE_SECONDS });
+const cachedTimeline = (address: string) => cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-timeline-v2'], { revalidate: CACHE_SECONDS, tags: [`latest:inprocess:${address}`] })(address);
 
 /**
  * Moments for the artist whose In Process link is stored in `artists.inprocess` (the

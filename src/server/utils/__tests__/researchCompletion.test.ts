@@ -268,3 +268,20 @@ describe("an extraction job that has read everything", () => {
         expect(result.done).toBe(false);
     });
 });
+
+// The manual Latest route must never fall through to caption extraction/Lore.
+jest.mock("../latest/authorizeLatestRefresh", () => ({ authorizeLatestRefresh: jest.fn(async () => {}) }));
+jest.mock("../latest/runLatestRefresh", () => ({ runLatestRefresh: jest.fn(async () => ({ done: true, progress: "Latest check finished" })) }));
+it("routes attributed Latest jobs only through the collection worker", async () => {
+    const { authorizeLatestRefresh } = await import("../latest/authorizeLatestRefresh");
+    const { runLatestRefresh } = await import("../latest/runLatestRefresh");
+    const { extractCaptionCredits } = await import("../socialCredits");
+    const { enqueueResearchJob } = await import("../queries/researchJobQueries");
+    jest.clearAllMocks();
+    await advanceOnce({ kind: "latest_refresh" });
+    expect(authorizeLatestRefresh).toHaveBeenCalledTimes(1);
+    expect(runLatestRefresh).toHaveBeenCalledTimes(1);
+    expect(extractCaptionCredits).not.toHaveBeenCalled();
+    expect(refreshArtistDoc).not.toHaveBeenCalled();
+    expect(enqueueResearchJob).not.toHaveBeenCalled();
+});
