@@ -12,7 +12,12 @@ export async function addSourceContributors(artistId: string, sources: ArtistVau
       select e.id, u.username from artist_activity_events e
       join users u on u.id = e.actor_user_id
       where e.artist_id = ${artistId}::uuid and e.actor_kind = 'user'
-        and u.is_hidden = false and e.id in (${sql.join(ids.map(id => sql`${id}::uuid`), sql`, `)})
+        and u.is_hidden = false
+        -- Privy historically copied email into username. Never project those
+        -- values (or a wallet-backed username) outside the Admin audit view.
+        and position('@' in u.username) = 0
+        and lower(btrim(u.username)) is distinct from lower(btrim(u.wallet))
+        and e.id in (${sql.join(ids.map(id => sql`${id}::uuid`), sql`, `)})
     `);
     for (const row of rows) {
       const name = typeof row.username === 'string' ? row.username.trim() : '';

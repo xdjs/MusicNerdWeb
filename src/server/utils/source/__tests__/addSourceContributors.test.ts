@@ -14,9 +14,9 @@ const source = { id: 'source', artistId: artist, activityId: event, origin: 'sub
 beforeAll(async () => {
   jest.resetModules();
   pg = new PGlite(); driver = drizzle(pg);
-  await pg.exec(`create table users (id uuid primary key, username text, is_hidden boolean);
+  await pg.exec(`create table users (id uuid primary key, username text, is_hidden boolean, wallet text);
     create table artist_activity_events (id uuid primary key, artist_id uuid, actor_user_id uuid, actor_kind text);
-    insert into users values ('${user}', 'Listener', false);
+    insert into users values ('${user}', 'Listener', false, null);
     insert into artist_activity_events values ('${event}', '${artist}', '${user}', 'user');`);
 });
 afterAll(async () => { await pg.close(); });
@@ -25,7 +25,13 @@ it('resolves only safe display names from the original same-artist activity', as
   expect(await addSourceContributors(artist, [source])).toEqual([{ ...source, contributorName: 'Listener' }]);
   expect(await addSourceContributors('00000000-0000-4000-8000-000000000099', [source])).toEqual([{ ...source, contributorName: null }]);
   expect(await addSourceContributors(artist, [{ ...source, origin: 'research' }])).toEqual([{ ...source, origin: 'research', contributorName: null }]);
-  await database.execute(sql`update users set is_hidden = true`);
+  await database.execute(sql`update users set username = 'listener@example.com'`);
+  expect((await addSourceContributors(artist, [source]))[0].contributorName).toBeNull();
+  await database.execute(sql`update users set username = '  LISTENER@example.com  '`);
+  expect((await addSourceContributors(artist, [source]))[0].contributorName).toBeNull();
+  await database.execute(sql`update users set username = '0xABC123', wallet = '0xabc123'`);
+  expect((await addSourceContributors(artist, [source]))[0].contributorName).toBeNull();
+  await database.execute(sql`update users set username = 'Listener', is_hidden = true`);
   expect((await addSourceContributors(artist, [source]))[0].contributorName).toBeNull();
   await database.execute(sql`delete from users`);
   expect((await addSourceContributors(artist, [source]))[0].contributorName).toBeNull();

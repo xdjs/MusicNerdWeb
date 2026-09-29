@@ -7,7 +7,7 @@ origins “Contributor unknown”. Creation time is the time added to Music Nerd
 source's publication date or later update time. Dates are rendered consistently in UTC.
 
 The server enriches editor sources from their original activity reference in one batched
-query, constrained to the same artist. Only a non-hidden contributor's username is projected;
+query, constrained to the same artist. Only a non-hidden contributor's username is projected, excluding email-like values and names matching the account wallet;
 missing names use “a contributor”. No emails, wallets, user IDs, triggers or raw audit events
 are added to client props. Automated research never labels its requester as the submitter.
 Anonymous visitors and non-owners receive no contributor enrichment. Public Lore cards and
