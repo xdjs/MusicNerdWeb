@@ -548,7 +548,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </>
                           )}
 
-                        {/* Edit username controls removed in leaderboard view */}
+                        {/* Edit user name controls removed in leaderboard view */}
                                                  {/* Show a standalone login button for guests only when username editing is disabled */}
                          {!allowEditUsername && isGuestUser && !hideLogin && (
                              <div data-guest-user="true" className="pt-2">
@@ -599,12 +599,12 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             </div>
                         </div>
                         <Button variant="outline" className="self-start sm:shrink-0 rounded-full" onClick={() => setIsEditingUsername(!isEditingUsername)}>
-                            <Pencil size={14} className="mr-2" /> Edit username
+                            <Pencil size={14} className="mr-2" /> Edit user name
                         </Button>
                     </header>
                     {isEditingUsername && (
                         <form className="flex flex-wrap items-end gap-3 max-w-xl" onSubmit={e => { e.preventDefault(); void saveUsername(); }}>
-                            <div className="flex-1 min-w-40"><label htmlFor="profile-username" className="block text-sm mb-2">Username</label>
+                            <div className="flex-1 min-w-40"><label htmlFor="profile-username" className="block text-sm mb-2">User name</label>
                             <Input id="profile-username" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="text-base" /></div>
                             <Button type="submit" disabled={savingUsername || !usernameInput} className="bg-[#ff75d8] text-[#000] hover:bg-[#ff75d8]/80">{savingUsername ? 'Saving…' : 'Save'}</Button>
                             <Button type="button" variant="ghost" onClick={() => { setUsernameInput(user.username ?? ''); setIsEditingUsername(false); }}>Cancel</Button>

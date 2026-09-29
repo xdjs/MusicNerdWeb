@@ -1,3 +1,4 @@
+import { setUserName } from '@/server/utils/user/setUserName';
 import { db } from "@/server/db/drizzle";
 import { eq, ilike, inArray, sql } from "drizzle-orm";
 import { users } from "@/server/db/schema";
@@ -124,9 +125,9 @@ export function getUserDisplayName(user: { username?: string | null; email?: str
     return user.username || user.email?.split("@")[0] || user.wallet || "Anonymous";
 }
 
-// Uniqueness is not enforced — duplicate usernames are allowed by design.
+// Names are reserved case-insensitively and explicit saves confirm generated names.
 export async function updateUsername(userId: string, username: string) {
-    await db.update(users).set({ username }).where(eq(users.id, userId));
+    return setUserName(userId, username);
 }
 
 export type UpdateWhitelistedUserResp = {
@@ -141,36 +142,38 @@ export async function updateWhitelistedUser(
 ): Promise<UpdateWhitelistedUserResp> {
     try {
         if (!userId) throw new Error("Invalid user id");
-        const updateData: Record<string, string | boolean> = {};
-        if (data.wallet !== undefined) updateData.wallet = data.wallet;
-        if (data.email !== undefined) updateData.email = data.email;
-        if (data.username !== undefined) updateData.username = data.username;
+        return await db.transaction(async tx => {
+            const updateData: Record<string, string | boolean> = {};
+            if (data.wallet !== undefined) updateData.wallet = data.wallet;
+            if (data.email !== undefined) updateData.email = data.email;
+            if (data.username !== undefined) await setUserName(userId, data.username, tx);
 
-        // Handle role flag changes
-        if (data.isAdmin !== undefined) {
-            updateData.isAdmin = data.isAdmin;
-            // Auto-whitelist admins
-            if (data.isAdmin) {
-                updateData.isWhiteListed = true;
+            // Handle role flag changes
+            if (data.isAdmin !== undefined) {
+                updateData.isAdmin = data.isAdmin;
+                // Auto-whitelist admins
+                if (data.isAdmin) {
+                    updateData.isWhiteListed = true;
+                }
             }
-        }
         
-        if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
-            // Only update whitelist if not overridden by admin logic above
-            updateData.isWhiteListed = data.isWhiteListed;
-        }
+            if (data.isWhiteListed !== undefined && data.isAdmin !== true) {
+                // Only update whitelist if not overridden by admin logic above
+                updateData.isWhiteListed = data.isWhiteListed;
+            }
 
-        // Handle hidden role flag
-        if (data.isHidden !== undefined) {
-            updateData.isHidden = data.isHidden;
-        }
+            // Handle hidden role flag
+            if (data.isHidden !== undefined) {
+                updateData.isHidden = data.isHidden;
+            }
 
-        if (Object.keys(updateData).length === 0) {
-            return { status: "error", message: "No fields to update" };
-        }
+            if (Object.keys(updateData).length === 0) {
+                return data.username !== undefined ? { status: "success", message: "User updated successfully" } : { status: "error", message: "No fields to update" };
+            }
 
-        await db.update(users).set(updateData).where(eq(users.id, userId));
-        return { status: "success", message: "User updated successfully" };
+            await tx.update(users).set(updateData).where(eq(users.id, userId));
+            return { status: "success", message: "User updated successfully" };
+        });
     } catch (e) {
         console.error("error updating whitelisted user", e);
         return { status: "error", message: "Error updating user" };
@@ -283,7 +286,7 @@ export async function createUserFromPrivy(data: {
             .values({
                 privyUserId: data.privyUserId,
                 email: data.email,
-                username: data.email,
+                username: null,
                 isWhiteListed: false,
                 isAdmin: false,
                 isSuperAdmin: false,
@@ -301,18 +304,6 @@ export async function createUserFromPrivy(data: {
     } catch (e) {
         console.error("[createUserFromPrivy] Database error:", e);
         throw new Error(`Error creating user from Privy: ${(e as Error)?.message}`);
-    }
-}
-
-// Backfill username from email for existing users who have no username
-export async function backfillUsernameFromEmail(userId: string, email: string) {
-    try {
-        await db
-            .update(users)
-            .set({ username: email, updatedAt: new Date().toISOString() })
-            .where(eq(users.id, userId));
-    } catch (e) {
-        console.error("[backfillUsernameFromEmail] Database error:", e);
     }
 }
 

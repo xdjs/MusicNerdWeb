@@ -27,12 +27,12 @@ it('keeps contribution actions and username editing available without a music co
   expect(screen.getByRole('link', { name: /Find an artist/ })).toHaveAttribute('href', '/');
   fireEvent.click(screen.getByRole('button', { name: 'Add an artist' }));
   expect(openArtist).toHaveBeenCalledTimes(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Edit username' }));
-  expect(screen.getByLabelText('Username')).toHaveValue('Music fan');
-  fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'Unsaved' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Edit user name' }));
+  expect(screen.getByLabelText('User name')).toHaveValue('Music fan');
+  fireEvent.change(screen.getByLabelText('User name'), { target: { value: 'Unsaved' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Edit username' }));
-  expect(screen.getByLabelText('Username')).toHaveValue('Music fan');
+  fireEvent.click(screen.getByRole('button', { name: 'Edit user name' }));
+  expect(screen.getByLabelText('User name')).toHaveValue('Music fan');
   expect(screen.queryByText(/Connect Spotify|MusicNerd TV/)).not.toBeInTheDocument();
 });
 

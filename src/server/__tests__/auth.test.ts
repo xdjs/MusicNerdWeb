@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/user/setUserName', () => ({ setUserName: jest.fn().mockResolvedValue({ username: 'Aux Bandit', usernameNeedsConfirmation: true }) }));
 
 import { jest } from '@jest/globals';
 
@@ -47,7 +48,7 @@ async function setup() {
     mockGetUserByPrivyId: getUserByPrivyId as jest.Mock,
     mockCreateUserFromPrivy: createUserFromPrivy as jest.Mock,
     mockGetUserByWallet: getUserByWallet as jest.Mock,
-    mockBackfillUsernameFromEmail: backfillUsernameFromEmail as jest.Mock,
+    mockBackfillUsernameFromEmail: (await import('@/server/utils/user/setUserName')).setUserName as jest.Mock,
   };
 }
 
@@ -216,7 +217,7 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.needsLegacyLink).toBe(false);
     });
 
-    it('backfills username from email when user has no username', async () => {
+    it('assigns a public generated name when user has no username', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
         await setup();
       mockVerifyPrivyToken.mockResolvedValue({
@@ -232,8 +233,8 @@ describe('Auth - Privy Credentials Provider', () => {
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
-      expect(mockBackfillUsernameFromEmail).toHaveBeenCalledWith('db-user-uuid', 'user@example.com');
-      expect(result.username).toBe('user@example.com');
+      expect(mockBackfillUsernameFromEmail).toHaveBeenCalledWith('db-user-uuid');
+      expect(result.username).toBe('Aux Bandit');
     });
 
     it('does not backfill username when user already has one', async () => {
@@ -253,7 +254,7 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.username).toBe('testuser');
     });
 
-    it('does not backfill username when user has no email', async () => {
+    it('assigns a generated name without requiring email', async () => {
       const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
         await setup();
       mockVerifyPrivyToken.mockResolvedValue({
@@ -270,8 +271,8 @@ describe('Auth - Privy Credentials Provider', () => {
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
-      expect(mockBackfillUsernameFromEmail).not.toHaveBeenCalled();
-      expect(result.username).toBeNull();
+      expect(mockBackfillUsernameFromEmail).toHaveBeenCalledWith('db-user-uuid');
+      expect(result.username).toBe('Aux Bandit');
     });
   });
 });
