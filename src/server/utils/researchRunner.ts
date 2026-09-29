@@ -76,7 +76,12 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
             : await runExtraction(job, deadline);
         return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, ...result };
     } catch (e) {
-        if (e instanceof OwnershipChangedError) return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
+        if (e instanceof OwnershipChangedError) {
+            // Cancellation is terminal. Leaving the row running would reclaim it
+            // after every lease expiry and block replacement work of this kind.
+            await completeResearchJob(job.id);
+            return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
+        }
         const message = e instanceof Error ? e.message : String(e);
         console.error(`[research] ${job.kind} failed for ${job.artistId}:`, message);
         await failResearchJob(job.id, message);

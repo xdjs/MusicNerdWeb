@@ -18,6 +18,8 @@ Recorded boundaries: visitor Lore suggestions, editor/onboarding source addition
 
 September 28 — review corrections: durable source-search jobs require a completed search, so provider failures, source-write failures and exhausted deadlines propagate to the scheduler’s existing retry policy. A successful zero-result search may complete. Interactive discovery keeps its best-effort behavior. Until the paired About containment PR removes page-driven generation, that existing path records `system` / `automatic_about`; authenticated generation remains attributed to its user and `about_editor`. These labels describe existing work and do not authorize new page-triggered research.
 
+Claim approval and research enqueue have distinct outcomes. An enqueue failure preserves the approved claim and its notifications, but returns a visible Admin warning with the existing Lore search action as the recovery path. A source-search job cancelled by an ownership/authorization change is marked done before reporting cancellation; it cannot remain running for repeated lease reclamation.
+
 Admin Lore review shows source origin, account identity when recorded, trigger, Added time and current claim state. Search matches artist, source or contributor. Origin and claim filters combine with search; pagination preserves them. A separate Activity section lists attributable research/content actions with actor and artist search. Both use bounded server queries after a live admin check. The public source object carries only an event ID, never private actor fields; only Admin joins users.
 
 ## Planned source eligibility and review

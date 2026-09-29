@@ -25,6 +25,10 @@ failures and exhausted deadlines to retry, while existing automatic About search
 and publication record system / automatic_about rather than unknown/editor work.
 Regression tests cover genuine empty-search completion, failure retry and editor
 attribution. Check the latest PR review before merging; no merge or release is authorized.
+The follow-up review also requires visible partial success when a claim is approved
+but research cannot be queued, and terminal completion of cancelled jobs. Both are
+implemented with regressions on the attribution branch; check its latest CI/review
+and exact-head preview evidence rather than treating earlier green checks as approval.
 
 Pete also clarified Admin needs a selected user's contributions across UGC types,
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter

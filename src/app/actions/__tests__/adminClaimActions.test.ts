@@ -16,7 +16,7 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     revokeApprovedClaim: jest.fn(),
 }));
 jest.mock("@/server/utils/queries/researchJobQueries", () => ({
-    enqueueResearchJob: jest.fn().mockResolvedValue(0),
+    enqueueResearchJob: jest.fn().mockResolvedValue(true),
 }));
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
@@ -80,6 +80,20 @@ describe("adminClaimActions", () => {
     }
 
     describe("approveClaimAction", () => {
+        it.each(['false', 'throw'])('reports approval separately when research enqueue returns %s', async failure => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            if (failure === 'throw') m.enqueueResearchJob.mockRejectedValue(new Error('queue unavailable'));
+            else m.enqueueResearchJob.mockResolvedValue(false);
+            const result = await m.approveClaimAction('c1');
+            expect(result.success).toBe(true);
+            expect(result.warning).toContain('Claim approved');
+            expect(result.warning).toContain('Search web for sources');
+            const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
+            expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
+        });
+
         it("approves a claim and triggers vault population", async () => {
             const m = await setup();
             mockAdmin(m);
