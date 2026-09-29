@@ -1,3 +1,4 @@
+import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
@@ -141,6 +142,13 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
 
+    // Resolve contributor display names only for authorized reviewers, never visitors.
+    const editorSources = canEdit
+        ? await addSourceContributors(id, [...approvedSources, ...pendingSourcesRaw])
+        : [];
+    const editorApproved = editorSources.slice(0, approvedSources.length);
+    const editorPending = editorSources.slice(approvedSources.length);
+
     // Onboarding state costs a query — computed ONLY for the approved claimant.
     // getOnboardingState returns null when the confirmed-steps read FAILED (fail
     // CLOSED — spec C1), not just when there's nothing to show. The `onboardingState
@@ -163,8 +171,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             imageUrl={imageUrl}
             platformImage={platformImage}
             artistLinks={artistLinks}
-            approvedSources={approvedSources}
-            pendingSources={canEdit ? pendingSourcesRaw : []}
+            approvedSources={canEdit ? editorApproved : approvedSources}
+            pendingSources={editorPending}
             urlMapList={urlMapList}
             addLinkPrefill={addLinkPrefill}
             isClaimed={isClaimed}
