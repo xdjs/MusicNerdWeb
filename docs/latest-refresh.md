@@ -7,7 +7,10 @@ The artist/admin sees the action in Latest without entering Edit profile. A POST
 explicit, authenticated and checked against live artist ownership. The request records
 its initiator in Admin activity and creates a `latest_refresh` job in the existing queue.
 A per-artist lock coalesces concurrent requests and enforces a thirty-minute cooldown.
-GET only reports saved job status; page reads never enqueue work.
+GET only reports saved job status; page reads never enqueue work. Each progress write
+rechecks ownership and all connected identities under the artist lock. Results and
+cooldowns from an obsolete scope are ignored; a new request cancels the obsolete live
+job before queuing a refresh for the current connections.
 
 The worker refreshes In Process and each linked Spotify/Deezer catalog independently,
 using artist/provider-specific cache tags. Published interview answers are reread from

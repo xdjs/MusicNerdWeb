@@ -18,7 +18,7 @@ export async function authorizeLockedArtistWrite(tx: TransactionDb, artistId: st
     });
     if ((claim?.id ?? null) !== auth.expectedClaimId) throw new OwnershipChangedError();
     if (claim?.userId !== auth.userId) {
-        const user = await tx.query.users.findFirst({ where: eq(users.id, auth.userId) });
+        const user = await tx.query.users.findFirst({ columns: { isAdmin: true }, where: eq(users.id, auth.userId) });
         if (!user?.isAdmin) throw new OwnershipChangedError();
     }
 }
@@ -54,11 +54,11 @@ export async function withResearchJobWrite<T>(artistId: string, jobId: string, w
         });
         if (!job) throw new OwnershipChangedError();
         if (job.kind === 'latest_refresh') {
-            const state = job.state as { userId?: string; claimId?: string | null; instagram?: string };
+            const state = job.state as { userId?: string; claimId?: string | null; instagram?: string; inprocess?: string; spotify?: string; deezer?: string };
             if (!state.userId || !Object.hasOwn(state, 'claimId')) throw new OwnershipChangedError();
             await authorizeLockedArtistWrite(tx, artistId, {userId:state.userId, expectedClaimId:state.claimId ?? null});
-            const [artist] = await tx.execute(sql`select instagram from artists where id=${artistId}::uuid`);
-            if (String(artist?.instagram ?? '') !== state.instagram) throw new OwnershipChangedError();
+            const [artist] = await tx.execute(sql`select instagram,inprocess,spotify,deezer from artists where id=${artistId}::uuid`);
+            if (!artist || (['instagram','inprocess','spotify','deezer'] as const).some(source => String(artist[source] ?? '') !== state[source])) throw new OwnershipChangedError();
         }
         return write(tx);
     });

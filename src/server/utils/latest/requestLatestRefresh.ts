@@ -1,3 +1,4 @@
+import { latestRefreshScopeSql } from "./latestRefreshScopeSql";
 import { sql } from "drizzle-orm";
 import { withScopedArtistWrite } from "../queries/ownershipWrites";
 import { recordArtistActivity } from "../activity/recordArtistActivity";
@@ -9,9 +10,15 @@ export async function requestLatestRefresh(artistId: string) {
   const context = getArtistOperationOwnership(artistId);
   if (!context?.userId) throw new Error("Missing Latest requester");
   return withScopedArtistWrite(artistId, async (tx) => {
+    // Release obsolete leases while holding the same artist lock as enqueueing.
+    await tx.execute(sql`update artist_research_jobs j set status='failed',claimed_at=null,
+      last_error='Refresh scope changed',updated_at=now() from artists a
+      where j.artist_id=a.id and a.id=${artistId}::uuid and j.kind='latest_refresh'
+      and j.status in ('pending','running') and (${latestRefreshScopeSql()}) is not true`);
     const existing =
-      await tx.execute(sql`select id from artist_research_jobs where artist_id=${artistId}::uuid and kind='latest_refresh'
-   and (status in ('pending','running') or created_at>now()-interval '30 minutes') order by created_at desc limit 1`);
+      await tx.execute(sql`select j.id from artist_research_jobs j join artists a on a.id=j.artist_id
+   where j.artist_id=${artistId}::uuid and j.kind='latest_refresh' and (${latestRefreshScopeSql()})
+   and (j.status in ('pending','running') or j.created_at>now()-interval '30 minutes') order by j.created_at desc limit 1`);
     if (existing.length) return String(existing[0].id);
     const [artist] = await tx.execute(
       sql`select instagram,inprocess,spotify,deezer from artists where id=${artistId}::uuid`,

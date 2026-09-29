@@ -5,8 +5,9 @@ Spotify/Deezer releases and published answers. Work is on `codex/manual-latest-r
 tracked in [#1376](https://github.com/xdjs/MusicNerdWeb/issues/1376); see
 [the contract](docs/latest-refresh.md). Scheduled draft #1377 is deferred.
 The new attributed queue job only collects content; it does not rebuild Lore/About.
-Local tests and simulated UI checks are not live-provider verification. Staging migration,
-authenticated canary and the #1365 API cutover contract remain release gates.
+The #1365 API cutover must retain the Web worker for source_search/latest_refresh
+until both kinds are ported. Progress writes reauthorize ownership and every connected
+identity; obsolete jobs no longer impose a cooldown on the current editor.
 Username PR #1388 merged first; this change uses migration 0034. Its SQL constraint
 change was already applied on staging, and Pete Rango/Dutchyyy refresh canaries completed
 with attributed requests. Live phone/desktop captures and SQL evidence are on PR #1391.

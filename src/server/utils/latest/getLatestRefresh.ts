@@ -1,3 +1,4 @@
+import { latestRefreshScopeSql } from "./latestRefreshScopeSql";
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 import {
@@ -10,8 +11,8 @@ export async function getLatestRefresh(
   artistId: string,
 ): Promise<LatestRefreshView | null> {
   const [row] =
-    await db.execute(sql`select id,status,created_at,state from artist_research_jobs
-  where artist_id=${artistId}::uuid and kind='latest_refresh' order by created_at desc limit 1`);
+    await db.execute(sql`select j.id,j.status,j.created_at,j.state from artist_research_jobs j join artists a on a.id=j.artist_id
+  where j.artist_id=${artistId}::uuid and j.kind='latest_refresh' and (${latestRefreshScopeSql()}) order by j.created_at desc limit 1`);
   if (!row) return null;
   const state = row.state as { sources?: Record<string, SourceResult> };
   const terminal = row.status === "failed" || row.status === "done";
