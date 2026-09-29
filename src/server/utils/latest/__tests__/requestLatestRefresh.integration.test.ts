@@ -14,6 +14,7 @@ const client = new PGlite();
 const driver = drizzle(client, { schema });
 const database = {
   ...driver,
+  insert: driver.insert.bind(driver),
   execute: async (query: Parameters<typeof driver.execute>[0]) =>
     (await driver.execute(query)).rows,
   transaction: (fn: (tx: unknown) => Promise<unknown>) =>
@@ -31,12 +32,14 @@ const artist = "00000000-0000-4000-8000-000000000001",
   user = "00000000-0000-4000-8000-000000000002",
   claim = "00000000-0000-4000-8000-000000000003";
 let request: typeof import("../requestLatestRefresh").requestLatestRefresh;
+let enqueue: typeof import("../../queries/researchJobQueries").enqueueResearchJob;
 let authorize: typeof import("../authorizeLatestRefresh").authorizeLatestRefresh;
 let store: typeof import("../latestRefreshStore").latestRefreshStore;
 let read: typeof import("../getLatestRefresh").getLatestRefresh;
 let context: typeof import("../../artistOperationContext").withArtistOperation;
 beforeAll(async () => {
   jest.resetModules();
+  ({ enqueueResearchJob: enqueue } = await import("../../queries/researchJobQueries"));
   ({ authorizeLatestRefresh: authorize } = await import("../authorizeLatestRefresh"));
   ({ latestRefreshStore: store } = await import("../latestRefreshStore"));
   ({ getLatestRefresh: read } = await import("../getLatestRefresh"));
@@ -204,4 +207,25 @@ it("treats a changed connection before the next worker slice as terminal cancell
   await client.exec("update artists set instagram='replacement'");
   const job = { id, artistId: artist, activityId: saved.activity_id, state: saved.state } as unknown as import("../../queries/researchJobQueries").ResearchJob;
   await expect(authorize(job)).rejects.toThrow("ownership changed");
+});
+
+it("does not queue a second paid social ingest behind an active Latest check", async () => {
+  await call();
+  expect(await enqueue(artist, "social_ingest", { state: { force: true } })).toBe(false);
+  expect((await client.query("select kind from artist_research_jobs")).rows).toEqual([{ kind: "latest_refresh" }]);
+});
+it("keeps the existing research owner when social ingest queues first", async () => {
+  expect(await enqueue(artist, "social_ingest")).toBe(true);
+  await call();
+  expect((await read(artist))?.sources.instagram?.status).toBe("failed");
+});
+it("serializes simultaneous Latest and unscoped research requests", async () => {
+  await Promise.all([call(), enqueue(artist, "social_ingest", { state: { force: true } })]);
+  const { rows } = await client.query("select kind from artist_research_jobs where kind='social_ingest' or state->'sources'->'instagram'->>'status'='pending'");
+  expect(rows).toHaveLength(1);
+});
+it("allows research after Latest has completed", async () => {
+  await call();
+  await client.exec("update artist_research_jobs set status='done'");
+  expect(await enqueue(artist, "social_ingest", { state: { force: true } })).toBe(true);
 });

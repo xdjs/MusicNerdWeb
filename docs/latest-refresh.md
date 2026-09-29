@@ -20,6 +20,9 @@ retains thumbnails through the existing collector and never queues extraction or
 Provider-start intent is persisted before the paid POST; a lost response is terminal for
 that request rather than a second paid run. Instagram is capped at $0.03 per run. Repeated
 requests during the cooldown reuse the existing result, including failures.
+Latest and social research share the artist lock: if social ingest is already live,
+Latest skips its Instagram check; if Latest is checking Instagram first, social ingest
+is not queued and Look again explains that it must wait. Other Latest sources still run.
 
 Results identify each source as checked, unavailable, not connected or still checking.
 No claim of new-item counts is made from upsert counts. Successful checks invalidate only that connected identity’s cache; cards repaint through

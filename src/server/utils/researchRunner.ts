@@ -410,8 +410,8 @@ async function runExtraction(job: ResearchJob, deadline: number): Promise<{ prog
 export async function requestArtistResearch(
     artistId: string,
     opts?: { force?: boolean },
-): Promise<void> {
-    await enqueueResearchJob(artistId, "social_ingest", {
+): Promise<boolean> {
+    return enqueueResearchJob(artistId, "social_ingest", {
         state: opts?.force ? { force: true } : {},
     });
 }
