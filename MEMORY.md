@@ -33,6 +33,10 @@ Source-search enqueue also rejects a conflict with a live job for another claim,
 so replacing a claim cannot silently reuse discovery that will be cancelled. A
 PostgreSQL-backed regression covers pending/running stale jobs, unknown claim
 state, same-claim deduplication and enqueue after stale-job completion.
+Further review tightens committed-source auditing (losing URL duplicates emit no
+addition event; audit failure rolls back the source) and deadline checks around
+index-follow fetch/judge/write/completion. Current code/security clearance must
+be read from the latest PR head, not earlier completed review runs.
 
 Pete also clarified Admin needs a selected user's contributions across UGC types,
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter

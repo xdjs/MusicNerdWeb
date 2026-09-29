@@ -1554,7 +1554,7 @@ async function searchAndPopulateVaultInternal(
         const toFollow = [...indexLinks]
             .filter(u => !existingUrls.has(stripQuery(u)) && !isExcludedLoreDiscoveryUrl(u))
             .slice(0, MAX_INDEX_FOLLOWS);
-        if (toFollow.length > 0) {
+        if (toFollow.length > 0 && !outOfBudget("index following")) {
             console.log(`[vaultWebSearch] Following ${toFollow.length} link(s) out of index page(s)`);
             const followed = await Promise.all(toFollow.map(async url => {
                 try { return { url, page: await fetchPageContent(url, { timeoutMs: VERIFY_TIMEOUT_MS }) }; }
@@ -1562,7 +1562,7 @@ async function searchAndPopulateVaultInternal(
             }));
             const readable = followed.filter((f): f is { url: string; page: PageContent } =>
                 !!f && !isExcludedLoreDiscoveryUrl(f.page.resolvedUrl ?? "") && (f.page.fullText?.length ?? 0) > 0);
-            if (readable.length > 0) {
+            if (readable.length > 0 && !outOfBudget("followed-page judging")) {
                 // Judged exactly like any other candidate — being reached via the
                 // artist's own tag page is a lead, never a verdict.
                 const followVerdicts = await judgeSourceRelevance(
@@ -1573,6 +1573,7 @@ async function searchAndPopulateVaultInternal(
                     })),
                 );
                 for (const { url, page } of readable) {
+                    if (outOfBudget("followed-source insertion")) break;
                     // Reached from an index rather than from search, so it never
                     // passed the intake filter.
                     if (isBlockedSourceHost(url)) {
@@ -1614,6 +1615,7 @@ async function searchAndPopulateVaultInternal(
             console.log(`[vaultWebSearch] Dropped ${dropped} unverifiable candidate(s) for "${artistName}"`);
         }
 
+        outOfBudget("completion");
         console.log(`[vaultWebSearch] Inserted ${insertedSources.length} sources for "${artistName}"`);
         return insertedSources;
     } catch (error: unknown) {

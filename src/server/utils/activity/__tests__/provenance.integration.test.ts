@@ -120,6 +120,27 @@ it('accepts durable source searches after upgrading the existing job-kind constr
   await enqueueResearchJob(artist, 'source_search');
   expect((await database.select().from(schema.artistResearchJobs)).some(job => job.kind === 'source_search')).toBe(true);
 });
+it('records only the winning canonical source addition and links the event to that source', async () => {
+  const { insertVaultSource } = await import('../../queries/insertVaultSource');
+  const before = (await activity({ action: 'source_submission' })).total;
+  const results = await Promise.all(['', '#duplicate'].map(fragment => insertVaultSource({
+    artistId: artist, url: `https://example.test/concurrent${fragment}`, status: 'pending',
+  }, undefined, { userId: user, trigger: 'visitor_suggestion' })));
+  const added = results.filter(Boolean);
+  expect(added).toHaveLength(1);
+  const events = await activity({ action: 'source_submission' });
+  expect(events.total).toBe(before + 1);
+  expect((await activity({ eventId: added[0]!.activityId! })).items[0]).toMatchObject({ sourceId: added[0]!.id, actorId: user });
+});
+
+it('rolls the new source back if its addition activity cannot be saved', async () => {
+  const { insertVaultSource } = await import('../../queries/insertVaultSource');
+  await expect(insertVaultSource({ artistId: artist, url: 'https://example.test/rollback' }, undefined, {
+    userId: '00000000-0000-4000-8000-000000000099', trigger: 'visitor_suggestion',
+  })).rejects.toThrow();
+  expect((await client.query("select id from artist_vault_sources where url = 'https://example.test/rollback'")).rows).toHaveLength(0);
+});
+
 it('preserves historical user origin when the account is deleted', async () => {
   await client.query('delete from users where id = $1', [user]);
   const result = await queue({ origin: 'research' });

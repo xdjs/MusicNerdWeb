@@ -4,6 +4,7 @@ import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 import { withArtistUploadWrite, withScopedArtistWrite, type WriteDb } from './ownershipWrites';
 import { getArtistOperationOwnership } from '../artistOperationContext';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
+import { sql } from 'drizzle-orm';
 
 export async function insertVaultSource(data: {
     artistId: string;
@@ -32,10 +33,7 @@ export async function insertVaultSource(data: {
         const context = getArtistOperationOwnership(data.artistId);
         const userId = provenance?.userId ?? authorization?.userId ?? context?.userId;
         const origin = context?.sourceOrigin ?? (userId ? data.filePath ? 'upload' : 'submission' : 'unknown');
-        const activityId = context?.activityId ?? await recordArtistActivity(data.artistId,
-            origin === 'upload' ? 'source_upload' : origin === 'submission' ? 'source_submission' : 'source_added', {
-                userId, trigger: provenance?.trigger ?? (data.filePath ? 'upload' : context?.trigger ?? 'editor_source'),
-            }, writer);
+        let activityId = context?.activityId ?? null;
         // onConflictDoNothing pairs with the unique index on (artist_id, url)
         // added in 0014. Dedup used to be a read-then-write with nothing
         // underneath, so two overlapping discovery runs both read "absent" and
@@ -66,7 +64,18 @@ export async function insertVaultSource(data: {
         // Undefined when the row already existed — a concurrent run won the
         // race. Callers treat a missing row as "nothing new to enrich", which is
         // correct: the source is present either way.
-        return source;
+        if (!source) return undefined;
+        // Record additions only for the writer that won the uniqueness check.
+        // Both writes share this transaction: audit failure rolls back the source.
+        if (!activityId) {
+            activityId = await recordArtistActivity(data.artistId,
+                origin === 'upload' ? 'source_upload' : origin === 'submission' ? 'source_submission' : 'source_added', {
+                    userId, sourceId: source.id,
+                    trigger: provenance?.trigger ?? (data.filePath ? 'upload' : context?.trigger ?? 'editor_source'),
+                }, writer);
+            await writer.execute(sql`update artist_vault_sources set activity_id = ${activityId}::uuid where id = ${source.id}::uuid`);
+        }
+        return { ...source, activityId };
         };
         return authorization
             ? await withArtistUploadWrite(data.artistId, authorization.userId, authorization.expectedClaimId, write)

@@ -13,7 +13,7 @@ describe('insertVaultSource', () => {
         const values = jest.fn().mockReturnValue({
             onConflictDoNothing: () => ({ returning: async () => [{ id: 's1' }] }),
         });
-        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }) }) } }));
+        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }), execute: jest.fn().mockResolvedValue([]) }) } }));
         const { insertVaultSource } = await import('../dashboardQueries');
 
         await insertVaultSource({
@@ -26,7 +26,7 @@ describe('insertVaultSource', () => {
         const values = jest.fn().mockReturnValue({
             onConflictDoNothing: () => ({ returning: async () => [{ id: 's1' }] }),
         });
-        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }) }) } }));
+        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }), execute: jest.fn().mockResolvedValue([]) }) } }));
         const { insertVaultSource } = await import('../dashboardQueries');
 
         await insertVaultSource({ artistId: 'a1', url: 'https://soundbetter.com/x' });
@@ -37,7 +37,7 @@ describe('insertVaultSource', () => {
         const values = jest.fn().mockReturnValue({
             onConflictDoNothing: () => ({ returning: async () => [{ id: 's1' }] }),
         });
-        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }) }) } }));
+        jest.doMock('@/server/db/drizzle', () => ({ db: { insert: () => ({ values }), transaction: async fn => fn({ insert: () => ({ values }), execute: jest.fn().mockResolvedValue([]) }) } }));
         const { insertVaultSource } = await import('../dashboardQueries');
 
         await insertVaultSource({ artistId: 'a1', url: 'HTTPS://EXAMPLE.COM:443/article#bio' });
