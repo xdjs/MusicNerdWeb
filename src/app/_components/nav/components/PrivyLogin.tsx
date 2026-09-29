@@ -366,7 +366,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     if (!ready || isLoggingIn) {
       return (
         <Button
-          className="bg-highlightpink animate-pulse w-12 h-12 px-0"
+          className="button-pink bg-highlightpink animate-pulse w-12 h-12 px-0"
           size="lg"
           type="button"
           disabled
@@ -386,7 +386,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               id="login-btn"
               size="lg"
               type="button"
-              className={`hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
+              className={`button-pink focus-visible:ring-highlightpink active:bg-highlightpink/70 hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
               onClick={event => { if (event.isTrusted) rememberLoginTrigger('nav'); void handleLogin(); }}
             >
               <LogIn size={20} />

@@ -20,9 +20,9 @@ export default function ProfilePhoto({ userId }: { userId: string }) {
   }, [userId, revision]);
 
   return <div className="shrink-0 max-w-32">
-    <button type="button" aria-label="Change profile photo" title="Change photo (JPG, PNG or WebP, up to 2 MB)" disabled={busy} onClick={() => input.current?.click()} className="relative block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#ff75d8]">
+    <button type="button" aria-label="Change profile photo" title="Change photo (JPG, PNG or WebP, up to 2 MB)" disabled={busy} onClick={() => input.current?.click()} className="relative block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-highlightpink">
       <img src={url || '/default_pfp_pink.png'} alt="Your profile photo" className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover" />
-      <span className="absolute -bottom-1 -right-1 rounded-full bg-[#ff75d8] text-[#000] p-1.5"><Camera size={14} /></span>
+      <span className="absolute -bottom-1 -right-1 rounded-full button-pink bg-highlightpink text-black p-1.5"><Camera size={14} /></span>
     </button>
     <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Upload profile photo" onChange={async event => {
       const file = event.target.files?.[0]; event.target.value = '';
