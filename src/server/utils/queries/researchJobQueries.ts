@@ -67,6 +67,8 @@ const rowsOf = (r: unknown): Record<string, unknown>[] => {
  * this call does nothing, which is what the unique partial index enforces.
  *
  * Returns true when a job is live afterwards, whether or not this call made it.
+ * Source searches only coalesce with work for the same claim; a stale conflict
+ * returns false so the caller can surface the existing recovery action.
  */
 export async function enqueueResearchJob(
     artistId: string,
@@ -78,13 +80,28 @@ export async function enqueueResearchJob(
         const write = async (tx: WriteDb) => {
             // Child work retains the root initiator, outside replaceable progress state.
             const activityId = opts?.parentJobId ? null : await recordArtistActivity(artistId, kind, {}, tx);
-            await tx.execute(sql`
+            const inserted = await tx.execute(sql`
             insert into artist_research_jobs (artist_id, kind, total, state, activity_id)
             values (${artistId}::uuid, ${kind}, ${opts?.total ?? null}, ${JSON.stringify(opts?.state ?? {})}::jsonb,
                 ${opts?.parentJobId ? sql`(select activity_id from artist_research_jobs where id = ${opts.parentJobId}::uuid and artist_id = ${artistId}::uuid)` : sql`${activityId}::uuid`})
-            on conflict do nothing`); };
-        if (opts?.parentJobId) await withResearchJobWrite(artistId, opts.parentJobId, write); else await withScopedArtistWrite(artistId, write);
-        return true;
+            on conflict do nothing returning id`);
+            if (kind !== 'source_search' || rowsOf(inserted).length > 0) return true;
+            // A live job for a revoked/replaced claim cannot satisfy this request.
+            // Keep its original state/initiator and let the worker cancel it.
+            const live = rowsOf(await tx.execute(sql`
+                select state from artist_research_jobs
+                 where artist_id = ${artistId}::uuid and kind = ${kind}
+                   and status in ('pending', 'running')
+                 limit 1`))[0];
+            if (!live) return false;
+            const liveClaim = (live.state as Record<string, unknown> | null)?.claimId;
+            const requestedClaim = opts?.state?.claimId;
+            return (typeof liveClaim === 'string' ? liveClaim : null)
+                === (typeof requestedClaim === 'string' ? requestedClaim : null);
+        };
+        return opts?.parentJobId
+            ? await withResearchJobWrite(artistId, opts.parentJobId, write)
+            : await withScopedArtistWrite(artistId, write);
     } catch (e) {
         if (e instanceof OwnershipChangedError) throw e;
         console.error("[enqueueResearchJob] Error:", e);

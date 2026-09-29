@@ -125,3 +125,27 @@ it('preserves historical user origin when the account is deleted', async () => {
   const result = await queue({ origin: 'research' });
   expect(result.items[0]).toMatchObject({ actorKind: 'user', actorId: null, origin: 'research' });
 });
+
+it.each(['pending', 'running'])('reports a %s source search for another claim as an enqueue failure', async status => {
+  const { enqueueResearchJob, completeResearchJob } = await import('../../queries/researchJobQueries');
+  const { withArtistOperation } = await import('../../artistOperationContext');
+  const claimId = '00000000-0000-4000-8000-000000000004';
+  const staleClaimId = '00000000-0000-4000-8000-000000000005';
+  await client.query("delete from artist_research_jobs where kind = 'source_search'");
+  const old = (await client.query<{ id: string }>("insert into artist_research_jobs (artist_id, kind, status, state) values ($1, 'source_search', $2, $3) returning id", [artist, status, JSON.stringify({ claimId: staleClaimId })])).rows[0]!;
+  const enqueue = () => withArtistOperation(artist, { expectedClaimId: claimId, trigger: 'claim_approval' }, () => enqueueResearchJob(artist, 'source_search', { state: { claimId } }));
+  expect(await enqueue()).toBe(false);
+  const stillOld = (await client.query<{ id: string; state: { claimId: string } }>("select id, state from artist_research_jobs where kind = 'source_search'")).rows;
+  expect(stillOld).toEqual([{ id: old.id, state: { claimId: staleClaimId } }]);
+  await completeResearchJob(old.id);
+  expect(await enqueue()).toBe(true);
+  expect(await enqueue()).toBe(true); // Same claim reuses the live job.
+  expect((await client.query("select id from artist_research_jobs where kind = 'source_search' and status = 'pending'")).rows).toHaveLength(1);
+});
+
+it('does not treat an unrecorded claim as a replacement claim search', async () => {
+  const { enqueueResearchJob } = await import('../../queries/researchJobQueries');
+  await client.query("delete from artist_research_jobs where kind = 'source_search'");
+  expect(await enqueueResearchJob(artist, 'source_search')).toBe(true);
+  expect(await enqueueResearchJob(artist, 'source_search', { state: { claimId: '00000000-0000-4000-8000-000000000004' } })).toBe(false);
+});

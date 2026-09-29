@@ -29,6 +29,10 @@ The follow-up review also requires visible partial success when a claim is appro
 but research cannot be queued, and terminal completion of cancelled jobs. Both are
 implemented with regressions on the attribution branch; check its latest CI/review
 and exact-head preview evidence rather than treating earlier green checks as approval.
+Source-search enqueue also rejects a conflict with a live job for another claim,
+so replacing a claim cannot silently reuse discovery that will be cancelled. A
+PostgreSQL-backed regression covers pending/running stale jobs, unknown claim
+state, same-claim deduplication and enqueue after stale-job completion.
 
 Pete also clarified Admin needs a selected user's contributions across UGC types,
 plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter

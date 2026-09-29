@@ -20,6 +20,8 @@ September 28 — review corrections: durable source-search jobs require a comple
 
 Claim approval and research enqueue have distinct outcomes. An enqueue failure preserves the approved claim and its notifications, but returns a visible Admin warning with the existing Lore search action as the recovery path. A source-search job cancelled by an ownership/authorization change is marked done before reporting cancellation; it cannot remain running for repeated lease reclamation.
 
+A duplicate source-search enqueue succeeds only when the existing live job belongs to the same claim. A stale job for a different or unrecorded claim returns the same recoverable warning rather than silently suppressing the new claim's discovery. The stale job retains its original attribution and is cancelled through the worker's ownership guard.
+
 Admin Lore review shows source origin, account identity when recorded, trigger, Added time and current claim state. Search matches artist, source or contributor. Origin and claim filters combine with search; pagination preserves them. A separate Activity section lists attributable research/content actions with actor and artist search. Both use bounded server queries after a live admin check. The public source object carries only an event ID, never private actor fields; only Admin joins users.
 
 ## Planned source eligibility and review
