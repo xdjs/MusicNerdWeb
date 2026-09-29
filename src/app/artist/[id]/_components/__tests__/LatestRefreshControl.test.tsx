@@ -6,13 +6,15 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mockRefresh }),
 }));
 import LatestRefreshControl from "../LatestRefreshControl";
+import { EditModeContext } from "@/app/_components/EditModeContext";
+const renderEditor = () => render(<EditModeContext.Provider value={{ canEdit: true, isEditing: true, toggle: jest.fn() }}><LatestRefreshControl artistId="artist" /></EditModeContext.Provider>);
 const response = (refresh) => ({ ok: true, json: async () => ({ refresh }) });
 beforeEach(() => {
   jest.clearAllMocks();
   global.fetch = jest.fn().mockResolvedValue(response(null));
 });
-it("offers the same action outside edit mode and coalesces rapid clicks", async () => {
-  render(<LatestRefreshControl artistId="artist" />);
+it("coalesces rapid clicks while editing", async () => {
+  renderEditor();
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
   global.fetch = jest.fn(() => new Promise(() => {}));
   const button = screen.getByRole("button", { name: "Update Latest" });
@@ -38,7 +40,7 @@ it("shows partial failure instead of claiming everything is current", async () =
       },
     }),
   );
-  render(<LatestRefreshControl artistId="artist" />);
+  renderEditor();
   await screen.findByText(/Some sources couldn’t update/);
   fireEvent.click(screen.getByRole("button", { name: "View details" }));
   expect(
@@ -48,7 +50,7 @@ it("shows partial failure instead of claiming everything is current", async () =
   expect(screen.getByRole("button", { name: "Update Latest" })).toBeDisabled();
 });
 it("shows a request failure without a false success message", async () => {
-  render(<LatestRefreshControl artistId="artist" />);
+  renderEditor();
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
   fetch.mockResolvedValueOnce({
     ok: false,
@@ -60,4 +62,20 @@ it("shows a request failure without a false success message", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Only this artist",
   );
+});
+
+it("only mounts the refresh flow in authorized edit mode and restores status on re-entry", async () => {
+  const view = (isEditing: boolean, canEdit = true) => <EditModeContext.Provider value={{ canEdit, isEditing, toggle: jest.fn() }}><LatestRefreshControl artistId="artist" /></EditModeContext.Provider>;
+  const { rerender } = render(view(false));
+  expect(screen.queryByRole("button", { name: "Update Latest" })).not.toBeInTheDocument();
+  expect(fetch).not.toHaveBeenCalled();
+  rerender(view(true));
+  expect(screen.getByRole("button", { name: "Update Latest" })).toBeInTheDocument();
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  rerender(view(false));
+  expect(screen.queryByRole("button", { name: "Update Latest" })).not.toBeInTheDocument();
+  rerender(view(true, false));
+  expect(screen.queryByRole("button", { name: "Update Latest" })).not.toBeInTheDocument();
+  rerender(view(true));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
 });

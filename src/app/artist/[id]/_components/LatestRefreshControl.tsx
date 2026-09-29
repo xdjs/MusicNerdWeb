@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Loader2, Check, AlertCircle } from "lucide-react";
 import {
@@ -13,6 +14,11 @@ export default function LatestRefreshControl({
 }: {
   artistId: string;
 }) {
+  const { canEdit, isEditing } = useContext(EditModeContext);
+  return canEdit && isEditing ? <LatestRefreshStatus artistId={artistId} /> : null;
+}
+
+function LatestRefreshStatus({ artistId }: { artistId: string }) {
   const router = useRouter();
   const [refresh, setRefresh] = useState<LatestRefreshView | null>(null);
   const [error, setError] = useState("");

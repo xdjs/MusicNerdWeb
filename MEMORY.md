@@ -4,6 +4,7 @@ Pete approved an artist/admin **Update Latest** action covering Instagram, In Pr
 Spotify/Deezer releases and published answers. Work is on `codex/manual-latest-refresh`,
 tracked in [#1376](https://github.com/xdjs/MusicNerdWeb/issues/1376); see
 [the contract](docs/latest-refresh.md). Scheduled draft #1377 is deferred.
+Pete’s final preview feedback moved the action inside Edit profile only.
 The new attributed queue job only collects content; it does not rebuild Lore/About.
 The #1365 API cutover must retain the Web worker for source_search/latest_refresh
 until both kinds are ported. Progress writes reauthorize ownership and every connected

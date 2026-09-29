@@ -31,11 +31,13 @@ const artist = "00000000-0000-4000-8000-000000000001",
   user = "00000000-0000-4000-8000-000000000002",
   claim = "00000000-0000-4000-8000-000000000003";
 let request: typeof import("../requestLatestRefresh").requestLatestRefresh;
+let authorize: typeof import("../authorizeLatestRefresh").authorizeLatestRefresh;
 let store: typeof import("../latestRefreshStore").latestRefreshStore;
 let read: typeof import("../getLatestRefresh").getLatestRefresh;
 let context: typeof import("../../artistOperationContext").withArtistOperation;
 beforeAll(async () => {
   jest.resetModules();
+  ({ authorizeLatestRefresh: authorize } = await import("../authorizeLatestRefresh"));
   ({ latestRefreshStore: store } = await import("../latestRefreshStore"));
   ({ getLatestRefresh: read } = await import("../getLatestRefresh"));
   ({ requestLatestRefresh: request } = await import("../requestLatestRefresh"));
@@ -194,4 +196,12 @@ it("invalidates completed results when their initiating admin loses access", asy
   expect((await read(artist))?.id).toBe(id);
   await client.exec("update users set is_admin=false");
   expect(await read(artist)).toBeNull();
+});
+
+it("treats a changed connection before the next worker slice as terminal cancellation", async () => {
+  const id = await call();
+  const { rows: [saved] } = await client.query<{ state: import("@/lib/latest/types").LatestRefreshState; activity_id: string }>("select state,activity_id from artist_research_jobs");
+  await client.exec("update artists set instagram='replacement'");
+  const job = { id, artistId: artist, activityId: saved.activity_id, state: saved.state } as unknown as import("../../queries/researchJobQueries").ResearchJob;
+  await expect(authorize(job)).rejects.toThrow("ownership changed");
 });

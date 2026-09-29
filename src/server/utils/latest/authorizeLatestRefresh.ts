@@ -1,5 +1,5 @@
 import { withArtistOperation } from "../artistOperationContext";
-import { withScopedArtistWrite } from "../queries/ownershipWrites";
+import { OwnershipChangedError, withScopedArtistWrite } from "../queries/ownershipWrites";
 import { sql } from "drizzle-orm";
 import type { ResearchJob } from "../queries/researchJobQueries";
 import type { LatestRefreshState } from "@/lib/latest/types";
@@ -24,7 +24,7 @@ export async function authorizeLatestRefresh(job: ResearchJob) {
     and coalesce(a.instagram,'')=${state.instagram ?? ""} and coalesce(a.inprocess,'')=${state.inprocess ?? ""}
     and coalesce(a.spotify,'')=${state.spotify ?? ""} and coalesce(a.deezer,'')=${state.deezer ?? ""}`);
         if (!rows.length)
-          throw new Error("Connected sources changed; refresh cancelled");
+          throw new OwnershipChangedError();
       }),
   );
 }

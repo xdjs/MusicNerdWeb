@@ -3,7 +3,8 @@
 September 29, 2026 — issue #1376. Pete approved one **Update Latest** action for all
 supported connected sources, replacing the proposed scheduled Instagram rollout.
 
-The artist/admin sees the action in Latest without entering Edit profile. A POST is
+During preview review, Pete requested that this control live inside Edit profile.
+The artist/admin sees the action in Latest only while Edit profile is active. A POST is
 explicit, authenticated and checked against live artist ownership. The request records
 its initiator in Admin activity and creates a `latest_refresh` job in the existing queue.
 A per-artist lock coalesces concurrent requests and enforces a thirty-minute cooldown.
