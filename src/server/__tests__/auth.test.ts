@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/user/setUserName', () => ({ setUserName: jest.fn().mockResolvedValue({ username: 'Aux Bandit', usernameNeedsConfirmation: true }) }));
 
 import { jest } from '@jest/globals';
 
@@ -11,7 +12,6 @@ jest.mock('@/server/utils/queries/userQueries', () => ({
   getUserByPrivyId: jest.fn(),
   createUserFromPrivy: jest.fn(),
   getUserByWallet: jest.fn(),
-  backfillUsernameFromEmail: jest.fn(),
 }));
 
 const mockDbUser = {
@@ -36,7 +36,7 @@ const mockDbUserNoWallet = {
 // Helper to get fresh mocks and authOptions
 async function setup() {
   const { verifyPrivyToken } = await import('@/server/utils/privy');
-  const { getUserByPrivyId, createUserFromPrivy, getUserByWallet, backfillUsernameFromEmail } = await import(
+  const { getUserByPrivyId, createUserFromPrivy, getUserByWallet } = await import(
     '@/server/utils/queries/userQueries'
   );
   const { authOptions } = await import('@/server/auth');
@@ -47,7 +47,7 @@ async function setup() {
     mockGetUserByPrivyId: getUserByPrivyId as jest.Mock,
     mockCreateUserFromPrivy: createUserFromPrivy as jest.Mock,
     mockGetUserByWallet: getUserByWallet as jest.Mock,
-    mockBackfillUsernameFromEmail: backfillUsernameFromEmail as jest.Mock,
+    mockSetUserName: (await import('@/server/utils/user/setUserName')).setUserName as jest.Mock,
   };
 }
 
@@ -216,8 +216,8 @@ describe('Auth - Privy Credentials Provider', () => {
       expect(result.needsLegacyLink).toBe(false);
     });
 
-    it('backfills username from email when user has no username', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+    it('assigns a public generated name when user has no username', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockSetUserName } =
         await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
@@ -232,12 +232,27 @@ describe('Auth - Privy Credentials Provider', () => {
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
-      expect(mockBackfillUsernameFromEmail).toHaveBeenCalledWith('db-user-uuid', 'user@example.com');
-      expect(result.username).toBe('user@example.com');
+      expect(mockSetUserName).toHaveBeenCalledWith('db-user-uuid');
+      expect(result.username).toBe('Aux Bandit');
+    });
+
+    it.each([null, 'user@example.com', mockDbUser.wallet])('keeps verified login usable and retries after allocation failure (%s)', async username => {
+      const {authOptions,mockVerifyPrivyToken,mockGetUserByPrivyId,mockSetUserName}=await setup();
+      mockVerifyPrivyToken.mockResolvedValue({userId:mockDbUser.privyUserId,email:mockDbUser.email,linkedAccounts:[]});
+      mockGetUserByPrivyId.mockResolvedValue({...mockDbUser,username});
+      mockSetUserName.mockRejectedValueOnce(new Error('Transient write failure'));
+      const user=await getAuthorize(authOptions)({authToken:'valid-token'});
+      expect(user).toMatchObject({id:mockDbUser.id,username:null});
+      const token=await authOptions.callbacks.jwt({token:{sub:user.id},user});
+      expect(token.userNamePending).toBe(true);
+      const refreshed=await authOptions.callbacks.jwt({token});
+      expect(refreshed.name).toBe('Aux Bandit');
+      expect(refreshed.userNamePending).toBe(false);
+      expect(mockSetUserName).toHaveBeenCalledTimes(2);
     });
 
     it('does not backfill username when user already has one', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockSetUserName } =
         await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
@@ -249,12 +264,12 @@ describe('Auth - Privy Credentials Provider', () => {
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
-      expect(mockBackfillUsernameFromEmail).not.toHaveBeenCalled();
+      expect(mockSetUserName).not.toHaveBeenCalled();
       expect(result.username).toBe('testuser');
     });
 
-    it('does not backfill username when user has no email', async () => {
-      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockBackfillUsernameFromEmail } =
+    it('assigns a generated name without requiring email', async () => {
+      const { authOptions, mockVerifyPrivyToken, mockGetUserByPrivyId, mockSetUserName } =
         await setup();
       mockVerifyPrivyToken.mockResolvedValue({
         userId: 'did:privy:user123',
@@ -270,8 +285,8 @@ describe('Auth - Privy Credentials Provider', () => {
       const authorize = getAuthorize(authOptions);
       const result = await authorize({ authToken: 'valid-token' });
 
-      expect(mockBackfillUsernameFromEmail).not.toHaveBeenCalled();
-      expect(result.username).toBeNull();
+      expect(mockSetUserName).toHaveBeenCalledWith('db-user-uuid');
+      expect(result.username).toBe('Aux Bandit');
     });
   });
 });
@@ -330,6 +345,18 @@ describe('Auth - JWT Callback', () => {
 
     expect(mockGetUserByPrivyId).not.toHaveBeenCalled();
     expect(mockGetUserByWallet).not.toHaveBeenCalled();
+  });
+
+  it('still refreshes account flags and hides private names when allocation fails during refresh', async () => {
+    const {authOptions,mockGetUserByPrivyId,mockSetUserName}=await setup();
+    mockGetUserByPrivyId.mockResolvedValue({...mockDbUser,username:mockDbUser.email,isAdmin:false});
+    mockSetUserName.mockRejectedValueOnce(new Error('Transient write failure'));
+    const token={sub:mockDbUser.id,privyUserId:mockDbUser.privyUserId,name:mockDbUser.email,isAdmin:true,isWhiteListed:false,isSuperAdmin:false,isHidden:true,userNamePending:true,lastRefresh:Date.now()};
+    const result=await authOptions.callbacks.jwt({token});
+    expect(result.isAdmin).toBe(false);
+    expect(result.isHidden).toBe(false);
+    expect(result.name).toBeUndefined();
+    expect(result.userNamePending).toBe(true);
   });
 
   it('refreshes from DB when token is older than 5 minutes', async () => {

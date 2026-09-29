@@ -47,7 +47,7 @@ describe('Leaderboard API', () => {
         expect(response.status).toBe(200);
 
         const data = await response.json();
-        expect(data).toEqual(mockLeaderboard);
+        expect(data).toEqual(mockLeaderboard.map(entry => ({ ...entry, wallet: null, email: null })));
     });
 
     it('should handle errors gracefully', async () => {

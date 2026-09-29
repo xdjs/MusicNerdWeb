@@ -1,3 +1,4 @@
+import { getUserDisplayName } from '@/lib/user/getUserDisplayName';
 import { NextResponse, NextRequest } from "next/server";
 import { getLeaderboard } from "@/server/utils/queries/getLeaderboard";
 import { getLeaderboardInRange } from "@/server/utils/queries/getLeaderboardInRange";
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest | Request) {
         } else {
             leaderboard = await getLeaderboard();
         }
+
+        // Query helpers also serve the Admin audit view. Project a safe public
+        // response here, including when automatic name assignment is deferred.
+        leaderboard = leaderboard.map(entry => ({
+            ...entry, username: getUserDisplayName(entry), email: null, wallet: null,
+        }));
 
         // Pagination parameters
         const pageParam = parseInt(searchParams.get("page") ?? "", 10);

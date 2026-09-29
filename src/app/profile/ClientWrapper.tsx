@@ -13,6 +13,8 @@ type User = {
   wallet: string | null;
   email: string | null;
   username: string | null;
+  usernameNeedsConfirmation: boolean;
+  usernamePromptedAt: string | null;
   privyUserId: string | null;
   isAdmin: boolean;
   isWhiteListed: boolean;

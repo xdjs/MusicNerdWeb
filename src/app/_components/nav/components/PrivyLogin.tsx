@@ -278,17 +278,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       }
     }, [authenticated, status, login, privyLogout, toast]);
 
-    // Show legacy account modal for new users (once per login session)
-    useEffect(() => {
-      if (
-        session?.user?.needsLegacyLink &&
-        status === 'authenticated' &&
-        typeof window !== 'undefined' &&
-        !sessionStorage.getItem(LEGACY_MODAL_SHOWN_KEY)
-      ) {
-        setShowLegacyModal(true);
-      }
-    }, [session?.user?.needsLegacyLink, status]);
+    // UserNameSetup now owns the first-login welcome. Wallet linking remains
+    // available explicitly from the account menu without a second automatic dialog.
 
     // Fetch pending UGC count for admins
     const fetchPendingUGC = useCallback(async () => {

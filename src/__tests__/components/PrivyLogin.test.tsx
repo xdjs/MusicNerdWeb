@@ -302,7 +302,7 @@ describe('PrivyLogin', () => {
   });
 
   describe('Legacy account modal', () => {
-    it('auto-shows modal when needsLegacyLink is true', async () => {
+    it('does not stack a wallet-link modal over user name setup', async () => {
       mockPrivyState.authenticated = true;
       mockSessionData = {
         user: {
@@ -317,7 +317,7 @@ describe('PrivyLogin', () => {
       render(<PrivyLogin />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('legacy-modal')).toBeInTheDocument();
+        expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
       });
     });
 
@@ -358,7 +358,7 @@ describe('PrivyLogin', () => {
       expect(screen.queryByTestId('legacy-modal')).not.toBeInTheDocument();
     });
 
-    it('clears session flag on logout so modal shows again', async () => {
+    it('keeps manual wallet linking available and clears its session flag on logout', async () => {
       mockPrivyState.authenticated = true;
       mockSessionData = {
         user: {
@@ -372,7 +372,7 @@ describe('PrivyLogin', () => {
 
       render(<PrivyLogin />);
 
-      // Modal should auto-show
+      fireEvent.click(screen.getByText('Link Wallet'));
       await waitFor(() => {
         expect(screen.getByTestId('legacy-modal')).toBeInTheDocument();
       });

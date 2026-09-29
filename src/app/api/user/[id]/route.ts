@@ -1,3 +1,4 @@
+import { validateUserName } from '@/lib/user/validateUserName';
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth-helpers";
 import { getUserById, updateUsername } from "@/server/utils/queries/userQueries";
@@ -65,31 +66,17 @@ export async function PATCH(
 
     const trimmed = typeof username === "string" ? username.trim() : "";
 
-    if (trimmed.length === 0) {
-      return Response.json(
-        { status: "error", message: "Username is required" },
-        { status: 400 }
-      );
-    }
-
-    if (trimmed.length > 50) {
-      return Response.json(
-        { status: "error", message: "Username must be 50 characters or less" },
-        { status: 400 }
-      );
-    }
-
-    if (/[\x00-\x1F\x7F]/.test(trimmed)) {
-      return Response.json(
-        { status: "error", message: "Username contains invalid characters" },
-        { status: 400 }
-      );
-    }
+    const invalid = validateUserName(username);
+    if (invalid) return Response.json({ status: 'error', message: invalid }, { status: 400 });
 
     await updateUsername(id, trimmed);
 
-    return Response.json({ status: "success", message: "Username updated" });
+    return Response.json({ status: "success", message: "User name updated" });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('email or wallet')) return Response.json({ status: 'error', message: error.message }, { status: 400 });
+    if (error instanceof Error && error.message.includes('already taken')) {
+      return Response.json({ status: 'error', message: error.message }, { status: 409 });
+    }
     console.error("[API] update username error", error);
     return Response.json(
       { status: "error", message: "Internal server error" },

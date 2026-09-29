@@ -180,7 +180,7 @@ describe('Privy User Query Functions', () => {
       expect(mockValuesFn).toHaveBeenCalledWith({
         privyUserId: 'did:privy:new',
         email: 'new@test.com',
-        username: 'new@test.com',
+        username: null,
         isWhiteListed: false,
         isAdmin: false,
         isSuperAdmin: false,

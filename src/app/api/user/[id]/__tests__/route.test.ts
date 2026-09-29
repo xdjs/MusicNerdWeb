@@ -211,7 +211,7 @@ describe("PATCH /api/user/[id]", () => {
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.status).toBe("error");
-    expect(data.message).toBe("Username is required");
+    expect(data.message).toBe("User name is required.");
   });
 
   it("returns 400 when username is empty string", async () => {
@@ -238,7 +238,7 @@ describe("PATCH /api/user/[id]", () => {
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.status).toBe("error");
-    expect(data.message).toBe("Username must be 50 characters or less");
+    expect(data.message).toBe("User name must be 50 characters or less.");
   });
 
   it("returns 400 when username contains control characters", async () => {
@@ -251,7 +251,7 @@ describe("PATCH /api/user/[id]", () => {
     );
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.message).toBe("Username contains invalid characters");
+    expect(data.message).toBe("User name contains invalid characters.");
   });
 
   it("accepts a username at exactly 50 characters", async () => {
@@ -291,6 +291,23 @@ describe("PATCH /api/user/[id]", () => {
       createParams("user-1")
     );
     expect(mockUpdateUsername).toHaveBeenCalledWith("user-1", "padded");
+  });
+
+  it("returns 409 for a name reserved by another account", async () => {
+    const { PATCH, mockRequireAuth, mockUpdateUsername } = await setup();
+    mockRequireAuth.mockResolvedValue(authedAs("user-1"));
+    mockUpdateUsername.mockRejectedValue(new Error("That user name is already taken. Try another."));
+    const response = await PATCH(createRequest("user-1", { username: "Aux Bandit" }), createParams("user-1"));
+    expect(response.status).toBe(409);
+    expect((await response.json()).message).toContain("already taken");
+  });
+
+  it.each(["private@example.test", "0x" + "a".repeat(40)])("rejects a private identifier: %s", async username => {
+    const { PATCH, mockRequireAuth, mockUpdateUsername } = await setup();
+    mockRequireAuth.mockResolvedValue(authedAs("user-1"));
+    const response = await PATCH(createRequest("user-1", { username }), createParams("user-1"));
+    expect(response.status).toBe(400);
+    expect(mockUpdateUsername).not.toHaveBeenCalled();
   });
 
   it("returns 500 when updateUsername throws", async () => {
