@@ -1,3 +1,4 @@
+import { needsUserName } from '@/lib/user/needsUserName';
 import { setUserName } from '@/server/utils/user/setUserName';
 import { db } from "@/server/db/drizzle";
 import { eq, ilike, inArray, sql } from "drizzle-orm";
@@ -386,6 +387,8 @@ export async function mergeAccounts(
 
         // Perform all operations in a single transaction to prevent TOCTOU race conditions
         const result = await db.transaction(async (tx) => {
+            // Match the name reservation lock order before taking account row locks.
+            await tx.execute(sql`select pg_advisory_xact_lock(1387)`);
             // Lock both accounts in stable order before reading or changing either.
             // Bookmark writes take the same lock, so a concurrent save cannot be lost.
             await lockBookmarkUsers(tx, [currentUserId, legacyUserId]);
@@ -410,16 +413,28 @@ export async function mergeAccounts(
                 return { success: false as const, error: 'Legacy account is already linked to another user' };
             }
 
-            // Clear privyUserId from placeholder first to avoid unique constraint violation
+            // A name explicitly chosen in the new welcome flow wins over the
+            // restored account's old name. Unconfirmed generated names do not.
+            const keepCurrentName = currentUser.usernameNeedsConfirmation === false && !needsUserName(currentUser);
+            const nameUpdate = keepCurrentName ? {
+                username: currentUser.username,
+                usernameNeedsConfirmation: false,
+                usernamePromptedAt: currentUser.usernamePromptedAt,
+            } : { usernamePromptedAt: legacyUser.usernamePromptedAt ?? currentUser.usernamePromptedAt };
+
+            // Release unique identifiers inside this same transaction before
+            // moving them to the surviving legacy account. Other allocators wait
+            // on the name lock; any failure rolls the release back too.
             await tx
                 .update(users)
-                .set({ privyUserId: null })
+                .set({ privyUserId: null, ...(keepCurrentName ? { username: null } : {}) })
                 .where(eq(users.id, currentUserId));
 
             // Update legacy user with Privy ID and merged data
             await tx
                 .update(users)
                 .set({
+                    ...nameUpdate,
                     privyUserId: currentUser.privyUserId,
                     email: currentUser.email || legacyUser.email,
                     acceptedUgcCount: (legacyUser.acceptedUgcCount || 0) +

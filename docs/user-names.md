@@ -54,3 +54,13 @@ The backfill does not open prompts itself; the next signed-in visit handles the 
 The prompt marker is stored before showing the dialog, so a lost response can skip the
 one-time popup; the profile reminder still provides access. Failure to load or save never
 blocks navigation or removes a contribution.
+
+When Link Wallet restores a legacy account, a confirmed name chosen on the current
+account moves atomically to the surviving account, including its confirmation state.
+An unconfirmed generated name never replaces the legacy account's chosen name.
+A prior dismissal is carried over so a merge does not repeat the welcome popup.
+
+Separate pre-existing merge limitation: deleting the placeholder account currently clears
+its activity-event actor reference. Preserving those Lore identities through account deletion
+is tracked in [#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389). Ordinary name edits keep
+the same account ID and update past credits without this merge limitation.
