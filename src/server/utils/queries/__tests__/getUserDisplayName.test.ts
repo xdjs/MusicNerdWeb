@@ -6,14 +6,14 @@ describe("getUserDisplayName", () => {
             .toBe("alice");
     });
 
-    it("falls back to email prefix when username is null", () => {
+    it("uses Anonymous instead of an email prefix when username is null", () => {
         expect(getUserDisplayName({ username: null, email: "fan@example.com", wallet: "0x1" }))
-            .toBe("fan");
+            .toBe("Anonymous");
     });
 
-    it("falls back to wallet when username and email are null", () => {
+    it("uses Anonymous instead of a wallet when username is null", () => {
         expect(getUserDisplayName({ username: null, email: null, wallet: "0xABC" }))
-            .toBe("0xABC");
+            .toBe("Anonymous");
     });
 
     it('falls back to "Anonymous" when all fields are null', () => {
@@ -21,17 +21,27 @@ describe("getUserDisplayName", () => {
             .toBe("Anonymous");
     });
 
-    it("extracts prefix before @ from email", () => {
+    it("does not derive a public name from email", () => {
         expect(getUserDisplayName({ username: null, email: "hello.world@gmail.com", wallet: null }))
-            .toBe("hello.world");
+            .toBe("Anonymous");
     });
 
     it("treats empty-string username as falsy", () => {
         expect(getUserDisplayName({ username: "", email: "fb@test.com", wallet: null }))
-            .toBe("fb");
+            .toBe("Anonymous");
     });
 
     it("handles undefined fields", () => {
         expect(getUserDisplayName({})).toBe("Anonymous");
     });
+});
+
+// These database values can remain while optional allocation is deferred.
+it.each([
+    { username: 'listener@example.test' },
+    { username: '  listener@example.test  ', email: 'listener@example.test' },
+    { username: ' 0xAbC ', wallet: '0xabc' },
+    { username: '   ', email: 'listener@example.test', wallet: '0xabc' },
+])('does not expose a stored private identifier: %j', user => {
+    expect(getUserDisplayName(user)).toBe('Anonymous');
 });

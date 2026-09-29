@@ -1,3 +1,4 @@
+import { getUserDisplayName as publicUserName } from '@/lib/user/getUserDisplayName';
 import { needsUserName } from '@/lib/user/needsUserName';
 import { setUserName } from '@/server/utils/user/setUserName';
 import { db } from "@/server/db/drizzle";
@@ -120,10 +121,9 @@ export async function searchForUsersByWallet(wallet: string) {
     }
 }
 
-/** Resolve a user's display name for Discord notifications.
- *  Priority: username → email prefix → wallet → "Anonymous" */
-export function getUserDisplayName(user: { username?: string | null; email?: string | null; wallet?: string | null }): string {
-    return user.username || user.email?.split("@")[0] || user.wallet || "Anonymous";
+// Preserve existing callers while sharing the pure public-name policy.
+export function getUserDisplayName(user: Parameters<typeof publicUserName>[0]): string {
+    return publicUserName(user);
 }
 
 // Names are reserved case-insensitively and explicit saves confirm generated names.

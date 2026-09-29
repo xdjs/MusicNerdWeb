@@ -70,3 +70,9 @@ failure), authentication still succeeds with no public name in the session. Neve
 email or wallet as its public-name fallback. An internal pending JWT marker retries on the
 next authenticated session request; role/account refresh continues even if allocation fails.
 The welcome prompt becomes available once a generated name is saved successfully.
+
+Public contribution notifications and leaderboard responses reject stored email/wallet-backed
+names too, because the database row may still contain one while allocation is deferred.
+They use “Anonymous” until a public name is saved. The public leaderboard also omits private
+email/wallet values (returns null for those legacy fields); the Admin audit query is unchanged.
+Lore keeps its existing “Contributor unknown” fallback for unresolved public identities.

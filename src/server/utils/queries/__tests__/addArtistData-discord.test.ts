@@ -128,22 +128,22 @@ describe("addArtistData – Discord display name", () => {
         expect(discordMessageArg()).toMatch(/^swiftie99 added/);
     });
 
-    it("falls back to email prefix when username is null", async () => {
+    it("uses Anonymous while name allocation is pending", async () => {
         await runWithUser({
             username: null,
             email: "fan@example.com",
             wallet: "0xABC",
         });
-        expect(discordMessageArg()).toMatch(/^fan added/);
+        expect(discordMessageArg()).toMatch(/^Anonymous added/);
     });
 
-    it("falls back to wallet when username and email are null", async () => {
+    it("does not use the wallet as a public name", async () => {
         await runWithUser({
             username: null,
             email: null,
             wallet: "0xABC",
         });
-        expect(discordMessageArg()).toMatch(/^0xABC added/);
+        expect(discordMessageArg()).toMatch(/^Anonymous added/);
     });
 
     it('falls back to "Anonymous" when all fields are null', async () => {
@@ -155,20 +155,29 @@ describe("addArtistData – Discord display name", () => {
         expect(discordMessageArg()).toMatch(/^Anonymous added/);
     });
 
-    it("uses email prefix (before @) not full address", async () => {
+    it("does not derive a name from email", async () => {
         await runWithUser({
             username: null,
             email: "hello.world@gmail.com",
         });
-        expect(discordMessageArg()).toMatch(/^hello\.world added/);
+        expect(discordMessageArg()).toMatch(/^Anonymous added/);
     });
 
-    it("skips empty-string username and falls back to email", async () => {
+    it("uses Anonymous for a blank name", async () => {
         await runWithUser({
             username: "",
             email: "fallback@test.com",
         });
-        expect(discordMessageArg()).toMatch(/^fallback added/);
+        expect(discordMessageArg()).toMatch(/^Anonymous added/);
+    });
+
+    it.each([
+        { username: 'private@example.test', email: 'private@example.test' },
+        { username: ' 0xAbC ', wallet: '0xabc' },
+    ])('suppresses private stored names in real contribution notifications', async user => {
+        await runWithUser(user);
+        expect(discordMessageArg()).toMatch(/^Anonymous added/);
+        expect(discordMessageArg()).not.toContain(user.username);
     });
 
     it("does not send a Discord message when user is null", async () => {
