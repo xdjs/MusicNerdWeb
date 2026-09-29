@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from '@/server/db/drizzle';
 import { sql } from 'drizzle-orm';
 import { artistClaims } from '@/server/db/schema';
@@ -5,7 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { OwnershipChangedError } from './ownershipWrites';
 
 /** A request arriving during a rebuild must be processed after that snapshot. */
-export async function queueLoreRefresh(artistId: string, expectedClaimId: string | null, opts?: { manual: boolean }): Promise<boolean> {
+export async function queueLoreRefresh(artistId: string, expectedClaimId: string | null, opts?: { manual?: boolean; userId?: string; trigger?: string }): Promise<boolean> {
     return db.transaction(async tx => {
     await tx.execute(sql`select id from artists where id = ${artistId}::uuid for update`);
     const claim = await tx.query.artistClaims.findFirst({ where: and(eq(artistClaims.artistId, artistId), eq(artistClaims.status, 'approved')) });
@@ -21,9 +22,10 @@ export async function queueLoreRefresh(artistId: string, expectedClaimId: string
             limit 1`);
         if (recent.length > 0) return false;
     }
+    const activityId = await recordArtistActivity(artistId, 'lore_refresh', { userId: opts?.userId, trigger: opts?.trigger }, tx);
     await tx.execute(sql`
-        insert into artist_research_jobs (artist_id, kind, state)
-        values (${artistId}::uuid, 'lore_refresh', ${JSON.stringify({ claimId: expectedClaimId })}::jsonb)
+        insert into artist_research_jobs (artist_id, kind, state, activity_id)
+        values (${artistId}::uuid, 'lore_refresh', ${JSON.stringify({ claimId: expectedClaimId })}::jsonb, ${activityId}::uuid)
         on conflict (artist_id, kind) where status in ('pending', 'running') do update
         set state = jsonb_set(${JSON.stringify({ claimId: expectedClaimId })}::jsonb,
                 '{requestedAt}', to_jsonb(clock_timestamp()::text)),

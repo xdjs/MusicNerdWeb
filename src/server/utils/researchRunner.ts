@@ -1,3 +1,4 @@
+import { runSourceSearchJob } from './activity/runSourceSearchJob';
 /**
  * One slice of research, per invocation.
  *
@@ -66,14 +67,21 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
 
     const deadline = Date.now() + Math.max(0, opts.budgetMs - PERSIST_RESERVE_MS);
     try {
-        const result = job.kind === "lore_refresh"
+        const result = job.kind === "source_search"
+            ? await runSourceSearchJob(job, deadline)
+            : job.kind === "lore_refresh"
             ? await runLoreRefresh(job, deadline)
             : job.kind === "social_ingest"
             ? await runIngest(job, deadline)
             : await runExtraction(job, deadline);
         return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, ...result };
     } catch (e) {
-        if (e instanceof OwnershipChangedError) return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
+        if (e instanceof OwnershipChangedError) {
+            // Cancellation is terminal. Leaving the row running would reclaim it
+            // after every lease expiry and block replacement work of this kind.
+            await completeResearchJob(job.id);
+            return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, done: true, progress: 'Research cancelled after ownership changed' };
+        }
         const message = e instanceof Error ? e.message : String(e);
         console.error(`[research] ${job.kind} failed for ${job.artistId}:`, message);
         await failResearchJob(job.id, message);

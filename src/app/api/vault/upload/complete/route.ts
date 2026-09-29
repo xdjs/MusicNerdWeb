@@ -24,8 +24,8 @@ async function cleanupSavedUpload(path: string) {
     catch (error) { console.error('[vault/upload/complete] Staging cleanup failed', error); }
 }
 
-async function refreshAfterUpload(artistId: string, expectedClaimId: string | null): Promise<string | undefined> {
-    try { await queueLoreRefresh(artistId, expectedClaimId); }
+async function refreshAfterUpload(artistId: string, expectedClaimId: string | null, userId: string): Promise<string | undefined> {
+    try { await queueLoreRefresh(artistId, expectedClaimId, { userId, trigger: 'upload' }); }
     catch (error) {
         console.error('[vault/upload/complete] Saved upload; Lore enqueue failed', error);
         return 'File saved. Lore refresh could not start; use Look again to retry. Do not upload the file again.';
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         const storage = getSupabaseAdmin().storage;
         const prior = await getVaultUploadByPath(ticket.artistId, ticket.path);
         if (prior) {
-            const warning = await refreshAfterUpload(ticket.artistId, expectedClaimId);
+            const warning = await refreshAfterUpload(ticket.artistId, expectedClaimId, session.user.id);
             await cleanupSavedUpload(ticket.path);
             return Response.json({ source: prior, warning });
         }
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
         const source = inserted ?? await getVaultUploadByPath(ticket.artistId, ticket.path);
         if (!source) throw new Error('Upload source was not saved');
         unpublishedPath = undefined;
-        const refreshWarning = await refreshAfterUpload(ticket.artistId, expectedClaimId);
+        const refreshWarning = await refreshAfterUpload(ticket.artistId, expectedClaimId, session.user.id);
         await cleanupSavedUpload(ticket.path);
         await trackServerEvent('profile_edit', { action: 'vault_upload', target: ticket.type });
         return Response.json({ source, warning: [refreshWarning, ticket.type === 'application/pdf' && !extractedText
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
                 // Never delete a committed upload on an ambiguous network failure.
                 const saved = await getVaultUploadByPath(uploadArtistId, unpublishedPath);
                 if (saved && !(error instanceof OwnershipChangedError)) {
-                    const warning = await refreshAfterUpload(uploadArtistId, uploadClaimId);
+                    const warning = await refreshAfterUpload(uploadArtistId, uploadClaimId, session.user.id);
                     await cleanupSavedUpload(unpublishedPath);
                     return Response.json({ source: saved, warning });
                 }

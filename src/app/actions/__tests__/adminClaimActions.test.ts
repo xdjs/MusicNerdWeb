@@ -15,8 +15,8 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     getClaimById: jest.fn(),
     revokeApprovedClaim: jest.fn(),
 }));
-jest.mock("@/server/utils/queries/vaultWebSearch", () => ({
-    searchAndPopulateVault: jest.fn().mockResolvedValue(0),
+jest.mock("@/server/utils/queries/researchJobQueries", () => ({
+    enqueueResearchJob: jest.fn().mockResolvedValue(true),
 }));
 jest.mock("@/server/utils/queries/discord", () => ({
     sendDiscordMessage: jest.fn().mockResolvedValue(undefined),
@@ -44,7 +44,7 @@ describe("adminClaimActions", () => {
         const { getServerAuthSession } = await import("@/server/auth");
         const { getUserById } = await import("@/server/utils/queries/userQueries");
         const { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById, revokeApprovedClaim } = await import("@/server/utils/queries/dashboardQueries");
-        const { searchAndPopulateVault } = await import("@/server/utils/queries/vaultWebSearch");
+        const { enqueueResearchJob } = await import("@/server/utils/queries/researchJobQueries");
         const supabaseMod = await import("@/server/lib/supabase");
         const storageMocks = (supabaseMod as any).__storageMocks;
         const { approveClaimAction, rejectClaimAction, revokeClaimAction, getAdminAllClaims } = await import("../adminClaimActions");
@@ -58,7 +58,7 @@ describe("adminClaimActions", () => {
             getAllClaims: getAllClaims as jest.Mock,
             getClaimById: getClaimById as jest.Mock,
             revokeApprovedClaim: revokeApprovedClaim as jest.Mock,
-            searchAndPopulateVault: searchAndPopulateVault as jest.Mock,
+            enqueueResearchJob: enqueueResearchJob as jest.Mock,
             storageList: storageMocks.list as jest.Mock,
             storageRemove: storageMocks.remove as jest.Mock,
             storageFrom: storageMocks.from as jest.Mock,
@@ -80,6 +80,20 @@ describe("adminClaimActions", () => {
     }
 
     describe("approveClaimAction", () => {
+        it.each(['false', 'throw'])('reports approval separately when research enqueue returns %s', async failure => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            if (failure === 'throw') m.enqueueResearchJob.mockRejectedValue(new Error('queue unavailable'));
+            else m.enqueueResearchJob.mockResolvedValue(false);
+            const result = await m.approveClaimAction('c1');
+            expect(result.success).toBe(true);
+            expect(result.warning).toContain('Claim approved');
+            expect(result.warning).toContain('Search web for sources');
+            const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
+            expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
+        });
+
         it("approves a claim and triggers vault population", async () => {
             const m = await setup();
             mockAdmin(m);
@@ -88,7 +102,7 @@ describe("adminClaimActions", () => {
             const result = await m.approveClaimAction("c1");
             expect(result.success).toBe(true);
             expect(m.approveClaim).toHaveBeenCalledWith("c1");
-            expect(m.searchAndPopulateVault).toHaveBeenCalledWith("a1");
+            expect(m.enqueueResearchJob).toHaveBeenCalledWith("a1", "source_search", { state: { claimId: "c1" } });
         });
 
         it("rejects non-admin", async () => {

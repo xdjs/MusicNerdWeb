@@ -95,6 +95,16 @@ describe("artistBioQuery (unified sourcing flow)", () => {
   }
 
   // ------- generateArtistBio -------
+  it.each([undefined, { userId: 'editor', expectedClaimId: null }])('identifies the automatic or editor discovery trigger (%j)', async auth => {
+    const { generateArtistBio, getArtistById } = await setup();
+    getArtistById.mockResolvedValue(artist({ bio: null }));
+    await generateArtistBio('artist-1', auth);
+    expect(mockSearchAndPopulate).toHaveBeenCalledWith('artist-1', expect.objectContaining({
+      actorKind: auth ? 'user' : 'system',
+      ownership: expect.objectContaining({ trigger: auth ? 'about_editor' : 'automatic_about', ...(auth ?? {}) }),
+    }));
+  });
+
   it('retains initiating editor authorization through regeneration', async () => {
     const { regenerateArtistBio, getArtistById, persistArtistBio } = await setup();
     getArtistById.mockResolvedValue(artist({ bio: null }));
@@ -185,7 +195,9 @@ describe("artistBioQuery (unified sourcing flow)", () => {
 
     await generateArtistBio("a3");
 
-    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3", { ownership: { expectedClaimId: null } });
+    expect(mockSearchAndPopulate).toHaveBeenCalledWith("a3", {
+      ownership: { expectedClaimId: null, trigger: 'automatic_about' }, actorKind: 'system',
+    });
   });
 
   it("uses approved vault sources and does NOT re-run discovery", async () => {

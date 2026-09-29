@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, or, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
@@ -341,14 +342,17 @@ async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWrite
 
 export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected", expectedStatus?: "pending") {
     try {
-        const [updated] = await withVaultSourceWrite(sourceId, async (tx, predicate) => tx
-            .update(artistVaultSources)
+        const updated = await withVaultSourceWrite(sourceId, async (tx, predicate) => {
+            const [row] = await tx.update(artistVaultSources)
             .set({
                 status,
                 updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
             })
             .where(expectedStatus ? and(predicate, eq(artistVaultSources.status, expectedStatus)) : predicate)
-            .returning());
+            .returning();
+            if (row) await recordArtistActivity(row.artistId, `source_${status}`, { sourceId }, tx);
+            return row;
+        });
         return updated;
     } catch (e) {
         console.error("[updateVaultSourceStatus] Error:", e);
@@ -356,67 +360,7 @@ export async function updateVaultSourceStatus(sourceId: string, status: "approve
     }
 }
 
-export async function insertVaultSource(data: {
-    artistId: string;
-    url: string;
-    title?: string;
-    snippet?: string;
-    type?: string;
-    status?: "pending" | "approved" | "rejected";
-    fileName?: string;
-    fileSize?: number;
-    filePath?: string;
-    contentType?: string;
-    extractedText?: string | null;
-    ogImage?: string | null;
-    podcastEpisodeKey?: string | null;
-    podcastShowTitle?: string | null;
-    podcastEpisodeTitle?: string | null;
-    /** ISO date (YYYY-MM-DD) the source says it was published, or null. */
-    publishedAt?: string | null;
-}, authorization?: { userId: string; expectedClaimId: string | null }) {
-    try {
-        const url = canonicalizeLoreUrl(data.url) ?? data.url;
-        const write = async (writer: WriteDb) => {
-        // onConflictDoNothing pairs with the unique index on (artist_id, url)
-        // added in 0014. Dedup used to be a read-then-write with nothing
-        // underneath, so two overlapping discovery runs both read "absent" and
-        // both inserted — a real artist's vault held the same interview twice.
-        const [source] = await writer
-            .insert(artistVaultSources)
-            .values({
-                artistId: data.artistId,
-                url,
-                title: data.title,
-                snippet: data.snippet,
-                type: data.type ?? "article",
-                status: data.status ?? "pending",
-                fileName: data.fileName,
-                fileSize: data.fileSize,
-                filePath: data.filePath,
-                contentType: data.contentType,
-                extractedText: data.extractedText,
-                ogImage: data.ogImage,
-                podcastEpisodeKey: data.podcastEpisodeKey,
-                podcastShowTitle: data.podcastShowTitle,
-                podcastEpisodeTitle: data.podcastEpisodeTitle,
-                publishedAt: data.publishedAt ?? null,
-            })
-            .onConflictDoNothing({ target: [artistVaultSources.artistId, artistVaultSources.url] })
-            .returning();
-        // Undefined when the row already existed — a concurrent run won the
-        // race. Callers treat a missing row as "nothing new to enrich", which is
-        // correct: the source is present either way.
-        return source;
-        };
-        return authorization
-            ? await withArtistUploadWrite(data.artistId, authorization.userId, authorization.expectedClaimId, write)
-            : await withScopedArtistWrite(data.artistId, write);
-    } catch (e) {
-        console.error("[insertVaultSource] Error:", e);
-        throw e;
-    }
-}
+export { insertVaultSource } from './insertVaultSource';
 
 export async function deleteVaultSource(sourceId: string) {
     try {

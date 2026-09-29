@@ -218,6 +218,20 @@
       "when": 1790437755886,
       "tag": "0030_podcast_episode_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790617885973,
+      "tag": "0031_lore_attribution",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790620645012,
+      "tag": "0032_ugc_submission_origin",
+      "breakpoints": true
     }
   ]
 }

@@ -1065,12 +1065,12 @@ export async function* runOnboardingTurn(artistId: string, turn: ClientTurn, own
     const iterator = runOnboardingTurnInternal(artistId, turn, ownership);
     try {
         while (true) {
-            const result = await withArtistOperation(artistId, ownership, () => iterator.next());
+            const result = await withArtistOperation(artistId, { ...ownership, trigger: 'onboarding' }, () => iterator.next());
             if (result.done) return;
             yield result.value;
         }
     } finally {
-        await withArtistOperation(artistId, ownership, () => iterator.return(undefined));
+        await withArtistOperation(artistId, { ...ownership, trigger: 'onboarding' }, () => iterator.return(undefined));
     }
 }
 

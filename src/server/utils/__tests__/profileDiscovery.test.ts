@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 // Tier 4 — real web search (Tavily), replacing what used to be a per-platform
 // Gemini call. Defaults to "no results" so any test that doesn't care about

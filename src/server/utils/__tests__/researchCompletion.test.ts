@@ -18,6 +18,13 @@ const saveJobProgress = jest.fn(async () => {});
 const saveJobState = jest.fn(async () => {});
 const failJobAtCursor = jest.fn(async () => {});
 const claimResearchJob = jest.fn();
+const searchWeb = jest.fn();
+jest.mock('@/server/utils/webSearch', () => ({ webSearch: (...args) => searchWeb(...args) }));
+jest.mock('@/server/utils/musicBrainzLinks', () => ({ fetchMusicBrainzLinks: jest.fn(async () => null) }));
+jest.mock('@/server/utils/queries/artistQueries', () => ({
+    ...jest.requireActual('@/server/utils/queries/artistQueries'),
+    getArtistById: jest.fn(async () => ({ id: 'artist-1', name: 'Artist' })),
+}));
 
 jest.mock("@/server/utils/artistDoc/refreshArtistDoc", () => ({
     refreshArtistDoc: (...a) => refreshArtistDoc(...a),
@@ -91,6 +98,40 @@ describe("an extraction job that has read everything", () => {
         completeResearchJob.mockResolvedValue(undefined);
         failResearchJob.mockResolvedValue(undefined);
         saveJobProgress.mockResolvedValue(undefined);
+    });
+
+    it.each([true, false])('routes a source search through retry or completion (provider failed: %s)', async failed => {
+        searchWeb.mockReset();
+        if (failed) searchWeb.mockRejectedValue(new Error('provider unavailable'));
+        else searchWeb.mockResolvedValue([]);
+        const { db } = await import('@/server/db/drizzle');
+        db.select.mockReturnValue({ from: () => ({ where: () => ({ limit: async () => [{
+            id: 'event', artistId: 'artist-1', actorKind: 'user', actorUserId: 'admin', trigger: 'claim_approval',
+        }] }) }) });
+        const result = await advanceOnce({ kind: 'source_search', activityId: 'event', state: { claimId: null } });
+        if (failed) {
+            expect(failResearchJob).toHaveBeenCalledWith('job-1', 'provider unavailable');
+            expect(completeResearchJob).not.toHaveBeenCalled();
+            expect(result.done).not.toBe(true);
+        } else {
+            expect(failResearchJob).not.toHaveBeenCalled();
+            expect(completeResearchJob).toHaveBeenCalledWith('job-1');
+            expect(result.done).toBe(true);
+        }
+    });
+
+    it('terminalizes a cancelled source search so its lease cannot restart paid work', async () => {
+        const { OwnershipChangedError } = await import('@/server/utils/queries/ownershipWrites');
+        searchWeb.mockReset();
+        searchWeb.mockRejectedValue(new OwnershipChangedError());
+        const { db } = await import('@/server/db/drizzle');
+        db.select.mockReturnValue({ from: () => ({ where: () => ({ limit: async () => [{
+            id: 'event', artistId: 'artist-1', actorKind: 'user', actorUserId: 'admin', trigger: 'claim_approval',
+        }] }) }) });
+        const result = await advanceOnce({ kind: 'source_search', activityId: 'event', state: { claimId: null } });
+        expect(result).toMatchObject({ done: true, progress: expect.stringContaining('cancelled') });
+        expect(completeResearchJob).toHaveBeenCalledWith('job-1');
+        expect(failResearchJob).not.toHaveBeenCalled();
     });
 
     it("completes when there is no document to rebuild", async () => {

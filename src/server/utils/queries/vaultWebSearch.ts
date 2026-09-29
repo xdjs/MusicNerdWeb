@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { insertVaultSource, getVaultSourcesByArtistId } from "./dashboardQueries";
 import { getArtistById } from "./artistQueries";
 import { SOURCE_TYPES, inferTypeFromUrl, type SourceType } from "@/lib/source/sourceTypes";
@@ -814,13 +815,20 @@ export async function searchAndPopulateVault(
 ): Promise<ArtistVaultSource[]> {
     const ownership = opts?.ownership ?? getArtistOperationOwnership(artistId)
         ?? { expectedClaimId: await getLoreClaimGeneration(artistId) };
-    return withArtistOperation(artistId, ownership, () => searchAndPopulateVaultInternal(artistId, opts));
+    return withArtistOperation(artistId, ownership, async () => {
+        const activityId = ownership.activityId ?? await recordArtistActivity(artistId, 'source_search', { actorKind: opts?.actorKind });
+        return withArtistOperation(artistId, { ...ownership, activityId, sourceOrigin: 'research' },
+            () => searchAndPopulateVaultInternal(artistId, opts));
+    });
 }
 
 async function searchAndPopulateVaultInternal(
     artistId: string,
     opts?: {
         ownership?: ArtistOperationOwnership;
+        actorKind?: 'user' | 'system' | 'unknown';
+        /** Durable jobs must retry failures rather than finish with an empty/partial result. */
+        requireComplete?: boolean;
         deadline?: number;
         /** Columns the caller wrote from a GUESS, not an answer — see
          *  `holdsAnswerFor`. Only the onboarding auto-build passes these,
@@ -852,6 +860,7 @@ async function searchAndPopulateVaultInternal(
     const deadline = opts?.deadline ?? Number.POSITIVE_INFINITY;
     const outOfBudget = (phase: string): boolean => {
         if (Date.now() < deadline) return false;
+        if (opts?.requireComplete) throw new Error(`Source search deadline exhausted before ${phase}`);
         console.log(`[vaultWebSearch] Out of time before ${phase} — stopping rather than writing behind the caller`);
         return true;
     };
@@ -899,7 +908,8 @@ async function searchAndPopulateVaultInternal(
 
     try {
         const perQuery = await Promise.all(
-            queries.map(q => webSearch(q, { maxResults: TAVILY_RESULTS_PER_QUERY })),
+            queries.map(q => webSearch(q, { maxResults: TAVILY_RESULTS_PER_QUERY,
+                ...(opts?.requireComplete ? { throwOnError: true } : {}) })),
         );
 
         // MusicBrainz names the artist's official homepage, and until a review
@@ -1369,6 +1379,7 @@ async function searchAndPopulateVaultInternal(
                 if (source) saved(source);
             } catch (e) {
                 console.error("[vaultWebSearch] Failed to insert source:", result.url, e);
+                if (opts?.requireComplete) throw e;
             }
         }
 
@@ -1543,7 +1554,7 @@ async function searchAndPopulateVaultInternal(
         const toFollow = [...indexLinks]
             .filter(u => !existingUrls.has(stripQuery(u)) && !isExcludedLoreDiscoveryUrl(u))
             .slice(0, MAX_INDEX_FOLLOWS);
-        if (toFollow.length > 0) {
+        if (toFollow.length > 0 && !outOfBudget("index following")) {
             console.log(`[vaultWebSearch] Following ${toFollow.length} link(s) out of index page(s)`);
             const followed = await Promise.all(toFollow.map(async url => {
                 try { return { url, page: await fetchPageContent(url, { timeoutMs: VERIFY_TIMEOUT_MS }) }; }
@@ -1551,7 +1562,7 @@ async function searchAndPopulateVaultInternal(
             }));
             const readable = followed.filter((f): f is { url: string; page: PageContent } =>
                 !!f && !isExcludedLoreDiscoveryUrl(f.page.resolvedUrl ?? "") && (f.page.fullText?.length ?? 0) > 0);
-            if (readable.length > 0) {
+            if (readable.length > 0 && !outOfBudget("followed-page judging")) {
                 // Judged exactly like any other candidate — being reached via the
                 // artist's own tag page is a lead, never a verdict.
                 const followVerdicts = await judgeSourceRelevance(
@@ -1562,6 +1573,7 @@ async function searchAndPopulateVaultInternal(
                     })),
                 );
                 for (const { url, page } of readable) {
+                    if (outOfBudget("followed-source insertion")) break;
                     // Reached from an index rather than from search, so it never
                     // passed the intake filter.
                     if (isBlockedSourceHost(url)) {
@@ -1590,6 +1602,7 @@ async function searchAndPopulateVaultInternal(
                         }
                     } catch (e) {
                         console.error("[vaultWebSearch] Failed to insert followed source:", url, e);
+                        if (opts?.requireComplete) throw e;
                     }
                 }
             }
@@ -1602,6 +1615,7 @@ async function searchAndPopulateVaultInternal(
             console.log(`[vaultWebSearch] Dropped ${dropped} unverifiable candidate(s) for "${artistName}"`);
         }
 
+        outOfBudget("completion");
         console.log(`[vaultWebSearch] Inserted ${insertedSources.length} sources for "${artistName}"`);
         return insertedSources;
     } catch (error: unknown) {
@@ -1612,6 +1626,7 @@ async function searchAndPopulateVaultInternal(
             code: err.code,
             full: error,
         });
+        if (opts?.requireComplete) throw error;
         return [];
     }
 }

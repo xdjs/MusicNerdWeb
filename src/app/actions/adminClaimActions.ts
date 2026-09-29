@@ -3,7 +3,8 @@
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, getAllClaims, getClaimById, revokeApprovedClaim } from "@/server/utils/queries/dashboardQueries";
-import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
+import { enqueueResearchJob } from "@/server/utils/queries/researchJobQueries";
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { sendClaimApprovedEmail } from "@/server/utils/email";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
@@ -24,7 +25,7 @@ export async function getAdminAllClaims() {
     return getAllClaims();
 }
 
-export async function approveClaimAction(claimId: string): Promise<{ success: boolean; error?: string }> {
+export async function approveClaimAction(claimId: string): Promise<{ success: boolean; error?: string; warning?: string }> {
     const session = await requireAdminSession();
     if (!session) return { success: false, error: "Not authorized" };
 
@@ -32,9 +33,16 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
         const claim = await approveClaim(claimId);
         if (!claim) return { success: false, error: "Claim not found" };
 
-        searchAndPopulateVault(claim.artistId).catch(e =>
-            console.error("[approveClaimAction] Background web search failed:", e)
-        );
+        // Approval has committed. A failed enqueue must reach the admin without
+        // pretending approval rolled back or skipping the claimant's notification.
+        let queued = false;
+        try {
+            queued = await withArtistOperation(claim.artistId,
+                { userId: session.user.id, expectedClaimId: claim.id, trigger: 'claim_approval' },
+                () => enqueueResearchJob(claim.artistId, 'source_search', { state: { claimId: claim.id } }));
+        } catch (error) {
+            console.error('[approveClaimAction] Source research enqueue failed:', error);
+        }
 
         // Approval email — AWAITED (not fire-and-forget). On Vercel a serverless
         // lambda can freeze immediately after the action returns, so a floating
@@ -61,7 +69,10 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
             `Claim APPROVED: ${claim.referenceCode} | Artist ID: ${claim.artistId} | Approved by: ${session.user.email ?? session.user.id}`
         ).catch(e => console.error("[approveClaimAction] Discord notify failed:", e));
 
-        return { success: true };
+        return {
+            success: true,
+            ...(!queued ? { warning: 'Claim approved, but source research could not be queued. Open the artist’s Lore and use “Search web for sources” to retry.' } : {}),
+        };
     } catch (error) {
         console.error("[approveClaimAction] Error:", error);
         return { success: false, error: "Failed to approve claim" };

@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-export type ArtistOperationOwnership = { expectedClaimId: string | null; userId?: string };
+export type ArtistOperationOwnership = { expectedClaimId: string | null; userId?: string; trigger?: string; activityId?: string; sourceOrigin?: 'research' | 'submission' | 'upload' };
 const operations = new AsyncLocalStorage<ArtistOperationOwnership & { artistId: string }>();
 export const getActiveArtistOperation = () => operations.getStore();
 

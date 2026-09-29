@@ -93,7 +93,7 @@ it.each(roles)('$role submission persists one approved contribution, link, and f
     const contribution = contributions[0]!;
     expect(contribution).toMatchObject({
         artistId, userId, ugcUrl: submittedUrl, siteName: 'instagram',
-        siteUsername: 'activity_fixture', accepted: true,
+        siteUsername: 'activity_fixture', accepted: true, origin: 'submission',
     });
     expect(contribution.dateProcessed).not.toBeNull();
     const processedAt = Date.parse(contribution.dateProcessed!.replace(' ', 'T') + 'Z');

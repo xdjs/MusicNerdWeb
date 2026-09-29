@@ -1,5 +1,7 @@
 "use server"
 
+import { withArtistOperation } from '@/server/utils/artistOperationContext';
+
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
@@ -38,9 +40,9 @@ import { canEditArtist } from "@/server/utils/artistEditAuth";
 import { MAX_BIO_LENGTH } from "@/lib/bio/bioConstants";
 
 // Durable jobs coalesce changes across workers and survive request completion.
-async function scheduleDocRefresh(artistId: string | undefined, expectedClaimId: string | null): Promise<void> {
+async function scheduleDocRefresh(artistId: string | undefined, expectedClaimId: string | null, userId: string, trigger: string): Promise<void> {
     if (!artistId) return;
-    try { await queueLoreRefresh(artistId, expectedClaimId); }
+    try { await queueLoreRefresh(artistId, expectedClaimId, { userId, trigger }); }
     catch (error) {
         // The source mutation is already committed. Never report it as failed:
         // Look again can retry the derived-document refresh independently.
@@ -105,9 +107,9 @@ export async function updateSourceStatus(
         const ownership = await verifySourceEditable(session.user.id, sourceId);
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
-        const updated = expectedStatus
-            ? await updateVaultSourceStatus(sourceId, status, expectedStatus)
-            : await updateVaultSourceStatus(sourceId, status);
+        const updated = await withArtistOperation(ownership.artistId,
+            { userId: session.user.id, expectedClaimId: ownership.claimId, trigger: 'source_review' },
+            () => expectedStatus ? updateVaultSourceStatus(sourceId, status, expectedStatus) : updateVaultSourceStatus(sourceId, status));
         if (expectedStatus && !updated) {
             return { success: false, error: "This Lore source was already reviewed. Refresh the queue to see its current status." };
         }
@@ -115,7 +117,7 @@ export async function updateSourceStatus(
         // The document follows the sources in BOTH directions. Approving is not
         // the only change that matters: rejecting a source the document cites is
         // exactly the case the artist is trying to fix.
-        await scheduleDocRefresh(ownership.artistId, ownership.claimId);
+        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
 
         return { success: true };
     } catch (error) {
@@ -132,7 +134,7 @@ export async function searchWebForSources(artistId: string): Promise<{ success: 
         const auth = await verifyArtistEditable(session.user.id, artistId);
         if (!auth.ok) return { success: false, error: auth.error };
 
-        const sources = await searchAndPopulateVault(artistId, { ownership: { userId: session.user.id, expectedClaimId: auth.claimId } });
+        const sources = await searchAndPopulateVault(artistId, { ownership: { userId: session.user.id, expectedClaimId: auth.claimId, trigger: 'editor_search' } });
         return { success: true, count: sources.length, sources };
     } catch (error) {
         console.error("[searchWebForSources] Error:", error);
@@ -180,7 +182,7 @@ export async function addVaultSource(
             title,
             type: inferTypeFromUrl(url),
             status: "pending",
-        });
+        }, { userId: session.user.id, expectedClaimId: auth.claimId });
 
         // Fire background content fetch to populate real title/snippet/extractedText
         if (source?.id) {
@@ -240,7 +242,7 @@ export async function removeVaultSource(
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
         await deleteVaultSource(sourceId);
-        await scheduleDocRefresh(ownership.artistId, ownership.claimId);
+        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
         return { success: true };
     } catch (error) {
         console.error("[removeVaultSource] Error:", error);
@@ -282,7 +284,7 @@ export async function removeVaultSources(
         }
 
         const deleted = await deleteVaultSources(sourceIds);
-        await Promise.all(artistIds.map((id, index) => scheduleDocRefresh(id, claimIds[index]!)));
+        await Promise.all(artistIds.map((id, index) => scheduleDocRefresh(id, claimIds[index]!, session.user.id, 'source_change')));
         return { success: true, count: deleted.length };
     } catch (error) {
         console.error("[removeVaultSources] Error:", error);
@@ -355,7 +357,7 @@ export async function correctDocClaim(
         await upsertDocCorrection(artistId, trimmedClaim, kind, trimmedFix, { userId: session.user.id, expectedClaimId: auth.claimId });
         // Rebuild so the artist sees their correction take effect, rather than
         // being told it was saved and watching nothing change.
-        await scheduleDocRefresh(artistId, auth.claimId);
+        await scheduleDocRefresh(artistId, auth.claimId, session.user.id, 'lore_correction');
         return { success: true };
     } catch (error) {
         console.error("[correctDocClaim] Error:", error);
@@ -371,7 +373,7 @@ export async function undoDocCorrection(artistId: string, correctionId: string):
         const auth = await verifyArtistEditable(session.user.id, artistId);
         if (!auth.ok) return { success: false, error: auth.error };
         await deleteDocCorrection(artistId, correctionId, { userId: session.user.id, expectedClaimId: auth.claimId });
-        await scheduleDocRefresh(artistId, auth.claimId);
+        await scheduleDocRefresh(artistId, auth.claimId, session.user.id, 'lore_correction');
         return { success: true };
     } catch (error) {
         console.error("[undoDocCorrection] Error:", error);

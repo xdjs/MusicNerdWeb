@@ -39,12 +39,12 @@ export async function POST(
             return Response.json({ error: "Not your artist" }, { status: 403 });
         }
 
-        return await withArtistOperation(id, { userId, expectedClaimId: claimId }, async () => {
+        return await withArtistOperation(id, { userId, expectedClaimId: claimId, trigger: 'manual_refresh' }, async () => {
         const loreQueued = await queueLoreRefresh(id, claimId, { manual: true });
         const loreMessage = loreQueued === false
             ? "Lore is already queued or was checked recently. New document changes still trigger a rebuild."
             : "Rebuilding Lore from your current documents.";
-        const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
+        const jobs = (await getResearchJobs(id)).filter(j => j.kind === 'social_ingest' || j.kind === 'caption_extract');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
         if (live) {
             // Already working. Saying so is better than silently enqueuing

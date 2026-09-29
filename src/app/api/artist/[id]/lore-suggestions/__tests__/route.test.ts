@@ -42,14 +42,14 @@ it('lets a signed-in visitor suggest a source for artist review', async () => {
   expect(await response.json()).toEqual({ success: true, message: 'Submitted for artist review.' });
   expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({
     artistId, url: 'https://pitchfork.com/features/bike-lane', status: 'pending',
-  }));
+  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion' });
 });
 
 it('strips fragments and serializes the URL before duplicate detection', async () => {
   expect((await call('HTTPS://PITCHFORK.COM:443/features/bike-lane#bio')).status).toBe(201);
   expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({
     url: 'https://pitchfork.com/features/bike-lane',
-  }));
+  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion' });
 });
 
 it('detects a previously stored URL with a fragment as the same source', async () => {

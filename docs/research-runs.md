@@ -1,5 +1,7 @@
 # Research runs
 
+> **2026-09-28 — Pete requested source attribution and research initiation history.** [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371) records actor/action/trigger/time and source/job links in a separate, minimal audit table. See [Lore provenance](lore-provenance.md). This does not revive the detailed step log specified below.
+
 > **Superseded 2026-09-24 (Sweetman, team call).** Runs are not stored. Research is shown live
 > instead, in the [research view](research-view.md). This contract stays as the record of the
 > design and its step vocabulary. Migration `0030` (#1349) was closed unmerged and never applied.
