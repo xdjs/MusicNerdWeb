@@ -69,6 +69,14 @@ it('returns 404 for a missing artist', async () => {
   expect((await generateArtistBio('missing', auth)).status).toBe(404);
 });
 
+it('preserves the retryable timeout status without overwriting About', async () => {
+  (generateAboutFromDoc as jest.Mock).mockRejectedValue(new Error('Gemini timeout'));
+  const response = await generateArtistBio('a1', auth);
+  expect(response.status).toBe(408);
+  expect(await response.json()).toEqual({ error: 'About generation timed out. Please try again. Your existing About has been kept.' });
+  expect(persistArtistBio).not.toHaveBeenCalled();
+});
+
 it.each(['[1]', '[1].', '[1, 2] — …!', 'https://example.org/source [1].', '123 [1]'])('keeps the existing bio when cleaning %s leaves no prose', async draft => {
   (generateAboutFromDoc as jest.Mock).mockResolvedValue(draft);
   const response = await generateArtistBio('a1', auth);

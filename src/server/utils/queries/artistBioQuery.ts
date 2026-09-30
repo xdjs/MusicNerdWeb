@@ -39,6 +39,9 @@ export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth
     if (error instanceof BioConflictError || error instanceof OwnershipChangedError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
+    if (error instanceof Error && error.message === 'Gemini timeout') {
+      return NextResponse.json({ error: 'About generation timed out. Please try again. Your existing About has been kept.' }, { status: 408 });
+    }
     console.error('[About] Generation from Lore failed', error);
     return NextResponse.json({ error: 'Could not generate About from Lore. Your existing About has been kept.' }, { status: 500 });
   }

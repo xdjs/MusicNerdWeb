@@ -14,4 +14,6 @@ An editor’s explicit regeneration (PUT or the legacy authenticated `GET ?regen
 
 If no nonempty Lore document exists, generation returns HTTP 409 with code `LORE_REQUIRED` through both PUT and legacy GET, and does not overwrite an existing About. Research/building Lore is a separate operation. Onboarding can still build Lore and then synthesize About from that document; changing About does not launch onboarding or social ingestion.
 
+A model deadline returns HTTP 408 with a retry message through both regeneration routes. It preserves the existing About and remains distinct from an internal failure (500).
+
 Source provenance and Admin research history shipped in #1373. About persistence retains that existing initiating-user activity record; this change removes the obsolete automatic About discovery path. Historical source rows cannot reliably identify a submitter from creation time or current claim ownership.
