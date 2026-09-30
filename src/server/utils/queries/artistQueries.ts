@@ -1087,7 +1087,7 @@ export async function updateArtistBio(artistId: string, bio: string, regenerate:
             if (isAboutEmptyState(generatedBio)) {
                 return { status: "success", message: "No verified sources found — showing the claim prompt", data: generatedBio };
             }
-            // Discovery found nothing new — the existing About was preserved, not regenerated.
+            // A pinned bio or identical Lore synthesis leaves the existing About unchanged.
             if (priorBio !== null && generatedBio === priorBio) {
                 return { status: "success", message: "About unchanged. A pinned bio stays locked until you unpin it; otherwise the saved Lore produced the same text.", data: generatedBio };
             }
