@@ -30,3 +30,8 @@ it('accepts caption punctuation before mentions while keeping email and URL toke
     const text = 'Producer:@cxy w/@whoiseli -@liv.corp info-@example.com example.com/@fake ftp://example.com/@fake';
     expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@cxy', '@whoiseli', '@liv.corp']);
 });
+
+it('allows sentence and bullet punctuation without confusing email suffixes for handles', () => {
+    const text = 'Amazing.@artist +@cxy %@whoiseli Thanks.@liv.corp info-@example.com info+@example.com info%@example.com';
+    expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@artist', '@cxy', '@whoiseli', '@liv.corp']);
+});
