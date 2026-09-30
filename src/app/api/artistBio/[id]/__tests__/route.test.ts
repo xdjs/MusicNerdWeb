@@ -214,6 +214,16 @@ describe('/api/artistBio/[id]', () => {
     });
   });
 
+  it('preserves an actionable missing-Lore conflict from the update helper', async () => {
+    const { PUT, mockGetSession, mockGetUserById, mockUpdateArtistBio } = await setup();
+    mockGetSession.mockResolvedValue(adminSession);
+    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    mockUpdateArtistBio.mockResolvedValue({ status: 'error', statusCode: 409, code: 'LORE_REQUIRED', message: 'Build your Lore document first' });
+    const response = await PUT(createPutRequest({ regenerate: true }), { params: paramsPromise });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'LORE_REQUIRED', message: 'Build your Lore document first' });
+  });
+
   describe('GET', () => {
     it('remains public (no auth check) - returns bio when artist has one', async () => {
       const { GET, mockGetArtistById } = await setup();
@@ -247,7 +257,7 @@ describe('/api/artistBio/[id]', () => {
       expect(mockGenerateArtistBio).not.toHaveBeenCalled(); // no expensive re-discovery
     });
 
-    it('self-heals a cached nudge by regenerating when vault sources have since appeared', async () => {
+    it('reads a cached nudge without generating even when pending sources exist', async () => {
       const { GET, mockGetArtistById, mockGenerateArtistBio, mockGetVaultSources } = await setup();
       const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');
       mockGetArtistById.mockResolvedValue({ id: 'artist-123', bio: ABOUT_EMPTY_STATE, spotify: 'sp1' });
@@ -261,8 +271,18 @@ describe('/api/artistBio/[id]', () => {
       const response = await GET(createGetRequest(), { params: paramsPromise });
 
       const data = await response.json();
-      expect(mockGenerateArtistBio).toHaveBeenCalledWith('artist-123'); // regenerated from sources
-      expect(data.bio).toBe('Synthesized from the pending sources');
+      expect(mockGenerateArtistBio).not.toHaveBeenCalled();
+      expect(mockGetVaultSources).not.toHaveBeenCalled();
+      expect(data.bio).toBe(ABOUT_EMPTY_STATE);
+    });
+
+    it.each([null, ''])('never generates on a public About cache miss (%s)', async bio => {
+      const { GET, mockGetArtistById, mockGenerateArtistBio, mockGetVaultSources } = await setup();
+      mockGetArtistById.mockResolvedValue({ id: 'artist-123', bio, spotify: 'sp1', instagram: 'artist' });
+      const response = await GET(createGetRequest(), { params: paramsPromise });
+      expect(response.status).toBe(200);
+      expect(mockGenerateArtistBio).not.toHaveBeenCalled();
+      expect(mockGetVaultSources).not.toHaveBeenCalled();
     });
 
     it('rejects unauthenticated GET ?regenerate=true (gates the expensive forced regen)', async () => {

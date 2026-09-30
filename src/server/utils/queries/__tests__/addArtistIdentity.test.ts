@@ -31,7 +31,7 @@ jest.mock("@/server/utils/artistLinkService", () => ({
     setArtistLink: jest.fn(),
     clearArtistLink: jest.fn(),
 }));
-jest.mock("@/server/utils/queries/artistBioQuery", () => ({ regenerateArtistBio: jest.fn() }));
+jest.mock("@/server/utils/queries/regenerateArtistBio", () => ({ regenerateArtistBio: jest.fn() }));
 jest.mock("@/server/utils/ugcDiscordNotifier", () => ({ maybePingDiscordForPendingUGC: jest.fn() }));
 jest.mock("@/server/utils/artistLinkDiscordNotifier", () => ({ notifyDiscordOfArtistLinkAdded: jest.fn() }));
 jest.mock("next/headers", () => ({
