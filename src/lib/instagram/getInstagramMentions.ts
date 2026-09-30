@@ -5,8 +5,9 @@ export function getInstagramMentions(text: string): { start: number; end: number
         const start = match.index;
         const before = text.slice(0, start);
         const after = text[start + match[0].length] ?? '';
-        if (/[\p{L}\p{N}_@./:%+\-]$/u.test(before)
-            || /(?:https?:\/\/|www\.)\S*$/i.test(before)
+        if (/[\p{L}\p{N}_@.%+]$/u.test(before)
+            || /[\p{L}\p{N}][\p{L}\p{N}._%+\-]*-$/u.test(before)
+            || /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|\b(?:[a-z0-9-]+\.)+[a-z]{2,}[/:?#])\S*$/i.test(before)
             || /[\p{L}\p{N}_@/\\<>=\-]/u.test(after)) continue;
 
         // A sentence's trailing full stops are punctuation, not part of the handle.

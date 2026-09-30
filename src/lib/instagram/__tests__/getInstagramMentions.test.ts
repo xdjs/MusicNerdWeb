@@ -25,3 +25,8 @@ it('keeps multiline captions and emoji next to mentions intact', () => {
     const text = '🎧@a_b\nThanks @whoiseli…';
     expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@a_b', '@whoiseli']);
 });
+
+it('accepts caption punctuation before mentions while keeping email and URL tokens plain', () => {
+    const text = 'Producer:@cxy w/@whoiseli -@liv.corp info-@example.com example.com/@fake ftp://example.com/@fake';
+    expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@cxy', '@whoiseli', '@liv.corp']);
+});
