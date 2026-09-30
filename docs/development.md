@@ -33,7 +33,8 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
-| `CRON_SECRET` | Scheduled research advancement |
+| `CRON_SECRET` | The `latest_refresh` scheduler (`GET /api/research/advance`) |
+| `NEXT_PUBLIC_MUSICNERD_API_URL` | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI)'s base URL, no trailing slash. The research pump posts to its `/api/research/advance`. Production uses MusicNerdAPI production; Preview and staging use a staging MusicNerdAPI on the staging database |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
@@ -82,7 +83,10 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<module>`.
 - **Source-backed research:** `socialIngest.ts` stores posts; `researchRunner.ts` advances
   `artist_research_jobs` through ingest/extraction slices, with persistence in
-  `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.
+  `queries/researchJobQueries.ts`. Since the cutover (#1365), MusicNerdAPI runs `social_ingest`,
+  `caption_extract`, `lore_refresh` and `source_search`: the browser pump (`useResearchPump`) posts to
+  MusicNerdAPI's `/api/research/advance`, and MusicNerdAPI's cron resumes unwatched work. This repo's
+  `GET /api/research/advance` and its cron only run `latest_refresh`.
   `questionGenerator.ts` uses stored sources; `queries/onboardingQueries.ts` saves offers/answers.
   Every model call goes through `src/server/lib/ai/generateText.ts`; the sites are in [llm.md](llm.md).
   Reuse this path; a request finishing is not evidence its background work finished.
