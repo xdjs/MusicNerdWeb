@@ -33,7 +33,7 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
-| `NEXT_PUBLIC_MUSICNERD_API_URL` | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI)'s base URL, no trailing slash. The research and Latest pumps post to its `/api/research/advance`; "Look again" posts to its `/api/artist/{id}/research/refresh` with the Privy access token. Production uses MusicNerdAPI production; Preview and staging use a staging MusicNerdAPI on the staging database |
+| `NEXT_PUBLIC_MUSICNERD_API_URL` | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI)'s base URL, no trailing slash. Required: a production build fails without it (`next.config.mjs`). The research and Latest pumps post to its `/api/research/advance`; "Look again" posts to its `/api/artist/{id}/research/refresh` with the Privy access token. Production uses MusicNerdAPI production; Preview and staging use a staging MusicNerdAPI on the staging database |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout

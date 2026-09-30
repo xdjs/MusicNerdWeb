@@ -1,3 +1,16 @@
+## Research runs on MusicNerdAPI — September 30
+
+Sweetman chose one cutover ([#1365](https://github.com/xdjs/MusicNerdWeb/issues/1365)).
+MusicNerdAPI runs every `artist_research_jobs` kind: `social_ingest`, `caption_extract`,
+`lore_refresh` and `source_search` (API 1a–1c) and `latest_refresh` (API 1d, MusicNerdAPI#13),
+with its own every-minute cron (MusicNerdAPI#12). "Look again" calls its API 2 route with the
+Privy access token (MusicNerdAPI#7). PR #1405 removes this app's worker, pump routes, cron and
+`CRON_SECRET`. Update Latest checks In Process, Spotify and Deezer inline here, because those
+checks expire this app's cache. The onboarding chat stays here until API 3 (MusicNerdAPI#8–#11).
+Implemented and preview-verified on #1405, not yet in production. Release order: MusicNerdAPI
+production env (database, `CRON_SECRET`, Spotify, Privy), then merge and promote #1405.
+`NEXT_PUBLIC_MUSICNERD_API_URL` is required for production builds.
+
 ## Manual Latest refresh — September 29
 
 Pete approved an artist/admin **Update Latest** action covering Instagram, In Process,
@@ -6,8 +19,8 @@ tracked in [#1376](https://github.com/xdjs/MusicNerdWeb/issues/1376); see
 [the contract](docs/latest-refresh.md). Scheduled draft #1377 is deferred.
 Pete’s final preview feedback moved the action inside Edit profile only.
 The new attributed queue job only collects content; it does not rebuild Lore/About.
-The #1365 API cutover must retain the Web worker for source_search/latest_refresh
-until both kinds are ported. Progress writes reauthorize ownership and every connected
+Superseded September 30: MusicNerdAPI runs both kinds (see the cutover section above).
+Progress writes reauthorize ownership and every connected
 identity; obsolete jobs no longer impose a cooldown on the current editor.
 Username PR #1388 merged first; this change uses migration 0034. Its SQL constraint
 change was already applied on staging, and Pete Rango/Dutchyyy refresh canaries completed
