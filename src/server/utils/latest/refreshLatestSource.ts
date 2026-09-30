@@ -7,16 +7,15 @@ import type {
   LatestRefreshState,
   SourceResult,
 } from "@/lib/latest/types";
-import type { ResearchJob } from "../queries/researchJobQueries";
 import { db } from "@/server/db/drizzle";
 import { sql } from "drizzle-orm";
 
 /** Check upstream before expiring the connected identity’s cache. Failed checks leave it intact. */
 export async function refreshLatestSource(
-  job: ResearchJob,
+  artistId: string,
+  state: Pick<LatestRefreshState, "inprocess" | "spotify" | "deezer">,
   source: LatestSource,
 ): Promise<SourceResult> {
-  const state = job.state as unknown as LatestRefreshState;
   if (source === "inprocess") {
     const address = extractInProcessAddress(state.inprocess);
     if (!address) return { status: "disconnected" };
@@ -34,7 +33,7 @@ export async function refreshLatestSource(
   } else if (source === "interviews") {
     // Verify the DB read; the normal Latest query controls publication visibility.
     await db.execute(
-      sql`select id from artist_interview_answers where artist_id=${job.artistId}::uuid limit 1`,
+      sql`select id from artist_interview_answers where artist_id=${artistId}::uuid limit 1`,
     );
   }
   return { status: "checked", checkedAt: new Date().toISOString() };

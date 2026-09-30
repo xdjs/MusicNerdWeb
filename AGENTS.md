@@ -22,7 +22,7 @@ treating a handoff as live evidence. Preserve user edits and ignored files.
 | Routes / actions / business queries | `src/app/api/`, `src/app/actions/`, `src/server/utils/queries/` |
 | Data model / client / types | `src/server/db/schema.ts`, `drizzle.ts`, `DbTypes.ts` |
 | Authentication and authorization | `src/server/auth.ts`, `src/lib/auth-helpers.ts` |
-| Research workers and scheduler | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) runs the research queue; here, `src/app/api/research/advance/` schedules `latest_refresh` only |
+| Research workers and scheduler | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) runs every `artist_research_jobs` kind and its cron; this repo only queues jobs (`requestArtistResearch.ts`, `latest/requestLatestRefresh.ts`) |
 | MCP tools and shared link writes | `src/app/api/mcp/`, `src/server/utils/artistLinkService.ts` |
 
 [Development reference](docs/development.md) covers setup, test patterns, integrations, and

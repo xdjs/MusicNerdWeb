@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Loader2, Check, AlertCircle } from "lucide-react";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import {
   LATEST_SOURCES,
   LATEST_SOURCE_LABELS,
@@ -57,8 +58,11 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
     const controller = new AbortController();
     async function tick() {
       try {
-        const response = await fetch(`${endpoint}/advance`, {
+        // MusicNerdAPI runs the Instagram check (#1365); the status is read here.
+        const response = await fetch(musicNerdApiUrl("/api/research/advance"), {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ artistId }),
           signal: controller.signal,
         });
         if (!response.ok)
@@ -89,7 +93,7 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [pending, endpoint, router]);
+  }, [pending, endpoint, artistId, router]);
   async function start() {
     if (locked.current) return;
     locked.current = true;
