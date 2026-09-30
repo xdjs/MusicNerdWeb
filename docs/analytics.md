@@ -72,7 +72,7 @@ lower-case tokens; free text appears only where the table says so.
 
 Fire points for `profile_edit`: `api/directEditLink` (`set` → `link_add`, `clear` → `link_remove`),
 `api/removeArtistData` (`link_remove`), `api/artist/link-order` (`reorder`),
-`api/artist/profile-image` (`photo`), `api/vault/upload/complete` (`vault_upload`),
+`api/artist/profile-image` and `api/artist/photo-choice` (`photo`), `api/vault/upload/complete` (`vault_upload`),
 `actions/dismissLegacyLink` (`dismiss`).
 
 Deviations from the approved table, because of what the code knows at the fire point:

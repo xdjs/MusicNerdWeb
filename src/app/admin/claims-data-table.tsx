@@ -46,12 +46,14 @@ export default function ClaimsDataTable({ columns, data }: ClaimsDataTableProps)
         return { filteredData: filtered, pendingCount: pending, approvedCount: approved, rejectedCount: rejected };
     }, [data, statusFilter, query]);
 
-    const handleAction = useCallback(async (action: () => Promise<{ success: boolean; error?: string }>, claimId: string, label: string) => {
+    const handleAction = useCallback(async (action: () => Promise<{ success: boolean; error?: string; warning?: string }>, claimId: string, label: string) => {
         setLoadingId(claimId);
         try {
             const result = await action();
             if (result.success) {
-                toast({ title: `Claim ${label}` });
+                toast(result.warning
+                    ? { title: 'Research needs attention', description: result.warning, duration: 15000 }
+                    : { title: `Claim ${label}` });
                 router.refresh();
             } else {
                 toast({ title: "Error", description: result.error, variant: "destructive" });

@@ -278,17 +278,8 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       }
     }, [authenticated, status, login, privyLogout, toast]);
 
-    // Show legacy account modal for new users (once per login session)
-    useEffect(() => {
-      if (
-        session?.user?.needsLegacyLink &&
-        status === 'authenticated' &&
-        typeof window !== 'undefined' &&
-        !sessionStorage.getItem(LEGACY_MODAL_SHOWN_KEY)
-      ) {
-        setShowLegacyModal(true);
-      }
-    }, [session?.user?.needsLegacyLink, status]);
+    // UserNameSetup now owns the first-login welcome. Wallet linking remains
+    // available explicitly from the account menu without a second automatic dialog.
 
     // Fetch pending UGC count for admins
     const fetchPendingUGC = useCallback(async () => {
@@ -375,7 +366,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     if (!ready || isLoggingIn) {
       return (
         <Button
-          className="bg-highlightpink animate-pulse w-12 h-12 px-0"
+          className="button-pink bg-highlightpink animate-pulse w-12 h-12 px-0"
           size="lg"
           type="button"
           disabled
@@ -395,7 +386,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               id="login-btn"
               size="lg"
               type="button"
-              className={`hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
+              className={`button-pink focus-visible:ring-highlightpink active:bg-highlightpink/70 hover:bg-highlightpink/80 transition-colors duration-300 text-black px-0 w-12 h-12 bg-highlightpink ${buttonStyles}`}
               onClick={event => { if (event.isTrusted) rememberLoginTrigger('nav'); void handleLogin(); }}
             >
               <LogIn size={20} />

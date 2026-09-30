@@ -39,12 +39,18 @@ export async function POST(
             return Response.json({ error: "Not your artist" }, { status: 403 });
         }
 
-        return await withArtistOperation(id, { userId, expectedClaimId: claimId }, async () => {
+        return await withArtistOperation(id, { userId, expectedClaimId: claimId, trigger: 'manual_refresh' }, async () => {
         const loreQueued = await queueLoreRefresh(id, claimId, { manual: true });
         const loreMessage = loreQueued === false
             ? "Lore is already queued or was checked recently. New document changes still trigger a rebuild."
             : "Rebuilding Lore from your current documents.";
-        const jobs = (await getResearchJobs(id)).filter(j => j.kind !== 'lore_refresh');
+        const allJobs = await getResearchJobs(id);
+        const latestChecking = allJobs.some(job => job.kind === 'latest_refresh'
+            && (job.status === 'pending' || job.status === 'running')
+            && (job.state?.sources as { instagram?: { status?: string } } | undefined)?.instagram?.status === 'pending');
+        if (latestChecking) return Response.json({ ok: true,
+            message: `${loreMessage} Update Latest is already checking Instagram. Let it finish before running social research.` });
+        const jobs = allJobs.filter(j => j.kind === 'social_ingest' || j.kind === 'caption_extract');
         const live = jobs.find(j => j.status === "pending" || j.status === "running");
         if (live) {
             // Already working. Saying so is better than silently enqueuing
@@ -71,11 +77,13 @@ export async function POST(
 
         await reopenResearchJob(id, "social_ingest");
         await reopenResearchJob(id, "caption_extract");
-        await requestArtistResearch(id, { force: true });
+        const socialQueued = await requestArtistResearch(id, { force: true });
 
         return Response.json({
             ok: true,
-            message: `${loreMessage} Checking recent posts. Your bio will stay unchanged.`,
+            message: socialQueued === false
+                ? `${loreMessage} Social research could not start. Let any current Latest update finish, then try again.`
+                : `${loreMessage} Checking recent posts. Your bio will stay unchanged.`,
         });
         });
     } catch (e) {

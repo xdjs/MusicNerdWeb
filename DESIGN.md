@@ -18,6 +18,31 @@ A companion section, [Known inconsistencies to reconcile](#known-inconsistencies
 
 ---
 
+## Brand for media (videos, social, decks)
+
+A stable, prescriptive subset for anything made *about* Music Nerd rather than *in* it, read from the
+production site (2026-09-28, deploy `a0d8e0b1`). It picks one answer per role where the inventory below
+records several; the inventory stays the engineering source of truth.
+
+| Element | Use | Source |
+|---|---|---|
+| **Logo** | `public/musicNerdLogo.png` (4000×4000): the black spectacles on a pink disc (`#fb57c0`); small: `public/music_nerd_logo_sm.png`. Secondary mark: the black-and-white **MUSIC NERD** box, `public/music-nerd-parental-advisory.png` (footer). Never recolour or crop either. | public assets, `Footer.tsx` |
+| **Headline** | the homepage manifesto style: bold, tight tracking (`-0.045em`), grey on charcoal (`#a9a5ac` dark, `#bfbfbf` light) with the key words in `highlightpink` `#ff75d8`, closing on "We are **music nerd**". No glow. | `HomePageSplash.module.css` |
+| **Actions** | Solid pink action buttons use `highlightpink` `#ff75d8`, matching the header/login button, with **black text and icons** in both themes. Use `Button variant="pink"`; native action controls use the same token. | Pete’s 2026-09-29 choice; [#1394](https://github.com/xdjs/MusicNerdWeb/issues/1394) |
+| **Accents** | cyan `#2ad4fc` (the add button, links in dark) and mint `#19ffb8` (the live dot) as punctuation, never fills. A pink→violet wash (`#ef95ff` → `#7c3aed`, low opacity) behind artist imagery. | `tailwind.config.ts`, `HeroSection.tsx` |
+| **Surfaces** | dark by default for video: canvas `#1a1a1a`, frosted charcoal glass panels (`rgba(30,30,30,0.55)`, `blur(20px) saturate(180%)`, 1px `rgba(255,255,255,0.08)` edge, `1rem` radius). Light variant: white with white glass. | `.glass`; decision: charcoal glass overlays |
+| **Shape** | round everything: circular avatars, pill badges, 0.75–2rem radii. | Components |
+| **Type** | the app's system sans (`-apple-system, system-ui, "Segoe UI", Roboto, sans-serif`); bold, sentence-case headlines with tight tracking. Not KoHo: it never loads in the app. | Typography |
+| **Motion** | calm and ambient: slow spins, a live ping, staggered 30ms fades, gentle parallax. Nothing frantic. | Motion |
+| **Voice** | short, warm and first-person plural ("We listen with intent", "Help build the artist's world with us"); credit the people ("Made by @p3t3rango @sweetmantech @cxy @clt"). Speak to the artist as "you". | `HomePageSplash.tsx`, `Footer.tsx` |
+| **Real UI** | show the product as it ships (the claim button, the research view, found-profile cards) rather than inventing screens. | App |
+
+**The call to action is claiming the profile.** An artist searches their name at
+`https://www.musicnerd.xyz`, opens their page and taps **Claim**: the frosted glass button with a shield
+icon beside the pink Listen button. It opens *Claim This Profile*, shows *Pending verification* until
+approved, then *Claimed*. Say it as one line: "claim your profile at musicnerd.xyz".
+Use the `www` URL in links; the bare domain does not resolve.
+
 ## Design philosophy
 
 MusicNerd is a **playful, indie, candy-neon music directory dressed in Apple-style frosted glass.** The personality lives in a handful of electric accent colors — a hot orchid pink, a bright cyan, and a jelly mint-green — set against a light-forward, rounded, glassmorphic surface language, with a lowercase-casual voice ("music nerd", "Made in Seattle by @cxy @clt and friends"). Underneath, the structural chrome (buttons, cards, inputs, semantic tokens) is stock shadcn slate — brand character is layered on top as ad-hoc hex accents and glass utilities.
@@ -53,6 +78,8 @@ MusicNerd is a **playful, indie, candy-neon music directory dressed in Apple-sty
 ---
 
 ## Color
+
+> **2026-09-29 action-color correction ([#1394](https://github.com/xdjs/MusicNerdWeb/issues/1394)):** Pete selected the existing header/login pink, `highlightpink` (`#ff75d8`), for pink action buttons. This supersedes the older lavender `pastypink` action guidance below. The shared pink Button uses this opaque fill with black labels/icons, 80% hover and 70% pressed fills, and a matching keyboard focus ring. Ask keeps its rounded shape, border and inset shadow; its translucent lavender fill and white gradient are removed so its base color matches. Decorative accents and imagery retain their existing colors. Historical color-inventory observations below are not the action-button contract.
 
 MusicNerdWeb's color system is **three disconnected layers that never reconcile**: a 4-color brand palette in `tailwind.config.ts`, a stock untouched shadcn "slate" semantic-token layer in `globals.css`, and a dead SCSS file (`_colors.scss`) that redefines the brand under different names and is imported nowhere. The visual identity is applied almost entirely through hardcoded hex literals (200+ occurrences) and `!important` dark-mode overrides — **not** through tokens. The brand pink alone exists as **three different hex values**.
 

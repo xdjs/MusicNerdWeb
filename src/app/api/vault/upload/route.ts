@@ -179,7 +179,7 @@ export async function POST(req: Request) {
         unpublishedPath = undefined;
 
         let refreshWarning: string | undefined;
-        try { await queueLoreRefresh(artistId, expectedClaimId); }
+        try { await queueLoreRefresh(artistId, expectedClaimId, { userId: session.user.id, trigger: 'upload' }); }
         catch (error) {
             console.error('[vault/upload] Saved upload; Lore enqueue failed', error);
             refreshWarning = 'File saved. Use Look again to retry the Lore refresh; do not upload again.';

@@ -283,7 +283,7 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
                                 router.refresh();
                                 onFinish();
                             }}
-                            className="mt-2 bg-pink-500 enabled:hover:bg-pink-600 active:bg-pink-700 transition-colors text-white font-semibold px-4 py-2 rounded-lg shadow-sm"
+                            className="mt-2 button-pink bg-highlightpink enabled:hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold px-4 py-2 rounded-lg shadow-sm"
                         >
                             See my page
                         </button>

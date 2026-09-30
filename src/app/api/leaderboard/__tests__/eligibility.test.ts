@@ -11,7 +11,7 @@ if (!('json' in Response)) {
 
 // Exercise the real query helpers and handler; only database I/O is replaced.
 const row = (userId: string, ugcCount: number, artistsCount: number) => ({
-    userId, wallet: userId, username: userId, email: null, ugcCount, artistsCount, isHidden: false,
+    userId, wallet: null, username: userId, email: null, ugcCount, artistsCount, isHidden: false,
 });
 const eligible = [row('ugc-only', 2, 0), row('artist-only', 0, 1)];
 
@@ -43,3 +43,19 @@ for (const period of ['', '&from=2026-09-15T00:00:00Z&to=2026-09-15T23:59:59Z'])
         });
     });
 }
+
+it.each([
+    '', '?page=1&perPage=10',
+    '?from=2026-09-15T00:00:00Z&to=2026-09-15T23:59:59Z',
+])('protects pending names and private account fields in public responses %s', async query => {
+    jest.mocked(db.execute).mockResolvedValueOnce([
+        { ...row('email-backed', 1, 0), username: 'private@example.test', email: 'private@example.test' },
+        { ...row('wallet-backed', 1, 0), username: ' 0xAbC ', wallet: '0xabc' },
+        { ...row('chosen', 1, 0), username: 'Aux Bandit', email: 'private@example.test', wallet: '0xabc' },
+    ] as never);
+    const response = await GET(new Request(`http://localhost/api/leaderboard${query}`));
+    const data = await response.json();
+    const entries = Array.isArray(data) ? data : data.entries;
+    expect(entries.map((entry: { username: string }) => entry.username)).toEqual(['Anonymous', 'Anonymous', 'Aux Bandit']);
+    expect(entries.every((entry: { email: null; wallet: null }) => entry.email === null && entry.wallet === null)).toBe(true);
+});

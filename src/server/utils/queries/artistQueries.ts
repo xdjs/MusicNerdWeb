@@ -938,6 +938,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
             .insert(ugcresearch)
             .values({
                 ugcUrl: artistUrl,
+                origin: "submission",
                 siteName: artistIdFromUrl.siteName,
                 siteUsername: artistIdFromUrl.id,
                 artistId: artist.id,
@@ -988,7 +989,7 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 export async function getPendingUGC() {
     const start = performance.now();
     try {
-        const result = await db.query.ugcresearch.findMany({ where: eq(ugcresearch.accepted, false), with: { user: true } });
+        const result = await db.query.ugcresearch.findMany({ where: and(eq(ugcresearch.accepted, false), sql`${ugcresearch.dateProcessed} is null`), with: { user: true } });
         return result.map((obj) => {
             const { user, ...rest } = obj;
             return { ...rest, wallet: user?.wallet ?? null, username: user?.username ?? null };

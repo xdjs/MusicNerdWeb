@@ -10,7 +10,7 @@ import ProfileLoading from './ProfileLoading';
 import { readProfileJson as readJson } from '@/lib/profile/readProfileJson';
 import { Button } from '@/components/ui/button';
 
-type Account = Pick<User, 'id' | 'username' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'>;
+type Account = Pick<User, 'id' | 'username' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'> & { usernameNeedsConfirmation?: boolean };
 type FeedPage = { items: ProfileUpdate[]; next: number | null; checked: number; unavailable: boolean };
 
 export default function LiveUserProfile({ user }: { user: Account }) {
@@ -52,6 +52,9 @@ export default function LiveUserProfile({ user }: { user: Account }) {
   if (!accountReady || summary.isPending) return <ProfileLoading />;
   if (summary.error || !summary.data) return <div className="mx-auto max-w-lg px-5 py-12" role="alert"><p>We couldn’t load your profile.</p><Button className="mt-4" onClick={() => void summary.refetch()}>Try again</Button></div>;
   return <>
+    {user.usernameNeedsConfirmation && <div className="mx-auto w-full max-w-6xl px-5 pt-4 text-sm">
+      <p>Still going by <strong>{user.username}</strong>? <button className="underline underline-offset-4" onClick={() => window.dispatchEvent(new Event('musicnerd:choose-user-name'))}>Choose your user name</button></p>
+    </div>}
     {photo.error && <p role="status" className="mx-auto w-full max-w-6xl px-5 pt-3 text-sm text-muted-foreground">Your photo couldn’t load. <button className="underline" onClick={() => void photo.refetch()}>Retry photo</button></p>}
     <ProfileConcept user={user} live={{...summary.data,
       name: user.username || 'Your profile', photo: photo.data?.url ?? null,

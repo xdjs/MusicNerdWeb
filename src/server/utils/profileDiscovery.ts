@@ -1,3 +1,4 @@
+import { recordArtistActivity } from './activity/recordArtistActivity';
 /**
  * Post-claim onboarding — discovers an artist's MISSING platform profiles
  * from whatever identity anchors they already have (a bare Deezer/Spotify
@@ -1179,6 +1180,7 @@ async function validateCandidate(candidate: TierCandidate, ctx: ValidationContex
  *  found (possibly nothing) so a discovery failure can never break the
  *  `profiles` onboarding turn. */
 export async function* discoverArtistProfilesStream(artistId: string): AsyncGenerator<DiscoveryEvent> {
+    await recordArtistActivity(artistId, 'profile_discovery');
     const startedAt = Date.now();
     /** Platforms that answered a probe with a wall instead of a profile. */
     const walled = new Set<ProfileDisplayColumn>();

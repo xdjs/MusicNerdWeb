@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
+jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 const mockWebSearch = jest.fn();
 jest.mock("@/server/utils/webSearch", () => ({
@@ -99,6 +100,64 @@ describe("searchAndPopulateVault", () => {
   });
 
   // ---- Retrieval ---------------------------------------------------------
+  it('propagates provider failures for durable searches, retaining best-effort interactive search', async () => {
+    mockWebSearch.mockRejectedValue(new Error('provider unavailable'));
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).rejects.toThrow('provider unavailable');
+    expect(mockWebSearch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ throwOnError: true }));
+    await expect(searchAndPopulateVault('a1')).resolves.toEqual([]);
+  });
+
+  it('propagates a failed source write instead of completing partial queued work', async () => {
+    mockWebSearch.mockResolvedValue([hit('https://example.com/a')]);
+    mockInsert.mockRejectedValue(new Error('source database unavailable'));
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).rejects.toThrow('source database unavailable');
+  });
+
+  it('does not report a successful search when the durable deadline is exhausted', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true, deadline: Date.now() - 1 })).rejects.toThrow('deadline');
+    expect(mockWebSearch).not.toHaveBeenCalled();
+  });
+
+  it('allows a confirmed zero-result durable search to finish', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    await expect(searchAndPopulateVault('a1', { requireComplete: true })).resolves.toEqual([]);
+  });
+
+  it.each(['fetch', 'judge', 'insert'])('stops durable index following when the deadline expires before %s', async phase => {
+    const index = 'https://example.com/tag/grimes';
+    const article = 'https://example.com/interview';
+    let now = 1000;
+    const clock = jest.spyOn(Date, 'now').mockImplementation(() => now);
+    mockWebSearch.mockResolvedValue([hit(index)]);
+    mockFetchPage.mockImplementation(async url => {
+      if (url === index) return { ...goodPage, links: [article] };
+      if (phase === 'judge') now = 3000;
+      return goodPage;
+    });
+    mockJudge.mockImplementation(async (_a, candidates) => {
+      if (candidates.some(c => c.url === index) && phase === 'fetch') now = 3000;
+      if (candidates.some(c => c.url === article) && phase === 'insert') now = 3000;
+      return new Map(candidates.map(c => [c.url, c.url === index ? 'lists-artist' : 'about-artist']));
+    });
+    try {
+      const { searchAndPopulateVault } = await import('../vaultWebSearch');
+      await expect(searchAndPopulateVault('a1', { requireComplete: true, deadline: 2000 })).rejects.toThrow('deadline');
+      expect(mockInsert).not.toHaveBeenCalled();
+      if (phase === 'fetch') expect(mockFetchPage).not.toHaveBeenCalledWith(article, expect.anything());
+      if (phase === 'judge') expect(mockJudge.mock.calls.flatMap(c => c[1].map(r => r.url))).not.toContain(article);
+    } finally { clock.mockRestore(); }
+  });
+
+  it('records an explicitly identified system search without inventing a user', async () => {
+    const { searchAndPopulateVault } = await import('../vaultWebSearch');
+    const { recordArtistActivity } = await import('../../activity/recordArtistActivity');
+    await searchAndPopulateVault('a1', { ownership: { expectedClaimId: null, trigger: 'automatic_about' }, actorKind: 'system' });
+    expect(recordArtistActivity).toHaveBeenCalledWith('a1', 'source_search', { actorKind: 'system' });
+  });
+
   // Retrieval must be a search API, never a model. The previous implementation
   // enabled googleSearch grounding and then asked Gemini to "return ONLY a JSON
   // array", so the model AUTHORED the URLs — nothing bound its output to what
@@ -149,7 +208,7 @@ describe("searchAndPopulateVault", () => {
     });
     const { searchAndPopulateVault } = await import("../vaultWebSearch");
     await searchAndPopulateVault("a1", { ownership: { userId: "owner", expectedClaimId: "original-claim" } });
-    expect(observed).toEqual([{ artistId: "a1", userId: "owner", expectedClaimId: "original-claim" }]);
+    expect(observed).toEqual([{ artistId: "a1", userId: "owner", expectedClaimId: "original-claim", activityId: "activity-1", sourceOrigin: "research" }]);
     expect(getActiveArtistOperation()).toBeUndefined();
   });
 

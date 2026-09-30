@@ -35,9 +35,9 @@ export default function BookmarkButton({ className, artistId, userId }: Bookmark
       aria-pressed={bookmarked}
       title={saved.authorized ? "Saved to your Music Nerd account" : "Sign in to save bookmarks to your account"}
       className={cn(
-        "flex min-w-[120px] flex-shrink-0 items-center gap-1.5 rounded-lg border-2 border-pastypink p-1.5 text-sm font-bold transition-colors",
+        "flex min-w-[120px] flex-shrink-0 items-center gap-1.5 rounded-lg border-2 border-highlightpink p-1.5 text-sm font-bold transition-colors",
         bookmarked
-          ? "bg-pastypink text-gray-950 hover:bg-pastypink/90 hover:text-gray-950"
+          ? "button-pink bg-highlightpink text-gray-950 hover:bg-highlightpink/80 hover:text-gray-950"
           : "bg-white text-fuchsia-700 hover:bg-gray-100 hover:text-fuchsia-700",
         className
       )}

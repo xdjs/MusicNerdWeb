@@ -2,6 +2,10 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
+jest.mock('@/server/utils/source/addSourceContributors', () => ({
+    addSourceContributors: jest.fn(async (_id, sources) => sources.map(source => ({ ...source, contributorName: 'Contributor' }))),
+}));
+
 jest.mock('@/server/auth', () => ({
     getServerAuthSession: jest.fn(),
 }));
@@ -132,6 +136,12 @@ describe('ArtistProfile page', () => {
     });
 
     describe('Unauthenticated rendering', () => {
+        it('does not load private contributor names for visitors', async () => {
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            await renderArtistPage();
+            expect(addSourceContributors).not.toHaveBeenCalled();
+        });
+
         it('renders artist name', async () => {
             await renderArtistPage();
             expect(screen.getByText('Test Artist')).toBeInTheDocument();
@@ -273,6 +283,8 @@ describe('ArtistProfile page', () => {
 
             await renderArtistPage();
 
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            expect(addSourceContributors).toHaveBeenCalledWith('artist-uuid', expect.any(Array));
             expect(screen.getAllByTestId('add-artist-data')).toHaveLength(2);
             screen.getAllByTestId('add-artist-data').forEach((component) => {
                 expect(component).toHaveAttribute('data-direct-edit', 'false');
@@ -293,6 +305,8 @@ describe('ArtistProfile page', () => {
 
             await renderArtistPage();
 
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            expect(addSourceContributors).toHaveBeenCalledWith('artist-uuid', expect.any(Array));
             expect(screen.getAllByTestId('add-artist-data')).toHaveLength(2);
             screen.getAllByTestId('add-artist-data').forEach((component) => {
                 expect(component).toHaveAttribute('data-direct-edit', 'true');
@@ -312,6 +326,8 @@ describe('ArtistProfile page', () => {
 
             await renderArtistPage();
 
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            expect(addSourceContributors).toHaveBeenCalledWith('artist-uuid', expect.any(Array));
             expect(screen.getAllByTestId('add-artist-data')).toHaveLength(2);
             screen.getAllByTestId('add-artist-data').forEach((component) => {
                 expect(component).toHaveAttribute('data-direct-edit', 'true');

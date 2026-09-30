@@ -1,0 +1,1 @@
+ALTER TABLE "ugcresearch" ADD COLUMN "origin" text DEFAULT 'unknown' NOT NULL;

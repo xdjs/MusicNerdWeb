@@ -100,7 +100,8 @@ function normalize(value: unknown, platform: LatestRelease['platform']): LatestR
 
 // Cache the bounded catalog, not the time-sensitive selection, so an upcoming
 // release can become eligible even while its catalog response is cached.
-const getCatalog = cachedOrDirect(async (platform: LatestRelease['platform'], id: string): Promise<LatestRelease[]> => {
+const getCatalog = (platform: LatestRelease['platform'], id: string, fresh = false) => {
+    const fetchCatalog = async (): Promise<LatestRelease[]> => {
     return withCatalogBudget(platform, async (signal) => {
         const config = { timeout: REQUEST_TIMEOUT_MS, signal };
         const headers = platform === 'spotify' ? await getSpotifyHeaders() : {};
@@ -119,18 +120,20 @@ const getCatalog = cachedOrDirect(async (platform: LatestRelease['platform'], id
         return items.slice(0, CATALOG_LIMIT).map((item) => normalize(item, platform))
             .filter((item): item is LatestRelease => item !== null);
     });
-}, ['artist-latest-release-catalog-v2'], { revalidate: 86400 });
+    };
+    return fresh ? fetchCatalog() : cachedOrDirect(fetchCatalog, ['artist-latest-release-catalog-v3', platform, id], { revalidate: 86400, tags: [`latest:${platform}:${id}`] })();
+};
 
 /** Known IDs only: never match artists or artwork by name. This is a bounded
  * latest-release preview, not a paginated discography. Empty successful catalogs
  * remain distinct from unavailable providers so the caller can show a retry. */
-export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 'spotify'>): Promise<LatestRelease[]> {
+export async function getLatestArtistReleases(artist: Pick<Artist, 'deezer' | 'spotify'>, options?: { fresh?: boolean }): Promise<LatestRelease[]> {
     const providers: Array<[LatestRelease['platform'], string]> = [];
     if (artist.deezer && /^[1-9]\d*$/.test(artist.deezer)) providers.push(['deezer', artist.deezer]);
     if (artist.spotify && /^[a-zA-Z0-9]{22}$/.test(artist.spotify)) providers.push(['spotify', artist.spotify]);
     const now = Date.now();
     const today = new Date(now).toISOString().slice(0, 10);
-    const results = await Promise.allSettled(providers.map(([platform, id]) => getCatalog(platform, id)));
+    const results = await Promise.allSettled(providers.map(([platform, id]) => getCatalog(platform, id, options?.fresh)));
     if (providers.length && results.every(result => result.status === 'rejected')) {
         throw new AggregateError(results.map(result => result.status === 'rejected' ? result.reason : null), 'Artist release providers unavailable');
     }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
@@ -36,8 +37,8 @@ function CardImage({ item, artistImage, artistName, detail = false }: { item: Ar
     </div>;
 }
 
-export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {} }: {
-    items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
+export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {}, refreshControl }: {
+    refreshControl?: ReactNode; items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
 }) {
     const [choice, setChoice] = useState({artistName, value: 'All'});
     const filter = choice.artistName === artistName ? choice.value : 'All';
@@ -75,7 +76,10 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         gallery.scrollBy({ left: direction * (cardWidth + 16) });
     }
     return <section id={sectionId} aria-labelledby={`${sectionId}-heading`} className="glass space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <h2 id={`${sectionId}-heading`} className={hideHeading ? "sr-only" : "text-xl font-bold text-black dark:text-white"}>{heading}</h2>
+        {refreshControl}
+        </div>
         {showFilters && items.length > 0 && <ArtistUpdateFilter value={filter} onValueChange={value => setChoice({artistName, value})} />}
         {items.length > 0 && visible.length === 0 && <p role="status" className="p-6 text-sm text-muted-foreground">No {PROFILE_UPDATE_FILTERS.find(section => section.id === filter)?.label} updates yet.</p>}
         {items.length === 0 ? <p className="glass rounded-2xl p-6 text-sm text-gray-600 dark:text-gray-300">

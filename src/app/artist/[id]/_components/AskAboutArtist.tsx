@@ -612,7 +612,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                         placeholder={`Ask anything about ${artistName}...`} maxLength={500}
                         className="min-h-12 min-w-0 flex-1 border-0 bg-transparent py-3 text-base text-white/90 outline-none placeholder:text-white/45" />
                     <button type="submit" disabled={!question.trim() || loading} aria-label="Submit question"
-                        className="button-pink flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-pastypink text-black transition-opacity hover:opacity-90 disabled:opacity-30">
+                        className="button-pink flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-highlightpink text-black transition-colors hover:bg-highlightpink/80 active:bg-highlightpink/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlightpink focus-visible:ring-offset-2 disabled:opacity-30">
                         <ArrowUp size={20} aria-hidden="true" />
                     </button>
                 </div>

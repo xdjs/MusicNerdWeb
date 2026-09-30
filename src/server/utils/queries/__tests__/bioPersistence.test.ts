@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
+jest.mock('@/server/utils/activity/recordArtistActivity', () => ({ recordArtistActivity: jest.fn().mockResolvedValue('activity-1') }));
 
 describe('persistArtistBio', () => {
     beforeEach(() => { jest.resetModules(); });
@@ -61,6 +62,16 @@ describe('persistArtistBio', () => {
         expect(values).toHaveBeenNthCalledWith(2, { artistId: 'a1', bioText: 'New artist bio', isPinned: false });
         expect(set).toHaveBeenCalledWith({ bio: 'New artist bio' });
         expect(values.mock.invocationCallOrder[1]).toBeLessThan(set.mock.invocationCallOrder[0]);
+    });
+    it.each([undefined, 'editor'])('attributes generated About to system or authenticated editor (%s)', async userId => {
+        const { persistArtistBio, tx } = await setup({ bio: null });
+        const { recordArtistActivity } = await import('../../activity/recordArtistActivity');
+        await persistArtistBio('a1', 'Generated About', {
+            ownership: { expectedClaimId: null, userId }, generated: true, expectedBio: null,
+        });
+        expect(recordArtistActivity).toHaveBeenCalledWith('a1', 'about_generated', {
+            userId, actorKind: userId ? 'user' : 'system', trigger: userId ? 'about_editor' : 'automatic_about',
+        }, tx);
     });
     it('caches the no-context placeholder without creating a saved bio', async () => {
         const { ABOUT_EMPTY_STATE } = await import('@/lib/bio/bioConstants');

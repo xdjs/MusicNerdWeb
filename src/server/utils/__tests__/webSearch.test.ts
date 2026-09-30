@@ -29,6 +29,31 @@ describe('webSearch', () => {
         expect(result).toEqual([]);
         expect(global.fetch).not.toHaveBeenCalled();
     });
+    it.each(['network', 'http', 'parse', 'shape'])('lets queued callers distinguish %s failure from zero results', async kind => {
+        global.fetch = jest.fn(async () => {
+            if (kind === 'network') throw new Error('network down');
+            if (kind === 'http') return { ok: false, status: 429, text: async () => 'rate limited' };
+            return { ok: true, json: async () => {
+                if (kind === 'parse') throw new Error('invalid JSON');
+                return { results: 'invalid shape' };
+            } };
+        });
+        const webSearch = await setupWithEnv({ TAVILY_API_KEY: 'test-key' });
+        await expect(webSearch('Artist', { throwOnError: true })).rejects.toThrow('Web search failed');
+    });
+
+    it('fails explicitly for a queued search with no configured key', async () => {
+        global.fetch = jest.fn();
+        const webSearch = await setupWithEnv({});
+        await expect(webSearch('Artist', { throwOnError: true })).rejects.toThrow('no_key');
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('preserves genuine empty search results for queued callers', async () => {
+        global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ results: [] }) }));
+        const webSearch = await setupWithEnv({ TAVILY_API_KEY: 'test-key' });
+        await expect(webSearch('Artist', { throwOnError: true })).resolves.toEqual([]);
+    });
 
     it('never throws when fetch rejects outright (network down)', async () => {
         global.fetch = jest.fn(() => Promise.reject(new Error('network down')));

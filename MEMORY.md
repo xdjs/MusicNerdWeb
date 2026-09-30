@@ -1,3 +1,84 @@
+## Manual Latest refresh — September 29
+
+Pete approved an artist/admin **Update Latest** action covering Instagram, In Process,
+Spotify/Deezer releases and published answers. Work is on `codex/manual-latest-refresh`,
+tracked in [#1376](https://github.com/xdjs/MusicNerdWeb/issues/1376); see
+[the contract](docs/latest-refresh.md). Scheduled draft #1377 is deferred.
+Pete’s final preview feedback moved the action inside Edit profile only.
+The new attributed queue job only collects content; it does not rebuild Lore/About.
+The #1365 API cutover must retain the Web worker for source_search/latest_refresh
+until both kinds are ported. Progress writes reauthorize ownership and every connected
+identity; obsolete jobs no longer impose a cooldown on the current editor.
+Username PR #1388 merged first; this change uses migration 0034. Its SQL constraint
+change was already applied on staging, and Pete Rango/Dutchyyy refresh canaries completed
+with attributed requests. Live phone/desktop captures and SQL evidence are on PR #1391.
+Pete authorized staging verification and merging on September 29. Production promotion
+remains a separate protected release gate.
+
+## Lore provenance and unclaimed-artist bios — September 28
+
+Tracked in [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). Pete approved a
+**plan revision**: unclaimed artists need a sourced-bio path without waiting for
+artist/admin source approval. Claim ownership, automatic evidence acceptance and
+human review must be separate. [The revised plan](docs/lore-provenance.md) defines
+an attributed research → eligible sources → stored Lore → About pipeline,
+and review/acceptance visibility in Admin. Pete subsequently deferred bulk
+missing-bio backfill on September 28; tooling/execution are unscheduled and do not
+block the current rollout.
+
+Draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372) implements read-only
+About and generation from saved Lore. [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373)
+implements source origins, initiating events, durable attribution and initial
+Admin views. Local CI and recorded preview checks passed for their implementation
+commits. Signed-in Admin checks passed at `d215c5f5`; authenticated About
+generation in #1372 remains outstanding. #1373 is ready for review. These are
+foundations, not the complete revised plan. Automatic acceptance, unclaimed bio
+jobs and separate review attribution remain planned; bulk backfill is deferred.
+
+September 28 review follow-up: #1373's account-history redesign was verified at
+`0f979311`, but passing CI was not Codex approval. The three review findings are
+being corrected on that branch: durable source search propagates provider/write
+failures and exhausted deadlines to retry, while existing automatic About search
+and publication record system / automatic_about rather than unknown/editor work.
+Regression tests cover genuine empty-search completion, failure retry and editor
+attribution. Check the latest PR review before merging; no merge or release is authorized.
+The follow-up review also requires visible partial success when a claim is approved
+but research cannot be queued, and terminal completion of cancelled jobs. Both are
+implemented with regressions on the attribution branch; check its latest CI/review
+and exact-head preview evidence rather than treating earlier green checks as approval.
+Source-search enqueue also rejects a conflict with a live job for another claim,
+so replacing a claim cannot silently reuse discovery that will be cancelled. A
+PostgreSQL-backed regression covers pending/running stale jobs, unknown claim
+state, same-claim deduplication and enqueue after stale-job completion.
+Further review tightens committed-source auditing (losing URL duplicates emit no
+addition event; audit failure rolls back the source) and deadline checks around
+index-follow fetch/judge/write/completion. Current code/security clearance must
+be read from the latest PR head, not earlier completed review runs.
+
+Pete also clarified Admin needs a selected user's contributions across UGC types,
+plus a read-only user-submitted/automated/unknown inventory and a User submissions + Pending filter
+for manual review. Count real submissions across the full dataset; user-triggered
+research stays automated, and historical user IDs alone do not prove direct user submission.
+These views/counts are implemented in #1373 at `/admin/contributions`, linked from People.
+Local PostgreSQL/browser checks cover scoped counts, pagination, empty results and
+individual link/Lore moderation at 832px/390px in both themes. They used disposable
+data and a temporary auth fixture, not a deployed login; no real queue was changed.
+New website link writes record direct submission origin via migration 0032; old rows
+remain unknown. The read-only staging inventory found 173 pending Lore sources; all existing
+records remain unknown origin. This is not a production backlog inventory.
+
+Do not roll out the two foundations as the completed solution before the
+unclaimed-profile path passes staging verification. Pete explicitly approved staging migrations on September 28. Migrations 0031 and
+0032 are applied to staging and verified through the `mnweb` connection: audit
+SELECT/INSERT only, browser-role denial, RLS and final column/constraint checks.
+Staging default CRUD grants required an explicit mnweb revoke before the narrow
+grant; a real-SQL regression covers that default. The SQL-editor transaction did
+not reconcile old migration history (#1148). [Signed-in preview verification](https://github.com/xdjs/MusicNerdWeb/pull/1373#issuecomment-5878788592)
+passed for counts, filters, pagination, per-user history and both responsive themes.
+Only disposable local data was used for mutation checks; the real queue was unchanged. Production DDL, merge, release and bulk backfill remain unauthorized;
+assessment/review work may need a subsequent migration. Historical
+unknown actors stay unknown. Music Nerd TV is separate work.
+
 ## Podcast Lore grouping — September 26
 
 [Issue #1304](https://github.com/xdjs/MusicNerdWeb/issues/1304) is being implemented in

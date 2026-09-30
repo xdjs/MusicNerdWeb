@@ -186,13 +186,13 @@ export default function InterviewPanel({
                         </p>
                         {deferred.length > 0 && <button type="button"
                             onClick={() => {setRound(deferred); setDeferred([]); setIndex(0); setAnswered(0); setDone(false);}}
-                            className="min-h-11 w-full rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111]">
+                            className="min-h-11 w-full rounded-xl button-pink bg-highlightpink py-2.5 text-sm font-semibold text-[#111]">
                             Review saved questions
                         </button>}
                         <button
                             type="button"
                             onClick={closeRound}
-                            className={deferred.length ? "min-h-11 w-full rounded-xl border border-input py-2.5 text-sm font-semibold text-foreground" : "min-h-11 w-full rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111]"}
+                            className={deferred.length ? "min-h-11 w-full rounded-xl border border-input py-2.5 text-sm font-semibold text-foreground" : "min-h-11 w-full rounded-xl button-pink bg-highlightpink py-2.5 text-sm font-semibold text-[#111]"}
                         >
                             Done
                         </button>
@@ -247,7 +247,7 @@ export default function InterviewPanel({
                                 type="button"
                                 onClick={() => advance(answer)}
                                 disabled={busy || answer.trim().length === 0}
-                                className="min-h-11 flex-1 rounded-xl bg-pastypink py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-pastypink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
+                                className="min-h-11 flex-1 rounded-xl button-pink bg-highlightpink py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
                             >
                                 {busy ? <span role="status" className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" aria-hidden="true" />Saving…</span> : "Send"}
                             </button>

@@ -162,13 +162,13 @@ describe("dashboardActions.addVaultSource", () => {
             artistId: "artist-1",
             url: "https://pitchfork.com/reviews/albums/example",
             status: "pending",
-        }));
+        }), { userId: "user-1", expectedClaimId: "claim-1" });
     });
 
     it("stores the canonical URL without a fragment", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         expect((await addVaultSource("artist-1", "HTTPS://PITCHFORK.COM:443/a#bio")).success).toBe(true);
-        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }));
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }), { userId: "user-1", expectedClaimId: "claim-1" });
     });
 
     it("finishes podcast metadata persistence before returning", async () => {
@@ -313,13 +313,13 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         // the document, so nothing ever surfaced that.
         const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "rejected");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1", { userId: "u1", trigger: "source_change" });
     });
 
     it("rebuilds the doc when a source is approved", async () => {
         const { updateSourceStatus, queueLoreRefresh } = await setup();
         await updateSourceStatus("s1", "approved");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1", { userId: "u1", trigger: "source_change" });
     });
 
     it("approves a visitor-suggested URL without fetching it in the request", async () => {
@@ -338,7 +338,7 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
     it("rebuilds the doc when a source is deleted outright", async () => {
         const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");
-        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1");
+        expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1", { userId: "u1", trigger: "source_change" });
     });
 
     it("durably queues every change so the database can coalesce a burst", async () => {

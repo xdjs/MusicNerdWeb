@@ -1,3 +1,4 @@
+import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from '@/server/db/drizzle';
 import { artists, artistBioVersions, artistDocs, artistOnboardingSteps, artistClaims } from '@/server/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
@@ -63,6 +64,12 @@ export async function persistArtistBio(artistId: string, bio: string, options: {
             if (!saved) await tx.insert(artistBioVersions).values({ artistId, bioText: text, isPinned: false });
         }
         await tx.update(artists).set({ bio }).where(eq(artists.id, artistId));
+        const automatic = options.generated && !options.ownership.userId && !options.document;
+        await recordArtistActivity(artistId, options.generated ? 'about_generated' : 'about_edited', {
+            userId: options.ownership.userId,
+            actorKind: options.ownership.userId ? 'user' : automatic ? 'system' : 'unknown',
+            trigger: options.document ? 'onboarding' : automatic ? 'automatic_about' : 'about_editor',
+        }, tx);
         return bio;
     });
 }

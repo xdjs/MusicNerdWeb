@@ -226,7 +226,7 @@ describe('runOnboardingTurn', () => {
         const events = await collect(runOnboardingTurn('a1', { type: 'open' }, ownership));
         const { persistArtistBio } = await import('@/server/utils/queries/bioPersistence');
         expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An About.', expect.objectContaining({ generated: true, expectedBio: 'Existing bio', document: expect.objectContaining({ content: '## Overview\ndoc' }) }));
-        expect(checkpoints).toEqual(Array(2).fill({ artistId: 'a1', ...ownership }));
+        expect(checkpoints).toEqual(Array(2).fill({ artistId: 'a1', ...ownership, trigger: 'onboarding' }));
         expect(getActiveArtistOperation()).toBeUndefined();
         expect(dq.saveBioVersion).not.toHaveBeenCalled();
         expect(persistArtistBio).toHaveBeenCalledWith('a1', expect.any(String), expect.objectContaining({ confirmSteps: ['interview', 'publish'] }));

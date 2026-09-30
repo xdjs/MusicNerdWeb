@@ -64,3 +64,14 @@ describe("ArtistProfileContent", () => {
         });
     });
 });
+
+ it("keeps one navigation below the hero after repeated photo and crop refreshes", () => {
+    const { container, rerender } = render(<ArtistProfileContent {...base} />);
+    for (const [imageUrl, y] of [["/new.jpg", 0], ["/new.jpg", 35], ["/upload.jpg", 0]]) {
+        rerender(<ArtistProfileContent {...base} imageUrl={imageUrl} artist={{ ...base.artist, customImage: imageUrl, headerImagePosition: { imageUrl, y } }} />);
+        expect(container.querySelectorAll('nav')).toHaveLength(1);
+        expect(container.firstElementChild).toHaveAttribute('data-testid', 'hero');
+        expect(container.querySelector('nav')?.previousElementSibling).toHaveAttribute('data-testid', 'hero');
+        expect(screen.getAllByTestId('ask')).toHaveLength(1);
+    }
+ });

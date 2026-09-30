@@ -135,7 +135,7 @@ function ClaimRow({
                     <button
                         onClick={() => { onCorrect(text, "fix", draft); setEditing(false); }}
                         disabled={busy || !draft.trim()}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-medium transition-colors disabled:opacity-40"
+                        className="text-xs px-3 py-1.5 rounded-lg button-pink bg-highlightpink hover:bg-highlightpink/80 text-black font-medium transition-colors disabled:opacity-40"
                     >
                         Save
                     </button>

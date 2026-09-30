@@ -218,6 +218,34 @@
       "when": 1790437755886,
       "tag": "0030_podcast_episode_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790617885973,
+      "tag": "0031_lore_attribution",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790620645012,
+      "tag": "0032_ugc_submission_origin",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790697117938,
+      "tag": "0033_user_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790705300000,
+      "tag": "0034_latest_refresh",
+      "breakpoints": true
     }
   ]
 }
