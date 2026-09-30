@@ -51,6 +51,17 @@ describe('GET /api/research/advance', () => {
         expect(advanceResearch).toHaveBeenCalledTimes(1);
     });
 
+    it('claims only latest_refresh: MusicNerdAPI runs every other kind (#1365)', async () => {
+        advanceResearch.mockResolvedValue({ ran: false });
+        await get();
+        expect(advanceResearch.mock.calls[0][0].kinds).toEqual(['latest_refresh']);
+    });
+
+    it('no longer takes POST: the pump posts to MusicNerdAPI', async () => {
+        const route = await import('../route');
+        expect(route.POST).toBeUndefined();
+    });
+
     it('claims whatever is next rather than naming an artist', async () => {
         // The queue decides the order. A scheduler that picked artists would
         // need to know which ones are behind, which is the queue's job.

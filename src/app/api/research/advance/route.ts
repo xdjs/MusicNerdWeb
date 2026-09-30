@@ -1,31 +1,17 @@
 /**
- * One slice of research work, in its own invocation.
+ * The scheduler for `latest_refresh`, the one research kind this repo still runs.
  *
- * The point of this route is the budget. `after()` on an onboarding turn shares
- * that turn's remaining maxDuration, so a chat turn that spent fifty seconds
- * left ten for a job that needs minutes — which is why every artist we had not
- * pre-warmed by hand ended up with a document built from an empty credits
- * table. Here the slice gets the whole allowance.
- *
- * Called by:
- *   - the onboarding client, while the artist is reading the vault step. They
- *     spend minutes there, and each call is a full-budget invocation happening
- *     while somebody is actually watching.
- *   - the artist, from the "look again" button in edit mode.
- *   - a scheduler, for artists nobody is watching. This was documented here
- *     before it existed: nothing scheduled anything, so a job only advanced
- *     while a browser tab sat open on the artist's page. Pete Rango's own
- *     caption extraction sat at batch 3 of 30 for a day because he closed the
- *     tab, and an artist who onboards on a phone and puts it down would have
- *     been left with a document written from whatever was read in the first
- *     ninety seconds. GET below is that scheduler's entry point.
- *
- * Safe to call concurrently: the work is claimed atomically with a lease, so
- * two callers cannot take the same job, and a caller the platform kills frees
- * its job instead of wedging it.
+ * MusicNerdAPI (xdjs/MusicNerdAPI) runs the rest of the queue since the #1365
+ * cutover: `social_ingest`, `caption_extract`, `lore_refresh` and
+ * `source_search`, with its own cron, and the browser pump posts there. Update
+ * Latest queues `latest_refresh` and pumps it through
+ * `/api/artist/[id]/latest-refresh/advance`; this GET finishes the ones nobody
+ * is watching. Both workers claim from the same queue under a lease, so they
+ * never take the same job.
  */
 import { advanceResearch } from "@/server/utils/researchRunner";
 import { CRON_SECRET } from "@/env";
+import type { JobKind } from "@/server/utils/queries/researchJobQueries";
 
 export const dynamic = "force-dynamic";
 /** The whole point. A slice gets its own allowance rather than a chat turn's
@@ -35,28 +21,6 @@ export const maxDuration = 60;
 /** Held back so the response is sent rather than the platform cutting us off
  *  mid-write. */
 const RESPONSE_RESERVE_MS = 4_000;
-
-export async function POST(req: Request): Promise<Response> {
-    const started = Date.now();
-    try {
-        const body = await req.json().catch(() => ({}));
-        const artistId = typeof body?.artistId === "string" ? body.artistId : undefined;
-
-        const result = await advanceResearch({
-            budgetMs: maxDuration * 1000 - RESPONSE_RESERVE_MS,
-            artistId,
-        });
-
-        console.debug(`[research/advance] ${JSON.stringify(result)} in ${Date.now() - started}ms`);
-        return Response.json(result);
-    } catch (e) {
-        console.error("[research/advance] Error:", e);
-        // Deliberately a 200 with ran:false. This is a background worker
-        // endpoint, and the callers are a browser poll and a scheduler; a 500
-        // teaches them to back off from work that is fine.
-        return Response.json({ ran: false, error: "advance failed" });
-    }
-}
 
 /**
  * The scheduler's entry point. Vercel cron issues a GET.
@@ -72,8 +36,8 @@ export async function POST(req: Request): Promise<Response> {
  */
 export async function GET(req: Request): Promise<Response> {
     const started = Date.now();
-    // Only when a secret is configured. Unset, this stays as open as POST
-    // already is, which keeps local and preview environments working; set, it
+    // Only when a secret is configured. Unset, it stays open, which keeps
+    // local and preview environments working; set, it
     // is required, so production cannot be pumped by anyone who finds the URL.
     if (CRON_SECRET && req.headers.get("authorization") !== `Bearer ${CRON_SECRET}`) {
         return Response.json({ ran: false, error: "unauthorized" }, { status: 401 });
@@ -100,7 +64,7 @@ export async function GET(req: Request): Promise<Response> {
         while (Date.now() < deadline - MIN_SLICE_MS) {
             // A copy, not the live array — the callee must not be holding a
             // reference to a list this loop keeps appending to.
-            const result = await advanceResearch({ budgetMs: deadline - Date.now(), excludeJobIds: [...waiting] });
+            const result = await advanceResearch({ budgetMs: deadline - Date.now(), excludeJobIds: [...waiting], kinds: LATEST_ONLY });
             if (!result.ran) break;
             if (result.waiting && result.jobId) waiting.push(result.jobId);
             slices.push(result);
@@ -112,6 +76,9 @@ export async function GET(req: Request): Promise<Response> {
         return Response.json({ ran: slices.length > 0, slices, error: "advance failed" });
     }
 }
+
+/** MusicNerdAPI runs every other kind. */
+const LATEST_ONLY: JobKind[] = ["latest_refresh"];
 
 /** Below this there is not enough left for a model call and the write after it. */
 const MIN_SLICE_MS = 12_000;

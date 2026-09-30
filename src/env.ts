@@ -38,6 +38,6 @@ export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";
 export const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN ?? "";
 
 // The scheduler's shared secret (Vercel cron sends it as a bearer token).
-// Empty = /api/research/advance's GET stays as open as its POST already is,
+// Empty = /api/research/advance's GET (the latest_refresh scheduler) stays open,
 // which is what local and preview environments need.
 export const CRON_SECRET = process.env.CRON_SECRET ?? "";

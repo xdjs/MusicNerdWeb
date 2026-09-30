@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 /**
  * Keeps the research queue moving while somebody is on the page.
@@ -15,6 +16,9 @@ import { useEffect } from "react";
  * nothing with the chat, and putting it there meant a background fetch racing
  * the chat's own — which the chat tests noticed immediately by having their
  * mocked response eaten.
+ *
+ * The queue runs on MusicNerdAPI since the #1365 cutover, so the tick goes
+ * there; MusicNerdAPI answers any origin.
  *
  * Fire-and-forget by design: nothing on screen depends on it, a failure is not
  * the artist's problem, and the work is claimed atomically so overlapping ticks
@@ -35,7 +39,7 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
             if (stopped || inFlight) return;
             inFlight = true;
             try {
-                const res = await fetch("/api/research/advance", {
+                const res = await fetch(musicNerdApiUrl("/api/research/advance"), {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ artistId }),
