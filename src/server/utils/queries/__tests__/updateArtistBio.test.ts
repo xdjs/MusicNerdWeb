@@ -55,6 +55,15 @@ describe("updateArtistBio — regenerate degradation signal", () => {
     expect(res.data).toBe("An existing, unchanged About.");
   });
 
+  it("passes the missing-Lore status and code through to the route", async () => {
+    const { updateArtistBio } = await setup();
+    const { BioGenerationError } = await import("@/lib/bio/bioGenerationError");
+    mockRegenerate.mockRejectedValue(new BioGenerationError('Build your Lore document first', 409, 'LORE_REQUIRED'));
+    await expect(updateArtistBio('a1', '', true, { userId: 'editor', expectedClaimId: null })).resolves.toMatchObject({
+      status: 'error', statusCode: 409, code: 'LORE_REQUIRED', message: 'Build your Lore document first',
+    });
+  });
+
   it("reports error when regenerate returns nothing", async () => {
     mockRegenerate.mockResolvedValue(null);
     const { updateArtistBio } = await setup();

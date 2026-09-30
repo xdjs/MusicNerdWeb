@@ -214,6 +214,16 @@ describe('/api/artistBio/[id]', () => {
     });
   });
 
+  it('preserves an actionable missing-Lore conflict from the update helper', async () => {
+    const { PUT, mockGetSession, mockGetUserById, mockUpdateArtistBio } = await setup();
+    mockGetSession.mockResolvedValue(adminSession);
+    mockGetUserById.mockResolvedValue({ id: 'admin-uuid', isAdmin: true });
+    mockUpdateArtistBio.mockResolvedValue({ status: 'error', statusCode: 409, code: 'LORE_REQUIRED', message: 'Build your Lore document first' });
+    const response = await PUT(createPutRequest({ regenerate: true }), { params: paramsPromise });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'LORE_REQUIRED', message: 'Build your Lore document first' });
+  });
+
   describe('GET', () => {
     it('remains public (no auth check) - returns bio when artist has one', async () => {
       const { GET, mockGetArtistById } = await setup();

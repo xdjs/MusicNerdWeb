@@ -11,3 +11,8 @@ it('keeps the missing-Lore explanation for server action callers', async () => {
   (generateArtistBio as jest.Mock).mockResolvedValue({ status: 409, json: async () => ({ error: 'Build your Lore document first' }) });
   await expect(regenerateArtistBio('a1', auth)).rejects.toThrow('Build your Lore document first');
 });
+
+it('preserves missing-Lore status and code for the update route', async () => {
+  (generateArtistBio as jest.Mock).mockResolvedValue({ status: 409, json: async () => ({ error: 'Build your Lore document first', code: 'LORE_REQUIRED' }) });
+  await expect(regenerateArtistBio('a1', auth)).rejects.toMatchObject({ status: 409, code: 'LORE_REQUIRED' });
+});

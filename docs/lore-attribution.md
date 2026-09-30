@@ -12,6 +12,6 @@ A normal `GET /api/artistBio/:id` reads the stored About. If none exists it retu
 
 An editor’s explicit regeneration (PUT or the legacy authenticated `GET ?regenerate=true`) summarizes the saved `artist_docs.content` and uses that document’s citation manifest, through the same `generateAboutFromDoc` helper as onboarding. It does not fetch platform statistics, catalogs, encyclopedias or pending source links. Pinned bios remain pinned; the existing ownership-generation and concurrent-edit checks still protect persistence.
 
-If no nonempty Lore document exists, generation returns an actionable missing-Lore error and does not overwrite an existing About. Research/building Lore is a separate operation. Onboarding can still build Lore and then synthesize About from that document; changing About does not launch onboarding or social ingestion.
+If no nonempty Lore document exists, generation returns HTTP 409 with code `LORE_REQUIRED` through both PUT and legacy GET, and does not overwrite an existing About. Research/building Lore is a separate operation. Onboarding can still build Lore and then synthesize About from that document; changing About does not launch onboarding or social ingestion.
 
 Source provenance and Admin research history shipped in #1373. About persistence retains that existing initiating-user activity record; this change removes the obsolete automatic About discovery path. Historical source rows cannot reliably identify a submitter from creation time or current claim ownership.
