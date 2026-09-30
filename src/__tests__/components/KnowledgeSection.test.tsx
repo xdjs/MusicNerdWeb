@@ -150,4 +150,12 @@ describe('KnowledgeSection', () => {
             headers: { Authorization: 'Bearer mock-access-token' },
         });
     });
+
+    it('still renders without a Privy provider (no app id in development)', async () => {
+        const privy = require('@privy-io/react-auth');
+        const spy = jest.spyOn(privy, 'usePrivy').mockImplementation(() => { throw new Error('no PrivyProvider'); });
+        renderEditing();
+        expect(await screen.findByRole('button', { name: /Look again/ })).toBeInTheDocument();
+        spy.mockRestore();
+    });
 });

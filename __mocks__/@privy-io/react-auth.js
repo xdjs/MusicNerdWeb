@@ -26,6 +26,8 @@ const useIdentityToken = () => ({
 
 const getIdentityToken = jest.fn().mockResolvedValue('mock-identity-token');
 
+const getAccessToken = jest.fn().mockResolvedValue('mock-access-token');
+
 const PrivyProvider = ({ children }) => children;
 
 module.exports = {
@@ -35,5 +37,6 @@ module.exports = {
   useLinkAccount,
   useIdentityToken,
   getIdentityToken,
+  getAccessToken,
   PrivyProvider,
 };

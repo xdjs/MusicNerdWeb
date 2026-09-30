@@ -156,6 +156,19 @@ it("checks the other sources inline and queues only the Instagram check", async 
     deezer: { status: "disconnected" },
   });
 });
+it("checks again when a connection changes during the checks, and queues the new one", async () => {
+  checkLatestSources.mockImplementationOnce(async (_a, state) => {
+    await client.exec("update artists set instagram='renamed'");
+    return state.sources;
+  });
+  const id = await call();
+  expect(checkLatestSources).toHaveBeenCalledTimes(2);
+  const { rows: [job] } = await client.query<{ state: import("@/lib/latest/types").LatestRefreshState }>(
+    "select state from artist_research_jobs where id=$1", [id],
+  );
+  expect(job.state.instagram).toBe("renamed");
+  expect((await read(artist))?.id).toBe(id);
+});
 it("finishes at once when there is no Instagram to check", async () => {
   await client.exec("update artists set instagram=null");
   await call();

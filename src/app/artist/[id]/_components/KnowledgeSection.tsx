@@ -2,7 +2,7 @@
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Check, Pencil, X, ExternalLink, Undo2, Loader2, RefreshCw, Download } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { getAccessToken } from "@privy-io/react-auth";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import RevealSection from "./RevealSection";
@@ -223,7 +223,6 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
      *  profile enqueued a job and nothing ever ran it. This drives the same
      *  route from here, for as long as there is work. */
     const [pumping, setPumping] = useState(0);
-    const { getAccessToken } = usePrivy();
     const [corrections, setCorrections] = useState<Correction[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
