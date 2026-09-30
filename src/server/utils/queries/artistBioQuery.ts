@@ -7,6 +7,7 @@ import { persistArtistBio } from './bioPersistence';
 import { generateAboutFromDoc } from '../artistDoc/generateAboutFromDoc';
 import { stripCitationMarkers, type DocSource } from '../artistDocService';
 import { BioConflictError } from '@/lib/bio/bioConflict';
+import { sanitizeBioText } from '@/lib/bio/bioText';
 import { OwnershipChangedError, type ArtistWriteAuth } from './ownershipWrites';
 
 /** About is a projection of stored Lore. It never discovers or fetches sources. */
@@ -28,8 +29,8 @@ export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth
     }
     const draft = await generateAboutFromDoc(artist.name ?? 'Artist', doc.content, (doc.sources ?? []) as DocSource[]);
     // Match onboarding publication: Lore retains citations; the saved About is prose.
-    const bio = stripCitationMarkers(draft);
-    if (!bio) throw new Error('About generation returned no prose');
+    const bio = sanitizeBioText(stripCitationMarkers(draft));
+    if (!/\p{L}/u.test(bio)) throw new Error('About generation returned no prose');
     const saved = await persistArtistBio(artistId, bio, {
       generated: true, expectedBio: artist.bio, ownership,
     });

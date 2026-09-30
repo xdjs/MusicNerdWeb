@@ -69,9 +69,22 @@ it('returns 404 for a missing artist', async () => {
   expect((await generateArtistBio('missing', auth)).status).toBe(404);
 });
 
-it('keeps the existing bio when removing citation markers leaves no prose', async () => {
-  (generateAboutFromDoc as jest.Mock).mockResolvedValue('[1]');
+it.each(['[1]', '[1].', '[1, 2] — …!', 'https://example.org/source [1].', '123 [1]'])('keeps the existing bio when cleaning %s leaves no prose', async draft => {
+  (generateAboutFromDoc as jest.Mock).mockResolvedValue(draft);
   const response = await generateArtistBio('a1', auth);
   expect(response.status).toBe(500);
   expect(persistArtistBio).not.toHaveBeenCalled();
+});
+
+it('cleans links and citations before saving the About and its history', async () => {
+  (generateAboutFromDoc as jest.Mock).mockResolvedValue('An [ambient trio](https://example.org/trio) records piano [1]. ([Source](https://example.org/source)) More at https://example.org/notes');
+  const response = await generateArtistBio('a1', auth);
+  expect(await response.json()).toEqual({ bio: 'An ambient trio records piano. More at' });
+  expect(persistArtistBio).toHaveBeenCalledWith('a1', 'An ambient trio records piano. More at', expect.objectContaining({ generated: true }));
+});
+
+it('accepts prose written with non-Latin letters', async () => {
+  (generateAboutFromDoc as jest.Mock).mockResolvedValue('東京の音楽家です。[1]');
+  expect(await (await generateArtistBio('a1', auth)).json()).toEqual({ bio: '東京の音楽家です。' });
+  expect(persistArtistBio).toHaveBeenCalledWith('a1', '東京の音楽家です。', expect.objectContaining({ generated: true }));
 });
