@@ -33,7 +33,6 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
-| `NEXT_PUBLIC_MUSICNERD_API_URL` | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI)'s base URL, no trailing slash. Required: a production build fails without it (`next.config.mjs`). The research and Latest pumps post to its `/api/research/advance`; "Look again" posts to its `/api/artist/{id}/research/refresh` with the Privy access token. Production uses MusicNerdAPI production; Preview and staging use a staging MusicNerdAPI on the staging database |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
@@ -85,7 +84,11 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
   (`requestArtistResearch.ts`, `queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
-  `/api/research/advance`, and "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`.
+  `/api/research/advance`, and "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`
+  with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  `NEXT_PUBLIC_VERCEL_ENV`: production → `musicnerd-api.vercel.app`; previews, staging and local →
+  `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
+  database). Promote a production-target build: a promoted preview build still calls staging.
   `questionGenerator.ts` uses stored sources; `queries/onboardingQueries.ts` saves offers/answers.
   Every model call goes through `src/server/lib/ai/generateText.ts`; the sites are in [llm.md](llm.md).
   Reuse this path; a request finishing is not evidence its background work finished.

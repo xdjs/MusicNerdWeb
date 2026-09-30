@@ -1,12 +1,13 @@
+import { MUSICNERD_API_URL } from "./const";
+
 /**
  * A URL on MusicNerdAPI (xdjs/MusicNerdAPI), which runs the research queue
- * since the #1365 cutover. `NEXT_PUBLIC_MUSICNERD_API_URL` is set per Vercel
- * environment: production for production, a staging MusicNerdAPI on the
- * staging database for previews and staging.
+ * since the #1365 cutover: production from a production deployment, staging
+ * from everywhere else (`MUSICNERD_API_URL`).
  *
  * @param path - The route, starting with `/`.
  * @returns The absolute URL.
  */
 export function musicNerdApiUrl(path: string): string {
-    return `${process.env.NEXT_PUBLIC_MUSICNERD_API_URL}${path}`;
+    return `${MUSICNERD_API_URL}${path}`;
 }

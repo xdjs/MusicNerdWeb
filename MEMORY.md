@@ -9,7 +9,9 @@ Privy access token (MusicNerdAPI#7). PR #1405 removes this app's worker, pump ro
 checks expire this app's cache. The onboarding chat stays here until API 3 (MusicNerdAPI#8–#11).
 Implemented and preview-verified on #1405, not yet in production. Release order: MusicNerdAPI
 production env (database, `CRON_SECRET`, Spotify, Privy), then merge and promote #1405.
-`NEXT_PUBLIC_MUSICNERD_API_URL` is required for production builds.
+MusicNerdAPI URLs are hardcoded in `src/lib/musicNerdApi/const.ts` and chosen by
+`NEXT_PUBLIC_VERCEL_ENV` (production → musicnerd-api.vercel.app, everything else →
+musicnerd-api-staging.vercel.app, MusicNerdAPI's `staging` environment on the staging database).
 
 ## Manual Latest refresh — September 29
 
