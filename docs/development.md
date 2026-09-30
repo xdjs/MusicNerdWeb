@@ -244,3 +244,11 @@ This is presentation only: routes, persistence, jobs and external-service calls 
 September 30, 2026 — the approved Claimed status badge also uses the `highlightpink`
 token for its tint and dark-theme label (#1400). Its light-theme label stays black for
 contrast. Claim eligibility, pending states and verification behavior are unchanged.
+
+## Public artist claim status
+
+An approved artist claim shows the Claimed badge to every visitor, including signed-out
+visitors and signed-in users who do not own that claim. It indicates profile management,
+not approval of every source or statement. Pending verification remains private to the
+requester. Badge visibility never grants editing access; the existing owner/admin guards
+remain authoritative. Tracked in #1397.

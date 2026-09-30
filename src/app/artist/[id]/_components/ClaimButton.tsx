@@ -29,7 +29,6 @@ interface ClaimButtonProps {
 export default function ClaimButton({
     artistId,
     isClaimed,
-    isClaimedByUser,
     isPending = false,
     isPendingByUser = false,
     artistInstagram,
@@ -42,13 +41,8 @@ export default function ClaimButton({
     const [copied, setCopied] = useState(false);
     const { toast } = useToast();
 
-    // Claimed or pending by another user — hide button
-    if ((isClaimed && !isClaimedByUser) || (isPending && !isPendingByUser)) {
-        return null;
-    }
-
-    // Already claimed by current user — show badge
-    if (isClaimedByUser) {
+    // Approved claim status is public; editing permissions are checked separately.
+    if (isClaimed) {
         return (
             <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-highlightpink/15 text-foreground dark:text-highlightpink text-xs font-semibold">
                 <ShieldCheck size={14} strokeWidth={2.5} />
@@ -56,6 +50,9 @@ export default function ClaimButton({
             </div>
         );
     }
+
+    // A pending request is private until approved.
+    if (isPending && !isPendingByUser) return null;
 
     // Pending by current user — show pending badge
     if (isPendingByUser) {

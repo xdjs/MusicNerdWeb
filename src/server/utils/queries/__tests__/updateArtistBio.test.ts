@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 import { ABOUT_EMPTY_STATE } from "@/lib/bio/bioConstants";
 
 const mockRegenerate = jest.fn();
-jest.mock("@/server/utils/queries/artistBioQuery", () => ({
+jest.mock("@/server/utils/queries/regenerateArtistBio", () => ({
   regenerateArtistBio: (...a: unknown[]) => mockRegenerate(...a),
 }));
 
@@ -53,6 +53,15 @@ describe("updateArtistBio — regenerate degradation signal", () => {
     expect(res.status).toBe("success");
     expect(res.message).toMatch(/unchanged/i); // not the plain "Bio regenerated"
     expect(res.data).toBe("An existing, unchanged About.");
+  });
+
+  it("passes the missing-Lore status and code through to the route", async () => {
+    const { updateArtistBio } = await setup();
+    const { BioGenerationError } = await import("@/lib/bio/bioGenerationError");
+    mockRegenerate.mockRejectedValue(new BioGenerationError('Build your Lore document first', 409, 'LORE_REQUIRED'));
+    await expect(updateArtistBio('a1', '', true, { userId: 'editor', expectedClaimId: null })).resolves.toMatchObject({
+      status: 'error', statusCode: 409, code: 'LORE_REQUIRED', message: 'Build your Lore document first',
+    });
   });
 
   it("reports error when regenerate returns nothing", async () => {

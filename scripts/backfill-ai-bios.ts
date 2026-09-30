@@ -54,7 +54,7 @@ async function main() {
     return;
   }
 
-  const { regenerateArtistBio } = await import("@/server/utils/queries/artistBioQuery");
+  const { regenerateArtistBio } = await import("@/server/utils/queries/regenerateArtistBio");
 
   console.log(`\n--write set. Regenerating ${artists.length} bios through the new pipeline…\n`);
   let ok = 0, failed = 0;

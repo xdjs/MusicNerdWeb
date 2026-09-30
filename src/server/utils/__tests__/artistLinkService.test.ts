@@ -5,7 +5,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 const dialect = new PgDialect();
 
 // Mock regenerateArtistBio before any dynamic imports
-jest.mock("@/server/utils/queries/artistBioQuery", () => ({
+jest.mock("@/server/utils/queries/regenerateArtistBio", () => ({
   regenerateArtistBio: jest.fn().mockResolvedValue("mocked bio"),
 }));
 
@@ -24,7 +24,7 @@ describe("artistLinkService", () => {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn(),
     };
-    const { regenerateArtistBio } = await import("@/server/utils/queries/artistBioQuery");
+    const { regenerateArtistBio } = await import("@/server/utils/queries/regenerateArtistBio");
     const {
       ArtistLinkConflictError,
       setArtistLink,
