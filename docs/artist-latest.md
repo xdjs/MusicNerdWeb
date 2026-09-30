@@ -16,6 +16,10 @@ Cards form one horizontal gallery on mobile and desktop, with native touch/track
 previous/next buttons and arrow-key navigation when the gallery is focused. All selected updates
 are in the row; filters reset to the beginning. There is no grid or show-all expansion.
 
+Instagram captions link valid literal `@username` mentions in the gallery and expanded post.
+See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
+the existing-data audit. Caption links do not trigger the card's separate opener.
+
 This is the artist-profile experiment agreed in [decisions](rnd/decisions.md), not a global
 homepage feed. It adds no migration, new credentials or publication action.
 

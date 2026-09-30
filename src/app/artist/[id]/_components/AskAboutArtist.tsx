@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -67,11 +68,24 @@ function renderAnswer(
     sources: AnswerSource[],
     bandcamp: string | null,
     artistName: string,
+    instagramMentions: string[],
 ): React.ReactNode {
     type Span = { start: number; end: number; node: (key: string) => React.ReactNode };
     const spans: Span[] = [];
     const escape = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const byNumber = new Map(sources.map(s => [s.n, s]));
+    const literalMentions = getInstagramMentions(text);
+    const handleTokens = [...text.matchAll(/\S*@\S*/g)].map(m => ({ start: m.index, end: m.index + m[0].length }));
+    const supportedHandles = new Set(instagramMentions);
+    for (const mention of literalMentions) {
+        // Reserve unsupported handles as text too, so a record or artist-name
+        // match cannot turn part of an unverified @handle into a different link.
+        spans.push({ start: mention.start, end: mention.end, node: key => supportedHandles.has(mention.handle)
+            ? <a key={key} href={mention.href} target="_blank" rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2 hover:decoration-solid focus-visible:outline focus-visible:outline-2 focus-visible:outline-highlightpink"
+                title={`Open @${mention.handle} on Instagram`}>{text.slice(mention.start, mention.end)}</a>
+            : <span key={key}>{text.slice(mention.start, mention.end)}</span> });
+    }
 
     // CITATIONS. The model writes "[4]", "[11, 18, Artist Doc]" and sometimes
     // "[2026-05-13]". Only the numbers are citations, and only numbers we have a
@@ -141,6 +155,7 @@ function renderAnswer(
         );
         for (const m of text.matchAll(re)) {
             const at = m.index ?? 0;
+            if (handleTokens.some(token => at < token.end && at + m[0].length > token.start)) continue;
             spans.push({
                 start: at,
                 end: at + m[0].length,
@@ -162,9 +177,10 @@ function renderAnswer(
         // a word character to \b, so the name never matched and the person went
         // unlinked. Asserted as "not followed by a letter or digit" instead,
         // which is the same rule the record matcher uses.
-        const re = new RegExp(`@?${escape(person.name)}(?![\\p{L}\\p{N}])`, "giu");
+        const re = new RegExp(`(?<![\\p{L}\\p{N}_@.])${escape(person.name)}(?![\\p{L}\\p{N}_])`, "giu");
         for (const m of text.matchAll(re)) {
             const at = m.index ?? 0;
+            if (handleTokens.some(token => at < token.end && at + m[0].length > token.start)) continue;
             spans.push({
                 start: at,
                 end: at + m[0].length,
@@ -420,6 +436,7 @@ type ConversationTurn = {
     answer?: string;
     sources: AnswerSource[];
     mentions: AnswerMention[];
+    instagramMentions: string[];
     songs: AnswerSong[];
     bandcamp: string | null;
     fromOpenWeb: boolean;
@@ -428,12 +445,12 @@ type ConversationTurn = {
 };
 
 function ConversationAnswer({ turn, artistName }: { turn: ConversationTurn; artistName: string }) {
-    const { answer, sources, mentions, songs, bandcamp, fromOpenWeb, webDomains } = turn;
+    const { answer, sources, mentions, instagramMentions, songs, bandcamp, fromOpenWeb, webDomains } = turn;
     return <div className="space-y-3 px-1">
         {/* Answer */}
         {answer && (
             <p data-testid="answer" className="text-sm text-white/90 leading-relaxed whitespace-pre-line break-words">
-                {renderAnswer(answer, mentions, songs, sources, bandcamp, artistName)}
+                {renderAnswer(answer, mentions, songs, sources, bandcamp, artistName, instagramMentions)}
             </p>
         )}
 
@@ -532,7 +549,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
-            question: trimmed, sources: [], mentions: [], songs: [],
+            question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
         setTurns(previous => [...previous, pending]);
@@ -554,6 +571,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 answer: data.answer,
                 sources: Array.isArray(data.sources) ? data.sources : [],
                 mentions: Array.isArray(data.mentions) ? data.mentions : [],
+                instagramMentions: Array.isArray(data.instagramMentions) ? data.instagramMentions.filter((handle: unknown) => typeof handle === 'string') : [],
                 songs: Array.isArray(data.songs) ? data.songs : [],
                 bandcamp: typeof data.bandcamp === "string" ? data.bandcamp : null,
                 fromOpenWeb: data.fromOpenWeb === true,

@@ -5,6 +5,9 @@ Instagram captions in Latest link literal `@username` mentions to the correspond
 expanded posts. Card opening and mention navigation are separate controls; anchors
 must never be nested inside the card button. Caption wording and punctuation remain intact.
 Other kinds of Latest updates retain their existing behavior.
+The clamped card preview offers direct pointer links. Keyboard users open the full post,
+where every mention is in the tab order; clipped preview text never receives hidden focus.
+Closing the expanded post returns focus to its card.
 
 Ask links literal handles only when they occur in Instagram source text actually cited
 by that answer. Recent captions and stored caption-credit/statement evidence provide

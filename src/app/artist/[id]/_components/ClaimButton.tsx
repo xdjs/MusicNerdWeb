@@ -50,7 +50,7 @@ export default function ClaimButton({
     // Already claimed by current user — show badge
     if (isClaimedByUser) {
         return (
-            <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-pastypink/15 text-pastypink text-xs font-semibold">
+            <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-highlightpink/15 text-foreground dark:text-highlightpink text-xs font-semibold">
                 <ShieldCheck size={14} strokeWidth={2.5} />
                 <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Claimed</span>
             </div>
