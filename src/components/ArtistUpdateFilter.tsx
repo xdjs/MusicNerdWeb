@@ -8,7 +8,7 @@ import { PROFILE_UPDATE_FILTERS as sections } from '@/lib/profile/profileUpdateF
 
 const clamp = (value: number) => Math.max(0, Math.min(sections.length - 1, value));
 
-export default function ArtistUpdateFilter({value, onValueChange}: {value: string; onValueChange: (value: string) => void}) {
+export default function ArtistUpdateFilter({value, onValueChange, variant = 'slider'}: {value: string; onValueChange: (value: string) => void; variant?: 'slider' | 'compact'}) {
     const active = Math.max(0, sections.findIndex(section => section.id === value));
     const [dragPosition, setDragPosition] = useState<number | null>(null);
     const [instant, setInstant] = useState(false);
@@ -67,6 +67,31 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    const buttons = sections.map((section, index) => <button type="button"
+        key={section.id}
+        ref={element => { links.current[index] = element; }}
+        data-section-index={index}
+        aria-pressed={active === index}
+        className={variant === 'compact' ? filterStyles.chip : styles.link}
+        onClick={event => {
+            event.preventDefault();
+            select(index, event.detail === 0);
+        }}
+        onKeyDown={event => {
+            const next = event.key === "ArrowRight" ? (index + 1) % sections.length
+                : event.key === "ArrowLeft" ? (index + sections.length - 1) % sections.length
+                : event.key === "Home" ? 0 : event.key === "End" ? sections.length - 1 : null;
+            if (next === null) return;
+            event.preventDefault();
+            links.current[next]?.focus();
+            select(next, true);
+        }}
+    >{section.label}</button>);
+
+    if (variant === 'compact') return <div role="group" aria-label="Filter artist updates" className={filterStyles.chips}>
+        {buttons}
+    </div>;
+
     return <div role="group"
         aria-label="Filter artist updates"
         className={`${styles.rail} ${filterStyles.updateFilters}`}
@@ -92,25 +117,6 @@ export default function ArtistUpdateFilter({value, onValueChange}: {value: strin
         }}
     >
         <span aria-hidden="true" className={`${styles.lens} ${filterStyles.filterLens}`} style={{ width: `calc((100% - 10px) / ${sections.length})`, transform: `translateX(${(dragPosition ?? active) * 100}%)` }} />
-        {sections.map((section, index) => <button type="button"
-            key={section.id}
-            ref={element => { links.current[index] = element; }}
-            data-section-index={index}
-            aria-pressed={active === index}
-            className={styles.link}
-            onClick={event => {
-                event.preventDefault();
-                select(index, event.detail === 0);
-            }}
-            onKeyDown={event => {
-                const next = event.key === "ArrowRight" ? (index + 1) % sections.length
-                    : event.key === "ArrowLeft" ? (index + sections.length - 1) % sections.length
-                    : event.key === "Home" ? 0 : event.key === "End" ? sections.length - 1 : null;
-                if (next === null) return;
-                event.preventDefault();
-                links.current[next]?.focus();
-                select(next, true);
-            }}
-        >{section.label}</button>)}
+        {buttons}
     </div>;
 }

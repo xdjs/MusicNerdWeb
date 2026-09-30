@@ -10,9 +10,10 @@ Pete requested the same **All · Releases · Socials · Lore** glass slider used
 
 ## User outcome
 
-### September 30 navigation hierarchy
+### September 30 navigation hierarchy (#1402)
 
-The artist's Latest / Links / Lore section navigation retains its glass slider.
+Pete's September 30 direction supersedes the September 21 glass-slider alignment
+for artist Latest only. The artist's Latest / Links / Lore section navigation retains its glass slider.
 Within Latest, All / Releases / Socials / Lore uses compact, content-width buttons
 with a subtle selected pill, without a shared glass rail or draggable lens. Labels,
 category mappings, keyboard navigation, gallery reset and card behavior are preserved.
