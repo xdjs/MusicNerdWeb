@@ -10,6 +10,16 @@ Pete requested the same **All · Releases · Socials · Lore** glass slider used
 
 ## User outcome
 
+### September 30 navigation hierarchy
+
+The artist's Latest / Links / Lore section navigation retains its glass slider.
+Within Latest, All / Releases / Socials / Lore uses compact, content-width buttons
+with a subtle selected pill, without a shared glass rail or draggable lens. Labels,
+category mappings, keyboard navigation, gallery reset and card behavior are preserved.
+The shared filter component defaults to the existing slider on user profiles; only
+artist Latest opts into the compact treatment. This is presentation-only: no route,
+query, persistence, job, service or schema change.
+
 On an artist profile, a visitor can see dated, image-led updates, filter by releases,
 Socials or Lore, open a full card, and follow a real source link.
 Cards form one horizontal gallery on mobile and desktop, with native touch/trackpad scrolling,
