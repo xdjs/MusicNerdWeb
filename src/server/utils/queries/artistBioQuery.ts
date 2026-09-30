@@ -5,7 +5,7 @@ import { getArtistDocStrict } from './onboardingQueries';
 import { getLoreClaimGeneration } from './lorePersistence';
 import { persistArtistBio } from './bioPersistence';
 import { generateAboutFromDoc } from '../artistDoc/generateAboutFromDoc';
-import type { DocSource } from '../artistDocService';
+import { stripCitationMarkers, type DocSource } from '../artistDocService';
 import { BioConflictError } from '@/lib/bio/bioConflict';
 import { OwnershipChangedError, type ArtistWriteAuth } from './ownershipWrites';
 
@@ -26,7 +26,10 @@ export async function generateArtistBio(artistId: string, auth?: ArtistWriteAuth
         error: 'Build your Lore document before generating About. Your existing About has been kept.',
       }, { status: 409 });
     }
-    const bio = await generateAboutFromDoc(artist.name ?? 'Artist', doc.content, (doc.sources ?? []) as DocSource[]);
+    const draft = await generateAboutFromDoc(artist.name ?? 'Artist', doc.content, (doc.sources ?? []) as DocSource[]);
+    // Match onboarding publication: Lore retains citations; the saved About is prose.
+    const bio = stripCitationMarkers(draft);
+    if (!bio) throw new Error('About generation returned no prose');
     const saved = await persistArtistBio(artistId, bio, {
       generated: true, expectedBio: artist.bio, ownership,
     });

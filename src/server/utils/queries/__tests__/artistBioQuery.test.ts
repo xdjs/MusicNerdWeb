@@ -33,9 +33,9 @@ beforeEach(() => {
 });
 it('summarizes only saved Lore and passes its citation manifest', async () => {
   const response = await generateArtistBio('a1', auth);
-  expect(await response.json()).toEqual({ bio: 'About from Lore [1]' });
+  expect(await response.json()).toEqual({ bio: 'About from Lore' });
   expect(generateAboutFromDoc).toHaveBeenCalledWith('Artist', 'Stored Lore [1]', manifest);
-  expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About from Lore [1]', { generated: true, expectedBio: 'Original About', ownership: auth });
+  expect(persistArtistBio).toHaveBeenCalledWith('a1', 'About from Lore', { generated: true, expectedBio: 'Original About', ownership: auth });
   expect(searchAndPopulateVault).not.toHaveBeenCalled();
   expect(getVaultSourcesByArtistId).not.toHaveBeenCalled();
   expect(musicPlatformData.getArtist).not.toHaveBeenCalled();
@@ -67,4 +67,11 @@ it('does not treat a Lore database failure as permission to research', async () 
 it('returns 404 for a missing artist', async () => {
   (getArtistById as jest.Mock).mockResolvedValue(null);
   expect((await generateArtistBio('missing', auth)).status).toBe(404);
+});
+
+it('keeps the existing bio when removing citation markers leaves no prose', async () => {
+  (generateAboutFromDoc as jest.Mock).mockResolvedValue('[1]');
+  const response = await generateArtistBio('a1', auth);
+  expect(response.status).toBe(500);
+  expect(persistArtistBio).not.toHaveBeenCalled();
 });
