@@ -255,3 +255,26 @@ it("persists status failures and exhausts four retries on the same paid run", as
   expect(view?.sources.instagram?.status).toBe("failed");
   expect(JSON.stringify(view)).not.toMatch(/paid-run|apify|instagramFailure/);
 });
+
+it("resets failures on a recovered poll but never resets failed cached collection", async () => {
+  const {refreshLatestInstagram}=await import("../refreshLatestInstagram");
+  const {claimResearchJob,failResearchJob}=await import("../../queries/researchJobQueries");
+  const {checkInstagramScrape,collectInstagramScrape}=await import("../../socialIngest");
+  jest.mocked(checkInstagramScrape).mockReset();
+  jest.mocked(checkInstagramScrape).mockResolvedValueOnce({status:"running",runId:"paid-run"})
+    .mockResolvedValueOnce({status:"ready",runId:"paid-run",datasetId:"dataset"});
+  jest.mocked(collectInstagramScrape).mockResolvedValue(null);
+  await call();
+  await client.exec(`update artist_research_jobs set attempts=3,state=state || '{"providerStarted":true,"runId":"paid-run"}'::jsonb`);
+  const recovered=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
+  expect(await refreshLatestInstagram(recovered!,Date.now()+55000)).toEqual({status:"pending"});
+  await store(recovered!,recovered!.state as unknown as import("@/lib/latest/types").LatestRefreshState,false);
+  expect((await client.query("select attempts from artist_research_jobs")).rows).toEqual([{attempts:0}]);
+  for(let attempt=1;attempt<=4;attempt++){
+    const job=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
+    await expect(refreshLatestInstagram(job!,Date.now()+55000)).rejects.toThrow("Instagram collection unavailable");
+    await failResearchJob(job!.id,"Instagram collection unavailable");
+    expect((await client.query("select attempts,status from artist_research_jobs")).rows).toEqual([{attempts:attempt,status:attempt===4?"failed":"pending"}]);
+  }
+  expect(checkInstagramScrape).toHaveBeenCalledTimes(2);
+});

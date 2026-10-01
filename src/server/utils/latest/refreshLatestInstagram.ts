@@ -24,23 +24,26 @@ export async function refreshLatestInstagram(
     await latestRefreshStore(job, state);
     return { status: "pending" };
   }
-  const result = state.datasetId
-    ? { status: "ready" as const, datasetId: state.datasetId }
-    : await checkInstagramScrape(state.runId);
-  if (result.status === "failed") {
-    state.instagramFailure = {phase: "status", reason: result.reason, at: new Date().toISOString()};
-    await latestRefreshStore(job, state);
-    if (result.retryable) throw new Error(result.reason);
-    return { status: "failed" };
+  if (!state.datasetId) {
+    const result = await checkInstagramScrape(state.runId);
+    if (result.status === "failed") {
+      state.instagramFailure = {phase: "status", reason: result.reason, at: new Date().toISOString()};
+      await latestRefreshStore(job, state);
+      if (result.retryable) throw new Error(result.reason);
+      return {status: "failed"};
+    }
+    if (result.status !== "ready") {
+      await latestRefreshStore(job, state, undefined, true);
+      return {status: "pending"};
+    }
+    state.datasetId = result.datasetId;
+    await latestRefreshStore(job, state, undefined, true);
   }
-  if (result.status !== "ready") return { status: "pending" };
-  state.datasetId = result.datasetId;
-  await latestRefreshStore(job, state);
   if (deadline - Date.now() < 45000) return { status: "pending" };
   const collected = await collectInstagramScrape(
     job.artistId,
     handle,
-    result.datasetId,
+    state.datasetId,
     job.id,
     0,
     { latestOnly: true },
