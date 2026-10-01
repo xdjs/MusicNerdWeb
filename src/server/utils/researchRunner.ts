@@ -90,7 +90,7 @@ export async function advanceResearch(opts: { budgetMs: number; artistId?: strin
         const message = e instanceof Error ? e.message : String(e);
         console.error(`[research] ${job.kind} failed for ${job.artistId}:`, message);
         await failResearchJob(job.id, message);
-        return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, progress: `failed: ${message}` };
+        return { ran: true, jobId: job.id, kind: job.kind, artistId: job.artistId, progress: `failed: ${message}`, ...(job.kind === "latest_refresh" ? { waiting: true } : {}) };
     }
 }
 

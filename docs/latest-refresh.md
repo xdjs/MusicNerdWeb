@@ -59,8 +59,11 @@ the job for diagnosis, without provider response bodies, tokens or URLs.
 The editor continues to receive only source status and checked time.
 
 Thumbnail retention preserves the working CDN fallback and existing retained
-images. Verify the failed image’s format and the bounded download/conversion
-path before changing acceptance or retry behavior. Keep byte/pixel limits,
+images. Temporary download/upload errors retry once at the same immutable path
+within the existing shared nine-second deadline. Diagnostic logs identify the
+download, decode or upload phase using fixed reasons, never media URLs or raw
+exceptions. The reported missing thumbnail currently returns a valid JPEG; its
+original failure reason was not retained, so a format defect is not established. Keep byte/pixel limits,
 allowed hosts, refused redirects and job-scoped revocation cleanup intact.
 
 Implement equivalent worker behavior in MusicNerdAPI before the Web worker is
@@ -68,3 +71,8 @@ removed by #1405; the API cutover must not restore the failure behavior. This
 change introduces no new endpoint or schema. Provider verification reuses saved
 results where possible; local injected failures are not evidence of a paid live
 scrape. No additional scrape or production data changes are part of development.
+
+The retry also accepts Supabase's current and legacy already-existing-object
+responses for the same content-addressed path; it never enables overwriting.
+Provider lifecycle and error contracts: [Apify run states](https://docs.apify.com/actors/development/builds-and-runs)
+and [Supabase Storage errors](https://supabase.com/docs/guides/storage/debugging/error-codes).

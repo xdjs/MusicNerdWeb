@@ -74,3 +74,31 @@ it("resumes the existing dataset with collection-only bounds", async () => {
     { latestOnly: true },
   );
 });
+
+it("recovers the same paid run after a temporary status error", async () => {
+  const j = job(); Object.assign(j.state, {runId:"paid-run",providerStarted:true});
+  jest.mocked(checkInstagramScrape).mockResolvedValueOnce({status:"failed",reason:"apify status 503",retryable:true})
+    .mockResolvedValueOnce({status:"ready",runId:"paid-run",datasetId:"saved-dataset"});
+  jest.mocked(collectInstagramScrape).mockResolvedValueOnce({ingested:5,ownPosts:5,collabPosts:0});
+  await expect(refreshLatestInstagram(j, Date.now()+55000)).rejects.toThrow("apify status 503");
+  expect(j.state).toMatchObject({instagramFailure:{phase:"status",reason:"apify status 503",at:expect.any(String)}});
+  expect(jest.mocked(latestRefreshStore)).toHaveBeenCalledWith(j,j.state);
+  expect(await refreshLatestInstagram(j, Date.now()+55000)).toMatchObject({status:"checked"});
+  expect(jest.mocked(checkInstagramScrape).mock.calls.map(a => a[0])).toEqual(["paid-run","paid-run"]);
+  expect(jest.mocked(startLatestInstagramScrape)).not.toHaveBeenCalled();
+});
+it("records confirmed terminal failure without retrying or paying again", async () => {
+  const j=job(); j.state.runId="paid-run";
+  jest.mocked(checkInstagramScrape).mockResolvedValueOnce({status:"failed",reason:"apify run FAILED"});
+  expect(await refreshLatestInstagram(j,Date.now()+55000)).toEqual({status:"failed"});
+  expect(j.state).toMatchObject({instagramFailure:{phase:"status",reason:"apify run FAILED"}});
+  expect(jest.mocked(startLatestInstagramScrape)).not.toHaveBeenCalled();
+});
+it("recovers collection from the saved dataset without polling or paying again", async () => {
+  const j=job(); Object.assign(j.state,{runId:"paid-run",datasetId:"saved-dataset"});
+  jest.mocked(collectInstagramScrape).mockResolvedValueOnce(null).mockResolvedValueOnce({ingested:5,ownPosts:5,collabPosts:0});
+  await expect(refreshLatestInstagram(j,Date.now()+55000)).rejects.toThrow("Instagram collection unavailable");
+  expect(await refreshLatestInstagram(j,Date.now()+55000)).toMatchObject({status:"checked"});
+  expect(jest.mocked(checkInstagramScrape)).not.toHaveBeenCalled();
+  expect(jest.mocked(startLatestInstagramScrape)).not.toHaveBeenCalled();
+});

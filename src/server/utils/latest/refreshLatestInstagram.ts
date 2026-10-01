@@ -27,7 +27,12 @@ export async function refreshLatestInstagram(
   const result = state.datasetId
     ? { status: "ready" as const, datasetId: state.datasetId }
     : await checkInstagramScrape(state.runId);
-  if (result.status === "failed") return { status: "failed" };
+  if (result.status === "failed") {
+    state.instagramFailure = {phase: "status", reason: result.reason, at: new Date().toISOString()};
+    await latestRefreshStore(job, state);
+    if (result.retryable) throw new Error(result.reason);
+    return { status: "failed" };
+  }
   if (result.status !== "ready") return { status: "pending" };
   state.datasetId = result.datasetId;
   await latestRefreshStore(job, state);
@@ -40,7 +45,11 @@ export async function refreshLatestInstagram(
     0,
     { latestOnly: true },
   );
-  return collected
-    ? { status: "checked", checkedAt: new Date().toISOString() }
-    : { status: "failed" };
+  if (!collected) {
+    const reason = "Instagram collection unavailable";
+    state.instagramFailure = {phase: "collection", reason, at: new Date().toISOString()};
+    await latestRefreshStore(job, state);
+    throw new Error(reason);
+  }
+  return { status: "checked", checkedAt: new Date().toISOString() };
 }

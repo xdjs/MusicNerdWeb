@@ -10,6 +10,9 @@ jest.mock("@/server/db/drizzle", () => ({
 const { PGlite } = process.getBuiltinModule("module").createRequire(__filename)(
   "@electric-sql/pglite",
 ) as typeof import("@electric-sql/pglite");
+jest.mock("@/env", () => ({ ...jest.requireActual("@/env"), APIFY_API_TOKEN: "test" }));
+jest.mock("../../socialIngest", () => ({ checkInstagramScrape: jest.fn(), collectInstagramScrape: jest.fn() }));
+jest.mock("../startLatestInstagramScrape", () => ({ startLatestInstagramScrape: jest.fn() }));
 const client = new PGlite();
 const driver = drizzle(client, { schema });
 const database = {
@@ -228,4 +231,27 @@ it("allows research after Latest has completed", async () => {
   await call();
   await client.exec("update artist_research_jobs set status='done'");
   expect(await enqueue(artist, "social_ingest", { state: { force: true } })).toBe(true);
+});
+
+it("persists status failures and exhausts four retries on the same paid run", async () => {
+  const {refreshLatestInstagram}=await import("../refreshLatestInstagram");
+  const {claimResearchJob,failResearchJob}=await import("../../queries/researchJobQueries");
+  const {checkInstagramScrape}=await import("../../socialIngest");
+  const {startLatestInstagramScrape}=await import("../startLatestInstagramScrape");
+  jest.mocked(checkInstagramScrape).mockResolvedValue({status:"failed",reason:"apify status 503",retryable:true});
+  await call();
+  await client.exec(`update artist_research_jobs set state=state || '{"providerStarted":true,"runId":"paid-run"}'::jsonb`);
+  for(let attempt=1;attempt<=4;attempt++){
+    const job=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
+    expect(job).not.toBeNull();
+    await expect(refreshLatestInstagram(job!,Date.now()+55000)).rejects.toThrow("apify status 503");
+    await failResearchJob(job!.id,"apify status 503");
+    const rows=await client.query("select status,attempts,last_error,state from artist_research_jobs");
+    expect(rows.rows[0]).toMatchObject({attempts:attempt,status:attempt===4?"failed":"pending",last_error:"apify status 503",state:{runId:"paid-run",instagramFailure:{phase:"status",reason:"apify status 503"}}});
+  }
+  expect(await claimResearchJob({artistId:artist,kinds:["latest_refresh"]})).toBeNull();
+  expect(startLatestInstagramScrape).not.toHaveBeenCalled();
+  const view=await read(artist);
+  expect(view?.sources.instagram?.status).toBe("failed");
+  expect(JSON.stringify(view)).not.toMatch(/paid-run|apify|instagramFailure/);
 });

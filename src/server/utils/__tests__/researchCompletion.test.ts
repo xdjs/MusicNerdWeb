@@ -285,3 +285,15 @@ it("routes attributed Latest jobs only through the collection worker", async () 
     expect(refreshArtistDoc).not.toHaveBeenCalled();
     expect(enqueueResearchJob).not.toHaveBeenCalled();
 });
+
+// Latest retries wait until another worker tick, rather than burning the whole
+// retry allowance in a single cron loop while the provider is still unavailable.
+jest.mock("@/server/utils/latest/authorizeLatestRefresh", () => ({ authorizeLatestRefresh: jest.fn(async () => {}) }));
+jest.mock("@/server/utils/latest/runLatestRefresh", () => ({ runLatestRefresh: jest.fn(async () => { throw new Error("apify status 503"); }) }));
+it("sets a failed Latest attempt aside for the rest of this tick", async () => {
+  claimResearchJob.mockResolvedValue({...job,kind:"latest_refresh"});
+  failResearchJob.mockResolvedValue(undefined);
+  const {advanceResearch}=await import("@/server/utils/researchRunner");
+  expect(await advanceResearch({budgetMs:55000})).toMatchObject({waiting:true});
+  expect(failResearchJob).toHaveBeenCalledWith("job-1","apify status 503");
+});
