@@ -24,8 +24,9 @@ back the entire transaction. Foreign-key checks on concurrent activity inserts s
 with those row locks: an insert either precedes the transfer or fails against the deleted
 account; it must never commit a newly anonymous event.
 
-Only the trusted `mnweb` backend role can execute the function. It has no direct UPDATE or
-DELETE permission on activity, and SELECT only on the merge ledger. Browser roles and
+The `mnweb` backend role can execute the function. It has no direct UPDATE or
+DELETE permission on activity, and SELECT only on the merge ledger. Database owners
+and Supabase’s privileged service role retain their administrative access. Browser roles and
 PUBLIC cannot execute the function or access the ledger. A fixed search path and qualified
 relations prevent object shadowing. The function does not independently verify wallet
 ownership: the authenticated Link Wallet route remains that authorization boundary.

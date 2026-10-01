@@ -7,9 +7,13 @@ private merge ledger and narrowly scoped identity-transfer function; the same
 transaction now transfers activity before deletion. Event/source history stays
 intact, existing unknown actors stay unknown, and failures roll back the merge.
 See [the contract and verification harness](docs/account-merge-attribution.md).
+[Draft PR #1407](https://github.com/xdjs/MusicNerdWeb/pull/1407) contains the fix.
 Local app-role PostgreSQL checks cover the actual merge/readers, grants/RLS,
-rollback and a concurrent stale insert. Shared staging migration, merge and
-production release are not yet authorized or performed for this work.
+rollback and a concurrent stale insert. Pete authorized staging migration 0035
+on October 1; it is applied and verified through the real `mnweb` connection
+using rolled-back fixtures. No real account was merged. Exact-head preview,
+CI and review evidence are on the PR. Main merge and production release remain
+separate, unperformed gates; production still requires migration 0035 first.
 
 ## Manual Latest refresh — September 29
 
