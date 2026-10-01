@@ -15,6 +15,8 @@ the allowed handles. The AI-compiled document, an uncited post, or an unrelated 
 source cannot establish an Instagram destination. Existing supported links on artist
 names, record titles and source citations remain available. Literal Instagram mentions
 open Instagram even if that handle also belongs to an artist in Music Nerd.
+When a collaborator has credits on multiple posts, prefer a post whose original credit
+quote contains their handle, and use that same post for the citation and link evidence.
 
 A shared deterministic parser recognizes complete handles of 1–30 ASCII letters,
 digits, underscores and separating periods. It preserves displayed case, punctuation

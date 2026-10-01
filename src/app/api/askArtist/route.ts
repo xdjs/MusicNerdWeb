@@ -249,14 +249,20 @@ export async function POST(req: Request) {
             if (collaborators.length > 0) {
                 const lines = collaborators.slice(0, MAX_COLLABORATORS_IN_CONTEXT).map(c => {
                     const n = citable.length + 1;
+                    const credits = (extraction.credits ?? []).filter(credit => c.evidenceUrls.includes(credit.url));
+                    // Grouping may upgrade a bare name to a handle from a later post.
+                    // Cite that handle's original evidence instead of the first bare-name post.
+                    const handleCredit = c.isHandle ? credits.find(credit => getInstagramMentions(credit.quote)
+                        .some(mention => mention.handle === c.subject.toLowerCase())) : undefined;
+                    const evidenceUrl = handleCredit?.url ?? c.evidenceUrls[0];
                     citable.push({
                         n,
                         title: `${artistName} credits ${c.isHandle ? "@" : ""}${c.subject} — ${c.roles.join("; ")}`,
-                        url: c.evidenceUrls[0],
+                        url: evidenceUrl,
                     });
                     const text = `${c.isHandle ? "@" : ""}${c.subject} — ${c.roles.join("; ")} (${c.evidenceUrls.length} post${c.evidenceUrls.length === 1 ? "" : "s"})`;
-                    const evidence = (extraction.credits ?? []).filter(credit => credit.url === c.evidenceUrls[0]).map(credit => credit.quote).join('\n');
-                    instagramEvidence.push({ n, url: c.evidenceUrls[0], text: evidence });
+                    const evidence = credits.filter(credit => credit.url === evidenceUrl).map(credit => credit.quote).join('\n');
+                    instagramEvidence.push({ n, url: evidenceUrl, text: evidence });
                     return `[${n}] ${text}`;
                 });
                 contextParts.push(`\n--- WHO ${artistName.toUpperCase()} HAS CREDITED, IN THEIR OWN CAPTIONS ---\n${lines.join("\n")}`);

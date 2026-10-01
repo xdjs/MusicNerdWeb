@@ -94,3 +94,21 @@ it('checks the original credit quote instead of trusting an extracted handle alo
     generateText.mockResolvedValue({ text: 'With @cxy and @invented [1, 2].' });
     expect((await ask()).instagramMentions).toEqual(['cxy']);
 });
+
+it('cites the handle-bearing post when a grouped collaborator starts with a bare-name credit', async () => {
+    getRecentOwnPosts.mockResolvedValue([]);
+    getSocialCredits.mockResolvedValue({ statements: [], credits: [{
+        subject: 'C X Y', isHandle: false, isSelf: false, role: 'Producer',
+        quote: 'Produced by C X Y, with @firstonly', url: 'https://instagram.com/p/bare-name/',
+    }, {
+        subject: 'someoneelse', isHandle: true, isSelf: false, role: 'Producer',
+        quote: 'Thanks @cxy and @someoneelse', url: 'https://instagram.com/p/unrelated/',
+    }, {
+        subject: 'cxy', isHandle: true, isSelf: false, role: 'Executive producer',
+        quote: 'Executive producer @CxY', url: 'https://instagram.com/p/handle-credit/',
+    }] });
+    generateText.mockResolvedValue({ text: 'With @cxy and @firstonly and @someoneelse [1].' });
+    const body = await ask();
+    expect(body.instagramMentions).toEqual(['cxy']);
+    expect(body.sources).toEqual([expect.objectContaining({ n: 1, url: 'https://instagram.com/p/handle-credit/' })]);
+});
