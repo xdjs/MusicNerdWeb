@@ -464,6 +464,15 @@ export async function mergeAccounts(
                 WHERE user_id = ${currentUserId}
             `);
 
+            // The activity ledger stays append-only to mnweb. This narrow audited
+            // identity transfer runs after Privy moves, inside the same transaction.
+            // If it fails (including a missing migration), do not delete the actor.
+            await tx.execute(sql`
+                SELECT public.transfer_account_activity(
+                    ${currentUserId}::uuid, ${legacyUserId}::uuid, ${currentUser.privyUserId}
+                )
+            `);
+
             await transferUserBookmarks(tx, currentUserId, legacyUserId);
 
             // Delete the current (placeholder) user; bookmarks are already transferred.

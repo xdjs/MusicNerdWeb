@@ -1,3 +1,16 @@
+## Account merge attribution — October 1
+
+[#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389) is being fixed on
+`codex/preserve-merged-attribution`. The real regression reproduced a Lore credit
+becoming unknown when `mergeAccounts` deleted its actor. Migration 0035 adds a
+private merge ledger and narrowly scoped identity-transfer function; the same
+transaction now transfers activity before deletion. Event/source history stays
+intact, existing unknown actors stay unknown, and failures roll back the merge.
+See [the contract and verification harness](docs/account-merge-attribution.md).
+Local app-role PostgreSQL checks cover the actual merge/readers, grants/RLS,
+rollback and a concurrent stale insert. Shared staging migration, merge and
+production release are not yet authorized or performed for this work.
+
 ## Manual Latest refresh — September 29
 
 Pete approved an artist/admin **Update Latest** action covering Instagram, In Process,
