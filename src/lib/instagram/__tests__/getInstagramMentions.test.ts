@@ -35,3 +35,19 @@ it('allows sentence and bullet punctuation without confusing email suffixes for 
     const text = 'Amazing.@artist +@cxy %@whoiseli Thanks.@liv.corp info-@example.com info+@example.com info%@example.com';
     expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@artist', '@cxy', '@whoiseli', '@liv.corp']);
 });
+
+it.each([
+    '<span data-user="@evil">',
+    '<span title=">" data-user=\'@evil\'>',
+    '<!-- > @evil -->',
+    '<!-- @evil',
+    '<span data-user="@evil',
+    '<span data-user=@evil',
+])('keeps handles inside literal HTML syntax unlinked: %s', text => {
+    expect(getInstagramMentions(text)).toEqual([]);
+});
+
+it('still links ordinary caption text outside HTML and after a text heart', () => {
+    const text = '<span data-user="@hidden">Thanks @cxy! </span> <!-- > @hidden --> I <3 @whoiseli';
+    expect(getInstagramMentions(text).map(m => text.slice(m.start, m.end))).toEqual(['@cxy', '@whoiseli']);
+});

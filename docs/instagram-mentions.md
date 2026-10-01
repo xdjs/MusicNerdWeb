@@ -19,8 +19,9 @@ open Instagram even if that handle also belongs to an artist in Music Nerd.
 A shared deterministic parser recognizes complete handles of 1–30 ASCII letters,
 digits, underscores and separating periods. It preserves displayed case, punctuation
 and repeated occurrences. Email addresses, handles embedded in URLs, malformed/overlong
-tokens and HTML remain text. URLs use a fixed HTTPS Instagram origin; model-generated
-URLs and HTML are never used to build these links. A source-backed handle is evidence
+tokens and handles inside HTML tags, attributes or comments remain text. HTML is always
+escaped; mentions in ordinary text outside markup can still link. URLs use a fixed HTTPS
+Instagram origin; model-generated URLs and HTML are never used to build these links. A source-backed handle is evidence
 of the mention, not a check that the account still exists or retains that username.
 
 The data path is stored Instagram caption → parser → React text/anchors. Ask keeps a

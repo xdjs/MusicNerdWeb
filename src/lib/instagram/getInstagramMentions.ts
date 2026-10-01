@@ -1,8 +1,12 @@
 /** Locate complete literal Instagram handles without turning emails or URLs into mentions. */
 export function getInstagramMentions(text: string): { start: number; end: number; handle: string; href: string }[] {
     const mentions: { start: number; end: number; handle: string; href: string }[] = [];
+    // Treat literal markup as text, including quoted > characters and unfinished tags.
+    // Requiring a tag-like opener keeps ordinary caption hearts (<3) out of these ranges.
+    const markup = [...text.matchAll(/<!--[\s\S]*?(?:-->|$)|<(?=\/?[a-z]|[!?])(?:[^>"']|"[^"]*(?:"|$)|'[^']*(?:'|$))*(?:>|$)/gi)];
     for (const match of text.matchAll(/@([a-z0-9_.]+)/gi)) {
         const start = match.index;
+        if (markup.some(tag => start >= tag.index && start < tag.index + tag[0].length)) continue;
         const before = text.slice(0, start);
         const after = text[start + match[0].length] ?? '';
         // A sentence's trailing full stops are punctuation, not part of the handle.
