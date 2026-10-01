@@ -103,7 +103,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                                 </span>
                                 <ArrowUpRight size={18} aria-hidden="true" />
                             </div>}
-                            <div className={`pointer-events-none relative space-y-2 ${item.kind === 'instagram' ? 'p-5 pt-6' : ''}`}>
+                            <div className={`pointer-events-none relative space-y-2 ${item.kind === 'instagram' ? 'p-5 pt-7' : ''}`}>
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                     {item.kind === 'instagram' && <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/75"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>}
                                     <time dateTime={item.date} className="text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>

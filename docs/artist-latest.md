@@ -24,8 +24,12 @@ the existing-data audit. Caption links do not trigger the card's separate opener
 
 Pete approved extending the overlay card into black below the complete Instagram image,
 so the caption no longer covers the bottom of the artwork. The image keeps its proportions,
-with a small edge fade into the card; the date, caption and action occupy the added black
-space. Tall images are contained within a bounded media area. Instagram cards can be taller
+with its bottom edge unobscured. A decorative extension of that edge's colors continues
+into a 100px fade beneath the image, carrying the image's colors into black behind the
+metadata and caption. This matches the approved prototype's extended gradient; an 8px
+image mask and hard black caption panel do not. The decorative copy uses the same image URL,
+is hidden from assistive technology and follows the existing fallback. Tall images are
+contained within a bounded media area. Instagram cards can be taller
 than the other update types in the same horizontal gallery.
 
 Retained thumbnail width/height are projected with their matching image URL to reserve the
