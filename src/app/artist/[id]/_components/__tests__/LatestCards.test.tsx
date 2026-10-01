@@ -102,6 +102,31 @@ it('recovers a failed contextual image using the artist portrait then the local 
     expect(screen.getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
 });
 
+it('shows the complete Instagram image and preserves its fallback and source action when expanded', () => {
+    const post: ArtistLatestItem = { ...answer, id: 'instagram:image', kind: 'instagram', title: 'From Instagram',
+        imageUrl: 'https://cdn.example.com/post.jpg', imageCaption: 'Full announcement including the bottom lyrics',
+        sourceUrl: 'https://www.instagram.com/p/test/', sourceLabel: 'View on Instagram' };
+    setup([post, release]);
+    const cardImage = screen.getByAltText(post.imageCaption);
+    expect(cardImage).toHaveClass('object-contain');
+    expect(screen.getByText('Read the post')).toHaveClass('text-highlightpink');
+    fireEvent.error(cardImage);
+    expect(screen.getByAltText('Test Artist portrait')).toHaveAttribute('src', 'https://cdn.example.com/artist.jpg');
+    expect(screen.getByAltText(release.imageCaption)).toHaveAttribute('src', release.imageUrl);
+    fireEvent.click(screen.getByRole('button', { name: 'Read From Instagram' }));
+    const dialog = screen.getByRole('dialog');
+    const fullImage = within(dialog).getByAltText(post.imageCaption);
+    expect(fullImage).toHaveClass('object-contain');
+    expect(fullImage).not.toHaveAttribute('data-nimg', 'fill');
+    const source = within(dialog).getByRole('link', { name: 'View on Instagram' });
+    expect(source).toHaveAttribute('href', post.sourceUrl);
+    expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(source).toHaveClass('button-pink', 'bg-highlightpink', 'text-black');
+    fireEvent.error(fullImage);
+    fireEvent.error(within(dialog).getByAltText('Test Artist portrait'));
+    expect(within(dialog).getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
+});
+
 it('distinguishes no activity from unavailable activity', () => {
     const view = setup([]);
     expect(screen.getByText(/When Test Artist shares/)).toBeInTheDocument();
