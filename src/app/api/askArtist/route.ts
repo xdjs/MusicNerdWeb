@@ -10,6 +10,8 @@ import { getSocialCredits } from "@/server/utils/queries/socialCreditQueries";
 import { getRecentOwnPosts } from "@/server/utils/socialIngest";
 import { getSpotifyCatalogDetail, getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
 import { creditedCollaborators, selfCredits } from "@/server/utils/socialCredits";
+import { resolveInstagramMentions } from "@/lib/instagram/resolveInstagramMentions";
+import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 
 /** Per source. Roughly what the old flat slice cost, spent on the relevant
  *  paragraphs instead of the opening ones. */
@@ -76,6 +78,8 @@ export async function POST(req: Request) {
 
         // Build context from artist data + vault sources
         const contextParts: string[] = [];
+        // Kept server-side: only literal handles in cited Instagram evidence become links.
+        const instagramEvidence: { n: number; url: string; text: string }[] = [];
         if (artist.spotify) contextParts.push(`Spotify ID: ${artist.spotify}`);
         if (artist.instagram) contextParts.push(`Instagram: @${artist.instagram}`);
         if (artist.x) contextParts.push(`X/Twitter: @${artist.x}`);
@@ -209,7 +213,13 @@ export async function POST(req: Request) {
                     const n = citable.length + 1;
                     const when = p.postedAt ? p.postedAt.slice(0, 10) : "undated";
                     citable.push({ n, title: `${artistName} on Instagram, ${when}`, url: p.url });
-                    const caption = (p.caption ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
+                    const fullCaption = (p.caption ?? "").replace(/\s+/g, " ").trim();
+                    const allHandles = getInstagramMentions(fullCaption);
+                    // Do not hand the model half a username at the context boundary.
+                    const clippedHandle = allHandles.find(m => m.start < 400 && m.end > 400);
+                    const caption = fullCaption.slice(0, clippedHandle?.start ?? 400);
+                    const handles = allHandles.filter(m => m.end <= caption.length);
+                    instagramEvidence.push({ n, url: p.url, text: handles.map(m => `@${m.handle}`).join(' ') });
                     return `[${n}] ${when} — "${caption}"`;
                 });
                 contextParts.push(`\n--- ${artistName.toUpperCase()}'S RECENT POSTS, NEWEST FIRST ---\n${lines.join("\n")}`);
@@ -239,12 +249,21 @@ export async function POST(req: Request) {
             if (collaborators.length > 0) {
                 const lines = collaborators.slice(0, MAX_COLLABORATORS_IN_CONTEXT).map(c => {
                     const n = citable.length + 1;
+                    const credits = (extraction.credits ?? []).filter(credit => c.evidenceUrls.includes(credit.url));
+                    // Grouping may upgrade a bare name to a handle from a later post.
+                    // Cite that handle's original evidence instead of the first bare-name post.
+                    const handleCredit = c.isHandle ? credits.find(credit => getInstagramMentions(credit.quote)
+                        .some(mention => mention.handle === c.subject.toLowerCase())) : undefined;
+                    const evidenceUrl = handleCredit?.url ?? c.evidenceUrls[0];
                     citable.push({
                         n,
                         title: `${artistName} credits ${c.isHandle ? "@" : ""}${c.subject} — ${c.roles.join("; ")}`,
-                        url: c.evidenceUrls[0],
+                        url: evidenceUrl,
                     });
-                    return `[${n}] ${c.isHandle ? "@" : ""}${c.subject} — ${c.roles.join("; ")} (${c.evidenceUrls.length} post${c.evidenceUrls.length === 1 ? "" : "s"})`;
+                    const text = `${c.isHandle ? "@" : ""}${c.subject} — ${c.roles.join("; ")} (${c.evidenceUrls.length} post${c.evidenceUrls.length === 1 ? "" : "s"})`;
+                    const evidence = credits.filter(credit => credit.url === evidenceUrl).map(credit => credit.quote).join('\n');
+                    instagramEvidence.push({ n, url: evidenceUrl, text: evidence });
+                    return `[${n}] ${text}`;
                 });
                 contextParts.push(`\n--- WHO ${artistName.toUpperCase()} HAS CREDITED, IN THEIR OWN CAPTIONS ---\n${lines.join("\n")}`);
             }
@@ -305,6 +324,7 @@ export async function POST(req: Request) {
                 const lines = extraction.statements.slice(0, MAX_STATEMENTS_IN_CONTEXT).map(s => {
                     const n = citable.length + 1;
                     citable.push({ n, title: `Their own words — ${s.topic}`, url: s.url });
+                    instagramEvidence.push({ n, url: s.url, text: s.quote });
                     const when = s.postedAt ? ` (${s.postedAt.slice(0, 10)})` : "";
                     return `[${n}]${when} ${s.topic}: "${s.quote}"`;
                 });
@@ -467,6 +487,8 @@ ${artistContext}`,
             }
         }
         const sources = citable.filter(s => citedIds.has(s.n));
+        const instagramMentions = resolveInstagramMentions(answer, fromOpenWeb ? []
+            : instagramEvidence.filter(source => citedIds.has(source.n)));
 
         // People the answer names, resolved to somewhere worth going.
         //
@@ -508,7 +530,7 @@ ${artistContext}`,
         await trackServerEvent("ask_question", { outcome: fromOpenWeb ? "open_web" : "answered", sources: sources.length });
 
         return Response.json({
-            answer, suggestions, sources, mentions, songs,
+            answer, suggestions, sources, mentions, instagramMentions, songs,
             // The artist's store, for the "where can I hear this" menu under a
             // record. Bandcamp has no API, so this is their page and is
             // labelled as their page.

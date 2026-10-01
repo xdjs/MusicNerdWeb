@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 const mockTrackEvent = jest.fn();
 beforeEach(() => { Element.prototype.scrollIntoView = jest.fn(); });
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...args: unknown[]) => mockTrackEvent(...args) }));
@@ -14,6 +14,45 @@ const answer: ArtistLatestItem = { id: 'interview:1', kind: 'interview', title: 
 function setup(items = [answer, release], unavailable = false) {
     return render(<LatestCards items={items} artistName="Test Artist" artistImage="https://cdn.example.com/artist.jpg" unavailable={unavailable} />);
 }
+
+it('links saved Instagram handles in cards and full posts without nesting links in buttons', () => {
+    const caption = 'Produced by @cxy and @whoiseli. Thanks @liv.corp! Email mail@example.com';
+    setup([{ ...answer, id: 'instagram:one', kind: 'instagram', title: 'From Instagram', text: caption,
+        sourceUrl: 'https://www.instagram.com/p/test/', sourceLabel: 'View on Instagram' }]);
+    const gallery = screen.getByRole('region', { name: 'Latest updates gallery' });
+    const mention = within(gallery).getByRole('link', { name: '@cxy' });
+    expect(mention).toHaveAttribute('href', 'https://www.instagram.com/cxy/');
+    expect(mention).toHaveAttribute('target', '_blank');
+    expect(mention).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(mention.closest('button')).toBeNull();
+    // Preview captions are clamped; keyboard users open the full post instead of focusing clipped text.
+    expect(mention.tabIndex).toBe(-1);
+    fireEvent.click(mention);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Read From Instagram' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('link', { name: '@whoiseli' })).toHaveAttribute('href', 'https://www.instagram.com/whoiseli/');
+    expect(within(dialog).getByRole('link', { name: '@whoiseli' }).tabIndex).toBe(0);
+    expect(within(dialog).getByRole('link', { name: '@liv.corp' })).toHaveAttribute('href', 'https://www.instagram.com/liv.corp/');
+    expect(within(dialog).getByRole('link', { name: 'View on Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/p/test/');
+    expect(within(dialog).queryByRole('link', { name: /example/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: '@cxy' }).closest('p')).toHaveTextContent(caption);
+});
+
+it('does not interpret handles in non-Instagram updates as Instagram mentions', () => {
+    setup([{ ...answer, text: 'Ask @someone about this' }]);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${answer.title}` }));
+    expect(within(screen.getByRole('dialog')).queryByRole('link')).not.toBeInTheDocument();
+});
+
+it('returns focus to the Instagram card after closing its full post', async () => {
+    setup([{ ...answer, id: 'instagram:focus', kind: 'instagram', title: 'From Instagram', text: 'With @cxy' }]);
+    const opener = screen.getByRole('button', { name: 'Read From Instagram' });
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(opener).toHaveFocus());
+});
 
 it('reports which card kind was opened under which filter', () => {
     setup();
