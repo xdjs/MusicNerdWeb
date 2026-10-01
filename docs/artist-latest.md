@@ -20,6 +20,22 @@ Instagram captions link valid literal `@username` mentions in the gallery and ex
 See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
 the existing-data audit. Caption links do not trigger the card's separate opener.
 
+### Instagram image layout — October 1, 2026 (#1410)
+
+Pete approved extending the overlay card into black below the complete Instagram image,
+so the caption no longer covers the bottom of the artwork. The image keeps its proportions,
+with a small edge fade into the card; the date, caption and action occupy the added black
+space. Tall images are contained within a bounded media area. Instagram cards can be taller
+than the other update types in the same horizontal gallery.
+
+The expanded Instagram post shows the full image without the card's fade or a fixed banner
+crop. Its scrollable dialog keeps the full caption, mentions and source action reachable.
+“Read the post” uses `highlightpink` (`#FF75D8`); expanded source actions use the shared
+`Button variant="pink"`, including black labels/icons in either theme. Other update types
+retain their existing image layouts. Image failures still try the artist portrait and then
+the local fallback. This is presentation only: stored URLs, research jobs, refreshes and
+database state are unchanged.
+
 This is the artist-profile experiment agreed in [decisions](rnd/decisions.md), not a global
 homepage feed. It adds no migration, new credentials or publication action.
 
