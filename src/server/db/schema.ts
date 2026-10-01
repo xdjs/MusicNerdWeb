@@ -369,8 +369,20 @@ export const artistClaims = pgTable("artist_claims", {
 	pgPolicy("mnweb_update_artist_claims", { as: "permissive", for: "update", to: ["mnweb"] }),
 ]);
 
+// Immutable identity-transfer audit; UUIDs deliberately survive account deletion.
+export const accountMergeEvents = pgTable("account_merge_events", {
+	sourceUserId: uuid("source_user_id").primaryKey().notNull(),
+	targetUserId: uuid("target_user_id").notNull(),
+	activityCount: integer("activity_count").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	check("account_merge_distinct_users", sql`${table.sourceUserId} <> ${table.targetUserId}`),
+	check("account_merge_nonnegative_count", sql`${table.activityCount} >= 0`),
+	pgPolicy("mnweb_select_account_merges", { for: "select", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
 // Raw actor metadata is private to Admin; artist reviewers receive only safe contributor names.
-// Append-only under the application role.
+// Append-only under the application role, except the audited account-merge function.
 export const artistActivityEvents = pgTable("artist_activity_events", {
     id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
     artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
