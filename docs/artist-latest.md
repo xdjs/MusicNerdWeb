@@ -10,19 +10,19 @@ Pete requested the same **All · Releases · Socials · Lore** glass slider used
 
 ## User outcome
 
-### September 30 navigation hierarchy (#1402)
+### October 1 navigation hierarchy (#1402)
 
-Pete's September 30 direction supersedes the September 21 glass-slider alignment
-for artist Latest only. The artist's Latest / Links / Lore section navigation retains its glass slider.
-Within Latest, All / Releases / Socials / Lore uses compact, content-width buttons
-with a subtle selected pill, without a shared glass rail or draggable lens. Labels,
-category mappings, keyboard navigation, gallery reset and card behavior are preserved.
-The shared filter component defaults to the existing slider on user profiles; only
-artist Latest opts into the compact treatment. This is presentation-only: no route,
-query, persistence, job, service or schema change.
+Pete decided to remove category filtering from artist Latest after comparing the
+September 30 alternatives. This supersedes the compact-pill proposal and September 21
+glass-slider alignment for artist Latest. The top-level Latest / Links / Lore glass
+slider remains unchanged. Latest displays every available update in the existing
+date-ordered gallery, directly below its heading and refresh control.
 
-On an artist profile, a visitor can see dated, image-led updates, filter by releases,
-Socials or Lore, open a full card, and follow a real source link.
+`LatestSection` opts out of the existing optional filters in `LatestCards`. User
+profiles retain their existing filter controls. No route, query, persistence, job,
+service or schema change.
+
+On an artist profile, a visitor can see dated, image-led updates from every category, open a full card, and follow a real source link.
 Cards form one horizontal gallery on mobile and desktop, with native touch/trackpad scrolling,
 previous/next buttons and arrow-key navigation when the gallery is focused. All selected updates
 are in the row; filters reset to the beginning. There is no grid or show-all expansion.
