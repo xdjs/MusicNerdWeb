@@ -13,21 +13,3 @@ it('offers four groups and moves the selection with arrow keys and End', ()=>{
   fireEvent.keyDown(screen.getByRole('button',{name:'Lore'}),{key:'Home'});
   expect(screen.getByRole('button',{name:'All'})).toHaveAttribute('aria-pressed','true');
 });
-
-it('offers compact filters without a slider lens and preserves keyboard selection', () => {
-  Element.prototype.scrollIntoView = jest.fn();
-  function Example() {
-    const [value, setValue] = useState('All');
-    return <ArtistUpdateFilter value={value} onValueChange={setValue} variant="compact" />;
-  }
-  render(<Example />);
-  const group = screen.getByRole('group', { name: 'Filter artist updates' });
-  expect(group.querySelector('[aria-hidden="true"]')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Socials' }));
-  expect(screen.getByRole('button', { name: 'Socials' })).toHaveAttribute('aria-pressed', 'true');
-  fireEvent.keyDown(screen.getByRole('button', { name: 'Socials' }), { key: 'ArrowRight' });
-  expect(screen.getByRole('button', { name: 'Lore' })).toHaveFocus();
-  expect(screen.getByRole('button', { name: 'Lore' })).toHaveAttribute('aria-pressed', 'true');
-  fireEvent.keyDown(screen.getByRole('button', { name: 'Lore' }), { key: 'Home' });
-  expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
-});

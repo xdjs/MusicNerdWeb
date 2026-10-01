@@ -80,7 +80,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         <h2 id={`${sectionId}-heading`} className={hideHeading ? "sr-only" : "text-xl font-bold text-black dark:text-white"}>{heading}</h2>
         {refreshControl}
         </div>
-        {showFilters && items.length > 0 && <ArtistUpdateFilter variant="compact" value={filter} onValueChange={value => setChoice({artistName, value})} />}
+        {showFilters && items.length > 0 && <ArtistUpdateFilter value={filter} onValueChange={value => setChoice({artistName, value})} />}
         {items.length > 0 && visible.length === 0 && <p role="status" className="p-6 text-sm text-muted-foreground">No {PROFILE_UPDATE_FILTERS.find(section => section.id === filter)?.label} updates yet.</p>}
         {items.length === 0 ? <p className="glass rounded-2xl p-6 text-sm text-gray-600 dark:text-gray-300">
             {unavailable ? 'Latest updates couldn’t load right now. Please try again later.' : `When ${artistName} shares new music, Instagram posts or interview answers, they’ll appear here.`}

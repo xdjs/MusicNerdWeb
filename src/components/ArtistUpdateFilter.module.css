@@ -4,28 +4,3 @@
 @media (max-width: 639px) {
   .updateFilters [data-section-index] { font-size: 11px; line-height: 1.2; padding-inline: 2px; min-height: 48px; white-space: normal; overflow-wrap: normal; }
 }
-
-.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.chip {
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: rgb(0 0 0 / 65%);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.chip:hover { color: #171717; }
-.chip[aria-pressed="true"] { border-color: #ff75d84d; background: #ff75d81a; color: #171717; }
-.chip:focus-visible { outline: 2px solid #b74dcc; outline-offset: 2px; }
-:global(.dark) .chip { color: rgb(255 255 255 / 72%); }
-:global(.dark) .chip:hover, :global(.dark) .chip[aria-pressed="true"] { color: #fff; }
-:global(.dark) .chip[aria-pressed="true"] { border-color: #ff75d833; background: #ff75d814; }
-@media (pointer: coarse) { .chip { min-height: 44px; } }
-@media (forced-colors: active) {
-  .chip[aria-pressed="true"] { border-color: ButtonText; text-decoration: underline; }
-}
