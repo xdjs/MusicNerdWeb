@@ -47,3 +47,24 @@ routes; collector bounds and no generation; lost provider start; partial failure
 resume; all source results; UI 390/832 in both themes and reload/navigation. Local mocks
 are not proof of live provider behavior. Apply staging SQL and execute a bounded real
 provider check only with an explicitly identified staging artist; production separately.
+
+## Refresh reliability — October 1 (#1408)
+
+A failed status request is not proof that the paid Instagram run failed. Retry
+transient status and dataset reads against the saved run/dataset using the queue’s
+existing four-attempt limit. Never issue another paid start for that request.
+Known nonterminal provider states remain pending; a confirmed failed, aborted or
+timed-out run ends the Instagram check. Store safe failure codes privately on
+the job for diagnosis, without provider response bodies, tokens or URLs.
+The editor continues to receive only source status and checked time.
+
+Thumbnail retention preserves the working CDN fallback and existing retained
+images. Verify the failed image’s format and the bounded download/conversion
+path before changing acceptance or retry behavior. Keep byte/pixel limits,
+allowed hosts, refused redirects and job-scoped revocation cleanup intact.
+
+Implement equivalent worker behavior in MusicNerdAPI before the Web worker is
+removed by #1405; the API cutover must not restore the failure behavior. This
+change introduces no new endpoint or schema. Provider verification reuses saved
+results where possible; local injected failures are not evidence of a paid live
+scrape. No additional scrape or production data changes are part of development.
