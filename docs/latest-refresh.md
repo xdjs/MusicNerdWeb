@@ -13,9 +13,11 @@ rechecks ownership and all connected identities under the artist lock. Results a
 cooldowns from an obsolete scope are ignored; a new request cancels the obsolete live
 job before queuing a refresh for the current connections.
 
-The worker refreshes In Process and each linked Spotify/Deezer catalog independently,
-using artist/provider-specific cache tags. Published interview answers are reread from
-Music Nerd. Instagram collects at most nine recent own posts within the last thirty days,
+The request checks In Process and each linked Spotify/Deezer catalog independently and in
+parallel, using artist/provider-specific cache tags (`checkLatestSources`), outside the artist
+lock. Published interview answers are reread from Music Nerd. These checks stay in this app
+because they expire its own cache. The queued job carries only the Instagram check, which
+MusicNerdAPI runs (#1365); with nothing for Instagram to do, it is saved as done. Instagram collects at most nine recent own posts within the last thirty days,
 retains thumbnails through the existing collector and never queues extraction or Lore.
 Provider-start intent is persisted before the paid POST; a lost response is terminal for
 that request rather than a second paid run. Instagram is capped at $0.03 per run. Repeated
@@ -35,10 +37,12 @@ No About/Lore rebuild or interview generation is triggered. X/TikTok are not yet
 ## Migration and API cutover
 
 The queue constraint must allow `latest_refresh` before code runs. No new table/grants.
-MusicNerdAPI currently claims only social_ingest/caption_extract/lore_refresh; this new
-kind remains served by MusicNerdWeb's existing worker and cron. The API cutover (#1365)
-must preserve that worker for source_search/latest_refresh or port both before deleting
-it. Migration 0034 follows the username migration 0033.
+Migration 0034 follows the username migration 0033.
+
+September 30, 2026 (#1365, Sweetman): MusicNerdAPI runs `latest_refresh` (API 1d,
+MusicNerdAPI#13): its Instagram check, with the ownership and identity check before every
+slice. The edit-mode pump posts to MusicNerdAPI's `/api/research/advance`. This app's worker,
+`/api/artist/[id]/latest-refresh/advance` and its cron are gone.
 
 ## Verification contract
 

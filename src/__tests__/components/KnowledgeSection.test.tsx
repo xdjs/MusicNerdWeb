@@ -11,6 +11,10 @@ jest.mock('@/app/actions/dashboardActions', () => ({
     undoDocCorrection: (...a) => undoDocCorrection(...a),
 }));
 
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({
+    musicNerdApiUrl: (path) => `https://api.example.test${path}`,
+}));
+
 import KnowledgeSection from '@/app/artist/[id]/_components/KnowledgeSection';
 
 // The section renders only for an owner who is actively editing — Pete: "it
@@ -134,5 +138,24 @@ describe('KnowledgeSection', () => {
         );
         expect(container).toBeEmptyDOMElement();
         expect(getKnowledgeDoc).not.toHaveBeenCalled();
+    });
+
+    it('asks MusicNerdAPI to look again, signed in with the Privy access token', async () => {
+        global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', message: 'Rebuilding Lore from your current documents.' }) });
+        renderEditing();
+        fireEvent.click(await screen.findByRole('button', { name: /Look again/ }));
+        expect(await screen.findByText('Rebuilding Lore from your current documents.')).toBeInTheDocument();
+        expect(fetch).toHaveBeenCalledWith('https://api.example.test/api/artist/a1/research/refresh', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer mock-access-token' },
+        });
+    });
+
+    it('still renders without a Privy provider (no app id in development)', async () => {
+        const privy = require('@privy-io/react-auth');
+        const spy = jest.spyOn(privy, 'usePrivy').mockImplementation(() => { throw new Error('no PrivyProvider'); });
+        renderEditing();
+        expect(await screen.findByRole('button', { name: /Look again/ })).toBeInTheDocument();
+        spy.mockRestore();
     });
 });

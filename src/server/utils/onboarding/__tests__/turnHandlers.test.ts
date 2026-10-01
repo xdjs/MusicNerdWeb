@@ -34,7 +34,7 @@ jest.mock('@/server/utils/fetchPageContent', () => ({
 jest.mock('@/server/utils/linkPreview', () => ({
     fetchLinkPreview: jest.fn().mockResolvedValue({ imageUrl: null, title: null }),
 }));
-jest.mock('@/server/utils/researchRunner', () => ({
+jest.mock('@/server/utils/requestArtistResearch', () => ({
     requestArtistResearch: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -1163,7 +1163,7 @@ describe('runOnboardingTurn', () => {
         oq.getOnboardingState.mockResolvedValue({ complete: false, currentStep: 'profiles' });
         const { extractArtistId } = await import('@/server/utils/services');
         extractArtistId.mockResolvedValueOnce({ siteName: 'instagram', id: 'nova' });
-        const { requestArtistResearch } = await import('@/server/utils/researchRunner');
+        const { requestArtistResearch } = await import('@/server/utils/requestArtistResearch');
         const { runOnboardingTurn } = await import('../turnHandlers');
         await collect(runOnboardingTurn('a1', {
             type: 'confirm_profiles',
@@ -1185,7 +1185,7 @@ describe('runOnboardingTurn', () => {
         extractArtistId.mockResolvedValueOnce(undefined);
         const { fetchLinkPreview } = await import('@/server/utils/linkPreview');
         fetchLinkPreview.mockResolvedValueOnce({ imageUrl: null, title: null }); // dead link -> unrecognized
-        const { requestArtistResearch } = await import('@/server/utils/researchRunner');
+        const { requestArtistResearch } = await import('@/server/utils/requestArtistResearch');
         (requestArtistResearch as jest.Mock).mockClear();
         const { runOnboardingTurn } = await import('../turnHandlers');
         await collect(runOnboardingTurn('a1', {

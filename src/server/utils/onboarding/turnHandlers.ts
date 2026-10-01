@@ -59,7 +59,7 @@ import { adoptedProfiles } from "./adoptedProfiles";
 import { after } from "next/server";
 import { generateGroundedQuestions, GROUNDED_QUESTION_KEY_PREFIX, type GroundedQuestion } from "@/server/utils/questionGenerator";
 import { waitForSocialPosts } from "@/server/utils/socialIngest";
-import { requestArtistResearch } from "@/server/utils/researchRunner";
+import { requestArtistResearch } from "@/server/utils/requestArtistResearch";
 
 const MAX_DOC_SOURCES = 200;
 

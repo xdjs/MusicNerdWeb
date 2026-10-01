@@ -2,7 +2,9 @@
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Check, Pencil, X, ExternalLink, Undo2, Loader2, RefreshCw, Download } from "lucide-react";
+import { getAccessToken } from "@privy-io/react-auth";
 import { EditModeContext } from "@/app/_components/EditModeContext";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import RevealSection from "./RevealSection";
 import { useResearchPump } from "./onboarding/useResearchPump";
 import { getKnowledgeDoc, correctDocClaim, undoDocCorrection } from "@/app/actions/dashboardActions";
@@ -288,7 +290,11 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
         setRefreshing(true);
         setError(null);
         try {
-            const res = await fetch(`/api/artist/${artistId}/research/refresh`, { method: "POST" });
+            // MusicNerdAPI (#1365), signed in with the Privy access token.
+            const res = await fetch(musicNerdApiUrl(`/api/artist/${artistId}/research/refresh`), {
+                method: "POST",
+                headers: { Authorization: `Bearer ${await getAccessToken()}` },
+            });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 setError(data?.error ?? "Couldn't start that. Try again in a bit.");
