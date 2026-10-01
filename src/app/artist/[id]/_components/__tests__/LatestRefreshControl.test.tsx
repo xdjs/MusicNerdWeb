@@ -91,7 +91,7 @@ it("advances a running check on MusicNerdAPI, then reads its status here", async
     expect(fetch).toHaveBeenCalledWith("https://api.example.test/api/research/advance", expect.objectContaining({
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artistId: "artist" }),
+      body: JSON.stringify({ artistId: "artist", kinds: ["latest_refresh"] }),
     })),
   );
   expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/latest-refresh/advance"))).toBe(false);

@@ -59,10 +59,11 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
     async function tick() {
       try {
         // MusicNerdAPI runs the Instagram check (#1365); the status is read here.
+        // Only Latest jobs: otherwise this waits behind an older research job.
         const response = await fetch(musicNerdApiUrl("/api/research/advance"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ artistId }),
+          body: JSON.stringify({ artistId, kinds: ["latest_refresh"] }),
           signal: controller.signal,
         });
         if (!response.ok)
