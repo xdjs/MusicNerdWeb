@@ -28,6 +28,11 @@ with a small edge fade into the card; the date, caption and action occupy the ad
 space. Tall images are contained within a bounded media area. Instagram cards can be taller
 than the other update types in the same horizontal gallery.
 
+Retained thumbnail width/height are projected with their matching image URL to reserve the
+correct aspect ratio before loading. Missing or invalid dimensions use a stable 4:5 media
+area with containment. Image failures keep that reserved area while switching fallbacks.
+Only the validated dimensions reach the client, not retention metadata or raw payloads.
+
 The expanded Instagram post shows the full image without the card's fade or a fixed banner
 crop. Its scrollable dialog keeps the full caption, mentions and source action reachable.
 “Read the post” uses `highlightpink` (`#FF75D8`); expanded source actions use the shared

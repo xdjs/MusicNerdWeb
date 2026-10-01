@@ -10,7 +10,7 @@ export default function LatestDetailDialogContent({ artwork, category, title, de
     fullImage?: boolean;
 }) {
     return <DialogContent onCloseAutoFocus={onCloseAutoFocus} data-analytics-surface="latest" className="mn-themed-dialog max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-0 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80">
-        <div className={`relative overflow-hidden rounded-t-2xl ${fullImage ? 'bg-black' : 'h-56'}`}>{artwork}{!fullImage && <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{category}</span>}</div>
+        <div className={`relative overflow-hidden rounded-t-2xl ${fullImage ? 'bg-[#000]' : 'h-56'}`}>{artwork}{!fullImage && <span className="absolute bottom-4 left-5 text-xs font-semibold uppercase tracking-widest text-pink-200">{category}</span>}</div>
         <div className="space-y-4 px-5 pb-6">
             {fullImage && <span className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">{category}</span>}
             <DialogTitle className="pr-3 text-xl leading-snug">{title}</DialogTitle>

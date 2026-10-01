@@ -7,6 +7,7 @@ import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
 import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
 import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artist/artistLatest';
 import { momentToLatestItem } from '@/lib/artist/momentToLatestItem';
+import { instagramPostImageDimensions } from '@/lib/artist/instagramPostImageDimensions';
 
 export interface ArtistLatestResult {
     items: ArtistLatestItem[];
@@ -21,7 +22,8 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
                 id: artistSocialPosts.id, caption: artistSocialPosts.caption, url: artistSocialPosts.url,
                 postedAt: artistSocialPosts.postedAt,
                 // Extract just the image fields rather than loading the full scraped payload.
-                raw: sql<unknown>`jsonb_build_object('displayUrl', ${artistSocialPosts.raw}->'displayUrl', 'thumbnailSrc', ${artistSocialPosts.raw}->'thumbnailSrc', 'images', ${artistSocialPosts.raw}->'images')`,
+                raw: sql<unknown>`jsonb_build_object('displayUrl', ${artistSocialPosts.raw}->'displayUrl', 'thumbnailSrc', ${artistSocialPosts.raw}->'thumbnailSrc', 'images', ${artistSocialPosts.raw}->'images',
+                    '_musicnerdThumbnail', jsonb_build_object('url', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'url', 'width', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'width', 'height', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'height'))`,
             }).from(artistSocialPosts).where(and(
                 eq(artistSocialPosts.artistId, artist.id), eq(artistSocialPosts.platform, 'instagram'),
                 eq(artistSocialPosts.isOwnPost, true), isNotNull(artistSocialPosts.postedAt),
@@ -69,6 +71,7 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
         items.push({ id: `instagram:${post.id}`, kind: 'instagram', title: 'From Instagram',
             text: post.caption?.trim() || 'A new moment shared on Instagram.', date: post.postedAt,
             imageUrl: instagramPostImage(post.raw), imageCaption: `Instagram post by ${artist.name ?? 'the artist'}`,
+            imageDimensions: instagramPostImageDimensions(post.raw),
             sourceUrl, sourceLabel: 'View on Instagram' });
     }
     const answers = answersResult.status === 'fulfilled' ? answersResult.value : [];

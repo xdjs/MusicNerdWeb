@@ -117,7 +117,7 @@ it('shows the complete Instagram image and preserves its fallback and source act
     const dialog = screen.getByRole('dialog');
     const fullImage = within(dialog).getByAltText(post.imageCaption);
     expect(fullImage).toHaveClass('object-contain');
-    expect(fullImage).not.toHaveAttribute('data-nimg', 'fill');
+    expect(fullImage.parentElement).toHaveStyle({ aspectRatio: '4 / 5' });
     const source = within(dialog).getByRole('link', { name: 'View on Instagram' });
     expect(source).toHaveAttribute('href', post.sourceUrl);
     expect(source).toHaveAttribute('rel', 'noopener noreferrer');
@@ -125,6 +125,23 @@ it('shows the complete Instagram image and preserves its fallback and source act
     fireEvent.error(fullImage);
     fireEvent.error(within(dialog).getByAltText('Test Artist portrait'));
     expect(within(dialog).getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
+});
+
+it('reserves retained portrait, square and landscape ratios before loading and during fallback', () => {
+    const posts = [[361, 640], [640, 640], [640, 427]].map(([width, height], i): ArtistLatestItem => ({
+        ...answer, id: `instagram:ratio-${i}`, kind: 'instagram', title: `Post ${i}`,
+        imageUrl: `https://cdn.example.com/ratio-${i}.jpg`, imageCaption: `Image ${i}`, imageDimensions: { width, height },
+    }));
+    setup(posts);
+    for (const [i, post] of posts.entries()) {
+        const image = screen.getByAltText(`Image ${i}`);
+        const frame = image.parentElement!;
+        expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
+        fireEvent.error(image);
+        expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Read Post 2' }));
+    expect(within(screen.getByRole('dialog')).getByAltText('Image 2').parentElement).toHaveStyle({ aspectRatio: '640 / 427' });
 });
 
 it('distinguishes no activity from unavailable activity', () => {

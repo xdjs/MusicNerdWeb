@@ -11,10 +11,12 @@ export default function LatestCardImage({ item, artistImage, artistName, detail 
     const candidates = [...new Set([item.imageUrl, artistImage, '/default_pfp_pink.png'].filter((url): url is string => !!url))];
     const src = candidates.find(url => !failed.includes(url));
     const alt = src === item.imageUrl ? item.imageCaption : `${artistName} portrait`;
-    if (item.kind === 'instagram') return <div className={`pointer-events-none relative overflow-hidden bg-black ${src ? '' : 'min-h-48'}`}>
-        {src && <Image src={src} alt={alt} width={640} height={640} unoptimized
+    if (item.kind === 'instagram') return <div
+        className={`pointer-events-none relative w-full overflow-hidden bg-[#000] ${detail ? 'max-h-[60dvh]' : 'max-h-[360px]'}`}
+        style={{ aspectRatio: item.imageDimensions ? `${item.imageDimensions.width} / ${item.imageDimensions.height}` : '4 / 5' }}>
+        {src && <Image src={src} alt={alt} fill unoptimized
             sizes={detail ? '(max-width: 640px) 90vw, 512px' : '(max-width: 640px) 72vw, 280px'}
-            className={`block h-auto w-full object-contain ${detail ? 'max-h-[60dvh]' : 'max-h-[360px]'}`}
+            className="object-contain"
             style={detail ? undefined : { maskImage: 'linear-gradient(to bottom, black calc(100% - 8px), transparent)' }}
             onError={() => setFailed(previous => [...previous, src])} />}
     </div>;
