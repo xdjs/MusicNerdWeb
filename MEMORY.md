@@ -1,3 +1,20 @@
+## Account merge attribution — October 1
+
+[#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389) is being fixed on
+`codex/preserve-merged-attribution`. The real regression reproduced a Lore credit
+becoming unknown when `mergeAccounts` deleted its actor. Migration 0035 adds a
+private merge ledger and narrowly scoped identity-transfer function; the same
+transaction now transfers activity before deletion. Event/source history stays
+intact, existing unknown actors stay unknown, and failures roll back the merge.
+See [the contract and verification harness](docs/account-merge-attribution.md).
+[Draft PR #1407](https://github.com/xdjs/MusicNerdWeb/pull/1407) contains the fix.
+Local app-role PostgreSQL checks cover the actual merge/readers, grants/RLS,
+rollback and a concurrent stale insert. Pete authorized staging migration 0035
+on October 1; it is applied and verified through the real `mnweb` connection
+using rolled-back fixtures. No real account was merged. Exact-head preview,
+CI and review evidence are on the PR. Main merge and production release remain
+separate, unperformed gates; production still requires migration 0035 first.
+
 ## Research runs on MusicNerdAPI — September 30
 
 Sweetman chose one cutover ([#1365](https://github.com/xdjs/MusicNerdWeb/issues/1365)).

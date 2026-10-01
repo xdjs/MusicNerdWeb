@@ -247,6 +247,10 @@ variant uses 80% hover and 70% active fills and the same focus-ring hue. Its def
 opaque, including the floating Ask action. Black labels/icons remain black in both themes.
 This is presentation only: routes, persistence, jobs and external-service calls are unchanged.
 
+September 30, 2026 — the approved Claimed status badge also uses the `highlightpink`
+token for its tint and dark-theme label (#1400). Its light-theme label stays black for
+contrast. Claim eligibility, pending states and verification behavior are unchanged.
+
 ## Public artist claim status
 
 An approved artist claim shows the Claimed badge to every visitor, including signed-out

@@ -60,10 +60,9 @@ account moves atomically to the surviving account, including its confirmation st
 An unconfirmed generated name never replaces the legacy account's chosen name.
 A prior dismissal is carried over so a merge does not repeat the welcome popup.
 
-Separate pre-existing merge limitation: deleting the placeholder account currently clears
-its activity-event actor reference. Preserving those Lore identities through account deletion
-is tracked in [#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389). Ordinary name edits keep
-the same account ID and update past credits without this merge limitation.
+Account merges preserve existing activity attribution through the narrowly scoped,
+audited transfer described in [account merge attribution](account-merge-attribution.md).
+Ordinary name edits keep the same account ID and update past credits directly.
 
 If allocation fails after identity verification (for example a transient database write
 failure), authentication still succeeds with no public name in the session. Never use the

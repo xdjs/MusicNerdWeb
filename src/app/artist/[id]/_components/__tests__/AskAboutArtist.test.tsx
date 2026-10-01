@@ -63,6 +63,30 @@ function submit(container) {
 describe("an answer, rendered", () => {
     afterEach(() => { jest.restoreAllMocks(); });
 
+    it('links source-backed handles exactly, including short names, without guessing partial matches', async () => {
+        await ask(answerWith({
+            answer: 'She recently worked with @cxy, @WHOISELI, @liv.corp and @a_b. Not @whoiseli_extra or @madeup.',
+            instagramMentions: ['cxy', 'whoiseli', 'liv.corp', 'a_b'],
+            mentions: [{ name: 'whoiseli', artistId: 'eli' }, { name: 'madeup', instagram: 'madeup' }],
+            songs: [], sources: [],
+        }));
+        const prose = within(screen.getByTestId('answer'));
+        expect(prose.getAllByRole('link')).toHaveLength(4);
+        expect(prose.getByRole('link', { name: '@cxy' })).toHaveAttribute('href', 'https://www.instagram.com/cxy/');
+        expect(prose.getByRole('link', { name: '@WHOISELI' })).toHaveAttribute('href', 'https://www.instagram.com/whoiseli/');
+        expect(prose.getByRole('link', { name: '@liv.corp' })).toHaveAttribute('target', '_blank');
+        expect(prose.queryByRole('link', { name: '@madeup' })).not.toBeInTheDocument();
+    });
+
+    it('keeps malformed handles, emails and URL fragments out of artist and record matching', async () => {
+        await ask(answerWith({ answer: 'She recently mentioned @rush-wrong and rush@example.com and https://example.com/@rush.',
+            instagramMentions: ['rush'], mentions: [{ name: 'rush', instagram: 'rush' }],
+            songs: [{ title: 'rush', spotifyUrl: 'https://open.spotify.com/album/example' }], sources: [] }));
+        const prose = within(screen.getByTestId('answer'));
+        expect(prose.queryByRole('link')).not.toBeInTheDocument();
+        expect(prose.queryByRole('button')).not.toBeInTheDocument();
+    });
+
     it("turns a citation number into a link to that source", async () => {
         // They were inert text at body size. Pete: "numbers for the sources
         // should be so big and should be hyperlinked... better if I could click
