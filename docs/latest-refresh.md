@@ -57,8 +57,11 @@ provider check only with an explicitly identified staging artist; production sep
 A failed status request is not proof that the paid Instagram run failed. Retry
 transient status and dataset reads against the saved run/dataset using the queue’s
 existing four-consecutive-failure limit. A successful provider poll resets the
-allowance; merely rereading a cached dataset does not, so persistent collection
-failures still terminate. Never issue another paid start for that request.
+allowance only in the same atomic write that releases its lease. A newly ready
+dataset is saved and collected on the next slice, adding one polling interval.
+This preserves Sweetman’s interrupted-worker attempt count until a slice actually
+finishes. Merely rereading a cached dataset does not reset the allowance, so
+persistent collection failures still terminate. Never issue another paid start for that request.
 Known nonterminal provider states remain pending; a confirmed failed, aborted or
 timed-out run ends the Instagram check. Store safe failure codes privately on
 the job for diagnosis, without provider response bodies, tokens or URLs.
