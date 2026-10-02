@@ -260,15 +260,23 @@ requester. Badge visibility never grants editing access; the existing owner/admi
 remain authoritative. Tracked in #1397.
 
 October 2, 2026 — [#1416](https://github.com/xdjs/MusicNerdWeb/issues/1416): approved
-status uses a compact outlined badge with a `highlightpink` label/shield and a dark
-backing in both themes, including profiles without a portrait. “Claimed” remains
-visible on phones; the badge has a 44px minimum interaction target. Hover, keyboard
-focus or a tap reveals “This profile has been claimed by the artist.” Escape,
-focus leaving the badge or tapping outside dismisses the explanation. The tooltip
-is portalled outside the hero so its clipped photo cannot cut it off.
+status uses an icon-only `highlightpink` shield with a dark backing at the top-left
+of the artist image, in both themes and on fallback images. Pete’s preview feedback
+replaces the initial labeled badge beside Listen. The status keeps a 44px minimum
+interaction target. Hover, keyboard focus or a tap reveals “This profile has been
+claimed by the artist.” Escape, focus leaving the badge or tapping outside dismisses
+the explanation. The tooltip is portalled outside the hero so its clipped photo
+cannot cut it off.
 
-`ArtistProfileContent` still passes the existing approved-claim flag to `ClaimButton`,
-which renders `ClaimedBadge`. This interaction only explains the public status;
-it never starts a claim or login. Pending status and owner/admin edit checks are
-unchanged. Routes, persistence, jobs, external services and migrations are not
-affected.
+Unclaimed profiles use a neutral shield with the visible label “Unclaimed” in the
+same location, explaining “This profile hasn’t been claimed yet.” The existing
+Claim profile action remains beside Listen. A pending claim is not yet approved:
+its public status remains Unclaimed while its requester sees the existing private
+Pending Verification status. Repositioning a photo temporarily hides the public
+badge so it does not obstruct the positioning controls.
+
+`ArtistProfileContent` passes the existing approved-claim flag to `ArtistClaimBadge`
+in the hero’s status slot. `ClaimButton` retains the separate claim/pending flow
+and renders nothing for approved claims. The status interaction never starts a
+claim or login. Owner/admin edit checks, routes, persistence, jobs, external
+services and migrations are unchanged.

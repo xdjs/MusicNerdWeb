@@ -9,6 +9,7 @@ import EditModeToggle from "@/app/_components/EditModeToggle";
 import AddArtistData from "./AddArtistData";
 import ArtistAskSheet from "./ArtistAskSheet";
 import ClaimButton from "./ClaimButton";
+import ArtistClaimBadge from "./ArtistClaimBadge";
 import HeroSection from "./HeroSection";
 import KnowledgeSection from "./KnowledgeSection";
 import LatestSection from "./LatestSection";
@@ -50,7 +51,8 @@ export default function ArtistProfileContent({
                     initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenLinks={listenLinks}>
+                    bio={heroBio} listenLinks={listenLinks}
+                    statusBadge={<ArtistClaimBadge key={`${artist.id}:${isClaimed}`} isClaimed={isClaimed} />}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
                         <ClaimButton
                             artistId={artist.id}

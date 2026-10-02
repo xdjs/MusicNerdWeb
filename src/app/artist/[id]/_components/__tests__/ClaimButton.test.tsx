@@ -72,11 +72,10 @@ describe('claim status visibility', () => {
         ['anonymous', null, false],
         ['another account', {user: {id: 'other'}}, false],
         ['claim owner', {user: {id: 'owner'}}, true],
-    ])('explains an approved claim to %s without starting a new claim', async (_viewer, session, isClaimedByUser) => {
+    ])('offers no claim action to %s on an approved profile', (_viewer, session, isClaimedByUser) => {
         (useSession as jest.Mock).mockReturnValue({data: session});
         render(<ClaimButton {...props} isClaimed isClaimedByUser={isClaimedByUser as boolean} compactOnMobile />);
-        fireEvent.click(screen.getByRole('button', {name: 'Claimed artist profile'}));
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('This profile has been claimed by the artist.');
+        expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Claim profile'})).not.toBeInTheDocument();
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(mockClaim).not.toHaveBeenCalled();

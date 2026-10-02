@@ -20,10 +20,11 @@ interface HeroSectionProps {
     initialPosition?: number;
     bio?: string | null;
     listenLinks?: ProfileLink[];
+    statusBadge?: ReactNode;
     children?: ReactNode;
 }
 
-export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
+export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], statusBadge, children }: HeroSectionProps) {
     const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
@@ -83,7 +84,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 if (file) void handleImageUpload(file);
                 e.target.value = "";
             }} />
-        <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
         {portrait && <button ref={repositionButton} type="button" disabled={uploading}
             onClick={() => { originalPosition.current = position; setRepositioning(true); }}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-black/60 px-3 text-xs font-medium text-white backdrop-blur-md hover:bg-black/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-60">
@@ -102,6 +103,13 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
     </>;
 
+    const imageControls = !repositioning && (statusBadge || photoControl) ? (
+        <div className="absolute inset-x-4 top-4 z-10 flex flex-wrap items-start justify-between gap-3">
+            {statusBadge}
+            {photoControl && <div className="ml-auto">{photoControl}</div>}
+        </div>
+    ) : null;
+
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
         {choosingPhoto && isEditing && canEdit && <ArtistPhotoChoice artistId={artistId} currentImage={img}
             onClose={closePhotoChoice} onUpload={() => fileRef.current?.click()}
@@ -109,7 +117,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
             <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
             <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
-            {photoControl}
+            {imageControls}
             {isEditing && repositioning && <HeaderPhotoPosition artistId={artistId} imageUrl={img} position={position} onChange={setPosition} onClose={closePosition} />}
             <div inert={repositioning ? true : undefined} style={{ display: repositioning ? "none" : undefined }} className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
                 {identity}
@@ -125,7 +133,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 <div className="absolute inset-0 flex items-center justify-center">
                     <Image src={img} alt={artistName} width={160} height={160} unoptimized priority className="h-32 w-32 rounded-full border-4 border-white/25 object-cover md:h-40 md:w-40" />
                 </div>
-                {photoControl}
+                {imageControls}
             </div>
             <div className="text-center">{identity}</div>
             <div className="flex flex-wrap items-center justify-center gap-3"><ListenPicker artistName={artistName} links={listenLinks} />{children}</div>

@@ -15,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { claimArtistProfile } from "@/app/actions/dashboardActions";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
-import ClaimedBadge from "./ClaimedBadge";
 
 interface ClaimButtonProps {
     artistId: string;
@@ -42,10 +41,8 @@ export default function ClaimButton({
     const [copied, setCopied] = useState(false);
     const { toast } = useToast();
 
-    // Approved claim status is public; editing permissions are checked separately.
-    if (isClaimed) {
-        return <ClaimedBadge key={artistId} />;
-    }
+    // Public claim status is shown on the image by ArtistClaimBadge.
+    if (isClaimed) return null;
 
     // A pending request is private until approved.
     if (isPending && !isPendingByUser) return null;
