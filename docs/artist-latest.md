@@ -48,6 +48,7 @@ Only the validated dimensions reach the client, not retention metadata or raw pa
 Expanded Instagram, answer and In Process updates show the same complete photo as their card,
 without its gradient or a fixed banner crop. Their scrollable dialog keeps the full text,
 mentions and source action reachable. Releases retain the compact listening-service picker.
+The image-overlay close control has a white icon and dark backing in either theme.
 All card actions use `highlightpink` (`#FF75D8`); expanded source actions use the shared
 `Button variant="pink"`, including black labels/icons in either theme. Image failures still try the artist portrait and then
 the local fallback. This is presentation only: stored URLs, research jobs, refreshes and
