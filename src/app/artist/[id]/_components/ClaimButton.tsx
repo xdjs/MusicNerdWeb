@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { claimArtistProfile } from "@/app/actions/dashboardActions";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
+import ClaimedBadge from "./ClaimedBadge";
 
 interface ClaimButtonProps {
     artistId: string;
@@ -43,12 +44,7 @@ export default function ClaimButton({
 
     // Approved claim status is public; editing permissions are checked separately.
     if (isClaimed) {
-        return (
-            <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-highlightpink/15 text-foreground dark:text-highlightpink text-xs font-semibold">
-                <ShieldCheck size={14} strokeWidth={2.5} />
-                <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Claimed</span>
-            </div>
-        );
+        return <ClaimedBadge key={artistId} />;
     }
 
     // A pending request is private until approved.
