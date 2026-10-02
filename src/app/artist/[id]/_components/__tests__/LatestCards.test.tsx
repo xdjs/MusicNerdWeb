@@ -108,7 +108,7 @@ it.each(['instagram', 'interview', 'moment'] as const)('shows the complete %s im
         sourceUrl: 'https://www.instagram.com/p/test/', sourceLabel: 'View on Instagram' };
     setup([post, release]);
     const cardImage = screen.getByAltText(post.imageCaption);
-    expect(cardImage).toHaveClass('object-contain');
+    expect(cardImage).toHaveClass('object-cover');
     expect(screen.getByText(kind === 'instagram' ? 'Read the post' : kind === 'interview' ? 'Read their answer' : 'Open on In-Process')).toHaveClass('text-highlightpink');
     fireEvent.error(cardImage);
     expect(screen.getByAltText('Test Artist portrait')).toHaveAttribute('src', 'https://cdn.example.com/artist.jpg');
@@ -125,6 +125,21 @@ it.each(['instagram', 'interview', 'moment'] as const)('shows the complete %s im
     fireEvent.error(fullImage);
     fireEvent.error(within(dialog).getByAltText('Test Artist portrait'));
     expect(within(dialog).getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
+});
+
+it('keeps all gallery previews at the original compact height while opening complete content', () => {
+    const post: ArtistLatestItem = { ...answer, id: 'instagram:compact', kind: 'instagram',
+        title: 'Tall post', imageUrl: 'https://cdn.example.com/tall.jpg', imageCaption: 'Tall artwork',
+        imageDimensions: { width: 361, height: 640 }, text: 'Long caption. '.repeat(80) };
+    setup([answer, release, moment, post]);
+    const gallery = screen.getByRole('region', { name: 'Latest updates gallery' });
+    for (const article of within(gallery).getAllByRole('article')) {
+        expect(article.firstElementChild).toHaveClass('h-[300px]');
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Read Tall post' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByAltText('Tall artwork')).toHaveClass('object-contain');
+    expect(within(dialog).getByText(post.text.trim())).toBeInTheDocument();
 });
 
 it('reserves retained portrait, square and landscape ratios in expanded images before loading and during fallback', () => {

@@ -20,39 +20,27 @@ Instagram captions link valid literal `@username` mentions in the gallery and ex
 See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
 the existing-data audit. Caption links do not trigger the card's separate opener.
 
-### Consistent Latest image layout — October 1, 2026 (#1410)
+### Compact cards, complete expanded photos — October 2, 2026 (#1410)
 
-Pete approved extending the overlay card into black below the complete Instagram image,
-so the caption no longer covers the bottom of the artwork. The image keeps its proportions,
-with its bottom edge unobscured. A decorative extension of that edge's colors continues
-into a 100px fade beneath the image, carrying the image's colors into black behind the
-metadata and caption. This matches the approved prototype's extended gradient; an 8px
-image mask and hard black caption panel do not. The decorative copy uses the same image URL,
-is hidden from assistive technology and follows the existing fallback.
+Pete clarified that image-layout improvements apply to the **expanded view**. The October 1
+420px cards and separate 220px image area were an implementation scope mistake and are
+superseded. Keep the original 300px gallery cards, overlay captions, top category badges and
+release artwork placement. Opening a card is how a visitor sees the complete photo and text;
+portrait or lengthy content must never stretch the gallery.
 
-Pete's mixed-row review supersedes the initial Instagram-only layout: every Latest card is
-420px tall, with a 220px contained image area and a shared metadata/caption area. Image
-proportions never determine card height. Portrait, square and landscape artwork remain
-complete, aligned to the bottom of the media area so the gradient continues their edge.
-Category/date placement is shared; titles and excerpts are clamped, and every action sits
-at the same bottom position in `highlightpink`. This prevents tall Instagram posts from
-stretching the gallery beside smaller release, answer or In Process cards.
+Expanded Instagram, answer and In Process updates preserve the complete image with
+`object-contain`, without a fixed banner crop. Retained thumbnail width/height are projected
+with their matching image URL to reserve the correct ratio before loading, including answers
+linked to that retained post. Missing or invalid dimensions use a stable contained 4:5 area.
+Image failures keep the reserved area while switching fallbacks. Only validated dimensions
+reach the client, not retention metadata or raw payloads.
 
-Retained thumbnail width/height are projected with their matching image URL to reserve the
-correct aspect ratio in the expanded view before loading, including answers linked to that
-retained post. Missing or invalid dimensions use
-a stable 4:5 expanded media area with containment. Gallery media always uses the shared fixed
-height. Image failures keep the reserved area while switching fallbacks.
-Only the validated dimensions reach the client, not retention metadata or raw payloads.
-
-Expanded Instagram, answer and In Process updates show the same complete photo as their card,
-without its gradient or a fixed banner crop. Their scrollable dialog keeps the full text,
-mentions and source action reachable. Releases retain the compact listening-service picker.
-The image-overlay close control has a white icon and dark backing in either theme.
-All card actions use `highlightpink` (`#FF75D8`); expanded source actions use the shared
-`Button variant="pink"`, including black labels/icons in either theme. Image failures still try the artist portrait and then
-the local fallback. This is presentation only: stored URLs, research jobs, refreshes and
-database state are unchanged.
+The scrollable dialog keeps full text, mentions and source actions reachable. Releases retain
+the compact listening-service picker. The close control has a white icon and dark backing
+in either theme. Gallery actions retain `highlightpink` (`#FF75D8`); expanded source actions
+use the shared `Button variant="pink"` with black labels/icons. Image failures still try the
+artist portrait and then the local fallback. Stored URLs, research jobs, refreshes and database
+state are unchanged.
 
 This is the artist-profile experiment agreed in [decisions](rnd/decisions.md), not a global
 homepage feed. It adds no migration, new credentials or publication action.

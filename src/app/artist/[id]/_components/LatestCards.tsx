@@ -94,17 +94,20 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                         {itemArtistNames[item.id] && <div className="mb-3 min-h-6 text-sm font-semibold text-foreground">{itemArtistUrls[item.id] ? <Link href={itemArtistUrls[item.id]} className="inline-flex items-center gap-1.5 hover:underline">{itemArtistNames[item.id]}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{itemArtistNames[item.id]} <span className="font-normal text-muted-foreground">· Sample</span></span>}</div>}
                         <LatestCardFrame onOpen={event => { openerRef.current = event.currentTarget; setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter: filter.toLowerCase() }); }} label={`Read ${item.title}`} instagram={item.kind === 'instagram'}>
                             <LatestCardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
-                            <div className="pointer-events-none relative flex min-h-0 w-full flex-1 flex-col p-4 pt-6">
-                                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-white/75"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
-                                    <time dateTime={item.date} className="whitespace-nowrap text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>
-                                </div>
-                                <div className="mt-2 min-h-0 overflow-hidden">
-                                    {item.momentKind && <span className="mb-1 block text-[10px] font-medium text-white/75">{MOMENT_KIND_LABELS[item.momentKind]}</span>}
-                                    <h3 className={`font-semibold leading-snug ${item.kind === 'instagram' ? 'sr-only' : 'line-clamp-2 text-base'}`}>{item.title}</h3>
-                                    <p className={`whitespace-pre-line ${item.kind === 'instagram' ? 'text-base leading-6 line-clamp-4' : 'mt-2 text-sm text-white/80 line-clamp-2'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.kind === 'instagram' ? <InstagramMentionText text={item.text} preview /> : item.text}</p>
-                                </div>
-                                <span className="mt-auto inline-flex h-8 shrink-0 items-center gap-1.5 pt-3 text-[11px] font-semibold leading-4 text-highlightpink">
+                            <div className="pointer-events-none absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
+                                {/* Chips never break inside; when both cannot fit beside the arrow (phone width,
+                                    a long media type), the media-type chip drops to a second row instead. */}
+                                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                    <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md"><Icon size={12} aria-hidden="true" />{categories[item.kind]}</span>
+                                    {item.momentKind && <span className="shrink-0 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-purple-200 backdrop-blur-md">{MOMENT_KIND_LABELS[item.momentKind]}</span>}
+                                </span>
+                                <ArrowUpRight size={18} aria-hidden="true" />
+                            </div>
+                            <div className="pointer-events-none relative space-y-2">
+                                <time dateTime={item.date} className="text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>
+                                <h3 className={`font-semibold leading-snug ${item.kind === 'instagram' ? 'sr-only' : 'line-clamp-2 text-lg'}`}>{item.title}</h3>
+                                <p className={`whitespace-pre-line ${item.kind === 'release' || item.kind === 'moment' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.kind === 'instagram' ? <InstagramMentionText text={item.text} preview /> : item.text}</p>
+                                <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-highlightpink">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
                                     {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In-Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
                                 </span>

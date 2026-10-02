@@ -12,24 +12,21 @@ export default function LatestCardImage({ item, artistImage, artistName, detail 
     const src = candidates.find(url => !failed.includes(url));
     const alt = src === item.imageUrl ? item.imageCaption : `${artistName} portrait`;
     const aspectRatio = item.imageDimensions ? `${item.imageDimensions.width} / ${item.imageDimensions.height}` : '4 / 5';
-    const releasePicker = detail && item.kind === 'release';
+    const release = item.kind === 'release';
+    // Gallery previews keep the original compact overlay; full artwork belongs in the dialog.
+    if (!detail) return <div className={`pointer-events-none absolute inset-0 ${release ? 'bg-[#15121b]' : 'bg-gradient-to-br from-pastypink/30 via-violet-950 to-slate-950'}`}>
+        <div className={release ? 'absolute inset-x-5 top-12 h-[140px]' : 'absolute inset-0'}>
+            {src && <Image src={src} alt={alt} fill unoptimized sizes="(max-width: 640px) 80vw, 360px"
+                className={release ? 'object-contain' : 'object-cover object-top'}
+                onError={() => setFailed(previous => [...previous, src])} />}
+        </div>
+        {!release && <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/5" />}
+    </div>;
     return <div
-        className={`pointer-events-none w-full bg-[#000] ${releasePicker ? 'absolute inset-0' : detail ? 'relative max-h-[60dvh] overflow-hidden' : 'relative h-[220px] shrink-0'}`}
-        style={detail && !releasePicker ? { aspectRatio } : undefined}>
-        {src && <>
-            <Image src={src} alt={alt} fill unoptimized
-                sizes={detail ? '(max-width: 640px) 90vw, 512px' : '(max-width: 640px) 72vw, 280px'}
-                className={`object-contain ${detail ? '' : 'object-bottom'}`}
-                onError={() => setFailed(previous => [...previous, src])} />
-            {!detail && <div aria-hidden="true" className="absolute inset-x-0 top-full h-[100px] overflow-hidden"
-                style={{ maskImage: 'linear-gradient(to bottom, #000, rgba(0,0,0,.3) 28px, transparent 100px)' }}>
-                {/* Clip the bottom pixel row before stretching it, so only its colors continue below the artwork. */}
-                <div className="relative h-px origin-top scale-y-[100] overflow-hidden">
-                    <div className="absolute inset-x-0 bottom-0 h-[220px] w-full">
-                        <Image src={src} alt="" fill unoptimized sizes="(max-width: 640px) 72vw, 280px" className="object-contain object-bottom" />
-                    </div>
-                </div>
-            </div>}
-        </>}
+        className={`pointer-events-none w-full bg-[#000] ${release ? 'absolute inset-0' : 'relative max-h-[60dvh] overflow-hidden'}`}
+        style={release ? undefined : { aspectRatio }}>
+        {src && <Image src={src} alt={alt} fill unoptimized
+            sizes="(max-width: 640px) 90vw, 512px" className="object-contain"
+            onError={() => setFailed(previous => [...previous, src])} />}
     </div>;
 }
