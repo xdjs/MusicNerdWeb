@@ -9,7 +9,7 @@ export default function LatestDetailDialogContent({ artwork, category, title, de
     onCloseAutoFocus?: (event: Event) => void;
 }) {
     return <DialogContent onCloseAutoFocus={onCloseAutoFocus} data-analytics-surface="latest" className="block max-h-[85dvh] w-[calc(100%_-_2rem)] overflow-hidden rounded-2xl border-white/15 bg-[#000] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] dark:bg-[#000] sm:rounded-2xl [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:bg-black/70 [&>button]:text-white [&>button]:opacity-100">
-        <div className="scrollbar-hide max-h-[calc(85dvh_-_2px)] overflow-y-auto overscroll-contain">
+        <div role="region" aria-label="Update content" tabIndex={0} className="scrollbar-hide max-h-[calc(85dvh_-_2px)] overflow-y-auto overscroll-contain rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-highlightpink">
             {artwork}
             <div className="relative -mt-12 space-y-4 px-5 pb-6">
                 <span className="block text-xs font-semibold uppercase tracking-widest text-white/80">{category}</span>

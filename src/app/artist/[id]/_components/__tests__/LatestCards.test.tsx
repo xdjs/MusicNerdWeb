@@ -94,6 +94,18 @@ it('preserves the artist answer and does not invent a source for a static questi
     expect(within(detail).queryByRole('link')).not.toBeInTheDocument();
 });
 
+it('focuses a keyboard-scrollable viewport for long answers without any source action', async () => {
+    setup([{ ...answer, text: 'An unsourced answer with a long story. '.repeat(80) }]);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${answer.title}` }));
+    const dialog = screen.getByRole('dialog');
+    const content = within(dialog).getByRole('region', { name: 'Update content' });
+    expect(content).toHaveAttribute('tabindex', '0');
+    await waitFor(() => expect(content).toHaveFocus());
+    expect(within(content).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(content).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+});
+
 it('recovers a failed contextual image using the artist portrait then the local fallback', () => {
     setup([release]);
     fireEvent.error(screen.getByAltText('New record artwork'));

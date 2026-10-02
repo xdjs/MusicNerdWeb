@@ -45,8 +45,9 @@ same retained post. After loading, the image uses its actual proportions; this a
 images, 4:5 remains the placeholder. Fallback images also use their actual loaded proportions.
 Only validated dimensions reach the client, not retention metadata or raw payloads.
 
-The image and text scroll inside the dialog while its close control stays visible. Full text,
-mentions and source actions remain reachable. Releases retain
+The image and text scroll inside a named, focusable region while the close control stays
+visible. Keyboard focus enters this region so arrows and Page Down work even when there is
+no source link. Full text, mentions and source actions remain reachable. Releases retain
 the compact listening-service picker. The close control has a white icon and dark backing
 in either theme. Gallery actions retain `highlightpink` (`#FF75D8`); expanded source actions
 use the shared `Button variant="pink"` with black labels/icons. Image failures still try the
