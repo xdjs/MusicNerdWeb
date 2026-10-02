@@ -20,7 +20,7 @@ Instagram captions link valid literal `@username` mentions in the gallery and ex
 See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
 the existing-data audit. Caption links do not trigger the card's separate opener.
 
-### Compact cards, complete expanded photos — October 2, 2026 (#1410)
+### Compact cards, extended gradient when expanded — October 2, 2026 (#1410)
 
 Pete clarified that image-layout improvements apply to the **expanded view**. The October 1
 420px cards and separate 220px image area were an implementation scope mistake and are
@@ -28,12 +28,17 @@ superseded. Keep the original 300px gallery cards, overlay captions, top categor
 release artwork placement. Opening a card is how a visitor sees the complete photo and text;
 portrait or lengthy content must never stretch the gallery.
 
-Expanded Instagram, answer and In Process updates preserve the complete image with
-`object-contain`, without a fixed banner crop. Retained thumbnail width/height are projected
-with their matching image URL to reserve the correct ratio before loading, including answers
-linked to that retained post. Missing or invalid dimensions use a stable contained 4:5 area.
-Image failures keep the reserved area while switching fallbacks. Only validated dimensions
-reach the client, not retention metadata or raw payloads.
+Expanded Instagram, answer and In Process updates remain one continuous black surface.
+The complete image is contained without a banner crop. Its bottom-edge colors continue into
+an extended fade to black **behind the text**; there is no separate themed text panel or
+horizontal seam. This supersedes the separate image/text popup shown earlier on October 2.
+The original image stays visible above the extension, so bottom details are not covered by copy.
+
+Retained thumbnail width/height reserve the initial ratio, including answers linked to the
+same retained post. After loading, the image uses its actual proportions; this avoids a tall
+4:5 letterbox for landscape In Process images without saved dimensions. Before loading those
+images, 4:5 remains the placeholder. Fallback images also use their actual loaded proportions.
+Only validated dimensions reach the client, not retention metadata or raw payloads.
 
 The scrollable dialog keeps full text, mentions and source actions reachable. Releases retain
 the compact listening-service picker. The close control has a white icon and dark backing

@@ -161,6 +161,23 @@ it('reserves retained portrait, square and landscape ratios in expanded images b
     expect(within(screen.getByRole('dialog')).getByAltText('Image 2').parentElement).toHaveStyle({ aspectRatio: '640 / 427' });
 });
 
+it('uses loaded landscape proportions without metadata and updates them when the expanded image falls back', async () => {
+    setup([moment]);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${moment.title}` }));
+    const dialog = screen.getByRole('dialog');
+    const image = within(dialog).getByAltText(moment.imageCaption);
+    Object.defineProperties(image, { naturalWidth: { configurable: true, value: 1600 }, naturalHeight: { configurable: true, value: 900 } });
+    fireEvent.load(image);
+    await waitFor(() => expect(image.parentElement).toHaveStyle({ aspectRatio: '1600 / 900' }));
+    fireEvent.error(image);
+    const fallback = within(dialog).getByAltText('Test Artist portrait');
+    Object.defineProperties(fallback, { naturalWidth: { configurable: true, value: 480 }, naturalHeight: { configurable: true, value: 640 } });
+    fireEvent.load(fallback);
+    await waitFor(() => expect(fallback.parentElement).toHaveStyle({ aspectRatio: '480 / 640' }));
+    expect(within(dialog).getAllByRole('img')).toHaveLength(1);
+    expect(within(dialog).getByRole('link', { name: 'Open on In-Process' })).toHaveAttribute('href', moment.sourceUrl);
+});
+
 it('distinguishes no activity from unavailable activity', () => {
     const view = setup([]);
     expect(screen.getByText(/When Test Artist shares/)).toBeInTheDocument();
