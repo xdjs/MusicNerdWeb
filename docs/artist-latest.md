@@ -31,6 +31,40 @@ Instagram captions link valid literal `@username` mentions in the gallery and ex
 See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
 the existing-data audit. Caption links do not trigger the card's separate opener.
 
+### Compact cards, extended gradient when expanded — October 2, 2026 (#1410)
+
+Pete clarified that image-layout improvements apply to the **expanded view**. The October 1
+420px cards and separate 220px image area were an implementation scope mistake and are
+superseded. Keep the original 300px gallery cards, overlay captions, top category badges and
+release artwork placement. Opening a card is how a visitor sees the complete photo and text;
+portrait or lengthy content must never stretch the gallery.
+
+Expanded Instagram, answer and In Process images fill the card width at their natural
+proportions. Do not limit the image height inside a wider frame: that creates black sidebars
+on portraits. Tall images scroll with the expanded content instead of being squeezed down.
+
+A broad gradient begins over the lower part of the **actual image** and reaches black at its
+bottom. The text overlaps this fading area and continues onto the same black background.
+There is no duplicated/stretched bottom-edge strip, abrupt seam or separate text panel.
+Most of the image stays clear above the lower fade; copy must not obscure its middle.
+This corrects the rejected `6dde789d` implementation from October 2, which still had
+pillarboxing and a visible join despite the earlier verification claim.
+
+Retained thumbnail width/height reserve the initial ratio, including answers linked to the
+same retained post. After loading, the image uses its actual proportions; this avoids a tall
+4:5 letterbox for landscape In Process images without saved dimensions. Before loading those
+images, 4:5 remains the placeholder. Fallback images also use their actual loaded proportions.
+Only validated dimensions reach the client, not retention metadata or raw payloads.
+
+The image and text scroll inside a named, focusable region while the close control stays
+visible. Keyboard focus enters this region so arrows and Page Down work even when there is
+no source link. Full text, mentions and source actions remain reachable. Releases retain
+the compact listening-service picker. The close control has a white icon and dark backing
+in either theme. Gallery actions retain `highlightpink` (`#FF75D8`); expanded source actions
+use the shared `Button variant="pink"` with black labels/icons. Image failures still try the
+artist portrait and then the local fallback. Stored URLs, research jobs, refreshes and database
+state are unchanged.
+
 This is the artist-profile experiment agreed in [decisions](rnd/decisions.md), not a global
 homepage feed. It adds no migration, new credentials or publication action.
 

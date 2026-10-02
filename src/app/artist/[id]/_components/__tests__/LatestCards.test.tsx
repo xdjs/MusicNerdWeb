@@ -94,12 +94,100 @@ it('preserves the artist answer and does not invent a source for a static questi
     expect(within(detail).queryByRole('link')).not.toBeInTheDocument();
 });
 
+it('focuses a keyboard-scrollable viewport for long answers without any source action', async () => {
+    setup([{ ...answer, text: 'An unsourced answer with a long story. '.repeat(80) }]);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${answer.title}` }));
+    const dialog = screen.getByRole('dialog');
+    const content = within(dialog).getByRole('region', { name: 'Update content' });
+    expect(content).toHaveAttribute('tabindex', '0');
+    await waitFor(() => expect(content).toHaveFocus());
+    expect(within(content).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(content).queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+});
+
 it('recovers a failed contextual image using the artist portrait then the local fallback', () => {
     setup([release]);
     fireEvent.error(screen.getByAltText('New record artwork'));
     expect(screen.getByAltText('Test Artist portrait')).toHaveAttribute('src', 'https://cdn.example.com/artist.jpg');
     fireEvent.error(screen.getByAltText('Test Artist portrait'));
     expect(screen.getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
+});
+
+it.each(['instagram', 'interview', 'moment'] as const)('shows the complete %s image and preserves its fallback and source action when expanded', kind => {
+    const post: ArtistLatestItem = { ...answer, id: `${kind}:image`, kind, title: 'From Instagram',
+        imageUrl: 'https://cdn.example.com/post.jpg', imageCaption: 'Full announcement including the bottom lyrics',
+        sourceUrl: 'https://www.instagram.com/p/test/', sourceLabel: 'View on Instagram' };
+    setup([post, release]);
+    const cardImage = screen.getByAltText(post.imageCaption);
+    expect(cardImage).toHaveClass('object-cover');
+    expect(screen.getByText(kind === 'instagram' ? 'Read the post' : kind === 'interview' ? 'Read their answer' : 'Open on In-Process')).toHaveClass('text-highlightpink');
+    fireEvent.error(cardImage);
+    expect(screen.getByAltText('Test Artist portrait')).toHaveAttribute('src', 'https://cdn.example.com/artist.jpg');
+    expect(screen.getByAltText(release.imageCaption)).toHaveAttribute('src', release.imageUrl);
+    fireEvent.click(screen.getByRole('button', { name: 'Read From Instagram' }));
+    const dialog = screen.getByRole('dialog');
+    const fullImage = within(dialog).getByAltText(post.imageCaption);
+    expect(fullImage).toHaveClass('object-contain');
+    expect(fullImage.parentElement).toHaveStyle({ aspectRatio: '4 / 5' });
+    const source = within(dialog).getByRole('link', { name: 'View on Instagram' });
+    expect(source).toHaveAttribute('href', post.sourceUrl);
+    expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(source).toHaveClass('button-pink', 'bg-highlightpink', 'text-black');
+    fireEvent.error(fullImage);
+    fireEvent.error(within(dialog).getByAltText('Test Artist portrait'));
+    expect(within(dialog).getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
+});
+
+it('keeps all gallery previews at the original compact height while opening complete content', () => {
+    const post: ArtistLatestItem = { ...answer, id: 'instagram:compact', kind: 'instagram',
+        title: 'Tall post', imageUrl: 'https://cdn.example.com/tall.jpg', imageCaption: 'Tall artwork',
+        imageDimensions: { width: 361, height: 640 }, text: 'Long caption. '.repeat(80) };
+    setup([answer, release, moment, post]);
+    const gallery = screen.getByRole('region', { name: 'Latest updates gallery' });
+    for (const article of within(gallery).getAllByRole('article')) {
+        expect(article.firstElementChild).toHaveClass('h-[300px]');
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Read Tall post' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByAltText('Tall artwork')).toHaveClass('object-contain');
+    expect(within(dialog).getByText(post.text.trim())).toBeInTheDocument();
+});
+
+it('reserves retained portrait, square and landscape ratios in expanded images before loading and during fallback', () => {
+    const posts = [[361, 640], [640, 640], [640, 427]].map(([width, height], i): ArtistLatestItem => ({
+        ...answer, id: `instagram:ratio-${i}`, kind: 'instagram', title: `Post ${i}`,
+        imageUrl: `https://cdn.example.com/ratio-${i}.jpg`, imageCaption: `Image ${i}`, imageDimensions: { width, height },
+    }));
+    setup(posts);
+    for (const [i, post] of posts.entries()) {
+        fireEvent.click(screen.getByRole('button', { name: `Read Post ${i}` }));
+        const image = within(screen.getByRole('dialog')).getByAltText(`Image ${i}`);
+        const frame = image.parentElement!;
+        expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
+        fireEvent.error(image);
+        expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Read Post 2' }));
+    expect(within(screen.getByRole('dialog')).getByAltText('Image 2').parentElement).toHaveStyle({ aspectRatio: '640 / 427' });
+});
+
+it('uses loaded landscape proportions without metadata and updates them when the expanded image falls back', async () => {
+    setup([moment]);
+    fireEvent.click(screen.getByRole('button', { name: `Read ${moment.title}` }));
+    const dialog = screen.getByRole('dialog');
+    const image = within(dialog).getByAltText(moment.imageCaption);
+    Object.defineProperties(image, { naturalWidth: { configurable: true, value: 1600 }, naturalHeight: { configurable: true, value: 900 } });
+    fireEvent.load(image);
+    await waitFor(() => expect(image.parentElement).toHaveStyle({ aspectRatio: '1600 / 900' }));
+    fireEvent.error(image);
+    const fallback = within(dialog).getByAltText('Test Artist portrait');
+    Object.defineProperties(fallback, { naturalWidth: { configurable: true, value: 480 }, naturalHeight: { configurable: true, value: 640 } });
+    fireEvent.load(fallback);
+    await waitFor(() => expect(fallback.parentElement).toHaveStyle({ aspectRatio: '480 / 640' }));
+    expect(within(dialog).getAllByRole('img')).toHaveLength(1);
+    expect(within(dialog).getByRole('link', { name: 'Open on In-Process' })).toHaveAttribute('href', moment.sourceUrl);
 });
 
 it('distinguishes no activity from unavailable activity', () => {

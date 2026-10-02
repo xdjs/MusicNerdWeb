@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import type { MouseEventHandler, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Disc3, Instagram, MessageCircle } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
@@ -19,35 +19,11 @@ import { trackEvent } from '@/lib/analytics/trackEvent';
 import LatestDetailDialogContent from './LatestDetailDialogContent';
 import ListeningDialogContent from './ListeningDialogContent';
 import InProcessIcon from './InProcessIcon';
+import LatestCardFrame from './LatestCardFrame';
+import LatestCardImage from './LatestCardImage';
 
 const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words', moment: 'In-Process' };
 const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle, moment: InProcessIcon };
-
-function LatestCardFrame({ children, onOpen, label, hasMentionLinks }: { children: ReactNode; onOpen: MouseEventHandler<HTMLButtonElement>; label: string; hasMentionLinks: boolean }) {
-    const style = 'group relative flex h-[300px] w-full flex-col justify-end overflow-hidden rounded-2xl border border-pastypink/25 p-5 text-left text-white shadow-[0_8px_28px_rgba(236,72,153,0.10)] transition-transform motion-safe:hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink';
-    if (!hasMentionLinks) return <button type="button" onClick={onOpen} aria-label={label} className={style}>{children}</button>;
-    // Caption anchors are siblings of the opener, never interactive children of a button.
-    return <div className={style}>
-        <button type="button" onClick={onOpen} aria-label={label}
-            className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-highlightpink" />
-        {children}
-    </div>;
-}
-
-function CardImage({ item, artistImage, artistName, detail = false }: { item: ArtistLatestItem; artistImage: string; artistName: string; detail?: boolean }) {
-    const [failed, setFailed] = useState<string[]>([]);
-    const candidates = [...new Set([item.imageUrl, artistImage, '/default_pfp_pink.png'].filter((url): url is string => !!url))];
-    const src = candidates.find(url => !failed.includes(url));
-    const release = item.kind === 'release';
-    return <div className={`pointer-events-none absolute inset-0 ${release ? 'bg-[#15121b]' : 'bg-gradient-to-br from-pastypink/30 via-violet-950 to-slate-950'}`}>
-        <div className={release ? (detail ? 'absolute inset-4' : 'absolute inset-x-5 top-12 h-[140px]') : 'absolute inset-0'}>
-            {src && <Image src={src} alt={src === item.imageUrl ? item.imageCaption : `${artistName} portrait`}
-                fill unoptimized sizes="(max-width: 640px) 80vw, 360px" className={release ? 'object-contain' : 'object-cover object-top'}
-                onError={() => setFailed(previous => [...previous, src])} />}
-        </div>
-        {!release && <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/5" />}
-    </div>;
-}
 
 export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {}, refreshControl }: {
     refreshControl?: ReactNode; items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
@@ -116,8 +92,8 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
                         {itemArtistNames[item.id] && <div className="mb-3 min-h-6 text-sm font-semibold text-foreground">{itemArtistUrls[item.id] ? <Link href={itemArtistUrls[item.id]} className="inline-flex items-center gap-1.5 hover:underline">{itemArtistNames[item.id]}<ArrowUpRight size={13} aria-hidden="true" /></Link> : <span>{itemArtistNames[item.id]} <span className="font-normal text-muted-foreground">· Sample</span></span>}</div>}
-                        <LatestCardFrame onOpen={event => { openerRef.current = event.currentTarget; setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter: filter.toLowerCase() }); }} label={`Read ${item.title}`} hasMentionLinks={item.kind === 'instagram'}>
-                            <CardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
+                        <LatestCardFrame onOpen={event => { openerRef.current = event.currentTarget; setSelected(item); trackEvent('latest_card_open', { kind: item.kind, filter: filter.toLowerCase() }); }} label={`Read ${item.title}`} instagram={item.kind === 'instagram'}>
+                            <LatestCardImage key={`${item.id}:${item.imageUrl}`} item={item} artistImage={artistImage} artistName={artistName} />
                             <div className="pointer-events-none absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
                                 {/* Chips never break inside; when both cannot fit beside the arrow (phone width,
                                     a long media type), the media-type chip drops to a second row instead. */}
@@ -131,7 +107,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                                 <time dateTime={item.date} className="text-[11px] font-medium text-white/75">{latestDateLabel(item.date)}</time>
                                 <h3 className={`font-semibold leading-snug ${item.kind === 'instagram' ? 'sr-only' : 'line-clamp-2 text-lg'}`}>{item.title}</h3>
                                 <p className={`whitespace-pre-line ${item.kind === 'release' || item.kind === 'moment' ? 'text-sm text-white/80 line-clamp-2' : 'text-base leading-relaxed line-clamp-4'}`}>{item.kind === 'interview' ? `“${item.text}”` : item.kind === 'instagram' ? <InstagramMentionText text={item.text} preview /> : item.text}</p>
-                                <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-pink-200">
+                                <span className="inline-flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-highlightpink">
                                     {item.kind === 'release' && item.sourceUrl?.startsWith('https://open.spotify.com/') && <Image src="/siteIcons/Spotify_Primary_Logo_RGB_White.png" alt="" width={18} height={18} />}
                                     {item.kind === 'interview' ? 'Read their answer' : item.kind === 'release' ? 'Choose where to listen' : item.kind === 'moment' ? 'Open on In-Process' : 'Read the post'}<ArrowUpRight size={12} aria-hidden="true" />
                                 </span>
@@ -148,11 +124,11 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
             {selected?.kind === 'release' && <ListeningDialogContent
                 title={`Listen to ${selected.title}`} description={itemArtistNames[selected.id] || artistName} links={releaseLinks} release surface="latest" footer={artistAction}
                 artwork={<div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
-                    <CardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
+                    <LatestCardImage key={`listen:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />
                 </div>} />}
             {selected && selected.kind !== 'release' && <LatestDetailDialogContent
                 onCloseAutoFocus={event => { event.preventDefault(); openerRef.current?.focus(); }}
-                artwork={<CardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />}
+                artwork={<LatestCardImage key={`detail:${selected.id}`} item={selected} artistImage={artistImage} artistName={artistName} detail />}
                 category={categories[selected.kind]} title={selected.title}
                 description={`${itemArtistNames[selected.id] || artistName} · ${latestDateLabel(selected.date)}`}
                 text={selected.kind === 'interview' ? `“${selected.text}”` : selected.kind === 'instagram' ? <InstagramMentionText text={selected.text} /> : selected.text}

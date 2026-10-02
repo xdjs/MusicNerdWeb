@@ -10,6 +10,8 @@ export interface ArtistLatestItem {
     text: string;
     date: string;
     imageUrl: string | null;
+    /** Validated retained-thumbnail dimensions, used to reserve space before decoding. */
+    imageDimensions?: { width: number; height: number };
     imageCaption: string;
     sourceUrl: string | null;
     sourceLabel: string;
