@@ -3,12 +3,6 @@
   "regions": [
     "sfo1"
   ],
-  "crons": [
-    {
-      "path": "/api/research/advance",
-      "schedule": "* * * * *"
-    }
-  ],
   "git": {
     "deploymentEnabled": {
       "main": false

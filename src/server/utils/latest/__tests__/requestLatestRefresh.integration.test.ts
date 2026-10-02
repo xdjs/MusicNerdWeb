@@ -2,6 +2,20 @@
 import { readFileSync } from "node:fs";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "@/server/db/schema";
+// The inline source checks call In Process, Spotify and Deezer; here they all succeed.
+const checkLatestSources = jest.fn(
+  async (_artistId: string, state: import("@/lib/latest/types").LatestRefreshState) =>
+    Object.fromEntries(
+      Object.entries(state.sources).map(([source, result]) => [
+        source,
+        source !== "instagram" && result.status === "pending" ? { status: "checked" } : result,
+      ]),
+    ),
+);
+jest.mock("../checkLatestSources", () => ({
+  checkLatestSources: (...a: [string, import("@/lib/latest/types").LatestRefreshState]) =>
+    checkLatestSources(...a),
+}));
 jest.mock("@/server/db/drizzle", () => ({
   get db() {
     return database;
@@ -10,9 +24,6 @@ jest.mock("@/server/db/drizzle", () => ({
 const { PGlite } = process.getBuiltinModule("module").createRequire(__filename)(
   "@electric-sql/pglite",
 ) as typeof import("@electric-sql/pglite");
-jest.mock("@/env", () => ({ ...jest.requireActual("@/env"), APIFY_API_TOKEN: "test" }));
-jest.mock("../../socialIngest", () => ({ checkInstagramScrape: jest.fn(), collectInstagramScrape: jest.fn() }));
-jest.mock("../startLatestInstagramScrape", () => ({ startLatestInstagramScrape: jest.fn() }));
 const client = new PGlite();
 const driver = drizzle(client, { schema });
 const database = {
@@ -36,15 +47,11 @@ const artist = "00000000-0000-4000-8000-000000000001",
   claim = "00000000-0000-4000-8000-000000000003";
 let request: typeof import("../requestLatestRefresh").requestLatestRefresh;
 let enqueue: typeof import("../../queries/researchJobQueries").enqueueResearchJob;
-let authorize: typeof import("../authorizeLatestRefresh").authorizeLatestRefresh;
-let store: typeof import("../latestRefreshStore").latestRefreshStore;
 let read: typeof import("../getLatestRefresh").getLatestRefresh;
 let context: typeof import("../../artistOperationContext").withArtistOperation;
 beforeAll(async () => {
   jest.resetModules();
   ({ enqueueResearchJob: enqueue } = await import("../../queries/researchJobQueries"));
-  ({ authorizeLatestRefresh: authorize } = await import("../authorizeLatestRefresh"));
-  ({ latestRefreshStore: store } = await import("../latestRefreshStore"));
   ({ getLatestRefresh: read } = await import("../getLatestRefresh"));
   ({ requestLatestRefresh: request } = await import("../requestLatestRefresh"));
   ({ withArtistOperation: context } =
@@ -64,6 +71,7 @@ beforeAll(async () => {
   await client.exec(readFileSync("drizzle/0034_latest_refresh.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
+  checkLatestSources.mockClear();
   await client.exec(`delete from artist_research_jobs; delete from artist_activity_events;
     update artists set instagram='artist',inprocess=null,spotify=null,deezer=null;
     update artist_claims set status='approved'; update users set is_admin=false;`);
@@ -107,58 +115,22 @@ it("rejects a stale claim without writing a job", async () => {
 });
 
 it.each(["instagram", "inprocess", "spotify", "deezer"] as const)(
-  "rejects progress for a changed %s identity and permits a fresh request",
+  "hides a request whose %s identity changed and permits a fresh one",
   async (source) => {
     const id = await call();
-    await client.exec(
-      `update artist_research_jobs set status='running'; update artists set ${source}='replacement'`,
-    );
-    const {
-      rows: [saved],
-    } = await client.query<{
-      state: import("@/lib/latest/types").LatestRefreshState;
-    }>("select state from artist_research_jobs");
-    const job = {
-      id,
-      artistId: artist,
-    } as import("../../queries/researchJobQueries").ResearchJob;
-    await expect(store(job, saved.state, true)).rejects.toThrow(
-      "ownership changed",
-    );
+    await client.exec(`update artists set ${source}='replacement'`);
     expect(await read(artist)).toBeNull();
     const replacement = await call();
     expect(replacement).not.toBe(id);
     expect(
-      (
-        await client.query(
-          "select status from artist_research_jobs where id=$1",
-          [id],
-        )
-      ).rows,
+      (await client.query("select status from artist_research_jobs where id=$1", [id])).rows,
     ).toEqual([{ status: "failed" }]);
     expect((await read(artist))?.id).toBe(replacement);
   },
 );
-it("rejects progress after claim revocation and releases the cooldown for an admin", async () => {
+it("hides a request after claim revocation and releases the cooldown for an admin", async () => {
   const id = await call();
-  await client.exec(
-    "update artist_research_jobs set status='running'; update artist_claims set status='revoked'",
-  );
-  const {
-    rows: [saved],
-  } = await client.query<{
-    state: import("@/lib/latest/types").LatestRefreshState;
-  }>("select state from artist_research_jobs");
-  await expect(
-    store(
-      {
-        id,
-        artistId: artist,
-      } as import("../../queries/researchJobQueries").ResearchJob,
-      saved.state,
-      true,
-    ),
-  ).rejects.toThrow("ownership changed");
+  await client.exec("update artist_claims set status='revoked'");
   expect(await read(artist)).toBeNull();
   await client.exec("update users set is_admin=true");
   expect(
@@ -169,24 +141,43 @@ it("rejects progress after claim revocation and releases the cooldown for an adm
     ),
   ).not.toBe(id);
 });
-it("saves valid progress and retains its cooldown", async () => {
-  const id = await call();
-  await client.exec("update artist_research_jobs set status='running'");
-  const {
-    rows: [saved],
-  } = await client.query<{
-    state: import("@/lib/latest/types").LatestRefreshState;
-  }>("select state from artist_research_jobs");
-  await store(
-    {
-      id,
-      artistId: artist,
-    } as import("../../queries/researchJobQueries").ResearchJob,
-    saved.state,
-    true,
+it("checks the other sources inline and queues only the Instagram check", async () => {
+  await client.exec("update artists set spotify='s'");
+  await call();
+  expect(checkLatestSources).toHaveBeenCalledTimes(1);
+  const { rows: [job] } = await client.query<{ status: string; state: import("@/lib/latest/types").LatestRefreshState }>(
+    "select status,state from artist_research_jobs",
   );
+  expect(job.status).toBe("pending");
+  expect(job.state.sources).toMatchObject({
+    instagram: { status: "pending" },
+    spotify: { status: "checked" },
+    interviews: { status: "checked" },
+    deezer: { status: "disconnected" },
+  });
+});
+it("checks again when a connection changes during the checks, and queues the new one", async () => {
+  checkLatestSources.mockImplementationOnce(async (_a, state) => {
+    await client.exec("update artists set instagram='renamed'");
+    return state.sources;
+  });
+  const id = await call();
+  expect(checkLatestSources).toHaveBeenCalledTimes(2);
+  const { rows: [job] } = await client.query<{ state: import("@/lib/latest/types").LatestRefreshState }>(
+    "select state from artist_research_jobs where id=$1", [id],
+  );
+  expect(job.state.instagram).toBe("renamed");
+  expect((await read(artist))?.id).toBe(id);
+});
+it("finishes at once when there is no Instagram to check", async () => {
+  await client.exec("update artists set instagram=null");
+  await call();
   expect((await read(artist))?.status).toBe("done");
+});
+it("does not check again for a request inside the cooldown", async () => {
+  const id = await call();
   expect(await call()).toBe(id);
+  expect(checkLatestSources).toHaveBeenCalledTimes(1);
 });
 
 it("invalidates completed results when their initiating admin loses access", async () => {
@@ -202,14 +193,6 @@ it("invalidates completed results when their initiating admin loses access", asy
   expect((await read(artist))?.id).toBe(id);
   await client.exec("update users set is_admin=false");
   expect(await read(artist)).toBeNull();
-});
-
-it("treats a changed connection before the next worker slice as terminal cancellation", async () => {
-  const id = await call();
-  const { rows: [saved] } = await client.query<{ state: import("@/lib/latest/types").LatestRefreshState; activity_id: string }>("select state,activity_id from artist_research_jobs");
-  await client.exec("update artists set instagram='replacement'");
-  const job = { id, artistId: artist, activityId: saved.activity_id, state: saved.state } as unknown as import("../../queries/researchJobQueries").ResearchJob;
-  await expect(authorize(job)).rejects.toThrow("ownership changed");
 });
 
 it("does not queue a second paid social ingest behind an active Latest check", async () => {
@@ -231,50 +214,4 @@ it("allows research after Latest has completed", async () => {
   await call();
   await client.exec("update artist_research_jobs set status='done'");
   expect(await enqueue(artist, "social_ingest", { state: { force: true } })).toBe(true);
-});
-
-it("persists status failures and exhausts four retries on the same paid run", async () => {
-  const {refreshLatestInstagram}=await import("../refreshLatestInstagram");
-  const {claimResearchJob,failResearchJob}=await import("../../queries/researchJobQueries");
-  const {checkInstagramScrape}=await import("../../socialIngest");
-  const {startLatestInstagramScrape}=await import("../startLatestInstagramScrape");
-  jest.mocked(checkInstagramScrape).mockResolvedValue({status:"failed",reason:"apify status 503",retryable:true});
-  await call();
-  await client.exec(`update artist_research_jobs set state=state || '{"providerStarted":true,"runId":"paid-run"}'::jsonb`);
-  for(let attempt=1;attempt<=4;attempt++){
-    const job=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
-    expect(job).not.toBeNull();
-    await expect(refreshLatestInstagram(job!,Date.now()+55000)).rejects.toThrow("apify status 503");
-    await failResearchJob(job!.id,"apify status 503");
-    const rows=await client.query("select status,attempts,last_error,state from artist_research_jobs");
-    expect(rows.rows[0]).toMatchObject({attempts:attempt,status:attempt===4?"failed":"pending",last_error:"apify status 503",state:{runId:"paid-run",instagramFailure:{phase:"status",reason:"apify status 503"}}});
-  }
-  expect(await claimResearchJob({artistId:artist,kinds:["latest_refresh"]})).toBeNull();
-  expect(startLatestInstagramScrape).not.toHaveBeenCalled();
-  const view=await read(artist);
-  expect(view?.sources.instagram?.status).toBe("failed");
-  expect(JSON.stringify(view)).not.toMatch(/paid-run|apify|instagramFailure/);
-});
-
-it("resets failures on a recovered poll but never resets failed cached collection", async () => {
-  const {refreshLatestInstagram}=await import("../refreshLatestInstagram");
-  const {claimResearchJob,failResearchJob}=await import("../../queries/researchJobQueries");
-  const {checkInstagramScrape,collectInstagramScrape}=await import("../../socialIngest");
-  jest.mocked(checkInstagramScrape).mockReset();
-  jest.mocked(checkInstagramScrape).mockResolvedValueOnce({status:"running",runId:"paid-run"})
-    .mockResolvedValueOnce({status:"ready",runId:"paid-run",datasetId:"dataset"});
-  jest.mocked(collectInstagramScrape).mockResolvedValue(null);
-  await call();
-  await client.exec(`update artist_research_jobs set attempts=3,state=state || '{"providerStarted":true,"runId":"paid-run"}'::jsonb`);
-  const recovered=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
-  expect(await refreshLatestInstagram(recovered!,Date.now()+55000)).toEqual({status:"pending"});
-  await store(recovered!,recovered!.state as unknown as import("@/lib/latest/types").LatestRefreshState,false);
-  expect((await client.query("select attempts from artist_research_jobs")).rows).toEqual([{attempts:0}]);
-  for(let attempt=1;attempt<=4;attempt++){
-    const job=await claimResearchJob({artistId:artist,kinds:["latest_refresh"]});
-    await expect(refreshLatestInstagram(job!,Date.now()+55000)).rejects.toThrow("Instagram collection unavailable");
-    await failResearchJob(job!.id,"Instagram collection unavailable");
-    expect((await client.query("select attempts,status from artist_research_jobs")).rows).toEqual([{attempts:attempt,status:attempt===4?"failed":"pending"}]);
-  }
-  expect(checkInstagramScrape).toHaveBeenCalledTimes(2);
 });

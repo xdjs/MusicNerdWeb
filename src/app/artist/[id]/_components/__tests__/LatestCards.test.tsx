@@ -202,7 +202,7 @@ it('falls back to All when the selected filter no longer exists after navigating
     expect(screen.getAllByRole('article')).toHaveLength(2);
 });
 
-it('remounts the cards for a different artist so an open dialog and filter do not carry over on client navigation', async () => {
+it('remounts the cards for a different artist so an open dialog does not carry over on client navigation', async () => {
     const { getArtistLatest } = await import('@/server/utils/queries/artistLatestQueries');
     const { default: LatestSection } = await import('../LatestSection');
     type Artist = import('@/server/db/DbTypes').Artist;
@@ -215,8 +215,21 @@ it('remounts the cards for a different artist so an open dialog and filter do no
     jest.mocked(getArtistLatest).mockResolvedValue({ items: [release], unavailable: false });
     rerender(await LatestSection({ artist: { id: 'artist-2', name: 'Other Artist' } as Artist, imageUrl: '' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('group', { name: 'Filter artist updates' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Read New record' })).toBeInTheDocument();
+});
+
+it('shows every category without nested filters in the actual artist Latest section', async () => {
+    const { getArtistLatest } = await import('@/server/utils/queries/artistLatestQueries');
+    const { default: LatestSection } = await import('../LatestSection');
+    const post: ArtistLatestItem = { ...moment, id: 'post:1', kind: 'instagram', title: 'Studio photo', momentKind: undefined };
+    jest.mocked(getArtistLatest).mockResolvedValue({ items: [answer, release, moment, post], unavailable: false });
+    render(await LatestSection({ artist: { id: 'artist-1', name: 'Test Artist' } as import('@/server/db/DbTypes').Artist, imageUrl: '' }));
+    expect(screen.queryByRole('group', { name: 'Filter artist updates' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(4);
+    for (const item of [answer, release, moment, post]) {
+        expect(screen.getByRole('button', { name: `Read ${item.title}` })).toBeInTheDocument();
+    }
 });
 
 

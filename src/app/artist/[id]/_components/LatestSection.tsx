@@ -10,6 +10,6 @@ export default async function LatestSection({ artist, imageUrl, sources = [], li
     const items = result.items.map(item => item.kind === 'release'
         ? { ...item, listeningLinks: releaseListeningLinks(item, artist.name ?? '', sources, listenLinks) } : item);
     // Keyed by artist, as the hero and the rail are: client navigation between profiles
-    // reuses this tree, and the gallery's filter, open dialog and scroll belong to one artist.
-    return <LatestCards refreshControl={canEdit ? <LatestRefreshControl key={artist.id} artistId={artist.id} /> : undefined} key={artist.id} artistName={artist.name ?? 'this artist'} artistImage={imageUrl} unavailable={result.unavailable} items={items} artistListeningLinks={listenLinks} />;
+    // reuses this tree, and the open dialog and scroll belong to one artist.
+    return <LatestCards showFilters={false} refreshControl={canEdit ? <LatestRefreshControl key={artist.id} artistId={artist.id} /> : undefined} key={artist.id} artistName={artist.name ?? 'this artist'} artistImage={imageUrl} unavailable={result.unavailable} items={items} artistListeningLinks={listenLinks} />;
 }

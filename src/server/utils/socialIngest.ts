@@ -630,6 +630,7 @@ export async function waitForSocialPosts(artistId: string, timeoutMs: number, po
 // ---------------------------------------------------------------------------
 
 const APIFY_RUNS_URL = "https://api.apify.com/v2/acts/apify~instagram-scraper/runs";
+const APIFY_RUN_URL = (runId: string) => `https://api.apify.com/v2/actor-runs/${runId}`;
 const APIFY_DATASET_URL = (datasetId: string) => `https://api.apify.com/v2/datasets/${datasetId}/items`;
 /** Starting a run and reading its status are quick calls; only the scrape is
  *  slow, and we no longer wait for it. */
@@ -639,7 +640,7 @@ export type ApifyRunState =
     | { status: "started"; runId: string }
     | { status: "running"; runId: string }
     | { status: "ready"; runId: string; datasetId: string }
-    | { status: "failed"; reason: string; retryable?: boolean };
+    | { status: "failed"; reason: string };
 
 /** Kick off a scrape and return as soon as Apify has given it an id. */
 export async function startInstagramScrape(handle: string, opts?: { limit?: number }): Promise<ApifyRunState> {
@@ -667,7 +668,24 @@ export async function startInstagramScrape(handle: string, opts?: { limit?: numb
     }
 }
 
-export { checkInstagramScrape } from "./instagram/checkInstagramScrape";
+/** Where a started run has got to. */
+export async function checkInstagramScrape(runId: string): Promise<ApifyRunState> {
+    if (!APIFY_API_TOKEN) return { status: "failed", reason: "no apify token" };
+    try {
+        const res = await fetch(`${APIFY_RUN_URL(runId)}?token=${encodeURIComponent(APIFY_API_TOKEN)}`, {
+            signal: AbortSignal.timeout(APIFY_CONTROL_TIMEOUT_MS),
+        });
+        if (!res.ok) return { status: "failed", reason: `apify status ${res.status}` };
+        const body = await res.json() as { data?: { status?: string; defaultDatasetId?: string } };
+        const state = body?.data?.status;
+        const datasetId = body?.data?.defaultDatasetId;
+        if (state === "SUCCEEDED" && datasetId) return { status: "ready", runId, datasetId };
+        if (state === "READY" || state === "RUNNING") return { status: "running", runId };
+        return { status: "failed", reason: `apify run ${state ?? "unknown"}` };
+    } catch (e) {
+        return { status: "failed", reason: e instanceof Error ? e.message : "apify status failed" };
+    }
+}
 
 /** Collect a finished run's items and store them. */
 /** Returns null when the COLLECTION failed, which is not the same as a feed

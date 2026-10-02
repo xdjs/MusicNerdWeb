@@ -5,6 +5,9 @@ const mockRefresh = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mockRefresh }),
 }));
+jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({
+  musicNerdApiUrl: (path) => `https://api.example.test${path}`,
+}));
 import LatestRefreshControl from "../LatestRefreshControl";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 const renderEditor = () => render(<EditModeContext.Provider value={{ canEdit: true, isEditing: true, toggle: jest.fn() }}><LatestRefreshControl artistId="artist" /></EditModeContext.Provider>);
@@ -78,4 +81,18 @@ it("only mounts the refresh flow in authorized edit mode and restores status on 
   expect(screen.queryByRole("button", { name: "Update Latest" })).not.toBeInTheDocument();
   rerender(view(true));
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+});
+
+it("advances a running check on MusicNerdAPI, then reads its status here", async () => {
+  const running = { id: "job", status: "pending", retryAt: new Date().toISOString(), sources: { instagram: { status: "pending" } } };
+  fetch.mockResolvedValue(response(running));
+  renderEditor();
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith("https://api.example.test/api/research/advance", expect.objectContaining({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artistId: "artist", kinds: ["latest_refresh"] }),
+    })),
+  );
+  expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/latest-refresh/advance"))).toBe(false);
 });

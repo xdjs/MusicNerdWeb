@@ -33,7 +33,6 @@ Read `src/env.ts` for the authoritative configuration and defaults.
 | `APIFY_API_TOKEN` | Instagram ingestion; absent means ingestion no-ops |
 | `TAVILY_API_KEY`, `WEB_SEARCH_PROVIDER` | Optional profile-discovery web search |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Storage and its health checks; service key stays server-side |
-| `CRON_SECRET` | Scheduled research advancement |
 | `RESEND_API_KEY`, `DISCORD_WEBHOOK_URL` | Optional email and UGC notifications |
 
 Model ids live in `src/server/lib/ai/models.ts`; per-call temperature, thinking budget and timeout
@@ -80,9 +79,16 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   `bio/` files) predate that rule and keep their exports until they are next changed; split
   them then, not in a move. `src/server/utils` is server I/O under the same grouping rule
   (`musicPlatform/`, `queries/`, `onboarding/`). Import by `@/lib/<domain>/<module>`.
-- **Source-backed research:** `socialIngest.ts` stores posts; `researchRunner.ts` advances
-  `artist_research_jobs` through ingest/extraction slices, with persistence in
-  `queries/researchJobQueries.ts`. `/api/research/advance` and the configured cron resume work.
+- **Source-backed research:** since the cutover (#1365), MusicNerdAPI runs every
+  `artist_research_jobs` kind (`social_ingest`, `caption_extract`, `lore_refresh`, `source_search`,
+  `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
+  (`requestArtistResearch.ts`, `queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
+  the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
+  `/api/research/advance`, and "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`
+  with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  `NEXT_PUBLIC_VERCEL_ENV`: production → `musicnerd-api.vercel.app`; previews, staging and local →
+  `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
+  database). Promote a production-target build: a promoted preview build still calls staging.
   `questionGenerator.ts` uses stored sources; `queries/onboardingQueries.ts` saves offers/answers.
   Every model call goes through `src/server/lib/ai/generateText.ts`; the sites are in [llm.md](llm.md).
   Reuse this path; a request finishing is not evidence its background work finished.
