@@ -102,14 +102,14 @@ it('recovers a failed contextual image using the artist portrait then the local 
     expect(screen.getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
 });
 
-it('shows the complete Instagram image and preserves its fallback and source action when expanded', () => {
-    const post: ArtistLatestItem = { ...answer, id: 'instagram:image', kind: 'instagram', title: 'From Instagram',
+it.each(['instagram', 'interview', 'moment'] as const)('shows the complete %s image and preserves its fallback and source action when expanded', kind => {
+    const post: ArtistLatestItem = { ...answer, id: `${kind}:image`, kind, title: 'From Instagram',
         imageUrl: 'https://cdn.example.com/post.jpg', imageCaption: 'Full announcement including the bottom lyrics',
         sourceUrl: 'https://www.instagram.com/p/test/', sourceLabel: 'View on Instagram' };
     setup([post, release]);
     const cardImage = screen.getByAltText(post.imageCaption);
     expect(cardImage).toHaveClass('object-contain');
-    expect(screen.getByText('Read the post')).toHaveClass('text-highlightpink');
+    expect(screen.getByText(kind === 'instagram' ? 'Read the post' : kind === 'interview' ? 'Read their answer' : 'Open on In-Process')).toHaveClass('text-highlightpink');
     fireEvent.error(cardImage);
     expect(screen.getByAltText('Test Artist portrait')).toHaveAttribute('src', 'https://cdn.example.com/artist.jpg');
     expect(screen.getByAltText(release.imageCaption)).toHaveAttribute('src', release.imageUrl);
@@ -127,18 +127,20 @@ it('shows the complete Instagram image and preserves its fallback and source act
     expect(within(dialog).getByAltText('Test Artist portrait').getAttribute('src')).toMatch(/\/default_pfp_pink\.png$/);
 });
 
-it('reserves retained portrait, square and landscape ratios before loading and during fallback', () => {
+it('reserves retained portrait, square and landscape ratios in expanded images before loading and during fallback', () => {
     const posts = [[361, 640], [640, 640], [640, 427]].map(([width, height], i): ArtistLatestItem => ({
         ...answer, id: `instagram:ratio-${i}`, kind: 'instagram', title: `Post ${i}`,
         imageUrl: `https://cdn.example.com/ratio-${i}.jpg`, imageCaption: `Image ${i}`, imageDimensions: { width, height },
     }));
     setup(posts);
     for (const [i, post] of posts.entries()) {
-        const image = screen.getByAltText(`Image ${i}`);
+        fireEvent.click(screen.getByRole('button', { name: `Read Post ${i}` }));
+        const image = within(screen.getByRole('dialog')).getByAltText(`Image ${i}`);
         const frame = image.parentElement!;
         expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
         fireEvent.error(image);
         expect(frame).toHaveStyle({ aspectRatio: `${post.imageDimensions!.width} / ${post.imageDimensions!.height}` });
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     }
     fireEvent.click(screen.getByRole('button', { name: 'Read Post 2' }));
     expect(within(screen.getByRole('dialog')).getByAltText('Image 2').parentElement).toHaveStyle({ aspectRatio: '640 / 427' });

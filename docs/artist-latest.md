@@ -20,7 +20,7 @@ Instagram captions link valid literal `@username` mentions in the gallery and ex
 See [Instagram mention links](instagram-mentions.md) for source validation, Ask behavior and
 the existing-data audit. Caption links do not trigger the card's separate opener.
 
-### Instagram image layout — October 1, 2026 (#1410)
+### Consistent Latest image layout — October 1, 2026 (#1410)
 
 Pete approved extending the overlay card into black below the complete Instagram image,
 so the caption no longer covers the bottom of the artwork. The image keeps its proportions,
@@ -28,20 +28,27 @@ with its bottom edge unobscured. A decorative extension of that edge's colors co
 into a 100px fade beneath the image, carrying the image's colors into black behind the
 metadata and caption. This matches the approved prototype's extended gradient; an 8px
 image mask and hard black caption panel do not. The decorative copy uses the same image URL,
-is hidden from assistive technology and follows the existing fallback. Tall images are
-contained within a bounded media area. Instagram cards can be taller
-than the other update types in the same horizontal gallery.
+is hidden from assistive technology and follows the existing fallback.
+
+Pete's mixed-row review supersedes the initial Instagram-only layout: every Latest card is
+420px tall, with a 220px contained image area and a shared metadata/caption area. Image
+proportions never determine card height. Portrait, square and landscape artwork remain
+complete, aligned to the bottom of the media area so the gradient continues their edge.
+Category/date placement is shared; titles and excerpts are clamped, and every action sits
+at the same bottom position in `highlightpink`. This prevents tall Instagram posts from
+stretching the gallery beside smaller release, answer or In Process cards.
 
 Retained thumbnail width/height are projected with their matching image URL to reserve the
-correct aspect ratio before loading. Missing or invalid dimensions use a stable 4:5 media
-area with containment. Image failures keep that reserved area while switching fallbacks.
+correct aspect ratio in the expanded view before loading. Missing or invalid dimensions use
+a stable 4:5 expanded media area with containment. Gallery media always uses the shared fixed
+height. Image failures keep the reserved area while switching fallbacks.
 Only the validated dimensions reach the client, not retention metadata or raw payloads.
 
-The expanded Instagram post shows the full image without the card's fade or a fixed banner
-crop. Its scrollable dialog keeps the full caption, mentions and source action reachable.
-“Read the post” uses `highlightpink` (`#FF75D8`); expanded source actions use the shared
-`Button variant="pink"`, including black labels/icons in either theme. Other update types
-retain their existing image layouts. Image failures still try the artist portrait and then
+Expanded Instagram, answer and In Process updates show the same complete photo as their card,
+without its gradient or a fixed banner crop. Their scrollable dialog keeps the full text,
+mentions and source action reachable. Releases retain the compact listening-service picker.
+All card actions use `highlightpink` (`#FF75D8`); expanded source actions use the shared
+`Button variant="pink"`, including black labels/icons in either theme. Image failures still try the artist portrait and then
 the local fallback. This is presentation only: stored URLs, research jobs, refreshes and
 database state are unchanged.
 
