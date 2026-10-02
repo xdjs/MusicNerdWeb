@@ -82,10 +82,11 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Source-backed research:** since the cutover (#1365), MusicNerdAPI runs every
   `artist_research_jobs` kind (`social_ingest`, `caption_extract`, `lore_refresh`, `source_search`,
   `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
-  (`requestArtistResearch.ts`, `queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
+  (`queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
-  `/api/research/advance`, and "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`
-  with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the onboarding
+  chat (`useOnboardingChat`) sends every turn to MusicNerdAPI's `/api/onboarding/{artistId}/chat`,
+  both with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
   `NEXT_PUBLIC_VERCEL_ENV`: production → `musicnerd-api.vercel.app`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.

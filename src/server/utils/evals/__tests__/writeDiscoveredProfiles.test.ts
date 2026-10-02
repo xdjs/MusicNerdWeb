@@ -4,7 +4,7 @@ import { jest } from "@jest/globals";
 const discoverArtistProfilesStream = jest.fn();
 const applyProfileLinkDecisions = jest.fn();
 jest.mock("@/server/utils/profileDiscovery", () => ({ discoverArtistProfilesStream }));
-jest.mock("@/server/utils/onboarding/turnHandlers", () => ({ applyProfileLinkDecisions }));
+jest.mock("@/server/utils/onboarding/applyProfileLinkDecisions", () => ({ applyProfileLinkDecisions }));
 
 const ID = "011645a7-a9c2-494c-a81f-2c10cdf1b756";
 

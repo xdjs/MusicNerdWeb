@@ -23,7 +23,7 @@ Five places start research. Each opens exactly one run and names itself in `trig
 | `trigger` | Where | Who | What it runs |
 | --- | --- | --- | --- |
 | `claim_approval` | `approveClaimAction` (`src/app/actions/adminClaimActions.ts`) | admin | source search, in the background, with no UI |
-| `onboarding_build` | `runAutoBuild` (`src/server/utils/onboarding/turnHandlers.ts`) on a fresh claim | approved claimant | profile discovery, then source search, then About: **one run** across the three |
+| `onboarding_build` | MusicNerdAPI's `POST /api/onboarding/{artistId}/chat` (the `open` turn's auto-build) on a fresh claim | approved claimant | profile discovery, then source search, then About: **one run** across the three |
 | `onboarding_step` | onboarding step cards on resume ("find more profiles", the sources step) | approved claimant | profile discovery and/or source search |
 | `lore_search` | Edit Profile → Lore → **Search web for sources** (`searchWebForSources`, `src/app/actions/dashboardActions.ts`) | any editor | source search |
 | `about_generation` | `generateArtistBio` (`src/server/utils/queries/artistBioQuery.ts`) when the vault is empty | the visitor loading the About, possibly anonymous | source search, then About |

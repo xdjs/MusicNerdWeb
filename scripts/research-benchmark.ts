@@ -196,7 +196,7 @@ async function main() {
     // 7 in five seconds. A change to the component doing most of the work could
     // not have moved this gate at all, which is worse than a noisy gate.
     const { discoverArtistProfilesStream } = await import("@/server/utils/profileDiscovery");
-    const { applyProfileLinkDecisions } = await import("@/server/utils/onboarding/turnHandlers");
+    const { applyProfileLinkDecisions } = await import("@/server/utils/onboarding/applyProfileLinkDecisions");
 
     const ALL = ["instagram", "x", "youtube", "tiktok", "facebook", "soundcloud", "bandcamp", "twitch"];
     const scores: Score[] = [];

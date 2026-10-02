@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 import type { ProfileCandidate, DocSource } from "./StepCards";
 import type { SourceView } from "@/lib/onboarding/buildStages";
+import { getAccessToken } from "@privy-io/react-auth";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 export type ChatItem = {
     id: string;
@@ -164,9 +166,10 @@ export function useOnboardingChat(artistId: string) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 65_000);
         try {
-            const res = await fetch(`/api/onboarding/${artistId}/chat`, {
+            // MusicNerdAPI (#1365), signed in with the Privy access token.
+            const res = await fetch(musicNerdApiUrl(`/api/onboarding/${artistId}/chat`), {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getAccessToken()}` },
                 body: JSON.stringify(turn),
                 signal: controller.signal,
             });

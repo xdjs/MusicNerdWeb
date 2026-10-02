@@ -38,7 +38,7 @@ jest.mock("@/server/utils/queries/artistQueries", () => ({
 const LINK = [{ url: "https://instagram.com/blackdave" }];
 
 async function apply(opts) {
-    const { applyProfileLinkDecisions } = await import("@/server/utils/onboarding/turnHandlers");
+    const { applyProfileLinkDecisions } = await import("@/server/utils/onboarding/applyProfileLinkDecisions");
     return applyProfileLinkDecisions("a1", LINK, [], opts);
 }
 
