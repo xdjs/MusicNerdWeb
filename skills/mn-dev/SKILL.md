@@ -12,8 +12,10 @@ The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/i
 ## Music Nerd specifics, in one place
 
 - **Repos.** Issues live in `xdjs/MusicNerdWeb`, the repo every agent reads `AGENTS.md` from, even when code lands elsewhere (MNTv, the Discord bot, the iOS app); link sibling PRs by full ref. The repo is **public**: no secrets, tokens, email addresses or Supabase refs in issues, PRs or docs. Env-var names only.
+- **Which codebase.** Research and API work goes in [`xdjs/MusicNerdAPI`](https://github.com/xdjs/MusicNerdAPI): research workers and their cron, onboarding, and every endpoint being moved out of the web app. The website, and the code that queues research jobs, stay in `xdjs/MusicNerdWeb` (Pete asked for this rule at the 2026-10-01 R&D). Read MusicNerdAPI's `AGENTS.md` before working there; it differs from this repo: pnpm, Vitest with tests in `lib/<domain>/__tests__/`, and the gate is `pnpm test && pnpm type-check && pnpm lint:check && pnpm format:check && pnpm build`. Its CI runs only on PRs into `main`. Issues and trackers for both repos stay in MusicNerdWeb. If you can't tell which repo something belongs in, ship it anyway; moving an endpoint later is cheap.
 - **Branches.** Every branch starts from `main` and merges back into `main` through a PR (squash merge). There is no `staging` branch any more. Code branches use `<contributor>/<slug>`: the actual contributor’s established prefix (for example, `pete/<slug>` for Pete or `sweetmantech/<slug>` for Sweetman). Never name one contributor’s branches after another. Codex branches use `codex/<slug>`. Docs-only branches may use `docs/<slug>`. Conventional commits.
-- **Merging and releasing.** Any branch can merge to `main` once the required `test` and `build` checks pass. No approval is required. A merge to `main` does **not** release to production. After the merge, someone promotes that SHA's Vercel build to production by hand in the Vercel dashboard. Apply any database migration to production first. Record “merged to main” and “promoted to production” separately.
+- **Draft until ready.** Open every PR as a draft (`gh pr create --draft`) and keep it a draft while you are still pushing to it. Mark it ready (`gh pr ready <n>`) only when its developer says it is good to merge. An agent never marks its own PR ready without that go-ahead. A PR that is ready for review is ready to merge, and anyone can merge it (Carl's convention, agreed at the 2026-10-01 R&D).
+- **Merging and releasing.** Any PR that is ready for review can merge to `main` once the required `test` and `build` checks pass. No approval is required. A merge to `main` does **not** release to production. After the merge, someone promotes that SHA's Vercel build to production by hand in the Vercel dashboard. Apply any database migration to production first. Record “merged to main” and “promoted to production” separately.
 - **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). Any of them can promote a build to production. Attribute decisions to whoever made them and where (standup, R&D sync).
 - **Databases.** Vercel previews and `staging.musicnerd.xyz` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
 - **Local and preview verification.** When a configured local environment is available, run and review changes locally; respect a requested local review before pushing. Verify the target environment before exercising integrations, preserve existing env files, and keep credentials private. When local configuration is unavailable, use the documented stub-env build to prove compilation. Local checks complement the exact-commit Vercel preview verification below; they do not replace it.
@@ -113,13 +115,13 @@ Only start from a real spec: Goal, done-when criteria, sequencing, source refere
 2. Docs first                      (the contract: docs/<feature>.md, design record, dated notes)
 3. Code by TDD                     (red → green → refactor; one function per file)
 4. npm run ci                      (types, lint, tests; build with the stub env)
-5. Open the PR to main             (link the issue; update the matrix row now)
+5. Open a draft PR to main         (link the issue; update the matrix row now)
 6. Wait for the preview            (poll the deployment for YOUR SHA)
 7. Verify on the preview           (every done-when, both viewports, both themes, real data)
 8. Comment: matrix + captures      (documented vs observed, hard numbers, per SHA)
 9. Triage reviews                  (Codex bot and humans: validate, fix, reply with commit + re-verification)
 10. Re-run 6→8 after EVERY behaviour-changing push
-11. Hand off                       (record the main merge, then the manual production promotion)
+11. Hand off                       (mark ready on the developer's go; record the main merge, then the production promotion)
 ```
 
 ## 1. Read the ground
@@ -151,7 +153,9 @@ NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_ID=stub NEXT_PUBLIC_SPOTIFY_WEB_CLIENT_SECRET=stu
 
 The stub build proves compilation, not integrations. Never write those values to `.env.local`.
 
-## 4–5. Open the PR, update the matrix
+## 4–5. Open a draft PR, update the matrix
+
+Open it with `gh pr create --draft`. It stays a draft through steps 6–10.
 
 PR body: what changes and why, in the user's terms; trade-offs you are introducing (a read moved inside a Suspense boundary, a cache TTL); what was verified locally; "preview verification follows in a comment". Base `main`. Link the issue. **Replace the `#TBD` row on the issue in the same session.**
 
@@ -199,6 +203,8 @@ The Codex bot (`chatgpt-codex-connector`) reviews every PR with P1/P2 findings. 
 
 ## 10–11. Hand off
 
+When the developer says the PR is good to merge, mark it ready (`gh pr ready <n>`). From then on anyone can merge it.
+
 After the squash merge, record the `main` SHA in the issue row. Production is a separate,
 manual step: in Vercel, promote the build for that SHA to production, after applying any
 database migration to production. Then check the change on `www.musicnerd.xyz` and record the
@@ -207,6 +213,7 @@ promotion on the issue. Until someone promotes it, the row says “merged to mai
 
 ## Checklist before you say "done"
 
+- [ ] PR opened as a draft; marked ready only on its developer's go-ahead.
 - [ ] Issue was a real spec; matrix row updated the session the PR opened, and again when it merged.
 - [ ] Docs carry the contract and any trade-off; design record has a dated note if the design moved.
 - [ ] Every unit was **red before green**; new modules one-function-per-file with their test.
