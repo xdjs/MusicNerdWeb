@@ -8,4 +8,3 @@ export function instagramMediaUrl(value: unknown): string | null {
         return ['cdninstagram.com', 'fbcdn.net'].some(host => url.hostname.endsWith(`.${host}`)) ? url.href : null;
     } catch { return null; }
 }
-

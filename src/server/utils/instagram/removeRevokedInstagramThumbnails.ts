@@ -19,4 +19,3 @@ export async function removeRevokedInstagramThumbnails(artistId: string, scope: 
     });
     if (!response.ok) throw new Error('Revoked Instagram thumbnail cleanup failed');
 }
-

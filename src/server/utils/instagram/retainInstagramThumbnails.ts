@@ -14,4 +14,3 @@ export async function retainInstagramThumbnails<T extends { artistId: string; pl
     }));
     return prepared;
 }
-

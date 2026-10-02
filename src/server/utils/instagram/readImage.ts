@@ -16,4 +16,3 @@ export async function readImage(response: Response): Promise<Buffer> {
         return Buffer.concat(chunks);
     } finally { await reader.cancel(); }
 }
-
