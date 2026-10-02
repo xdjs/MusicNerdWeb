@@ -1,3 +1,18 @@
+## Instagram refresh reliability — October 2
+
+[#1408](https://github.com/xdjs/MusicNerdWeb/issues/1408) is being implemented on
+`codex/instagram-refresh-reliability` in Web and MusicNerdAPI. Transient status
+and collection errors reuse the saved paid run/dataset through the existing
+four-attempt queue limit, with private diagnostics and no second paid start.
+Thumbnail download/upload retries remain within the nine-second budget and
+preserve fallback/ownership cleanup. See [the contract](docs/latest-refresh.md).
+The five reported posts were already recovered before this implementation.
+The original status and thumbnail failure causes were not logged; do not claim
+a confirmed incident root cause. No migration or new paid scrape is needed.
+#1405 has now retired the Web worker. API#15 is integrated with current API main;
+Web#1411 retains thumbnail helpers, the contract and isolated preview API routing.
+Production ignores the preview override. Do not restore removed Web worker code.
+
 ## Account merge attribution — October 1
 
 [#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389) is being fixed on

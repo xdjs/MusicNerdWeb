@@ -51,3 +51,49 @@ routes; collector bounds and no generation; lost provider start; partial failure
 resume; all source results; UI 390/832 in both themes and reload/navigation. Local mocks
 are not proof of live provider behavior. Apply staging SQL and execute a bounded real
 provider check only with an explicitly identified staging artist; production separately.
+
+## Refresh reliability — October 1 (#1408)
+
+A failed status request is not proof that the paid Instagram run failed. Retry
+transient status and dataset reads against the saved run/dataset using the queue’s
+existing four-consecutive-failure limit. A successful provider poll resets the
+allowance only in the same atomic write that releases its lease. A newly ready
+dataset is saved and collected on the next slice, adding one polling interval.
+This preserves Sweetman’s interrupted-worker attempt count until a slice actually
+finishes. Merely rereading a cached dataset does not reset the allowance, so
+persistent collection failures still terminate. Never issue another paid start for that request.
+Known nonterminal provider states remain pending; a confirmed failed, aborted or
+timed-out run ends the Instagram check. Store safe failure codes privately on
+the job for diagnosis, without provider response bodies, tokens or URLs.
+The editor continues to receive only source status and checked time.
+
+Thumbnail retention preserves the working CDN fallback and existing retained
+images. Temporary download/upload errors retry once at the same immutable path
+within the existing shared nine-second deadline. Diagnostic logs identify the
+download, decode or upload phase using fixed reasons, never media URLs or raw
+exceptions. The reported missing thumbnail currently returns a valid JPEG; its
+original failure reason was not retained, so a format defect is not established. Keep byte/pixel limits,
+allowed hosts, refused redirects and job-scoped revocation cleanup intact.
+
+October 2: #1405 has removed the Web worker. MusicNerdAPI#15 owns the retry
+and retention behavior, integrated with Sweetman’s current API main and its
+killed-lease accounting. Web only queues Latest and reads safe source status;
+its remaining ingestion helpers retain the same thumbnail protections. This
+change introduces no new endpoint or schema. Provider verification reuses saved
+results where possible; local injected failures are not evidence of a paid live
+scrape. A bounded staging refresh may verify the paired deployments; production changes
+require separate release approval.
+
+The retry also accepts Supabase's current and legacy already-existing-object
+responses for the same content-addressed path; it never enables overwriting.
+Provider lifecycle and error contracts: [Apify run states](https://docs.apify.com/actors/development/builds-and-runs)
+and [Supabase Storage errors](https://supabase.com/docs/guides/storage/debugging/error-codes).
+
+## Paired API previews
+
+A Web preview can target an unmerged API preview with
+`NEXT_PUBLIC_MUSICNERD_API_PREVIEW_URL`. Set it only for the feature branch or
+individual preview build after confirming the API uses staging data. With no
+override, previews and local development use the shared staging API. Production
+always uses the production API and ignores this override. This lets us verify
+the actual queue → API worker → saved status flow before merging either side.

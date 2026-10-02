@@ -52,7 +52,7 @@ it.each(['type', 'bytes', 'declared-size', 'stream-size', 'upload'])('does not p
 });
 
 it('tries a carousel image when the primary image fails', async () => {
-    fetchMock.mockRejectedValueOnce(new Error('expired')).mockResolvedValueOnce(media()).mockResolvedValueOnce({ ok: true });
+    fetchMock.mockRejectedValueOnce(new Error('expired')).mockRejectedValueOnce(new Error('expired')).mockResolvedValueOnce(media()).mockResolvedValueOnce({ ok: true });
     expect(await retainInstagramThumbnail({ displayUrl: source, images: ['https://b.fbcdn.net/cover.jpg'] }, artist, '2'))
         .toHaveProperty('_musicnerdThumbnail.sourceUrl', 'https://b.fbcdn.net/cover.jpg');
 });
@@ -110,4 +110,35 @@ it('only reuses stored thumbnails for this environment, artist and post', () => 
     expect(storedInstagramThumbnail({ _musicnerdThumbnail: metadata }, artist, '123')).toEqual(metadata);
     expect(storedInstagramThumbnail({ _musicnerdThumbnail: metadata }, artist, '124')).toBeNull();
     expect(storedInstagramThumbnail({ _musicnerdThumbnail: { ...metadata, url: url.replace('test.supabase.co', 'other.supabase.co') } }, artist, '123')).toBeNull();
+});
+
+it("recovers a transient download error within the existing timeout", async () => {
+  fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"))
+    .mockResolvedValueOnce(media()).mockResolvedValueOnce({ok:true});
+  expect(await retainInstagramThumbnail({displayUrl:source},artist,"123"))
+    .toHaveProperty("_musicnerdThumbnail.version",1);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+  expect(fetchMock.mock.calls[0][1].signal).toBe(fetchMock.mock.calls[1][1].signal);
+});
+it("retries an unavailable storage upload at the identical immutable path", async () => {
+  fetchMock.mockResolvedValueOnce(media())
+    .mockResolvedValueOnce({ok:false,status:503,body:{cancel:jest.fn()}})
+    .mockResolvedValueOnce({ok:true});
+  expect(await retainInstagramThumbnail({displayUrl:source},artist,"123"))
+    .toHaveProperty("_musicnerdThumbnail.version",1);
+  expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[2][0]);
+});
+it("bounds persistent failures and reports only safe diagnostic fields", async () => {
+  const warn=jest.spyOn(console,"warn").mockImplementation(()=>undefined);
+  fetchMock.mockRejectedValue(new Error("https://cdn.test/?secret=private"));
+  expect(await retainInstagramThumbnail({displayUrl:source},artist,"123")).toEqual({displayUrl:source});
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(warn).toHaveBeenCalledWith("[instagramThumbnail] Retention failed",expect.objectContaining({phase:"download",reason:"request unavailable"}));
+  expect(JSON.stringify(warn.mock.calls)).not.toContain("private");
+  warn.mockRestore();
+});
+
+it.each(["ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"])("accepts immutable storage retry with %s", async code => {
+  fetchMock.mockResolvedValueOnce(media()).mockResolvedValueOnce({ok:false,status:409,json:async()=>({code})});
+  expect(await retainInstagramThumbnail({displayUrl:source},artist,"123")).toHaveProperty("_musicnerdThumbnail.version",1);
 });
