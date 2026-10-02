@@ -168,6 +168,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const profile = (
         <ArtistProfileContent
             artist={artist}
+            claimStatusKnown={existingClaim !== undefined}
             imageUrl={imageUrl}
             platformImage={platformImage}
             artistLinks={artistLinks}

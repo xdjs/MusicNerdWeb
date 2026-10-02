@@ -60,7 +60,7 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{statusBadge}{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
@@ -136,6 +136,17 @@ describe('ArtistProfile page', () => {
     });
 
     describe('Unauthenticated rendering', () => {
+        it('hides claim status and the claim action when the lookup fails', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce(undefined);
+
+            await renderArtistPage();
+
+            expect(screen.getByRole('heading', { name: 'Test Artist' })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /claimed artist profile/i })).not.toBeInTheDocument();
+            expect(screen.queryByTestId('claim-button')).not.toBeInTheDocument();
+        });
+
         it('does not load private contributor names for visitors', async () => {
             const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
             await renderArtistPage();

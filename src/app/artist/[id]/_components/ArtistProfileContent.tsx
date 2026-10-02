@@ -9,6 +9,7 @@ import EditModeToggle from "@/app/_components/EditModeToggle";
 import AddArtistData from "./AddArtistData";
 import ArtistAskSheet from "./ArtistAskSheet";
 import ClaimButton from "./ClaimButton";
+import ArtistClaimBadge from "./ArtistClaimBadge";
 import HeroSection from "./HeroSection";
 import KnowledgeSection from "./KnowledgeSection";
 import LatestSection from "./LatestSection";
@@ -23,7 +24,7 @@ import VaultSection from "./VaultSection";
  *  is skipped. */
 export default function ArtistProfileContent({
     artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
-    isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove,
+    isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true,
 }: {
     artist: Artist;
     imageUrl: string;
@@ -34,6 +35,7 @@ export default function ArtistProfileContent({
     urlMapList: UrlMap[];
     addLinkPrefill?: string;
     isClaimed: boolean;
+    claimStatusKnown?: boolean;
     isClaimedByUser: boolean;
     isPending: boolean;
     isPendingByUser: boolean;
@@ -50,9 +52,10 @@ export default function ArtistProfileContent({
                     initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenLinks={listenLinks}>
+                    bio={heroBio} listenLinks={listenLinks}
+                    statusBadge={claimStatusKnown && <ArtistClaimBadge key={`${artist.id}:${isClaimed}`} isClaimed={isClaimed} />}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
-                        <ClaimButton
+                        {claimStatusKnown && <ClaimButton
                             artistId={artist.id}
                             isClaimed={isClaimed}
                             isClaimedByUser={isClaimedByUser}
@@ -60,7 +63,7 @@ export default function ArtistProfileContent({
                             isPendingByUser={isPendingByUser}
                             artistInstagram={artist.instagram}
                             compactOnMobile
-                        />
+                        />}
                         {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
                 </HeroSection>

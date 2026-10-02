@@ -248,8 +248,8 @@ opaque, including the floating Ask action. Black labels/icons remain black in bo
 This is presentation only: routes, persistence, jobs and external-service calls are unchanged.
 
 September 30, 2026 — the approved Claimed status badge also uses the `highlightpink`
-token for its tint and dark-theme label (#1400). Its light-theme label stays black for
-contrast. Claim eligibility, pending states and verification behavior are unchanged.
+token (#1400). The original light-theme black label is superseded by the October 2
+status treatment below: the photo hero stays dark in both themes.
 
 ## Public artist claim status
 
@@ -258,3 +258,29 @@ visitors and signed-in users who do not own that claim. It indicates profile man
 not approval of every source or statement. Pending verification remains private to the
 requester. Badge visibility never grants editing access; the existing owner/admin guards
 remain authoritative. Tracked in #1397.
+
+October 2, 2026 — [#1416](https://github.com/xdjs/MusicNerdWeb/issues/1416): approved
+status uses an icon-only `highlightpink` shield with a dark backing at the bottom-right
+of the artist image, in both themes and on fallback images. Pete’s preview feedback
+replaces the initial labeled badge beside Listen; Pete subsequently clarified
+bottom-right rather than the first preview’s top-left placement. The status keeps a 44px minimum
+interaction target. Hover, keyboard focus or a tap reveals “This profile has been
+claimed by the artist.” Escape, focus leaving the badge or tapping outside dismisses
+the explanation. The tooltip is portalled outside the hero so its clipped photo
+cannot cut it off.
+
+Unclaimed profiles use a neutral shield with the visible label “Unclaimed” in the
+same location, explaining “This profile hasn’t been claimed yet.” The existing
+Claim profile action remains beside Listen. A pending claim is not yet approved:
+its public status remains Unclaimed while its requester sees the existing private
+Pending Verification status. Repositioning a photo temporarily hides the public
+badge so it does not obstruct the positioning controls.
+
+`getClaimByArtistId` distinguishes an empty successful lookup (`null`) from a
+failed lookup (`undefined`). On failure, the profile still renders but omits the
+public status badge and Claim action; an unavailable status never asserts Unclaimed.
+`ArtistProfileContent` passes the approved-claim flag to `ArtistClaimBadge`
+in the hero’s status slot only when the lookup succeeded. `ClaimButton` retains the separate claim/pending flow
+and renders nothing for approved claims. The status interaction never starts a
+claim or login. Owner/admin edit checks, routes, persistence, jobs, external
+services and migrations are unchanged.

@@ -1,11 +1,11 @@
 // @ts-nocheck
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 // The sections are mocked down to the props this component decides, so the
 // test covers what it owns: the hero's bio, the link editors' mode, and that the
 // page runs hero through Ask sheet (the research view swaps all of it out).
-jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, children }) => <section data-testid="hero" data-bio={bio ?? ""}>{children}</section> }));
+jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, children }) => <section data-testid="hero" data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
 jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => <button>edit</button> }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
@@ -37,6 +37,24 @@ const base = {
 };
 
 describe("ArtistProfileContent", () => {
+    it("keeps the profile readable without asserting claim status after a failed lookup", () => {
+        render(<ArtistProfileContent {...base} claimStatusKnown={false} isClaimed={false} isClaimedByUser={false} canEdit={false} />);
+        expect(screen.getByTestId("image-status")).toBeEmptyDOMElement();
+        expect(screen.queryByRole("button", { name: "claim" })).not.toBeInTheDocument();
+        expect(screen.getByTestId("latest")).toBeInTheDocument();
+    });
+
+    it.each([true, false])("places approved status on the image regardless of ownership (%s)", isClaimedByUser => {
+        render(<ArtistProfileContent {...base} isClaimedByUser={isClaimedByUser} canEdit={isClaimedByUser} />);
+        expect(within(screen.getByTestId("image-status")).getByRole("button", { name: "Claimed artist profile" })).toBeInTheDocument();
+        expect(within(screen.getByRole("group", { name: "Manage artist profile" })).queryByRole("button", { name: "Claimed artist profile" })).not.toBeInTheDocument();
+    });
+
+    it("keeps pending details out of the public image badge", () => {
+        render(<ArtistProfileContent {...base} isClaimed={false} isClaimedByUser={false} isPending canEdit={false} />);
+        expect(within(screen.getByTestId("image-status")).getByRole("button", { name: "Unclaimed artist profile" })).toHaveTextContent("Unclaimed");
+        expect(within(screen.getByTestId("image-status")).queryByText(/pending/i)).not.toBeInTheDocument();
+    });
     it("renders the page from hero to Ask sheet", () => {
         const { container } = render(<ArtistProfileContent {...base} />);
         const ids = [...container.querySelectorAll("[data-testid]")].map(el => el.getAttribute("data-testid"));

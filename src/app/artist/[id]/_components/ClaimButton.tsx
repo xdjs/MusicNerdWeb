@@ -41,15 +41,8 @@ export default function ClaimButton({
     const [copied, setCopied] = useState(false);
     const { toast } = useToast();
 
-    // Approved claim status is public; editing permissions are checked separately.
-    if (isClaimed) {
-        return (
-            <div title="Claimed" aria-label="Claimed" className="flex min-h-11 items-center justify-center gap-1 px-2 py-1 rounded-md bg-highlightpink/15 text-foreground dark:text-highlightpink text-xs font-semibold">
-                <ShieldCheck size={14} strokeWidth={2.5} />
-                <span className={compactOnMobile ? "sr-only sm:not-sr-only" : undefined}>Claimed</span>
-            </div>
-        );
-    }
+    // Public claim status is shown on the image by ArtistClaimBadge.
+    if (isClaimed) return null;
 
     // A pending request is private until approved.
     if (isPending && !isPendingByUser) return null;

@@ -20,10 +20,11 @@ interface HeroSectionProps {
     initialPosition?: number;
     bio?: string | null;
     listenLinks?: ProfileLink[];
+    statusBadge?: ReactNode;
     children?: ReactNode;
 }
 
-export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
+export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], statusBadge, children }: HeroSectionProps) {
     const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
@@ -116,6 +117,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                     <ListenPicker artistName={artistName} links={listenLinks} />
                     {children}
+                    {statusBadge && <div className="ml-auto shrink-0">{statusBadge}</div>}
                 </div>
             </div>
         </div> : <>
@@ -125,6 +127,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 <div className="absolute inset-0 flex items-center justify-center">
                     <Image src={img} alt={artistName} width={160} height={160} unoptimized priority className="h-32 w-32 rounded-full border-4 border-white/25 object-cover md:h-40 md:w-40" />
                 </div>
+                {statusBadge && <div className="absolute bottom-4 right-4 z-10">{statusBadge}</div>}
                 {photoControl}
             </div>
             <div className="text-center">{identity}</div>
