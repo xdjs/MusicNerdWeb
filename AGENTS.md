@@ -86,6 +86,9 @@ applies to Codex, Claude, and all other assistants through this guide.
 
 Feature/fix branch off `main` → reviewed PR to `main` → squash merge.
 Use a contributor prefix (Codex uses `codex/`), conventional commits, and stage only intended files.
+Open every PR as a draft. Mark it ready only when its developer says it is good to merge; a ready
+PR can be merged by anyone. Research and API code goes in
+[MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI); see `skills/mn-dev`.
 Docs follow the same route. The legacy Git `staging` branch is retired; the persistent staging
 environment remains. **Do not merge or deploy without authorization.** After main's checks pass,
 the exact merged SHA deploys to `staging.musicnerd.xyz`. A main merge does not publish production.
