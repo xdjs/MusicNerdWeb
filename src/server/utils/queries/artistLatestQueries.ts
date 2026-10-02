@@ -82,6 +82,7 @@ export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResul
         const post = sourceUrl ? posts.find(p => instagramPostUrl(p.url) === sourceUrl) : undefined;
         items.push({ id: `interview:${answer.id}`, kind: 'interview', title: answer.question,
             text: answer.answer, date: answer.createdAt, imageUrl: post ? instagramPostImage(post.raw) : null,
+            imageDimensions: post ? instagramPostImageDimensions(post.raw) : undefined,
             imageCaption: post ? `The post behind this answer` : `${artist.name ?? 'Artist'} portrait`,
             sourceUrl, sourceLabel: answer.questionKey.startsWith('profile_') ? 'View the source behind this answer' : 'See the post behind this answer' });
     }

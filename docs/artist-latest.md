@@ -39,7 +39,8 @@ at the same bottom position in `highlightpink`. This prevents tall Instagram pos
 stretching the gallery beside smaller release, answer or In Process cards.
 
 Retained thumbnail width/height are projected with their matching image URL to reserve the
-correct aspect ratio in the expanded view before loading. Missing or invalid dimensions use
+correct aspect ratio in the expanded view before loading, including answers linked to that
+retained post. Missing or invalid dimensions use
 a stable 4:5 expanded media area with containment. Gallery media always uses the shared fixed
 height. Image failures keep the reserved area while switching fallbacks.
 Only the validated dimensions reach the client, not retention metadata or raw payloads.

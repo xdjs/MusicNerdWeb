@@ -39,12 +39,13 @@ it('combines real read adapters, orders by answer chronology, and projects only 
     expect(getLatestArtistReleases).toHaveBeenCalledWith(artist);
 });
 
-it('passes retained image dimensions to the card without exposing retention metadata', async () => {
+it('passes matching retained image dimensions to Instagram and answer cards without exposing retention metadata', async () => {
     jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([{ ...post, raw: { ...post.raw,
         _musicnerdThumbnail: { url: post.raw.displayUrl, width: 640, height: 427, sourceUrl: 'private-original-url' },
-    } }]) as never).mockImplementationOnce(() => selectResult([]) as never);
+    } }]) as never).mockImplementationOnce(() => selectResult([answer]) as never);
     const result = await getArtistLatest(artist);
     expect(result.items.find(item => item.kind === 'instagram')).toMatchObject({ imageDimensions: { width: 640, height: 427 } });
+    expect(result.items.find(item => item.kind === 'interview')).toMatchObject({ imageUrl: post.raw.displayUrl, imageDimensions: { width: 640, height: 427 } });
     expect(JSON.stringify(result)).not.toContain('private-original-url');
     expect(JSON.stringify(result)).not.toContain('_musicnerdThumbnail');
 });
