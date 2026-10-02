@@ -29,8 +29,8 @@ export default function ArtistClaimBadge({ isClaimed }: { isClaimed: boolean }) 
                 </TooltipTrigger>
                 <Portal>
                     <TooltipContent
-                        side="bottom"
-                        align="start"
+                        side="top"
+                        align="end"
                         sideOffset={6}
                         collisionPadding={16}
                         className="max-w-[240px] animate-none rounded-lg border-white/15 bg-[#211e23] px-3 py-2 text-center text-xs leading-relaxed text-white shadow-lg data-[state=closed]:animate-none"

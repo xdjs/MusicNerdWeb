@@ -37,6 +37,13 @@ const base = {
 };
 
 describe("ArtistProfileContent", () => {
+    it("keeps the profile readable without asserting claim status after a failed lookup", () => {
+        render(<ArtistProfileContent {...base} claimStatusKnown={false} isClaimed={false} isClaimedByUser={false} canEdit={false} />);
+        expect(screen.getByTestId("image-status")).toBeEmptyDOMElement();
+        expect(screen.queryByRole("button", { name: "claim" })).not.toBeInTheDocument();
+        expect(screen.getByTestId("latest")).toBeInTheDocument();
+    });
+
     it.each([true, false])("places approved status on the image regardless of ownership (%s)", isClaimedByUser => {
         render(<ArtistProfileContent {...base} isClaimedByUser={isClaimedByUser} canEdit={isClaimedByUser} />);
         expect(within(screen.getByTestId("image-status")).getByRole("button", { name: "Claimed artist profile" })).toBeInTheDocument();

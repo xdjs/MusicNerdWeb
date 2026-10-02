@@ -260,9 +260,10 @@ requester. Badge visibility never grants editing access; the existing owner/admi
 remain authoritative. Tracked in #1397.
 
 October 2, 2026 — [#1416](https://github.com/xdjs/MusicNerdWeb/issues/1416): approved
-status uses an icon-only `highlightpink` shield with a dark backing at the top-left
+status uses an icon-only `highlightpink` shield with a dark backing at the bottom-right
 of the artist image, in both themes and on fallback images. Pete’s preview feedback
-replaces the initial labeled badge beside Listen. The status keeps a 44px minimum
+replaces the initial labeled badge beside Listen; Pete subsequently clarified
+bottom-right rather than the first preview’s top-left placement. The status keeps a 44px minimum
 interaction target. Hover, keyboard focus or a tap reveals “This profile has been
 claimed by the artist.” Escape, focus leaving the badge or tapping outside dismisses
 the explanation. The tooltip is portalled outside the hero so its clipped photo
@@ -275,8 +276,11 @@ its public status remains Unclaimed while its requester sees the existing privat
 Pending Verification status. Repositioning a photo temporarily hides the public
 badge so it does not obstruct the positioning controls.
 
-`ArtistProfileContent` passes the existing approved-claim flag to `ArtistClaimBadge`
-in the hero’s status slot. `ClaimButton` retains the separate claim/pending flow
+`getClaimByArtistId` distinguishes an empty successful lookup (`null`) from a
+failed lookup (`undefined`). On failure, the profile still renders but omits the
+public status badge and Claim action; an unavailable status never asserts Unclaimed.
+`ArtistProfileContent` passes the approved-claim flag to `ArtistClaimBadge`
+in the hero’s status slot only when the lookup succeeded. `ClaimButton` retains the separate claim/pending flow
 and renders nothing for approved claims. The status interaction never starts a
 claim or login. Owner/admin edit checks, routes, persistence, jobs, external
 services and migrations are unchanged.
