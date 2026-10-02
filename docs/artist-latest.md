@@ -28,11 +28,16 @@ superseded. Keep the original 300px gallery cards, overlay captions, top categor
 release artwork placement. Opening a card is how a visitor sees the complete photo and text;
 portrait or lengthy content must never stretch the gallery.
 
-Expanded Instagram, answer and In Process updates remain one continuous black surface.
-The complete image is contained without a banner crop. Its bottom-edge colors continue into
-an extended fade to black **behind the text**; there is no separate themed text panel or
-horizontal seam. This supersedes the separate image/text popup shown earlier on October 2.
-The original image stays visible above the extension, so bottom details are not covered by copy.
+Expanded Instagram, answer and In Process images fill the card width at their natural
+proportions. Do not limit the image height inside a wider frame: that creates black sidebars
+on portraits. Tall images scroll with the expanded content instead of being squeezed down.
+
+A broad gradient begins over the lower part of the **actual image** and reaches black at its
+bottom. The text overlaps this fading area and continues onto the same black background.
+There is no duplicated/stretched bottom-edge strip, abrupt seam or separate text panel.
+Most of the image stays clear above the lower fade; copy must not obscure its middle.
+This corrects the rejected `6dde789d` implementation from October 2, which still had
+pillarboxing and a visible join despite the earlier verification claim.
 
 Retained thumbnail width/height reserve the initial ratio, including answers linked to the
 same retained post. After loading, the image uses its actual proportions; this avoids a tall
@@ -40,7 +45,8 @@ same retained post. After loading, the image uses its actual proportions; this a
 images, 4:5 remains the placeholder. Fallback images also use their actual loaded proportions.
 Only validated dimensions reach the client, not retention metadata or raw payloads.
 
-The scrollable dialog keeps full text, mentions and source actions reachable. Releases retain
+The image and text scroll inside the dialog while its close control stays visible. Full text,
+mentions and source actions remain reachable. Releases retain
 the compact listening-service picker. The close control has a white icon and dark backing
 in either theme. Gallery actions retain `highlightpink` (`#FF75D8`); expanded source actions
 use the shared `Button variant="pink"` with black labels/icons. Image failures still try the

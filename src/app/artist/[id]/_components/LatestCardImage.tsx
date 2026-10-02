@@ -25,7 +25,7 @@ export default function LatestCardImage({ item, artistImage, artistName, detail 
         {!release && <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/5" />}
     </div>;
     return <div
-        className={`pointer-events-none w-full bg-[#000] ${release ? 'absolute inset-0' : 'relative max-h-[60dvh]'}`}
+        className={`pointer-events-none w-full bg-[#000] ${release ? 'absolute inset-0' : 'relative'}`}
         style={release ? undefined : { aspectRatio }}>
         {src && <Image src={src} alt={alt} fill unoptimized
             sizes="(max-width: 640px) 90vw, 512px" className="object-contain"
@@ -34,16 +34,8 @@ export default function LatestCardImage({ item, artistImage, artistName, detail 
                 if (width > 0 && height > 0) setLoadedSize({ src, width, height });
             }}
             onError={() => setFailed(previous => [...previous, src])} />}
-        {!release && src && <div aria-hidden="true" className="absolute inset-x-0 top-full h-40 overflow-hidden"
-            style={{ maskImage: 'linear-gradient(to bottom, #000, rgba(0,0,0,.35) 40px, rgba(0,0,0,.12) 96px, transparent 160px)' }}>
-            {/* Extend only the bottom pixel's colors. The original image stays intact above the copy. */}
-            <div className="absolute inset-x-0 -top-2 blur-sm">
-                <div className="relative h-px origin-top scale-y-[176] overflow-hidden">
-                    <div className="absolute inset-x-0 bottom-0 max-h-[60dvh] w-full" style={{ aspectRatio }}>
-                        <Image src={src} alt="" fill unoptimized sizes="(max-width: 640px) 90vw, 512px" className="object-contain" />
-                    </div>
-                </div>
-            </div>
-        </div>}
+        {/* Fade the actual artwork into the dialog's black surface, without copying or stretching it. */}
+        {!release && <div aria-hidden="true" className="absolute inset-x-0 -bottom-px h-[clamp(6rem,40%,12rem)] max-h-full"
+            style={{ background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,.2) 20%, rgba(0,0,0,.75) 55%, #000 95%)' }} />}
     </div>;
 }
