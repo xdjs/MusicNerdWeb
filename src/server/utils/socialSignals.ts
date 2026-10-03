@@ -46,6 +46,8 @@ export interface SocialPostRow {
     coauthors: string[];
     musicTitle: string | null;
     musicArtist: string | null;
+    /** Private audio context; never a verified artist statement. */
+    transcript?: string;
 }
 
 export interface Collaborator {
@@ -309,8 +311,8 @@ function deriveStandoutPosts(posts: SocialPostRow[]): StandoutPost[] {
     const own = posts.filter(p => p.isOwnPost);
     const byUrl = new Map<string, StandoutPost>();
 
-    const scan = (metric: StandoutPost["metric"], pick: (p: SocialPostRow) => number | null) => {
-        const withMetric = own
+    const scan = (platformPosts: SocialPostRow[], metric: StandoutPost["metric"], pick: (p: SocialPostRow) => number | null) => {
+        const withMetric = platformPosts
             .map(p => ({ p, value: pick(p) }))
             .filter((x): x is { p: SocialPostRow; value: number } => typeof x.value === "number" && x.value > 0);
         if (withMetric.length < MIN_SAMPLES_FOR_MEDIAN) return;
@@ -326,8 +328,11 @@ function deriveStandoutPosts(posts: SocialPostRow[]): StandoutPost[] {
         }
     };
 
-    scan("likes", p => p.likeCount);
-    scan("plays", p => p.playCount);
+    for (const platform of new Set(own.map(p => p.platform))) {
+        const samePlatform = own.filter(p => p.platform === platform);
+        scan(samePlatform, "likes", p => p.likeCount);
+        scan(samePlatform, "plays", p => p.playCount);
+    }
 
     return Array.from(byUrl.values()).sort((a, b) => b.multiple - a.multiple);
 }
