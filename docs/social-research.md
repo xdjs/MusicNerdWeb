@@ -16,3 +16,5 @@ Question keys and resumed citations retain the original source URL. TikTok/X key
 The question cache includes a stored-research revision, so new posts, extracted credits and newly attached reel audio invalidate stale drafts even when collection finished in the separate API process. New audio on an old post counts as newly learned historical material for a returning interview. Saved offers and answers retain their existing sitting and offer timestamps.
 
 This adds research context, not TikTok/X Latest cards or controls. No scrape or model generation is introduced by reading an artist page.
+
+Interview drafting uses a 1,024-token thinking budget on the same model, keeping the existing 30-second deadline and premise verifier. An exact-preview check found unbounded default thinking timing out even on one audio signal; verification must still observe a useful audio question before treating this as a proven latency fix.

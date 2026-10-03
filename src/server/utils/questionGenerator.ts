@@ -1202,6 +1202,7 @@ export async function generateGroundedQuestions(
                 // Pete: "that's so low and uncreative... we can't kill
                 // creativity."
                 temperature: 0.8,
+                thinkingBudget: 1024,
                 element: z.object({ signalId: z.string().optional(), question: z.string().optional(), rationale: z.string().optional() }),
             }),
         );

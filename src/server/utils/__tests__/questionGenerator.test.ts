@@ -41,6 +41,7 @@ describe('generateGroundedQuestions', () => {
         expect(question).toMatchObject({kind:'audio',key:'social_audio_AUDIO1',sourceUrls:[posts[0].url]});
         const request=generateContent.mock.calls.find(c=>!String(c[0].instructions).startsWith('You are fact-checking'))[0];
         expect(request.prompt).toContain('speaker is unverified');
+        expect(request.thinkingBudget).toBe(1024);
         expect((await sourceUrlsForQuestionKeys('a1',[question.key])).get(question.key)).toBe(posts[0].url);
     });
     it('regenerates cached drafts when the API attaches new research context', async () => {
