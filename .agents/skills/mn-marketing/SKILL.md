@@ -9,15 +9,16 @@ description: 'Make short videos that get artists to claim their Music Nerd profi
 
 > **An artist watches, then claims their Music Nerd profile, and we can tell which post did it.**
 
-Every video ends on one action: **claim your profile at musicnerd.xyz**. Views are a leading indicator; claims
+Every video ends on one action: **claim your profile at musicnerd.net**. Views are a leading indicator; claims
 are the result. If a run cannot measure claims, say so in writing.
 
 ## Step 0: prerequisites, accounts and workspace
 
 **Requires the `recoup-internal-marketing` skill** for the shared video mechanics
 (`npx skills add recoupable/skills`). **Presenter:** Sarah, a dedicated Music Nerd character (owner ruling
-2026-09-28), built with that skill's `references/character-sheet.md`; never Recoup's Jenny. **Reference
-project:** see *Product demo scenes* below.
+2026-09-28), built with that skill's `references/character-sheet.md`; never Recoup's Jenny. A text-led piece
+(see *Text-led UI motion graphic* below) needs no presenter. **Reference projects:** see *Product demo scenes*
+and *Text-led UI motion graphic* below.
 
 
 Videos post from the account owner's personal socials (approved by Pete and CY). Account ids, the post log and
@@ -52,6 +53,12 @@ Gates before building:
 
 - **Live, not merged.** Announce a feature only after its merge SHA is in production (the
   `production-release` run for that SHA succeeded; `docs/releases.md`). A merge is not a release.
+- **Every claim checked against what is live, line by line.** Read the live product (for the docs, `/llms.txt`
+  and the page itself), not the plan or the issue. 2026-10-05: "AI reads your profile" was cut because the read
+  endpoints were still an open PR; the line became "apps and agents can run the research", which was live.
+- **A developer-facing feature still needs an artist-side why.** An artist does not claim because the docs look
+  better. Find the control only a claimed artist has and make it the turn of the script (2026-10-05: Look again
+  is "Claimant or admin.", so "only you can tell it to look again." → "claim your profile.").
 - **Consent for a highlight.** The artist has said yes to being featured, and is invited to co-post
   (collaborators widen reach). No consent, no highlight; use the how-to-claim kind instead.
 - **Real numbers only**, from the artist's page or our own data, never estimated for effect.
@@ -62,9 +69,17 @@ Gates before building:
 Same order as `recoup-internal-marketing` Step 4; every stage is a file the owner opens before the next.
 
 1. **Ideas table** for the slate: kind, the proof, the source, consent status. Owner approves rows.
+1b. **Style reference, approved before any build.** Browse the gallery at
+   **https://skillry.dev/ai-videos/opus-5-5** (each page has the video and its prompt; the MP4 is at
+   `https://media.skillry.dev/opus-5-5/<slug>/original.mp4`). Pull frame sheets of two or three candidates, pick
+   one, and send the owner **its link** with why it fits; build only after the owner approves that reference.
+   Approved so far: wustep's Notion "Column permissions" trailer
+   (https://skillry.dev/ai-videos/opus-5-5/wustep-884086) for the text-led UI format.
 2. **Script**, ~70 words for ~30s, in Music Nerd's voice (lowercase, friendly, speaks to the artist as
-   "you"). Hook in 3s. End on the CTA line.
-3. **Voice** per the recurring presenter's canon in the account workspace (`cast/`).
+   "you"). Hook in 3s. End on the CTA line. The owner approves the on-screen text, and any spoken-only line
+   (an end card read aloud), before anything renders.
+3. **Voice.** A presenter piece uses the presenter's canon in the account workspace (`cast/`). When the owner
+   narrates, follow *Owner voiceover* below.
 4. **$0 draft**: still presenter, VO, **the real UI** (claim button, research view, found-profile cards,
    the artist's live page), captions in the 4:5 safe zone. Owner reviews.
 5. **Generated video after approval only**: presenter clips, one live-action B-roll plate.
@@ -72,7 +87,7 @@ Same order as `recoup-internal-marketing` Step 4; every stage is a file the owne
 
 **Look:** dark charcoal glass on `#1a1a1a`; headlines in the homepage manifesto style (grey, key words in
 `#ff75d8`); the CTA pill in the action pink `#ef95ff` with black text; cyan and mint as small accents; the
-spectacles logo; round shapes; calm motion. End card: logo, "claim your profile", `musicnerd.xyz`.
+spectacles logo; round shapes; calm motion. End card: logo, "claim your profile", `musicnerd.net`.
 
 ## Product demo scenes (owner, 2026-09-28: "static web page images put me to sleep")
 
@@ -102,15 +117,46 @@ input above it. The reference project's generator frames every capture this way;
 
 **Captures:** iPhone 16 Pro in the browser (3× density), **signed out** so no admin controls show, and never press
 Submit Claim (it files a real claim). **Type:** the renderer cannot load the system font the site uses, so video type
-is Inter. **Captions:** merge spoken URLs and handles back to `musicnerd.xyz` and `@musicnerdxyz`.
+is Inter. **Captions:** merge spoken URLs and handles back to `musicnerd.net` and `@musicnerdxyz`.
 
 **Reference project:** the first how-to-claim short, in the owner's account workspace
 (`content/mn-claim-howto/`: the themed engine, the 3D phone generator, the captures). Clone it.
 
+## Text-led UI motion graphic (approved 2026-10-05)
+
+For a web feature (the docs, a desktop page) the 3D phone is the wrong frame. This format has no presenter: the
+real UI rebuilt in HTML from the approved design boards, a camera that pushes into one element per beat, and a
+bold few-word headline per beat (key word in pink). Reference video: the wustep Notion trailer above. Reference
+project: the docs launch short in the owner's account workspace (`content/mn-docs-design-launch/`: `SCRIPT.md`,
+`VO-GUIDE.md`, `video/index.html`, `video/gen_bed.py`, `video/gen_vo.py`, `video/mix.sh`). Clone it.
+
+- **Build the page once, film it with a camera.** Lay the page out at its native width with every element at
+  the board's coordinates; a `cam(px, py, scale)` helper centers any page point in frame. Assemble it piece by
+  piece, then push to the element the headline names.
+- **Colors as CSS variables** so the page's own theme toggle can flip light to dark as a beat; end on the
+  charcoal end card (logo, "claim your profile", the pink `musicnerd.net` pill).
+- **Real UI and real responses only**: response bodies from the docs' own examples, tokens masked.
+- **Music bed** synthesized for $0 (`gen_bed.py`: pad, arpeggio, kick from the reveal, whooshes on cuts, clicks
+  on taps); VO ducks it.
+- **Snapshot QC** adds two checks: no headline leaves one word on its own line, and a zoomed page never shows a
+  hard stage edge (the stage is full frame; a gradient backs the headline).
+
+## Owner voiceover (2026-10-05, about $0.06 a video)
+
+1. **Reference read**: ElevenLabs **eleven_v4**, any voice, one call per line (`gen_vo.py`), placed on each
+   beat's mark. Write `VO-GUIDE.md`: each line, its start time, the reference length and the latest it may end.
+2. **The owner records one take on a phone**, all lines in order.
+3. **Cut it by word timestamps** from ElevenLabs Scribe (never Whisper), padded 0.1s before and 0.3s after.
+4. **Enhance**: ElevenLabs Voice Isolator on the whole take (rain and construction gone: noise floor -44 → -76 dB),
+   then cut, high-pass at 80 Hz, and gain each line to **-20 LUFS** (a quick phone take drifts ~8 dB with distance).
+5. **Mix**: `mix.sh <out.mp4> <line dir>` lays the lines on their marks, ducks the bed, and normalizes to -14 LUFS.
+   Transcribe the final file once to confirm each line lands inside its beat.
+
 ## Step 5: publish and measure
 
 - Publish through Opus per `recoup-internal-marketing` → `references/opus.md`, after the owner's go-ahead.
-- Link `https://www.musicnerd.xyz` (the bare domain does not resolve) with
+- Link `https://musicnerd.net` (the primary domain since 2026-10-05; `docs.musicnerd.xyz` redirects to the app, so
+  link the docs at `musicnerd-docs.vercel.app` until they have a domain) with
   `?utm_source=<yt|tt|ig|x|li>&utm_medium=social&utm_campaign=mn-<slate>-<item>`.
 - Log each post in the account workspace's `posts-log.md` with its kind, the artist (if any) and the why.
 - **~48h re-pull:** views, tagged visits and claims since the post. A written zero is a finding.
