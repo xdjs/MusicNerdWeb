@@ -1,3 +1,4 @@
+import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { parseMusicDestination } from '../parseMusicDestination';
 
 describe('parseMusicDestination', () => {
@@ -66,6 +67,15 @@ describe('parseMusicDestination', () => {
     'https://artist.bandcamp.com.evil.test/album/release',
     'https://www.discogs.com/release/123-some-record',
     'https://subvert.fm/discover', 'https://subvert.fm/blog/artist-story',
+    'https://subvert.fm/changelog/', 'https://subvert.fm/terms-of-use/',
+    'https://subvert.fm/privacy-policy/', 'https://subvert.fm/ai-policy/',
+    'https://subvert.fm/author/subvert/',
+    'https://soundcloud.com/terms-of-use', 'https://soundcloud.com/terms-of-use-purchases',
+    'https://soundcloud.com/privacy-policy', 'https://soundcloud.com/cookies-policy',
+    'https://audius.co/documents/TermsOfUse.pdf', 'https://audius.co/legal/privacy-policy',
+    'https://mixcloud.com/premium/', 'https://mixcloud.com/pro/',
+    'https://mixcloud.com/plans/', 'https://mixcloud.com/developers/',
+    'https://mixcloud.com/select-terms/',
     'https://subvert.fm/@collector', 'https://subvert.fm/@collector/collection',
     'https://subvert.fm/pages/privacy-policy', 'https://subvert.fm/artist/settings',
     'https://subvert.fm/artist/tracks',
@@ -84,6 +94,12 @@ describe('parseMusicDestination', () => {
   });
 });
 
+it('does not apply a service route exclusion to an artist release slug', () => {
+  expect(parseMusicDestination('https://subvert.fm/pete-rango/changelog')).toMatchObject({
+    platform: 'subvert', kind: 'release', id: 'pete-rango/changelog',
+  });
+});
+
 
 it.each(['artist', 'album', 'track'])('rejects malformed Spotify %s IDs', kind => {
   for (const id of ['abc', 'a'.repeat(21), 'a'.repeat(23), 'a'.repeat(21) + '_']) {
@@ -93,4 +109,12 @@ it.each(['artist', 'album', 'track'])('rejects malformed Spotify %s IDs', kind =
 it('preserves a valid case-sensitive Spotify ID through a localized URL', () => {
   expect(parseMusicDestination('https://open.spotify.com/intl-de/track/3DmaZbBPnKSGnxYRpHobss?si=tracking'))
     .toMatchObject({platform: 'spotify', kind: 'release', id: '3DmaZbBPnKSGnxYRpHobss'});
+});
+
+
+it.each(providerInformationUrls)('excludes the audited provider navigation/information URL %s', url => {
+  expect(parseMusicDestination(url)).toBeNull();
+});
+it('keeps Audius own account distinct from its application routes', () => {
+  expect(parseMusicDestination('https://audius.co/audius')).toMatchObject({platform:'audius',kind:'artist',id:'audius'});
 });

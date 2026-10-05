@@ -17,6 +17,9 @@ editorial pages, malformed URLs and lookalike hosts are not artist catalog desti
 Spotify artist/album/track IDs require 22 base62 characters and retain their original case.
 Subvert accepts artist roots, `/{artist}/{release}`, `/{artist}/tracks/{track}` and
 `/{artist}/releases/{release}`; bare collection tabs are not release destinations.
+Provider information, policy and account routes are reserved, including Subvert's
+changelog, terms, privacy, AI policy and author archive. The URL parser and handle
+adoption share these route exclusions instead of maintaining independent lists.
 
 Only approved records render publicly. Recognized music URLs appear in Links even if
 historically typed as Article/Profile; the read does not rewrite records or approve them.
@@ -50,11 +53,15 @@ artist. An unreadable or unconfirmed homepage cannot supply source text or outbo
 links. This does not add another model request. Discogs release/master pages are not typed as artist Profile.
 Known artist profiles do not suppress new release URLs on the same account. Artist-scoped
 release URLs can still corroborate the account handle present in their path or host; opaque
-album/track IDs never become artist IDs. Catalog fetches and identity checks recheck the
+album/track IDs never become artist IDs. That corroboration requires an already-known canonical
+account: a release's uploader or label/store cannot establish a new artist account. Catalog fetches and identity checks recheck the
 run deadline before subsequent source or account writes.
-Each MusicBrainz catalog relation must independently match the artist's page title and
+Each MusicBrainz catalog relation must independently match the full artist name in its page title and
 clear name ambiguity, even when another relation matched a trusted identifier. Duplicate
 and saved destinations cannot consume the nine-fetch cap before a new destination is tried.
+Source rows are reviewable evidence, not cross-artist identity reservations. Research
+checks current canonical owners before saving; a later canonical change is enforced again
+by the public Links/Listen read. Pending evidence on another artist does not claim ownership.
 
 Research still has bounded fetch/judge/write phases and uses existing jobs. Artist page
 reads introduce no research, model calls or writes. No new paid scrape is required.
@@ -101,7 +108,28 @@ API #21 only after Web presentation. Merge and production approval remain separa
   [release](https://release.supercollector.xyz/yin-yang-joey-collins).
 - [Audius artist](https://audius.co/Dutchyyy),
   [track](https://audius.co/Dutchyyy/trend-to-zero).
+- Excluded information routes: [Subvert changelog](https://subvert.fm/changelog/),
+  [AI policy](https://subvert.fm/ai-policy/), [SoundCloud terms](https://soundcloud.com/terms-of-use),
+  [Audius legal documents](https://audius.co/documents/TermsOfUse.pdf),
+  [Mixcloud plans](https://www.mixcloud.com/plans/).
 
 Subvert collection/user (`/@…`) pages and discovery/docs/blog pages are not music artist
 profiles. Provider roots, category pages and playlists do not become artist IDs; SoundCloud
 sets can remain specific listening destinations, never artist-level Listen targets.
+
+### Provider route inventory (2026-10-05)
+
+The checked URL fixture is `src/lib/musicLinks/__tests__/fixtures/providerInformationUrls.json`.
+It exercises both parsing and public source placement; these URLs cannot become Links,
+Support or artist-level Listen destinations. The inventory covers known routes, not a guarantee
+about future provider routes. Root namespaces apply only on the relevant service; an artist's
+release slug such as `/pete-rango/changelog` remains a release.
+
+| Service | Primary evidence used for reserved routes |
+|---|---|
+| SoundCloud | [Company/footer navigation](https://soundcloud.com/company/newsroom), [imprint](https://soundcloud.com/imprint), [legal links](https://soundcloud.com/terms-of-use), [upload/navigation shell](https://soundcloud.com/n/upload): company, product, policy, discovery and account namespaces |
+| Mixcloud | [Jobs page navigation/footer](https://www.mixcloud.com/jobs/): blog, community, genres, live, subscription plans, legal/account and developer routes |
+| Audius | [Official route table](https://github.com/AudiusProject/audius-protocol/blob/2633593d2ff1d6e627ec139304bf835a4e916dbe/packages/common/src/utils/route.ts): all static/auth/legal/navigation roots; `/:handle` routes remain supported, including the real `/audius` account |
+| Supercollector | [Release site navigation](https://release.supercollector.xyz/): `/artists` directory and `/create` workflow, alongside existing info/account exclusions |
+| Bandcamp | [Homepage/footer](https://bandcamp.com/) and existing research reserved-subdomain rule: official `store`/`support` and editorial/help hosts; root `bandcamp.com` never represents an artist |
+| Subvert | [Changelog and policy links](https://subvert.fm/changelog/), [documentation](https://subvert.fm/docs/), [author archive](https://subvert.fm/author/subvert/), plus existing discovery/account routes. Direct retrieval was blocked; this part used indexed official pages. |
