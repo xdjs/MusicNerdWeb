@@ -1,7 +1,7 @@
 import {eq} from 'drizzle-orm';
 import {db} from '@/server/db/drizzle';
 import {artists} from '@/server/db/schema';
-import {customImageUrl} from '@/lib/artist/artistImage';
+import {customImageUrl} from '@/lib/artist/customImageUrl';
 import {musicPlatformData} from '@/server/utils/musicPlatform';
 
 export const dynamic = 'force-dynamic';

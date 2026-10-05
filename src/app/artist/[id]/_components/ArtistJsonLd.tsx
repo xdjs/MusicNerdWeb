@@ -1,5 +1,5 @@
 import { Artist } from "@/server/db/DbTypes";
-import { absoluteImageUrl } from "@/lib/artist/artistImage";
+import { absoluteImageUrl } from "@/lib/artist/absoluteImageUrl";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { isRealBio } from "@/lib/bio/bioConstants";
 

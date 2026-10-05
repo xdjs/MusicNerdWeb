@@ -1,4 +1,5 @@
-import { absoluteImageUrl, customImageUrl } from '@/lib/artist/artistImage';
+import { absoluteImageUrl } from '@/lib/artist/absoluteImageUrl';
+import { customImageUrl } from '@/lib/artist/customImageUrl';
 
 describe('customImageUrl', () => {
     it('returns null when the artist has not set one', () => {
@@ -21,7 +22,7 @@ describe('customImageUrl', () => {
 describe('absoluteImageUrl', () => {
     it('leaves an already-absolute storage URL alone', () => {
         // The bug this guards: prefixing the site origin onto a Supabase Storage
-        // URL produced https://www.musicnerd.xyzhttps://xyz.supabase.co/...
+        // URL produced https://musicnerd.nethttps://xyz.supabase.co/...
         const stored = 'https://kyhlkqriyvevjqtufidu.supabase.co/storage/v1/object/public/vault/profile-images/a_1.png';
         expect(absoluteImageUrl(stored)).toBe(stored);
     });
@@ -31,11 +32,11 @@ describe('absoluteImageUrl', () => {
     });
 
     it('prefixes the site origin onto a site-relative path', () => {
-        expect(absoluteImageUrl('/uploads/a.png')).toBe('https://www.musicnerd.xyz/uploads/a.png');
+        expect(absoluteImageUrl('/uploads/a.png')).toBe('https://musicnerd.net/uploads/a.png');
     });
 
     it('adds the missing slash on a bare relative path', () => {
-        expect(absoluteImageUrl('uploads/a.png')).toBe('https://www.musicnerd.xyz/uploads/a.png');
+        expect(absoluteImageUrl('uploads/a.png')).toBe('https://musicnerd.net/uploads/a.png');
     });
 
     it('accepts a different origin', () => {

@@ -22,7 +22,7 @@ import { generateSitemaps } from "../sitemap";
 // chunk list is correct; a database round trip per crawler hit is not.
 export const revalidate = 86_400;
 
-const BASE = "https://www.musicnerd.xyz";
+const BASE = "https://musicnerd.net";
 
 export async function GET(): Promise<Response> {
     // COMPUTED, NOT LISTED. sitemap.ts chunks artists 20,000 at a time and
