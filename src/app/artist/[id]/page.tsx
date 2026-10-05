@@ -26,10 +26,13 @@ import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
 import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
+import { getProfileLinks } from "@/lib/artist/artistProfileLinks";
+import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
+import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -118,6 +121,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
+    const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
+        && resolvedSearchParams?.tourPreview === "1";
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
     const session = await getServerAuthSession() ?? await getDevSession();
     const dbUser = session ? await getUserById(session.user.id) : null;
@@ -139,6 +144,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     ]);
 
     const blockedMusicSourceIds = await getConflictingMusicSourceIds(id, approvedSources);
+    const hasSupportLinks = getProfileLinks(artist, artistLinks, 'support').length > 0
+        || getSourceLinks(
+            approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id)),
+            [],
+            'support',
+        ).length > 0;
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";
@@ -163,7 +174,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     // The research view's "your latest releases" covers: the Latest section's own
     // cached call, started only when the claimant's onboarding view will render,
     // and passed down unawaited so it never holds up the page (docs/research-view.md).
-    const onboardingReleases = !interviewPreview && onboardingState && !onboardingState.complete
+    const onboardingReleases = !interviewPreview && !tourPreview && onboardingState && !onboardingState.complete
         ? getLatestArtistReleases(artist).catch(() => [])
         : undefined;
 
@@ -204,14 +215,18 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     Note this is the INVERSE of the gate on OnboardingGate below:
                     once complete it stays complete, so unlike that one this
                     cannot be unmounted out from under the tour. */}
-                {!interviewPreview && isClaimedByUser && onboardingState?.complete && <ProfileTour artistId={artist.id} />}
+                {tourPreview ? (
+                    <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
+                ) : !interviewPreview && isClaimedByUser && onboardingState?.complete && (
+                    <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
+                )}
 
                 {/* The only part of onboarding where what lands on the page
                     comes from the artist rather than from research. Gated the
                     same way the tour is — onboarding finished, and their own
                     page — and it decides for itself whether there is anything
                     worth asking about. */}
-                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : isClaimedByUser && onboardingState?.complete && (
+                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && (
                     <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
