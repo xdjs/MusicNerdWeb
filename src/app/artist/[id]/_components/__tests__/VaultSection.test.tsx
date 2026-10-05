@@ -6,9 +6,17 @@ import VaultSection from "../VaultSection";
 jest.mock("../PressAndFeatures", () => function MockPressAndFeatures() { return <div>Public Lore</div>; });
 jest.mock("../VaultManager", () => function MockVaultManager() { return <div>Editor Lore controls</div>; });
 jest.mock("../BioVersionHistory", () => function MockBioVersionHistory() { return <div>Saved bios</div>; });
-jest.mock("../SuggestLoreSource", () => function MockSuggestLoreSource() { return <div>Visitor suggestion form</div>; });
+jest.mock("../SuggestLoreSource", () => function MockSuggestLoreSource({ autoApprove }: { autoApprove: boolean }) { return <div data-testid="suggestion" data-auto={String(autoApprove)}>Visitor suggestion form</div>; });
 
 const props = { artistId: "artist-1", isClaimed: true, approvedSources: [], pendingSources: [] };
+
+it('passes trusted submission access without granting editor controls', () => {
+  render(<EditModeContext.Provider value={{ isEditing: false, canEdit: false, toggle: jest.fn() }}>
+    <VaultSection {...props} autoApprove />
+  </EditModeContext.Provider>);
+  expect(screen.getByTestId('suggestion')).toHaveAttribute('data-auto', 'true');
+  expect(screen.queryByText('Editor Lore controls')).not.toBeInTheDocument();
+});
 
 it("gives admins and artist owners an obvious route into Lore editing", () => {
   const toggle = jest.fn();

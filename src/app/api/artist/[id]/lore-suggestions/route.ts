@@ -5,10 +5,12 @@ import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
 import { isUnsafeUrl } from '@/server/utils/fetchPageContent';
 import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
 import { getVaultSourceUrlsByArtistId } from '@/server/utils/queries/getVaultSourceUrlsByArtistId';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
+import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 
 export const dynamic = 'force-dynamic';
 
-/** Save a visitor's URL for the claimed artist (or an admin) to review. */
+/** Trusted contributors publish immediately; other visitors submit for review. */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const auth = await requireAuth();
     if (!auth.authenticated) return auth.response;
@@ -31,14 +33,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }
+        const claimId = await getLoreClaimGeneration(artistId);
         const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;
         const source = await insertVaultSource({
             artistId, url, title, type: inferTypeFromUrl(url), status: 'pending',
-        }, undefined, { userId: auth.userId, trigger: 'visitor_suggestion' });
+        }, undefined, { userId: auth.userId, trigger: 'visitor_suggestion', approveIfTrusted: true });
         if (!source) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }
-        return Response.json({ success: true, message: 'Submitted for artist review.' }, { status: 201 });
+        let warning: string | undefined;
+        if (source.status === 'approved') {
+            try { await queueLoreRefresh(artistId, claimId, { userId: auth.userId, trigger: 'source_submission' }); }
+            catch (error) {
+                console.error('[lore-suggestions] Source saved; Lore enqueue failed', error);
+                warning = 'Source saved and approved, but the Lore refresh could not start. An artist or admin can retry it. You do not need to submit again.';
+            }
+        }
+        return Response.json({ success: true, status: source.status, warning }, { status: 201 });
     } catch (error) {
         console.error('[lore-suggestions] Could not save source', error);
         return Response.json({ error: 'Could not submit the source. Please try again.' }, { status: 500 });

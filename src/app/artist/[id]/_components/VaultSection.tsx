@@ -14,11 +14,12 @@ interface VaultSectionProps {
   children?: ReactNode;
   artistId: string;
   isClaimed: boolean;
+  autoApprove?: boolean;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
 }
 
-export default function VaultSection({ artistId, isClaimed, pendingSources, approvedSources, children }: VaultSectionProps) {
+export default function VaultSection({ artistId, isClaimed, autoApprove = false, pendingSources, approvedSources, children }: VaultSectionProps) {
   const { isEditing, canEdit, toggle } = useContext(EditModeContext);
 
   return (
@@ -38,7 +39,7 @@ export default function VaultSection({ artistId, isClaimed, pendingSources, appr
         <><VaultManager artistId={artistId} pendingSources={pendingSources} approvedSources={approvedSources} />
         <div className="border-t border-black/10 pt-4 dark:border-white/10"><h3 className="mb-2 text-sm font-medium text-black dark:text-white">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></div></>
       )}
-      {!canEdit && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} />}
+      {!canEdit && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove={autoApprove} />}
       </div>
       {children}
     </RevealSection>

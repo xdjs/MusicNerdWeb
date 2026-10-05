@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import VaultManager from '@/app/artist/[id]/_components/VaultManager';
 import { EditModeContext } from '@/app/_components/EditModeContext';
+const mockToast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }));
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: jest.fn() }),
@@ -15,9 +17,12 @@ jest.mock('@/app/actions/dashboardActions', () => ({
   searchWebForSources: jest.fn().mockResolvedValue({ success: true, count: 2 }),
   removeVaultSource: jest.fn().mockResolvedValue({ success: true }),
   removeVaultSources: jest.fn().mockResolvedValue({ success: true, count: 1 }),
+}));
+jest.mock('@/app/actions/addVaultSource', () => ({
   addVaultSource: jest.fn().mockResolvedValue({ success: true }),
 }));
-import { updateSourceStatus, removeVaultSource, removeVaultSources, addVaultSource, searchWebForSources } from '@/app/actions/dashboardActions';
+import { addVaultSource } from '@/app/actions/addVaultSource';
+import { updateSourceStatus, removeVaultSource, removeVaultSources, searchWebForSources } from '@/app/actions/dashboardActions';
 
 const pending = [{ id: 'p1', artistId: 'a1', url: 'http://e/1', title: 'Pending One', status: 'pending' }];
 const approved = [{ id: 'ap1', artistId: 'a1', url: 'http://e/2', title: 'Approved One', status: 'approved' }];
@@ -141,6 +146,20 @@ describe('VaultManager', () => {
     fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
 
     await waitFor(() => expect(addVaultSource).toHaveBeenCalledWith('a1', 'https://pitchfork.com/x'));
+  });
+
+  it.each(['approved', 'pending'])('places a new URL in the returned %s list immediately', async status => {
+    addVaultSource.mockResolvedValueOnce({ success: true, source: {
+      id: 'new-source', artistId: 'a1', url: 'https://example.com/interview', title: 'New Interview', status,
+    } });
+    renderEditing(true);
+    fireEvent.change(screen.getByPlaceholderText(/add a source by url/i), { target: { value: 'https://example.com/interview' } });
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    await screen.findByText('New Interview');
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      description: status === 'approved' ? 'Added to Lore.' : 'Added to pending review.',
+    }));
+    expect(screen.getByText(status === 'approved' ? 'Approved (2)' : 'Pending review (2)')).toBeInTheDocument();
   });
 
   it('bulk delete: selecting an approved source and deleting calls removeVaultSources', async () => {
