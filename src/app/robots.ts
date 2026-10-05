@@ -17,7 +17,7 @@ import { generateSitemaps } from "./sitemap";
  */
 export const revalidate = 86_400;
 
-const BASE = "https://www.musicnerd.xyz";
+const BASE = "https://musicnerd.net";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
     let chunks: { id: number }[] = [{ id: 0 }];

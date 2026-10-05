@@ -31,7 +31,7 @@ import { sql } from "drizzle-orm";
  */
 export const revalidate = 86_400;   // a day; artist pages do not change hourly
 
-const BASE = "https://www.musicnerd.xyz";
+const BASE = "https://musicnerd.net";
 
 /** Comfortably inside the 50,000 limit, so a burst of new artists between
  *  revalidations cannot push a chunk over it. */

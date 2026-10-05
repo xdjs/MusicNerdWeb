@@ -1,3 +1,15 @@
+## Primary domain migration — October 5
+
+[#1427](https://github.com/xdjs/MusicNerdWeb/issues/1427) tracks Carl’s move to
+`https://musicnerd.net`. The new apex now serves the existing production deployment;
+www redirects with HTTPS, path and query preserved. Squarespace stays authoritative;
+its old `.net` → `.xyz` forwarding rule was removed and the website A/CNAME records
+now point to Vercel. Existing `.xyz` traffic and email DNS remain unchanged.
+Carl confirmed matching `.net` service hostnames and retirement of `wb0`. The application still
+has the old production authentication origin until a reviewed release. Canonical
+URL and production release-check updates are local on `codex/musicnerd-net-domain`,
+not merged or shipped. See [the cutover contract](docs/domain-migration.md).
+
 ## Trusted Lore and contributor bulk approval — October 5
 
 [#1423](https://github.com/xdjs/MusicNerdWeb/issues/1423) implements Pete's request

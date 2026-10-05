@@ -65,7 +65,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
       throw new Error('Staging must have only its staging domain and no branch tracking');
     const domains = await vercel(`/v9/projects/${encodeURIComponent(projectId)}/domains?customEnvironmentId=${encodeURIComponent(custom.id)}`);
     if (domains.pagination?.next != null || domains.domains?.length !== 1 ||
-        domains.domains[0].name !== 'staging.musicnerd.xyz' || domains.domains[0].customEnvironmentId !== custom.id)
+        domains.domains[0].name !== 'staging.musicnerd.net' || domains.domains[0].customEnvironmentId !== custom.id)
       throw new Error('Staging must have only its staging domain and no branch tracking');
     return { project, custom };
   };
@@ -146,7 +146,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
       // The production target can change before the public domain finishes assigning.
       const deploymentStatus = await vercel(`/v13/deployments/${ready.id}`);
       if (deploymentStatus.aliasError) throw new Error('Production alias assignment failed');
-      const alias = await vercel('/v4/aliases/www.musicnerd.xyz');
+      const alias = await vercel('/v4/aliases/musicnerd.net');
       if (status.targets?.production?.id === ready.id && alias.deploymentId === ready.id) {
         promoted = true;
         break;
@@ -161,7 +161,7 @@ export async function runRelease({ env = process.env, fetchFn = fetch,
     for (let attempt = 0; attempt < 30; attempt++) {
       const status = await vercel(`/v13/deployments/${ready.id}`);
       if (status.aliasError) throw new Error('Staging alias assignment failed');
-      const alias = await vercel('/v4/aliases/staging.musicnerd.xyz');
+      const alias = await vercel('/v4/aliases/staging.musicnerd.net');
       if (alias.deploymentId === ready.id) { assigned = true; break; }
       await sleep(2_000);
     }
