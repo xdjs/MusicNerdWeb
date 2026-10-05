@@ -21,8 +21,7 @@ import ProfileTour from "./_components/onboarding/ProfileTour";
 import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
 import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
-import { getOnboardingState } from "@/server/utils/queries/onboardingQueries";
-import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
+import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 
@@ -150,19 +149,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const editorApproved = editorSources.slice(0, approvedSources.length);
     const editorPending = editorSources.slice(approvedSources.length);
 
-    // Onboarding state costs a query — computed ONLY for the approved claimant.
-    // getOnboardingState returns null when the confirmed-steps read FAILED (fail
-    // CLOSED — spec C1), not just when there's nothing to show. The `onboardingState
-    // && ...` gate below already renders neither the takeover nor the banner in
-    // that case — never fall back to a default/guessed state here.
-    const onboardingState = isClaimedByUser ? await getOnboardingState(id) : null;
-
-    // The research view's "your latest releases" covers: the Latest section's own
-    // cached call, started only when the claimant's onboarding view will render,
-    // and passed down unawaited so it never holds up the page (docs/research-view.md).
-    const onboardingReleases = !interviewPreview && onboardingState && !onboardingState.complete
-        ? getLatestArtistReleases(artist).catch(() => [])
-        : undefined;
+    // Onboarding state costs a request to MusicNerdAPI — made ONLY for the
+    // approved claimant (docs/research-view.md). fetchOnboardingState returns null
+    // when the state can't be read (fail CLOSED — spec C1), not just when there's
+    // nothing to show. The gate below renders neither the takeover nor the banner
+    // in that case — never fall back to a default/guessed state here.
+    const onboardingState = isClaimedByUser ? await fetchOnboardingState(id) : null;
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
 
@@ -211,16 +203,13 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
-                {/* The artist page. While a fresh claim's onboarding runs, the research
-                    view takes its place under the app's nav (docs/research-view.md);
-                    the gate hands it back when the build finishes or is skipped. */}
-                {onboardingReleases && onboardingState ? (
+                {/* The artist page. While a fresh claim's onboarding runs, research
+                    paints it in place, section by section (docs/research-view.md). */}
+                {!interviewPreview && onboardingState && !onboardingState.complete ? (
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
-                        currentStep={onboardingState.currentStep}
-                        imageUrl={imageUrl}
-                        releases={onboardingReleases}
+                        state={onboardingState}
                     >
                         {profile}
                     </OnboardingGate>

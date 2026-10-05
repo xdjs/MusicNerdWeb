@@ -78,7 +78,11 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
-jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null), getOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/onboarding/fetchOnboardingState', () => ({ fetchOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/app/artist/[id]/_components/onboarding/OnboardingGate', () => function OnboardingGate({ state, children }) {
+    return <div data-testid="onboarding-gate" data-step={state.currentStep}>{children}</div>;
+});
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
 }));
@@ -301,6 +305,40 @@ describe('ArtistProfile page', () => {
                 expect(component).toHaveAttribute('data-direct-edit', 'false');
                 expect(component).toHaveAttribute('data-auto-approve', 'true');
             });
+        });
+
+        it('reads onboarding state from MusicNerdAPI for the approved claimant and paints the build in place', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue({ complete: false, currentStep: 'vault', steps: { profiles: 't1', vault: null, interview: null, publish: null } });
+
+            await renderArtistPage();
+
+            expect(fetchOnboardingState).toHaveBeenCalledWith('artist-uuid');
+            const gate = screen.getByTestId('onboarding-gate');
+            expect(gate).toHaveAttribute('data-step', 'vault');
+            expect(gate).toHaveTextContent('Test Artist');
+        });
+
+        it('renders no takeover when the onboarding state is unreadable (fail closed)', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(null);
+
+            await renderArtistPage();
+
+            expect(screen.queryByTestId('onboarding-gate')).not.toBeInTheDocument();
+        });
+
+        it('does not read onboarding state for anyone but the approved claimant', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'someone-else', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockClear();
+            await renderArtistPage();
+            expect(fetchOnboardingState).not.toHaveBeenCalled();
         });
 
         it('preserves direct link editing for an approved claimed artist', async () => {

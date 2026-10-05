@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import ResearchView from "./ResearchView";
-import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
+import ResearchInPlace from "./ResearchInPlace";
+import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
 import { useOnboardingChat, type ChatItem } from "./useOnboardingChat";
 import { useResearchPump } from "./useResearchPump";
 import { ProfilesCard, VaultCard, InterviewInput, AboutDraftCard, DocReviewCard, LiveDiscoveryFeed, type InterviewPayload } from "./StepCards";
@@ -15,11 +15,10 @@ type Props = {
     artistName: string;
     onSkip: () => void;
     onFinish: () => void;
-    /** The artist's image and latest releases for the research view's hero (docs/research-view.md). */
-    imageUrl?: string;
-    releases?: Promise<LatestRelease[]>;
-    /** The artist page. The research view takes its place while the build runs;
-     *  the resume path's step cards sit over it. */
+    /** The state the page rendered with, from MusicNerdAPI (docs/research-view.md). */
+    initialState: OnboardingStateView;
+    /** The artist page. Research paints it in place while the build runs; the
+     *  resume path's step cards sit over it. */
     children?: ReactNode;
 };
 
@@ -51,7 +50,7 @@ function prefersReducedMotion(): boolean {
     return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, imageUrl, releases, children }: Props) {
+export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, initialState, children }: Props) {
     const { items, busy, sendTurn } = useOnboardingChat(artistId);
     // Keeps the scrape and the caption extraction moving while the artist is
     // here. They are minutes of work and no request lives that long, so the
@@ -298,26 +297,21 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
     // nothing and the artist answers nothing. A step card appearing is what makes
     // it a conversation again (the resume path, where they really are answering),
     // so that is the discriminator rather than a mode flag that could drift.
-    // A failed build stays in the research view, which shows the failed step,
-    // keeps what streamed, and offers "try again" (docs/research-view.md). The
-    // old popup had no way to, so errors used to fall back to the chat surface.
+    // During the build the artist sees their own page, painted in place as each
+    // step is confirmed (docs/research-view.md); a failure stays on that page.
     const isBuild = !items.some(i => i.kind === "step" || i.kind === "draft");
     if (isBuild) {
         return (
-            <ResearchView
-                artistName={artistName}
-                imageUrl={imageUrl}
-                releases={releases}
+            <ResearchInPlace
+                artistId={artistId}
+                initialState={initialState}
                 items={items}
-                complete={complete}
                 onSkip={onSkip}
                 onRetry={() => void sendTurn({ type: "open" })}
-                onFinish={() => {
-                    window.scrollTo({ top: 0, behavior: "auto" });
-                    router.refresh();
-                    onFinish();
-                }}
-            />
+                onComplete={onFinish}
+            >
+                {children}
+            </ResearchInPlace>
         );
     }
 
