@@ -1,4 +1,5 @@
 import type { MusicDestination } from './types';
+import { MUSIC_RESERVED_HANDLES } from './const';
 
 /** Recognize catalog destinations, not artist identity or editorial/podcast pages. */
 export function parseMusicDestination(raw: string): MusicDestination | null {
@@ -46,27 +47,27 @@ export function parseMusicDestination(raw: string): MusicDestination | null {
     [platform, label, kind, id] = ['amazon_music', 'Amazon Music', match[1] === 'artists' ? 'artist' : 'release', match[2]];
   } else if (/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.bandcamp\.com$/.test(host)) {
     const handle = host.split('.')[0];
-    if (['www', 'daily', 'blog', 'help', 'get', 'artists', 'labels', 'design'].includes(handle)) return null;
+    if (MUSIC_RESERVED_HANDLES.bandcamp.has(handle)) return null;
     const profile = path === '/' || path === '/music';
     if (!profile && !/^\/(album|track)\/[^/]+$/.test(path)) return null;
     [platform, label, kind, id] = ['bandcamp', 'Bandcamp', profile ? 'artist' : 'release', profile ? handle : `${handle}${path}`];
   } else if (host === 'subvert.fm') {
     match = path.match(/^\/([a-z0-9][a-z0-9-]*)(?:\/(?:(?:tracks|releases)\/)?([a-z0-9][a-z0-9-]*))?$/i);
-    if (!match || ['discover', 'blog', 'docs', 'pages', 'login', 'signup', 'settings', 'cart', 'search', 'api', 'auth'].includes(match[1].toLowerCase())) return null;
+    if (!match || MUSIC_RESERVED_HANDLES.subvert.has(match[1].toLowerCase())) return null;
     if (match[2] && ['tracks', 'releases', 'albums', 'settings', 'followers', 'following', 'collection'].includes(match[2].toLowerCase())) return null;
     [platform, label, kind, id] = ['subvert', 'Subvert', match[2] ? 'release' : 'artist', path.slice(1).toLowerCase()];
   } else if (host === 'release.supercollector.xyz') {
     match = path.match(/^\/(artist\/)?([a-z0-9][a-z0-9-]*)$/i);
-    if (!match || ['artist', 'about', 'login', 'signup', 'privacy', 'terms', 'search', 'api'].includes(match[2].toLowerCase())) return null;
+    if (!match || MUSIC_RESERVED_HANDLES.supercollector.has(match[2].toLowerCase())) return null;
     [platform, label, kind, id] = ['supercollector', 'Supercollector', match[1] ? 'artist' : 'release', match[2].toLowerCase()];
   } else if (['soundcloud.com', 'audius.co', 'mixcloud.com'].includes(host)) {
     // These services also host spoken interviews. Source metadata retains that
     // distinction; this parser only identifies profile/release URL shapes.
     match = path.match(/^\/([a-z0-9_-]+)(?:\/(?:((?:sets|album))\/)?([^/]+))?$/i);
-    if (!match || ['discover', 'search', 'stream', 'upload', 'you', 'settings', 'login', 'signup', 'about', 'terms', 'privacy', 'pages', 'groups', 'tags', 'trending', 'explore', 'feed', 'charts', 'dashboard'].includes(match[1].toLowerCase())) return null;
+    platform = host === 'soundcloud.com' ? 'soundcloud' : host === 'audius.co' ? 'audius' : 'mixcloud';
+    if (!match || MUSIC_RESERVED_HANDLES[platform].has(match[1].toLowerCase())) return null;
     if (match[2] && !((host === 'soundcloud.com' && match[2] === 'sets') || (host === 'audius.co' && match[2] === 'album'))) return null;
     if (match[3] && ['likes', 'reposts', 'tracks', 'albums', 'sets', 'album', 'playlist', 'playlists', 'favorites', 'followers', 'following', 'uploads', 'collection', 'history', 'live', 'posts', 'comments', 'recommended', 'events', 'stories', 'stream'].includes(match[3].toLowerCase())) return null;
-    platform = host === 'soundcloud.com' ? 'soundcloud' : host === 'audius.co' ? 'audius' : 'mixcloud';
     label = platform === 'soundcloud' ? 'SoundCloud' : platform === 'audius' ? 'Audius' : 'Mixcloud';
     kind = match[3] ? 'release' : 'artist';
     id = path.slice(1).toLowerCase();

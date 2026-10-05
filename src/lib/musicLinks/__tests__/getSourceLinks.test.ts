@@ -23,6 +23,13 @@ describe('getSourceLinks', () => {
   it('separates support destinations for the support section and onboarding prompt', () => {
     expect(getSourceLinks(sources, [], 'support')).toEqual([expect.objectContaining({sourceId: 'support', label: 'Bandcamp'})]);
   });
+  it('keeps Subvert policy and update sources out of Support and artist Listen candidates', () => {
+    const information = ['changelog', 'privacy-policy', 'terms-of-use'].map(slug =>
+      source(slug, `https://subvert.fm/${slug}/`, 'article'));
+    expect(information.some(isDestinationSource)).toBe(false);
+    expect(getSourceLinks(information, [], 'support')).toEqual([]);
+    expect(getSourceLinks(information)).toEqual([]);
+  });
   it('moves a legacy Subvert releases URL from Lore into Support without becoming an artist Listen link', () => {
     const release = source('subvert-release', 'https://subvert.fm/dutchyyy/releases/unfinished-hugs', 'article', 'Unfinished Hugs');
     expect(isDestinationSource(release)).toBe(true);

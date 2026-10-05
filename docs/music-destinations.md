@@ -17,6 +17,9 @@ editorial pages, malformed URLs and lookalike hosts are not artist catalog desti
 Spotify artist/album/track IDs require 22 base62 characters and retain their original case.
 Subvert accepts artist roots, `/{artist}/{release}`, `/{artist}/tracks/{track}` and
 `/{artist}/releases/{release}`; bare collection tabs are not release destinations.
+Provider information, policy and account routes are reserved, including Subvert's
+changelog, terms, privacy, AI policy and author archive. The URL parser and handle
+adoption share these route exclusions instead of maintaining independent lists.
 
 Only approved records render publicly. Recognized music URLs appear in Links even if
 historically typed as Article/Profile; the read does not rewrite records or approve them.
@@ -52,9 +55,12 @@ Known artist profiles do not suppress new release URLs on the same account. Arti
 release URLs can still corroborate the account handle present in their path or host; opaque
 album/track IDs never become artist IDs. Catalog fetches and identity checks recheck the
 run deadline before subsequent source or account writes.
-Each MusicBrainz catalog relation must independently match the artist's page title and
+Each MusicBrainz catalog relation must independently match the full artist name in its page title and
 clear name ambiguity, even when another relation matched a trusted identifier. Duplicate
 and saved destinations cannot consume the nine-fetch cap before a new destination is tried.
+Source rows are reviewable evidence, not cross-artist identity reservations. Research
+checks current canonical owners before saving; a later canonical change is enforced again
+by the public Links/Listen read. Pending evidence on another artist does not claim ownership.
 
 Research still has bounded fetch/judge/write phases and uses existing jobs. Artist page
 reads introduce no research, model calls or writes. No new paid scrape is required.
@@ -101,6 +107,10 @@ API #21 only after Web presentation. Merge and production approval remain separa
   [release](https://release.supercollector.xyz/yin-yang-joey-collins).
 - [Audius artist](https://audius.co/Dutchyyy),
   [track](https://audius.co/Dutchyyy/trend-to-zero).
+- Excluded information routes: [Subvert changelog](https://subvert.fm/changelog/),
+  [AI policy](https://subvert.fm/ai-policy/), [SoundCloud terms](https://soundcloud.com/terms-of-use),
+  [Audius legal documents](https://audius.co/documents/TermsOfUse.pdf),
+  [Mixcloud plans](https://www.mixcloud.com/plans/).
 
 Subvert collection/user (`/@…`) pages and discovery/docs/blog pages are not music artist
 profiles. Provider roots, category pages and playlists do not become artist IDs; SoundCloud
