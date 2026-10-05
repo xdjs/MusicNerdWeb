@@ -234,7 +234,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                         ? { position: "fixed", top: placement.top, left: placement.left, width: CARD_WIDTH }
                         : { position: "fixed", bottom: EDGE, left: EDGE, right: EDGE }
                 }
-                className="z-50 rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 p-5 space-y-3 shadow-2xl"
+                className="z-50 max-w-[calc(100vw-24px)] rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 shadow-2xl"
             >
                 {placement && (
                     <div
@@ -248,46 +248,48 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                     />
                 )}
 
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium text-pink-500">{index + 1} of {STOPS.length}</p>
-                    <button
-                        onClick={() => finish(false)}
-                        className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                        Skip
-                    </button>
-                </div>
-
-                <h3 className="text-lg font-bold text-black dark:text-white">{stop.title}</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{stop.body}</p>
-
-                {stop.anchor === "mn-links" && hasSupportLinks === false && (
-                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                        <p>
-                            We didn&apos;t find any support links. Give fans a way to support your music with{" "}
-                            <a href="https://subvert.fm/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Subvert</a>,{" "}
-                            <a href="https://bandcamp.com/artists" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Bandcamp</a>, or{" "}
-                            <a href="https://supercollector.xyz/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Supercollector</a>.
-                        </p>
-                        <p>Already have a page? Add its link under <strong>Support the artist</strong>.</p>
-                    </div>
-                )}
-
-                <div className="flex gap-2 pt-1">
-                    {index > 0 && (
+                <div className="max-h-[calc(100dvh-26px)] overflow-y-auto overscroll-contain rounded-xl p-5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-medium text-pink-500">{index + 1} of {STOPS.length}</p>
                         <button
-                            onClick={() => setIndex(i => i - 1)}
-                            className="text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/20 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                            onClick={() => finish(false)}
+                            className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
-                            Back
+                            Skip
                         </button>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-black dark:text-white">{stop.title}</h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{stop.body}</p>
+
+                    {stop.anchor === "mn-links" && hasSupportLinks === false && (
+                        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                            <p>
+                                We didn&apos;t find any support links. Give fans a way to support your music with{" "}
+                                <a href="https://subvert.fm/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Subvert</a>,{" "}
+                                <a href="https://bandcamp.com/artists" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Bandcamp</a>, or{" "}
+                                <a href="https://supercollector.xyz/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Supercollector</a>.
+                            </p>
+                            <p>Already have a page? Add its link under <strong>Support the artist</strong>.</p>
+                        </div>
                     )}
-                    <button
-                        onClick={() => (isLast ? finish(true) : setIndex(i => i + 1))}
-                        className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
-                    >
-                        {isLast ? "Got it" : "Next"}
-                    </button>
+
+                    <div className="flex gap-2 pt-1">
+                        {index > 0 && (
+                            <button
+                                onClick={() => setIndex(i => i - 1)}
+                                className="text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/20 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                            >
+                                Back
+                            </button>
+                        )}
+                        <button
+                            onClick={() => (isLast ? finish(true) : setIndex(i => i + 1))}
+                            className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
+                        >
+                            {isLast ? "Got it" : "Next"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </>

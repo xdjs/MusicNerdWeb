@@ -55,6 +55,9 @@ Give fans a way to support your music with Subvert, Bandcamp, or Supercollector.
 Each platform is an outbound hyperlink that opens in a new tab. A short reminder
 points artists who already have a page to the existing **Support the artist** add-link
 control. Next, Back and Skip remain available; no external signup is required.
+The card stays within the viewport and scrolls internally on short screens, so
+all copy and controls remain reachable in landscape. Its pointer remains outside
+the scroll area.
 
 The artist page passes whether `getProfileLinks(..., 'support')` has any entries,
 the same rule as the visible Support section (including In Process and monetized
