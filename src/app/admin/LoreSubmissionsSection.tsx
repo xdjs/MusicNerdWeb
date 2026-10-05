@@ -184,7 +184,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
       <DialogContent className="max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl">
         <DialogHeader className="pr-6 text-left">
           <DialogTitle>Approve selected Lore sources</DialogTitle>
-          <DialogDescription>Only these {confirmation?.length ?? 0} selected sources will be approved. Sources on other pages and new arrivals are not included.</DialogDescription>
+          <DialogDescription>Only the sources listed below will be approved. Sources on other pages and new arrivals are not included.</DialogDescription>
         </DialogHeader>
         <ul className="max-h-64 space-y-3 overflow-y-auto rounded-xl border p-3 text-sm">
           {confirmation?.map(item => <li key={item.id} className="space-y-1 break-words">
