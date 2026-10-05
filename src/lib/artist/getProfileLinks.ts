@@ -19,4 +19,3 @@ export function getProfileLinks(artist: Pick<Artist, 'spotify' | 'deezer'>, link
     }
     return result;
 }
-

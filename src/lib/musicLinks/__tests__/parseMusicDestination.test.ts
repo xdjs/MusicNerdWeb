@@ -9,7 +9,7 @@ describe('parseMusicDestination', () => {
     ['https://www.beatport.com/artist/rob-adans/52133/tracks?page=4', 'beatport', 'artist', '52133'],
     ['https://www.beatport.com/artist/temi-vila/756748/releases', 'beatport', 'artist', '756748'],
     ['https://www.beatport.com/en/artist/pete-rango/1041889', 'beatport', 'artist', '1041889'],
-    ['https://open.spotify.com/artist/123abc', 'spotify', 'artist', '123abc'],
+    ['https://open.spotify.com/artist/3DmaZbBPnKSGnxYRpHobss', 'spotify', 'artist', '3DmaZbBPnKSGnxYRpHobss'],
     ['https://www.deezer.com/en/artist/5611', 'deezer', 'artist', '5611'],
     ['https://www.deezer.com/en-us/artist/5611', 'deezer', 'artist', '5611'],
     ['https://www.deezer.com/pt-br/album/123', 'deezer', 'release', '123'],
@@ -35,7 +35,7 @@ describe('parseMusicDestination', () => {
     ['https://music.apple.com/us/album/a-release/123?i=456', 'apple_music', 'release', '123'],
     ['https://www.beatport.com/track/a-track/123', 'beatport', 'release', '123'],
     ['https://www.deezer.com/album/123', 'deezer', 'release', '123'],
-    ['https://open.spotify.com/album/123abc', 'spotify', 'release', '123abc'],
+    ['https://open.spotify.com/album/3DmaZbBPnKSGnxYRpHobss', 'spotify', 'release', '3DmaZbBPnKSGnxYRpHobss'],
     ['https://listen.tidal.com/album/123', 'tidal', 'release', '123'],
     ['https://www.qobuz.com/us-en/album/album-name/abc123', 'qobuz', 'release', 'abc123'],
     ['https://music.amazon.co.uk/albums/B0012345AB', 'amazon_music', 'release', 'B0012345AB'],
@@ -80,4 +80,15 @@ describe('parseMusicDestination', () => {
   ])('does not classify %s as a music destination', url => {
     expect(parseMusicDestination(url)).toBeNull();
   });
+});
+
+
+it.each(['artist', 'album', 'track'])('rejects malformed Spotify %s IDs', kind => {
+  for (const id of ['abc', 'a'.repeat(21), 'a'.repeat(23), 'a'.repeat(21) + '_']) {
+    expect(parseMusicDestination(`https://open.spotify.com/${kind}/${id}`)).toBeNull();
+  }
+});
+it('preserves a valid case-sensitive Spotify ID through a localized URL', () => {
+  expect(parseMusicDestination('https://open.spotify.com/intl-de/track/3DmaZbBPnKSGnxYRpHobss?si=tracking'))
+    .toMatchObject({platform: 'spotify', kind: 'release', id: '3DmaZbBPnKSGnxYRpHobss'});
 });
