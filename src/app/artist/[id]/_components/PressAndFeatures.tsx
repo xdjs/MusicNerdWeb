@@ -1,4 +1,5 @@
 "use client";
+import { isDestinationSource } from "@/lib/musicLinks/isDestinationSource";
 
 import { useState, useRef, useMemo } from "react";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
@@ -170,7 +171,7 @@ function PodcastCard({ sources }: { sources: VaultSource[] }) {
 export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
-    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => s.type !== "website")), [allSources]);
+    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => !isDestinationSource(s))), [allSources]);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 

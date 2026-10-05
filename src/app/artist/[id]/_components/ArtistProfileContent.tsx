@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
 import { customImageUrl } from "@/lib/artist/artistImage";
-import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
+import { getProfileLinks, getListeningLinks } from "@/lib/artist/artistProfileLinks";
+import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
 import EditModeToggle from "@/app/_components/EditModeToggle";
@@ -45,6 +46,7 @@ export default function ArtistProfileContent({
     autoApprove: boolean;
 }) {
     const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
+    const profileLinks = [...getProfileLinks(artist, artistLinks, "links"), ...getProfileLinks(artist, artistLinks, "support")];
     const listenLinks = getListeningLinks(artist, artistLinks, approvedSources);
     return (
         <>
@@ -88,8 +90,8 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                    <OfficialSiteLinks sources={approvedSources} />
+                    <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(approvedSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <OfficialSiteLinks artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
                         <AddArtistData
@@ -101,7 +103,8 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ArtistLinksGrid isMonetized={true} hasSupplementalLinks={getSourceLinks(approvedSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <OfficialSiteLinks artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
                 </RevealSection>
                 <div id="mn-lore">
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />

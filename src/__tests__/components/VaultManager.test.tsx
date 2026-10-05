@@ -112,6 +112,20 @@ describe('VaultManager', () => {
     global.fetch = originalFetch;
   });
 
+  it('removing a destination records a rejection and hides Lore-only controls', async () => {
+    render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+      <VaultManager artistId="a1" pendingSources={pending} approvedSources={approved} reviewOnly />
+    </EditModeContext.Provider>);
+    expect(screen.queryByRole('button', { name: /search web for sources/i })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/add a source by url/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[1]);
+    await waitFor(() => expect(updateSourceStatus).toHaveBeenCalledWith('ap1', 'rejected'));
+    expect(removeVaultSource).not.toHaveBeenCalled();
+    expect(removeVaultSources).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('Approved One')).not.toBeInTheDocument());
+  });
+
   it('delete removes a pending source', async () => {
     renderEditing(true);
     expect(screen.getByText('Pending One')).toBeInTheDocument();

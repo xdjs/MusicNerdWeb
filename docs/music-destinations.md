@@ -1,42 +1,73 @@
-Route discovered music destinations to the artist’s **Links** section, following Pete’s October 5 request. Current production still misplaces Apple Music/Beatport pages in Lore and can discard catalog URLs supplied by MusicBrainz. Implementation is in progress; no data correction or release has occurred.
+# Music destinations on artist profiles
 
-> **2026-10-05 — Pete resumed and broadened this work:** “any music links like apple music, beatport, etc should end up in Links not lore.” This supersedes the September 15 implementation pause and pending routine storage/review decision. Artist and release/store destinations use existing reviewable URL sources; genuine articles/interviews remain Lore.
+[#1273](https://github.com/xdjs/MusicNerdWeb/issues/1273) follows Pete’s October 5 decision:
+music links belong in Links, while stories, interviews and editorial coverage belong in Lore.
 
-## Goal
+## Data and presentation
 
-Approved music destinations appear in **Links**, with recognisable platform labels; artist profiles can also appear in **Listen**. Album/track URLs remain specific destinations and never become artist IDs. Research retains catalog links from ordinary search, MusicBrainz, artist-owned pages and followed indexes while preserving artist identity, ownership, manual choices, rejection history and attribution.
+Reuse `artist_vault_sources` as the reviewable URL record, as for official websites. Keep
+original URLs, provenance/activity, pending/approved/rejected state. Removing a destination through Links records a rejection,
+so research does not re-add it. Historic hard-deleted rows have no recoverable tombstone. No schema change, new artist column or competing ID mapping is required.
 
-## PRs (updated 2026-10-05)
+A strict host/path parser identifies artist and release destinations on Apple Music,
+Beatport, Spotify, Deezer, Tidal, Qobuz, Amazon Music, Bandcamp, Subvert, Supercollector,
+SoundCloud, Audius and Mixcloud. URL shape establishes
+the destination, not the artist’s identity. Podcasts, playlists, charts, label pages,
+editorial pages, malformed URLs and lookalike hosts are not artist catalog destinations.
 
-| PR | Item | State |
-|---|---|---|
-| MusicNerdWeb#TBD | Destination contract, existing-source presentation, review controls and regression coverage | In progress on `codex/music-links-not-lore`; no migration |
-| MusicNerdAPI#TBD | Retain and correctly classify verified catalog URLs in research | In progress on `codex/music-links-not-lore`; no migration |
+Only approved records render publicly. Recognized music URLs appear in Links even if
+historically typed as Article/Profile; the read does not rewrite records or approve them.
+Artist/store profiles can also appear in Listen. Bandcamp, Subvert and Supercollector
+appear in Support the artist within Links. A source-backed-only section has no empty-state message. Album/track URLs keep their descriptive
+source titles in Links and never become artist IDs or the artist-level Listen target.
+Editorial pages remain Lore. Known interview/podcast metadata on mixed audio hosts keeps
+spoken sources in Lore. YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls.
+The original source remains available to knowledge retrieval with its real URL and text.
 
-> Merge/release Web presentation before API classification. Neither PR is approved for merging or production yet.
+## Research
 
-## Done
+MusicNerdAPI owns research. Ordinary search, MusicBrainz/own-page adoption and index-follow
+candidates use the same destination shapes. Successful research keeps catalog URLs as
+reviewable sources instead of discarding them for lacking an artist column. Catalog
+sources use the `music` source type; source approval rules and attribution still apply.
+Existing artist-ID mappings and manual/approved destinations constrain new research rather
+than being overwritten. Rejected URLs remain rejected; ownership is rechecked under the
+existing artist write lock. The MusicBrainz homepage is a website destination only after
+identity verification. Discogs release/master pages are not typed as artist Profile.
 
-- **Diagnosis and production reproduction (September 15–23).** Apple Music/Beatport lacked a writable direct-link destination. Pete’s Beatport artist profile landed in Lore as Article. Willie Colón’s identifier-matched MusicBrainz catalog links were discarded, and his homepage appeared as Article. [Pete reproduction](https://github.com/xdjs/MusicNerdWeb/issues/1273#issuecomment-5803428793), [MusicBrainz reproduction](https://github.com/xdjs/MusicNerdWeb/issues/1273#issuecomment-5803718646).
+Research still has bounded fetch/judge/write phases and uses existing jobs. Artist page
+reads introduce no research, model calls or writes. No new paid scrape is required.
 
-## Open — implementation and verification
+## Verification and rollout
 
-- [ ] **Render reviewed music destinations in Links.** Strict host/path parsing for supported artist and release URL shapes, including Apple Music, Beatport, Spotify, Deezer, Tidal, Qobuz, Amazon Music and Bandcamp. Existing approved sources route by URL without rewriting historical rows. Pending/rejected records are never made public by presentation. Exclude podcasts, editorial pages, lookalike hosts and malformed URLs. Preserve usable titles for release destinations. Artist/store profiles can join Listen; individual releases do not.
-- [ ] **Preserve catalog URLs during research.** Ordinary search, MusicBrainz/own-page links and followed indexes share the same URL classification. Keep existing relevance, namesake, dead-page and ownership checks; preserve original discovery URLs and review/provenance. Existing artist-ID mappings constrain research candidates rather than getting overwritten. Confirm official homepages supplied by MusicBrainz as website destinations. Discogs release/master URLs must never be typed as artist Profile.
-- [ ] **Review stays available.** Reuse existing source approvals/rejections and removal tombstones. Show source-backed music destinations in the Links editing flow with their original source records; no second copy or competing catalog identity.
-- [ ] **Regression evidence.** Real caller/persistence paths cover profile/release parsing, MusicBrainz and own-page adoption, wrong artist/shared name, failed writes, rejected/deleted candidates, mappings/conflicts and expired ownership. Preview at 832/390 px in both themes with screenshots on exact-head PRs. No paid scraping or production mutations for QA.
-- [ ] **Existing-record inventory.** Read-only dry run lists affected source IDs, original URLs, existing approval state and proposed routing/review. Pete’s old 404 Apple URL and three pending sources from the September 23 reproduction require explicit review before any production correction. Never recreate his deleted Beatport record. Do not delete/recreate the Willie Colón production test artist without an explicit reviewed scope.
-- [ ] **Release.** Record reviewed PRs, main SHAs, staging verification and protected production promotion separately.
+Parser regressions cover host spoofing, country/slug variants, profiles versus releases,
+podcasts, malformed IDs and invalid schemes. Caller/persistence tests cover identity,
+manual choices, rejected URLs, duplicate candidates, failures and ownership revocation.
+Preview checks target Links/Lore/Listen plus editing at 832 and 390 px in both themes;
+the PR records which authenticated actions were exercised.
 
-## Architecture decisions
+Web presentation ships before API classification. Main merge, staging verification and
+production release are recorded separately on #1273. A read-only inventory precedes any
+historic identity correction or approval. No production record is changed by this feature.
 
-- **Use existing reviewable URL records.** `artist_vault_sources` already stores original URL, approval/rejection, provenance and removal decisions, and official websites already render in Links. Reuse that mechanism for additional music destinations; do not add a column per catalog or overwrite `artist_id_mappings`. This supersedes the earlier proposed mapping-versus-column gate.
-- **Destination and evidence are different concerns.** A catalog URL belongs in Links but its retained factual source text can remain available to artist knowledge. Genuine editorial/interview pages stay in Lore. URL shape does not establish artist identity.
-- **No broad backfill.** Read-only presentation fixes historical placement for already approved records. Any identity correction, approval/rejection or restoration requires a concrete reviewed inventory.
+## Independent onboarding integration
 
-## Source references
+[#1429](https://github.com/xdjs/MusicNerdWeb/pull/1429) adds a no-support-links wizard prompt.
+Whichever PR merges second must include approved source-backed support destinations in
+both real and preview `ProfileTour.hasSupportLinks` conditions using
+`getSourceLinks(approvedSources, [], 'support').length > 0` alongside `getProfileLinks`.
+Do not duplicate platform URL parsing at the page call site.
 
-- [Research-flow owner #1265](https://github.com/xdjs/MusicNerdWeb/issues/1265), [research visibility #1347](https://github.com/xdjs/MusicNerdWeb/issues/1347), [release-specific listening #1238](https://github.com/xdjs/MusicNerdWeb/issues/1238).
-- Web: `OfficialSiteLinks`, `PressAndFeatures`, `VaultSection`/`VaultManager`, `artistProfileLinks`.
-- API: `lib/vault/fileCandidate`, `adoptFromMusicBrainz`, `adoptHandlesFromOwnPage`, `followIndexLinks`, `writeVaultSource`.
-- The September reproductions and original discussion remain in the issue’s comments. Historic code locations precede the October API cutover; current research belongs in MusicNerdAPI.
+## Verified URL examples
+
+- [Subvert artist](https://www.subvert.fm/pete-rango),
+  [track](https://www.subvert.fm/pete-rango/tracks/rush),
+  [album](https://www.subvert.fm/megadepth/the-embryology-of-human-institutions).
+- [Supercollector artist](https://release.supercollector.xyz/artist/joey-collins),
+  [release](https://release.supercollector.xyz/yin-yang-joey-collins).
+- [Audius artist](https://audius.co/Dutchyyy),
+  [track](https://audius.co/Dutchyyy/trend-to-zero).
+
+Subvert collection/user (`/@…`) pages and discovery/docs/blog pages are not music artist
+profiles. Provider roots, category pages and playlists do not become artist IDs; SoundCloud
+sets can remain specific listening destinations, never artist-level Listen targets.

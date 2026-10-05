@@ -12,7 +12,7 @@ jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav
 jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
-jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: () => <div /> }));
+jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} /> }));
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
@@ -96,4 +96,18 @@ describe("ArtistProfileContent", () => {
         expect(container.querySelector('nav')?.previousElementSibling).toHaveAttribute('data-testid', 'hero');
         expect(screen.getAllByTestId('ask')).toHaveLength(1);
     }
+ });
+
+ it("suppresses grid empty states only when approved supplemental destinations exist", () => {
+    const { rerender } = render(<ArtistProfileContent {...base} approvedSources={[
+        { id: "support", type: "article", status: "approved", url: "https://release.supercollector.xyz/yin-yang-joey-collins" },
+        { id: "music", type: "article", status: "approved", url: "https://www.beatport.com/artist/pete-rango/1041889" },
+    ]} />);
+    expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "true");
+    expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "true");
+    rerender(<ArtistProfileContent {...base} pendingSources={[
+        { id: "pending", status: "pending", url: "https://www.subvert.fm/pete-rango" },
+    ]} />);
+    expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "false");
+    expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "false");
  });

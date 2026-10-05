@@ -1,3 +1,5 @@
+import { parseMusicDestination } from "@/lib/musicLinks/parseMusicDestination";
+
 export const SOURCE_TYPES = [
     "article",
     "interview",
@@ -10,6 +12,7 @@ export const SOURCE_TYPES = [
     "data",
     "social",
     "website",
+    "music",
 ] as const;
 
 export type SourceType = (typeof SOURCE_TYPES)[number];
@@ -25,6 +28,7 @@ export const SOURCE_TYPE_COLORS: Record<SourceType, { bg: string; text: string; 
     video:     { bg: "bg-red-100 dark:bg-red-900/40",       text: "text-red-700 dark:text-red-300",       border: "border-red-300 dark:border-red-700" },
     data:      { bg: "bg-slate-100 dark:bg-slate-900/40",   text: "text-slate-700 dark:text-slate-300",   border: "border-slate-300 dark:border-slate-700" },
     social:    { bg: "bg-indigo-100 dark:bg-indigo-900/40", text: "text-indigo-700 dark:text-indigo-300", border: "border-indigo-300 dark:border-indigo-700" },
+    music:     { bg: "bg-teal-100 dark:bg-teal-900/40", text: "text-teal-700 dark:text-teal-300", border: "border-teal-300 dark:border-teal-700" },
     website:   { bg: "bg-teal-100 dark:bg-teal-900/40",     text: "text-teal-700 dark:text-teal-300",     border: "border-teal-300 dark:border-teal-700" },
 };
 
@@ -78,10 +82,12 @@ const PATH_KEYWORD_MAP: Record<string, SourceType> = {
  *  a URL whose page title carries their name; everything else falls through to
  *  "article" as before. */
 export function inferTypeFromUrl(url: string): SourceType {
+    if (parseMusicDestination(url)) return "music";
     try {
         const parsed = new URL(url);
         const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
 
+        if (host === "discogs.com" && /^\/(release|master)\//i.test(parsed.pathname)) return "data";
         // Check domain map
         for (const [domain, type] of Object.entries(DOMAIN_TYPE_MAP)) {
             if (host === domain || host.endsWith(`.${domain}`)) return type;
