@@ -23,6 +23,13 @@ describe('getSourceLinks', () => {
   it('separates support destinations for the support section and onboarding prompt', () => {
     expect(getSourceLinks(sources, [], 'support')).toEqual([expect.objectContaining({sourceId: 'support', label: 'Bandcamp'})]);
   });
+  it('moves a legacy Subvert releases URL from Lore into Support without becoming an artist Listen link', () => {
+    const release = source('subvert-release', 'https://subvert.fm/dutchyyy/releases/unfinished-hugs', 'article', 'Unfinished Hugs');
+    expect(isDestinationSource(release)).toBe(true);
+    expect(getSourceLinks([release], [], 'support')).toEqual([
+      expect.objectContaining({sourceId: 'subvert-release', kind: 'release', href: release.url, label: 'Unfinished Hugs · Subvert'}),
+    ]);
+  });
   it('keeps existing direct artist links and deduplicates catalog profile variants', () => {
     const existing = [{ siteName: 'applemusic', href: 'https://music.apple.com/artist/42', label: 'Apple Music', iconSrc: '' }];
     expect(getSourceLinks([...sources, source('alternate', 'https://beatport.com/artist/renamed/1041889')], existing).map(link => link.sourceId)).toEqual(['website', 'beatport', 'release']);

@@ -15,6 +15,8 @@ SoundCloud, Audius and Mixcloud. URL shape establishes
 the destination, not the artist’s identity. Podcasts, playlists, charts, label pages,
 editorial pages, malformed URLs and lookalike hosts are not artist catalog destinations.
 Spotify artist/album/track IDs require 22 base62 characters and retain their original case.
+Subvert accepts artist roots, `/{artist}/{release}`, `/{artist}/tracks/{track}` and
+`/{artist}/releases/{release}`; bare collection tabs are not release destinations.
 
 Only approved records render publicly. Recognized music URLs appear in Links even if
 historically typed as Article/Profile; the read does not rewrite records or approve them.
@@ -46,6 +48,13 @@ when MusicBrainz matched a known identifier. It enters the existing fetched-page
 batch and becomes a website destination only when readable content is affirmed as about the
 artist. An unreadable or unconfirmed homepage cannot supply source text or outbound identity
 links. This does not add another model request. Discogs release/master pages are not typed as artist Profile.
+Known artist profiles do not suppress new release URLs on the same account. Artist-scoped
+release URLs can still corroborate the account handle present in their path or host; opaque
+album/track IDs never become artist IDs. Catalog fetches and identity checks recheck the
+run deadline before subsequent source or account writes.
+Each MusicBrainz catalog relation must independently match the artist's page title and
+clear name ambiguity, even when another relation matched a trusted identifier. Duplicate
+and saved destinations cannot consume the nine-fetch cap before a new destination is tried.
 
 Research still has bounded fetch/judge/write phases and uses existing jobs. Artist page
 reads introduce no research, model calls or writes. No new paid scrape is required.
