@@ -157,6 +157,38 @@ describe('ProfileTour', () => {
         expect(screen.queryByRole('link', { name: 'Bandcamp' })).not.toBeInTheDocument();
     });
 
+    it('keeps the controls in view when the last support link is removed after settling', () => {
+        jest.useFakeTimers();
+        const links = document.getElementById('mn-links');
+        links.getBoundingClientRect = () => ({
+            top: 600, bottom: 720, left: 100, right: 500, width: 400, height: 120,
+            x: 100, y: 600, toJSON: () => ({}),
+        });
+        const view = render(<ProfileTour artistId="a1" hasSupportLinks />);
+        try {
+            fireEvent.click(screen.getByRole('button', { name: /next/i }));
+            fireEvent.click(screen.getByRole('button', { name: /next/i }));
+            const card = screen.getByRole('dialog');
+            let measuredHeight = 200;
+            Object.defineProperty(card, 'offsetHeight', { get: () => measuredHeight });
+            // Let the initial scroll-settling interval finish before simulating
+            // the server refresh caused by removing the final support link.
+            act(() => jest.advanceTimersByTime(1000));
+            const originalTop = Number.parseFloat(card.style.top);
+            expect(originalTop + measuredHeight).toBeLessThanOrEqual(window.innerHeight - 12);
+
+            measuredHeight = 356;
+            view.rerender(<ProfileTour artistId="a1" hasSupportLinks={false} />);
+
+            expect(screen.getByRole('link', { name: 'Bandcamp' })).toBeInTheDocument();
+            expect(Number.parseFloat(card.style.top)).toBeLessThan(originalTop);
+            expect(Number.parseFloat(card.style.top) + measuredHeight).toBeLessThanOrEqual(window.innerHeight - 12);
+        } finally {
+            view.unmount();
+            jest.useRealTimers();
+        }
+    });
+
     it('treats Skip as done — an artist who dismisses it does not want it again', () => {
         render(<ProfileTour artistId="a1" hasSupportLinks />);
         fireEvent.click(screen.getByRole('button', { name: /skip/i }));

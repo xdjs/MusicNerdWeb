@@ -191,7 +191,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
             window.removeEventListener("scroll", onMove);
             window.removeEventListener("resize", onMove);
         };
-    }, [index, armed, dismissed, reposition]);
+    }, [index, armed, dismissed, reposition, hasSupportLinks]);
 
     const finish = (reachedTheEnd: boolean) => {
         try {

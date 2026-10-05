@@ -57,7 +57,8 @@ points artists who already have a page to the existing **Support the artist** ad
 control. Next, Back and Skip remain available; no external signup is required.
 The card stays within the viewport and scrolls internally on short screens, so
 all copy and controls remain reachable in landscape. Its pointer remains outside
-the scroll area.
+the scroll area. If saved support links change during the tour, the card repositions
+for its new content before paint.
 
 The artist page passes whether `getProfileLinks(..., 'support')` has any entries,
 the same rule as the visible Support section (including In Process and monetized
