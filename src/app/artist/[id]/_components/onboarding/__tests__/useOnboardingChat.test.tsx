@@ -265,7 +265,7 @@ describe('useOnboardingChat', () => {
         ]);
     });
 
-    it('n) linked and unreachable frames reach the research view as their own items', async () => {
+    it('n) linked and unreachable frames arrive as their own items', async () => {
         const profile = { siteName: 'spotify', displayName: 'Spotify', value: 'bio', profileUrl: 'https://open.spotify.com/artist/bio', logoUrl: null, previewImage: null };
         (global.fetch as jest.Mock).mockResolvedValueOnce(fakeStreamResponse([
             `data: ${JSON.stringify({ kind: 'linked', profiles: [profile] })}\n\n`,

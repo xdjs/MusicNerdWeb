@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import OnboardingChat from "./OnboardingChat";
-import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
+import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
 import OnboardingBanner from "./OnboardingBanner";
 import { armTour } from "@/app/artist/[id]/_components/onboarding/armTour";
 import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
@@ -14,12 +14,10 @@ export function skipFlagKey(artistId: string): string {
 type Props = {
     artistId: string;
     artistName: string;
-    currentStep: string | null;
-    /** For the research view's hero (docs/research-view.md). */
-    imageUrl?: string;
-    releases?: Promise<LatestRelease[]>;
-    /** The artist page. While onboarding runs the chat decides whether to show
-     *  it (the research view takes its place); otherwise it's shown as usual. */
+    /** The onboarding state the page rendered with, from MusicNerdAPI (docs/research-view.md). */
+    state: OnboardingStateView;
+    /** The artist page. While onboarding runs, research paints it in place
+     *  (docs/research-view.md); otherwise it's shown as usual. */
     children?: ReactNode;
 };
 
@@ -28,7 +26,7 @@ type Props = {
  * state; the skip flag lives in sessionStorage and is invisible to the server
  * component (spec §8). Skip is session-scoped: a later visit reopens the chat.
  */
-export default function OnboardingGate({ artistId, artistName, currentStep, imageUrl, releases, children }: Props) {
+export default function OnboardingGate({ artistId, artistName, state, children }: Props) {
     // Start closed and decide after mount — sessionStorage is unavailable during SSR.
     const [mode, setMode] = useState<"closed" | "chat" | "banner">("closed");
 
@@ -43,8 +41,7 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
             <OnboardingChat
                 artistId={artistId}
                 artistName={artistName}
-                imageUrl={imageUrl}
-                releases={releases}
+                initialState={state}
                 onSkip={() => {
                     sessionStorage.setItem(skipFlagKey(artistId), "1");
                     setMode("banner");
@@ -73,7 +70,7 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
     return (
         <>
             <OnboardingBanner
-                currentStep={currentStep}
+                currentStep={state.currentStep}
                 onContinue={() => {
                     sessionStorage.removeItem(skipFlagKey(artistId));
                     setMode("chat");

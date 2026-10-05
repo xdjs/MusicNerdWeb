@@ -3,39 +3,10 @@ import { eq, sql } from "drizzle-orm";
 import { artistDocs, artistInterviewAnswers, artistOnboardingSteps } from "@/server/db/schema";
 import { withScopedArtistWrite } from './ownershipWrites';
 
-/**
- * Post-claim onboarding state. The step order is the chat's forced chain.
- * There is NO stored cursor: the current step is always the first step
- * lacking an explicit confirmation row (see the design spec §5).
- */
+/** The onboarding steps, in the chat's forced order. Reading their state is
+ *  MusicNerdAPI's job now (GET /api/onboarding/{artistId}/state). */
 export const ONBOARDING_STEPS = ["profiles", "vault", "interview", "publish"] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
-export type OnboardingState = { complete: boolean; currentStep: OnboardingStep | null };
-
-/** Pure derivation — unit-test this, it is where the resume logic lives. */
-export function firstUnconfirmedStep(confirmed: ReadonlySet<string>): OnboardingStep | null {
-    for (const step of ONBOARDING_STEPS) {
-        if (!confirmed.has(step)) return step;
-    }
-    return null;
-}
-
-/** `null` return means the read FAILED (e.g. migration not applied, missing
- *  grants) — distinguishable from a brand-new claimant with zero confirmed
- *  steps (an empty Set). Callers MUST treat `null` as "unknown", never as
- *  "incomplete, start at profiles" — conflating the two fails OPEN into a
- *  permanent stuck takeover for every claimant whenever this read breaks. */
-export async function getConfirmedSteps(artistId: string): Promise<Set<OnboardingStep> | null> {
-    try {
-        const rows = await db.query.artistOnboardingSteps.findMany({
-            where: eq(artistOnboardingSteps.artistId, artistId),
-        });
-        return new Set(rows.map(r => r.step as OnboardingStep));
-    } catch (e) {
-        console.error("[getConfirmedSteps] Error:", e);
-        return null;
-    }
-}
 
 /** Written ONLY by an explicit artist action in the chat. Idempotent (two-tab safe). */
 export async function confirmOnboardingStep(artistId: string, step: OnboardingStep): Promise<void> {
@@ -43,15 +14,6 @@ export async function confirmOnboardingStep(artistId: string, step: OnboardingSt
         .insert(artistOnboardingSteps)
         .values({ artistId, step })
         .onConflictDoNothing({ target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step] }); });
-}
-
-/** `null` return means onboarding state is UNKNOWN (the confirmed-steps read
- *  failed) — callers must render/act as if there is no onboarding takeover at
- *  all, not fall back to a default state (spec fail-CLOSED requirement). */
-export async function getOnboardingState(artistId: string): Promise<OnboardingState | null> {
-    const confirmed = await getConfirmedSteps(artistId);
-    if (confirmed === null) return null;
-    return { complete: confirmed.has("publish"), currentStep: firstUnconfirmedStep(confirmed) };
 }
 
 export async function upsertInterviewAnswer(input: {

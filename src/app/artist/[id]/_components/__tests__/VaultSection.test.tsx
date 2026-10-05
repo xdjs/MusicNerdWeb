@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import VaultSection from "../VaultSection";
+import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 
 jest.mock("../PressAndFeatures", () => function MockPressAndFeatures() { return <div>Public Lore</div>; });
 jest.mock("../VaultManager", () => function MockVaultManager() { return <div>Editor Lore controls</div>; });
@@ -39,4 +40,13 @@ it("shows the suggestion path to visitors and edit controls only in edit mode", 
   </EditModeContext.Provider>);
   expect(screen.getByText("Editor Lore controls")).toBeInTheDocument();
   expect(screen.queryByText("Visitor suggestion form")).not.toBeInTheDocument();
+});
+
+describe('VaultSection while research reads sources', () => {
+  it('shows a loading line above the Lore until the vault step is confirmed', () => {
+    const steps = { profiles: 't1', vault: null, interview: null, publish: null };
+    render(<OnboardingProgressContext.Provider value={steps}><VaultSection artistId="a1" isClaimed pendingSources={[]} approvedSources={[]} /></OnboardingProgressContext.Provider>);
+    expect(screen.getByRole('status')).toHaveTextContent('reading what’s written about you…');
+    expect(screen.getByText('Public Lore')).toBeInTheDocument();
+  });
 });

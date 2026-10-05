@@ -4,7 +4,7 @@ import { render, screen, within } from "@testing-library/react";
 
 // The sections are mocked down to the props this component decides, so the
 // test covers what it owns: the hero's bio, the link editors' mode, and that the
-// page runs hero through Ask sheet (the research view swaps all of it out).
+// page runs hero through Ask sheet.
 jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, listenLinks, children }) => <section data-testid="hero" data-listen={listenLinks.map(link => link.href).join(",")} data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
 jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => <button>edit</button> }));
@@ -19,6 +19,7 @@ jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <sect
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside data-testid="ask" /> }));
 
 import ArtistProfileContent from "../ArtistProfileContent";
+import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 
 const base = {
     artist: { id: "a1", name: "Bio Ritmo", bio: "A salsa band from Richmond.", spotify: null, deezer: "416544" },
@@ -84,6 +85,12 @@ describe("ArtistProfileContent", () => {
             expect(b).toHaveAttribute("data-direct", "false");
             expect(b).toHaveAttribute("data-auto", "true");
         });
+    });
+
+    it("shows a loading line in Links until the profiles step is confirmed", () => {
+        const steps = { profiles: null, vault: null, interview: null, publish: null };
+        const { container } = render(<OnboardingProgressContext.Provider value={steps}><ArtistProfileContent {...base} /></OnboardingProgressContext.Provider>);
+        expect(container.querySelector("#mn-links [role=status]")).toHaveTextContent("finding your profiles…");
     });
 });
 
