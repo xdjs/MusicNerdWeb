@@ -51,7 +51,7 @@ export function parseMusicDestination(raw: string): MusicDestination | null {
     if (!profile && !/^\/(album|track)\/[^/]+$/.test(path)) return null;
     [platform, label, kind, id] = ['bandcamp', 'Bandcamp', profile ? 'artist' : 'release', profile ? handle : `${handle}${path}`];
   } else if (host === 'subvert.fm') {
-    match = path.match(/^\/([a-z0-9][a-z0-9-]*)(?:\/(?:tracks\/)?([a-z0-9][a-z0-9-]*))?$/i);
+    match = path.match(/^\/([a-z0-9][a-z0-9-]*)(?:\/(?:(?:tracks|releases)\/)?([a-z0-9][a-z0-9-]*))?$/i);
     if (!match || ['discover', 'blog', 'docs', 'pages', 'login', 'signup', 'settings', 'cart', 'search', 'api', 'auth'].includes(match[1].toLowerCase())) return null;
     if (match[2] && ['tracks', 'releases', 'albums', 'settings', 'followers', 'following', 'collection'].includes(match[2].toLowerCase())) return null;
     [platform, label, kind, id] = ['subvert', 'Subvert', match[2] ? 'release' : 'artist', path.slice(1).toLowerCase()];
