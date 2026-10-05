@@ -15,9 +15,9 @@ import {
   updateSourceType,
   removeVaultSource,
   removeVaultSources,
-  addVaultSource,
   searchWebForSources,
 } from "@/app/actions/dashboardActions";
+import { addVaultSource } from "@/app/actions/addVaultSource";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUpload';
@@ -183,7 +183,12 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
       const res = await addVaultSource(artistId, url);
       if (res.success) {
         setNewUrl("");
-        toast({ title: "Source added", description: "Added to pending review." });
+        if (res.source) {
+          const source = res.source;
+          const updateList = source.status === "approved" ? setApproved : setPending;
+          updateList(prev => [source, ...prev.filter(item => item.id !== source.id)]);
+        }
+        toast({ title: "Source added", description: res.warning ?? (res.source?.status === "approved" ? "Added to Lore." : "Added to pending review.") });
         router.refresh();
       } else {
         toast({ title: "Couldn't add source", description: res.error ?? "Please try again", variant: "destructive" });

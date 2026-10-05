@@ -82,6 +82,7 @@ export async function setArtistLink(
   siteName: string,
   value: string,
   selfEditUrl?: string,
+  transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
 ): Promise<{ oldValue: string | null; artistName: string | null }> {
   if (selfEditUrl && !getArtistOperationOwnership(artistId)?.userId) {
     throw new Error("Self-edit recording requires an authenticated artist operation");
@@ -91,6 +92,14 @@ export async function setArtistLink(
 
   if (!value) {
     throw new Error("Value must not be empty");
+  }
+
+  if (transaction) {
+    if (columnName === "spotify" || columnName === "deezer") {
+      await acquireArtistPlatformWriteLocks(transaction, artistId, columnName, value);
+    }
+    await lockScopedArtistWrite(transaction, artistId);
+    return setArtistLinkWithExecutor(transaction, artistId, columnName, value, selfEditUrl);
   }
 
   if (columnName === "spotify" || columnName === "deezer") {
@@ -108,4 +117,3 @@ export async function setArtistLink(
 
   return withScopedArtistWrite(artistId, tx => setArtistLinkWithExecutor(tx, artistId, columnName, value, selfEditUrl));
 }
-

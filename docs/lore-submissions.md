@@ -41,3 +41,31 @@ rejected-source protection, attribution, public reads, queued work, and both UI
 confirmation states. PostgreSQL fixtures exercise the real route/query path without
 modifying real artist data or running paid research. Preview and review evidence
 belong on the PR; implemented, merged, and deployed are separate states.
+
+## Contributor bulk review
+
+Admins can open **Bulk approve** from a selected contributor's history. The
+dialog loads that account's pending direct Lore submissions/uploads and link suggestions across pages,
+shows the source titles and artists, and asks for confirmation of that exact set.
+The preview includes up to 200 submissions, regardless of the history's
+current filters. Scraped research, unknown origins and completed reviews are
+excluded. Further previews remain available if the contributor has more. Pete
+explicitly chose both Lore and links for this action on October 5.
+
+The server validates the selected contributor and source IDs, checks the current
+admin role again inside each write transaction, and updates only still-pending
+direct submissions attributed to that contributor. Concurrently reviewed rows are
+skipped, and new submissions arriving after confirmation are not included. Each
+approval records the reviewing admin while retaining the original submitter.
+Approvals run in requests of ten to bound serverless work. Lore takes the same
+artist-before-source locks as individual moderation. Links reuse the shared
+normalization and platform identity conflict checks inside the same transaction
+as their pending-state check and approval. Each item commits independently;
+failed items stay pending and do not undo successful items. The existing Lore
+job is queued once per affected artist per request. Results report approved,
+skipped and failed counts plus any derived-refresh warning. A queue failure does
+not pretend saved approvals failed. No emails or Discord messages are sent.
+
+Pete's October 5 request to approve Tempo Menace's existing submissions needed no
+production writes: the production inventory already showed 4 approved attributed
+Lore sources and 566 approved links, with no pending submissions.

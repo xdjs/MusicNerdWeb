@@ -14,7 +14,7 @@ jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, i
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
 jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
-jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources }) => <section data-testid="vault" data-pending={pendingSources.length} /> }));
+jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside data-testid="ask" /> }));
 
@@ -37,6 +37,10 @@ const base = {
 };
 
 describe("ArtistProfileContent", () => {
+    it.each([true, false])('passes server-derived trusted status to Lore (%s)', autoApprove => {
+        render(<ArtistProfileContent {...base} canEdit={false} isClaimedByUser={false} autoApprove={autoApprove} />);
+        expect(screen.getByTestId('vault')).toHaveAttribute('data-auto', String(autoApprove));
+    });
     it("keeps the profile readable without asserting claim status after a failed lookup", () => {
         render(<ArtistProfileContent {...base} claimStatusKnown={false} isClaimed={false} isClaimedByUser={false} canEdit={false} />);
         expect(screen.getByTestId("image-status")).toBeEmptyDOMElement();

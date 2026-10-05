@@ -1,3 +1,16 @@
+## Trusted Lore and contributor bulk approval — October 5
+
+[#1423](https://github.com/xdjs/MusicNerdWeb/issues/1423) implements Pete's request
+to auto-approve new Lore from whitelisted users/admins in both URL entry points.
+Current database roles determine approval, and the UI reflects the saved status.
+Pete also requested contributor bulk review for **both Lore and links** in Admin.
+The preview confirms a specific contributor's pending direct submissions across
+pages; each mutation rechecks Admin, contributor and pending status. See
+[the contract](docs/lore-submissions.md). No migration or broader whitelist edit
+permission is involved. Production read-only verification found Tempo Menace's
+4 attributed Lore sources and 566 links already approved; no backlog write was
+needed. Work is on `codex/whitelist-lore-auto-approval`, not merged or deployed.
+
 ## Instagram refresh reliability — October 2
 
 [#1408](https://github.com/xdjs/MusicNerdWeb/issues/1408) is being implemented on

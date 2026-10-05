@@ -13,7 +13,6 @@ import {
     getVaultSourceById,
     updateVaultSourceStatus,
     updateVaultSourceType,
-    insertVaultSource,
     deleteVaultSource,
     deleteVaultSources,
     getBioVersionsByArtistId,
@@ -22,18 +21,13 @@ import {
     deleteBioVersion,
     unpinArtistBio,
 } from "@/server/utils/queries/dashboardQueries";
-import { inferTypeFromUrl, SOURCE_TYPES } from "@/lib/source/sourceTypes";
-import { podcastService } from "@/lib/source/podcastService";
+import { SOURCE_TYPES } from "@/lib/source/sourceTypes";
 import { searchAndPopulateVault } from "@/server/utils/queries/vaultWebSearch";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getDocCorrections, upsertDocCorrection, deleteDocCorrection } from "@/server/utils/queries/docCorrectionQueries";
 import { claimKey } from "@/lib/source/docClaims";
 import { getArtistDoc } from "@/server/utils/queries/onboardingQueries";
-import { canonicalizeLoreUrl } from "@/lib/source/canonicalizeLoreUrl";
-import { getVaultSourceUrlsByArtistId } from "@/server/utils/queries/getVaultSourceUrlsByArtistId";
-import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
-import { updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { generateReferenceCode } from "@/lib/referenceCode";
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
@@ -139,72 +133,6 @@ export async function searchWebForSources(artistId: string): Promise<{ success: 
     } catch (error) {
         console.error("[searchWebForSources] Error:", error);
         return { success: false, error: "Failed to search for sources" };
-    }
-}
-
-export async function addVaultSource(
-    artistId: string,
-    url: string
-): Promise<{ success: boolean; error?: string }> {
-    const session = await getServerAuthSession() ?? await getDevSession();
-    if (!session) return { success: false, error: "Not authenticated" };
-
-    try {
-        const auth = await verifyArtistEditable(session.user.id, artistId);
-        if (!auth.ok) return { success: false, error: auth.error };
-
-        // Reject non-http(s) schemes (javascript:, data:, file:, etc.) and private/local hosts.
-        // URLs are rendered as <a href> on the public artist page — unsafe schemes would be stored XSS.
-        const normalizedUrl = canonicalizeLoreUrl(url);
-        if (!normalizedUrl || isUnsafeUrl(normalizedUrl)) {
-            return { success: false, error: "URL must be a public http or https address" };
-        }
-
-        url = normalizedUrl;
-
-        const existing = await getVaultSourceUrlsByArtistId(artistId);
-        if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
-            return { success: false, error: "This source has already been added" };
-        }
-
-        // Insert immediately with domain-based title, then fetch content in background
-        let title = "Untitled Source";
-        try {
-            const parsed = new URL(url);
-            title = `Source from ${parsed.hostname.replace("www.", "")}`;
-        } catch {
-            // malformed URL — use default title
-        }
-
-        const source = await insertVaultSource({
-            artistId,
-            url,
-            title,
-            type: inferTypeFromUrl(url),
-            status: "pending",
-        }, { userId: session.user.id, expectedClaimId: auth.claimId });
-
-        // Fire background content fetch to populate real title/snippet/extractedText
-        if (source?.id) {
-            const enrichment = fetchPageContent(url).then(content =>
-                updateVaultSourceContent(source.id, {
-                    title: content.title,
-                    snippet: content.snippet,
-                    extractedText: content.extractedText,
-                    ogImage: content.ogImage,
-                    ...content.podcastEpisode,
-                    publishedAt: content.publishedAt ?? null,
-                })
-            ).catch(e => console.error("[addVaultSource] Content enrichment failed:", e));
-            // Podcast identity is required for grouping, so finish its write
-            // before a serverless invocation can be frozen after this action.
-            if (podcastService(url)) await enrichment;
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error("[addVaultSource] Error:", error);
-        return { success: false, error: "Failed to add source" };
     }
 }
 
