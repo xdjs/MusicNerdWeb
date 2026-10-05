@@ -6,7 +6,10 @@ music links belong in Links, while stories, interviews and editorial coverage be
 ## Data and presentation
 
 Reuse `artist_vault_sources` as the reviewable URL record, as for official websites. Keep
-original URLs, provenance/activity, pending/approved/rejected state. Removing a destination through Links records a rejection,
+source URLs, provenance/activity, pending/approved/rejected state. For fetched redirects,
+store the validated final HTTP destination so routing and identity checks use the page
+actually read. Log the discovered redirect URL; there is no separate stored original-URL field.
+Removing a destination through Links records a rejection,
 so research does not re-add it. Historic hard-deleted rows have no recoverable tombstone. No new artist column or competing ID mapping is required.
 
 A strict host/path parser identifies artist and release destinations on Apple Music,
@@ -45,6 +48,9 @@ MusicNerdAPI owns research. Ordinary search, MusicBrainz/own-page adoption and i
 candidates use the same destination shapes. Successful research keeps catalog URLs as
 reviewable sources instead of discarding them for lacking an artist column. Catalog
 sources use the `music` source type; source approval rules and attribution still apply.
+Onboarding retains its existing automatic approval of pending research sources; pending
+does not mean mandatory manual review. Ordinary search retains its established affirmative
+relevance and identity-conflict policy, rather than requiring independent account-control proof.
 Existing artist-ID mappings and manual/approved destinations constrain new research rather
 than being overwritten. Public Links/Listen also suppress source-backed artist profiles that
 conflict with a stored mapping, a canonical artist platform column (including another artist’s identity),
@@ -60,6 +66,10 @@ Outbound catalog adoption requires affirmative page relevance and an artist-owne
 page: the existing own-domain/name-ambiguity check or the page's own saved canonical account.
 A public outbound link to a known artist, or a release uploader, cannot establish that
 referring page's ownership. Rejected or undecided pages are not queued as identity hubs.
+The validated final response URL also determines hub authority, so an artist-looking
+URL that redirects elsewhere does not grant ownership to the destination. Unsafe,
+credentialed, blocked or excluded final URLs are dropped before judging or writing.
+Catalog-relation redirects must still identify the same parsed artist/platform ID.
 Known artist profiles do not suppress new release URLs on the same account. Artist-scoped
 release URLs can still corroborate the account handle present in their path or host; opaque
 album/track IDs never become artist IDs. That corroboration requires an already-known canonical
@@ -68,6 +78,11 @@ run deadline before subsequent source or account writes.
 Each MusicBrainz catalog relation must independently match the full artist name in its page title and
 clear name ambiguity, even when another relation matched a trusted identifier. Duplicate
 and saved destinations cannot consume the nine-fetch cap before a new destination is tried.
+Catalog artist deduplication uses parsed platform/ID semantics, preserving opaque ID case
+and treating locale/slug aliases as the same identity. Existing/rejected and followed-index
+lookups use the same keys. Spotify profile comparisons and opaque release IDs preserve case.
+An individual catalog write failure does not stop unrelated non-durable discovery;
+durable jobs still throw for retry. Podcast metadata survives index-follow source writes.
 Source rows are reviewable evidence, not cross-artist identity reservations. Research
 checks current canonical owners before saving; a later canonical change is enforced again
 by the public Links/Listen read. Pending evidence on another artist does not claim ownership.
