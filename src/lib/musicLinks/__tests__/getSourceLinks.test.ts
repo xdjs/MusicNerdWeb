@@ -2,6 +2,7 @@ import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { getSourceLinks } from '../getSourceLinks';
 import { isDestinationSource } from '../isDestinationSource';
 import { getListeningLinks } from '@/lib/artist/getListeningLinks';
+import { SOURCE_TYPES } from '@/lib/source/sourceTypes';
 
 const source = (id: string, url: string, type = 'article', title = '') => ({ id, url, type, title });
 
@@ -91,4 +92,21 @@ it('keeps the audited provider information sources out of Links, Support and Lis
   expect(records.filter(isDestinationSource)).toEqual([]);
   expect(getSourceLinks(records)).toEqual([]);
   expect(getSourceLinks(records, [], 'support')).toEqual([]);
+});
+
+describe.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('mixed-use source classification: %s', host => {
+  describe.each(['artist', 'release'])('%s URLs', kind => {
+    it.each(SOURCE_TYPES)('preserves the placement contract for type=%s with and without podcast evidence', type => {
+      const url = `https://${host}/show${kind === 'release' ? '/a-conversation' : ''}`;
+      const record = { ...source('source',url,type), status:'approved' };
+      const routesToLinks = kind === 'release' ? type === 'music' : !['audio','interview'].includes(type);
+      expect(isDestinationSource(record)).toBe(routesToLinks);
+      expect(getSourceLinks([record])).toHaveLength(routesToLinks ? 1 : 0);
+      expect(getListeningLinks({spotify:null,deezer:null},[],[record])).toHaveLength(routesToLinks && kind === 'artist' ? 1 : 0);
+      const podcast = { ...record, podcastEpisodeKey:'episode' };
+      expect(isDestinationSource(podcast)).toBe(false);
+      expect(getSourceLinks([podcast])).toEqual([]);
+      expect(getListeningLinks({spotify:null,deezer:null},[],[podcast])).toEqual([]);
+    });
+  });
 });

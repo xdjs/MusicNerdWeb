@@ -32,6 +32,9 @@ Music: their URL shapes also represent spoken shows. A URL alone never supplies 
 classification. Their artist profiles still route to Links unless explicitly typed Audio or
 Interview; that classification is preserved by both the source writer and public placement.
 Podcast metadata also retains Lore. Existing direct artist links remain unchanged.
+For a recognized catalog URL, classification takes precedence over the legacy Website
+fallback; a mixed-use release typed Website does not become a music destination.
+Non-catalog official websites continue to appear in Links.
 YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls. Editors remount when the
 filtered source identity/type changes, so a correction moves between Links and Lore immediately.
 The original source remains available to knowledge retrieval with its real URL and text.
@@ -53,6 +56,10 @@ when MusicBrainz matched a known identifier. It enters the existing fetched-page
 batch and becomes a website destination only when readable content is affirmed as about the
 artist. An unreadable or unconfirmed homepage cannot supply source text or outbound identity
 links. This does not add another model request. Discogs release/master pages are not typed as artist Profile.
+Outbound catalog adoption requires affirmative page relevance and an artist-owned referring
+page: the existing own-domain/name-ambiguity check or the page's own saved canonical account.
+A public outbound link to a known artist, or a release uploader, cannot establish that
+referring page's ownership. Rejected or undecided pages are not queued as identity hubs.
 Known artist profiles do not suppress new release URLs on the same account. Artist-scoped
 release URLs can still corroborate the account handle present in their path or host; opaque
 album/track IDs never become artist IDs. That corroboration requires an already-known canonical
