@@ -29,6 +29,8 @@ describe('GET /llms.txt', () => {
         expect(res.headers.get('Content-Type')).toContain('text/plain');
         const body = await res.text();
         expect(body).toContain('# Music Nerd');
+        expect(body).toContain('https://musicnerd.net');
+        expect(body).not.toContain('www.musicnerd.xyz');
         // The one rule that matters: how to turn an artist URL into its document.
         expect(body).toContain('/artist/<id>/llms.txt');
     });

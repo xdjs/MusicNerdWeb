@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 30
     environment:
       name: staging-release
-      url: https://staging.musicnerd.xyz
+      url: https://staging.musicnerd.net
     concurrency:
       group: musicnerd-staging-release
       cancel-in-progress: false
@@ -91,7 +91,7 @@ jobs:
     # Approval includes the manual production-migration checklist in docs/releases.md.
     environment:
       name: production-release
-      url: https://www.musicnerd.xyz
+      url: https://musicnerd.net
     concurrency:
       group: musicnerd-production-release
       cancel-in-progress: false

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
-import { customImageUrl } from "@/lib/artist/artistImage";
+import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
