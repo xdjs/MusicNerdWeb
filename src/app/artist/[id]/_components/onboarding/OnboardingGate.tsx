@@ -4,7 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import OnboardingChat from "./OnboardingChat";
 import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
 import OnboardingBanner from "./OnboardingBanner";
-import { armTour, tourFlagKey } from "./ProfileTour";
+import { armTour } from "@/app/artist/[id]/_components/onboarding/armTour";
+import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
 
 export function skipFlagKey(artistId: string): string {
     return `mn-onboarding-skip-${artistId}`;

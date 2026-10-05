@@ -253,6 +253,13 @@
       "when": 1790869768048,
       "tag": "0035_account_merge_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791230836722,
+      "tag": "0036_music_destination_owner_indexes",
+      "breakpoints": true
     }
   ]
 }

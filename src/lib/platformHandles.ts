@@ -1,3 +1,5 @@
+import { MUSIC_RESERVED_HANDLES } from '@/lib/musicLinks/const';
+
 /**
  * Path segments that look like a handle to a URL pattern but never are.
  *
@@ -21,7 +23,7 @@ const RESERVED_HANDLES: Record<string, Set<string>> = {
     youtube: new Set(["watch", "shorts", "playlist", "results", "feed", "channel", "embed",
                       "user", "c", "live", "gaming", "music", "movies", "premium", "about"]),
     youtubechannel: new Set(["watch", "shorts", "playlist", "results", "feed", "embed"]),
-    soundcloud: new Set(["search", "discover", "stream", "you", "tags", "charts"]),
+    ...MUSIC_RESERVED_HANDLES,
     twitch: new Set(["videos", "directory", "settings", "downloads"]),
     spotify: new Set(["track", "album", "playlist", "search", "user", "episode", "show"]),
     deezer: new Set(["album", "track", "playlist", "search", "profile", "show"]),
