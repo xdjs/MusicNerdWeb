@@ -61,3 +61,17 @@ it.each(['spotify', 'deezer'])('checks canonical %s ownership without assuming a
   await pg.exec(`RESET ROLE; UPDATE artists SET ${platform}='123'; SET ROLE mnweb`);
   expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual([]);
 });
+
+it.each([['bandcamp', 'https://dupes.bandcamp.com/'], ['subvert', 'https://subvert.fm/dupes'], ['supercollector', 'https://release.supercollector.xyz/artist/dupes'], ['soundcloud', 'https://soundcloud.com/dupes'], ['audius', 'https://audius.co/dupes'], ['mixcloud', 'https://www.mixcloud.com/dupes/']])('normalizes legacy canonical %s handles when checking owners', async (platform, url) => {
+  const { getConflictingMusicSourceIds } = await import('../getConflictingMusicSourceIds');
+  const record = {id: 'handle', url, type: 'profile'};
+  await pg.exec(`INSERT INTO artists (id,${platform}) VALUES ('${otherId}','${platform === 'supercollector' ? ' @DuPes.ETH ' : ' @DuPes '}'); SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual(['handle']);
+  await pg.exec(`RESET ROLE; UPDATE artists SET id='${artistId}'; SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual([]);
+});
+it('keeps canonical Spotify IDs case-sensitive', async () => {
+  const { getConflictingMusicSourceIds } = await import('../getConflictingMusicSourceIds');
+  await pg.exec(`INSERT INTO artists (id,spotify) VALUES ('${otherId}','AbC'); SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [{id: 'spotify', url: 'https://open.spotify.com/artist/abc'}])).toEqual([]);
+});

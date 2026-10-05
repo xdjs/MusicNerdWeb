@@ -16,15 +16,22 @@ export async function getConflictingMusicSourceIds(
   });
   if (!candidates.length) return [];
   const directPlatforms = ['spotify', 'deezer', 'bandcamp', 'subvert', 'supercollector', 'soundcloud', 'audius', 'mixcloud'] as const;
-  const directConflicts = sql.join(directPlatforms.map(platform => sql`
-    (candidate.platform = ${platform} and exists (
-      select 1 from artists owner
-      where nullif(owner.${sql.identifier(platform)}, '') is not null and (
-        (owner.id = ${artistId}::uuid and owner.${sql.identifier(platform)} <> candidate.platform_id)
-        or (owner.id <> ${artistId}::uuid and owner.${sql.identifier(platform)} = candidate.platform_id)
-      )
-    ))
-  `), sql` or `);
+  const directConflicts = sql.join(directPlatforms.map(platform => {
+    // Spotify IDs are case-sensitive; handle-based platforms retain legacy @/case normalization.
+    let storedId = platform === 'spotify' || platform === 'deezer'
+      ? sql`owner.${sql.identifier(platform)}`
+      : sql`lower(ltrim(btrim(owner.${sql.identifier(platform)}), '@'))`;
+    if (platform === 'supercollector') storedId = sql`regexp_replace(${storedId}, '[.]eth$', '')`;
+    return sql`
+      (candidate.platform = ${platform} and exists (
+        select 1 from artists owner
+        where nullif(${storedId}, '') is not null and (
+          (owner.id = ${artistId}::uuid and ${storedId} <> candidate.platform_id)
+          or (owner.id <> ${artistId}::uuid and ${storedId} = candidate.platform_id)
+        )
+      ))
+    `;
+  }), sql` or `);
   try {
     const conflicts = await db.execute(sql`
       with candidates as (

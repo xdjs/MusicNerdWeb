@@ -37,7 +37,8 @@ sources use the `music` source type; source approval rules and attribution still
 Existing artist-ID mappings and manual/approved destinations constrain new research rather
 than being overwritten. Public Links/Listen also suppress source-backed artist profiles that
 conflict with a stored mapping, a canonical artist platform column (including another artist’s identity),
-or a platform exclusion.
+or a platform exclusion. Handle comparisons preserve legacy leading-@, case and whitespace
+normalization (and Supercollector’s supported `.eth` suffix); Spotify IDs stay case-sensitive.
 A failed identity read hides source artist profiles; editors retain the records with a review notice. Rejected URLs remain rejected; ownership is rechecked under the
 existing artist write lock. The MusicBrainz homepage is a website destination only after
 identity verification. Discogs release/master pages are not typed as artist Profile.
