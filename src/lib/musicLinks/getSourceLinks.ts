@@ -1,5 +1,5 @@
 import type { ProfileLink, LinkSection } from '@/lib/artist/artistProfileLinks';
-import { latestExternalUrl } from '@/lib/artist/artistLatest';
+import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
 import { isDestinationSource } from './isDestinationSource';
 import { parseMusicDestination } from './parseMusicDestination';
 
@@ -15,7 +15,7 @@ export function getSourceLinks(
   // Explicit website destinations predate URL-based routing and remain preferred.
   const ordered = [...sources].sort((a, b) => Number(b.type === 'website') - Number(a.type === 'website'));
   for (const source of ordered) {
-    const href = latestExternalUrl(source.url);
+    const href = normalizePublicUrl(source.url);
     if (!href || !isDestinationSource(source) || (source.status && source.status !== 'approved')) continue;
     const destination = parseMusicDestination(href);
     if (!destination && source.type !== 'website') continue;

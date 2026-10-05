@@ -15,6 +15,16 @@ export async function getConflictingMusicSourceIds(
       : [];
   });
   if (!candidates.length) return [];
+  const directPlatforms = ['spotify', 'deezer', 'bandcamp', 'subvert', 'supercollector', 'soundcloud', 'audius', 'mixcloud'] as const;
+  const directConflicts = sql.join(directPlatforms.map(platform => sql`
+    (candidate.platform = ${platform} and exists (
+      select 1 from artists owner
+      where nullif(owner.${sql.identifier(platform)}, '') is not null and (
+        (owner.id = ${artistId}::uuid and owner.${sql.identifier(platform)} <> candidate.platform_id)
+        or (owner.id <> ${artistId}::uuid and owner.${sql.identifier(platform)} = candidate.platform_id)
+      )
+    ))
+  `), sql` or `);
   try {
     const conflicts = await db.execute(sql`
       with candidates as (
@@ -31,7 +41,7 @@ export async function getConflictingMusicSourceIds(
       ) or exists (
         select 1 from artist_mapping_exclusions exclusion
         where exclusion.artist_id = ${artistId}::uuid and exclusion.platform = candidate.platform
-      )
+      ) or (${directConflicts})
     `);
     return (conflicts as unknown as {id:string}[]).map(row => row.id);
   } catch {

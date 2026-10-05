@@ -25,7 +25,7 @@ export function parseMusicDestination(raw: string): MusicDestination | null {
     if (!match) return null;
     [platform, label, kind, id] = ['spotify', 'Spotify', match[1] === 'artist' ? 'artist' : 'release', match[2]];
   } else if (host === 'deezer.com') {
-    match = path.match(/^\/(?:[a-z]{2}\/)?(artist|album|track)\/([1-9]\d*)$/i);
+    match = path.match(/^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?(artist|album|track)\/([1-9]\d*)$/i);
     if (!match) return null;
     [platform, label, kind, id] = ['deezer', 'Deezer', match[1] === 'artist' ? 'artist' : 'release', match[2]];
   } else if (['tidal.com', 'listen.tidal.com'].includes(host)) {

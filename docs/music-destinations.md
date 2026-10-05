@@ -20,6 +20,7 @@ historically typed as Article/Profile; the read does not rewrite records or appr
 Artist/store profiles can also appear in Listen. Bandcamp, Subvert and Supercollector
 appear in Support the artist within Links. A source-backed-only section has no empty-state message. Album/track URLs keep their descriptive
 source titles in Links and never become artist IDs or the artist-level Listen target.
+Accepted HTTP and HTTPS destinations remain visible; their original saved URLs are preserved.
 Editorial pages remain Lore. SoundCloud, Audius and Mixcloud release URLs stay audio/Lore unless explicitly classified
 Music: their URL shapes also represent spoken shows. A URL alone never supplies that
 classification. Their artist profiles still route to Links; known interview/podcast metadata
@@ -35,7 +36,8 @@ reviewable sources instead of discarding them for lacking an artist column. Cata
 sources use the `music` source type; source approval rules and attribution still apply.
 Existing artist-ID mappings and manual/approved destinations constrain new research rather
 than being overwritten. Public Links/Listen also suppress source-backed artist profiles that
-conflict with a stored mapping (including another artist’s identity) or platform exclusion.
+conflict with a stored mapping, a canonical artist platform column (including another artist’s identity),
+or a platform exclusion.
 A failed identity read hides source artist profiles; editors retain the records with a review notice. Rejected URLs remain rejected; ownership is rechecked under the
 existing artist write lock. The MusicBrainz homepage is a website destination only after
 identity verification. Discogs release/master pages are not typed as artist Profile.
@@ -45,7 +47,7 @@ reads introduce no research, model calls or writes. No new paid scrape is requir
 
 ## Verification and rollout
 
-Parser regressions cover host spoofing, country/slug variants, profiles versus releases,
+Parser regressions cover host spoofing, country/slug variants (including language-region Deezer paths), profiles versus releases,
 podcasts, malformed IDs and invalid schemes. Caller/persistence tests cover identity,
 manual choices, rejected URLs, duplicate candidates, failures and ownership revocation.
 Preview checks target Links/Lore/Listen plus editing at 832 and 390 px in both themes;

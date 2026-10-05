@@ -13,6 +13,10 @@ beforeAll(async () => {
   jest.resetModules();
   pg = new PGlite(); driver = drizzle(pg);
   await pg.exec(`CREATE ROLE mnweb;
+    CREATE TABLE artists (id uuid, spotify text, deezer text, bandcamp text, subvert text, supercollector text, soundcloud text, audius text, mixcloud text);
+    ALTER TABLE artists ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY app_read ON artists TO mnweb USING (true);
+    GRANT SELECT ON artists TO mnweb;
     CREATE TABLE artist_id_mappings (artist_id uuid, platform text, platform_id text);
     CREATE TABLE artist_mapping_exclusions (artist_id uuid, platform text, reason text);
     ALTER TABLE artist_id_mappings ENABLE ROW LEVEL SECURITY;
@@ -21,7 +25,7 @@ beforeAll(async () => {
     CREATE POLICY app_read ON artist_mapping_exclusions TO mnweb USING (true);
     GRANT SELECT ON artist_id_mappings,artist_mapping_exclusions TO mnweb;`);
 });
-beforeEach(async () => {await pg.exec('RESET ROLE; TRUNCATE artist_id_mappings,artist_mapping_exclusions');});
+beforeEach(async () => {await pg.exec('RESET ROLE; TRUNCATE artists,artist_id_mappings,artist_mapping_exclusions');});
 afterAll(async () => {await pg.close();});
 it('suppresses a legacy approved profile that conflicts with the established artist identity', async () => {
   const { getConflictingMusicSourceIds } = await import('../getConflictingMusicSourceIds');
@@ -45,4 +49,15 @@ it('fails closed for artist profiles when the identity read is unavailable', asy
   const spy=jest.spyOn(database,'execute').mockRejectedValueOnce(new Error('unavailable'));
   expect(await getConflictingMusicSourceIds(artistId,[source,{id:'release',url:'https://www.beatport.com/track/rush/123'}])).toEqual(['apple']);
   spy.mockRestore();
+});
+
+it.each(['spotify', 'deezer'])('checks canonical %s ownership without assuming a mapping row exists', async platform => {
+  const { getConflictingMusicSourceIds } = await import('../getConflictingMusicSourceIds');
+  const record = { id: 'catalog', url: `https://${platform === 'spotify' ? 'open.spotify' : 'www.deezer'}.com/artist/123`, type: 'profile' };
+  await pg.exec(`INSERT INTO artists (id,${platform}) VALUES ('${otherId}','123'); SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual(['catalog']);
+  await pg.exec(`RESET ROLE; TRUNCATE artists; INSERT INTO artists (id,${platform}) VALUES ('${artistId}','456'); SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual(['catalog']);
+  await pg.exec(`RESET ROLE; UPDATE artists SET ${platform}='123'; SET ROLE mnweb`);
+  expect(await getConflictingMusicSourceIds(artistId, [record])).toEqual([]);
 });

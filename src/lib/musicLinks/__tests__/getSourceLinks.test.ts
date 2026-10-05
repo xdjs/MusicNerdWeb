@@ -52,3 +52,9 @@ it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('does not infer music f
   expect(getSourceLinks([spoken])).toEqual([]);
   expect(isDestinationSource({...spoken, type:'music'})).toBe(true);
 });
+
+it('keeps accepted HTTP websites and catalog sources visible in Links', () => {
+  const records = [source('site', 'http://peterango.com/', 'website'), source('apple', 'http://music.apple.com/us/artist/pete-rango/1513734272', 'profile')];
+  expect(records.every(isDestinationSource)).toBe(true);
+  expect(getSourceLinks(records).map(link => link.href)).toEqual(records.map(record => record.url));
+});
