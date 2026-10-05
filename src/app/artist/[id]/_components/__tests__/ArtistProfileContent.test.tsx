@@ -5,14 +5,14 @@ import { render, screen, within } from "@testing-library/react";
 // The sections are mocked down to the props this component decides, so the
 // test covers what it owns: the hero's bio, the link editors' mode, and that the
 // page runs hero through Ask sheet (the research view swaps all of it out).
-jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, children }) => <section data-testid="hero" data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
+jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, listenLinks, children }) => <section data-testid="hero" data-listen={listenLinks.map(link => link.href).join(",")} data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
 jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => <button>edit</button> }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
 jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
-jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: () => <div /> }));
+jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} /> }));
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
@@ -97,3 +97,24 @@ describe("ArtistProfileContent", () => {
         expect(screen.getAllByTestId('ask')).toHaveLength(1);
     }
  });
+
+ it("suppresses grid empty states only when approved supplemental destinations exist", () => {
+    const { rerender } = render(<ArtistProfileContent {...base} approvedSources={[
+        { id: "support", type: "article", status: "approved", url: "https://release.supercollector.xyz/yin-yang-joey-collins" },
+        { id: "music", type: "article", status: "approved", url: "https://www.beatport.com/artist/pete-rango/1041889" },
+    ]} />);
+    expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "true");
+    expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "true");
+    rerender(<ArtistProfileContent {...base} pendingSources={[
+        { id: "pending", status: "pending", url: "https://www.subvert.fm/pete-rango" },
+    ]} />);
+    expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "false");
+    expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "false");
+ });
+
+it('keeps conflicting legacy profiles out of public Links and Listen', () => {
+  const url = 'https://music.apple.com/artist/1330310245';
+  render(<ArtistProfileContent {...base} approvedSources={[{id:'conflict',url,type:'profile',status:'approved'}]} blockedMusicSourceIds={['conflict']} />);
+  expect(screen.getByTestId('links-grid')).toHaveAttribute('data-supplemental','false');
+  expect(screen.getByTestId('hero').getAttribute('data-listen')).not.toContain(url);
+});
