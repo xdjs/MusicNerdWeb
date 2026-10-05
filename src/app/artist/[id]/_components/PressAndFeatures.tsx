@@ -51,6 +51,7 @@ const TYPE_LABELS: Record<string, string> = {
     news: "News",
     video: "Video",
     audio: "Audio",
+    music: "Music",
     social: "Social",
     document: "Document",
     image: "Image",
