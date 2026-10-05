@@ -1,61 +1,76 @@
-# Research view
+# Research in place
 
-Tracked on [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347). This is the contract for
-what a newly claimed artist sees while research builds their page: a live view of each research
-step that takes the artist page's place, replacing the build popup (`BuildStatus`). The approved design is linked from
-the issue's Design section.
+Tracked on [#1365](https://github.com/xdjs/MusicNerdWeb/issues/1365). This is the contract for
+what a newly claimed artist sees while research builds their page: **their own profile page**,
+under the app's nav, with each section that research fills showing a loading state until its step
+is confirmed. The approved design is linked from the issue.
 
-> **Decision 2026-09-24 (Sweetman).** Show research live on a full page; don't store runs. The
-> view reads the build's own stream and writes nothing new. It supersedes the stored-run design
-> in [research-runs.md](research-runs.md).
+> **Decision 2026-09-25 ([standup](rnd/transcripts/2026-09-25-standup-d78e77f0716b.md); Carl, Pete,
+> Sweetman): paint the profile in place.** This supersedes the full-page research view from
+> [#1347](https://github.com/xdjs/MusicNerdWeb/issues/1347), which slice 1 of #1365 deleted
+> (`ResearchView` and the components and `src/lib/onboarding/` functions only it used).
+
+> **Decision 2026-10-03 (Sweetman): the page reads build progress from MusicNerdAPI, not from the
+> chat stream.** The build confirms each step in `artist_onboarding_steps` as it finishes, and the
+> server finishes the build even if the browser leaves. The page reads that state through
+> MusicNerdAPI's public `GET /api/onboarding/{artistId}/state`
+> ([docs](https://musicnerd-docs.vercel.app/api-reference/onboarding/state)), not the database.
 
 ## When it shows
 
-`OnboardingGate` renders it for the approved claimant while onboarding is incomplete, exactly as
-it rendered the popup. While the auto-build runs (the `open` turn of MusicNerdAPI's
-`POST /api/onboarding/{artistId}/chat`, since #1365's second cutover) the view **takes the artist page's place, under the
-app's own nav**. There is no overlay and no header of its own (Sweetman, 2026-09-24). The page
-passes its content (`ArtistProfileContent`: hero through the Ask sheet) to the gate as `children`; the gate hands it to the
-chat, which shows the view instead of it during the build, and gives it back when the build
-finishes or is skipped. The view sits in the page container (`max-w-[800px]`), so it resizes like
-every other page, with a fluid heading and photo. The resume path, where an artist answers step
-cards, keeps the chat layout: a `step` or `draft` event switches to it, as before. A build that
-**fails stays in the view** (below), where the popup used to switch to the chat layout and drop
-what had streamed.
+`page.tsx` fetches the onboarding state from MusicNerdAPI (`fetchOnboardingState`) for the
+approved claimant only. An unreadable state (a 503, a network error, or no answer within 5 s)
+means **no takeover**, never "not started": the page renders as usual (fail closed).
 
-## What it shows
+While onboarding is incomplete, `OnboardingGate` renders the profile it is given and sends the
+`open` turn of MusicNerdAPI's `POST /api/onboarding/{artistId}/chat` once, as the kick-off. The turn
+is idempotent: a reload or a "try again" resumes the build rather than repeating it. The page does
+not read the turn's stream for progress.
 
-| Part | Source | Notes |
+The resume path is unchanged: when the turn answers with a step card (`step` or `draft` event), the
+step cards open over the page as before.
+
+## Sections
+
+| Section | Waits on step | While researching |
 |---|---|---|
-| Actions | — | "skip for now" while building, "see my page" when done, under the hero's text. Skipping keeps its session-scoped behaviour (`OnboardingGate`) |
-| Hero | The page's `imageUrl` (custom image, else the platform image, else the default) and the artist's name | Lowercase copy: "setting up your page", then "your page is ready" |
-| Releases ("your latest releases") | `getLatestArtistReleases(artist)`, the same cached call the Latest section makes (24 h cache), started by the page for the claimant only and read by the view without blocking the page | Up to three covers. The label names no service: the call falls back from Deezer to Spotify. Missing or failed: the strip is left out |
-| Stages | `progress` events grouped by `BUILD_STAGES` (`platform-search`, `source-search`, `about-write`), through `stageStates` | A quiet timeline: pending, running (the accent dot), done (a check), failed. The finished label carries the count ("found 7 profiles") |
-| Profiles ("finding your profiles") | `candidate` events while discovery runs, then one `linked` event with the profiles the build **wrote** to the artist's row, through `foundProfiles` | The finished stage counts its cards ("Found 7 profiles"), not what discovery proposed. A card per profile: its image (`previewImage`, else the platform logo, else its first letter), the platform icon and name, and the handle. Cards appear as `candidate` events arrive; once `linked` arrives, the cards are exactly what was written, so a profile the identity guards refused, or a second account for a platform, drops out. One `linked` event per write, merged by platform, the latest winning |
-| Refused platforms | One `unreachable` event (the platforms' display names) after discovery, through `unreachableNote` | One plain sentence under the cards: "instagram wouldn't let us look just now, so that's not a 'no'. you can add it from your page." It replaces the chat line the build used to send, which the view never showed |
-| Sources ("reading what's written about you") | A `source` event each time the source search saves one (`onSaved` on `searchAndPopulateVault`, at both of its save points), then one `sources` event with every approved source on the artist's page once the stage is done, through `savedSources` | Up to three sources with a share image (`og_image`) as cards, the domain above the title. Up to four more as compact rows: a letter, the title, the domain. Once `sources` arrives: "17 sources in all. 10 more are in your lore, where you can keep or remove each one." The total counts sources already on the page too, because claim approval runs the same search first. Events sent after the stage's 45 s budget are dropped (`yieldWhileRunning` stops listening when the race settles) |
-| Links the source search adopts | The artist's row read before and after the search, compared by MusicNerdAPI's `adoptedProfiles` | Each link column the search filled or changed (MusicBrainz, the artist's own page, search results) is sent as a `linked` event, so it joins the cards under "finding your profiles" |
-| Lore document and About drafts | `writing` items from `text-delta` events ([llm.md](llm.md), "Streaming into the build popup"), through `writingDrafts` | Rendered as Markdown by Streamdown while they stream. `[n]` markers render as quiet superscripts (`citationSuperscripts`); a marker still arriving at the end is held back until it completes, so it never flashes as a half-typed link. The model's internal labels (`[VERIFIED CATALOG]`, "(date unknown)") are hidden (`stripModelLabels`), as `validateCitations` does for the saved text. The page shows the validated version once saved |
-| Failure | The last `error` item | The step that was running is marked failed. Its partial draft stays on screen with "try again", which re-opens the turn (`{ type: "open" }`) |
-| Done | The `complete` item | Every stage shows done, including one whose own "done" never arrived (a "try again" after a dropped connection gets only `complete`, because the server finished the build meanwhile). "see my page" closes the view as the popup did |
+| About (`#mn-about`, in the hero) | `publish` | "writing your about…" in place of the blurb |
+| Links (`#mn-links`) | `profiles` | "finding your profiles…" above whatever is already linked |
+| Lore (`#mn-lore`, its sources) | `vault` | "reading what's written about you…" above whatever is already there |
 
-A finished stage stays open while the build runs (the approved design shows found profiles under
-a done stage while the Lore is still being written). Once the build completes, a stage with cards
-collapses to an overlapping stack of their images and a one-line summary, via `listSummary`
-("spotify, youtube, bandcamp, soundcloud and 3 more"; for sources, their domains). A chevron beside the stage's title opens
-and closes it (`aria-expanded`).
+Latest (`#mn-latest`) does not depend on research and is unchanged. A section is pending only while
+a build is being watched and its step has no confirmation time; otherwise it renders as usual.
+
+## Progress
+
+- **Polling.** While `complete` is false, the page polls the state endpoint about every 2 s
+  (`useOnboardingProgress`, `cache: "no-store"`). It stops once `complete` is true.
+- **Repaint.** When a step is newly confirmed (`newlyConfirmedSteps`), the page calls
+  `router.refresh()`, so its section repaints from the database. The database is the source of
+  truth: a reload mid-build shows whatever has been written.
+- **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
+  never treated as "not started".
+- **Done.** On `complete` the page refreshes once more and arms the profile tour. The server then
+  sees onboarding complete and renders the page without the gate. It does not scroll the artist.
+- **Status strip.** One line at the top of the page names the current step (`buildStepLabel`:
+  `profiles` "finding your profiles", `vault` "reading what's written about you", `interview` and
+  `publish` "writing your about") with "skip for now". Slice 2 replaces it with the designed
+  above-the-fold indicator.
+- **Failure.** The strip shows a failure, with "try again" (`{ type: "open" }`), when the turn's
+  stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
+  incomplete ("This is taking longer than usual."). "try again" resets that clock. What already
+  painted stays.
+- **Skip** keeps its session-scoped behaviour (`OnboardingGate`): the banner, no loading lines.
+  The build carries on server-side.
 
 ## Rules
 
-- **Tokens only.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border` and the
-  stock radii. Dark mode follows the tokens. No hex values are added; the one colour is the
-  active-step accent (`pastypink` in light, `pastyblue` in dark). Muted text reads the token directly
-  (`text-[hsl(var(--muted-foreground))]`), because `globals.css` forces `.dark .text-muted-foreground`
-  to white with `!important` (DESIGN.md, inconsistency #5).
-- **Artist-facing copy.** No internal reasons, tiers, issue numbers or error codes.
-- **No new work on page load.** The releases call is the Latest section's cached call, started
-  only when the view will render. Nothing is written.
-- **Accessible.** A section named by the artist's name inside the page's own `<main>`, real
-  buttons, an ordered list for the stages, the running stage marked `aria-current="step"`, and
-  `role="alert"` on a failure.
-
+- **Tokens only.** `bg-background`, `text-foreground`, `border` and the stock radii; dark mode
+  follows the tokens. The one colour is the activity dot (`pastypink` in light, `pastyblue` in
+  dark). Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
+  `globals.css` forces `.dark .text-muted-foreground` to white with `!important` (DESIGN.md,
+  inconsistency #5).
+- **Artist-facing copy.** No internal reasons, step ids, issue numbers or error codes.
+- **No new work on page load** beyond the one state read for the claimant. Nothing is written.
+- **Accessible.** Loading lines are `role="status"`; the strip's step is `aria-live="polite"`; a
+  failure is `role="alert"`; real buttons with 44 px targets.
