@@ -82,6 +82,11 @@ selected sources' titles, artists and URLs. Cancel makes no writes. Individual
 Approve and Reject remain available. Changing page, search, origin or claim filter
 clears selection; refreshing the same page cannot add new arrivals to it.
 
+The selection control keeps its circular outline in unchecked, selected and partial
+states. Its inner checkmark has a transparent background and stays inside that
+outline, avoiding the global checked-state fill on the inner indicator. The
+surrounding label retains a minimum 44px tap target.
+
 The confirmation freezes the exact selected IDs and processes requests of ten.
 Only a current Admin can use this action; each source-write transaction locks and
 rechecks the admin role and updates only a still-pending source. Manual selection

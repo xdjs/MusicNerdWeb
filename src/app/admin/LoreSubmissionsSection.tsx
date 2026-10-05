@@ -117,7 +117,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
     <p className={styles.filterSummary}>{data.total === 0 ? "No pending Lore sources" : `Showing ${first}–${last} of ${data.total.toLocaleString()} pending Lore sources`}</p>
     {visible.length > 0 && <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border p-3">
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
-        <Checkbox aria-label="Select all on this page" disabled={busy}
+        <Checkbox className={styles.loreCheckbox} aria-label="Select all on this page" disabled={busy}
           checked={selected.length === visible.length ? true : selected.length ? 'indeterminate' : false}
           onCheckedChange={checked => setSelectedIds(new Set(checked === true ? visible.map(item => item.id) : []))} />
         Select all on this page
@@ -140,7 +140,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
           <div className={styles.loreCardTop}>
             <div className="flex min-w-0 items-start gap-2">
               <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
-                <Checkbox disabled={busy} checked={selectedIds.has(item.id)}
+                <Checkbox className={styles.loreCheckbox} disabled={busy} checked={selectedIds.has(item.id)}
                   aria-label={`Select ${item.title || 'Lore source'} for ${artistName}`}
                   onCheckedChange={checked => setSelectedIds(previous => {
                     const next = new Set(previous);
