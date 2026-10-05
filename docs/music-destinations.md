@@ -58,14 +58,15 @@ Web presentation ships before API classification. Main merge, staging verificati
 production release are recorded separately on #1273. A read-only inventory precedes any
 historic identity correction or approval. No production record is changed by this feature.
 
-## Independent onboarding integration
+## Onboarding integration
 
 [#1429](https://github.com/xdjs/MusicNerdWeb/pull/1429) adds a no-support-links wizard prompt.
-Whichever PR merges second must include approved source-backed support destinations in
+It is stacked on #1430 and includes approved source-backed support destinations in
 both real and preview `ProfileTour.hasSupportLinks` conditions using
 `getSourceLinks(approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id)), [], 'support').length > 0`
 alongside `getProfileLinks`. The same identity-filtered sources feed public Links and Listen.
-Do not duplicate platform URL parsing at the page call site.
+Do not duplicate platform URL parsing at the page call site. Merge #1430 first,
+then retarget #1429 to main after the squash merge and verify it before merging.
 
 ## Verified URL examples
 

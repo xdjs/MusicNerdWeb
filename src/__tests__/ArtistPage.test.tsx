@@ -6,6 +6,10 @@ jest.mock('@/server/utils/source/addSourceContributors', () => ({
     addSourceContributors: jest.fn(async (_id, sources) => sources.map(source => ({ ...source, contributorName: 'Contributor' }))),
 }));
 
+jest.mock('@/server/utils/musicLinks/getConflictingMusicSourceIds', () => ({
+    getConflictingMusicSourceIds: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock('@/server/auth', () => ({
     getServerAuthSession: jest.fn(),
 }));
@@ -371,6 +375,42 @@ describe('ArtistProfile page', () => {
     });
 
     describe('Completed research tour support links', () => {
+        describe.each(['owner', 'preview'])('%s tour source-backed support', (mode) => {
+            it.each([
+                ['approved Bandcamp', 'https://artist.bandcamp.com/', 'approved', false, true],
+                ['approved Subvert', 'https://www.subvert.fm/artist', 'approved', false, true],
+                ['approved Supercollector', 'https://release.supercollector.xyz/artist/joey-collins', 'approved', false, true],
+                ['pending Bandcamp', 'https://artist.bandcamp.com/', 'pending', false, false],
+                ['identity-conflicting Bandcamp', 'https://artist.bandcamp.com/', 'approved', true, false],
+                ['streaming-only source', 'https://open.spotify.com/artist/5RUy3e0zVDPXCvJCA3TUXi', 'approved', false, false],
+            ])('matches visible Support for %s', async (_name, url, status, blocked, expected) => {
+                const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+                const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+                const { getConflictingMusicSourceIds } = await import('@/server/utils/musicLinks/getConflictingMusicSourceIds');
+                const source = { id: 'source-support', url, status, type: 'article', title: 'Artist music' };
+                (getVaultSourcesByArtistId as jest.Mock)
+                    .mockResolvedValueOnce(status === 'approved' ? [source] : [])
+                    .mockResolvedValueOnce(status === 'pending' ? [source] : []);
+                (getConflictingMusicSourceIds as jest.Mock).mockResolvedValueOnce(blocked ? [source.id] : []);
+
+                const previousEnv = process.env.VERCEL_ENV;
+                try {
+                    if (mode === 'owner') {
+                        setupMocks({ session: { user: { id: 'user-uuid' } } });
+                        (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+                        (getOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+                    } else {
+                        process.env.VERCEL_ENV = 'preview';
+                    }
+                    await renderArtistPage('artist-uuid', mode === 'preview' ? { tourPreview: '1' } : undefined);
+                    expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', String(expected));
+                } finally {
+                    if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                    else process.env.VERCEL_ENV = previousEnv;
+                }
+            });
+        });
+
         it('keeps the review-only tour parameter out of production', async () => {
             const previousEnv = process.env.VERCEL_ENV;
             process.env.VERCEL_ENV = 'production';

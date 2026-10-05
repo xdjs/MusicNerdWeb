@@ -60,18 +60,20 @@ all copy and controls remain reachable in landscape. Its pointer remains outside
 the scroll area. If saved support links change during the tour, the card repositions
 for its new content before paint.
 
-The artist page passes whether `getProfileLinks(..., 'support')` has any entries,
-the same rule as the visible Support section (including In Process and monetized
-services). Existing support destinations suppress the suggestion. It only appears
+The artist page checks `getProfileLinks(..., 'support')` and the approved
+source-backed destinations returned by `getSourceLinks(..., [], 'support')` after
+excluding `blockedMusicSourceIds`. This is the same rule as the visible Support
+section (including In Process and monetized services). Pending or identity-conflicting
+sources do not suppress the suggestion. Existing support destinations suppress it. It only appears
 inside the tour already gated on the approved claimant and completed onboarding,
 so unfinished/failed research, missing onboarding state and visitors do not get a
 new prompt. There are no new queries, API calls, research jobs or writes.
 
 This is Pete's simplified scope for [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305),
-agreed 2026-10-05. Source-backed catalog links from #1273 / #1430 must participate
-in this same Support check when that separate work lands. Use its shared
-`getSourceLinks` helper after excluding `blockedMusicSourceIds`, so both real and
-preview tour callers count exactly the approved destinations shown publicly.
+agreed 2026-10-05. The implementation in #1429 is stacked on #1273 / #1430 so both
+real and preview tour callers count exactly the approved destinations shown publicly.
+Merge #1430 first, retarget #1429 to main after the squash merge, then recheck it
+before merging. Production promotion remains separate.
 
 For review, development and Vercel preview deployments accept `?tourPreview=1` on
 an artist page. **Start tour preview** runs the actual tour using that profile's

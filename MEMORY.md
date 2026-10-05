@@ -6,11 +6,13 @@ Supercollector hyperlinks only if the visible Support section has no links.
 Implemented in [draft #1429](https://github.com/xdjs/MusicNerdWeb/pull/1429)
 on `codex/onboarding-support-options`; not merged or released.
 See [the contract](docs/research-view.md#after-research-optional-support-links).
-The artist page reuses `getProfileLinks(..., 'support')`; no API, database or
-research changes. Preview-only `?tourPreview=1` permits review with saved data
-without rerunning research. #1273 / #1430 is independent: whichever Web PR lands
-second must include approved source-backed Support destinations after excluding
-`blockedMusicSourceIds`, matching the public Support section in both tour callers.
+The artist page reuses `getProfileLinks(..., 'support')` plus approved source-backed
+Support destinations from `getSourceLinks` after excluding `blockedMusicSourceIds`.
+No new API, database or research work beyond the #1273 presentation dependency.
+Preview-only `?tourPreview=1` permits review with saved data without rerunning research.
+#1429 is stacked on #1430; both real and preview tour callers match public Support.
+Merge #1430 first, retarget #1429 to main after that squash merge, then recheck and
+merge #1429. Production promotion remains separate.
 
 ## Primary domain migration — October 5
 

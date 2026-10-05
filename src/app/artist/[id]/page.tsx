@@ -27,6 +27,7 @@ import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestRele
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import { getProfileLinks } from "@/lib/artist/artistProfileLinks";
+import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
 import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
@@ -143,6 +144,12 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     ]);
 
     const blockedMusicSourceIds = await getConflictingMusicSourceIds(id, approvedSources);
+    const hasSupportLinks = getProfileLinks(artist, artistLinks, 'support').length > 0
+        || getSourceLinks(
+            approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id)),
+            [],
+            'support',
+        ).length > 0;
 
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";
@@ -209,9 +216,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     once complete it stays complete, so unlike that one this
                     cannot be unmounted out from under the tour. */}
                 {tourPreview ? (
-                    <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={getProfileLinks(artist, artistLinks, 'support').length > 0} />
+                    <ProfileTourPreview key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
                 ) : !interviewPreview && isClaimedByUser && onboardingState?.complete && (
-                    <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={getProfileLinks(artist, artistLinks, 'support').length > 0} />
+                    <ProfileTour key={artist.id} artistId={artist.id} hasSupportLinks={hasSupportLinks} />
                 )}
 
                 {/* The only part of onboarding where what lands on the page
