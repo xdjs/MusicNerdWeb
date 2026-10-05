@@ -21,8 +21,10 @@ Trusted contributor approval authorizes collecting that public source; it does n
 the contributor general artist editing. Existing version-1 explicit claimant/admin jobs
 retain their authorization and 1–20-source API contract.
 
-Migration 0037 splits live-job uniqueness: one per artist/kind for existing/manual jobs,
-one per artist/source for automatic extraction. No new table, service, public endpoint,
+Migration 0037 retains existing live-job uniqueness and conflict-query compatibility.
+Automatic jobs wait in an internal `queued` state, with one waiting/live job per
+artist/source. The API claims one per artist at a time; public status reads report
+waiting jobs as `pending`. Old workers safely ignore the new backlog. No new table, service, public endpoint,
 grants or RLS policy is introduced. Each source is attempted once per add/approval;
 blocked/unsupported reads finish visibly, with no automatic endless retry. Ordinary
 knowledge reads do not fetch. Existing originals remain unchanged.
@@ -35,8 +37,9 @@ editorial source verification or promise a regenerated Lore summary.
 
 ## Release and verification
 
-Requires Web#1431 / migration 0036 and the version-2 worker in API#20 before automatic
-queueing is released. Apply 0037 before Web code; never enable it against an old worker.
+Requires Web#1431 / migration 0036, then 0037 before the new API or Web writes.
+Release API#20 with its version-2 worker before Web automatic queueing. The additive
+migration leaves existing worker and enqueue behavior intact.
 Production migrations and releases remain separate approvals.
 
 Verify transactional add/approval/rollback, more than twenty sources, overlapping live
