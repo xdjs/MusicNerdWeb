@@ -1,3 +1,4 @@
+import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { parseMusicDestination } from '../parseMusicDestination';
 
 describe('parseMusicDestination', () => {
@@ -108,4 +109,12 @@ it.each(['artist', 'album', 'track'])('rejects malformed Spotify %s IDs', kind =
 it('preserves a valid case-sensitive Spotify ID through a localized URL', () => {
   expect(parseMusicDestination('https://open.spotify.com/intl-de/track/3DmaZbBPnKSGnxYRpHobss?si=tracking'))
     .toMatchObject({platform: 'spotify', kind: 'release', id: '3DmaZbBPnKSGnxYRpHobss'});
+});
+
+
+it.each(providerInformationUrls)('excludes the audited provider navigation/information URL %s', url => {
+  expect(parseMusicDestination(url)).toBeNull();
+});
+it('keeps Audius own account distinct from its application routes', () => {
+  expect(parseMusicDestination('https://audius.co/audius')).toMatchObject({platform:'audius',kind:'artist',id:'audius'});
 });

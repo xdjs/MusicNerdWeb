@@ -1,3 +1,4 @@
+import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { getSourceLinks } from '../getSourceLinks';
 import { isDestinationSource } from '../isDestinationSource';
 
@@ -71,4 +72,11 @@ it('keeps accepted HTTP websites and catalog sources visible in Links', () => {
   const records = [source('site', 'http://peterango.com/', 'website'), source('apple', 'http://music.apple.com/us/artist/pete-rango/1513734272', 'profile')];
   expect(records.every(isDestinationSource)).toBe(true);
   expect(getSourceLinks(records).map(link => link.href)).toEqual(records.map(record => record.url));
+});
+
+it('keeps the audited provider information sources out of Links, Support and Listen candidates', () => {
+  const records = providerInformationUrls.map((url,id) => source(String(id),url,'article'));
+  expect(records.filter(isDestinationSource)).toEqual([]);
+  expect(getSourceLinks(records)).toEqual([]);
+  expect(getSourceLinks(records, [], 'support')).toEqual([]);
 });
