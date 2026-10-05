@@ -3,7 +3,7 @@ export const IS_PROD = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 
 /**
  * MusicNerdAPI (xdjs/MusicNerdAPI), which runs research since the #1365
- * cutover. Production talks to production; previews, staging.musicnerd.xyz and
+ * cutover. Production talks to production; previews, staging.musicnerd.net and
  * local development talk to MusicNerdAPI's `staging` environment, which
  * deploys `main` on the staging database. An isolated preview can override
  * that target to verify a paired API PR; production never uses the override.

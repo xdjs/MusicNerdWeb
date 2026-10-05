@@ -30,7 +30,7 @@ function harness(options = {}) {
     if (u.hostname === 'api.github.com') body = { object: { sha: options.stale ? 'b'.repeat(40) : sha } };
     else if (p === '/v9/projects/prj_test') body = { id: 'prj_test', autoAssignCustomDomains: false, autoExposeSystemEnvs: true, buildCommand: null,
       customEnvironments: [{ id: 'env_stage', slug: 'staging', ...options.custom }] };
-    else if (p === '/v9/projects/prj_test/domains') body = { domains: options.domains || [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_stage' }], pagination: options.pagination };
+    else if (p === '/v9/projects/prj_test/domains') body = { domains: options.domains || [{ name: 'staging.musicnerd.net', customEnvironmentId: 'env_stage' }], pagination: options.pagination };
     else if (p.startsWith('/v4/aliases/')) body = { deploymentId: p.includes('staging.') ? 'dpl_stage' : 'dpl_prod', ...options.alias };
     else if (p.startsWith('/v13/deployments/')) body = { id: p.split('/').at(-1), projectId: 'prj_test',
       readyState: 'READY', gitSource: options.omitDefaultGitSource && !u.searchParams.has('withGitRepoInfo') ? undefined :
@@ -61,6 +61,8 @@ test('uses GET only, validates expected hashes, and never requests write-only st
   assert.ok(!h.calls.some(c => /\/v1\/projects.*\/env\/env_/.test(c.url)));
   assert.deepEqual(r.pending, ['staging-build-storage-validation', 'production-build-storage-identity']);
   assert.ok(h.calls.some(c => c.url.includes('withGitRepoInfo=true')));
+  assert.ok(h.calls.some(c => c.url.includes('/v4/aliases/musicnerd.net')));
+  assert.ok(!h.calls.some(c => c.url.includes('/v4/aliases/www.musicnerd.xyz')));
   for (const secret of ['vercel-secret','github-secret','storage-secret',stageRef,prodRef])
     assert.ok(!JSON.stringify(h.reports).includes(secret));
 });
@@ -99,7 +101,7 @@ for (const options of [{ wrongHash: true }, { writeOnly: true }]) test('requires
   const h = harness(options); const r = await h.run();
   assert.equal(r.ok, false); assert.equal(r.checks.stagingExpectedStorageHash, false);
 });
-for (const options of [{ domains: [] }, { domains: [{ name: 'staging.musicnerd.xyz', customEnvironmentId: 'env_other' }] },
+for (const options of [{ domains: [] }, { domains: [{ name: 'staging.musicnerd.net', customEnvironmentId: 'env_other' }] },
   { pagination: { next: 123 } }]) test('rejects incomplete or foreign domain ownership', async () => {
   assert.equal((await harness(options).run()).ok, false);
 });

@@ -1,16 +1,5 @@
 /** Where the site is served from — metadata needs absolute URLs, pages don't. */
-const SITE_ORIGIN = "https://www.musicnerd.xyz";
-
-/**
- * The artist's own uploaded image, or null when they haven't set one.
- *
- * `artists.custom_image` is nullable and has historically also held the empty
- * string, so callers can't simply null-check it.
- */
-export function customImageUrl(customImage: string | null | undefined): string | null {
-    const trimmed = customImage?.trim();
-    return trimmed ? trimmed : null;
-}
+const SITE_ORIGIN = "https://musicnerd.net";
 
 /**
  * Absolute form of a stored image value, for metadata (OG / Twitter cards),

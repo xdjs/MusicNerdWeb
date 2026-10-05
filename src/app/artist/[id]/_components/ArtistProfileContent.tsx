@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
-import { customImageUrl } from "@/lib/artist/artistImage";
-import { getListeningLinks } from "@/lib/artist/artistProfileLinks";
+import { customImageUrl } from "@/lib/artist/customImageUrl";
+import { getProfileLinks, getListeningLinks } from "@/lib/artist/artistProfileLinks";
+import { getSourceLinks } from "@/lib/musicLinks/getSourceLinks";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import ArtistLinksGrid from "@/app/_components/ArtistLinksGrid";
 import EditModeToggle from "@/app/_components/EditModeToggle";
@@ -24,13 +25,14 @@ import VaultSection from "./VaultSection";
  *  is skipped. */
 export default function ArtistProfileContent({
     artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
-    isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true,
+    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true,
 }: {
     artist: Artist;
     imageUrl: string;
     platformImage: string | null;
     artistLinks: ArtistLink[];
     approvedSources: ArtistVaultSource[];
+    blockedMusicSourceIds?: string[];
     pendingSources: ArtistVaultSource[];
     urlMapList: UrlMap[];
     addLinkPrefill?: string;
@@ -45,7 +47,9 @@ export default function ArtistProfileContent({
     autoApprove: boolean;
 }) {
     const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
-    const listenLinks = getListeningLinks(artist, artistLinks, approvedSources);
+    const profileLinks = [...getProfileLinks(artist, artistLinks, "links"), ...getProfileLinks(artist, artistLinks, "support")];
+    const publicLinkSources = approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id));
+    const listenLinks = getListeningLinks(artist, artistLinks, publicLinkSources);
     return (
         <>
                 <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
@@ -88,8 +92,8 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                    <OfficialSiteLinks sources={approvedSources} />
+                    <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
                         <AddArtistData
@@ -101,7 +105,8 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={true} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ArtistLinksGrid isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
                 </RevealSection>
                 <div id="mn-lore">
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />

@@ -1,4 +1,6 @@
 {
+  "id": "a1e38f75-9d48-441c-8eec-4905dcc76232",
+  "prevId": "a4f055ce-8f13-44f1-8561-ceb4dcced022",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2007,7 +2009,7 @@
       "checkConstraints": {
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
-          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract')"
+          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh')"
         }
       },
       "isRLSEnabled": false
@@ -3459,6 +3461,96 @@
           ],
           "isUnique": true,
           "where": "(deezer IS NOT NULL)",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_bandcamp_owner_idx": {
+          "name": "artists_music_bandcamp_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"bandcamp\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_subvert_owner_idx": {
+          "name": "artists_music_subvert_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"subvert\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_supercollector_owner_idx": {
+          "name": "artists_music_supercollector_owner_idx",
+          "columns": [
+            {
+              "expression": "regexp_replace(lower(ltrim(btrim(\"supercollector\"), '@')), '[.]eth$', '')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_soundcloud_owner_idx": {
+          "name": "artists_music_soundcloud_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"soundcloud\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_audius_owner_idx": {
+          "name": "artists_music_audius_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"audius\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_mixcloud_owner_idx": {
+          "name": "artists_music_mixcloud_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"mixcloud\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -5202,10 +5294,8 @@
   "policies": {},
   "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "id": "59315d6b-bcc4-4a96-aef3-07c0bc46a1a8",
-  "prevId": "a4f055ce-8f13-44f1-8561-ceb4dcced022"
+    "tables": {}
+  }
 }

@@ -6,7 +6,7 @@ it("adds source extraction without losing the old kinds or the live-job uniquene
  try {
   await db.exec(`create table artist_research_jobs (artist_id text,kind text constraint artist_research_jobs_kind_check check(kind in ('social_ingest','caption_extract','lore_refresh','source_search','latest_refresh')),status text);create unique index live_jobs on artist_research_jobs(artist_id,kind) where status in ('pending','running');`);
   await expect(db.exec("insert into artist_research_jobs values('artist','source_extract','pending')")).rejects.toThrow();
-  await db.exec(readFileSync("drizzle/0036_source_extract.sql","utf8"));
+  await db.exec(readFileSync("drizzle/0037_source_extract.sql","utf8"));
   await db.exec("insert into artist_research_jobs values('artist','source_extract','pending')");
   await expect(db.exec("insert into artist_research_jobs values('artist','source_extract','running')")).rejects.toThrow();
   for(const kind of ['social_ingest','caption_extract','lore_refresh','source_search','latest_refresh']) await db.query("insert into artist_research_jobs values('artist',$1,'pending')",[kind]);

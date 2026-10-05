@@ -24,11 +24,13 @@ import { MAX_VAULT_FILE_BYTES, VAULT_UPLOAD_LIMIT_LABEL } from '@/lib/vaultUploa
 
 interface VaultManagerProps {
   artistId: string;
+  /** Reuse moderation without the Lore upload/search form in Links. */
+  reviewOnly?: boolean;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
 }
 
-export default function VaultManager({ artistId, pendingSources, approvedSources }: VaultManagerProps) {
+export default function VaultManager({ artistId, pendingSources, approvedSources, reviewOnly = false }: VaultManagerProps) {
   const { isEditing } = useContext(EditModeContext);
   const { toast } = useToast();
   const router = useRouter();
@@ -108,7 +110,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   }
 
   async function handleDelete(id: string) {
-    const res = await removeVaultSource(id);
+    const res = reviewOnly ? await updateSourceStatus(id, "rejected") : await removeVaultSource(id);
     if (res.success) {
       setPending(prev => prev.filter(s => s.id !== id));
       setApproved(prev => prev.filter(s => s.id !== id));
@@ -270,6 +272,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
 
   return (
     <div className="space-y-4">
+      {!reviewOnly && <>
       {/* What Lore is for */}
       <p className="text-xs text-muted-foreground leading-relaxed">
         Your Lore powers your profile. Approved sources — articles, interviews, reviews, uploaded files — become context for your AI-generated <strong>About</strong> and the <strong>Ask About</strong> answers. The more quality sources you add, the better and more accurate that content gets.
@@ -331,6 +334,8 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
         </div>
       </div>
 
+      </>}
+
       {pending.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">Pending review ({pending.length})</h3>
@@ -380,7 +385,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
           )}
 
           {/* Bulk-select controls */}
-          <div className="flex items-center justify-between">
+          {!reviewOnly && <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
@@ -403,16 +408,18 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
             )}
           </div>
 
+          }
+
           {filteredApproved.map(s => (
             <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions={false}
               onDelete={handleDelete} onTypeChange={handleTypeChange}
-              selected={selectedIds.has(s.id)} onSelect={toggleSelect} />
+              selected={!reviewOnly && selectedIds.has(s.id)} onSelect={reviewOnly ? undefined : toggleSelect} />
           ))}
         </div>
       )}
 
       {pending.length === 0 && approved.length === 0 && (
-        <p className="text-sm text-muted-foreground italic">Nothing in your Lore yet. Upload a file or search the web to get started.</p>
+        <p className="text-sm text-muted-foreground italic">{reviewOnly ? 'No website or music links to review.' : 'Nothing in your Lore yet. Upload a file or search the web to get started.'}</p>
       )}
     </div>
   );

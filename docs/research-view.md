@@ -47,6 +47,41 @@ and closes it (`aria-expanded`).
 
 ## Rules
 
+### After research: optional support links
+
+The completed page's `ProfileTour` is separate from the research view. On its Links
+step, artists with no saved support links see: “We didn't find any support links.
+Give fans a way to support your music with Subvert, Bandcamp, or Supercollector.”
+Each platform is an outbound hyperlink that opens in a new tab. A short reminder
+points artists who already have a page to the existing **Support the artist** add-link
+control. Next, Back and Skip remain available; no external signup is required.
+The card stays within the viewport and scrolls internally on short screens, so
+all copy and controls remain reachable in landscape. Its pointer remains outside
+the scroll area. If saved support links change during the tour, the card repositions
+for its new content before paint.
+
+The artist page checks `getProfileLinks(..., 'support')` and the approved
+source-backed destinations returned by `getSourceLinks(..., [], 'support')` after
+excluding `blockedMusicSourceIds`. This is the same rule as the visible Support
+section (including In Process and monetized services). Pending or identity-conflicting
+sources do not suppress the suggestion. Existing support destinations suppress it. It only appears
+inside the tour already gated on the approved claimant and completed onboarding,
+so unfinished/failed research, missing onboarding state and visitors do not get a
+new prompt. There are no new queries, API calls, research jobs or writes.
+
+This is Pete's simplified scope for [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305),
+agreed 2026-10-05. The implementation in #1429 is stacked on #1273 / #1430 so both
+real and preview tour callers count exactly the approved destinations shown publicly.
+Merge #1430 first, retarget #1429 to main after the squash merge, then recheck it
+before merging. Production promotion remains separate.
+
+For review, development and Vercel preview deployments accept `?tourPreview=1` on
+an artist page. **Start tour preview** runs the actual tour using that profile's
+saved links, with a separate browser completion flag. It does not run research or
+offer an interview. The parameter has no effect in production.
+
+### Research view rules
+
 - **Tokens only.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border` and the
   stock radii. Dark mode follows the tokens. No hex values are added; the one colour is the
   active-step accent (`pastypink` in light, `pastyblue` in dark). Muted text reads the token directly
@@ -58,4 +93,3 @@ and closes it (`aria-expanded`).
 - **Accessible.** A section named by the artist's name inside the page's own `<main>`, real
   buttons, an ordered list for the stages, the running stage marked `aria-current="step"`, and
   `role="alert"` on a failure.
-
