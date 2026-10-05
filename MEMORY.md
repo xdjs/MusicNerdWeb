@@ -11,11 +11,14 @@ pages; each mutation rechecks Admin, contributor and pending status. See
 permission is involved. Production read-only verification found Tempo Menace's
 4 attributed Lore sources and 566 links already approved; no backlog write was
 needed. [Draft PR #1425](https://github.com/xdjs/MusicNerdWeb/pull/1425) is on
-`codex/whitelist-lore-auto-approval`, not merged or deployed. Local checks pass
-(357 suites / 3,217 tests, type/lint/build). Initial authenticated preview checks
-verified the contributor dialog in both themes at desktop/phone widths. Codex's
-role-revocation race finding was reproduced for both URL entry points and fixed;
-updated preview and exact-head review evidence belongs on the PR.
+`codex/whitelist-lore-auto-approval`, not merged or deployed. Pete then requested
+checkboxes, Select all on this page, and a confirmation for selected Lore sources
+in the main Admin queue. That flow shares the transactional pending-source write,
+retains failed rows, and resets selection on page/filter navigation. Manually
+selected research/unknown sources are allowed; contributor bulk rules stay limited
+to direct submissions. Local checks pass (357 suites / 3,231 tests, type/lint/build).
+Prior contributor preview and Codex code/security reviews were clear on `d2729e34`;
+fresh exact-head preview and reviews for the added queue selection belong on #1425.
 
 ## Instagram refresh reliability — October 2
 

@@ -71,3 +71,28 @@ not pretend saved approvals failed. No emails or Discord messages are sent.
 Pete's October 5 request to approve Tempo Menace's existing submissions needed no
 production writes: the production inventory already showed 4 approved attributed
 Lore sources and 566 approved links, with no pending submissions.
+
+## Selected sources in the Lore queue
+
+Pete also requested selection across artists and contributors in **Admin → Lore**
+on October 5. Each pending source has a checkbox. **Select all on this page**
+selects only the displayed page (up to 25 sources), with a partial-selection state
+and a way to clear it. **Approve selected (N)** opens a confirmation showing the
+selected sources' titles, artists and URLs. Cancel makes no writes. Individual
+Approve and Reject remain available. Changing page, search, origin or claim filter
+clears selection; refreshing the same page cannot add new arrivals to it.
+
+The confirmation freezes the exact selected IDs and processes requests of ten.
+Only a current Admin can use this action; each source-write transaction locks and
+rechecks the admin role and updates only a still-pending source. Manual selection
+can include research, uploads and unknown-origin sources. The contributor bulk
+action continues to require direct submissions from its chosen contributor.
+Both paths reuse the same pending-Lore write, artist-before-source lock order,
+original attribution, reviewer activity and coalesced Lore refresh jobs.
+
+Results identify approved, skipped and failed IDs. Approved and already-reviewed
+rows leave the local queue; failed rows remain selected for another review.
+An interrupted request has an unknown outcome: refresh before retrying, and any
+already-reviewed source will be skipped. Buttons prevent duplicate submissions
+while a request runs. Enqueue failures warn without misreporting saved approvals.
+No schema changes, notifications or new scraping are introduced.

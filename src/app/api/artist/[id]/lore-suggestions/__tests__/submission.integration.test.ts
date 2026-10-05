@@ -263,3 +263,89 @@ it('skips a link reviewed after the preview and leaves its artist destination un
   expect(await approveContributorSubmissions(userId, [{ id: link!.id, type: 'link' }])).toMatchObject({ approved: 0, skipped: 1, failed: 0 });
   expect(await database.query.artists.findFirst()).toMatchObject({ instagram: null });
 });
+
+it('approves only selected pending Lore across origins/artists, preserves credit, and safely replays', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const otherArtist = '00000000-0000-4000-8000-000000001427';
+  await database.insert(schema.artists).values({ id: otherArtist, createdAt: '2020-01-01T00:00:00Z' });
+  await database.insert(schema.artistClaims).values({ id: claimId, artistId, userId, status: 'approved' });
+  const sources = await Promise.all(['submission', 'research', 'upload', 'unknown'].map(origin => pendingSource(userId, origin)));
+  await database.update(schema.artistVaultSources).set({ artistId: otherArtist }).where(eq(schema.artistVaultSources.id, sources[3]!.id));
+  const unselected = await pendingSource();
+  const rejected = await pendingSource(userId, 'submission', 'rejected');
+  await adminSession(); await client.exec('SET ROLE mnweb');
+  const ids = [...sources.map(source => source.id), rejected.id];
+  expect(await approveSelectedLoreSources([...ids, ids[0]!])).toEqual({ success: true, approvedIds: sources.map(source => source.id), skippedIds: [rejected.id], failedIds: [] });
+  for (const source of sources) {
+    expect(await database.query.artistVaultSources.findFirst({ where: eq(schema.artistVaultSources.id, source.id) })).toMatchObject({ status: 'approved', activityId: source.activityId });
+  }
+  expect(await database.query.artistVaultSources.findFirst({ where: eq(schema.artistVaultSources.id, unselected.id) })).toMatchObject({ status: 'pending' });
+  const reviews = (await database.query.artistActivityEvents.findMany()).filter(event => event.action === 'source_approved');
+  expect(reviews).toHaveLength(4);
+  expect(reviews.every(event => event.actorUserId === ownerId && event.trigger === 'admin_bulk_review')).toBe(true);
+  const jobs = await database.query.artistResearchJobs.findMany();
+  expect(jobs).toHaveLength(2);
+  expect(jobs.find(job => job.artistId === artistId)?.state).toMatchObject({ claimId });
+  expect(await approveSelectedLoreSources(ids)).toEqual({ success: true, approvedIds: [], skippedIds: ids, failedIds: [] });
+});
+
+it('rejects selected Lore approval for anonymous, whitelist-only and owner accounts with spoofed admin claims', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const source = await pendingSource();
+  await database.insert(schema.artistClaims).values({ id: claimId, artistId, userId, status: 'approved' });
+  await client.exec('SET ROLE mnweb');
+  for (const session of [null, { user: { id: userId, isAdmin: true }, expires: '2099-01-01' }]) {
+    jest.mocked(getServerAuthSession).mockResolvedValue(session);
+    expect(await approveSelectedLoreSources([source.id])).toMatchObject({ success: false, approvedIds: [], error: 'Admin access required.' });
+  }
+  expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(0);
+});
+
+it('rechecks Admin revocation before the selected Lore write transaction', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const source = await pendingSource();
+  await adminSession();
+  const original = mockDatabase.transaction;
+  const transaction = jest.spyOn(mockDatabase, 'transaction').mockImplementationOnce(async callback => {
+    await database.update(schema.users).set({ isAdmin: false }).where(eq(schema.users.id, ownerId));
+    return original(callback);
+  });
+  await client.exec('SET ROLE mnweb');
+  try {
+    expect(await approveSelectedLoreSources([source.id])).toMatchObject({ success: false, approvedIds: [], failedIds: [source.id] });
+    expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(0);
+  } finally { transaction.mockRestore(); }
+});
+
+it('rolls back a failed selected approval without undoing successful items', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const failed = await pendingSource(), approved = await pendingSource();
+  await adminSession();
+  await client.exec(`ALTER TABLE artist_activity_events ADD CONSTRAINT reject_selected_review CHECK (action <> 'source_approved' OR source_id <> '${failed.id}'::uuid); SET ROLE mnweb`);
+  try {
+    expect(await approveSelectedLoreSources([failed.id, approved.id])).toEqual({ success: false, approvedIds: [approved.id], skippedIds: [], failedIds: [failed.id] });
+    expect(await database.query.artistVaultSources.findFirst({ where: eq(schema.artistVaultSources.id, failed.id) })).toMatchObject({ status: 'pending' });
+    expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(1);
+  } finally { await client.exec('RESET ROLE; ALTER TABLE artist_activity_events DROP CONSTRAINT reject_selected_review'); }
+});
+
+it('validates and bounds selected source IDs before any writes', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const source = await pendingSource();
+  await adminSession(); await client.exec('SET ROLE mnweb');
+  for (const ids of [[], ['not-an-id'], Array(11).fill(source.id)]) {
+    expect(await approveSelectedLoreSources(ids)).toMatchObject({ success: false, approvedIds: [], error: expect.any(String) });
+  }
+  expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(0);
+});
+
+it('reports a Lore queue failure without misreporting saved selected approvals', async () => {
+  const { approveSelectedLoreSources } = await import('@/app/actions/approveSelectedLoreSources');
+  const source = await pendingSource();
+  await adminSession();
+  await client.exec("ALTER TABLE artist_research_jobs ADD CONSTRAINT fail_selected_queue CHECK (kind <> 'lore_refresh'); SET ROLE mnweb");
+  try {
+    expect(await approveSelectedLoreSources([source.id])).toMatchObject({ success: true, approvedIds: [source.id], failedIds: [], warning: expect.stringContaining('Approvals saved') });
+    expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(1);
+  } finally { await client.exec('RESET ROLE; ALTER TABLE artist_research_jobs DROP CONSTRAINT fail_selected_queue'); }
+});
