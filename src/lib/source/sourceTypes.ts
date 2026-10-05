@@ -1,3 +1,4 @@
+import { isMusicSource } from "@/lib/musicLinks/isMusicSource";
 import { parseMusicDestination } from "@/lib/musicLinks/parseMusicDestination";
 
 export const SOURCE_TYPES = [
@@ -82,7 +83,8 @@ const PATH_KEYWORD_MAP: Record<string, SourceType> = {
  *  a URL whose page title carries their name; everything else falls through to
  *  "article" as before. */
 export function inferTypeFromUrl(url: string): SourceType {
-    if (parseMusicDestination(url)) return "music";
+    if (isMusicSource({url})) return "music";
+    if (parseMusicDestination(url)) return "audio";
     try {
         const parsed = new URL(url);
         const host = parsed.hostname.replace(/^www\./, "").toLowerCase();

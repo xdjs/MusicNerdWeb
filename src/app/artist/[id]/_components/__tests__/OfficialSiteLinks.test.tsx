@@ -25,3 +25,14 @@ it('reuses exact source records for editor approval and removal in Links', () =>
   expect(screen.getByTestId('review')).toHaveAttribute('data-approved', '1');
   expect(screen.getByTestId('review')).toHaveAttribute('data-review-only', 'true');
 });
+
+it('suppresses established identity conflicts publicly but keeps the source available for editor review', () => {
+  const {unmount} = render(<OfficialSiteLinks artistId="a1" sources={[apple]} blockedSourceIds={[apple.id]} />);
+  expect(screen.queryByRole('link', {name:/Apple Music/})).not.toBeInTheDocument();
+  unmount();
+  render(<EditModeContext.Provider value={{isEditing:true, canEdit:true, toggle:jest.fn()}}>
+    <OfficialSiteLinks artistId="a1" sources={[apple]} blockedSourceIds={[apple.id]} />
+  </EditModeContext.Provider>);
+  expect(screen.getByTestId('review')).toHaveAttribute('data-approved','1');
+  expect(screen.getByText(/needs identity review/)).toBeInTheDocument();
+});

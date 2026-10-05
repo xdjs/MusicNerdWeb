@@ -1,3 +1,4 @@
+import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { absoluteImageUrl, customImageUrl } from "@/lib/artist/artistImage";
@@ -136,6 +137,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
         getArtistLinks(artist),
     ]);
 
+    const blockedMusicSourceIds = await getConflictingMusicSourceIds(id, approvedSources);
+
     const isClaimed = !!existingClaim && existingClaim.status === "approved";
     const isPending = !!existingClaim && existingClaim.status === "pending";
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
@@ -172,6 +175,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             imageUrl={imageUrl}
             platformImage={platformImage}
             artistLinks={artistLinks}
+            blockedMusicSourceIds={blockedMusicSourceIds}
             approvedSources={canEdit ? editorApproved : approvedSources}
             pendingSources={editorPending}
             urlMapList={urlMapList}

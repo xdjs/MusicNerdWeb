@@ -5,7 +5,7 @@ import { render, screen, within } from "@testing-library/react";
 // The sections are mocked down to the props this component decides, so the
 // test covers what it owns: the hero's bio, the link editors' mode, and that the
 // page runs hero through Ask sheet (the research view swaps all of it out).
-jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, children }) => <section data-testid="hero" data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
+jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, listenLinks, children }) => <section data-testid="hero" data-listen={listenLinks.map(link => link.href).join(",")} data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
 jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => <button>edit</button> }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
@@ -111,3 +111,10 @@ describe("ArtistProfileContent", () => {
     expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "false");
     expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "false");
  });
+
+it('keeps conflicting legacy profiles out of public Links and Listen', () => {
+  const url = 'https://music.apple.com/artist/1330310245';
+  render(<ArtistProfileContent {...base} approvedSources={[{id:'conflict',url,type:'profile',status:'approved'}]} blockedMusicSourceIds={['conflict']} />);
+  expect(screen.getByTestId('links-grid')).toHaveAttribute('data-supplemental','false');
+  expect(screen.getByTestId('hero').getAttribute('data-listen')).not.toContain(url);
+});

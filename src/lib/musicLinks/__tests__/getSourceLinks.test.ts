@@ -31,7 +31,7 @@ describe('getSourceLinks', () => {
     const records = [
       source('subvert', 'https://subvert.fm/pete-rango/tracks/rush'),
       source('supercollector', 'https://release.supercollector.xyz/yin-yang-joey-collins'),
-      source('soundcloud', 'https://soundcloud.com/dutchyyy/a-track', 'audio'),
+      source('soundcloud', 'https://soundcloud.com/dutchyyy/a-track', 'music'),
       source('spoken', 'https://mixcloud.com/dj/an-interview', 'interview'),
       { ...source('pending', 'https://audius.co/Dutchyyy'), status: 'pending' },
     ];
@@ -44,4 +44,11 @@ describe('getSourceLinks', () => {
     expect(isDestinationSource(podcast)).toBe(false);
     expect(getSourceLinks([podcast, source('unsafe', 'javascript:alert(1)', 'website')])).toEqual([]);
   });
+});
+
+it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('does not infer music from a mixed-host release URL alone (%s)', host => {
+  const spoken = source('spoken', `https://${host}/show/artist-conversation`, 'audio');
+  expect(isDestinationSource(spoken)).toBe(false);
+  expect(getSourceLinks([spoken])).toEqual([]);
+  expect(isDestinationSource({...spoken, type:'music'})).toBe(true);
 });

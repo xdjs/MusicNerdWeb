@@ -8,23 +8,25 @@ import type { LinkSection, ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { getSourceLinks } from '@/lib/musicLinks/getSourceLinks';
 import { isDestinationSource } from '@/lib/musicLinks/isDestinationSource';
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
+import { getSourceReviewKey } from '@/lib/source/getSourceReviewKey';
 import VaultManager from './VaultManager';
 
 /** Additional destinations retain their source's approvals, provenance and removal history. */
-export default function OfficialSiteLinks({ artistId, sources, pendingSources = [], existingLinks = [], section = 'links' }: {
+export default function OfficialSiteLinks({ artistId, sources, pendingSources = [], existingLinks = [], blockedSourceIds = [], section = 'links' }: {
     artistId: string;
     sources: ArtistVaultSource[];
     pendingSources?: ArtistVaultSource[];
     existingLinks?: ProfileLink[];
+    blockedSourceIds?: string[];
     section?: LinkSection;
 }) {
     const { canEdit, isEditing } = useContext(EditModeContext);
     const inSection = (source: ArtistVaultSource) => isDestinationSource(source) && (parseMusicDestination(source.url)?.support ?? false) === (section === 'support');
     const approved = sources.filter(source => source.status === 'approved' && inSection(source));
     const pending = pendingSources.filter(source => source.status === 'pending' && inSection(source));
-    const links = getSourceLinks(approved, existingLinks, section);
+    const links = getSourceLinks(approved.filter(source => !blockedSourceIds.includes(source.id)), existingLinks, section);
     if (canEdit && isEditing && (approved.length || pending.length)) {
-        return <div className="space-y-3 pt-2"><h4 className="text-sm font-semibold">Website and music links</h4><VaultManager key={`${artistId}:${section}`} artistId={artistId} pendingSources={pending} approvedSources={approved} reviewOnly /></div>;
+        return <div className="space-y-3 pt-2"><h4 className="text-sm font-semibold">Website and music links</h4>{approved.some(source => blockedSourceIds.includes(source.id)) && <p className="text-sm text-muted-foreground">A saved music profile needs identity review before it can appear publicly.</p>}<VaultManager key={getSourceReviewKey(artistId, section, pending, approved)} artistId={artistId} pendingSources={pending} approvedSources={approved} reviewOnly /></div>;
     }
     if (!links.length) return null;
     return (

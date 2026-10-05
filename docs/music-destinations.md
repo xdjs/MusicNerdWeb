@@ -20,8 +20,11 @@ historically typed as Article/Profile; the read does not rewrite records or appr
 Artist/store profiles can also appear in Listen. Bandcamp, Subvert and Supercollector
 appear in Support the artist within Links. A source-backed-only section has no empty-state message. Album/track URLs keep their descriptive
 source titles in Links and never become artist IDs or the artist-level Listen target.
-Editorial pages remain Lore. Known interview/podcast metadata on mixed audio hosts keeps
-spoken sources in Lore. YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls.
+Editorial pages remain Lore. SoundCloud, Audius and Mixcloud release URLs stay audio/Lore unless explicitly classified
+Music: their URL shapes also represent spoken shows. A URL alone never supplies that
+classification. Their artist profiles still route to Links; known interview/podcast metadata
+always retains Lore. YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls. Editors remount when the
+filtered source identity/type changes, so a correction moves between Links and Lore immediately.
 The original source remains available to knowledge retrieval with its real URL and text.
 
 ## Research
@@ -31,7 +34,9 @@ candidates use the same destination shapes. Successful research keeps catalog UR
 reviewable sources instead of discarding them for lacking an artist column. Catalog
 sources use the `music` source type; source approval rules and attribution still apply.
 Existing artist-ID mappings and manual/approved destinations constrain new research rather
-than being overwritten. Rejected URLs remain rejected; ownership is rechecked under the
+than being overwritten. Public Links/Listen also suppress source-backed artist profiles that
+conflict with a stored mapping (including another artist’s identity) or platform exclusion.
+A failed identity read hides source artist profiles; editors retain the records with a review notice. Rejected URLs remain rejected; ownership is rechecked under the
 existing artist write lock. The MusicBrainz homepage is a website destination only after
 identity verification. Discogs release/master pages are not typed as artist Profile.
 
@@ -55,7 +60,8 @@ historic identity correction or approval. No production record is changed by thi
 [#1429](https://github.com/xdjs/MusicNerdWeb/pull/1429) adds a no-support-links wizard prompt.
 Whichever PR merges second must include approved source-backed support destinations in
 both real and preview `ProfileTour.hasSupportLinks` conditions using
-`getSourceLinks(approvedSources, [], 'support').length > 0` alongside `getProfileLinks`.
+`getSourceLinks(approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id)), [], 'support').length > 0`
+alongside `getProfileLinks`. The same identity-filtered sources feed public Links and Listen.
 Do not duplicate platform URL parsing at the page call site.
 
 ## Verified URL examples
