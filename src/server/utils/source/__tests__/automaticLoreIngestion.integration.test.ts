@@ -42,7 +42,7 @@ beforeAll(async () => {
     insert into users values('${admin}',true,false),('${contributor}',false,true);
     insert into artist_claims(id,artist_id,user_id,status)values('${claim}','${artist}','${admin}','approved');
   `);
-  await client.exec(readFileSync('drizzle/0037_automatic_source_extraction.sql', 'utf8'));
+  await client.exec(readFileSync('drizzle/0038_automatic_source_extraction.sql', 'utf8'));
 }, 30000);
 afterAll(async () => client.close());
 beforeEach(async () => {

@@ -1,6 +1,4 @@
 {
-  "id": "a1e38f75-9d48-441c-8eec-4905dcc76232",
-  "prevId": "a4f055ce-8f13-44f1-8561-ceb4dcced022",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1909,6 +1907,50 @@
         }
       },
       "indexes": {
+        "artist_research_jobs_one_live": {
+          "name": "artist_research_jobs_one_live",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"artist_research_jobs\".\"status\" in ('pending', 'running')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artist_research_jobs_auto_source_live": {
+          "name": "artist_research_jobs_auto_source_live",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "(\"state\"->>'autoSourceId')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"artist_research_jobs\".\"kind\" = 'source_extract' and \"artist_research_jobs\".\"state\"->>'version' = '2' and \"artist_research_jobs\".\"status\" in ('queued','pending','running')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "artist_research_jobs_claimable": {
           "name": "artist_research_jobs_claimable",
           "columns": [
@@ -2009,7 +2051,11 @@
       "checkConstraints": {
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
-          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh')"
+          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract')"
+        },
+        "artist_research_jobs_status_check": {
+          "name": "artist_research_jobs_status_check",
+          "value": "\"artist_research_jobs\".\"status\" in ('pending','running','done','failed') or (\"artist_research_jobs\".\"status\" = 'queued' and \"artist_research_jobs\".\"kind\" = 'source_extract' and coalesce(\"artist_research_jobs\".\"state\"->>'version','') = '2' and coalesce(\"artist_research_jobs\".\"state\"->>'autoSourceId','') <> '')"
         }
       },
       "isRLSEnabled": false
@@ -5294,8 +5340,10 @@
   "policies": {},
   "views": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
-  }
+    "tables": {},
+    "columns": {}
+  },
+  "id": "b4185325-bcde-4e60-bfa6-8c9f74529cc5",
+  "prevId": "9d97996a-3830-472f-b56f-ae568da1434d"
 }

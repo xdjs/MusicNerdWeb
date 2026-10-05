@@ -2,6 +2,13 @@
 import { isReservedHandle } from "@/lib/platformHandles";
 
 describe("isReservedHandle", () => {
+    it.each([
+        ['subvert', '@ChangeLog'], ['subvert', 'privacy-policy'], ['subvert', 'author'],
+        ['soundcloud', 'terms-of-use'], ['audius', 'documents'],
+        ['mixcloud', 'premium'], ['supercollector', 'about'], ['bandcamp', 'daily'],
+    ])('rejects the reserved music route %s/%s during handle adoption', (platform, handle) => {
+        expect(isReservedHandle(platform, handle)).toBe(true);
+    });
     it("rejects the handle a post URL parses into", () => {
         // instagram.com/p/DUtSSjnCYcU is a POST, and the urlmap regex reads its
         // first path segment as the handle — so it arrives as { instagram, "p" }.

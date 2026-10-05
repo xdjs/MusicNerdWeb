@@ -1,4 +1,6 @@
 {
+  "id": "9d97996a-3830-472f-b56f-ae568da1434d",
+  "prevId": "a1e38f75-9d48-441c-8eec-4905dcc76232",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1907,50 +1909,6 @@
         }
       },
       "indexes": {
-        "artist_research_jobs_one_live": {
-          "name": "artist_research_jobs_one_live",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"artist_research_jobs\".\"status\" in ('pending', 'running')",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_research_jobs_auto_source_live": {
-          "name": "artist_research_jobs_auto_source_live",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "(\"state\"->>'autoSourceId')",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"artist_research_jobs\".\"kind\" = 'source_extract' and \"artist_research_jobs\".\"state\"->>'version' = '2' and \"artist_research_jobs\".\"status\" in ('queued','pending','running')",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "artist_research_jobs_claimable": {
           "name": "artist_research_jobs_claimable",
           "columns": [
@@ -2052,10 +2010,6 @@
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
           "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract')"
-        },
-        "artist_research_jobs_status_check": {
-          "name": "artist_research_jobs_status_check",
-          "value": "\"artist_research_jobs\".\"status\" in ('pending','running','done','failed') or (\"artist_research_jobs\".\"status\" = 'queued' and \"artist_research_jobs\".\"kind\" = 'source_extract' and coalesce(\"artist_research_jobs\".\"state\"->>'version','') = '2' and coalesce(\"artist_research_jobs\".\"state\"->>'autoSourceId','') <> '')"
         }
       },
       "isRLSEnabled": false
@@ -3507,6 +3461,96 @@
           ],
           "isUnique": true,
           "where": "(deezer IS NOT NULL)",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_bandcamp_owner_idx": {
+          "name": "artists_music_bandcamp_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"bandcamp\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_subvert_owner_idx": {
+          "name": "artists_music_subvert_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"subvert\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_supercollector_owner_idx": {
+          "name": "artists_music_supercollector_owner_idx",
+          "columns": [
+            {
+              "expression": "regexp_replace(lower(ltrim(btrim(\"supercollector\"), '@')), '[.]eth$', '')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_soundcloud_owner_idx": {
+          "name": "artists_music_soundcloud_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"soundcloud\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_audius_owner_idx": {
+          "name": "artists_music_audius_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"audius\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artists_music_mixcloud_owner_idx": {
+          "name": "artists_music_mixcloud_owner_idx",
+          "columns": [
+            {
+              "expression": "lower(ltrim(btrim(\"mixcloud\"), '@'))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -5250,10 +5294,8 @@
   "policies": {},
   "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "id": "748d85f3-125a-4276-9d4d-a2da95f210c9",
-  "prevId": "59315d6b-bcc4-4a96-aef3-07c0bc46a1a8"
+    "tables": {}
+  }
 }

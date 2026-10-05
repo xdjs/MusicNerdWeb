@@ -1,5 +1,5 @@
 -- Keep legacy live-job uniqueness and ON CONFLICT inference unchanged.
--- No grants or RLS changes. Requires 0036 and the version-2 API worker before use.
+-- No grants or RLS changes. Requires 0037 and the version-2 API worker before use.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 ALTER TABLE artist_research_jobs DROP CONSTRAINT artist_research_jobs_status_check;

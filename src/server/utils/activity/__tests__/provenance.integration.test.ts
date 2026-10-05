@@ -36,8 +36,8 @@ beforeAll(async () => {
   await client.exec('alter default privileges in schema public grant select, insert, update, delete on tables to mnweb, anon, authenticated');
   await client.exec(readFileSync('drizzle/0031_lore_attribution.sql', 'utf8'));
   await client.exec("alter table artist_research_jobs add constraint artist_research_jobs_status_check check(status in ('pending','running','done','failed'))");
-  await client.exec(readFileSync('drizzle/0036_source_extract.sql', 'utf8'));
-  await client.exec(readFileSync('drizzle/0037_automatic_source_extraction.sql', 'utf8'));
+  await client.exec(readFileSync('drizzle/0037_source_extract.sql', 'utf8'));
+  await client.exec(readFileSync('drizzle/0038_automatic_source_extraction.sql', 'utf8'));
 }, 30000);
 afterAll(async () => { await client.close(); });
 it('leaves legacy origins unknown and creates no guessed actor', async () => {
