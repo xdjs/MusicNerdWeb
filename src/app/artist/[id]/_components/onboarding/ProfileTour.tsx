@@ -223,7 +223,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
             {/* Dims the page so the ringed section is the only lit thing. Never
                 blocks clicks — the artist can still use the section we're
                 pointing at, which is the entire point of pointing at it. */}
-            <div className="fixed inset-0 z-40 bg-black/50 pointer-events-none" aria-hidden="true" />
+            <div className="fixed inset-0 !m-0 z-40 bg-black/50 pointer-events-none" aria-hidden="true" />
 
             <div
                 ref={cardRef}
@@ -234,7 +234,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                         ? { position: "fixed", top: placement.top, left: placement.left, width: CARD_WIDTH }
                         : { position: "fixed", bottom: EDGE, left: EDGE, right: EDGE }
                 }
-                className="z-50 max-w-[calc(100vw-24px)] rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 shadow-2xl"
+                className="!m-0 z-50 max-w-[calc(100vw-24px)] rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 shadow-2xl"
             >
                 {placement && (
                     <div
