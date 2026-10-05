@@ -88,7 +88,7 @@ export default function BulkApproveContributor({ contributorId, contributorName 
         {feedback && <p role={feedback.error ? 'alert' : 'status'} className="text-sm">{feedback.message}</p>}
         <DialogFooter className="gap-2">
           <Button variant="outline" disabled={phase === 'loading' || phase === 'approving'} onClick={() => setOpen(false)}>{phase === 'done' ? 'Done' : 'Cancel'}</Button>
-          {phase === 'review' && items.length > 0 && <Button variant="pink" onClick={() => void approve()}>Approve {items.length} submissions</Button>}
+          {phase === 'review' && items.length > 0 && <Button variant="pink" onClick={() => void approve()}>Approve {items.length} {items.length === 1 ? 'submission' : 'submissions'}</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

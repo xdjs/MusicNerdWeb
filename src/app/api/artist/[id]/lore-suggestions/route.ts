@@ -5,7 +5,6 @@ import { inferTypeFromUrl } from '@/lib/source/sourceTypes';
 import { isUnsafeUrl } from '@/server/utils/fetchPageContent';
 import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
 import { getVaultSourceUrlsByArtistId } from '@/server/utils/queries/getVaultSourceUrlsByArtistId';
-import { getUserById } from '@/server/utils/queries/userQueries';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 
@@ -34,14 +33,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }
-        // Read the current role: neither session flags nor client input authorize approval.
-        const user = await getUserById(auth.userId);
-        const autoApprove = !!(user?.isAdmin || user?.isWhiteListed);
-        const claimId = autoApprove ? await getLoreClaimGeneration(artistId) : null;
+        const claimId = await getLoreClaimGeneration(artistId);
         const title = `Source from ${new URL(url).hostname.replace(/^www\./, '')}`;
         const source = await insertVaultSource({
-            artistId, url, title, type: inferTypeFromUrl(url), status: autoApprove ? 'approved' : 'pending',
-        }, undefined, { userId: auth.userId, trigger: autoApprove ? 'trusted_submission' : 'visitor_suggestion' });
+            artistId, url, title, type: inferTypeFromUrl(url), status: 'pending',
+        }, undefined, { userId: auth.userId, trigger: 'visitor_suggestion', approveIfTrusted: true });
         if (!source) {
             return Response.json({ error: 'This source has already been suggested' }, { status: 409 });
         }

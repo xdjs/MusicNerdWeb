@@ -4,7 +4,6 @@ import type { ArtistVaultSource } from "@/server/db/DbTypes";
 import { getServerAuthSession } from "@/server/auth";
 import { getDevSession } from "@/server/utils/dev-auth";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
-import { getUserById } from "@/server/utils/queries/userQueries";
 import { insertVaultSource, updateVaultSourceContent } from "@/server/utils/queries/dashboardQueries";
 import { getLoreClaimGeneration } from "@/server/utils/queries/lorePersistence";
 import { queueLoreRefresh } from "@/server/utils/queries/loreRefresh";
@@ -50,16 +49,14 @@ export async function addVaultSource(
             // malformed URL — use default title
         }
 
-        const user = await getUserById(session.user.id);
-        const autoApprove = !!(user?.isAdmin || user?.isWhiteListed);
         const source = await insertVaultSource({
             artistId,
             url,
             title,
             type: inferTypeFromUrl(url),
-            status: autoApprove ? "approved" : "pending",
+            status: "pending",
         }, { userId: session.user.id, expectedClaimId: claimId },
-            autoApprove ? { userId: session.user.id, trigger: "trusted_submission" } : undefined);
+            { userId: session.user.id, trigger: "editor_source", approveIfTrusted: true });
         if (!source) return { success: false, error: "This source has already been added" };
 
         // Fire background content fetch to populate real title/snippet/extractedText
@@ -76,7 +73,7 @@ export async function addVaultSource(
             ).catch(e => console.error("[addVaultSource] Content enrichment failed:", e));
             // Podcast identity is required for grouping, so finish its write
             // before a serverless invocation can be frozen after this action.
-            if (autoApprove || podcastService(url)) await enrichment;
+            if (source.status === 'approved' || podcastService(url)) await enrichment;
         }
 
         let warning: string | undefined;

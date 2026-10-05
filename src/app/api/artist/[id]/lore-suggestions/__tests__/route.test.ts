@@ -3,11 +3,9 @@ import { POST } from '../route';
 import { requireAuth } from '@/lib/auth-helpers';
 import { insertVaultSource } from '@/server/utils/queries/dashboardQueries';
 import { getVaultSourceUrlsByArtistId } from '@/server/utils/queries/getVaultSourceUrlsByArtistId';
-import { getUserById } from '@/server/utils/queries/userQueries';
 import { queueLoreRefresh } from '@/server/utils/queries/loreRefresh';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 
-jest.mock('@/server/utils/queries/userQueries', () => ({ getUserById: jest.fn() }));
 jest.mock('@/server/utils/queries/loreRefresh', () => ({ queueLoreRefresh: jest.fn() }));
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn() }));
 
@@ -41,7 +39,6 @@ beforeEach(() => {
   (requireAuth as jest.Mock).mockResolvedValue({ authenticated: true, userId: 'visitor-1' });
   (insertVaultSource as jest.Mock).mockImplementation(async data => ({ id: 'source-1', ...data }));
   (getVaultSourceUrlsByArtistId as jest.Mock).mockResolvedValue([]);
-  (getUserById as jest.Mock).mockResolvedValue({ id: 'visitor-1', isAdmin: false, isWhiteListed: false });
   (getLoreClaimGeneration as jest.Mock).mockResolvedValue('claim-1');
   (queueLoreRefresh as jest.Mock).mockResolvedValue(true);
 });
@@ -52,26 +49,22 @@ it('lets a signed-in visitor suggest a source for artist review', async () => {
   expect(await response.json()).toMatchObject({ success: true, status: 'pending' });
   expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({
     artistId, url: 'https://pitchfork.com/features/bike-lane', status: 'pending',
-  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion' });
+  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion', approveIfTrusted: true });
   expect(queueLoreRefresh).not.toHaveBeenCalled();
 });
 
-it.each([
-  { isAdmin: false, isWhiteListed: true },
-  { isAdmin: true, isWhiteListed: false },
-])('approves new Lore for the current trusted role %j', async role => {
-  getUserById.mockResolvedValue({ id: 'visitor-1', ...role });
+it('delegates trusted approval to the source-write transaction and queues its saved status', async () => {
+  insertVaultSource.mockImplementation(async data => ({ id: 'source-1', ...data, status: 'approved' }));
   const response = await call('https://example.com/interview');
   expect(response.status).toBe(201);
   expect(await response.json()).toMatchObject({ success: true, status: 'approved' });
-  expect(getUserById).toHaveBeenCalledWith('visitor-1');
-  expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ status: 'approved' }),
-    undefined, { userId: 'visitor-1', trigger: 'trusted_submission' });
+  expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ status: 'pending' }),
+    undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion', approveIfTrusted: true });
   expect(queueLoreRefresh).toHaveBeenCalledWith(artistId, 'claim-1', { userId: 'visitor-1', trigger: 'source_submission' });
 });
 
 it('also approves trusted submissions on unclaimed artists', async () => {
-  getUserById.mockResolvedValue({ isWhiteListed: true });
+  insertVaultSource.mockImplementation(async data => ({ id: 'source-1', ...data, status: 'approved' }));
   getLoreClaimGeneration.mockResolvedValue(null);
   expect((await call('https://example.com/interview')).status).toBe(201);
   expect(queueLoreRefresh).toHaveBeenCalledWith(artistId, null, expect.any(Object));
@@ -85,13 +78,13 @@ it('ignores stale session roles and approval flags supplied by the client', asyn
 });
 
 it('does not save anything when the current role lookup fails', async () => {
-  getUserById.mockRejectedValueOnce(new Error('database unavailable'));
+  insertVaultSource.mockRejectedValueOnce(new Error('role lookup unavailable'));
   expect((await call('https://example.com/interview')).status).toBe(500);
-  expect(insertVaultSource).not.toHaveBeenCalled();
+  expect(queueLoreRefresh).not.toHaveBeenCalled();
 });
 
 it('reports a saved approval truthfully if the derived Lore refresh cannot queue', async () => {
-  getUserById.mockResolvedValue({ isWhiteListed: true });
+  insertVaultSource.mockImplementation(async data => ({ id: 'source-1', ...data, status: 'approved' }));
   queueLoreRefresh.mockRejectedValueOnce(new Error('queue unavailable'));
   const response = await call('https://example.com/interview');
   expect(response.status).toBe(201);
@@ -103,7 +96,7 @@ it('strips fragments and serializes the URL before duplicate detection', async (
   expect((await call('HTTPS://PITCHFORK.COM:443/features/bike-lane#bio')).status).toBe(201);
   expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({
     url: 'https://pitchfork.com/features/bike-lane',
-  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion' });
+  }), undefined, { userId: 'visitor-1', trigger: 'visitor_suggestion', approveIfTrusted: true });
 });
 
 it('detects a previously stored URL with a fragment as the same source', async () => {
@@ -128,7 +121,7 @@ it.each(['javascript:alert(1)', 'http://127.0.0.1/private', 'http://127.0.0.2/pr
 );
 
 it('reports an existing source without creating another', async () => {
-  getUserById.mockResolvedValue({ isWhiteListed: true });
+  insertVaultSource.mockImplementation(async data => ({ id: 'source-1', ...data, status: 'approved' }));
   (insertVaultSource as jest.Mock).mockResolvedValue(undefined);
   const response = await call('https://pitchfork.com/a');
   expect(response.status).toBe(409);

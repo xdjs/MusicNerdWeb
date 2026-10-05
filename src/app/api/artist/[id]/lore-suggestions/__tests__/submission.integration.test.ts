@@ -6,6 +6,10 @@ import * as schema from '@/server/db/schema';
 
 jest.mock('@/server/db/drizzle', () => ({ get db() { return mockDatabase; } }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
+jest.mock('@/server/utils/fetchPageContent', () => ({
+  ...jest.requireActual('@/server/utils/fetchPageContent'),
+  fetchPageContent: jest.fn().mockResolvedValue({ title: 'Fixture interview', extractedText: null }),
+}));
 
 if (!Response.json) {
   Response.json = (data, init) => new Response(JSON.stringify(data), {
@@ -88,7 +92,13 @@ const call = (url = 'https://example.com/interview') => POST(new Request('https:
   method: 'POST', body: JSON.stringify({ url, status: 'approved', isWhiteListed: true }),
 }), { params: Promise.resolve({ id: artistId }) });
 
-it.each([false, true])('persists approved Lore, attribution and coalesced work as mnweb (claimed: %s)', async claimed => {
+it.each([
+  { claimed: false, isAdmin: false, isWhiteListed: true },
+  { claimed: true, isAdmin: false, isWhiteListed: true },
+  { claimed: false, isAdmin: true, isWhiteListed: false },
+  { claimed: true, isAdmin: true, isWhiteListed: false },
+])('persists approved Lore, attribution and coalesced work as mnweb (%j)', async ({ claimed, isAdmin, isWhiteListed }) => {
+  await database.update(schema.users).set({ isAdmin, isWhiteListed }).where(eq(schema.users.id, userId));
   if (claimed) await database.insert(schema.artistClaims).values({ id: claimId, artistId, userId: ownerId, status: 'approved' });
   await client.exec('SET ROLE mnweb');
   const response = await call();
@@ -102,7 +112,7 @@ it.each([false, true])('persists approved Lore, attribution and coalesced work a
     expect.objectContaining({ id: sources[0]!.activityId, sourceId: sources[0]!.id, actorUserId: userId, action: 'source_submission', trigger: 'trusted_submission' }),
     expect.objectContaining({ actorUserId: userId, action: 'lore_refresh' }),
   ]));
-  expect(await canEditArtist(userId, artistId)).toBe(false);
+  expect(await canEditArtist(userId, artistId)).toBe(isAdmin);
   expect((await call('https://example.com/second')).status).toBe(201);
   const jobs = await database.query.artistResearchJobs.findMany();
   expect(jobs).toHaveLength(1);
@@ -117,6 +127,27 @@ it('uses a newly revoked role even while the session and request still assert wh
   expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(0);
   expect(await getVaultSourcesByArtistId(artistId, 'pending')).toHaveLength(1);
   expect(await database.query.artistResearchJobs.findMany()).toHaveLength(0);
+});
+
+it.each(['route', 'editor'])('rechecks a revocation completed before the %s source-write transaction', async entry => {
+  await database.insert(schema.artistClaims).values({ id: claimId, artistId, userId, status: 'approved' });
+  const originalTransaction = mockDatabase.transaction;
+  const transaction = jest.spyOn(mockDatabase, 'transaction').mockImplementationOnce(async callback => {
+    await database.update(schema.users).set({ isWhiteListed: false, isAdmin: false }).where(eq(schema.users.id, userId));
+    return originalTransaction(callback);
+  });
+  await client.exec('SET ROLE mnweb');
+  try {
+    const url = 'https://podcasts.apple.com/us/podcast/episode/id123?i=456';
+    if (entry === 'route') expect(await (await call(url)).json()).toMatchObject({ status: 'pending' });
+    else {
+      const { addVaultSource } = await import('@/app/actions/addVaultSource');
+      expect(await addVaultSource(artistId, url)).toMatchObject({ success: true, source: { status: 'pending' } });
+    }
+    expect(await getVaultSourcesByArtistId(artistId, 'approved')).toHaveLength(0);
+    expect(await getVaultSourcesByArtistId(artistId, 'pending')).toHaveLength(1);
+    expect(await database.query.artistResearchJobs.findMany()).toHaveLength(0);
+  } finally { transaction.mockRestore(); }
 });
 
 it.each(['pending', 'rejected', 'approved'] as const)('does not replace an existing %s source or its attribution', async status => {

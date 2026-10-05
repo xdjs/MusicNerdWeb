@@ -4,7 +4,9 @@ October 5, 2026 — Pete requested immediate approval for whitelisted contributo
 after CY encountered the artist-review message. Tracked in [#1423](https://github.com/xdjs/MusicNerdWeb/issues/1423).
 
 New, direct Lore URL submissions use the account's current `users.is_white_listed`
-or `users.is_admin` value, read on the server at submission time. Either role saves
+or `users.is_admin` value, read and locked inside the source-insertion transaction.
+A completed revocation saves the source pending; a concurrent revocation waits
+for that insertion to finish. Either trusted role saves
 the source as `approved`, on claimed and unclaimed profiles. Other contributors
 continue to submit `pending` sources. Session flags and request-body flags never
 authorize approval. Failed role lookups fail the submission before writing.

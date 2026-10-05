@@ -162,21 +162,21 @@ describe("addVaultSource", () => {
             artistId: "artist-1",
             url: "https://pitchfork.com/reviews/albums/example",
             status: "pending",
-        }), { userId: "user-1", expectedClaimId: "claim-1" }, undefined);
+        }), { userId: "user-1", expectedClaimId: "claim-1" }, { userId: "user-1", trigger: "editor_source", approveIfTrusted: true });
     });
 
     it("stores the canonical URL without a fragment", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         expect((await addVaultSource("artist-1", "HTTPS://PITCHFORK.COM:443/a#bio")).success).toBe(true);
-        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }), { userId: "user-1", expectedClaimId: "claim-1" }, undefined);
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }), { userId: "user-1", expectedClaimId: "claim-1" }, { userId: "user-1", trigger: "editor_source", approveIfTrusted: true });
     });
 
-    it.each([{ isAdmin: true, isWhiteListed: false }, { isAdmin: false, isWhiteListed: true }])("auto-approves editor URL submissions for trusted roles %j", async role => {
+    it.each([{ isAdmin: true, isWhiteListed: false }, { isAdmin: false, isWhiteListed: true }])("queues the saved editor approval after the transaction checks roles %j", async role => {
         const { addVaultSource, insertVaultSource } = await setup();
         const { getUserById } = await import("@/server/utils/queries/userQueries");
         const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
         getUserById.mockResolvedValue({ id: "user-1", ...role });
-        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data }));
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
         const result = await addVaultSource("artist-1", "https://example.com/interview");
         expect(result).toMatchObject({ success: true, source: { status: "approved" } });
         expect(queueLoreRefresh).toHaveBeenCalledWith("artist-1", "claim-1", { userId: "user-1", trigger: "source_submission" });
@@ -187,7 +187,7 @@ describe("addVaultSource", () => {
         const { getUserById } = await import("@/server/utils/queries/userQueries");
         const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
         getUserById.mockResolvedValue({ id: "user-1", isWhiteListed: true });
-        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data }));
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
         queueLoreRefresh.mockRejectedValueOnce(new Error("queue unavailable"));
         expect(await addVaultSource("artist-1", "https://example.com/interview")).toMatchObject({
             success: true, source: { status: "approved" }, warning: expect.stringMatching(/saved/i),

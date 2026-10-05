@@ -2,14 +2,20 @@
 
 [#1423](https://github.com/xdjs/MusicNerdWeb/issues/1423) implements Pete's request
 to auto-approve new Lore from whitelisted users/admins in both URL entry points.
-Current database roles determine approval, and the UI reflects the saved status.
+Current database roles are locked through the source-write transaction to determine
+approval, and the UI reflects the saved status.
 Pete also requested contributor bulk review for **both Lore and links** in Admin.
 The preview confirms a specific contributor's pending direct submissions across
 pages; each mutation rechecks Admin, contributor and pending status. See
 [the contract](docs/lore-submissions.md). No migration or broader whitelist edit
 permission is involved. Production read-only verification found Tempo Menace's
 4 attributed Lore sources and 566 links already approved; no backlog write was
-needed. Work is on `codex/whitelist-lore-auto-approval`, not merged or deployed.
+needed. [Draft PR #1425](https://github.com/xdjs/MusicNerdWeb/pull/1425) is on
+`codex/whitelist-lore-auto-approval`, not merged or deployed. Local checks pass
+(357 suites / 3,217 tests, type/lint/build). Initial authenticated preview checks
+verified the contributor dialog in both themes at desktop/phone widths. Codex's
+role-revocation race finding was reproduced for both URL entry points and fixed;
+updated preview and exact-head review evidence belongs on the PR.
 
 ## Instagram refresh reliability — October 2
 
