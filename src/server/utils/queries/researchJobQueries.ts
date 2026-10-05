@@ -12,7 +12,7 @@ import { db } from "@/server/db/drizzle";
 import { withResearchJobWrite, withScopedArtistWrite, lockScopedArtistWrite, OwnershipChangedError, type WriteDb } from './ownershipWrites';
 import { artistResearchJobs } from "@/server/db/schema";
 
-export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search" | "latest_refresh";
+export type JobKind = "social_ingest" | "caption_extract" | "lore_refresh" | "source_search" | "latest_refresh" | "source_extract";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface ResearchJob {
