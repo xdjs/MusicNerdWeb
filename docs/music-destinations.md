@@ -29,8 +29,10 @@ source titles in Links and never become artist IDs or the artist-level Listen ta
 Accepted HTTP and HTTPS destinations remain visible; their original saved URLs are preserved.
 Editorial pages remain Lore. SoundCloud, Audius and Mixcloud release URLs stay audio/Lore unless explicitly classified
 Music: their URL shapes also represent spoken shows. A URL alone never supplies that
-classification. Their artist profiles still route to Links; known interview/podcast metadata
-always retains Lore. YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls. Editors remount when the
+classification. Their artist profiles still route to Links unless explicitly typed Audio or
+Interview; that classification is preserved by both the source writer and public placement.
+Podcast metadata also retains Lore. Existing direct artist links remain unchanged.
+YouTube videos are not automatically classified as music. The Links editing surface reuses source review/removal controls. Editors remount when the
 filtered source identity/type changes, so a correction moves between Links and Lore immediately.
 The original source remains available to knowledge retrieval with its real URL and text.
 

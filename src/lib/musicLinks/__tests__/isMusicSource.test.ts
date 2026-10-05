@@ -9,4 +9,8 @@ it.each(['soundcloud.com','mixcloud.com','audius.co'])('preserves ambiguous/spok
   expect(isMusicSource({url, type:'music',podcastEpisodeKey:'episode'})).toBe(false);
   expect(isMusicSource({url, type:'music'})).toBe(true);
   expect(isMusicSource({url:`https://${host}/artist`})).toBe(true);
+  for (const type of ['audio', 'interview']) {
+    expect(isMusicSource({url:`https://${host}/show`, type})).toBe(false);
+  }
+  expect(isMusicSource({url:`https://${host}/artist`, type:'music'})).toBe(true);
 });

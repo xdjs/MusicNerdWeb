@@ -1,6 +1,7 @@
 import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { getSourceLinks } from '../getSourceLinks';
 import { isDestinationSource } from '../isDestinationSource';
+import { getListeningLinks } from '@/lib/artist/getListeningLinks';
 
 const source = (id: string, url: string, type = 'article', title = '') => ({ id, url, type, title });
 
@@ -66,6 +67,17 @@ it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('does not infer music f
   expect(isDestinationSource(spoken)).toBe(false);
   expect(getSourceLinks([spoken])).toEqual([]);
   expect(isDestinationSource({...spoken, type:'music'})).toBe(true);
+});
+
+it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('keeps explicitly audio-typed show profiles in Lore rather than Links or Listen (%s)', host => {
+  const spoken = { ...source('spoken', `https://${host}/show`, 'audio'), status: 'approved' };
+  expect(isDestinationSource(spoken)).toBe(false);
+  expect(getSourceLinks([spoken])).toEqual([]);
+  const artist = { spotify:null, deezer:null };
+  expect(getListeningLinks(artist, [], [spoken])).toEqual([]);
+  const music = { ...spoken, type:'music' };
+  expect(getSourceLinks([music])).toHaveLength(1);
+  expect(getListeningLinks(artist, [], [music])).toHaveLength(1);
 });
 
 it('keeps accepted HTTP websites and catalog sources visible in Links', () => {
