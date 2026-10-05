@@ -2,31 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export function tourFlagKey(artistId: string): string {
-    return `mn-tour-done-${artistId}`;
-}
-
-/** Set when the build finishes, read when the tour mounts.
- *
- *  The tour used to live inside OnboardingGate, which the page renders ONLY
- *  while onboarding is incomplete. The build's last act is confirming
- *  `publish` — so by the time there is anything to tour, the component holding
- *  the tour has stopped being rendered. It appeared, the page re-fetched, and
- *  it vanished. A flag survives both the refresh and the completion. */
-export function tourPendingKey(artistId: string): string {
-    return `mn-tour-pending-${artistId}`;
-}
-
-/** Fired when the build arms the tour.
- *
- *  The flag alone is not enough. ProfileTour is rendered by the artist page on
- *  INITIAL LOAD — before the build has even started — so its mount effect reads
- *  "not pending" and that is the last time it ever looks. The flag is set
- *  minutes later, and `router.refresh()` re-renders server components without
- *  remounting a client component in the same position, so the effect never runs
- *  again. Result: the build completes, the flag is set, and nothing is
- *  listening. An event closes that gap without polling. */
-export const TOUR_ARMED_EVENT = "mn-tour-armed";
+import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
+import { tourPendingKey } from "@/app/artist/[id]/_components/onboarding/tourPendingKey";
+import { TOUR_ARMED_EVENT } from "@/app/artist/[id]/_components/onboarding/armTour";
 
 /** Fired when the tour ends, however it ends.
  *
@@ -36,13 +14,6 @@ export const TOUR_ARMED_EVENT = "mn-tour-armed";
  *  prop because the tour and the offer are siblings on the page, not nested,
  *  and the tour has no business knowing what comes after it. */
 export const TOUR_FINISHED_EVENT = "mn-tour-finished";
-
-export function armTour(artistId: string): void {
-    try {
-        sessionStorage.setItem(tourPendingKey(artistId), "1");
-    } catch { /* private mode */ }
-    window.dispatchEvent(new CustomEvent(TOUR_ARMED_EVENT, { detail: artistId }));
-}
 
 type Stop = {
     anchor: string;
@@ -128,7 +99,7 @@ function place(rect: DOMRect, vw: number, vh: number, cardHeight: number): Place
  * Targets element ids rather than layout, so the page can be rearranged without
  * touching this, and it still renders if a section is missing.
  */
-export default function ProfileTour({ artistId }: { artistId: string }) {
+export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: string; hasSupportLinks: boolean }) {
     const [index, setIndex] = useState(0);
     const [dismissed, setDismissed] = useState(false);
     // Starts closed and decides after mount — sessionStorage is unavailable
@@ -289,6 +260,18 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
 
                 <h3 className="text-lg font-bold text-black dark:text-white">{stop.title}</h3>
                 <p className="text-sm text-gray-700 dark:text-gray-300">{stop.body}</p>
+
+                {stop.anchor === "mn-links" && hasSupportLinks === false && (
+                    <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                        <p>
+                            We didn&apos;t find any support links. Give fans a way to support your music with{" "}
+                            <a href="https://subvert.fm/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Subvert</a>,{" "}
+                            <a href="https://bandcamp.com/artists" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Bandcamp</a>, or{" "}
+                            <a href="https://supercollector.xyz/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Supercollector</a>.
+                        </p>
+                        <p>Already have a page? Add its link under <strong>Support the artist</strong>.</p>
+                    </div>
+                )}
 
                 <div className="flex gap-2 pt-1">
                     {index > 0 && (

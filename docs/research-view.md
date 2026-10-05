@@ -67,6 +67,11 @@ This is Pete's simplified scope for [#1305](https://github.com/xdjs/MusicNerdWeb
 agreed 2026-10-05. Source-backed catalog links from #1273 must participate in this
 same Support check when that separate work lands.
 
+For review, development and Vercel preview deployments accept `?tourPreview=1` on
+an artist page. **Start tour preview** runs the actual tour using that profile's
+saved links, with a separate browser completion flag. It does not run research or
+offer an interview. The parameter has no effect in production.
+
 ### Research view rules
 
 - **Tokens only.** `bg-background`, `text-foreground`, `text-muted-foreground`, `border` and the

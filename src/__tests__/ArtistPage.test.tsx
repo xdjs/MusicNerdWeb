@@ -64,6 +64,13 @@ jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSectio
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
+jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
+    __esModule: true,
+    default: function ProfileTour({ hasSupportLinks }: { hasSupportLinks: boolean }) {
+        return <div data-testid="profile-tour" data-has-support={String(hasSupportLinks)} />;
+    },
+    TOUR_FINISHED_EVENT: 'mn-tour-finished',
+}));
 // Same reason as SeoArtistLinks: an async server component that reads the link
 // table, which this suite does not stand up.
 jest.mock('@/app/artist/[id]/_components/ArtistJsonLd', () => function ArtistJsonLd() { return null; });
@@ -85,7 +92,7 @@ jest.mock('@/server/utils/dev-auth', () => ({
 
 import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
-import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
+import { getArtistById, getAllLinks, getArtistLinks } from '@/server/utils/queries/artistQueries';
 import { musicPlatformData } from '@/server/utils/musicPlatform';
 
 const mockArtist = {
@@ -120,7 +127,7 @@ function setupMocks({ session = null, artist = mockArtist } = {}) {
 
 async function renderArtistPage(
     id = 'artist-uuid',
-    searchParams?: { addLink?: string | string[] },
+    searchParams?: { addLink?: string | string[]; tourPreview?: string },
 ) {
     const jsx = await ArtistProfile({
         params: Promise.resolve({ id }),
@@ -360,6 +367,71 @@ describe('ArtistProfile page', () => {
             (getArtistById as jest.Mock).mockResolvedValue(null);
             await expect(renderArtistPage('nonexistent-id')).rejects.toThrow('NEXT_NOT_FOUND');
             expect(mockNotFound).toHaveBeenCalled();
+        });
+    });
+
+    describe('Completed research tour support links', () => {
+        it('keeps the review-only tour parameter out of production', async () => {
+            const previousEnv = process.env.VERCEL_ENV;
+            process.env.VERCEL_ENV = 'production';
+            try {
+                await renderArtistPage('artist-uuid', { tourPreview: '1' });
+                expect(screen.queryByRole('button', { name: 'Start tour preview' })).not.toBeInTheDocument();
+                expect(screen.queryByTestId('profile-tour')).not.toBeInTheDocument();
+            } finally {
+                if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                else process.env.VERCEL_ENV = previousEnv;
+            }
+        });
+
+        it('lets previews exercise the real saved-data condition without a research run', async () => {
+            const previousEnv = process.env.VERCEL_ENV;
+            process.env.VERCEL_ENV = 'preview';
+            try {
+                await renderArtistPage('artist-uuid', { tourPreview: '1' });
+                expect(screen.getByRole('button', { name: 'Start tour preview' })).toBeInTheDocument();
+                expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', 'false');
+            } finally {
+                if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                else process.env.VERCEL_ENV = previousEnv;
+            }
+        });
+
+        it.each([
+            ['no support destination', [], false],
+            ['social link only', [{ siteName: 'instagram', artistUrl: 'https://instagram.com/artist', isMonetized: false }], false],
+            ['Bandcamp', [{ siteName: 'bandcamp', artistUrl: 'https://artist.bandcamp.com', isMonetized: false }], true],
+            ['In Process', [{ siteName: 'inprocess', artistUrl: 'https://inprocess.world/artist', isMonetized: false }], true],
+            ['another monetized service', [{ siteName: 'patreon', artistUrl: 'https://patreon.com/artist', isMonetized: true }], true],
+        ])('passes the displayed Support state for %s', async (_name, links, expected) => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+            setupMocks({ session: { user: { id: 'user-uuid' } } });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+            (getOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+            (getArtistLinks as jest.Mock).mockResolvedValueOnce(links);
+
+            await renderArtistPage();
+
+            expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', String(expected));
+        });
+
+        it.each([
+            ['visitor', null, null],
+            ['missing onboarding state', { user: { id: 'user-uuid' } }, null],
+            ['unfinished research', { user: { id: 'user-uuid' } }, { complete: false }],
+        ])('does not offer the tour for %s', async (_name, session, state) => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+            setupMocks({ session });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+            // Avoid leaving an unconsumed once-value for the visitor case.
+            (getOnboardingState as jest.Mock).mockResolvedValue(state);
+
+            await renderArtistPage();
+
+            expect(screen.queryByTestId('profile-tour')).not.toBeInTheDocument();
+            (getOnboardingState as jest.Mock).mockResolvedValue(null);
         });
     });
 
