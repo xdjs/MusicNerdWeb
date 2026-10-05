@@ -449,7 +449,7 @@ describe('ArtistProfile page', () => {
             expect(metadata.title).toBe('Test Artist | Music Nerd');
             // The fixture has an About, so that is the description now.
             expect(metadata.description).toBe('A great artist.');
-            expect(metadata.alternates?.canonical).toBe('https://www.musicnerd.xyz/artist/artist-uuid');
+            expect(metadata.alternates?.canonical).toBe('https://musicnerd.net/artist/artist-uuid');
         });
 
         it('describes the artist with their own About when one is written', async () => {

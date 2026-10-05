@@ -63,9 +63,9 @@ export async function runPreflight({ env = process.env, fetchFn = fetch,
   checks.noBranchTracking = !stage.branchMatcher;
   const domains = await vercel('domainAccess', `${projectPath}/domains?customEnvironmentId=${stage.id}`);
   checks.stagingDomainOwnership = domains?.pagination?.next == null && domains?.domains?.length === 1 &&
-    domains.domains[0].name === 'staging.musicnerd.xyz' && domains.domains[0].customEnvironmentId === stage.id;
+    domains.domains[0].name === 'staging.musicnerd.net' && domains.domains[0].customEnvironmentId === stage.id;
 
-  for (const [name, domain] of [['staging', 'staging.musicnerd.xyz'], ['production', 'www.musicnerd.xyz']]) {
+  for (const [name, domain] of [['staging', 'staging.musicnerd.net'], ['production', 'musicnerd.net']]) {
     const alias = await vercel(`${name}AliasAccess`, `/v4/aliases/${domain}`);
     checks[`${name}AliasIdentity`] = /^dpl_[A-Za-z0-9]+$/.test(alias?.deploymentId || '');
     if (!checks[`${name}AliasIdentity`]) continue;

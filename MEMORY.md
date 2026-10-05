@@ -3,12 +3,27 @@
 Pete simplified [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305): on the
 existing post-build tour's Links step, show optional Subvert, Bandcamp and
 Supercollector hyperlinks only if the visible Support section has no links.
-Implemented on `codex/onboarding-support-options`; not merged or released.
+Implemented in [draft #1429](https://github.com/xdjs/MusicNerdWeb/pull/1429)
+on `codex/onboarding-support-options`; not merged or released.
 See [the contract](docs/research-view.md#after-research-optional-support-links).
 The artist page reuses `getProfileLinks(..., 'support')`; no API, database or
 research changes. Preview-only `?tourPreview=1` permits review with saved data
-without rerunning research. #1273 is independent: when it lands, include its
-approved source-backed Support destinations in this same empty-state check.
+without rerunning research. #1273 / #1430 is independent: whichever Web PR lands
+second must include approved source-backed Support destinations after excluding
+`blockedMusicSourceIds`, matching the public Support section in both tour callers.
+
+## Primary domain migration — October 5
+
+[#1427](https://github.com/xdjs/MusicNerdWeb/issues/1427) tracks Carl’s move to
+`https://musicnerd.net`. The new apex now serves the existing production deployment;
+www redirects with HTTPS, path and query preserved. Squarespace stays authoritative;
+its old `.net` → `.xyz` forwarding rule was removed and the website A/CNAME records
+now point to Vercel. Existing `.xyz` traffic and email DNS remain unchanged.
+Carl confirmed matching `.net` service hostnames and retirement of `wb0`. Canonical
+URL and production release-check updates merged in
+[PR #1428](https://github.com/xdjs/MusicNerdWeb/pull/1428) (`f62d3885`). Check the
+owning issue for protected production release and authentication-origin status;
+the merge alone does not establish those. See [the cutover contract](docs/domain-migration.md).
 
 ## Trusted Lore and contributor bulk approval — October 5
 

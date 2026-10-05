@@ -6,7 +6,7 @@
 import { RESEND_API_KEY, NEXTAUTH_URL } from "@/env";
 
 const FROM_ADDRESS = "Music Nerd <no-reply@musicnerd.xyz>";
-const BASE_URL = NEXTAUTH_URL || "https://www.musicnerd.xyz";
+const BASE_URL = NEXTAUTH_URL || "https://musicnerd.net";
 
 function escapeHtml(value: string): string {
     return value

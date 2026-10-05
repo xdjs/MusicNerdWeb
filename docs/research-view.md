@@ -64,8 +64,10 @@ so unfinished/failed research, missing onboarding state and visitors do not get 
 new prompt. There are no new queries, API calls, research jobs or writes.
 
 This is Pete's simplified scope for [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305),
-agreed 2026-10-05. Source-backed catalog links from #1273 must participate in this
-same Support check when that separate work lands.
+agreed 2026-10-05. Source-backed catalog links from #1273 / #1430 must participate
+in this same Support check when that separate work lands. Use its shared
+`getSourceLinks` helper after excluding `blockedMusicSourceIds`, so both real and
+preview tour callers count exactly the approved destinations shown publicly.
 
 For review, development and Vercel preview deployments accept `?tourPreview=1` on
 an artist page. **Start tour preview** runs the actual tour using that profile's

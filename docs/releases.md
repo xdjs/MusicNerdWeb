@@ -13,7 +13,7 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    staging `vault-files` bucket metadata. A mismatch or failed read fails the build before
    Vercel can assign its domain. It verifies deployment project, source SHA and environment, then checks the
    immutable deployment URL's health and homepage. It records the deployment ID, SHA, URL
-   and Actions run. Vercel assigns `staging.musicnerd.xyz` when the staging build becomes Ready; CI verifies
+   and Actions run. Vercel assigns `staging.musicnerd.net` when the staging build becomes Ready; CI verifies
    that alias points to the recorded deployment. A staging smoke failure blocks production.
 3. `production-release` waits for approval from any one of Carl (`clt`), Pete (`p3t3rango`)
    or Sweetman (`sweetmantech`) in the protected GitHub Environment. Review the
@@ -29,7 +29,7 @@ Feature branches retain Vercel Preview deployments. A merge is not production ap
    promoting the production candidate. Promotion's successful 201/202 acknowledgement can
    have no response body; accept its HTTP status without parsing JSON. It is not proof that
    promotion has finished. Before recording `assigned`, poll until both the
-   project's production target and `www.musicnerd.xyz` point to the candidate. Fail on a
+   project's production target and `musicnerd.net` point to the candidate. Fail on a
    deployment alias error or if they do not agree within 30 checks, two seconds apart.
 
 Staging and production jobs each use a repository-wide concurrency group with cancellation
@@ -52,7 +52,7 @@ Git is part of the transition; merging the workflow alone does not establish a w
 
 - Vercel: production branch `main`, **Auto-assign Custom Production Domains disabled**.
   `vercel.json` disables Git auto-deployment only for main. Keep normal feature previews.
-- Custom Vercel environment `staging`: no branch matcher; attach only `staging.musicnerd.xyz` after
+- Custom Vercel environment `staging`: no branch matcher; attach only `staging.musicnerd.net` after
   the initial known-SHA validation. Import Preview variables, then verify DB/storage point to the development
   resources and auth uses the test app/callbacks. Configure its `NEXTAUTH_URL` for staging.
   Inspect credentials privately; record only pass/fail and configuration names in public docs.
@@ -100,7 +100,7 @@ main was `67f7a2cf749881d008b3e42deb2c1fd716dfe0d4` at retirement. The three sta
 ancestry commits had already been delivered through squash merges: unique ancestry is not
 necessarily unreleased work. All eight open PRs targeted main or intentional feature stacks.
 
-The persistent custom staging environment and `staging.musicnerd.xyz` remain in service,
+The persistent custom staging environment and `staging.musicnerd.net` remain in service,
 with branch tracking disabled. Production still requires protected GitHub approval.
 Pete's personal workflow walkthrough remains tracked separately in
 [#1311](https://github.com/xdjs/MusicNerdWeb/issues/1311); successful pipeline release evidence

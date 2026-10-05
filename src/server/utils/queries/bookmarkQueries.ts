@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '@/server/db/drizzle';
 import { artists, userArtistBookmarks, users } from '@/server/db/schema';
 import type { BookmarkItem } from '@/lib/bookmarks';
-import { customImageUrl } from '@/lib/artist/artistImage';
+import { customImageUrl } from '@/lib/artist/customImageUrl';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type ReadDatabase = Pick<typeof db, 'select'>;
