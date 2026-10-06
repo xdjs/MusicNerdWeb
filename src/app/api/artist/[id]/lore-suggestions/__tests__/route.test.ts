@@ -28,7 +28,7 @@ if (!('json' in Response)) {
 
 const artistId = '8b3d9163-a184-468e-8772-cdd73f260835';
 const call = (url: string, extra = {}) => POST(
-  new Request(`https://musicnerd.xyz/api/artist/${artistId}/lore-suggestions`, {
+  new Request(`https://musicnerd.net/api/artist/${artistId}/lore-suggestions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, ...extra }),
   }),
   { params: Promise.resolve({ id: artistId }) },

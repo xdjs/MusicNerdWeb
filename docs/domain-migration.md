@@ -24,6 +24,19 @@ host and verify the existing production deployment before redirecting old traffi
 The domain assignment does not authorize bypassing the protected production build.
 No persistence changes, database migration or research jobs are required.
 
+## Active references and historical records
+
+Current setup instructions, executable defaults, sample configuration and User-Agent
+website URLs use the new `.net` hosts. Use the bare `musicnerd.net` apex for public
+Web links and retain the service prefix for API, MCP staging and Grapevine links.
+Ordinary test origins follow these addresses too.
+
+Historical plans, transcripts and handoffs keep the URLs they recorded. Explicit
+old-host migration examples and negative regression cases also retain `.xyz`.
+Email addresses and sender-domain instructions are unchanged. Social account
+identifiers are not website URLs and require a separate identity check before changing.
+This cleanup covers Web, TV and Grapevine; it does not rewrite stored artist data.
+
 ## Cutover
 
 1. Save the DNS, forwarding rules and Vercel deployment/domain assignments privately.

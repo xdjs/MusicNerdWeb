@@ -14,8 +14,8 @@ Automated agent that resolves Deezer IDs for artists in the MusicNerd database u
 # Required: your MCP API key
 export MCP_API_KEY="your-key-here"
 
-# Optional: override the MCP server URL (defaults to https://musicnerd.xyz/api/mcp)
-export MCP_URL="https://musicnerd.xyz/api/mcp"
+# Optional: override the MCP server URL (defaults to https://musicnerd.net/api/mcp)
+export MCP_URL="https://musicnerd.net/api/mcp"
 ```
 
 ## Running
@@ -28,7 +28,7 @@ export MCP_URL="https://musicnerd.xyz/api/mcp"
 
 ```bash
 # Against a deployed staging/dev URL (recommended):
-MCP_URL=https://staging.musicnerd.xyz/api/mcp \
+MCP_URL=https://staging.musicnerd.net/api/mcp \
 MCP_API_KEY=your-dev-key \
 BATCH_SIZE=5 \
 ./agents/id-mapping/claude-runner.sh
@@ -46,7 +46,7 @@ BATCH_SIZE=5 \
 | Env Var | Default | Description |
 |---------|---------|-------------|
 | `MCP_API_KEY` | (required) | MCP API key for write operations |
-| `MCP_URL` | `https://musicnerd.xyz/api/mcp` | MCP server endpoint |
+| `MCP_URL` | `https://musicnerd.net/api/mcp` | MCP server endpoint |
 | `BATCH_SIZE` | `50` | Number of artists to process per session |
 | `VERBOSE` | `0` | Set to `1` for stream-json + verbose debug output |
 
@@ -94,7 +94,7 @@ claude login
 # Create env file with required vars
 cat > ~/.env.mapping <<'EOF'
 export MCP_API_KEY="your-key-here"
-export MCP_URL="https://musicnerd.xyz/api/mcp"
+export MCP_URL="https://musicnerd.net/api/mcp"
 export BATCH_SIZE=50
 export MAX_ITERATIONS=400
 export LOG_DIR=$HOME/tmp/id-mapping
@@ -148,7 +148,7 @@ Workers naturally diverge as each resolves/excludes different artists from the s
 ```bash
 # Quick test with 2 iterations of 5 artists
 MAX_ITERATIONS=2 BATCH_SIZE=5 LOG_DIR=/tmp/id-mapping \
-  MCP_API_KEY=your-key MCP_URL=https://staging.musicnerd.xyz/api/mcp \
+  MCP_API_KEY=your-key MCP_URL=https://staging.musicnerd.net/api/mcp \
   ./agents/id-mapping/run-full-catalog.sh
 
 # Check the logs

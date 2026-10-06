@@ -11,7 +11,7 @@
  * Excluded from the unit suite via the `*.smoke.test.ts` name. Run it against a
  * deployed URL:
  *
- *   SMOKE_BASE_URL=https://staging.musicnerd.xyz npm run test:smoke
+ *   SMOKE_BASE_URL=https://staging.musicnerd.net npm run test:smoke
  *
  * Intended to run automatically after each deploy (see CI). With no SMOKE_BASE_URL
  * set, it skips so a local `npm run test:smoke` doesn't fail for lack of a target.

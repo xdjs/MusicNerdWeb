@@ -6,7 +6,7 @@
 ## What is collected
 
 Vercel Web Analytics records one **page view** per navigation on the public site
-(`www.musicnerd.xyz`), on `staging.musicnerd.xyz` and on preview deployments. Each page view
+(`musicnerd.net`), on `staging.musicnerd.net` and on preview deployments. Each page view
 carries the full page URL (query string included), referrer, country, device type, browser and OS.
 Vercel derives a visitor id from a daily hash of IP and user agent; there are no cookies, no
 consent banner and no user identity. Nothing from the app (session, email, artist source

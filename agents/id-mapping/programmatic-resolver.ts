@@ -26,7 +26,7 @@ const DB_URL = process.env.SUPABASE_DB_CONNECTION;
 const WIKIDATA_BATCH = parseInt(process.env.WIKIDATA_BATCH || "80", 10);
 const DRY_RUN = process.env.DRY_RUN === "1";
 const USER_AGENT =
-  "MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)";
+  "MusicNerdWeb/1.0 (https://musicnerd.net; contact@musicnerd.xyz)";
 
 // --- Types ---
 

@@ -33,7 +33,7 @@ const MB = "https://musicbrainz.org/ws/2";
 /** MusicBrainz asks for a contactable agent and blocks generic ones. */
 const HEADERS = {
     Accept: "application/json",
-    "User-Agent": "MusicNerd/1.0 (https://musicnerd.xyz)",
+    "User-Agent": "MusicNerd/1.0 (https://musicnerd.net)",
 };
 /** Their published limit is one request per second, averaged. */
 const RATE_LIMIT_MS = 1_100;

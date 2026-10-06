@@ -40,6 +40,6 @@ describe('absoluteImageUrl', () => {
     });
 
     it('accepts a different origin', () => {
-        expect(absoluteImageUrl('/a.png', 'https://staging.musicnerd.xyz')).toBe('https://staging.musicnerd.xyz/a.png');
+        expect(absoluteImageUrl('/a.png', 'https://staging.musicnerd.net')).toBe('https://staging.musicnerd.net/a.png');
     });
 });
