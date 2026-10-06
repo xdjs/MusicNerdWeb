@@ -1066,3 +1066,35 @@ export const artistResearchEvidence = pgTable("artist_research_evidence", {
     pgPolicy("mnweb_select_artist_research_evidence", { for: "select", to: ["mnweb"], using: sql`true` }),
     pgPolicy("mnweb_insert_artist_research_evidence", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]).enableRLS();
+
+// Explicit artist instructions, independent of answer history and generated summaries.
+export const artistInterviewBoundaries = pgTable("artist_interview_boundaries", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    requestId: uuid("request_id").notNull(),
+    wording: text().notNull(),
+    scope: text().notNull(),
+    sitting: integer().notNull(),
+    originAnswerId: uuid("origin_answer_id").references(() => artistInterviewAnswers.id, { onDelete: "set null" }),
+    originQuestionKey: text("origin_question_key").notNull(),
+    originQuestion: text("origin_question").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+    retractedAt: timestamp("retracted_at", { withTimezone: true, mode: "string" }),
+    retractedBy: uuid("retracted_by").references(() => users.id, { onDelete: "set null" }),
+    retractionActivityId: uuid("retraction_activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
+}, table => [
+    unique("artist_interview_boundaries_request").on(table.artistId, table.requestId),
+    index("artist_interview_boundaries_active").on(table.artistId, table.sitting).where(sql`${table.retractedAt} is null`),
+    index("artist_interview_boundaries_origin").on(table.originAnswerId),
+    index("artist_interview_boundaries_creator").on(table.createdBy),
+    index("artist_interview_boundaries_retractor").on(table.retractedBy),
+    index("artist_interview_boundaries_activity").on(table.activityId),
+    index("artist_interview_boundaries_retraction_activity").on(table.retractionActivityId),
+    check("artist_interview_boundaries_scope", sql`${table.scope} in ('sitting','until_retracted') AND ${table.sitting} > 0`),
+    check("artist_interview_boundaries_wording", sql`char_length(btrim(${table.wording})) > 0 AND char_length(${table.wording}) <= 4000 AND char_length(${table.originQuestionKey}) between 1 and 500 AND char_length(${table.originQuestion}) between 1 and 8000`),
+    pgPolicy("mnweb_select_artist_interview_boundaries", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_interview_boundaries", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_retract_artist_interview_boundaries", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();

@@ -14,3 +14,9 @@ Apply this migration to the target database before enabling the matching API. AP
 Local verification executes the real migration and covers app-role writes, immutable originals, browser-role rejection, cross-artist foreign keys, deduplication and cascade deletion. No real artist data is a test fixture.
 
 `current_revision` identifies the last observed original independently of first-retention time. A page reverting to an older retained version updates this pointer without modifying immutable evidence. `reviewed_revision` separately records the version the artist accepted.
+
+## Exact interview boundaries
+
+Migration 0041 adds `artist_interview_boundaries` for the [mandatory-memory contract](https://github.com/xdjs/MusicNerdDocs/pull/8). It retains an explicit artist instruction, its scope (`sitting` or `until_retracted`), the exact offered question and fixed sitting, and creation/retraction attribution. A unique artist/request ID makes capture idempotent. Ordinary skipping does not create a boundary. The API owns authentication, current ownership checks and the atomic audit transaction; this migration enables no UI by itself.
+
+RLS is enabled with no browser-role grants. The `mnweb` role may select/insert and update only the three retraction columns. It cannot rewrite original wording or origin, or directly delete history. Artist deletion cascades through these private records. Verification must exercise the column-level grants as the app role, including retraction and denied wording updates. Apply 0041 before deploying the dependent memory API. It is a separate migration: do not replay the already-applied 0040 to add memory.
