@@ -274,6 +274,13 @@
       "when": 1791244020000,
       "tag": "0038_automatic_source_extraction",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791304532481,
+      "tag": "0039_source_versions",
+      "breakpoints": true
     }
   ]
 }
