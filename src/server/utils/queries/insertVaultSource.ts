@@ -5,6 +5,7 @@ import { withArtistUploadWrite, withScopedArtistWrite, type WriteDb } from './ow
 import { getArtistOperationOwnership } from '../artistOperationContext';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { sql } from 'drizzle-orm';
+import { queueApprovedSourceExtraction } from '@/server/utils/source/queueApprovedSourceExtraction';
 
 export async function insertVaultSource(data: {
     artistId: string;
@@ -30,6 +31,8 @@ export async function insertVaultSource(data: {
     try {
         const url = canonicalizeLoreUrl(data.url) ?? data.url;
         const write = async (writer: WriteDb) => {
+        // Serialize with claim changes and worker checkpoints before any source write.
+        await writer.execute(sql`select id from artists where id=${data.artistId}::uuid for update`);
         const context = getArtistOperationOwnership(data.artistId);
         const userId = provenance?.userId ?? authorization?.userId ?? context?.userId;
         let status = data.status ?? 'pending';
@@ -89,6 +92,7 @@ export async function insertVaultSource(data: {
                 }, writer);
             await writer.execute(sql`update artist_vault_sources set activity_id = ${activityId}::uuid where id = ${source.id}::uuid`);
         }
+        await queueApprovedSourceExtraction(writer, source, activityId);
         return { ...source, activityId };
         };
         return authorization

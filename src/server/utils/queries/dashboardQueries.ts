@@ -316,25 +316,7 @@ async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWrite
     return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
 }
 
-export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected", expectedStatus?: "pending") {
-    try {
-        const updated = await withVaultSourceWrite(sourceId, async (tx, predicate) => {
-            const [row] = await tx.update(artistVaultSources)
-            .set({
-                status,
-                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-            })
-            .where(expectedStatus ? and(predicate, eq(artistVaultSources.status, expectedStatus)) : predicate)
-            .returning();
-            if (row) await recordArtistActivity(row.artistId, `source_${status}`, { sourceId }, tx);
-            return row;
-        });
-        return updated;
-    } catch (e) {
-        console.error("[updateVaultSourceStatus] Error:", e);
-        throw e;
-    }
-}
+export { updateVaultSourceStatus } from './updateVaultSourceStatus';
 
 export { insertVaultSource } from './insertVaultSource';
 

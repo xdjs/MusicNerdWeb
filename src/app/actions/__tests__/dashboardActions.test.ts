@@ -2,6 +2,8 @@
 import { jest } from "@jest/globals";
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
+jest.mock('@/server/utils/linkPreview', () => ({ fetchLinkPreview: jest.fn().mockResolvedValue({title:'Article title',imageUrl:null}) }));
+
 jest.mock("@/server/auth", () => ({
     getServerAuthSession: jest.fn(),
 }));
@@ -198,6 +200,15 @@ describe("addVaultSource", () => {
         const { addVaultSource, insertVaultSource } = await setup();
         insertVaultSource.mockResolvedValueOnce(undefined);
         expect(await addVaultSource("artist-1", "https://example.com/interview")).toMatchObject({ success: false, error: expect.stringMatching(/already/) });
+    });
+
+    it("leaves ordinary source text to the transactional ingestion queue", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
+        expect((await addVaultSource("artist-1", "https://example.com/article")).success).toBe(true);
+        expect(fetchPageContent).not.toHaveBeenCalled();
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({title:'Article title'}),expect.anything(),expect.anything());
     });
 
     it("finishes podcast metadata persistence before returning", async () => {

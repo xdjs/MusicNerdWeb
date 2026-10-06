@@ -115,8 +115,9 @@ it.each([
   expect(await canEditArtist(userId, artistId)).toBe(isAdmin);
   expect((await call('https://example.com/second')).status).toBe(201);
   const jobs = await database.query.artistResearchJobs.findMany();
-  expect(jobs).toHaveLength(1);
-  expect(jobs[0]).toMatchObject({ kind: 'lore_refresh', state: { claimId: claimed ? claimId : null } });
+  expect(jobs.filter(job => job.kind === 'lore_refresh')).toMatchObject([{state:{claimId:claimed ? claimId : null}}]);
+  expect(jobs.filter(job => job.kind === 'source_extract')).toHaveLength(2);
+  expect(jobs.filter(job => job.kind === 'source_extract').every(job=>job.status === 'queued')).toBe(true);
 });
 
 it('uses a newly revoked role even while the session and request still assert whitelist access', async () => {
@@ -215,7 +216,7 @@ it('bulk approval preserves attribution, skips changed/foreign/research items, a
   expect(await database.query.artistActivityEvents.findMany()).toEqual(expect.arrayContaining([
     expect.objectContaining({ actorUserId: ownerId, action: 'source_approved', sourceId: source.id, trigger: 'admin_bulk_review' }),
   ]));
-  expect(await database.query.artistResearchJobs.findMany()).toHaveLength(1);
+  expect((await database.query.artistResearchJobs.findMany()).map(job=>job.kind).sort()).toEqual(['lore_refresh','source_extract']);
   expect(await approveContributorSubmissions(userId, [{ id: link!.id, type: 'link' }, { id: source.id, type: 'lore' }])).toMatchObject({ approved: 0, skipped: 2, failed: 0 });
 });
 
@@ -270,6 +271,7 @@ it('approves only selected pending Lore across origins/artists, preserves credit
   await database.insert(schema.artists).values({ id: otherArtist, createdAt: '2020-01-01T00:00:00Z' });
   await database.insert(schema.artistClaims).values({ id: claimId, artistId, userId, status: 'approved' });
   const sources = await Promise.all(['submission', 'research', 'upload', 'unknown'].map(origin => pendingSource(userId, origin)));
+  await database.update(schema.artistVaultSources).set({ filePath: 'private/source.pdf' }).where(eq(schema.artistVaultSources.id, sources[2]!.id));
   await database.update(schema.artistVaultSources).set({ artistId: otherArtist }).where(eq(schema.artistVaultSources.id, sources[3]!.id));
   const unselected = await pendingSource();
   const rejected = await pendingSource(userId, 'submission', 'rejected');
@@ -284,8 +286,9 @@ it('approves only selected pending Lore across origins/artists, preserves credit
   expect(reviews).toHaveLength(4);
   expect(reviews.every(event => event.actorUserId === ownerId && event.trigger === 'admin_bulk_review')).toBe(true);
   const jobs = await database.query.artistResearchJobs.findMany();
-  expect(jobs).toHaveLength(2);
-  expect(jobs.find(job => job.artistId === artistId)?.state).toMatchObject({ claimId });
+  expect(jobs.filter(job=>job.kind === 'lore_refresh')).toHaveLength(2);
+  expect(jobs.filter(job=>job.kind === 'source_extract')).toHaveLength(3);
+  expect(jobs.find(job => job.artistId === artistId && job.kind === 'lore_refresh')?.state).toMatchObject({ claimId });
   expect(await approveSelectedLoreSources(ids)).toEqual({ success: true, approvedIds: [], skippedIds: ids, failedIds: [] });
 });
 

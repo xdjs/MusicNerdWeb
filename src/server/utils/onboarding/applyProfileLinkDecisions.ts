@@ -168,26 +168,19 @@ export async function applyProfileLinkDecisions(
                     status: ownedByArtist ? "approved" : "pending",
                 });
                 existingVaultStatusByUrl.set(raw.url, ownedByArtist ? "approved" : "pending");
-                // Enrich content (snippet/extractedText,
-                // and title too if we don't already have a good one) so doc
-                // synthesis isn't left with a bare URL — mirrors the
-                // vault_review addedUrls background fetch further below.
-                // Title is deliberately left alone when `preview.title` is
-                // already set: fetchPageContent falls back to a generic
-                // "Source from <host>" title on ANY non-ok response, and
-                // must never be allowed to downgrade the real og:title (e.g.
-                // "Pete Rango") we already captured synchronously above.
-                if (source?.id) {
+                // Card metadata was already read above. Original text is queued
+                // atomically by insertVaultSource; only podcast grouping metadata
+                // needs an awaited follow-up in this request.
+                if (source?.id && podcastService(raw.url)) {
                     const enrichment = fetchPageContent(raw.url).then(content =>
                         updateVaultSourceContent(source.id, {
                             ...content.podcastEpisode,
                             ...(preview.title ? {} : { title: content.title }),
                             snippet: content.snippet,
-                            extractedText: content.extractedText,
                             ogImage: content.ogImage,
                         })
                     ).catch(e => console.error("[onboarding] Content enrichment failed:", e));
-                    if (podcastService(raw.url)) await enrichment;
+                    await enrichment;
                 }
                 (ownedByArtist ? routedToVaultApproved : routedToVaultPending).push(raw.url);
             } catch (e) {
