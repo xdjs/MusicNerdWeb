@@ -12,3 +12,5 @@ Both tables enable RLS. Browser `anon`/`authenticated` roles have no grants. `mn
 Apply this migration to the target database before enabling the matching API. API main merges currently auto-publish: migration readiness must precede that merge. Do not run the full migration journal to replay old manually applied migrations. Actual environment application and app-role verification must be recorded separately from the local PGlite SQL checks.
 
 Local verification executes the real migration and covers app-role writes, immutable originals, browser-role rejection, cross-artist foreign keys, deduplication and cascade deletion. No real artist data is a test fixture.
+
+`current_revision` identifies the last observed original independently of first-retention time. A page reverting to an older retained version updates this pointer without modifying immutable evidence. `reviewed_revision` separately records the version the artist accepted.

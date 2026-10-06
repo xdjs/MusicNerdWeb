@@ -14,6 +14,7 @@ CREATE TABLE "artist_research_candidates" (
 	"reviewed_by" uuid,
 	"review_activity_id" uuid,
 	"reviewed_revision" text,
+	"current_revision" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "artist_research_candidates_artist_url" UNIQUE("artist_id","url"),

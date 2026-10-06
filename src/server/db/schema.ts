@@ -1027,6 +1027,7 @@ export const artistResearchCandidates = pgTable("artist_research_candidates", {
     reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
     reviewActivityId: uuid("review_activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
     reviewedRevision: text("reviewed_revision"),
+    currentRevision: text("current_revision"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 }, table => [

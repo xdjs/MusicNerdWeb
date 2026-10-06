@@ -1916,6 +1916,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "current_revision": {
+          "name": "current_revision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
