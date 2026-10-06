@@ -12,6 +12,7 @@ import { inferTypeFromUrl } from "@/lib/source/sourceTypes";
 import { canonicalizeLoreUrl } from "@/lib/source/canonicalizeLoreUrl";
 import { podcastService } from "@/lib/source/podcastService";
 import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
+import { fetchLinkPreview } from "@/server/utils/linkPreview";
 
 export async function addVaultSource(
     artistId: string,
@@ -40,7 +41,8 @@ export async function addVaultSource(
             return { success: false, error: "This source has already been added" };
         }
 
-        // Insert immediately with domain-based title, then fetch content in background
+        // Card metadata is separate from the durable original-text job.
+        const preview = await fetchLinkPreview(url);
         let title = "Untitled Source";
         try {
             const parsed = new URL(url);
@@ -52,28 +54,27 @@ export async function addVaultSource(
         const source = await insertVaultSource({
             artistId,
             url,
-            title,
+            title: preview.title ?? title,
+            ogImage: preview.imageUrl,
             type: inferTypeFromUrl(url),
             status: "pending",
         }, { userId: session.user.id, expectedClaimId: claimId },
             { userId: session.user.id, trigger: "editor_source", approveIfTrusted: true });
         if (!source) return { success: false, error: "This source has already been added" };
 
-        // Fire background content fetch to populate real title/snippet/extractedText
-        if (source?.id) {
+        // Episode identity is required for grouping. Await metadata only; the API
+        // owns original-text persistence, so this cannot overwrite a newer body.
+        if (source?.id && podcastService(url)) {
             const enrichment = fetchPageContent(url).then(content =>
                 updateVaultSourceContent(source.id, {
                     title: content.title,
                     snippet: content.snippet,
-                    extractedText: content.extractedText,
                     ogImage: content.ogImage,
                     ...content.podcastEpisode,
                     publishedAt: content.publishedAt ?? null,
                 })
             ).catch(e => console.error("[addVaultSource] Content enrichment failed:", e));
-            // Podcast identity is required for grouping, so finish its write
-            // before a serverless invocation can be frozen after this action.
-            if (source.status === 'approved' || podcastService(url)) await enrichment;
+            await enrichment;
         }
 
         let warning: string | undefined;

@@ -70,7 +70,11 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
   page loaded already complete renders just the profile), so the marks stay. The status card turns
   into "Your page is ready", with what was found and **See what we found**, which scrolls to the
-  first section that changed. Nothing scrolls by itself.
+  first section that changed. Nothing scrolls by itself: opening or restoring the tour preserves
+  the artist's scroll position, and only the artist choosing **Next** or **Back** scrolls to a tour
+  section. The opening card stays within the viewport even when About is above the reader's
+  current position. Its About copy is: "This draft is based on the sources on your profile. Edit it
+  or write your own."
 - **Failure.** The card shows a failure, with "try again" (`{ type: "open" }`), when the turn's
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
   incomplete ("This is taking longer than usual."). "try again" resets that clock. What already

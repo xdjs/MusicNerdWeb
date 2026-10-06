@@ -28,7 +28,7 @@ const STOPS: Stop[] = [
     {
         anchor: "mn-about",
         title: "We wrote you a first draft",
-        body: "It comes from the sources further down this page. Rewrite it in your own words, or replace it completely. Plenty of artists would rather write their own.",
+        body: "This draft is based on the sources on your profile. Edit it or write your own.",
     },
     {
         anchor: "mn-ask",
@@ -72,7 +72,7 @@ function place(rect: DOMRect, vw: number, vh: number, cardHeight: number): Place
     }
     const horizontalCenter = clampLeft(rect.left + rect.width / 2 - CARD_WIDTH / 2);
     if (rect.bottom + GAP + cardHeight + EDGE <= vh) {
-        return { top: rect.bottom + GAP, left: horizontalCenter, side: "below" };
+        return { top: clampTop(rect.bottom + GAP), left: horizontalCenter, side: "below" };
     }
     return { top: clampTop(rect.top - GAP - cardHeight), left: horizontalCenter, side: "above" };
 }
@@ -142,14 +142,13 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
         setPlacement(place(rect, window.innerWidth, window.innerHeight, cardHeight));
     }, [stop]);
 
-    // Scroll the section into view, lift it above the dim, and ring it. Cleanup
-    // restores the element's own styles so the tour leaves no trace.
+    // Highlight the current section without moving the reader when the build
+    // automatically arms the tour. Only Next/Back request a scroll below.
+    // Cleanup restores the element's own styles so the tour leaves no trace.
     useEffect(() => {
         if (!armed || dismissed || !stop) return;
         const el = document.getElementById(stop.anchor);
         if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-
         const prev = {
             boxShadow: el.style.boxShadow,
             position: el.style.position,
@@ -192,6 +191,13 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
             window.removeEventListener("resize", onMove);
         };
     }, [index, armed, dismissed, reposition, hasSupportLinks]);
+
+    const goToStop = (nextIndex: number) => {
+        const nextStop = STOPS[nextIndex];
+        if (!nextStop) return;
+        document.getElementById(nextStop.anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setIndex(nextIndex);
+    };
 
     const finish = (reachedTheEnd: boolean) => {
         try {
@@ -277,14 +283,14 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
                     <div className="flex gap-2 pt-1">
                         {index > 0 && (
                             <button
-                                onClick={() => setIndex(i => i - 1)}
+                                onClick={() => goToStop(index - 1)}
                                 className="text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/20 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                             >
                                 Back
                             </button>
                         )}
                         <button
-                            onClick={() => (isLast ? finish(true) : setIndex(i => i + 1))}
+                            onClick={() => (isLast ? finish(true) : goToStop(index + 1))}
                             className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
                         >
                             {isLast ? "Got it" : "Next"}

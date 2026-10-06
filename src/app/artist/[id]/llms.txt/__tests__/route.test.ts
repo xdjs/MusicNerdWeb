@@ -18,7 +18,7 @@ const ID = '11111111-1111-1111-1111-111111111111';
 
 async function get(id = ID) {
     const { GET } = await import('../route');
-    return GET(new Request(`https://www.musicnerd.xyz/artist/${id}/llms.txt`), { params: Promise.resolve({ id }) });
+    return GET(new Request(`https://musicnerd.net/artist/${id}/llms.txt`), { params: Promise.resolve({ id }) });
 }
 
 describe('GET /artist/[id]/llms.txt', () => {

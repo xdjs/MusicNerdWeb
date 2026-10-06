@@ -17,7 +17,7 @@ The reference is [xdjs/MusicNerdWeb#1228](https://github.com/xdjs/MusicNerdWeb/i
 - **Draft until ready.** Open every PR as a draft (`gh pr create --draft`) and keep it a draft while you are still pushing to it. Mark it ready (`gh pr ready <n>`) only when its developer says it is good to merge. An agent never marks its own PR ready without that go-ahead. A PR that is ready for review is ready to merge, and anyone can merge it (Carl's convention, agreed at the 2026-10-01 R&D).
 - **Merging and releasing.** Any PR that is ready for review can merge to `main` once the required `test` and `build` checks pass. No approval is required. A merge to `main` does **not** release to production. After the merge, someone promotes that SHA's Vercel build to production by hand in the Vercel dashboard. Apply any database migration to production first. Record “merged to main” and “promoted to production” separately.
 - **People.** Pete (product and design, merges), Carl (releases), Sweetman (engineering; call them Sweetman in writing). Any of them can promote a build to production. Attribute decisions to whoever made them and where (standup, R&D sync).
-- **Databases.** Vercel previews and `staging.musicnerd.xyz` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
+- **Databases.** Vercel previews and `staging.musicnerd.net` use the **staging** database; production uses its own. The same artist has **different ids** on each. Say which. Dutchyyy on staging has an In Process link and is the usual fixture artist.
 - **Local and preview verification.** When a configured local environment is available, run and review changes locally; respect a requested local review before pushing. Verify the target environment before exercising integrations, preserve existing env files, and keep credentials private. When local configuration is unavailable, use the documented stub-env build to prove compilation. Local checks complement the exact-commit Vercel preview verification below; they do not replace it.
 - **Code shape.** `src/lib` is pure logic grouped by domain (`artist/`, `bio/`, `source/`, `inprocess/`); `src/server/utils` is server I/O under the same grouping. **New modules export one function each, named after the file, with a test beside the folder's other tests.** Older multi-export modules are split when next changed, not in a move. Reviewers ask for this; write it that way from the start.
 - **Browser verification.** 832 px desktop and 390 px phone (2×, touch), both themes (`localStorage` key `musicnerd-theme` = `light` | `dark`). Screenshots are committed to the existing shared orphan branch `sweetmantech/pr-screenshots` (shared archive, worktree `mnw-shots`; not a contributor-branch naming template) and linked from PR comments by `raw.githubusercontent.com/xdjs/MusicNerdWeb/<sha>/<file>.png`; never on the feature branch.
@@ -207,7 +207,7 @@ When the developer says the PR is good to merge, mark it ready (`gh pr ready <n>
 
 After the squash merge, record the `main` SHA in the issue row. Production is a separate,
 manual step: in Vercel, promote the build for that SHA to production, after applying any
-database migration to production. Then check the change on `www.musicnerd.xyz` and record the
+database migration to production. Then check the change on `musicnerd.net` and record the
 promotion on the issue. Until someone promotes it, the row says “merged to main”, never
 “in production”.
 

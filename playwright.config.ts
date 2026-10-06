@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 // Set E2E_BASE_URL to run the E2E suite against a deployed environment (e.g.
-// https://staging.musicnerd.xyz) instead of a local dev server. When set, the
+// https://staging.musicnerd.net) instead of a local dev server. When set, the
 // local dev webServer is not started.
 const remoteBaseUrl = process.env.E2E_BASE_URL;
 
