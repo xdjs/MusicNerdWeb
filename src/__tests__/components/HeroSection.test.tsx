@@ -91,6 +91,12 @@ describe('Hero About while research writes it', () => {
     expect(screen.queryByText('Music from Miami.')).toBeNull();
   });
 
+  it('draws the About skeleton in the portrait hero\'s white text', () => {
+    const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
+    render(<OnboardingProgressContext.Provider value={research({ steps })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    expect(screen.getByRole('status', { name: 'writing your about…' }).closest('#mn-about')).toHaveClass('text-white');
+  });
+
   it('marks the About as new when it arrives', () => {
     const steps = { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' };
     render(<OnboardingProgressContext.Provider value={research({ steps, fresh: { profiles: false, vault: false, publish: true } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);

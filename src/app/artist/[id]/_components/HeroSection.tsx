@@ -101,7 +101,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></ResearchPending></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></ResearchPending></div>
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
