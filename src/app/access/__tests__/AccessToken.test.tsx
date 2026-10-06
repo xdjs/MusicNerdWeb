@@ -6,6 +6,8 @@ const mockGetAccessToken = jest.fn();
 let mockPrivy = { ready: true, authenticated: true };
 jest.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ ...mockPrivy, getAccessToken: mockGetAccessToken }) }));
 const mockToast = jest.fn();
+const mockRequestLogin = jest.fn();
+jest.mock('@/app/_components/nav/components/requestLogin', () => ({ requestLogin: (trigger: string) => mockRequestLogin(trigger) }));
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }));
 
 const writeText = jest.fn();
@@ -29,10 +31,12 @@ it('shows a loading state until Privy is ready, without asking for a token', () 
   expect(mockGetAccessToken).not.toHaveBeenCalled();
 });
 
-it('asks a signed-out reader to log in, without asking for a token', () => {
+it('shows a signed-out reader a Log In button, without asking for a token', () => {
   mockPrivy = { ready: true, authenticated: false };
   mount();
-  expect(screen.getByText('Log in to see your access token: open the menu at the top right and choose Log In.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Log in to see your access token' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+  expect(mockRequestLogin).toHaveBeenCalledWith('please_login');
   expect(mockGetAccessToken).not.toHaveBeenCalled();
 });
 

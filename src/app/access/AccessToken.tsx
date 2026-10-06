@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { usePrivy } from "@privy-io/react-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import { useAccessToken } from "@/hooks/useAccessToken";
+import { useCopy } from "@/hooks/useCopy";
 
 /**
  * The signed-in user's access token, to call the Music Nerd API with
@@ -13,37 +12,11 @@ import { useToast } from "@/hooks/use-toast";
  * Authentication page sends API callers here.
  */
 export default function AccessToken() {
-  const { getAccessToken, ready, authenticated } = usePrivy();
-  const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
-
-  const { data: accessToken, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["accessToken"],
-    queryFn: async () => {
-      const token = await getAccessToken();
-      if (!token) throw new Error("Failed to get access token");
-      return token;
-    },
-    enabled: ready && authenticated,
-  });
-
-  useEffect(() => {
-    if (isError) {
-      toast({ title: "Could not get your access token", variant: "destructive" });
-      console.error(error);
-    }
-  }, [isError, error, toast]);
-
-  useEffect(() => setCopied(false), [accessToken]);
-
-  async function copy() {
-    if (!accessToken) return;
-    await navigator.clipboard.writeText(accessToken);
-    setCopied(true);
-  }
+  const { accessToken, isLoading, refetch, ready, authenticated } = useAccessToken();
+  const { copied, copy } = useCopy(accessToken);
 
   if (!ready) return <Message>Loading…</Message>;
-  if (!authenticated) return <Message>Log in to see your access token: open the menu at the top right and choose Log In.</Message>;
+  if (!authenticated) return <PleaseLoginPage text="Log in to see your access token" />;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 text-foreground">
