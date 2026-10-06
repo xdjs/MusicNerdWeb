@@ -51,7 +51,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 - **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
   never treated as "not started".
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The server then
-  sees onboarding complete and renders the page without the gate. It does not scroll the artist.
+  sees onboarding complete and renders the page without the gate. Opening or restoring the tour
+  preserves the artist's scroll position. Only the artist choosing **Next** or **Back** scrolls
+  to a tour section; automatic completion never scrolls to About.
 - **Status strip.** One line at the top of the page names the current step (`buildStepLabel`:
   `profiles` "finding your profiles", `vault` "reading what's written about you", `interview` and
   `publish` "writing your about") with "skip for now". Slice 2 replaces it with the designed

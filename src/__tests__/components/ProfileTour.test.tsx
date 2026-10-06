@@ -7,6 +7,7 @@ import { armTour } from '@/app/artist/[id]/_components/onboarding/armTour';
 
 // jsdom has no layout engine, so scrollIntoView is absent on elements.
 beforeAll(() => { Element.prototype.scrollIntoView = jest.fn(); });
+beforeEach(() => { (Element.prototype.scrollIntoView as jest.Mock).mockClear(); });
 
 function withAnchors() {
     for (const id of ['mn-about', 'mn-ask', 'mn-links', 'mn-sources']) {
@@ -61,12 +62,18 @@ describe('ProfileTour', () => {
         expect(screen.getByText(/answers come from your Lore sources/i)).toBeInTheDocument();
     });
 
-    it('scrolls each section into view so the words always point at something visible', () => {
+    it('preserves the current position on opening and scrolls only for Next or Back', () => {
         render(<ProfileTour artistId="a1" hasSupportLinks />);
-        expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
-        const before = (Element.prototype.scrollIntoView as jest.Mock).mock.calls.length;
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+
         fireEvent.click(screen.getByRole('button', { name: /next/i }));
-        expect((Element.prototype.scrollIntoView as jest.Mock).mock.calls.length).toBeGreaterThan(before);
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts[0]).toBe(document.getElementById('mn-ask'));
+
+        fireEvent.click(screen.getByRole('button', { name: /back/i }));
+        expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(2);
+        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts[1]).toBe(document.getElementById('mn-about'));
     });
 
     it('rings the section it is describing, and un-rings it on the way out', () => {
@@ -229,6 +236,7 @@ describe('ProfileTour — surviving the end of onboarding', () => {
         first.unmount();
         render(<ProfileTour artistId="a1" hasSupportLinks />);
         expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     });
 
     it('does not come back after it has been completed', () => {
@@ -267,6 +275,7 @@ describe('ProfileTour — armed while already mounted', () => {
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/we wrote you a first draft/i)).toBeInTheDocument();
+        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     });
 
     it('ignores an arming event for a different artist', () => {
