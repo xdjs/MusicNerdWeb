@@ -51,7 +51,7 @@ describe('ProfileTour', () => {
         // Pete: not every artist wants an AI-written bio. Publishing one and
         // then explaining how to edit it is backwards.
         render(<ProfileTour artistId="a1" hasSupportLinks />);
-        expect(screen.getByText(/rewrite it in your own words/i)).toBeInTheDocument();
+        expect(screen.getByText(/edit it or write your own/i)).toBeInTheDocument();
     });
 
     it('tells the artist the sources feed the ASK section, not only the About', () => {

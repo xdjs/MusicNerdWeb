@@ -54,7 +54,8 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   sees onboarding complete and renders the page without the gate. Opening or restoring the tour
   preserves the artist's scroll position. Only the artist choosing **Next** or **Back** scrolls
   to a tour section; automatic completion never scrolls to About. The opening card stays within
-  the viewport even when About is above the reader's current position.
+  the viewport even when About is above the reader's current position. Its About copy is:
+  "This draft is based on the sources on your profile. Edit it or write your own."
 - **Status strip.** One line at the top of the page names the current step (`buildStepLabel`:
   `profiles` "finding your profiles", `vault` "reading what's written about you", `interview` and
   `publish` "writing your about") with "skip for now". Slice 2 replaces it with the designed

@@ -28,7 +28,7 @@ const STOPS: Stop[] = [
     {
         anchor: "mn-about",
         title: "We wrote you a first draft",
-        body: "It comes from the sources further down this page. Rewrite it in your own words, or replace it completely. Plenty of artists would rather write their own.",
+        body: "This draft is based on the sources on your profile. Edit it or write your own.",
     },
     {
         anchor: "mn-ask",
