@@ -43,10 +43,10 @@ export default function AccessToken() {
   }
 
   if (!ready) return <Message>Loading…</Message>;
-  if (!authenticated) return <Message>Log in to see your access token.</Message>;
+  if (!authenticated) return <Message>Log in to see your access token: open the menu at the top right and choose Log In.</Message>;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 text-foreground">
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 text-foreground">
       <Card>
         <CardHeader>
           <CardTitle>Access token</CardTitle>
@@ -71,14 +71,14 @@ export default function AccessToken() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
 
 function Message({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-[50vh] items-center justify-center px-4">
+    <div className="flex min-h-[50vh] items-center justify-center px-4">
       <p className="text-muted-foreground">{children}</p>
-    </main>
+    </div>
   );
 }

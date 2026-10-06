@@ -32,13 +32,14 @@ it('shows a loading state until Privy is ready, without asking for a token', () 
 it('asks a signed-out reader to log in, without asking for a token', () => {
   mockPrivy = { ready: true, authenticated: false };
   mount();
-  expect(screen.getByText(/Log in to see your access token/)).toBeInTheDocument();
+  expect(screen.getByText('Log in to see your access token: open the menu at the top right and choose Log In.')).toBeInTheDocument();
   expect(mockGetAccessToken).not.toHaveBeenCalled();
 });
 
 it('shows the token in full for a signed-in reader', async () => {
-  mount();
+  const { container } = mount();
   expect(await screen.findByText('token-1')).toBeInTheDocument();
+  expect(container.querySelector('main')).toBeNull();
 });
 
 it('copies the token to the clipboard', async () => {
