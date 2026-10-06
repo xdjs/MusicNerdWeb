@@ -325,20 +325,30 @@ describe('OnboardingChat', () => {
         render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={onSkip} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
         expect(screen.getByText('artist page')).toBeInTheDocument();
         expect(screen.getByText('finding your profiles…')).toBeInTheDocument();
-        expect(screen.queryByRole('list', { name: /research steps/i })).toBeNull();
+        expect(screen.getByRole('list', { name: 'Research steps' }).children).toHaveLength(3);
         fireEvent.click(screen.getByRole('button', { name: 'skip for now' }));
         expect(onSkip).toHaveBeenCalled();
     });
 
-    it('follows the build from the state endpoint, finishing through onFinish', () => {
+    it('follows the build from the state endpoint; finishing it calls onBuildComplete and keeps the page (not onFinish)', () => {
         setChat({ items: [] });
         const onFinish = jest.fn();
-        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" initialState={initialState} onSkip={jest.fn()} onFinish={onFinish}><p>artist page</p></OnboardingChat>);
+        const onBuildComplete = jest.fn();
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" initialState={initialState} researchItems={{ links: ['deezer'], sources: [] }} onSkip={jest.fn()} onFinish={onFinish} onBuildComplete={onBuildComplete}><p>artist page</p></OnboardingChat>);
         const [artistId, initial, onComplete] = useOnboardingProgress.mock.calls[0];
         expect(artistId).toBe('a1');
         expect(initial).toEqual(initialState);
         onComplete();
-        expect(onFinish).toHaveBeenCalledTimes(1);
+        expect(onBuildComplete).toHaveBeenCalledTimes(1);
+        expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('shows the ready card with what research found once the build is complete', () => {
+        setChat({ items: [] });
+        setProgress({ complete: true, currentStep: null, steps: { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' } });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" initialState={initialState} researchItems={{ links: ['deezer', 'spotify'], sources: ['s1'] }} onSkip={jest.fn()} onFinish={jest.fn()} onBuildComplete={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByText('Your page is ready')).toBeInTheDocument();
+        expect(screen.getByText('artist page')).toBeInTheDocument();
     });
 
     it('keeps the artist page under the resume path\'s step cards', () => {

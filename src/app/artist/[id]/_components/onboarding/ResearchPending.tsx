@@ -1,30 +1,109 @@
 "use client";
 
-import { useContext, type ReactNode } from "react";
-import type { OnboardingStepName } from "@/lib/onboarding/onboardingStateTypes";
+import { useContext, useEffect, useRef, type ReactNode } from "react";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
+import type { SectionStep } from "./useFreshSections";
+
+type Skeleton = "links" | "sources" | "about";
+
+const BLOCK = "bg-black/10 dark:bg-white/10 motion-safe:animate-pulse";
+
+function SkeletonShape({ kind }: { kind: Skeleton }) {
+    if (kind === "about") {
+        return (
+            <div className="flex max-w-xl flex-col gap-2.5">
+                {["w-[96%]", "w-[88%]", "w-[62%]"].map(width => (
+                    <span key={width} data-skeleton="line" className={`h-3 rounded-md bg-current opacity-25 motion-safe:animate-pulse ${width}`} />
+                ))}
+            </div>
+        );
+    }
+    if (kind === "sources") {
+        return (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[0, 1, 2].map(i => (
+                    <div key={i} data-skeleton="card" className={`overflow-hidden rounded-xl border border-black/10 dark:border-white/10 ${i > 1 ? "hidden sm:block" : ""}`}>
+                        <div className={`h-28 ${BLOCK}`} />
+                        <div className="flex flex-col gap-2 p-3">
+                            <span className={`h-2.5 w-[85%] rounded ${BLOCK}`} />
+                            <span className={`h-2.5 w-[55%] rounded ${BLOCK}`} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return (
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
+            {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} data-skeleton="tile" className={`flex flex-col items-center gap-2 ${i > 3 ? "hidden sm:flex" : ""} ${i > 5 ? "sm:hidden md:flex" : ""}`}>
+                    <span className={`h-12 w-12 rounded-full ${BLOCK}`} />
+                    <span className={`h-2 w-12 rounded ${BLOCK}`} />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 /**
- * A profile section that research fills (docs/research-view.md, "Sections"):
- * while its step isn't confirmed, a loading line above it, or with
- * `hideUntilDone` instead of it. With no build being watched, or once its step
- * is confirmed, just the section.
+ * A profile section research fills (docs/research-view.md, "Sections"). While
+ * its step isn't confirmed: a skeleton in the section's shape and a caption
+ * (above the section, or for the About instead of it). When it has just
+ * arrived: the section fades in, is marked, announces itself once and reports
+ * when it has been on screen. Otherwise, or with no build being watched, just
+ * the section.
  */
-export default function ResearchPending({ step, label, hideUntilDone = false, children }: {
-    step: OnboardingStepName;
+export default function ResearchPending({ step, skeleton, label, arrivedLabel, children }: {
+    step: SectionStep;
+    skeleton: Skeleton;
     label: string;
-    hideUntilDone?: boolean;
+    arrivedLabel: string;
     children?: ReactNode;
 }) {
-    const steps = useContext(OnboardingProgressContext);
-    if (!steps || steps[step] !== null) return <>{children}</>;
+    const research = useContext(OnboardingProgressContext);
+    const fresh = !!research?.fresh[step];
+    const box = useRef<HTMLDivElement>(null);
+    const markSeen = research?.markSeen;
+
+    useEffect(() => {
+        if (!fresh || !markSeen) return;
+        const element = box.current;
+        if (!element || typeof IntersectionObserver === "undefined") {
+            markSeen(step);
+            return;
+        }
+        const observer = new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                markSeen(step);
+                observer.disconnect();
+            }
+        }, { threshold: 0.25 });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [fresh, markSeen, step]);
+
+    if (!research) return <>{children}</>;
+    if (research.steps[step] === null) {
+        return (
+            <>
+                <div role="status" aria-label={label} className="flex flex-col gap-3">
+                    <SkeletonShape kind={skeleton} />
+                    <span className={`text-sm ${skeleton === "about" ? "opacity-80" : "text-[hsl(var(--muted-foreground))]"}`}>{label}</span>
+                </div>
+                {skeleton !== "about" && children}
+            </>
+        );
+    }
+    if (!fresh) return <>{children}</>;
     return (
-        <>
-            <p role="status" className="m-0 flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-pastypink dark:bg-pastyblue" aria-hidden="true" />
-                {label}
-            </p>
-            {!hideUntilDone && children}
-        </>
+        <div ref={box} data-research-new="" className="motion-safe:animate-research-reveal">
+            <span role="status" className="sr-only">{arrivedLabel}</span>
+            {skeleton === "about" ? (
+                <div className="flex flex-col items-start gap-2">
+                    <span className="rounded-full bg-highlightpink px-2.5 py-0.5 text-xs font-bold text-black">New About</span>
+                    <div className="rounded-xl ring-2 ring-highlightpink/70 transition-shadow">{children}</div>
+                </div>
+            ) : children}
+        </div>
     );
 }
