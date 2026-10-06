@@ -34,7 +34,8 @@ it('shows a loading state until Privy is ready, without asking for a token', () 
 it('shows a signed-out reader a Log In button, without asking for a token', () => {
   mockPrivy = { ready: true, authenticated: false };
   mount();
-  expect(screen.getByRole('heading', { name: 'Log in to see your access token' })).toBeInTheDocument();
+  const heading = screen.getByRole('heading', { name: 'Log in to see your access token' });
+  expect(heading.closest('section')?.parentElement).toHaveClass('flex-1', 'items-center', 'justify-center');
   fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
   expect(mockRequestLogin).toHaveBeenCalledWith('please_login');
   expect(mockGetAccessToken).not.toHaveBeenCalled();

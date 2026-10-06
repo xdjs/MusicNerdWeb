@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import PleaseLoginPage from "@/app/_components/PleaseLoginPage";
+import Message from "./Message";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useCopy } from "@/hooks/useCopy";
 
@@ -15,8 +16,8 @@ export default function AccessToken() {
   const { accessToken, isLoading, refetch, ready, authenticated } = useAccessToken();
   const { copied, copy } = useCopy(accessToken);
 
-  if (!ready) return <Message>Loading…</Message>;
-  if (!authenticated) return <PleaseLoginPage text="Log in to see your access token" />;
+  if (!ready) return <Message><p className="text-muted-foreground">Loading…</p></Message>;
+  if (!authenticated) return <Message><PleaseLoginPage text="Log in to see your access token" /></Message>;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 text-foreground">
@@ -44,14 +45,6 @@ export default function AccessToken() {
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function Message({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center px-4">
-      <p className="text-muted-foreground">{children}</p>
     </div>
   );
 }
