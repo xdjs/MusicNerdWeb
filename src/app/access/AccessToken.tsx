@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * The signed-in user's Privy access token, to call the Music Nerd API with
+ * The signed-in user's access token, to call the Music Nerd API with
  * `Authorization: Bearer`. Mirrors Recoup's /access page; the docs'
  * Authentication page sends API callers here.
  */
@@ -50,7 +50,7 @@ export default function AccessToken() {
       <Card>
         <CardHeader>
           <CardTitle>Access token</CardTitle>
-          <CardDescription>Your Privy Bearer token for the Music Nerd API. It expires after about an hour.</CardDescription>
+          <CardDescription>Your Bearer token for the Music Nerd API. It expires after about an hour.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (

@@ -40,6 +40,7 @@ it('shows the token in full for a signed-in reader', async () => {
   const { container } = mount();
   expect(await screen.findByText('token-1')).toBeInTheDocument();
   expect(container.querySelector('main')).toBeNull();
+  expect(container).not.toHaveTextContent(/privy/i);
 });
 
 it('copies the token to the clipboard', async () => {
