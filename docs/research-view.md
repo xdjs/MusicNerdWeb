@@ -32,14 +32,28 @@ step cards open over the page as before.
 
 ## Sections
 
-| Section | Waits on step | While researching |
-|---|---|---|
-| About (`#mn-about`, in the hero) | `publish` | "writing your about…" in place of the blurb |
-| Links (`#mn-links`) | `profiles` | "finding your profiles…" above whatever is already linked |
-| Lore (`#mn-lore`, its sources) | `vault` | "reading what's written about you…" above whatever is already there |
+Each section research fills shows that it is being researched, then makes its arrival visible
+(design approved 2026-10-05, on #1365 under Design › Section research states).
+
+| Section | Waits on step | While researching | When it arrives |
+|---|---|---|---|
+| About (`#mn-about`, in the hero) | `publish` | three skeleton text lines in place of the blurb, "writing your about…" | the About, ringed, with a "New About" chip |
+| Links (`#mn-links`) | `profiles` | skeleton profile tiles, "finding your profiles…" | the links; each new one ringed with a dot; "N new" by the heading |
+| Lore (`#mn-lore`, its sources) | `vault` | skeleton source cards, "reading what's written about you…" | the sources; each new one ringed with a "new" chip; "N new" by the heading |
 
 Latest (`#mn-latest`) does not depend on research and is unchanged. A section is pending only while
 a build is being watched and its step has no confirmation time; otherwise it renders as usual.
+
+- **What counts as new.** When the build view mounts it keeps a baseline: the profile links
+  (`siteName`) and approved sources (`id`) the page had. Anything the refreshed page shows that is
+  not in the baseline is new. A reload mid-build takes a new baseline, so items found before the
+  reload are not marked.
+- **Arrival.** When a section's step is confirmed while the page is watching, the section is
+  *fresh*: its content fades in (about 400 ms), new items carry their mark, the section gets a pink
+  border, and its tab in the section nav gets a dot. A section stays fresh until 5 s after it has
+  been on screen, so a phone user who scrolls down later still sees the marks. The section announces
+  itself once to screen readers.
+- **Reduced motion.** No shimmer and no fade; the marks still show.
 
 ## Progress
 
@@ -50,17 +64,18 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   truth: a reload mid-build shows whatever has been written.
 - **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
   never treated as "not started".
-- **Done.** On `complete` the page refreshes once more and arms the profile tour. The server then
-  sees onboarding complete and renders the page without the gate. It does not scroll the artist.
-- **Status strip.** One line at the top of the page names the current step (`buildStepLabel`:
-  `profiles` "finding your profiles", `vault` "reading what's written about you", `interview` and
-  `publish` "writing your about") with "skip for now". Slice 2 replaces it with the designed
-  above-the-fold indicator.
-- **Failure.** The strip shows a failure, with "try again" (`{ type: "open" }`), when the turn's
+- **Status card.** Above the fold: the current step (`buildStepLabel`), three segments (Links, Lore,
+  About: done, running or waiting; `interview` counts as About) and "skip for now".
+- **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
+  mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
+  page loaded already complete renders just the profile), so the marks stay. The status card turns
+  into "Your page is ready", with what was found and **See what we found**, which scrolls to the
+  first section that changed. Nothing scrolls by itself.
+- **Failure.** The card shows a failure, with "try again" (`{ type: "open" }`), when the turn's
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
   incomplete ("This is taking longer than usual."). "try again" resets that clock. What already
   painted stays.
-- **Skip** keeps its session-scoped behaviour (`OnboardingGate`): the banner, no loading lines.
+- **Skip** keeps its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons.
   The build carries on server-side.
 
 ## After research: optional support links
