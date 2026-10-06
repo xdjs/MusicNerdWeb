@@ -72,7 +72,7 @@ function place(rect: DOMRect, vw: number, vh: number, cardHeight: number): Place
     }
     const horizontalCenter = clampLeft(rect.left + rect.width / 2 - CARD_WIDTH / 2);
     if (rect.bottom + GAP + cardHeight + EDGE <= vh) {
-        return { top: rect.bottom + GAP, left: horizontalCenter, side: "below" };
+        return { top: clampTop(rect.bottom + GAP), left: horizontalCenter, side: "below" };
     }
     return { top: clampTop(rect.top - GAP - cardHeight), left: horizontalCenter, side: "above" };
 }

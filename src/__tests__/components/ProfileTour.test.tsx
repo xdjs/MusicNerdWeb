@@ -101,6 +101,22 @@ describe('ProfileTour', () => {
         expect(card.style.bottom).toBe('');
     });
 
+    it('keeps the opening card on screen when the reader is already below About', () => {
+        const viewportWidth = window.innerWidth;
+        Object.defineProperty(window, 'innerWidth', { value: 832, configurable: true });
+        document.getElementById('mn-about').getBoundingClientRect = () => ({
+            top: -338, bottom: -218, left: 56, right: 632, width: 576, height: 120,
+            x: 56, y: -338, toJSON: () => ({}),
+        });
+        try {
+            render(<ProfileTour artistId="a1" hasSupportLinks />);
+            expect(Number.parseFloat(screen.getByRole('dialog').style.top)).toBeGreaterThanOrEqual(12);
+            expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+        } finally {
+            Object.defineProperty(window, 'innerWidth', { value: viewportWidth, configurable: true });
+        }
+    });
+
     it('lifts the section above the dimmed page so it stays readable', () => {
         render(<ProfileTour artistId="a1" hasSupportLinks />);
         const links = document.getElementById('mn-about');
