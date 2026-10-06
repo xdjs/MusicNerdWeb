@@ -970,3 +970,41 @@ export const userArtistBookmarks = pgTable("user_artist_bookmarks", {
 	pgPolicy("mnweb_update_user_artist_bookmarks", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 	pgPolicy("mnweb_delete_user_artist_bookmarks", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
+
+// Prospective original retention. The writer's transaction captures old eligible
+// evidence; API authorization and current parent eligibility govern every read.
+export const artistVaultSourceVersions = pgTable("artist_vault_source_versions", {
+    sourceId: uuid("source_id").notNull().references(() => artistVaultSources.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    fingerprint: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.sourceId, table.fingerprint] }),
+    index("artist_vault_source_versions_artist").on(table.artistId),
+    check("artist_vault_source_versions_fingerprint", sql`${table.fingerprint} ~ '^[a-f0-9]{64}$'`),
+    check("artist_vault_source_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.sourceId}::text
+        AND ${table.snapshot}->>'artistId' = ${table.artistId}::text
+        AND ${table.snapshot}->>'kind' = 'vault' AND ${table.snapshot}->>'version' = '1', false)`),
+    pgPolicy("mnweb_select_artist_vault_source_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_vault_source_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// Prospective original retention. The writer's transaction captures old eligible
+// evidence; API authorization and current parent eligibility govern every read.
+export const artistSocialPostVersions = pgTable("artist_social_post_versions", {
+    sourceId: uuid("source_id").notNull().references(() => artistSocialPosts.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    fingerprint: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.sourceId, table.fingerprint] }),
+    index("artist_social_post_versions_artist").on(table.artistId),
+    check("artist_social_post_versions_fingerprint", sql`${table.fingerprint} ~ '^[a-f0-9]{64}$'`),
+    check("artist_social_post_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.sourceId}::text
+        AND ${table.snapshot}->>'artistId' = ${table.artistId}::text
+        AND ${table.snapshot}->>'kind' = 'social' AND ${table.snapshot}->>'version' = '1', false)`),
+    pgPolicy("mnweb_select_artist_social_post_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_social_post_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
