@@ -5,7 +5,7 @@ set -euo pipefail
 : "${MCP_API_KEY:?Set MCP_API_KEY to your MusicNerd MCP API key}"
 
 # Optional config
-MCP_URL="${MCP_URL:-https://musicnerd.xyz/api/mcp}"
+MCP_URL="${MCP_URL:-https://musicnerd.net/api/mcp}"
 BATCH_SIZE="${BATCH_SIZE:-50}"
 MODEL="${MODEL:-sonnet}"
 VERBOSE="${VERBOSE:-0}"

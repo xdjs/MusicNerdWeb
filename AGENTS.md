@@ -91,7 +91,7 @@ PR can be merged by anyone. Research and API code goes in
 [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI); see `skills/mn-dev`.
 Docs follow the same route. The legacy Git `staging` branch is retired; the persistent staging
 environment remains. **Do not merge or deploy without authorization.** After main's checks pass,
-the exact merged SHA deploys to `staging.musicnerd.xyz`. A main merge does not publish production.
+the exact merged SHA deploys to `staging.musicnerd.net`. A main merge does not publish production.
 The protected GitHub `production-release` job requires approval from any one of Carl (`clt`),
 Pete (`p3t3rango`) or Sweetman (`sweetmantech`). It builds that same SHA with production
 configuration, checks the candidate, then promotes it without rebuilding during promotion.

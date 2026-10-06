@@ -3,8 +3,8 @@ import { getSpotifyHeaders, getSpotifyArtist, getSpotifyArtists } from "@/server
 import { NextResponse } from "next/server";
 
 //format: 
-// Single: https://api.musicnerd.xyz/api/getSpotifyData?spotifyId=[YOUR SPOTIFY ID]
-// Batch: https://api.musicnerd.xyz/api/getSpotifyData?spotifyIds=id1,id2,id3
+// Single: https://api.musicnerd.net/api/getSpotifyData?spotifyId=[YOUR SPOTIFY ID]
+// Batch: https://api.musicnerd.net/api/getSpotifyData?spotifyIds=id1,id2,id3
 // POST: { "spotifyIds": ["id1", "id2", "id3"] }
 
 // CORS configuration for this route

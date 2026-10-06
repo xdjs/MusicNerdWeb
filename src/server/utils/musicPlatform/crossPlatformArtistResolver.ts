@@ -20,7 +20,7 @@ type Counterpart =
 const WIKIDATA_ENDPOINT = 'https://query.wikidata.org/sparql';
 const WIKIDATA_TIMEOUT_MS = 4000;
 const PROVIDER_VERIFICATION_TIMEOUT_MS = 5000;
-const USER_AGENT = 'MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)';
+const USER_AGENT = 'MusicNerdWeb/1.0 (https://musicnerd.net; contact@musicnerd.xyz)';
 
 const WIKIDATA_PLATFORM_PROPERTY: Record<MusicPlatform, string> = {
     spotify: 'P1902',

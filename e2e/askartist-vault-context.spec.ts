@@ -12,7 +12,7 @@ import { login } from './helpers/auth';
  *
  * Runs against the local dev server by default, or a deployed host via
  * E2E_BASE_URL, e.g.:
- *   E2E_BASE_URL=https://staging.musicnerd.xyz npx playwright test askartist-vault-context
+ *   E2E_BASE_URL=https://staging.musicnerd.net npx playwright test askartist-vault-context
  */
 const ADMIN = { email: 'test-6184@privy.io', otp: '413532' };
 

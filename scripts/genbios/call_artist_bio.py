@@ -124,7 +124,7 @@ def main():
         epilog="""
 Examples:
   python call_artist_bio.py 123
-  python call_artist_bio.py abc-def-456 --url https://api.musicnerd.xyz
+  python call_artist_bio.py abc-def-456 --url https://api.musicnerd.net
   python call_artist_bio.py 789 --url https://localhost:3000
         """
     )

@@ -1,6 +1,6 @@
 import { outboundClickEvent } from '@/lib/analytics/outboundClickEvent';
 
-const ORIGIN = 'https://www.musicnerd.xyz';
+const ORIGIN = 'https://musicnerd.net';
 
 describe('outboundClickEvent', () => {
     it('builds platform and passes the surface through for an off-site link', () => {

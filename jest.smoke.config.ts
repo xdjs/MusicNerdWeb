@@ -8,7 +8,7 @@
  *
  * Run:  npm run test:smoke
  *   Storage integration reads creds from `.env.local` (skips if absent).
- *   Post-deploy health smoke needs SMOKE_BASE_URL=https://staging.musicnerd.xyz
+ *   Post-deploy health smoke needs SMOKE_BASE_URL=https://staging.musicnerd.net
  */
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
