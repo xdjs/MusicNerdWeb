@@ -27,21 +27,33 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('../useOnboardingChat', () => ({ useOnboardingChat: jest.fn() }));
+jest.mock('../useOnboardingProgress', () => ({ useOnboardingProgress: jest.fn() }));
 
 import { useRouter } from 'next/navigation';
 import { useOnboardingChat } from '../useOnboardingChat';
+import { useOnboardingProgress } from '../useOnboardingProgress';
 import OnboardingChat from '../OnboardingChat';
 
 const mockUseOnboardingChat = useOnboardingChat;
+const none = { profiles: null, vault: null, interview: null, publish: null };
+const initialState = { complete: false, currentStep: 'profiles', steps: none };
+const resetStall = jest.fn();
+
+function setProgress(over = {}) {
+    useOnboardingProgress.mockReturnValue({ ...initialState, stalled: false, resetStall, ...over });
+}
 
 function setChat({ items = [], busy = false, sendTurn = jest.fn() } = {}) {
     mockUseOnboardingChat.mockReturnValue({ items, busy, sendTurn });
     return sendTurn;
 }
 
+const RESUME_STEP = { id: 's0', kind: 'step', step: 'interview', payload: { questionKey: 'offline_fact', question: 'Whats offline?', number: 1, total: 3 } };
+
 describe('OnboardingChat', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        setProgress();
     });
 
     it('dispatches exactly one open turn on mount, and re-rendering does not dispatch a second', () => {
@@ -56,7 +68,7 @@ describe('OnboardingChat', () => {
 
     it('renders bot, user, progress (pending + done), and error items', () => {
         // The chat layout is the RESUME path: a step card is what puts it on
-        // screen. Without one, the research view shows the build instead.
+        // screen. Without one, the build paints the artist page in place.
         setChat({
             items: [
                 { id: 's0', kind: 'step', step: 'interview', payload: { questionKey: 'offline_fact', question: 'Whats offline?', number: 1, total: 3 } },
@@ -121,16 +133,13 @@ describe('OnboardingChat', () => {
         expect(screen.getByPlaceholderText(/type your answer/i)).toBeDisabled();
     });
 
-    it('renders the complete state and "See my page" calls router.refresh and onFinish (NOT onSkip — no skip flag on a real finish)', () => {
+    it('on the resume path, "See my page" calls router.refresh and onFinish (NOT onSkip — no skip flag on a real finish)', () => {
         const onSkip = jest.fn();
         const onFinish = jest.fn();
-        setChat({ items: [{ id: 'c1', kind: 'complete' }] });
+        setChat({ items: [RESUME_STEP, { id: 'c1', kind: 'complete' }] });
         render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={onSkip} onFinish={onFinish} />);
 
-        // The build surface replaced the chat's "You're live!" card — the flow
-        // asks nothing now, so the finish lives on the build status. What this
-        // test is about is the BEHAVIOUR of "See my page", which is unchanged.
-        expect(screen.getByText(/your page is ready/i)).toBeInTheDocument();
+        expect(screen.getByText(/you're live/i)).toBeInTheDocument();
         const router = useRouter();
         fireEvent.click(screen.getByRole('button', { name: /see my page/i }));
         expect(router.refresh).toHaveBeenCalledTimes(1);
@@ -144,25 +153,34 @@ describe('OnboardingChat', () => {
     it('"See my page" returns the artist to the top of their page', () => {
         const scrollTo = jest.fn();
         window.scrollTo = scrollTo;
-        setChat({ items: [{ id: 'c1', kind: 'complete' }] });
+        setChat({ items: [RESUME_STEP, { id: 'c1', kind: 'complete' }] });
         render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()} />);
 
         fireEvent.click(screen.getByRole('button', { name: /see my page/i }));
         expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
     });
 
-    it('keeps a failed build in the research view, with the partial draft, instead of the chat layout', async () => {
-        setChat({
+    it('keeps a failed build on the artist page: the strip shows the error, and try again re-opens the turn', () => {
+        const sendTurn = setChat({
             items: [
                 { id: 'p1', kind: 'progress', group: 'about-write', text: 'Writing your About', done: false },
-                { id: 'w1', kind: 'writing', stage: 'doc', text: '## overview\nNova Reyes is a' },
                 { id: 'e1', kind: 'error', text: 'Could not publish your About and Lore.' },
             ],
         });
-        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()} />);
-        expect(screen.getByRole('list', { name: /research steps/i })).toBeInTheDocument();
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByText('artist page')).toBeInTheDocument();
         expect(screen.getByRole('alert')).toHaveTextContent('Could not publish your About and Lore.');
-        expect(await screen.findByRole('region', { name: 'Lore document' })).toHaveTextContent('Nova Reyes is a');
+        sendTurn.mockClear();
+        fireEvent.click(screen.getByRole('button', { name: 'try again' }));
+        expect(sendTurn).toHaveBeenCalledWith({ type: 'open' });
+        expect(resetStall).toHaveBeenCalled();
+    });
+
+    it('offers try again when no step has been confirmed for a while', () => {
+        setChat({ items: [{ id: 'p1', kind: 'progress', group: 'source-search', text: 'Reading', done: false }] });
+        setProgress({ currentStep: 'vault', stalled: true });
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByRole('alert')).toHaveTextContent('This is taking longer than usual.');
     });
 
     it('renders a "Try again" button on the last error item when nothing newer follows it, and it resyncs via sendTurn({type:"open"})', () => {
@@ -301,11 +319,26 @@ describe('OnboardingChat', () => {
         });
     });
 
-    it('shows the research view instead of the artist page while the build runs', () => {
+    it('shows the artist page itself while the build runs, with the current step and skip', () => {
         setChat({ items: [{ id: 'p1', kind: 'progress', group: 'platform-search', text: 'Finding your profiles', done: false }] });
-        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(screen.getByRole('list', { name: /research steps/i })).toBeInTheDocument();
-        expect(screen.queryByText('artist page')).toBeNull();
+        const onSkip = jest.fn();
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={onSkip} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(screen.getByText('artist page')).toBeInTheDocument();
+        expect(screen.getByText('finding your profiles…')).toBeInTheDocument();
+        expect(screen.queryByRole('list', { name: /research steps/i })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'skip for now' }));
+        expect(onSkip).toHaveBeenCalled();
+    });
+
+    it('follows the build from the state endpoint, finishing through onFinish', () => {
+        setChat({ items: [] });
+        const onFinish = jest.fn();
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" initialState={initialState} onSkip={jest.fn()} onFinish={onFinish}><p>artist page</p></OnboardingChat>);
+        const [artistId, initial, onComplete] = useOnboardingProgress.mock.calls[0];
+        expect(artistId).toBe('a1');
+        expect(initial).toEqual(initialState);
+        onComplete();
+        expect(onFinish).toHaveBeenCalledTimes(1);
     });
 
     it('keeps the artist page under the resume path\'s step cards', () => {

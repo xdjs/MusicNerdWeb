@@ -89,7 +89,11 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
-jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null), getOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/onboarding/fetchOnboardingState', () => ({ fetchOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/app/artist/[id]/_components/onboarding/OnboardingGate', () => function OnboardingGate({ state, children }) {
+    return <div data-testid="onboarding-gate" data-step={state.currentStep}>{children}</div>;
+});
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
 }));
@@ -314,6 +318,40 @@ describe('ArtistProfile page', () => {
             });
         });
 
+        it('reads onboarding state from MusicNerdAPI for the approved claimant and paints the build in place', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue({ complete: false, currentStep: 'vault', steps: { profiles: 't1', vault: null, interview: null, publish: null } });
+
+            await renderArtistPage();
+
+            expect(fetchOnboardingState).toHaveBeenCalledWith('artist-uuid');
+            const gate = screen.getByTestId('onboarding-gate');
+            expect(gate).toHaveAttribute('data-step', 'vault');
+            expect(gate).toHaveTextContent('Test Artist');
+        });
+
+        it('renders no takeover when the onboarding state is unreadable (fail closed)', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(null);
+
+            await renderArtistPage();
+
+            expect(screen.queryByTestId('onboarding-gate')).not.toBeInTheDocument();
+        });
+
+        it('does not read onboarding state for anyone but the approved claimant', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'someone-else', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockClear();
+            await renderArtistPage();
+            expect(fetchOnboardingState).not.toHaveBeenCalled();
+        });
+
         it('preserves direct link editing for an approved claimed artist', async () => {
             const { getUserById } = await import('@/server/utils/queries/userQueries');
             const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
@@ -385,7 +423,7 @@ describe('ArtistProfile page', () => {
                 ['streaming-only source', 'https://open.spotify.com/artist/5RUy3e0zVDPXCvJCA3TUXi', 'approved', false, false],
             ])('matches visible Support for %s', async (_name, url, status, blocked, expected) => {
                 const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
-                const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+                const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
                 const { getConflictingMusicSourceIds } = await import('@/server/utils/musicLinks/getConflictingMusicSourceIds');
                 const source = { id: 'source-support', url, status, type: 'article', title: 'Artist music' };
                 (getVaultSourcesByArtistId as jest.Mock)
@@ -398,7 +436,7 @@ describe('ArtistProfile page', () => {
                     if (mode === 'owner') {
                         setupMocks({ session: { user: { id: 'user-uuid' } } });
                         (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
-                        (getOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+                        (fetchOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
                     } else {
                         process.env.VERCEL_ENV = 'preview';
                     }
@@ -445,10 +483,10 @@ describe('ArtistProfile page', () => {
             ['another monetized service', [{ siteName: 'patreon', artistUrl: 'https://patreon.com/artist', isMonetized: true }], true],
         ])('passes the displayed Support state for %s', async (_name, links, expected) => {
             const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
-            const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
             setupMocks({ session: { user: { id: 'user-uuid' } } });
             (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
-            (getOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+            (fetchOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
             (getArtistLinks as jest.Mock).mockResolvedValueOnce(links);
 
             await renderArtistPage();
@@ -462,16 +500,16 @@ describe('ArtistProfile page', () => {
             ['unfinished research', { user: { id: 'user-uuid' } }, { complete: false }],
         ])('does not offer the tour for %s', async (_name, session, state) => {
             const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
-            const { getOnboardingState } = await import('@/server/utils/queries/onboardingQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
             setupMocks({ session });
             (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
             // Avoid leaving an unconsumed once-value for the visitor case.
-            (getOnboardingState as jest.Mock).mockResolvedValue(state);
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(state);
 
             await renderArtistPage();
 
             expect(screen.queryByTestId('profile-tour')).not.toBeInTheDocument();
-            (getOnboardingState as jest.Mock).mockResolvedValue(null);
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(null);
         });
     });
 

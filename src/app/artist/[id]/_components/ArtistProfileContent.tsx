@@ -17,12 +17,12 @@ import LatestSection from "./LatestSection";
 import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
+import ResearchPending from "./onboarding/ResearchPending";
 import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
- *  onboarding runs, the research view takes its place under the app's nav
- *  (docs/research-view.md); the gate hands it back when the build finishes or
- *  is skipped. */
+ *  onboarding runs, research paints it in place: Links, Lore and About show a
+ *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
     artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
     blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true,
@@ -92,7 +92,9 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ResearchPending step="profiles" label="finding your profiles…">
+                        <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    </ResearchPending>
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
