@@ -72,6 +72,12 @@ const memory = {
   ],
   returnedChars: 100,
 };
+const draftAngle = {
+  observation: "The sound was not intentional.",
+  intendedUnknown: "How the sound came about.",
+  rationale: "Ask about the unresolved cause without inventing a decision.",
+  connection: "single_observation" as const,
+};
 const check = {
   supported: true,
   timeScopeSupported: true,
@@ -123,7 +129,10 @@ beforeEach(() => {
   jest
     .mocked(generateText)
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: { inputTokens: 10, outputTokens: 10 },
     } as never)
     .mockResolvedValueOnce({
@@ -139,6 +148,7 @@ it("rejects a historical source promoted into a current premise even when its wo
       output: {
         question:
           "You are now returning to that sound. How does it shape the music today?",
+        angle: draftAngle,
       },
       usage: {},
     } as never)
@@ -154,6 +164,7 @@ it("rejects a historical source promoted into a current premise even when its wo
       output: {
         question:
           "You are now returning to that sound. How does it shape the music today?",
+        angle: draftAngle,
       },
       usage: {},
     } as never)
@@ -205,6 +216,7 @@ it("revises one rejected draft using full context and checks the revision before
       output: {
         question:
           "How did deciding to keep that accidental sound change the mix?",
+        angle: draftAngle,
       },
       usage: { inputTokens: 1, outputTokens: 1 },
     } as never)
@@ -217,7 +229,10 @@ it("revises one rejected draft using full context and checks the revision before
       usage: { inputTokens: 1, outputTokens: 1 },
     } as never)
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: { inputTokens: 1, outputTokens: 1 },
     } as never)
     .mockResolvedValueOnce({
@@ -238,7 +253,10 @@ it("rejects semantic repetition even when references resolve", async () => {
     .mocked(generateText)
     .mockReset()
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: {},
     } as never)
     .mockResolvedValueOnce({
@@ -246,7 +264,10 @@ it("rejects semantic repetition even when references resolve", async () => {
       usage: {},
     } as never)
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: {},
     } as never)
     .mockResolvedValueOnce({
@@ -272,7 +293,10 @@ it("retains the draft and rejection for a trusted evaluation observer without cr
     .mocked(generateText)
     .mockReset()
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: {},
     } as never)
     .mockResolvedValueOnce({
@@ -284,7 +308,10 @@ it("retains the draft and rejection for a trusted evaluation observer without cr
       usage: {},
     } as never)
     .mockResolvedValueOnce({
-      output: { question: "What do you think led to that sound?" },
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
       usage: {},
     } as never)
     .mockResolvedValueOnce({
@@ -343,4 +370,60 @@ it("allows a trusted evaluation to compare a distinct checker without Google rea
     thinkingBudget: undefined,
     temperature: undefined,
   });
+});
+
+it("rechecks and returns the revised angle, unknown and rationale rather than retaining a rejected premise", async () => {
+  const repaired = {
+    ...draftAngle,
+    observation: "Only the lack of intent is established.",
+    intendedUnknown: "The cause, without assuming a recording stage.",
+    rationale:
+      "Ask about the cause without assuming a performance or decision.",
+  };
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question: "How did choosing to keep that sound change the take?",
+        angle: { ...draftAngle, observation: "The artist chose to keep it." },
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        ...check,
+        supported: false,
+        reason: "No decision to keep it is established.",
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        question: "What do you think caused that sound?",
+        angle: repaired,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({ output: check, usage: {} } as never);
+  const result = await generateApiInterviewQuestion(config, 1);
+  const lastCheck = JSON.parse(
+    jest.mocked(generateText).mock.calls[3][0].prompt,
+  );
+  expect(lastCheck.selectedAngle).toMatchObject(repaired);
+  expect(lastCheck.selectionReason).toBe(repaired.rationale);
+  expect(result.selection.angles[result.selection.selected]).toMatchObject(
+    repaired,
+  );
+  expect(lastCheck.selectedAngle.observation).not.toContain("chose to keep");
+});
+it("uses the preview interviewer model pair without changing the shared Flash default", async () => {
+  await generateApiInterviewQuestion(config, 1);
+  expect(jest.mocked(researchInterviewAngles).mock.calls[0][0].model).toBe(
+    "google/gemini-3.8-flash",
+  );
+  expect(jest.mocked(generateText).mock.calls.map((c) => c[0].model)).toEqual([
+    "google/gemini-3.8-flash",
+    "anthropic/claude-opus-5.5",
+  ]);
 });

@@ -51,6 +51,7 @@ export const interviewPlanSchema = z.object({
 });
 export const interviewDraftSchema = z.object({
   question: z.string().min(10).max(500),
+  angle: interviewAngleSchema.omit({ references: true }),
 });
 export const interviewCheckSchema = z.object({
   supported: z.boolean(),
