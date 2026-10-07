@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useState } from "react";
-import { Check, Pencil, X, ExternalLink, Undo2, Loader2, RefreshCw, Download } from "lucide-react";
+import { ChevronDown, Check, Pencil, X, ExternalLink, Undo2, Loader2, RefreshCw, Download } from "lucide-react";
 import { getAccessToken } from "@privy-io/react-auth";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
@@ -310,8 +310,9 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
 
     const shell = (children: React.ReactNode) => (
         <RevealSection editable className="glass p-4 sm:p-5 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-                <h2 className="text-black dark:text-white text-xl font-bold">What we know about you</h2>
+            <details className="group">
+                <summary className="cursor-pointer list-none text-foreground"><h2 className="flex min-h-11 items-center justify-between gap-3 text-xl font-bold">What we know about you<ChevronDown size={18} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" /></h2></summary>
+                <div className="py-3">
                     <div className="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
@@ -342,6 +343,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{refreshNote}</p>
             )}
             {children}
+            </details>
         </RevealSection>
     );
 

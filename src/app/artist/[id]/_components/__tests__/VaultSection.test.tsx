@@ -9,6 +9,8 @@ jest.mock("../VaultManager", () => function MockVaultManager() { return <div>Edi
 jest.mock("../BioVersionHistory", () => function MockBioVersionHistory() { return <div>Saved bios</div>; });
 jest.mock("../SuggestLoreSource", () => function MockSuggestLoreSource({ autoApprove }: { autoApprove: boolean }) { return <div data-testid="suggestion" data-auto={String(autoApprove)}>Visitor suggestion form</div>; });
 
+jest.mock("../ArtistInterviews", () => function MockInterviews() { return <label>Draft response<input aria-label="Draft response" /></label>; });
+
 const props = { artistId: "artist-1", isClaimed: true, approvedSources: [], pendingSources: [] };
 
 it('passes trusted submission access without granting editor controls', () => {
@@ -49,4 +51,17 @@ describe('VaultSection while research reads sources', () => {
     expect(screen.getByRole('status')).toHaveTextContent('reading what’s written about you…');
     expect(screen.getByText('Public Lore')).toBeInTheDocument();
   });
+});
+
+it("keeps Questions adjacent to Lore and preserves an unfinished answer across tabs and collapse", () => {
+  render(<EditModeContext.Provider value={{ isEditing:true, canEdit:true,toggle:jest.fn() }}><VaultSection {...props} /></EditModeContext.Provider>);
+  expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["Lore 0","Questions","Bios"]);
+  fireEvent.mouseDown(screen.getByRole("tab", {name:"Questions"}),{button:0,ctrlKey:false});
+  fireEvent.change(screen.getByLabelText("Draft response"),{target:{value:"Still writing"}});
+  fireEvent.mouseDown(screen.getByRole("tab",{name:"Bios"}),{button:0,ctrlKey:false});
+  fireEvent.click(screen.getByRole("button",{name:"Collapse Lore"}));
+  expect(screen.getByRole("button",{name:"Expand Lore"})).toHaveAttribute("aria-expanded","false");
+  fireEvent.click(screen.getByRole("button",{name:"Expand Lore"}));
+  fireEvent.mouseDown(screen.getByRole("tab",{name:"Questions"}),{button:0,ctrlKey:false});
+  expect(screen.getByLabelText("Draft response")).toHaveValue("Still writing");
 });

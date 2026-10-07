@@ -29,6 +29,7 @@ test('one Save updates the biography and exposes its preserved version in Lore',
     });
     render(view());
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
+    fireEvent.mouseDown(screen.getByRole('tab', {name:'Bios'}), {button:0,ctrlKey:false});
     expect(screen.queryByRole('button', { name: 'Save to Lore' })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Show version history (1)' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Show version history (1)' }));
@@ -38,7 +39,7 @@ test('one Save updates the biography and exposes its preserved version in Lore',
     const savedBios = screen.getByRole('heading', { name: 'Saved bios' }).parentElement!;
     expect(within(savedBios).getByText(edited)).toBeInTheDocument();
     expect(within(savedBios).getByText(original)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Saved bios' }).closest('#mn-sources')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saved bios' }).closest('[role="tabpanel"][data-state="active"]')).toBeInTheDocument();
     expect(saveCurrentBio).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
     fetchMock.mockRestore();
