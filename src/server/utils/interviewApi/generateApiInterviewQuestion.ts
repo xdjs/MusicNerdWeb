@@ -7,6 +7,7 @@ import {
 } from "@/lib/interviewApi/interviewPlanSchemas";
 import { resolveInterviewAnchors } from "@/lib/interviewApi/resolveInterviewAnchors";
 import { shouldPreserveInterviewQuestion } from "@/lib/interviewApi/shouldPreserveInterviewQuestion";
+import { getInterviewFailureDiagnostic } from "@/lib/interviewApi/getInterviewFailureDiagnostic";
 import { fetchMandatoryInterviewMemory } from "./fetchMandatoryInterviewMemory";
 import { fetchInterviewQuestionIndex } from "./fetchInterviewQuestionIndex";
 import { createInterviewKnowledgeTools } from "./createInterviewKnowledgeTools";
@@ -305,6 +306,10 @@ Then compare every dated/relative-time premise with asOf, sourceDates and the or
       check: verdict,
     };
   } catch (error) {
+    console.warn(
+      "interview_generation_failed",
+      getInterviewFailureDiagnostic(error, stage, Date.now() - started),
+    );
     observe?.({
       stage: "failure",
       elapsedMs: Date.now() - started,

@@ -110,8 +110,10 @@ const check = {
     ],
   },
 };
+let failureLog: jest.SpyInstance;
 beforeEach(() => {
   jest.resetAllMocks();
+  failureLog = jest.spyOn(console, "warn").mockImplementation(() => undefined);
   jest.mocked(fetchMandatoryInterviewMemory).mockResolvedValue(memory as never);
   jest.mocked(fetchInterviewQuestionIndex).mockResolvedValue([]);
   jest.mocked(createInterviewKnowledgeTools).mockReturnValue({
@@ -162,6 +164,9 @@ beforeEach(() => {
       output: check,
       usage: { inputTokens: 10, outputTokens: 10 },
     } as never);
+});
+afterEach(() => {
+  failureLog.mockRestore();
 });
 it("rejects a historical source promoted into a current premise even when its words are supported", async () => {
   jest
@@ -865,3 +870,83 @@ it.each(["incomplete_question", "unsupported_question", "latest_answer"])(
     expect(generateText).toHaveBeenCalledTimes(4);
   },
 );
+
+it.each([
+  ["AI_APICallError", "provider_error"],
+  ["PrivateProviderError", "unknown"],
+])(
+  "logs only redacted failure diagnostics for %s and rethrows the original error",
+  async (name, category) => {
+    const error = Object.assign(
+      new Error("private transcript token=secret https://secret.invalid"),
+      {
+        name,
+        stack: "private stack with artist id",
+        cause: new Error("private provider response"),
+        generatedText: "private interview question",
+        artistId: config.artistId,
+        accessToken: "private-token",
+      },
+    );
+    jest.mocked(researchInterviewAngles).mockRejectedValueOnce(error);
+    await expect(generateApiInterviewQuestion(config, 1)).rejects.toBe(error);
+    expect(failureLog).toHaveBeenCalledTimes(1);
+    expect(failureLog).toHaveBeenCalledWith("interview_generation_failed", {
+      stage: "research",
+      category,
+      elapsedMs: expect.any(Number),
+    });
+    const logged = JSON.stringify(failureLog.mock.calls);
+    for (const privateValue of [
+      "private",
+      "secret",
+      config.artistId,
+      "https:",
+      name,
+    ]) {
+      expect(logged).not.toContain(privateValue);
+    }
+  },
+);
+
+it("logs the useful check stage and rejection category without the rejected question", async () => {
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: { ...check, supported: false },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: { ...check, supported: false },
+      usage: {},
+    } as never);
+  await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(
+    /check/,
+  );
+  expect(failureLog).toHaveBeenCalledWith("interview_generation_failed", {
+    stage: "check",
+    category: "question_rejected",
+    elapsedMs: expect.any(Number),
+  });
+  expect(JSON.stringify(failureLog.mock.calls)).not.toContain("sound");
+});
+
+it("does not emit a failure diagnostic for a successful generation", async () => {
+  await generateApiInterviewQuestion(config, 1);
+  expect(failureLog).not.toHaveBeenCalled();
+});
