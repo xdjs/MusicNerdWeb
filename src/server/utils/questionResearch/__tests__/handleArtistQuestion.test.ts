@@ -38,13 +38,11 @@ beforeEach(() => {
   jest
     .mocked(getArtistById)
     .mockResolvedValue({ id: artistId, name: "Artist" } as never);
-  jest
-    .mocked(planArtistQuestion)
-    .mockResolvedValue({
-      topic: "drum credits",
-      evidenceNeed: "credits",
-      freshness: "stored",
-    });
+  jest.mocked(planArtistQuestion).mockResolvedValue({
+    topic: "drum credits",
+    evidenceNeed: "credits",
+    freshness: "stored",
+  });
   jest.mocked(callResearchApi).mockResolvedValue(status);
 });
 it("acknowledges the durable job before any collection or answer call", async () => {
@@ -83,4 +81,18 @@ it("does not fall back to legacy research after an API failure", async () => {
   const r = await handleArtistQuestion(request());
   expect(r.status).toBe(503);
   expect(await r.text()).not.toContain("private details");
+});
+it("treats a cached complete acknowledgement as a job to reopen, never an evidence result", async () => {
+  jest
+    .mocked(callResearchApi)
+    .mockResolvedValue({
+      ...status,
+      stage: "complete",
+      references: [],
+      limitations: ["Read current job status to obtain revalidated evidence."],
+    });
+  const r = await handleArtistQuestion(request());
+  expect(r.status).toBe(202);
+  expect((await r.json()).research.jobId).toBe(jobId);
+  expect(draftResearchAnswer).not.toHaveBeenCalled();
 });

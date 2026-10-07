@@ -56,6 +56,7 @@ export async function handleArtistQuestion(request: Request) {
           }),
     );
     if (
+      !jobId ||
       !["complete", "unresolved", "failed", "cancelled"].includes(state.stage)
     )
       return Response.json(

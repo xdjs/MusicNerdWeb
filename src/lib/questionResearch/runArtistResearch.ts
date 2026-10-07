@@ -40,12 +40,25 @@ export async function runArtistResearch(input: {
       signal,
     });
     const data = await r.json();
-    if (!r.ok)
+    if (!r.ok) {
+      if (
+        r.status === 503 &&
+        typeof data.jobId === "string" &&
+        /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+          data.jobId,
+        )
+      )
+        input.onProgress({
+          jobId: data.jobId,
+          stage: "complete",
+          message: "Research is saved; the answer could not be verified.",
+        });
       throw new Error(
         typeof data.error === "string"
           ? data.error
           : "Research could not finish.",
       );
+    }
     return { data, status: r.status };
   };
   const first = await post(input.jobId);

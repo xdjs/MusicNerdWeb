@@ -56,13 +56,11 @@ it("shows persisted progress, waits, and resumes the same job instead of enqueue
   expect(JSON.parse(posts[1][1]!.body as string).jobId).toBe("job");
 });
 it("reconnects with the saved job and never submits an initial new request", async () => {
-  global.fetch = jest
-    .fn()
-    .mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ answer: "Saved result" }),
-    });
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ answer: "Saved result" }),
+  });
   await runArtistResearch({
     artistId: "artist",
     question: "Question?",
@@ -73,4 +71,26 @@ it("reconnects with the saved job and never submits an initial new request", asy
   expect(
     JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string).jobId,
   ).toBe("saved");
+});
+it("retains a saved job when answer verification fails before any progress response", async () => {
+  const jobId = "22222222-2222-4222-8222-222222222222";
+  const onProgress = jest.fn();
+  global.fetch = jest
+    .fn()
+    .mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: "Answer verification failed", jobId }),
+    });
+  await expect(
+    runArtistResearch({
+      artistId: "artist",
+      question: "Question?",
+      signal: new AbortController().signal,
+      onProgress,
+    }),
+  ).rejects.toThrow("Answer verification failed");
+  expect(onProgress).toHaveBeenCalledWith(
+    expect.objectContaining({ jobId, stage: "complete" }),
+  );
 });
