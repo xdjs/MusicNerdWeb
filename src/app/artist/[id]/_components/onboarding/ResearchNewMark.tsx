@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
 
 /**
@@ -21,7 +22,7 @@ export default function ResearchNewMark({ kind, itemKey, children }: {
             {children}
             {kind === "links"
                 ? <span aria-label="new" className="absolute right-1 top-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-highlightpink" />
-                : <span aria-label="new" className="absolute right-2.5 top-2.5 rounded-full bg-highlightpink px-2 py-0.5 text-[11px] font-bold text-black">new</span>}
+                : <Badge variant="highlight" aria-label="new" className="absolute right-2.5 top-2.5 px-2 text-[11px]">new</Badge>}
         </div>
     );
 }

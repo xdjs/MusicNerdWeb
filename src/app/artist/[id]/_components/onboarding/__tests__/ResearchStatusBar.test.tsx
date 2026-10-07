@@ -12,7 +12,9 @@ describe("ResearchStatusBar", () => {
         const steps = within(screen.getByRole("list", { name: "Research steps" })).getAllByRole("listitem");
         expect(steps.map(s => s.textContent)).toEqual(["Links done", "Lore", "About"]);
         expect(steps[1]).toHaveAttribute("aria-current", "step");
-        fireEvent.click(screen.getByRole("button", { name: "skip for now" }));
+        const skip = screen.getByRole("button", { name: "skip for now" });
+        expect(skip).toHaveClass("hover:bg-accent");
+        fireEvent.click(skip);
         expect(onSkip).toHaveBeenCalled();
     });
 
@@ -22,7 +24,9 @@ describe("ResearchStatusBar", () => {
         expect(screen.getByText("Your page is ready")).toBeInTheDocument();
         expect(screen.getByText("We found 6 profiles and 3 sources, and wrote your About.")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "skip for now" })).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", { name: "See what we found" }));
+        const see = screen.getByRole("button", { name: "See what we found" });
+        expect(see).toHaveClass("button-pink");
+        fireEvent.click(see);
         expect(onSeeResults).toHaveBeenCalled();
     });
 
@@ -31,7 +35,9 @@ describe("ResearchStatusBar", () => {
         render(<ResearchStatusBar {...base} failure="This is taking longer than usual." onRetry={onRetry} />);
         expect(screen.getByRole("alert")).toHaveTextContent("This is taking longer than usual.");
         expect(screen.queryByRole("button", { name: "skip for now" })).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", { name: "try again" }));
+        const retry = screen.getByRole("button", { name: "try again" });
+        expect(retry).toHaveClass("bg-primary");
+        fireEvent.click(retry);
         expect(onRetry).toHaveBeenCalled();
     });
 });

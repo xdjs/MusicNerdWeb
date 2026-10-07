@@ -1,19 +1,19 @@
 "use client";
 
 import { useContext, useEffect, useRef, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
 import type { SectionStep } from "./useFreshSections";
 
 type Skeleton = "links" | "sources" | "about";
-
-const BLOCK = "bg-black/10 dark:bg-white/10 motion-safe:animate-pulse";
 
 function SkeletonShape({ kind }: { kind: Skeleton }) {
     if (kind === "about") {
         return (
             <div className="flex max-w-xl flex-col gap-2.5">
                 {["w-[96%]", "w-[88%]", "w-[62%]"].map(width => (
-                    <span key={width} data-skeleton="line" className={`h-3 rounded-md bg-current opacity-25 motion-safe:animate-pulse ${width}`} />
+                    <Skeleton key={width} data-skeleton="line" className={`h-3 bg-current opacity-25 dark:bg-current ${width}`} />
                 ))}
             </div>
         );
@@ -23,10 +23,10 @@ function SkeletonShape({ kind }: { kind: Skeleton }) {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[0, 1, 2].map(i => (
                     <div key={i} data-skeleton="card" className={`overflow-hidden rounded-xl border border-black/10 dark:border-white/10 ${i > 1 ? "hidden sm:block" : ""}`}>
-                        <div className={`h-28 ${BLOCK}`} />
+                        <Skeleton className="h-28 rounded-none" />
                         <div className="flex flex-col gap-2 p-3">
-                            <span className={`h-2.5 w-[85%] rounded ${BLOCK}`} />
-                            <span className={`h-2.5 w-[55%] rounded ${BLOCK}`} />
+                            <Skeleton className="h-2.5 w-[85%] rounded" />
+                            <Skeleton className="h-2.5 w-[55%] rounded" />
                         </div>
                     </div>
                 ))}
@@ -37,8 +37,8 @@ function SkeletonShape({ kind }: { kind: Skeleton }) {
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
             {[0, 1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} data-skeleton="tile" className={`flex flex-col items-center gap-2 ${i > 3 ? "hidden sm:flex" : ""} ${i > 5 ? "sm:hidden md:flex" : ""}`}>
-                    <span className={`h-12 w-12 rounded-full ${BLOCK}`} />
-                    <span className={`h-2 w-12 rounded ${BLOCK}`} />
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <Skeleton className="h-2 w-12 rounded" />
                 </div>
             ))}
         </div>
@@ -100,7 +100,7 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
             <span role="status" className="sr-only">{arrivedLabel}</span>
             {skeleton === "about" ? (
                 <div className="flex flex-col items-start gap-2">
-                    <span className="rounded-full bg-highlightpink px-2.5 py-0.5 text-xs font-bold text-black">New About</span>
+                    <Badge variant="highlight">New About</Badge>
                     <div className="rounded-xl ring-2 ring-highlightpink/70 transition-shadow">{children}</div>
                 </div>
             ) : children}

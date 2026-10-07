@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext } from "react";
+import { Badge } from "@/components/ui/badge";
 import { newKeys } from "@/lib/onboarding/newKeys";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
 
@@ -10,5 +11,5 @@ export default function ResearchNewCount({ kind, keys }: { kind: "links" | "sour
     if (!research?.fresh[kind === "links" ? "profiles" : "vault"]) return null;
     const count = newKeys(research.baseline[kind], keys).length;
     if (!count) return null;
-    return <span className="rounded-full bg-highlightpink px-2.5 py-0.5 text-xs font-bold text-black">{count} new</span>;
+    return <Badge variant="highlight">{count} new</Badge>;
 }

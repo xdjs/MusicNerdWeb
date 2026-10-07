@@ -1,10 +1,11 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { buildStepLabel } from "@/lib/onboarding/buildStepLabel";
 import type { OnboardingStepName, OnboardingSteps } from "@/lib/onboarding/onboardingStateTypes";
 import { stepSegments } from "@/lib/onboarding/stepSegments";
 
-const BUTTON = "min-h-11 shrink-0 rounded-lg px-3 text-sm font-medium transition-colors";
+const SMALL = "min-h-11 shrink-0 rounded-lg";
 
 const BAR = {
     done: "bg-highlightpink",
@@ -32,7 +33,7 @@ export default function ResearchStatusBar({ steps, currentStep, complete, summar
         return (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-destructive/10 px-4 py-2 text-foreground">
                 <p role="alert" className="m-0 text-sm leading-6">{failure}</p>
-                <button type="button" onClick={onRetry} className={`${BUTTON} bg-foreground text-background hover:opacity-90`}>try again</button>
+                <Button size="sm" onClick={onRetry} className={`${SMALL} hover:opacity-90`}>try again</Button>
             </div>
         );
     }
@@ -43,10 +44,10 @@ export default function ResearchStatusBar({ steps, currentStep, complete, summar
                     <strong className="text-base">Your page is ready</strong>
                     <span className="text-sm text-[hsl(var(--muted-foreground))]">{summary}</span>
                 </p>
-                <button type="button" onClick={onSeeResults} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-highlightpink px-4 text-[15px] font-semibold text-black transition-colors hover:bg-highlightpink/80">
+                <Button variant="pink" onClick={onSeeResults} className="rounded-xl text-[15px]">
                     See what we found
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-                </button>
+                </Button>
             </section>
         );
     }
@@ -57,7 +58,7 @@ export default function ResearchStatusBar({ steps, currentStep, complete, summar
                     <span className="h-2 w-2 flex-none rounded-full bg-pastypink motion-safe:animate-pulse dark:bg-pastyblue" aria-hidden="true" />
                     {buildStepLabel(currentStep)}…
                 </p>
-                <button type="button" onClick={onSkip} className={`${BUTTON} text-[hsl(var(--muted-foreground))] hover:text-foreground`}>skip for now</button>
+                <Button variant="ghost" size="sm" onClick={onSkip} className={`${SMALL} text-[hsl(var(--muted-foreground))] hover:text-foreground`}>skip for now</Button>
             </div>
             <ol aria-label="Research steps" className="m-0 grid list-none grid-cols-3 gap-2 p-0">
                 {stepSegments(steps, currentStep).map(segment => (
