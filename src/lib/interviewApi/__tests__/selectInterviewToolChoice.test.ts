@@ -49,3 +49,13 @@ it("requires evidence proof while allowing direct exact-answer validation withou
     ]),
   ).toEqual({ toolChoice: "required" });
 });
+it("reserves the last research step for synthesis when evidence has been validated", () => {
+  const steps = Array.from({ length: 7 }, () =>
+    step("checkInterviewEvidence", { valid: true, references: [{}] }),
+  );
+  expect(selectInterviewToolChoice(steps)).toEqual({ toolChoice: "none" });
+  steps[6] = step("searchArtistKnowledge", { passages: [{}] });
+  expect(selectInterviewToolChoice(steps)).toEqual({
+    toolChoice: { type: "tool", toolName: "readArtistSource" },
+  });
+});

@@ -60,6 +60,8 @@ export function selectInterviewToolChoice(steps: Step[]) {
           },
         }
       : hasProof
-        ? undefined
+        ? steps.length >= 7
+          ? { toolChoice: "none" as const }
+          : undefined
         : { toolChoice: "required" as const };
 }

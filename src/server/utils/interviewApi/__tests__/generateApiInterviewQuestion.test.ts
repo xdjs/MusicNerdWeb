@@ -325,3 +325,22 @@ it("retains the draft and rejection for a trusted evaluation observer without cr
   expect(events.filter((event) => event.stage === "check")).toHaveLength(2);
   expect(JSON.stringify(events)).not.toContain("private-token");
 });
+it("allows a trusted evaluation to compare a distinct checker without Google reasoning options", async () => {
+  await generateApiInterviewQuestion(
+    config,
+    1,
+    undefined,
+    undefined,
+    "google/gemini-3.8-flash",
+    "anthropic/claude-opus-5.5",
+  );
+  expect(jest.mocked(generateText).mock.calls[0][0].model).toBe(
+    "google/gemini-3.8-flash",
+  );
+  expect(jest.mocked(generateText).mock.calls[1][0]).toMatchObject({
+    model: "anthropic/claude-opus-5.5",
+    thinkingLevel: undefined,
+    thinkingBudget: undefined,
+    temperature: undefined,
+  });
+});
