@@ -112,3 +112,26 @@ it("rejects inconsistent offsets rather than exposing a broken citation", async 
   ).rejects.toThrow(/evidence/i);
   expect(model).not.toHaveBeenCalled();
 });
+
+it("records a safe failure stage without logging source text, questions or model errors", async () => {
+  const warning = jest
+    .spyOn(console, "warn")
+    .mockImplementation(() => undefined);
+  model.mockReset();
+  model.mockRejectedValue(new Error("PRIVATE PROVIDER PAYLOAD"));
+  await expect(
+    draftResearchAnswer("artist", "Artist", "PRIVATE QUESTION", [reference]),
+  ).rejects.toThrow();
+  expect(warning).toHaveBeenCalledWith(
+    "[questionResearch] answer verification failed",
+    {
+      stage: "draft",
+      category: "operation_failed",
+      status: null,
+    },
+  );
+  expect(JSON.stringify(warning.mock.calls)).not.toMatch(
+    /PRIVATE|played drums/,
+  );
+  warning.mockRestore();
+});
