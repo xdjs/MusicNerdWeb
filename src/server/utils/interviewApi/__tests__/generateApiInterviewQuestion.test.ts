@@ -700,3 +700,168 @@ it("accepts an audited open ask with no factual presuppositions and keeps existi
     maxRetries: 0,
   });
 });
+
+it.each([false, true])(
+  "repairs only the rejected angle and rechecks the preserved question (writer includes a replacement: %s)",
+  async (includesReplacement) => {
+    const originalQuestion = "What do you think led to that sound?";
+    const angleFailure = {
+      ...check,
+      supported: false,
+      premiseAudit: {
+        ...check.premiseAudit,
+        angle: [
+          {
+            premise: "The artist recorded to tape.",
+            status: "unsupported",
+            reason: "The answer does not name a recording medium.",
+          },
+        ],
+      },
+    };
+    jest
+      .mocked(generateText)
+      .mockReset()
+      .mockResolvedValueOnce({
+        output: {
+          question: originalQuestion,
+          angle: {
+            ...draftAngle,
+            intendedUnknown: "How recording to tape caused that sound.",
+          },
+        },
+        usage: {},
+      } as never)
+      .mockResolvedValueOnce({ output: angleFailure, usage: {} } as never)
+      .mockResolvedValueOnce({
+        output: {
+          ...(includesReplacement
+            ? { question: "How did you compose that sound on a tape machine?" }
+            : {}),
+          angle: draftAngle,
+        },
+        usage: {},
+      } as never)
+      .mockResolvedValueOnce({ output: check, usage: {} } as never);
+
+    const result = await generateApiInterviewQuestion(config, 1);
+    expect(result.question).toBe(originalQuestion);
+    expect(result.selection.angles[result.selection.selected]).toMatchObject(
+      draftAngle,
+    );
+    expect(
+      JSON.parse(jest.mocked(generateText).mock.calls[2][0].prompt),
+    ).toMatchObject({
+      previousDraft: originalQuestion,
+      repairScope: "angle_only",
+    });
+    expect(
+      JSON.parse(jest.mocked(generateText).mock.calls[3][0].prompt),
+    ).toMatchObject({
+      question: originalQuestion,
+      selectedAngle: draftAngle,
+    });
+    expect(result.diagnostics.draftAttempts).toBe(2);
+    expect(generateText).toHaveBeenCalledTimes(4);
+    expect(result.editorialAccepted).toBe(false);
+  },
+);
+
+it("withholds a preserved question when the repaired angle fails the final complete check", async () => {
+  const rejected = {
+    ...check,
+    premiseAudit: {
+      ...check.premiseAudit,
+      angle: [
+        {
+          premise: "The sound was recorded to tape.",
+          status: "unsupported",
+          reason: "No recording medium is stated.",
+        },
+      ],
+    },
+  };
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({ output: rejected, usage: {} } as never)
+    .mockResolvedValueOnce({
+      output: { angle: draftAngle },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({ output: rejected, usage: {} } as never);
+  await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(
+    /check/,
+  );
+  expect(generateText).toHaveBeenCalledTimes(4);
+  expect(fetchMandatoryInterviewMemory).toHaveBeenCalledTimes(1);
+});
+
+it.each(["incomplete_question", "unsupported_question", "latest_answer"])(
+  "keeps the question editable when an angle failure also has a %s failure",
+  async (failure) => {
+    const rejected = {
+      ...check,
+      faithfulToLatestAnswer: failure !== "latest_answer",
+      premiseAudit: {
+        ...check.premiseAudit,
+        coverage: {
+          ...check.premiseAudit.coverage,
+          question: failure !== "incomplete_question",
+        },
+        question:
+          failure === "unsupported_question"
+            ? [
+                {
+                  premise: "The artist decided to keep the sound.",
+                  status: "unsupported",
+                  reason: "No such decision is established.",
+                },
+              ]
+            : check.premiseAudit.question,
+        angle: [
+          {
+            premise: "The sound was recorded to tape.",
+            status: "unsupported",
+            reason: "No recording medium is stated.",
+          },
+        ],
+      },
+    };
+    jest
+      .mocked(generateText)
+      .mockReset()
+      .mockResolvedValueOnce({
+        output: {
+          question: "How did deciding to keep that sound change the mix?",
+          angle: draftAngle,
+        },
+        usage: {},
+      } as never)
+      .mockResolvedValueOnce({ output: rejected, usage: {} } as never)
+      .mockResolvedValueOnce({
+        output: {
+          question: "What do you think led to that sound?",
+          angle: draftAngle,
+        },
+        usage: {},
+      } as never)
+      .mockResolvedValueOnce({ output: check, usage: {} } as never);
+
+    const result = await generateApiInterviewQuestion(config, 1);
+    expect(result.question).toBe("What do you think led to that sound?");
+    expect(
+      JSON.parse(jest.mocked(generateText).mock.calls[2][0].prompt),
+    ).toMatchObject({
+      repairScope: "question_and_angle",
+    });
+    expect(generateText).toHaveBeenCalledTimes(4);
+  },
+);
