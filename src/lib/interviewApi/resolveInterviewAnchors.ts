@@ -5,6 +5,7 @@ import type {
 } from "./interviewPlanSchemas";
 import { resolveInterviewReferences } from "./resolveInterviewReferences";
 import { locateInterviewQuote } from "./locateInterviewQuote";
+import { assembleInterviewHistory } from "./assembleInterviewHistory";
 /** Derive exact offsets from unique quotes; the model never calculates positions or shortens source ids. */
 export function resolveInterviewAnchors(
   anchors: InterviewAnchor[],
@@ -56,8 +57,7 @@ export function resolveInterviewAnchors(
             e.revision === anchor.revision,
         )
         ?.fields.find((f) => f.name === "answer");
-      const old = history
-        .flatMap((h) => h.entries)
+      const old = (latest ? [] : assembleInterviewHistory(history))
         .find(
           (e) =>
             e.kind === "answer" &&

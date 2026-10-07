@@ -60,13 +60,23 @@ export async function handleApiInterview(request: Request, artistId: string) {
           signal,
         ),
       );
-    if (input.action === "memory") {
+    if (input.action === "memory" || input.action === "boundaries") {
       const state = await restore();
       const sitting =
         state.session?.state === "active"
           ? state.session.sitting
           : (state.legacyOffers[0]?.sitting ??
             (state.session?.sitting ?? 0) + 1);
+      if (input.action === "boundaries")
+        return reply(
+          await callInterviewApi(config, "boundaries", {
+            query: {
+              sitting,
+              ...(input.cursor ? { cursor: input.cursor } : {}),
+            },
+            signal,
+          }),
+        );
       return reply(
         await fetchMandatoryInterviewMemory(config, sitting, signal),
       );
@@ -144,6 +154,18 @@ export async function handleApiInterview(request: Request, artistId: string) {
     });
     return reply(await restore());
   } catch (error) {
+    const contextTooLarge =
+      error instanceof Error &&
+      [
+        "Mandatory memory exceeds its context budget",
+        "Mandatory memory exceeds its page budget",
+        "Mandatory memory response exceeds its byte budget",
+        "Mandatory memory API returned HTTP 413; restart after 409, sign in after 401",
+        "Prior interview history exceeds its page budget",
+        "Prior interview history exceeds its response budget",
+        "Prior questions exceed their model context budget",
+        "Interview check exceeds its context budget",
+      ].includes(error.message);
     const candidate =
       typeof error === "object" && error && "status" in error
         ? error.status
@@ -164,7 +186,9 @@ export async function handleApiInterview(request: Request, artistId: string) {
                 ? "The interview changed. Reload the saved interview."
                 : status === 400
                   ? "Invalid interview request."
-                  : "I could not complete that interview step. Your saved interview is still available; reload and try again.",
+                  : contextTooLarge
+                    ? "I cannot safely prepare another question with all the saved context yet. Your saved answers remain available, and you can still review or remove topic instructions in Topic preferences."
+                    : "I could not complete that interview step. Your saved interview is still available; reload and try again.",
       },
       status,
     );

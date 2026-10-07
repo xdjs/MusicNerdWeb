@@ -4,7 +4,11 @@ import type { KnowledgeToolConfig } from "@/lib/interviewApi/types";
 export async function callInterviewApi(
   config: KnowledgeToolConfig,
   path: string,
-  options: { body?: unknown; signal?: AbortSignal } = {},
+  options: {
+    body?: unknown;
+    query?: Record<string, string | number>;
+    signal?: AbortSignal;
+  } = {},
 ) {
   const bound = validateInterviewApiScope(config);
   const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
@@ -15,6 +19,23 @@ export async function callInterviewApi(
     ).test(path)
   )
     throw new Error("Invalid interview destination");
+  const url = new URL(
+    `/api/artist/${bound.artistId}/interview/${path}`,
+    bound.apiOrigin,
+  );
+  for (const [key, value] of Object.entries(options.query ?? {})) {
+    if (
+      !/^[A-Za-z][A-Za-z0-9]*$/.test(key) ||
+      !(
+        typeof value === "string" ||
+        (typeof value === "number" && Number.isFinite(value))
+      )
+    )
+      throw new Error("Invalid interview query");
+    url.searchParams.set(key, String(value));
+  }
+  if (url.search.length > 16000 || (url.search && options.body !== undefined))
+    throw new Error("Invalid interview query");
   const body =
     options.body === undefined ? undefined : JSON.stringify(options.body);
   if (body && Buffer.byteLength(body) > 65536)
@@ -37,23 +58,17 @@ export async function callInterviewApi(
       throw Object.assign(new Error("Sign in to continue the interview"), {
         status: 401,
       });
-    const response = await fetch(
-      new URL(
-        `/api/artist/${bound.artistId}/interview/${path}`,
-        bound.apiOrigin,
-      ),
-      {
-        method: body === undefined ? "GET" : "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        ...(body === undefined ? {} : { body }),
-        signal,
-        cache: "no-store",
-        redirect: "error",
+    const response = await fetch(url, {
+      method: body === undefined ? "GET" : "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-    );
+      ...(body === undefined ? {} : { body }),
+      signal,
+      cache: "no-store",
+      redirect: "error",
+    });
     if (!response.ok) {
       await response.body?.cancel();
       throw Object.assign(

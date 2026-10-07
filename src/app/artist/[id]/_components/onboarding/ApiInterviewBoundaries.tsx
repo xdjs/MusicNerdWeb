@@ -2,22 +2,20 @@
 import { useRef, useState } from "react";
 import { z } from "zod";
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
-const memorySchema = z.object({
-  constraintsComplete: z.literal(true),
-  entries: z.array(
-    z.object({
-      entryId: z.string(),
-      kind: z.enum(["latest_answer", "correction", "boundary"]),
-      metadata: z.record(z.union([z.string(), z.number(), z.null()])),
-      fields: z.array(
-        z.object({
-          name: z.string(),
-          text: z.string().nullable(),
-          complete: z.literal(true),
-        }),
-      ),
-    }),
-  ),
+const boundaryPageSchema = z.object({
+  status: z.literal("ok"),
+  sitting: z.number().int().positive(),
+  boundaries: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        revision: z.string().regex(/^[a-f0-9]{64}$/),
+        wording: z.string().min(1).max(4000),
+        scope: z.enum(["sitting", "until_retracted"]),
+      }),
+    )
+    .max(5),
+  nextCursor: z.string().min(1).max(4096).nullable(),
 });
 /** Only explicit artist words become topic instructions; a skip has no implicit lifetime. */
 export default function ApiInterviewBoundaries({
@@ -34,13 +32,39 @@ export default function ApiInterviewBoundaries({
     [scope, setScope] = useState<"sitting" | "until_retracted">("sitting"),
     [pending, setPending] = useState(false),
     [error, setError] = useState<string | null>(null),
+    [nextCursor, setNextCursor] = useState<string | null>(null),
     [entries, setEntries] = useState<
-      z.infer<typeof memorySchema>["entries"] | null
+      z.infer<typeof boundaryPageSchema>["boundaries"] | null
     >(null);
   const savedRequest = useRef<{ key: string; requestId: string } | null>(null);
-  const load = async () => {
-    const result = memorySchema.parse(await call({ action: "memory" }));
-    setEntries(result.entries.filter((e) => e.kind === "boundary"));
+  const clearList = () => {
+    setEntries(null);
+    setNextCursor(null);
+  };
+  const load = async (cursor?: string) => {
+    const result = boundaryPageSchema.parse(
+      await call({ action: "boundaries", ...(cursor ? { cursor } : {}) }),
+    );
+    if (cursor && result.nextCursor === cursor)
+      throw new Error("Instruction continuation did not advance");
+    setEntries((previous) =>
+      cursor ? [...(previous ?? []), ...result.boundaries] : result.boundaries,
+    );
+    setNextCursor(result.nextCursor);
+  };
+  const restore = async (cursor?: string) => {
+    setPending(true);
+    setError(null);
+    try {
+      await load(cursor);
+    } catch {
+      clearList();
+      setError(
+        "Topic instructions changed or could not be restored. Reload the instructions to continue.",
+      );
+    } finally {
+      setPending(false);
+    }
   };
   const toggle = async () => {
     if (open) {
@@ -48,17 +72,7 @@ export default function ApiInterviewBoundaries({
       return;
     }
     setOpen(true);
-    setPending(true);
-    setError(null);
-    try {
-      await load();
-    } catch {
-      setError(
-        "Topic instructions could not be restored. Try opening this panel again.",
-      );
-    } finally {
-      setPending(false);
-    }
+    await restore();
   };
   const save = async () => {
     if (pending || busy || !wording.trim() || !questionKey) return;
@@ -75,32 +89,32 @@ export default function ApiInterviewBoundaries({
         wording,
         scope,
       });
+      await load();
       setWording("");
       savedRequest.current = null;
-      await load();
     } catch {
+      clearList();
       setError(
-        "The instruction could not be confirmed. Your words are kept here; retry or reload the interview.",
+        "The instruction could not be confirmed. Your words are kept here; reload the instructions before retrying.",
       );
     } finally {
       setPending(false);
     }
   };
   const retract = async (entry: NonNullable<typeof entries>[number]) => {
-    const revision = entry.metadata.boundaryRevision;
-    if (typeof revision !== "string") return;
     setPending(true);
     setError(null);
     try {
       await call({
         action: "retract",
-        boundaryId: entry.entryId.replace(/^boundary:/, ""),
-        revision,
+        boundaryId: entry.id,
+        revision: entry.revision,
       });
       await load();
     } catch {
+      clearList();
       setError(
-        "The instruction changed or could not be removed. Reopen this panel.",
+        "The instruction changed or could not be removed. Reload the instructions to continue.",
       );
     } finally {
       setPending(false);
@@ -131,23 +145,33 @@ export default function ApiInterviewBoundaries({
             </p>
           )}
           {error && (
-            <p role="alert" className="text-sm">
-              {error}
-            </p>
+            <div className="space-y-2">
+              <p role="alert" className="text-sm">
+                {error}
+              </p>
+              <button
+                type="button"
+                className={button}
+                disabled={busy || pending}
+                onClick={() => void restore()}
+              >
+                Reload instructions
+              </button>
+            </div>
           )}
           {entries?.length === 0 && (
             <p className="text-sm">No active topic instructions.</p>
           )}
           {entries?.map((entry) => (
             <div
-              key={entry.entryId}
+              key={entry.id}
               className="rounded-lg border border-black/10 p-3 dark:border-white/15"
             >
               <p className="whitespace-pre-wrap break-words text-sm">
-                {entry.fields.find((f) => f.name === "wording")?.text}
+                {entry.wording}
               </p>
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {entry.metadata.scope === "sitting"
+                {entry.scope === "sitting"
                   ? "This sitting only"
                   : "Until you remove it"}
               </p>
@@ -161,6 +185,16 @@ export default function ApiInterviewBoundaries({
               </button>
             </div>
           ))}
+          {nextCursor && (
+            <button
+              type="button"
+              className={button}
+              disabled={busy || pending}
+              onClick={() => void restore(nextCursor)}
+            >
+              Show more instructions
+            </button>
+          )}
           {questionKey ? (
             <>
               <label className="block text-sm" htmlFor={`topic-${questionKey}`}>

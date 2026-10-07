@@ -279,6 +279,74 @@ it("rejects semantic repetition even when references resolve", async () => {
   );
   expect(generateText).toHaveBeenCalledTimes(4);
 });
+
+it("gives an exact repeated draft the single bounded repair before spending a checker call", async () => {
+  jest
+    .mocked(fetchInterviewQuestionIndex)
+    .mockResolvedValue([
+      { question: "What do you think led to that sound?" },
+    ] as never);
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question: "What do you think led to that sound?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        question: "What can you tell me about the sound's texture?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({ output: check, usage: {} } as never);
+  const events: Array<{ stage: string; data: unknown }> = [];
+  const result = await generateApiInterviewQuestion(
+    config,
+    1,
+    undefined,
+    (event) => events.push(event),
+  );
+  expect(result.question).toBe(
+    "What can you tell me about the sound's texture?",
+  );
+  expect(result.diagnostics.draftAttempts).toBe(2);
+  expect(generateText).toHaveBeenCalledTimes(3);
+  expect(jest.mocked(generateText).mock.calls[1][0].prompt).toContain(
+    "repeats a prior ask",
+  );
+  expect(events).toContainEqual(
+    expect.objectContaining({
+      stage: "check",
+      data: expect.objectContaining({
+        kind: "mechanical",
+        verdict: expect.objectContaining({ novelAgainstHistory: false }),
+      }),
+    }),
+  );
+});
+
+it("withholds two mechanically invalid drafts without a checker call or third attempt", async () => {
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValue({
+      output: {
+        question: "What made the sound? Why did you keep it?",
+        angle: draftAngle,
+      },
+      usage: {},
+    } as never);
+  await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(
+    /multiple questions/,
+  );
+  expect(generateText).toHaveBeenCalledTimes(2);
+  expect(fetchMandatoryInterviewMemory).toHaveBeenCalledTimes(1);
+});
 it("rejects a draft after memory changes during generation", async () => {
   jest
     .mocked(fetchMandatoryInterviewMemory)

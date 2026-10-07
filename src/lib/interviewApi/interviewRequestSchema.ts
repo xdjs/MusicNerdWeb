@@ -37,6 +37,12 @@ export const interviewRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("memory") }).strict(),
   z
     .object({
+      action: z.literal("boundaries"),
+      cursor: z.string().min(1).max(4096).optional(),
+    })
+    .strict(),
+  z
+    .object({
       action: z.literal("source"),
       sourceId: z.string().min(1).max(100),
       revision,

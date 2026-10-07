@@ -76,3 +76,54 @@ it("does not make the model calculate a window position and rejects two differen
     ),
   ).toThrow(/ambiguous/);
 });
+
+it("resolves an older answer after every continuation is read, retaining its question", () => {
+  const question = "Which instrument changed the arrangement?";
+  const answer = "The 🥁 drums changed it, but I kept the bass unchanged.";
+  const quote = "drums changed it, but I kept the bass unchanged";
+  const entry = {
+    entryId: "answer:older",
+    revision,
+    kind: "answer",
+    answerState: "answered",
+  };
+  const part = (
+    field: string,
+    text: string,
+    start: number,
+    totalChars: number,
+  ) => ({
+    field,
+    text,
+    start,
+    end: start + text.length,
+    totalChars,
+    complete: start + text.length === totalChars,
+  });
+  const page = (fields: unknown[]) => ({
+    entries: [{ ...entry, fields }],
+    memory: { latestAnswer: null },
+  });
+  const history = [
+    page([part("question", question, 0, question.length)]),
+    page([part("answer", answer.slice(0, 20), 0, answer.length)]),
+    page([part("answer", answer.slice(20), 20, answer.length)]),
+  ];
+  const result = resolveInterviewAnchors(
+    [{ kind: "answer", entryId: entry.entryId, revision, quote }],
+    [],
+    { entries: [] },
+    history as never,
+  );
+  expect(result[0]).toMatchObject({
+    context: answer,
+    question,
+    reference: {
+      entryId: entry.entryId,
+      revision,
+      start: answer.indexOf(quote),
+      end: answer.indexOf(quote) + quote.length,
+      quote,
+    },
+  });
+});

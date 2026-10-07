@@ -1,5 +1,6 @@
 import type { MemoryEntry, KnowledgeResults } from "./types";
 import type { InterviewReference } from "./interviewPlanSchemas";
+import { assembleInterviewHistory } from "./assembleInterviewHistory";
 /** Resolve every exact quote against reopened originals or complete permitted answers. */
 export function resolveInterviewReferences(
   references: InterviewReference[],
@@ -44,14 +45,12 @@ export function resolveInterviewReferences(
         e.entryId === reference.entryId &&
         e.revision === reference.revision,
     );
-    const old = history
-      .flatMap((h) => h.entries)
-      .find(
-        (e) =>
-          e.kind === "answer" &&
-          e.entryId === reference.entryId &&
-          e.revision === reference.revision,
-      );
+    const old = (latest ? [] : assembleInterviewHistory(history)).find(
+      (e) =>
+        e.kind === "answer" &&
+        e.entryId === reference.entryId &&
+        e.revision === reference.revision,
+    );
     const answer =
       latest?.fields.find((f) => f.name === "answer") ??
       old?.fields.find((f) => f.field === "answer");
@@ -66,6 +65,10 @@ export function resolveInterviewReferences(
     return {
       reference,
       context: answer.text,
+      question:
+        latest?.fields.find((f) => f.name === "question")?.text ??
+        old?.fields.find((f) => f.field === "question")?.text ??
+        null,
       source: null,
       window: { start: 0, end: answer.end, totalChars: answer.totalChars },
       version: null,

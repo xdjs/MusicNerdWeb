@@ -48,14 +48,23 @@ it("uses only scoped authenticated no-store reads without redirects", async () =
     }),
   );
 });
+it("encodes structured management query values without allowing destination changes", async () => {
+  await callInterviewApi(config, "boundaries", {
+    query: { sitting: 2, cursor: "next&artistId=other#fragment" },
+  });
+  const url = jest.mocked(fetch).mock.calls[0][0] as URL;
+  expect(url.pathname).toBe(`/api/artist/${id}/interview/boundaries`);
+  expect(url.searchParams.get("sitting")).toBe("2");
+  expect(url.searchParams.get("cursor")).toBe("next&artistId=other#fragment");
+  expect(url.searchParams.has("artistId")).toBe(false);
+  expect(url.hash).toBe("");
+});
 it("preserves a safe stale-state error without exposing provider details", async () => {
-  global.fetch = jest
-    .fn()
-    .mockResolvedValue({
-      ...reply({ secret: "PRIVATE" }),
-      ok: false,
-      status: 409,
-    });
+  global.fetch = jest.fn().mockResolvedValue({
+    ...reply({ secret: "PRIVATE" }),
+    ok: false,
+    status: 409,
+  });
   await expect(callInterviewApi(config, "session")).rejects.toMatchObject({
     status: 409,
   });

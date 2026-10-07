@@ -114,3 +114,65 @@ it("resolves the exact latest answer but refuses an incomplete old answer", () =
     ),
   ).toThrow();
 });
+
+it("uses a complete older answer reread without letting its first partial result shadow it", () => {
+  const question = "What did you leave unchanged?";
+  const answer = "I left the bass unchanged, but changed the drum pattern.";
+  const quote = "changed the drum pattern";
+  const entry = {
+    entryId: "answer:older",
+    revision,
+    kind: "answer",
+    answerState: "answered",
+  };
+  const part = (field: string, text: string, totalChars: number) => ({
+    field,
+    text,
+    start: 0,
+    end: text.length,
+    totalChars,
+    complete: text.length === totalChars,
+  });
+  const pages = [
+    {
+      entries: [
+        {
+          ...entry,
+          fields: [
+            part("question", question, question.length),
+            part("answer", answer.slice(0, 8), answer.length),
+          ],
+        },
+      ],
+      memory: { latestAnswer: null },
+    },
+    {
+      entries: [
+        {
+          ...entry,
+          fields: [
+            part("question", question, question.length),
+            part("answer", answer, answer.length),
+          ],
+        },
+      ],
+      memory: { latestAnswer: null },
+    },
+  ];
+  const result = resolveInterviewReferences(
+    [
+      {
+        kind: "answer",
+        entryId: entry.entryId,
+        revision,
+        quote,
+        start: answer.indexOf(quote),
+        end: answer.indexOf(quote) + quote.length,
+      },
+    ],
+    [],
+    memory,
+    pages as never,
+  );
+  expect(result[0]).toMatchObject({ context: answer, question });
+});
