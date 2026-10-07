@@ -25,3 +25,5 @@ Test request routing, original-context reopening, quote/reference failure, pendi
 Failed answer verification records only its stage (original read, draft, exact quote, or claim check), an allowlisted error category and HTTP status. Never log a question, original, model draft or provider exception. A failed check remains withheld; retry reuses the saved job.
 
 The queue response is always an acknowledgement, including a reused completed job. Web returns the job first and reads status to obtain revalidated references before answering. An answer-verification failure retains its job id for retry even when it occurs before the first progress response.
+
+Relative-time descriptions (new/latest/upcoming) in undated or older originals remain attributed to that source or are omitted; they are not promoted into current release facts. An official third-person bio is not automatically first-person artist speech. The complete-process evaluation retains guard rejections and missed qualifications, including ones a model checker approves.
