@@ -41,3 +41,15 @@ it("never accepts a model-invented original URL that was not in the question", a
     planArtistQuestion("Artist", "Who played drums?"),
   ).rejects.toThrow(/URL/);
 });
+it.each([
+  ["How does LATASHÁ describe her music on her official website?", "stored"],
+  ["What did growing up in New York contribute to her sound?", "stored"],
+  ["What are her latest TikTok posts about?", "recent"],
+  ["What has she posted this week?", "recent"],
+])("does not invent a recent-only filter for %s", async (question, freshness) => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "LATASHÁ music description", evidenceNeed: "reporting", freshness: "recent",
+    platform: null, targetUrl: null, fromDate: null, toDate: null,
+  }} as never);
+  expect(await planArtistQuestion("LATASHÁ", question)).toMatchObject({ freshness });
+});
