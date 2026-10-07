@@ -1,9 +1,12 @@
 /** Resolve only exact words: tolerate copied whitespace/quote typography, then retain the actual original span. */
 export function locateInterviewQuote(text: string, requested: string) {
-  const fail = () => new Error("Interview quote is missing or ambiguous");
+  const fail = (code: "quote_missing" | "quote_ambiguous") =>
+    Object.assign(new Error("Interview quote is missing or ambiguous"), {
+      code,
+    });
   const exact = text.indexOf(requested);
   if (exact >= 0) {
-    if (text.indexOf(requested, exact + 1) >= 0) throw fail();
+    if (text.indexOf(requested, exact + 1) >= 0) throw fail("quote_ambiguous");
     return { start: exact, end: exact + requested.length, quote: requested };
   }
   const normalize = (value: string) => {
@@ -30,12 +33,9 @@ export function locateInterviewQuote(text: string, requested: string) {
   const haystack = normalize(text),
     needle = normalize(requested).normalized.trim();
   const offset = haystack.normalized.indexOf(needle);
-  if (
-    !needle ||
-    offset < 0 ||
-    haystack.normalized.indexOf(needle, offset + 1) >= 0
-  )
-    throw fail();
+  if (!needle || offset < 0) throw fail("quote_missing");
+  if (haystack.normalized.indexOf(needle, offset + 1) >= 0)
+    throw fail("quote_ambiguous");
   const start = haystack.spans[offset].start,
     end = haystack.spans[offset + needle.length - 1].end;
   return { start, end, quote: text.slice(start, end) };

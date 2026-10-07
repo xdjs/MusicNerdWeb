@@ -21,7 +21,9 @@ it("permits synthesis after an original read and requires a new read after a new
     step("searchArtistKnowledge", { passages: [{}] }),
     step("readArtistSource", { passage: { text: "Full source context" } }),
   ];
-  expect(selectInterviewToolChoice(steps)).toBeUndefined();
+  expect(selectInterviewToolChoice(steps)).toEqual({
+    toolChoice: { type: "tool", toolName: "checkInterviewEvidence" },
+  });
   expect(
     selectInterviewToolChoice([
       ...steps,
@@ -29,11 +31,21 @@ it("permits synthesis after an original read and requires a new read after a new
     ]),
   ).toBeDefined();
 });
-it("does not force unrelated research for an exact-answer follow-up or a search with no hits", () => {
-  expect(selectInterviewToolChoice([])).toBeUndefined();
+it("requires evidence proof while allowing direct exact-answer validation without unrelated research", () => {
+  expect(selectInterviewToolChoice([])).toEqual({ toolChoice: "required" });
   expect(
     selectInterviewToolChoice([
       step("searchArtistKnowledge", { passages: [] }),
     ]),
+  ).toEqual({ toolChoice: "required" });
+  expect(
+    selectInterviewToolChoice([
+      step("checkInterviewEvidence", { valid: true, references: [{}] }),
+    ]),
   ).toBeUndefined();
+  expect(
+    selectInterviewToolChoice([
+      step("checkInterviewEvidence", { valid: false }),
+    ]),
+  ).toEqual({ toolChoice: "required" });
 });

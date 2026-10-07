@@ -13,17 +13,40 @@ export function resolveInterviewAnchors(
   history: KnowledgeResults["history"][],
 ) {
   const references: InterviewReference[] = anchors.map((anchor) => {
-    let text: string | undefined,
-      start = 0;
+    let text: string | undefined;
     if (anchor.kind === "original") {
-      const p = originals.find(
-        (r) =>
-          r.passage.source.sourceId === anchor.sourceId &&
-          r.passage.revision === anchor.revision &&
-          r.passage.start === anchor.windowStart,
-      )?.passage;
-      text = p?.text;
-      start = p?.start ?? 0;
+      const matches = new Map<string, InterviewReference>();
+      for (const { passage: p } of originals) {
+        if (
+          p.source.sourceId !== anchor.sourceId ||
+          p.revision !== anchor.revision
+        )
+          continue;
+        try {
+          const found = locateInterviewQuote(p.text, anchor.quote);
+          const start = p.start + found.start,
+            end = p.start + found.end;
+          matches.set(`${start}:${end}`, {
+            kind: "original",
+            sourceId: anchor.sourceId,
+            revision: anchor.revision,
+            start,
+            end,
+            quote: found.quote,
+          });
+        } catch (error) {
+          if (
+            !error ||
+            typeof error !== "object" ||
+            !("code" in error) ||
+            error.code !== "quote_missing"
+          )
+            throw error;
+        }
+      }
+      if (matches.size !== 1)
+        throw new Error("Interview quote is missing or ambiguous");
+      return [...matches.values()][0];
     } else {
       const latest = memory.entries
         .find(
@@ -47,16 +70,7 @@ export function resolveInterviewAnchors(
     if (text === undefined)
       throw new Error("Interview quote is missing or ambiguous");
     const matched = locateInterviewQuote(text, anchor.quote);
-    return anchor.kind === "original"
-      ? {
-          kind: "original",
-          sourceId: anchor.sourceId,
-          revision: anchor.revision,
-          start: start + matched.start,
-          end: start + matched.end,
-          quote: matched.quote,
-        }
-      : { ...anchor, ...matched };
+    return { ...anchor, ...matched };
   });
   return resolveInterviewReferences(references, originals, memory, history);
 }

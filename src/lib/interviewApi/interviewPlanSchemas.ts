@@ -23,7 +23,6 @@ export const interviewAnchorSchema = z.discriminatedUnion("kind", [
     kind: z.literal("original"),
     sourceId: z.string().min(1).max(100),
     revision,
-    windowStart: z.number().int().nonnegative(),
     quote: z.string().min(8).max(1600),
   }),
   z.object({
@@ -55,9 +54,18 @@ export const interviewDraftSchema = z.object({
 });
 export const interviewCheckSchema = z.object({
   supported: z.boolean(),
+  timeScopeSupported: z
+    .boolean()
+    .describe(
+      "Every dated or relative-time factual premise preserves the period actually established by its original; an old/undated source does not establish the artist's current state.",
+    ),
   faithfulToLatestAnswer: z.boolean(),
   respectsBoundaries: z.boolean(),
-  repeatsPriorQuestion: z.boolean(),
+  novelAgainstHistory: z
+    .boolean()
+    .describe(
+      "True when the question does not repeat a prior offered, answered or skipped question; an unresolved follow-up can be novel.",
+    ),
   oneClearAsk: z.boolean(),
   reason: z.string().max(600),
 });

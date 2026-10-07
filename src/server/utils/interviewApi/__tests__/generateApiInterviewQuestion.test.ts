@@ -20,6 +20,7 @@ jest.mock("@/server/lib/ai/researchInterviewAngles", () => ({
 jest.mock("@/server/lib/ai/generateText", () => ({ generateText: jest.fn() }));
 jest.mock("ai", () => ({
   Output: { object: jest.fn() },
+  tool: (input: unknown) => input,
   NoObjectGeneratedError: { isInstance: () => false },
 }));
 const config = {
@@ -73,14 +74,15 @@ const memory = {
 };
 const check = {
   supported: true,
+  timeScopeSupported: true,
   faithfulToLatestAnswer: true,
   respectsBoundaries: true,
-  repeatsPriorQuestion: false,
+  novelAgainstHistory: true,
   oneClearAsk: true,
   reason: "Supported, new decision.",
 };
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   jest.mocked(fetchMandatoryInterviewMemory).mockResolvedValue(memory as never);
   jest.mocked(fetchInterviewQuestionIndex).mockResolvedValue([]);
   jest.mocked(createInterviewKnowledgeTools).mockReturnValue({
@@ -89,25 +91,35 @@ beforeEach(() => {
     history: [],
     diagnostics: { calls: 0, returnedChars: 0 },
   } as never);
-  jest.mocked(researchInterviewAngles).mockResolvedValue({
-    output: {
-      angles: [
-        {
-          observation: "The sound was not intentional.",
-          intendedUnknown: "How the sound came about.",
-          rationale:
-            "Responds to the actual answer without changing lack of intention into inability.",
-          connection: "single_observation",
-          references: [
-            { kind: "answer", entryId: "answer:1", revision, quote: words },
-          ],
-        },
-      ],
-      selected: 0,
-      selectionReason: "Follows the latest answer.",
-    },
-    totalUsage: { inputTokens: 10, outputTokens: 10 },
-  } as never);
+  jest.mocked(researchInterviewAngles).mockImplementation(async ({ tools }) => {
+    await tools.checkInterviewEvidence.execute!(
+      {
+        references: [
+          { kind: "answer", entryId: "answer:1", revision, quote: words },
+        ],
+      },
+      { toolCallId: "proof", messages: [] } as never,
+    );
+    return {
+      output: {
+        angles: [
+          {
+            observation: "The sound was not intentional.",
+            intendedUnknown: "How the sound came about.",
+            rationale:
+              "Responds to the actual answer without changing lack of intention into inability.",
+            connection: "single_observation",
+            references: [
+              { kind: "answer", entryId: "answer:1", revision, quote: words },
+            ],
+          },
+        ],
+        selected: 0,
+        selectionReason: "Follows the latest answer.",
+      },
+      totalUsage: { inputTokens: 10, outputTokens: 10 },
+    } as never;
+  });
   jest
     .mocked(generateText)
     .mockResolvedValueOnce({
@@ -118,6 +130,45 @@ beforeEach(() => {
       output: check,
       usage: { inputTokens: 10, outputTokens: 10 },
     } as never);
+});
+it("rejects a historical source promoted into a current premise even when its words are supported", async () => {
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question:
+          "You are now returning to that sound. How does it shape the music today?",
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        ...check,
+        timeScopeSupported: false,
+        reason: "The old source establishes an earlier period only.",
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        question:
+          "You are now returning to that sound. How does it shape the music today?",
+      },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        ...check,
+        timeScopeSupported: false,
+        reason: "The old source establishes an earlier period only.",
+      },
+      usage: {},
+    } as never);
+  await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(
+    /check/,
+  );
+  expect(generateText).toHaveBeenCalledTimes(4);
 });
 it("requires mandatory memory before any research or writing", async () => {
   jest
@@ -146,6 +197,42 @@ it("supplies exact memory throughout and retains stable answer references", asyn
   expect(fetchMandatoryInterviewMemory).toHaveBeenCalledTimes(2);
   expect(result.editorialAccepted).toBe(false);
 });
+it("revises one rejected draft using full context and checks the revision before offering it", async () => {
+  jest
+    .mocked(generateText)
+    .mockReset()
+    .mockResolvedValueOnce({
+      output: {
+        question:
+          "How did deciding to keep that accidental sound change the mix?",
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        ...check,
+        supported: false,
+        reason: "The answer establishes no decision to keep it.",
+      },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as never)
+    .mockResolvedValueOnce({
+      output: { question: "What do you think led to that sound?" },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as never)
+    .mockResolvedValueOnce({
+      output: check,
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as never);
+  const result = await generateApiInterviewQuestion(config, 1);
+  expect(result.question).toBe("What do you think led to that sound?");
+  expect(jest.mocked(generateText).mock.calls[2][0].prompt).toContain(
+    "The answer establishes no decision to keep it.",
+  );
+  expect(jest.mocked(generateText).mock.calls[2][0].prompt).toContain(words);
+  expect(result.diagnostics.draftAttempts).toBe(2);
+  expect(generateText).toHaveBeenCalledTimes(4);
+});
 it("rejects semantic repetition even when references resolve", async () => {
   jest
     .mocked(generateText)
@@ -155,12 +242,21 @@ it("rejects semantic repetition even when references resolve", async () => {
       usage: {},
     } as never)
     .mockResolvedValueOnce({
-      output: { ...check, repeatsPriorQuestion: true },
+      output: { ...check, novelAgainstHistory: false },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: { question: "What do you think led to that sound?" },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: { ...check, novelAgainstHistory: false },
       usage: {},
     } as never);
   await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(
     /check/,
   );
+  expect(generateText).toHaveBeenCalledTimes(4);
 });
 it("rejects a draft after memory changes during generation", async () => {
   jest
@@ -186,8 +282,20 @@ it("retains the draft and rejection for a trusted evaluation observer without cr
         reason: "The source does not establish that premise.",
       },
       usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: { question: "What do you think led to that sound?" },
+      usage: {},
+    } as never)
+    .mockResolvedValueOnce({
+      output: {
+        ...check,
+        supported: false,
+        reason: "The source does not establish that premise.",
+      },
+      usage: {},
     } as never);
-  const events: unknown[] = [];
+  const events: Array<{ stage: string; data: unknown }> = [];
   await expect(
     generateApiInterviewQuestion(config, 1, undefined, (event) => {
       events.push(event);
@@ -213,5 +321,7 @@ it("retains the draft and rejection for a trusted evaluation observer without cr
       }),
     ]),
   );
+  expect(events.filter((event) => event.stage === "draft")).toHaveLength(2);
+  expect(events.filter((event) => event.stage === "check")).toHaveLength(2);
   expect(JSON.stringify(events)).not.toContain("private-token");
 });

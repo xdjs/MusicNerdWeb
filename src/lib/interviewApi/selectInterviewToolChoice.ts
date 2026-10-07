@@ -1,7 +1,9 @@
 type Step = { toolResults: Array<{ toolName: string; output: unknown }> };
 /** Search snippets and source titles cannot complete research without a subsequent original read. */
 export function selectInterviewToolChoice(steps: Step[]) {
-  let needsRead = false;
+  let needsRead = false,
+    needsProof = false,
+    hasProof = false;
   for (const step of steps)
     for (const result of step.toolResults) {
       const output = result.output;
@@ -30,8 +32,18 @@ export function selectInterviewToolChoice(steps: Step[]) {
         "text" in output.passage &&
         typeof output.passage.text === "string" &&
         output.passage.text.length
-      )
+      ) {
         needsRead = false;
+        needsProof = true;
+      }
+      if (
+        result.toolName === "checkInterviewEvidence" &&
+        "valid" in output &&
+        output.valid === true
+      ) {
+        hasProof = true;
+        needsProof = false;
+      }
     }
   return needsRead
     ? {
@@ -40,5 +52,14 @@ export function selectInterviewToolChoice(steps: Step[]) {
           toolName: "readArtistSource" as const,
         },
       }
-    : undefined;
+    : needsProof
+      ? {
+          toolChoice: {
+            type: "tool" as const,
+            toolName: "checkInterviewEvidence" as const,
+          },
+        }
+      : hasProof
+        ? undefined
+        : { toolChoice: "required" as const };
 }

@@ -17,7 +17,7 @@ const read = {
 it("computes UTF-16 offsets from exact unique words while preserving full source identity", () => {
   const quote = "I played the drums";
   const result = resolveInterviewAnchors(
-    [{ kind: "original", sourceId, revision, windowStart: 100, quote }],
+    [{ kind: "original", sourceId, revision, quote }],
     [read] as never,
     { entries: [] },
     [],
@@ -40,11 +40,39 @@ it("rejects invented or ambiguous quotes instead of fabricating positions", () =
     };
     expect(() =>
       resolveInterviewAnchors(
-        [{ kind: "original", sourceId, revision, windowStart: 100, quote }],
+        [{ kind: "original", sourceId, revision, quote }],
         [repeated] as never,
         { entries: [] },
         [],
       ),
     ).toThrow();
   }
+});
+it("does not make the model calculate a window position and rejects two different original positions", () => {
+  const anchor = {
+    kind: "original" as const,
+    sourceId,
+    revision,
+    quote: "I played the drums",
+  };
+  expect(
+    resolveInterviewAnchors(
+      [anchor],
+      [read, read] as never,
+      { entries: [] },
+      [],
+    )[0].reference.start,
+  ).toBe(100 + text.indexOf(anchor.quote));
+  const elsewhere = {
+    ...read,
+    passage: { ...read.passage, start: 200, end: 200 + text.length },
+  };
+  expect(() =>
+    resolveInterviewAnchors(
+      [anchor],
+      [read, elsewhere] as never,
+      { entries: [] },
+      [],
+    ),
+  ).toThrow(/ambiguous/);
 });
