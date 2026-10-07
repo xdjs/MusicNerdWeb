@@ -26,12 +26,13 @@ export async function draftResearchAnswer(
     const originals = await Promise.all(
       references.slice(0, 3).map(async (ref, i) => {
         const start = Math.max(0, ref.start - 1200);
-        const result = researchReadSchema.parse(
-          await callResearchApi(
-            `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=12000`,
-            { signal: abort },
-          ),
+        stage = "fetch_original";
+        const rawOriginal = await callResearchApi(
+          `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=12000`,
+          { signal: abort },
         );
+        stage = "validate_original";
+        const result = researchReadSchema.parse(rawOriginal);
         const p = result.passage;
         if (
           p.sourceId !== ref.sourceId ||
@@ -147,15 +148,22 @@ export async function draftResearchAnswer(
         ? error.status
         : null;
     const category =
-      error instanceof Error &&
-      [
-        "AbortError",
-        "TimeoutError",
-        "ZodError",
-        "AI_NoObjectGeneratedError",
-      ].includes(error.name)
-        ? error.name
-        : "operation_failed";
+      typeof error === "object" &&
+      error &&
+      "verificationCode" in error &&
+      error.verificationCode === "original_mismatch"
+        ? "original_mismatch"
+        : error instanceof Error &&
+            [
+              "AbortError",
+              "TimeoutError",
+              "ZodError",
+              "AI_NoObjectGeneratedError",
+              "TypeError",
+              "SyntaxError",
+            ].includes(error.name)
+          ? error.name
+          : "operation_failed";
     console.warn("[questionResearch] answer verification failed", {
       stage,
       category,
