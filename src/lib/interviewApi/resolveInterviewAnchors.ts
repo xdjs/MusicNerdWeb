@@ -4,6 +4,7 @@ import type {
   InterviewReference,
 } from "./interviewPlanSchemas";
 import { resolveInterviewReferences } from "./resolveInterviewReferences";
+import { locateInterviewQuote } from "./locateInterviewQuote";
 /** Derive exact offsets from unique quotes; the model never calculates positions or shortens source ids. */
 export function resolveInterviewAnchors(
   anchors: InterviewAnchor[],
@@ -43,23 +44,19 @@ export function resolveInterviewAnchors(
         ?.fields.find((f) => f.field === "answer");
       text = (latest ?? old)?.text ?? undefined;
     }
-    const offset = text?.indexOf(anchor.quote) ?? -1;
-    if (
-      text === undefined ||
-      offset < 0 ||
-      text.indexOf(anchor.quote, offset + 1) >= 0
-    )
+    if (text === undefined)
       throw new Error("Interview quote is missing or ambiguous");
+    const matched = locateInterviewQuote(text, anchor.quote);
     return anchor.kind === "original"
       ? {
           kind: "original",
           sourceId: anchor.sourceId,
           revision: anchor.revision,
-          start: start + offset,
-          end: start + offset + anchor.quote.length,
-          quote: anchor.quote,
+          start: start + matched.start,
+          end: start + matched.end,
+          quote: matched.quote,
         }
-      : { ...anchor, start: offset, end: offset + anchor.quote.length };
+      : { ...anchor, ...matched };
   });
   return resolveInterviewReferences(references, originals, memory, history);
 }
