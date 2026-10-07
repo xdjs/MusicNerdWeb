@@ -53,7 +53,57 @@ export const interviewDraftSchema = z.object({
   question: z.string().min(10).max(500),
   angle: interviewAngleSchema.omit({ references: true }),
 });
+const interviewPremiseAuditItemSchema = z.object({
+  premise: z
+    .string()
+    .min(1)
+    .max(120)
+    .describe(
+      "One factual assertion or presupposition, not the unknown answer being requested.",
+    ),
+  status: z
+    .enum(["supported", "unsupported", "missing_qualification"])
+    .describe(
+      "Supported by supplied exact evidence and local context, absent/contradicted, or omitting a material qualification.",
+    ),
+  reason: z
+    .string()
+    .min(1)
+    .max(160)
+    .describe(
+      "Concise evidence reason identifying what the supplied words establish or fail to establish.",
+    ),
+});
 export const interviewCheckSchema = z.object({
+  premiseAudit: z.object({
+    coverage: z
+      .object({
+        question: z.boolean(),
+        observation: z.boolean(),
+        intendedUnknown: z
+          .boolean()
+          .describe(
+            "Audit factual presuppositions embedded in the intended unknown; the unresolved answer itself needs no prior support.",
+          ),
+        rationale: z.boolean(),
+        connection: z.boolean(),
+      })
+      .describe(
+        "Each true means every factual presupposition in that field was audited. False if incomplete or the bounded item list cannot cover it.",
+      ),
+    question: z
+      .array(interviewPremiseAuditItemSchema)
+      .max(4)
+      .describe(
+        "Factual presuppositions in the spoken question, separate from its angle. Empty is allowed when the question makes none.",
+      ),
+    angle: z
+      .array(interviewPremiseAuditItemSchema)
+      .max(4)
+      .describe(
+        "Factual presuppositions across observation, intendedUnknown, rationale and connection; combine repetitions. Audit these even when absent from the spoken question.",
+      ),
+  }),
   supported: z.boolean(),
   timeScopeSupported: z
     .boolean()
