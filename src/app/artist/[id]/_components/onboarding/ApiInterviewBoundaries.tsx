@@ -25,7 +25,7 @@ export default function ApiInterviewBoundaries({
   busy,
   call,
 }: {
-  questionKey: string;
+  questionKey: string | null;
   busy: boolean;
   call: (body: InterviewRequest) => Promise<unknown>;
 }) {
@@ -61,7 +61,7 @@ export default function ApiInterviewBoundaries({
     }
   };
   const save = async () => {
-    if (pending || busy || !wording.trim()) return;
+    if (pending || busy || !wording.trim() || !questionKey) return;
     setPending(true);
     setError(null);
     const key = JSON.stringify({ wording, scope, questionKey });
@@ -161,41 +161,52 @@ export default function ApiInterviewBoundaries({
               </button>
             </div>
           ))}
-          <label className="block text-sm" htmlFor={`topic-${questionKey}`}>
-            Your topic instruction
-          </label>
-          <textarea
-            id={`topic-${questionKey}`}
-            rows={3}
-            value={wording}
-            maxLength={4000}
-            disabled={busy || pending}
-            onChange={(e) => setWording(e.target.value)}
-            className="w-full rounded-lg border border-black/20 bg-transparent p-3 text-sm dark:border-white/25"
-          />
-          <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
-            Keep this instruction
-          </label>
-          <select
-            id={`scope-${questionKey}`}
-            value={scope}
-            disabled={busy || pending}
-            onChange={(e) =>
-              setScope(e.target.value as "sitting" | "until_retracted")
-            }
-            className="min-h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm dark:border-white/25 dark:bg-neutral-900"
-          >
-            <option value="sitting">For this sitting</option>
-            <option value="until_retracted">Until I remove it</option>
-          </select>
-          <button
-            type="button"
-            className={button}
-            disabled={busy || pending || !wording.trim() || entries === null}
-            onClick={() => void save()}
-          >
-            Save topic instruction
-          </button>
+          {questionKey ? (
+            <>
+              <label className="block text-sm" htmlFor={`topic-${questionKey}`}>
+                Your topic instruction
+              </label>
+              <textarea
+                id={`topic-${questionKey}`}
+                rows={3}
+                value={wording}
+                maxLength={4000}
+                disabled={busy || pending}
+                onChange={(e) => setWording(e.target.value)}
+                className="w-full rounded-lg border border-black/20 bg-transparent p-3 text-sm dark:border-white/25"
+              />
+              <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
+                Keep this instruction
+              </label>
+              <select
+                id={`scope-${questionKey}`}
+                value={scope}
+                disabled={busy || pending}
+                onChange={(e) =>
+                  setScope(e.target.value as "sitting" | "until_retracted")
+                }
+                className="min-h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm dark:border-white/25 dark:bg-neutral-900"
+              >
+                <option value="sitting">For this sitting</option>
+                <option value="until_retracted">Until I remove it</option>
+              </select>
+              <button
+                type="button"
+                className={button}
+                disabled={
+                  busy || pending || !wording.trim() || entries === null
+                }
+                onClick={() => void save()}
+              >
+                Save topic instruction
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+              Existing instructions still apply. You can add a new instruction
+              once a question is available.
+            </p>
+          )}
         </div>
       )}
     </div>

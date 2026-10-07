@@ -197,6 +197,17 @@ it("starts a new sitting with a new request id after finishing without a reload"
   random.mockRestore();
 });
 it("does not claim an answer is saved when the first question has not been offered", async () => {
+  jest.mocked(fetch).mockResolvedValue(
+    reply({
+      ...active,
+      session: { ...active.session, questions: [] },
+    }) as Response,
+  );
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  await screen.findByRole("button", { name: "Continue interview" });
+  expect(screen.queryByText(/Your answer is saved/)).not.toBeInTheDocument();
+});
+it("keeps topic preferences available in a new sitting before any question exists", async () => {
   jest
     .mocked(fetch)
     .mockResolvedValue(
@@ -207,5 +218,7 @@ it("does not claim an answer is saved when the first question has not been offer
     );
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   await screen.findByRole("button", { name: "Continue interview" });
-  expect(screen.queryByText(/Your answer is saved/)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Topic preferences" }),
+  ).toBeEnabled();
 });

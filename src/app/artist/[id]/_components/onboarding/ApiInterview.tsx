@@ -257,10 +257,10 @@ export default function ApiInterview({
               )}
             </div>
           )}
-          {origin && (
+          {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
-              questionKey={origin.questionKey}
+              questionKey={origin?.questionKey ?? null}
               busy={busy}
               call={(body) => call(body, life.current?.signal)}
             />

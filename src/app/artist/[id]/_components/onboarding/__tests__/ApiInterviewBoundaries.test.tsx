@@ -75,3 +75,25 @@ it("does not turn incomplete memory into an empty instruction list", async () =>
     screen.getByRole("button", { name: "Save topic instruction" }),
   ).toBeDisabled();
 });
+it("allows reviewing and retracting existing instructions before a new question exists", async () => {
+  const call = jest
+    .fn()
+    .mockResolvedValueOnce({ constraintsComplete: true, entries: [boundary] })
+    .mockResolvedValueOnce({ status: "ok" })
+    .mockResolvedValueOnce({ constraintsComplete: true, entries: [] });
+  render(
+    <ApiInterviewBoundaries questionKey={null} busy={false} call={call} />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Topic preferences" }));
+  await screen.findByText("Please leave my family out.");
+  expect(
+    screen.queryByRole("button", { name: "Save topic instruction" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Remove instruction" }));
+  await screen.findByText("No active topic instructions.");
+  expect(call).toHaveBeenNthCalledWith(2, {
+    action: "retract",
+    boundaryId: id,
+    revision,
+  });
+});
