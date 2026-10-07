@@ -18,7 +18,7 @@ Titles/descriptions, artist speech, third-party interpretation, captions/transcr
 
 ## Interaction and persistence
 
-Opening the profile reads existing state only. Start/Continue is an explicit action. Each next question is generated after the previous exact answer is saved, so it can respond to that answer. Resume returns the same offered question with its saved evidence. Durable sitting membership and offered timestamps survive reloads and never move during answer updates. Concurrent requests must converge on one offer; changed memory must invalidate a draft before it is stored. An explicit finish closes the sitting. Skipping one question does not create a topic boundary.
+Opening the profile reads existing state only. Start/Continue is an explicit action. Each next question is generated after the previous exact answer is saved, so it can respond to that answer. Resume returns the same offered question with its saved evidence. Durable sitting membership and offered timestamps survive reloads and never move during answer updates. Concurrent requests must converge on one offer; changed memory must invalidate a draft before it is stored. An explicit finish closes the sitting and resets the Web start request id so the next sitting can begin without reloading. An opened sitting with no offered question does not claim an answer was saved. Skipping one question does not create a topic boundary.
 
 The artist can explicitly record exact topic instructions for the sitting or until retracted, and retract them. These use API#25 and survive a fresh client. Existing saved interview words and source URLs are preserved during rollout.
 

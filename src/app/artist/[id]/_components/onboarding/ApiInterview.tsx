@@ -104,6 +104,7 @@ export default function ApiInterview({
       );
       if (controller.signal.aborted) return false;
       setStored({ scope, state: result });
+      if (action.action === "finish") startId.current = null;
       return true;
     } catch (e) {
       if (!controller.signal.aborted) {
@@ -206,7 +207,9 @@ export default function ApiInterview({
               <p className="text-sm">
                 {session.questions.length >= 3
                   ? "That’s three questions for this sitting."
-                  : "Your answer is saved. Continue when you’re ready."}
+                  : session.questions.length === 0
+                    ? "Your sitting is open. Continue to prepare the first question."
+                    : "Your response is saved. Continue when you’re ready."}
               </p>
               {session.questions.length < 3 && (
                 <button

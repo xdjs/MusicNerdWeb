@@ -113,17 +113,15 @@ it("retains unsaved words after a failed save and never treats a skip as a bound
   fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
   await screen.findByRole("alert");
   expect(screen.getByLabelText("Your answer")).toHaveValue("Keep these words.");
-  jest
-    .mocked(fetch)
-    .mockResolvedValue(
-      reply({
-        ...active,
-        session: {
-          ...active.session,
-          questions: [{ ...question, state: "skipped" }],
-        },
-      }) as Response,
-    );
+  jest.mocked(fetch).mockResolvedValue(
+    reply({
+      ...active,
+      session: {
+        ...active.session,
+        questions: [{ ...question, state: "skipped" }],
+      },
+    }) as Response,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Skip question" }));
   await screen.findByRole("button", { name: "Continue interview" });
   expect(
@@ -143,4 +141,71 @@ it("hides the previous artist immediately during navigation and aborts the old r
   rerender(<ApiInterview artistId={qid} artistName="Another artist" />);
   expect(screen.queryByText(question.question)).not.toBeInTheDocument();
   await waitFor(() => expect(signal?.aborted).toBe(true));
+});
+
+it("starts a new sitting with a new request id after finishing without a reload", async () => {
+  const ids = [
+    "44444444-4444-4444-8444-444444444444",
+    "55555555-5555-4555-8555-555555555555",
+  ];
+  const random = jest
+    .spyOn(crypto, "randomUUID")
+    .mockReturnValueOnce(
+      ids[0] as `${string}-${string}-${string}-${string}-${string}`,
+    )
+    .mockReturnValueOnce(
+      ids[1] as `${string}-${string}-${string}-${string}-${string}`,
+    );
+  jest
+    .mocked(fetch)
+    .mockResolvedValueOnce(reply(empty) as Response)
+    .mockResolvedValueOnce(reply(active) as Response)
+    .mockResolvedValueOnce(
+      reply({
+        ...active,
+        session: {
+          ...active.session,
+          state: "finished",
+          closedAt: "2026-10-06",
+          questions: [{ ...question, state: "skipped" }],
+        },
+      }) as Response,
+    )
+    .mockResolvedValueOnce(
+      reply({
+        ...active,
+        session: { ...active.session, id: qid, sitting: 2 },
+      }) as Response,
+    );
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Start interview" }),
+  );
+  await screen.findByText(question.question);
+  fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Start interview" }),
+  );
+  await screen.findByText(question.question);
+  const starts = jest
+    .mocked(fetch)
+    .mock.calls.map((call) =>
+      call[1]?.body ? JSON.parse(call[1].body as string) : null,
+    )
+    .filter((body) => body?.action === "start");
+  expect(starts.map((body) => body.requestId)).toEqual(ids);
+  random.mockRestore();
+});
+it("does not claim an answer is saved when the first question has not been offered", async () => {
+  jest
+    .mocked(fetch)
+    .mockResolvedValue(
+      reply({
+        ...active,
+        session: { ...active.session, questions: [] },
+      }) as Response,
+    );
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  await screen.findByRole("button", { name: "Continue interview" });
+  expect(screen.queryByText(/Your answer is saved/)).not.toBeInTheDocument();
 });
