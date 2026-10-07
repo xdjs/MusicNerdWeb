@@ -17,17 +17,23 @@ export type GenerateTextOptions<OUTPUT extends OutputInterface = TextOutput> = {
     output?: OUTPUT;
     /** Google Search grounding, executed by the provider; the result's `sources` say what it used. */
     googleSearch?: boolean;
+    abortSignal?: AbortSignal;
+    maxOutputTokens?: number;
+    maxRetries?: number;
 };
 
-/** The one entry point for model calls. Routes through Vercel AI Gateway (docs/llm.md). */
+/** Shared entry point for single model calls; tool agents use researchInterviewAngles. Routes through Vercel AI Gateway (docs/llm.md). */
 export function generateText<OUTPUT extends OutputInterface = TextOutput>(options: GenerateTextOptions<OUTPUT>) {
-    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, output, googleSearch } = options;
+    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, output, googleSearch, abortSignal, maxOutputTokens, maxRetries } = options;
     return sdkGenerateText({
         model,
         instructions,
         prompt,
         temperature,
         output,
+        abortSignal,
+        maxOutputTokens,
+        maxRetries,
         ...(googleSearch ? { tools: { google_search: google.tools.googleSearch({}) } } : {}),
         ...(thinkingBudget !== undefined ? { providerOptions: { google: { thinkingConfig: { thinkingBudget } } } } : {}),
     });

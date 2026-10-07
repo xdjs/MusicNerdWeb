@@ -178,3 +178,7 @@ asked, and `Output.array` / `Output.object` wrapping.
   is green; the stub build runs without an LLM variable.
 - Per-site timings recorded on the PR next to the pre-switch numbers (the 90 s caption batch is
   the one to watch).
+
+## API-backed interviewer (draft flag)
+
+`MUSICNERD_API_INTERVIEWER_ENABLED=true` uses `researchInterviewAngles` (AI SDK ToolLoopAgent, Flash, at most six steps) followed by `generateApiInterviewQuestion` writer and evidence/conversation checker calls through the existing Gateway. The host restores complete mandatory memory and the prior-question index first. Six read-only tools call MusicNerdAPI, capped at ten calls and 48,000 serialized response characters. Generation stops at 75 seconds with no provider retries, and verifies current memory again before the API atomically accepts the offer. Web never scrapes or writes interview rows directly on this path. Page load only restores an existing API session; Start/Continue is explicit. Model guard approval is not editorial acceptance. Requires migrations 0041/0042 and the matching API before setting the server-only flag. Production stays on the current interview while the flag is absent.

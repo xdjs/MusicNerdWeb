@@ -22,6 +22,8 @@ import ProfileTour from "./_components/onboarding/ProfileTour";
 import { isInterviewPreviewEnabled } from "@/lib/interview/isInterviewPreviewEnabled";
 import InterviewPreview from "@/app/dev/interview-preview/InterviewPreview";
 import InterviewOffer from "./_components/onboarding/InterviewOffer";
+import ApiInterview from "./_components/onboarding/ApiInterview";
+import { MUSICNERD_API_INTERVIEWER_ENABLED } from "@/env";
 import { fetchOnboardingState } from "@/server/utils/onboarding/fetchOnboardingState";
 import { buildCanonicalArtistUrl, parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { isRealBio } from "@/lib/bio/bioConstants";
@@ -219,7 +221,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     page — and it decides for itself whether there is anything
                     worth asking about. */}
                 {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && (
-                    <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
+                    MUSICNERD_API_INTERVIEWER_ENABLED ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} /> : <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
                 {/* The artist page. While a fresh claim's onboarding runs, research
