@@ -7,10 +7,11 @@
 
 | Route | Page | Source |
 | --- | --- | --- |
-| `/terms` | Terms of Service | `src/app/terms/page.tsx` |
-| `/privacy` | Privacy Policy | `src/app/privacy/page.tsx` |
+| `/terms` | Terms of Service | `src/app/terms/TermsOfService.tsx` |
+| `/privacy` | Privacy Policy | `src/app/privacy/PrivacyPolicy.tsx` |
 
-Both are static server components with no data reads, rendered through the shared
+Each `page.tsx` holds only the metadata and renders its copy component. Both are static server
+components with no data reads, rendered through the shared
 `src/app/_components/legal/LegalPage.tsx` (title, effective date, body). Both are listed in the
 first sitemap chunk (`src/app/sitemap.ts`) and are indexable. The operator named on both pages
 is xDJs; the contact for questions and data requests is `dev@xdjs.com`.
