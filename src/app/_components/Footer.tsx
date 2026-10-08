@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import styles from "./HomePageSplash.module.css";
+import FooterLinks from "./FooterLinks";
 
 export default function Footer() {
     const isHome = usePathname() === "/";
@@ -23,6 +24,7 @@ export default function Footer() {
                     <a href="https://x.com/cxy" target="_blank" rel="noopener noreferrer" className="underline">@cxy</a>{" "}
                     <a href="https://x.com/clt" target="_blank" rel="noopener noreferrer" className="underline">@clt</a>
                 </p>
+                <FooterLinks />
             </footer>
         );
     }
@@ -34,6 +36,7 @@ export default function Footer() {
                 <a href="https://x.com/cxy" target="_blank" rel="noopener noreferrer" className='link'>@<span className='underline'>cxy</span></a>{" "}
                 <a href="https://x.com/clt" target="_blank" rel="noopener noreferrer" className='link'>@<span className='underline'>clt</span></a>
             </h2>
+            <div className='mt-3'><FooterLinks /></div>
         </footer>
     )
 }
