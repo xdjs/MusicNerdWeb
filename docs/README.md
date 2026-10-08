@@ -12,7 +12,7 @@ listeners learn more about artists through links, sourced profiles and artists' 
    Check your branch and the current remote state before treating its status as live.
 4. [Development reference](development.md) — setup, architecture, tests and migrations.
 5. [Product decisions](rnd/decisions.md) — why we are building it this way, with dated sources.
-6. [Dev loop skill](../skills/mn-dev/SKILL.md) — how work is tracked and shipped: tracking-issue
+6. [Dev loop skill](https://github.com/xdjs/MusicNerdSkills/blob/main/skills/mn-dev/SKILL.md) — how work is tracked and shipped: tracking-issue
    format, docs-first → TDD → preview verification, main-only PRs → staging validation → approved production build; see [releases](releases.md).
 
 ## First local session
