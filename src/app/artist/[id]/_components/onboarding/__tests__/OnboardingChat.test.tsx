@@ -28,10 +28,12 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('../useOnboardingChat', () => ({ useOnboardingChat: jest.fn() }));
 jest.mock('../useOnboardingProgress', () => ({ useOnboardingProgress: jest.fn() }));
+jest.mock('../useFollowResearch', () => ({ useFollowResearch: jest.fn() }));
 
 import { useRouter } from 'next/navigation';
 import { useOnboardingChat } from '../useOnboardingChat';
 import { useOnboardingProgress } from '../useOnboardingProgress';
+import { useFollowResearch } from '../useFollowResearch';
 import OnboardingChat from '../OnboardingChat';
 
 const mockUseOnboardingChat = useOnboardingChat;
@@ -174,6 +176,19 @@ describe('OnboardingChat', () => {
         fireEvent.click(screen.getByRole('button', { name: 'try again' }));
         expect(sendTurn).toHaveBeenCalledWith({ type: 'open' });
         expect(resetStall).toHaveBeenCalled();
+    });
+
+    it('follows the step being researched while the build runs, and stops on failure or completion', () => {
+        setChat({ items: [] });
+        setProgress({ currentStep: 'vault' });
+        const { rerender } = render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', true);
+        setProgress({ currentStep: 'vault', stalled: true });
+        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false);
+        setProgress({ complete: true, currentStep: null });
+        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        expect(useFollowResearch).toHaveBeenLastCalledWith(null, false);
     });
 
     it('offers try again when no step has been confirmed for a while', () => {

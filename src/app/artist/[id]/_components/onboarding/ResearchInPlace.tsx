@@ -6,6 +6,7 @@ import { buildFailure } from "@/lib/onboarding/buildFailure";
 import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
 import { OnboardingProgressContext, type ResearchContextValue } from "./OnboardingProgressContext";
 import ResearchStatusBar from "./ResearchStatusBar";
+import { useFollowResearch } from "./useFollowResearch";
 import { useFreshSections } from "./useFreshSections";
 import { useOnboardingProgress } from "./useOnboardingProgress";
 
@@ -17,7 +18,8 @@ export type ResearchItems = { links: string[]; sources: string[] };
  * The artist's own page while research builds it (docs/research-view.md): the
  * status card over the page, each research section's skeleton and arrival from
  * the confirmed steps, and what is new against the links and sources the page
- * had when this mounted. Mounted only during the build and for the rest of the
+ * had when this mounted. It follows the section being researched until the
+ * artist scrolls. Mounted only during the build and for the rest of the
  * visit after it, so the step-cards resume path never polls.
  */
 export default function ResearchInPlace({ artistId, initialState, researchItems, items, onSkip, onRetry, onComplete, children }: {
@@ -35,6 +37,7 @@ export default function ResearchInPlace({ artistId, initialState, researchItems,
     const [baseline] = useState(researchItems);
     const value = useMemo<ResearchContextValue>(() => ({ steps: progress.steps, fresh, markSeen, baseline }), [progress.steps, fresh, markSeen, baseline]);
     const failure = progress.complete ? null : buildFailure(items)?.message ?? (progress.stalled ? STALLED : null);
+    useFollowResearch(progress.currentStep, !progress.complete && !failure);
     return (
         <OnboardingProgressContext.Provider value={value}>
             <ResearchStatusBar
