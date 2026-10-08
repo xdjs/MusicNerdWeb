@@ -8,6 +8,7 @@ import {
   type ResearchReference,
 } from "@/lib/questionResearch/schemas";
 import { resolveInstagramMentions } from "@/lib/instagram/resolveInstagramMentions";
+import { matchesOriginalQuote } from "@/lib/questionResearch/matchesOriginalQuote";
 /** Reopen originals, draft supported sentences, then check qualifications before returning citations. */
 export async function draftResearchAnswer(
   artistId: string,
@@ -71,7 +72,12 @@ export async function draftResearchAnswer(
     stage = "quote_check";
     for (const sentence of draft.sentences)
       for (const e of sentence.evidence) {
-        if (!originals.find((p) => p.n === e.n)?.text.includes(e.quote))
+        if (
+          !matchesOriginalQuote(
+            originals.find((p) => p.n === e.n)?.text ?? "",
+            e.quote,
+          )
+        )
           throw new Error("Draft evidence could not be resolved");
       }
     if (!draft.sentences.length)
