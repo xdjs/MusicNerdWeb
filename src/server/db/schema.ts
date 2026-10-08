@@ -748,11 +748,12 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
-	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract')`),
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research')`),
 	check("artist_research_jobs_status_check", sql`${table.status} in ('pending','running','done','failed') or (${table.status} = 'queued' and ${table.kind} = 'source_extract' and coalesce(${table.state}->>'version','') = '2' and coalesce(${table.state}->>'autoSourceId','') <> '')`),
 	uniqueIndex("artist_research_jobs_one_live").on(table.artistId, table.kind).where(sql`${table.status} in ('pending', 'running')`),
 	uniqueIndex("artist_research_jobs_auto_source_live").on(table.artistId, sql`(${table.state}->>'autoSourceId')`)
 		.where(sql`${table.kind} = 'source_extract' and ${table.state}->>'version' = '2' and ${table.status} in ('queued','pending','running')`),
+	index("artist_research_jobs_question_created").on(table.createdAt).where(sql`${table.kind} = 'question_research'`),
 	index("artist_research_jobs_claimable").using("btree", table.status.asc().nullsLast(), table.claimedAt.asc().nullsLast(), table.createdAt.asc().nullsLast()),
 	foreignKey({
 		columns: [table.artistId],
@@ -1007,4 +1008,153 @@ export const artistSocialPostVersions = pgTable("artist_social_post_versions", {
         AND ${table.snapshot}->>'kind' = 'social' AND ${table.snapshot}->>'version' = '1', false)`),
     pgPolicy("mnweb_select_artist_social_post_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
     pgPolicy("mnweb_insert_artist_social_post_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+
+// Question discoveries are separate from approved Lore and profile Links.
+// Application code rechecks the artist claim under the artist row lock on review.
+export const artistResearchCandidates = pgTable("artist_research_candidates", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    url: text().notNull(),
+    destination: text().notNull(),
+    platform: text(),
+    platformId: text("platform_id"),
+    reason: text().notNull(),
+    identity: text().default("unresolved").notNull(),
+    curation: text().default("pending").notNull(),
+    sourceId: uuid("source_id").references(() => artistVaultSources.id, { onDelete: "set null" }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewActivityId: uuid("review_activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
+    reviewedRevision: text("reviewed_revision"),
+    currentRevision: text("current_revision"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, table => [
+    unique("artist_research_candidates_artist_url").on(table.artistId, table.url),
+    unique("artist_research_candidates_artist_id").on(table.artistId, table.id),
+    index("artist_research_candidates_review").on(table.artistId, table.curation, table.id),
+    check("artist_research_candidates_url", sql`char_length(${table.url}) between 1 and 2048 AND ${table.url} ~ '^https?://'`),
+    check("artist_research_candidates_destination", sql`${table.destination} = 'lore' OR (${table.destination} = 'link' AND ${table.platform} IS NOT NULL AND ${table.platformId} IS NOT NULL)`),
+    check("artist_research_candidates_reason", sql`${table.reason} IN ('reporting','release_date','credits','social_caption','spoken_content')`),
+    check("artist_research_candidates_identity", sql`${table.identity} IN ('confirmed','unresolved','wrong_artist')`),
+    check("artist_research_candidates_curation", sql`${table.curation} IN ('pending','approved','declined','wrong_artist','incorrect')`),
+    pgPolicy("mnweb_select_artist_research_candidates", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_research_candidates", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_update_artist_research_candidates", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+    pgPolicy("mnweb_delete_artist_research_candidates", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
+// Immutable selected originals; no raw provider response or visitor conversation.
+export const artistResearchEvidence = pgTable("artist_research_evidence", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    candidateId: uuid("candidate_id").notNull(),
+    artistId: uuid("artist_id").notNull(),
+    revision: text().notNull(),
+    title: text(),
+    originalText: text("original_text").notNull(),
+    provenance: jsonb().$type<Record<string, unknown>>().notNull(),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, table => [
+    unique("artist_research_evidence_candidate_revision").on(table.candidateId, table.revision),
+    foreignKey({ columns: [table.artistId, table.candidateId], foreignColumns: [artistResearchCandidates.artistId, artistResearchCandidates.id], name: "artist_research_evidence_candidate_artist" }).onDelete("cascade"),
+    index("artist_research_evidence_latest").on(table.candidateId, table.retrievedAt, table.id),
+    index("artist_research_evidence_artist").on(table.artistId),
+    check("artist_research_evidence_revision", sql`${table.revision} ~ '^[a-f0-9]{64}$'`),
+    check("artist_research_evidence_text", sql`char_length(btrim(${table.originalText})) > 0 AND char_length(${table.originalText}) <= 50000 AND char_length(coalesce(${table.title},'')) <= 500`),
+    check("artist_research_evidence_provenance", sql`jsonb_typeof(${table.provenance}) = 'object' AND octet_length(${table.provenance}::text) <= 16384 AND coalesce(${table.provenance}->>'kind' IN ('original_text','caption','provider_transcript'), false)`),
+    pgPolicy("mnweb_select_artist_research_evidence", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_research_evidence", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// Explicit artist instructions, independent of answer history and generated summaries.
+export const artistInterviewBoundaries = pgTable("artist_interview_boundaries", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    requestId: uuid("request_id").notNull(),
+    wording: text().notNull(),
+    scope: text().notNull(),
+    sitting: integer().notNull(),
+    originAnswerId: uuid("origin_answer_id").references(() => artistInterviewAnswers.id, { onDelete: "set null" }),
+    originQuestionKey: text("origin_question_key").notNull(),
+    originQuestion: text("origin_question").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    activityId: uuid("activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+    retractedAt: timestamp("retracted_at", { withTimezone: true, mode: "string" }),
+    retractedBy: uuid("retracted_by").references(() => users.id, { onDelete: "set null" }),
+    retractionActivityId: uuid("retraction_activity_id").references(() => artistActivityEvents.id, { onDelete: "set null" }),
+}, table => [
+    unique("artist_interview_boundaries_request").on(table.artistId, table.requestId),
+    index("artist_interview_boundaries_active").on(table.artistId, table.sitting).where(sql`${table.retractedAt} is null`),
+    index("artist_interview_boundaries_origin").on(table.originAnswerId),
+    index("artist_interview_boundaries_creator").on(table.createdBy),
+    index("artist_interview_boundaries_retractor").on(table.retractedBy),
+    index("artist_interview_boundaries_activity").on(table.activityId),
+    index("artist_interview_boundaries_retraction_activity").on(table.retractionActivityId),
+    check("artist_interview_boundaries_scope", sql`${table.scope} in ('sitting','until_retracted') AND ${table.sitting} > 0`),
+    check("artist_interview_boundaries_wording", sql`char_length(btrim(${table.wording})) > 0 AND char_length(${table.wording}) <= 4000 AND char_length(${table.originQuestionKey}) between 1 and 500 AND char_length(${table.originQuestion}) between 1 and 8000`),
+    pgPolicy("mnweb_select_artist_interview_boundaries", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_interview_boundaries", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_retract_artist_interview_boundaries", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
+
+/** Explicit API interview sittings; profile reads never create one. */
+export const artistInterviewSessions = pgTable("artist_interview_sessions", {
+    id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    requestId: uuid("request_id").notNull(),
+    sitting: integer().notNull(),
+    state: text().default("active").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+    closedAt: timestamp("closed_at", { withTimezone: true, mode: "string" }),
+}, table => [
+    unique("artist_interview_sessions_request").on(table.artistId, table.requestId),
+    unique("artist_interview_sessions_sitting").on(table.artistId, table.sitting),
+    unique("artist_interview_sessions_identity").on(table.id, table.artistId),
+    uniqueIndex("artist_interview_sessions_active").on(table.artistId).where(sql`${table.state} = 'active'`),
+    index("artist_interview_sessions_creator").on(table.createdBy),
+    check("artist_interview_sessions_state", sql`${table.sitting} > 0 AND ((${table.state} = 'active' AND ${table.closedAt} IS NULL) OR (${table.state} = 'finished' AND ${table.closedAt} IS NOT NULL))`),
+    pgPolicy("mnweb_read_interview_sessions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_create_interview_sessions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_close_interview_sessions", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
+
+/** Private immutable original references for a question; not a public activity payload. */
+export const artistInterviewQuestionEvidence = pgTable("artist_interview_question_evidence", {
+    answerId: uuid("answer_id").primaryKey().references(() => artistInterviewAnswers.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull(),
+    ordinal: integer().notNull(),
+    memorySnapshotId: text("memory_snapshot_id").notNull(),
+    evidenceReferences: jsonb("evidence_references").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, table => [
+    foreignKey({ columns: [table.sessionId, table.artistId], foreignColumns: [artistInterviewSessions.id, artistInterviewSessions.artistId], name: "interview_evidence_session_artist" }).onDelete("cascade"),
+    unique("artist_interview_evidence_ordinal").on(table.sessionId, table.ordinal),
+    index("artist_interview_evidence_artist").on(table.artistId),
+    check("artist_interview_evidence_valid", sql`${table.ordinal} between 1 and 3 AND ${table.memorySnapshotId} ~ '^[a-f0-9]{64}$' AND jsonb_typeof(${table.evidenceReferences}) = 'array' AND jsonb_array_length(${table.evidenceReferences}) between 1 and 3 AND char_length(${table.evidenceReferences}::text) <= 16000`),
+    pgPolicy("mnweb_read_interview_evidence", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_create_interview_evidence", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// Private exact artist wording. Shared API edits retain original/current revisions
+// atomically; current claimant/admin authorization is required for every read.
+export const artistInterviewAnswerVersions = pgTable("artist_interview_answer_versions", {
+    answerId: uuid("answer_id").notNull().references(() => artistInterviewAnswers.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    revision: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    note: text(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.answerId, table.revision], name: "artist_interview_answer_versions_answer_revision" }),
+    index("artist_interview_answer_versions_artist").on(table.artistId),
+    check("artist_interview_answer_versions_revision", sql`${table.revision} ~ '^[a-f0-9]{64}$'`),
+    check("artist_interview_answer_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.answerId}::text AND ${table.snapshot}->>'artistId' = ${table.artistId}::text AND jsonb_typeof(${table.snapshot}->'answer') = 'string', false)`),
+    check("artist_interview_answer_versions_note", sql`${table.note} IS NULL OR char_length(${table.note}) <= 400`),
+    pgPolicy("mnweb_select_artist_interview_answer_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_interview_answer_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]).enableRLS();

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
 
+jest.mock('@/server/utils/social/getSocialResearchRevision', () => ({ getSocialResearchRevision: jest.fn(async () => 'revision') }));
 jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
 jest.mock('@/server/utils/socialIngest', () => ({ getSocialPostsForArtist: jest.fn() }));
 jest.mock('@/server/lib/ai/generateArray', () => ({ generateArray: jest.fn() }));
@@ -33,6 +34,24 @@ const OWN_POSTS = [
 ];
 
 describe('generateGroundedQuestions', () => {
+    it('drafts, verifies and resumes an audio question with its actual reel citation', async () => {
+        const posts = [{...OWN_POSTS[0], url:'https://www.instagram.com/p/AUDIO1/', transcript:'I layer the drums before recording the bass.'}];
+        const {generateGroundedQuestions,sourceUrlsForQuestionKeys,generateContent}=await setup({posts,geminiOutput:[{signalId:'audio_AUDIO1',question:'The reel you shared layers drums before bass — what does that sequence make possible?',rationale:'a specific process'}]});
+        const [question]=await generateGroundedQuestions('a1',{max:1});
+        expect(question).toMatchObject({kind:'audio',key:'social_audio_AUDIO1',sourceUrls:[posts[0].url]});
+        const request=generateContent.mock.calls.find(c=>!String(c[0].instructions).startsWith('You are fact-checking'))[0];
+        expect(request.prompt).toContain('speaker is unverified');
+        expect(request.thinkingBudget).toBe(1024);
+        expect((await sourceUrlsForQuestionKeys('a1',[question.key])).get(question.key)).toBe(posts[0].url);
+    });
+    it('regenerates cached drafts when the API attaches new research context', async () => {
+        const {generateGroundedQuestions,generateContent}=await setup({geminiOutput:[{signalId:'collab_dameatlas',question:'How did the track come together?',rationale:'collab'}]});
+        const {getSocialResearchRevision}=await import('@/server/utils/social/getSocialResearchRevision');
+        getSocialResearchRevision.mockResolvedValueOnce('before').mockResolvedValueOnce('after');
+        await generateGroundedQuestions('a1',{max:1});
+        await generateGroundedQuestions('a1',{max:1});
+        expect(generateContent.mock.calls.filter(c=>!String(c[0].instructions).startsWith('You are fact-checking'))).toHaveLength(2);
+    });
     beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
 
     /** Generation calls only. The fact-checker adds a second call per run, and

@@ -107,7 +107,7 @@ describe('VaultManager', () => {
     expect(screen.getByText('Pending One')).toBeInTheDocument();
 
     // The Approved heading should be present (matches "Approved (2)")
-    expect(screen.getByText(/^approved \(\d+\)$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^approved sources \(\d+\)$/i)).toBeInTheDocument();
 
     global.fetch = originalFetch;
   });
@@ -173,7 +173,7 @@ describe('VaultManager', () => {
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
       description: status === 'approved' ? 'Added to Lore.' : 'Added to pending review.',
     }));
-    expect(screen.getByText(status === 'approved' ? 'Approved (2)' : 'Pending review (2)')).toBeInTheDocument();
+    expect(screen.getByText(status === 'approved' ? 'Approved sources (2)' : 'Pending review (2)')).toBeInTheDocument();
   });
 
   it('bulk delete: selecting an approved source and deleting calls removeVaultSources', async () => {
@@ -219,4 +219,16 @@ it('retains contributor attribution through approval and receives refreshed disp
   expect(screen.getByText('Suggested by First name')).toBeInTheDocument();
   rerender(view('Updated name'));
   expect(screen.getByText('Suggested by Updated name')).toBeInTheDocument();
+});
+
+it('bounds long Lore lists and resets the page when searching', () => {
+  renderEditing(true, Array.from({length:13},(_,i)=>({...approved[0],id:`source-${i}`,title:`Saved article ${i}`})));
+  expect(screen.getByText('Saved article 4')).toBeVisible();
+  expect(screen.queryByText('Saved article 5')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Next source page'}));
+  expect(screen.getByText('Saved article 5')).toBeVisible();
+  fireEvent.change(screen.getByRole('textbox',{name:'Search saved sources'}),{target:{value:'article 12'}});
+  expect(screen.getByText('Saved article 12')).toBeVisible();
+  expect(screen.getByRole('button',{name:'Previous source page'})).toBeDisabled();
+  expect(screen.getByRole('button',{name:'Next source page'})).toBeDisabled();
 });

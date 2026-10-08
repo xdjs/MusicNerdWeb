@@ -16,40 +16,7 @@ export async function confirmOnboardingStep(artistId: string, step: OnboardingSt
         .onConflictDoNothing({ target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step] }); });
 }
 
-export async function upsertInterviewAnswer(input: {
-    artistId: string;
-    questionKey: string;
-    question: string;
-    answer: string | null;
-    /** Used only if this is the INSERT side of the upsert. The conflict update
-     *  deliberately never changes the sitting already stored on the row. */
-    sitting: number;
-    /** "offered" is a question we PUT to them that they have not dealt with
-     *  yet — the boundary of a sitting. It becomes "followup" the moment they
-     *  answer it or skip it. Without it there is no way to tell a sitting
-     *  somebody abandoned from one they finished, because a lifetime row count
-     *  cannot see where one offer ended and the next began. */
-    source: "onboarding" | "followup" | "offered";
-}): Promise<void> {
-    await withScopedArtistWrite(input.artistId, async tx => { await tx
-        .insert(artistInterviewAnswers)
-        .values(input)
-        .onConflictDoUpdate({
-            target: [artistInterviewAnswers.artistId, artistInterviewAnswers.questionKey],
-            set: {
-                question: input.question,
-                answer: input.answer,
-                source: input.source,
-                // `createdAt` is answer chronology. `offeredAt`, deliberately
-                // absent from this update, is the immutable material watermark
-                // established by the first insert. That also makes duplicate
-                // submits/two-tab retries unable to advance the cutoff.
-                createdAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-                // `sitting` IS DELIBERATELY ABSENT FROM THIS SET LIST. Answering
-                // a question must leave its stored membership intact.
-            },
-        }); });
-}
+export { upsertInterviewAnswer } from "./upsertInterviewAnswer";
 
 /**
  * Write down a batch of questions PUT to somebody, and never anything more.

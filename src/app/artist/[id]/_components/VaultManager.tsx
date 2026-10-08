@@ -3,7 +3,7 @@ import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
 
 
 import { useContext, useState, useRef, useMemo, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import SourceCard from "./SourceCard";
@@ -50,6 +50,12 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   const [deleting, setDeleting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [sourceQuery, setSourceQuery] = useState("");
+  const [sourcePage, setSourcePage] = useState(0);
+  const [pendingPage, setPendingPage] = useState(0);
+  const pendingPageCount = Math.max(1, Math.ceil(pending.length / 5));
+  const currentPendingPage = Math.min(pendingPage, pendingPageCount - 1);
+  const visiblePending = reviewOnly ? pending : pending.slice(currentPendingPage * 5, currentPendingPage * 5 + 5);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingCompletions = useRef(new Map<string, string>());
 
@@ -64,10 +70,15 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
 
   const uniqueTypes = useMemo(() => Object.keys(typeCounts).sort(), [typeCounts]);
 
-  const filteredApproved = useMemo(
-    () => (typeFilter ? approved.filter(s => (s.type ?? "article") === typeFilter) : approved),
-    [approved, typeFilter]
-  );
+  const filteredApproved = useMemo(() => approved.filter(source => {
+    if (typeFilter && (source.type ?? "article") !== typeFilter) return false;
+    const query = sourceQuery.trim().toLowerCase();
+    return reviewOnly || !query || `${source.title ?? source.fileName ?? ''} ${source.url}`.toLowerCase().includes(query);
+  }), [approved, typeFilter, sourceQuery, reviewOnly]);
+  const pageCount = Math.max(1, Math.ceil(filteredApproved.length / 5));
+  const currentPage = Math.min(sourcePage, pageCount - 1);
+  const visibleApproved = reviewOnly ? filteredApproved : filteredApproved.slice(currentPage * 5, currentPage * 5 + 5);
+  useEffect(() => { setSourcePage(0); setSelectedIds(new Set()); }, [sourceQuery, typeFilter]);
 
   // Rotating status phrases for the web-search button so a 10–30s wait feels alive.
   const SEARCH_PHRASES = useMemo(
@@ -273,9 +284,10 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   return (
     <div className="space-y-4">
       {!reviewOnly && <>
+      <details className="group rounded-xl border border-black/10 p-3 text-foreground dark:border-white/15"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden"><span>Add sources <span className="ml-1 text-xs font-normal text-muted-foreground">URL, file, or web search</span></span><ChevronDown size={18} aria-hidden="true" className="shrink-0 group-open:rotate-180" /></summary><div className="mt-4 space-y-3">
       {/* What Lore is for */}
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Your Lore powers your profile. Approved sources — articles, interviews, reviews, uploaded files — become context for your AI-generated <strong>About</strong> and the <strong>Ask About</strong> answers. The more quality sources you add, the better and more accurate that content gets.
+        Add articles, interviews, or files for Music Nerd to use when answering questions about you.
       </p>
 
       {/* Add a source by URL */}
@@ -289,7 +301,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddUrl(); } }}
           className="flex-1 text-black dark:text-white"
         />
-        <Button size="sm" variant="outline" className="text-black dark:text-white" disabled={addingUrl || !newUrl.trim()} onClick={handleAddUrl}>
+        <Button size="sm" variant="glass" disabled={addingUrl || !newUrl.trim()} onClick={handleAddUrl}>
           {addingUrl ? "Adding…" : "Add"}
         </Button>
       </div>
@@ -318,10 +330,10 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
         <p className="text-sm text-muted-foreground mb-2">Drag &amp; drop files here, or use the buttons below.</p>
         <p className="text-xs text-muted-foreground mb-3">Maximum {VAULT_UPLOAD_LIMIT_LABEL}. PDF, TXT, MD, CSV, JSON, DOC/DOCX, images and audio. Use text-based PDFs so Lore can read their contents.</p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="text-black dark:text-white" disabled={uploading} onClick={() => fileRef.current?.click()}>
+          <Button size="sm" variant="glass" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? "Uploading…" : "Upload file"}
           </Button>
-          <Button size="sm" variant="outline" className="text-black dark:text-white" disabled={searching} onClick={handleWebSearch}>
+          <Button size="sm" variant="glass" disabled={searching} onClick={handleWebSearch}>
             {searching ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" aria-hidden="true" />
@@ -334,12 +346,13 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
         </div>
       </div>
 
-      </>}
+      </div></details></>}
 
       {pending.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-muted-foreground">Pending review ({pending.length})</h3>
-          {pending.map(s => (
+          {!reviewOnly && pendingPageCount > 1 && <div className="flex items-center justify-between gap-2"><Button type="button" size="sm" variant="glass" aria-label="Previous pending page" disabled={currentPendingPage === 0} onClick={() => setPendingPage(currentPendingPage - 1)}>Previous</Button><span className="text-xs text-muted-foreground">{currentPendingPage + 1} / {pendingPageCount}</span><Button type="button" size="sm" variant="glass" aria-label="Next pending page" disabled={currentPendingPage === pendingPageCount - 1} onClick={() => setPendingPage(currentPendingPage + 1)}>Next</Button></div>}
+          {visiblePending.map(s => (
             <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions
               onApprove={handleApprove} onReject={handleReject}
               onDelete={handleDelete} onTypeChange={handleTypeChange} />
@@ -349,7 +362,12 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
 
       {approved.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">Approved ({approved.length})</h3>
+          <h3 className="text-sm font-semibold text-foreground">Approved sources ({approved.length})</h3>
+          {!reviewOnly && <Input aria-label="Search saved sources" placeholder="Search by title or website…" value={sourceQuery} onChange={e => setSourceQuery(e.target.value)} className="text-foreground" />}
+          {!reviewOnly && <div className="flex flex-wrap items-center justify-between gap-2 py-1" aria-label="Source pages">
+            <p role="status" className="text-xs text-muted-foreground">{filteredApproved.length ? `${currentPage * 5 + 1}–${Math.min(currentPage * 5 + 5, filteredApproved.length)} of ${filteredApproved.length} ${filteredApproved.length === 1 ? 'source' : 'sources'}` : 'No matching sources'}</p>
+            <div className="flex items-center gap-2"><Button type="button" size="sm" variant="glass" aria-label="Previous source page" disabled={currentPage === 0} onClick={() => setSourcePage(currentPage - 1)}>Previous</Button><span className="text-xs text-muted-foreground">{currentPage + 1} / {pageCount}</span><Button type="button" size="sm" variant="glass" aria-label="Next source page" disabled={currentPage >= pageCount - 1} onClick={() => setSourcePage(currentPage + 1)}>Next</Button></div>
+          </div>}
 
           {/* Type filter chips */}
           {uniqueTypes.length > 1 && (
@@ -393,7 +411,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
                 onChange={selectAllApproved}
                 className="h-4 w-4 rounded border-gray-300 text-pastypink focus:ring-pastypink"
               />
-              Select all{typeFilter ? ` (${typeFilter})` : ""}
+              Select all {filteredApproved.length} matching {filteredApproved.length === 1 ? 'source' : 'sources'}
             </label>
             {selectedIds.size > 0 && (
               <Button
@@ -410,7 +428,7 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
 
           }
 
-          {filteredApproved.map(s => (
+          {visibleApproved.map(s => (
             <SourceCard key={s.id} source={{ ...s, contributorName: contributorNames.has(s.id) ? contributorNames.get(s.id) : s.contributorName }} showActions={false}
               onDelete={handleDelete} onTypeChange={handleTypeChange}
               selected={!reviewOnly && selectedIds.has(s.id)} onSelect={reviewOnly ? undefined : toggleSelect} />
