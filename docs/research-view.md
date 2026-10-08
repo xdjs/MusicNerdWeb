@@ -81,7 +81,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   `interview`/`publish` → About (`#mn-about`). It smooth-scrolls, or jumps with reduced motion.
   The artist's own scroll input (wheel, touch, or a scroll key) stops following for the rest of the
   visit. A scroll event alone doesn't count, because the page's own scrolling fires those too. A
-  failure or completion stops it; a reload mid-build follows again.
+  failure stops it; a reload mid-build follows again. When the build completes while still
+  following, the page lands on About once more: the status card above the hero unmounts then, and
+  without this About would slide under the sticky header just as the tour opens on it.
 - **Status card.** Above the fold: the current step (`buildStepLabel`), three segments (Links, Lore,
   About: done, running or waiting; `interview` counts as About) and "skip for now".
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays

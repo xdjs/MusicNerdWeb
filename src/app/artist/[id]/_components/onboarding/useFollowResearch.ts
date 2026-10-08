@@ -8,10 +8,12 @@ import { stepSection } from "@/lib/onboarding/stepSection";
 /**
  * While research runs, scrolls to the section being researched each time the
  * step changes (docs/research-view.md, "Follow"), until the artist scrolls
- * themselves. It listens for input (wheel, touch, scroll keys), not `scroll`
+ * themselves, and lands on About once more when the build completes: the
+ * status card above it unmounts then, which would shift About under the
+ * header. It listens for input (wheel, touch, scroll keys), not `scroll`
  * events, because its own smooth scrolling fires those too.
  */
-export function useFollowResearch(currentStep: OnboardingStepName | null, active: boolean) {
+export function useFollowResearch(currentStep: OnboardingStepName | null, complete: boolean, failed: boolean) {
     const brokeAway = useRef(false);
 
     useEffect(() => {
@@ -28,10 +30,10 @@ export function useFollowResearch(currentStep: OnboardingStepName | null, active
     }, []);
 
     useEffect(() => {
-        if (!active || brokeAway.current) return;
-        const id = stepSection(currentStep);
+        if (failed || brokeAway.current) return;
+        const id = complete ? "mn-about" : stepSection(currentStep);
         if (!id) return;
         const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
         document.getElementById(id)?.scrollIntoView({ behavior: reduced ? "instant" : "smooth", block: "start" });
-    }, [currentStep, active]);
+    }, [currentStep, complete, failed]);
 }

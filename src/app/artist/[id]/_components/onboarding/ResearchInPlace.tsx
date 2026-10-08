@@ -37,7 +37,7 @@ export default function ResearchInPlace({ artistId, initialState, researchItems,
     const [baseline] = useState(researchItems);
     const value = useMemo<ResearchContextValue>(() => ({ steps: progress.steps, fresh, markSeen, baseline }), [progress.steps, fresh, markSeen, baseline]);
     const failure = progress.complete ? null : buildFailure(items)?.message ?? (progress.stalled ? STALLED : null);
-    useFollowResearch(progress.currentStep, !progress.complete && !failure);
+    useFollowResearch(progress.currentStep, progress.complete, failure !== null);
     return (
         <OnboardingProgressContext.Provider value={value}>
             <ResearchStatusBar

@@ -178,17 +178,17 @@ describe('OnboardingChat', () => {
         expect(resetStall).toHaveBeenCalled();
     });
 
-    it('follows the step being researched while the build runs, and stops on failure or completion', () => {
+    it('follows the step being researched while the build runs, and tells it about failure and completion', () => {
         setChat({ items: [] });
         setProgress({ currentStep: 'vault' });
         const { rerender } = render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', true);
+        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false, false);
         setProgress({ currentStep: 'vault', stalled: true });
         rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false);
+        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false, true);
         setProgress({ complete: true, currentStep: null });
         rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith(null, false);
+        expect(useFollowResearch).toHaveBeenLastCalledWith(null, true, false);
     });
 
     it('offers try again when no step has been confirmed for a while', () => {
