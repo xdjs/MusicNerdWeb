@@ -18,6 +18,7 @@ import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
 import ResearchPending from "./onboarding/ResearchPending";
+import ResearchNewCount from "./onboarding/ResearchNewCount";
 import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
@@ -79,9 +80,9 @@ export default function ArtistProfileContent({
                 </Suspense>
 
                 {/* Listening, social and support links share one destination. */}
-                <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3">
+                <RevealSection editable id="mn-links" className="glass p-4 sm:p-5 space-y-3 transition-shadow has-[[data-research-new]]:ring-2 has-[[data-research-new]]:ring-highlightpink/70">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-black dark:text-white text-xl font-bold">Links</h2>
+                        <div className="flex items-center gap-2.5"><h2 className="text-black dark:text-white text-xl font-bold">Links</h2><ResearchNewCount kind="links" keys={profileLinks.map(link => link.siteName)} /></div>
                         <AddArtistData
                             artist={artist}
                             spotifyImg={platformImage ?? ""}
@@ -92,7 +93,7 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ResearchPending step="profiles" label="finding your profiles…">
+                    <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready">
                         <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     </ResearchPending>
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />

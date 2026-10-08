@@ -91,8 +91,8 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
 jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null) }));
 jest.mock('@/server/utils/onboarding/fetchOnboardingState', () => ({ fetchOnboardingState: jest.fn().mockResolvedValue(null) }));
-jest.mock('@/app/artist/[id]/_components/onboarding/OnboardingGate', () => function OnboardingGate({ state, children }) {
-    return <div data-testid="onboarding-gate" data-step={state.currentStep}>{children}</div>;
+jest.mock('@/app/artist/[id]/_components/onboarding/OnboardingGate', () => function OnboardingGate({ state, researchItems, children }) {
+    return <div data-testid="onboarding-gate" data-step={state.currentStep} data-complete={String(state.complete)} data-sources={researchItems?.sources.join(',')}>{children}</div>;
 });
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
@@ -330,6 +330,20 @@ describe('ArtistProfile page', () => {
             const gate = screen.getByTestId('onboarding-gate');
             expect(gate).toHaveAttribute('data-step', 'vault');
             expect(gate).toHaveTextContent('Test Artist');
+        });
+
+        it('keeps the gate for a completed build, with the sources it counts new against', async () => {
+            const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (getVaultSourcesByArtistId as jest.Mock).mockResolvedValueOnce([{ id: 's1', url: 'https://a.example/1', status: 'approved', type: 'article' }]).mockResolvedValueOnce([]);
+            (fetchOnboardingState as jest.Mock).mockResolvedValue({ complete: true, currentStep: null, steps: { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' } });
+
+            await renderArtistPage();
+
+            const gate = screen.getByTestId('onboarding-gate');
+            expect(gate).toHaveAttribute('data-complete', 'true');
+            expect(gate).toHaveAttribute('data-sources', 's1');
         });
 
         it('renders no takeover when the onboarding state is unreadable (fail closed)', async () => {

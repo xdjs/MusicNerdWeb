@@ -7,14 +7,17 @@ import { CSS } from '@dnd-kit/utilities';
 import { EditModeContext } from './EditModeContext';
 import EditableLinkIcon from './EditableLinkIcon';
 import { orderProfileLinks, type LinkSection, type ProfileLink } from '@/lib/artist/artistProfileLinks';
+import ResearchNewMark from '@/app/artist/[id]/_components/onboarding/ResearchNewMark';
 
 function LinkItem({ link, artistId, canEdit, editing, saving }: {
     link: ProfileLink; artistId: string; canEdit: boolean; editing: boolean; saving: boolean;
 }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: link.siteName, disabled: !editing || saving });
     return <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`min-w-0 rounded-xl ${isDragging ? 'relative z-20 scale-110' : ''}`}>
-        <EditableLinkIcon href={link.href} siteName={link.siteName} artistId={artistId} iconSrc={link.iconSrc} label={link.label} canEdit={canEdit && !saving}
-            dragHandleProps={editing ? { ...attributes, ...listeners, disabled: saving, 'aria-label': `Reorder ${link.label}` } : undefined} />
+        <ResearchNewMark kind="links" itemKey={link.siteName}>
+            <EditableLinkIcon href={link.href} siteName={link.siteName} artistId={artistId} iconSrc={link.iconSrc} label={link.label} canEdit={canEdit && !saving}
+                dragHandleProps={editing ? { ...attributes, ...listeners, disabled: saving, 'aria-label': `Reorder ${link.label}` } : undefined} />
+        </ResearchNewMark>
     </div>;
 }
 

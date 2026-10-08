@@ -10,6 +10,7 @@ import { getSourceReviewKey } from "@/lib/source/getSourceReviewKey";
 import PressAndFeatures from "./PressAndFeatures";
 import ResearchPending from "./onboarding/ResearchPending";
 import ArtistInterviews from "./ArtistInterviews";
+import ResearchNewCount from "./onboarding/ResearchNewCount";
 import BioVersionHistory from "./BioVersionHistory";
 import VaultManager from "./VaultManager";
 import SuggestLoreSource from "./SuggestLoreSource";
@@ -32,16 +33,17 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
   const approvedLore = approvedSources.filter(source => !isDestinationSource(source));
 
   return (
-    <RevealSection editable className="glass p-4 sm:p-5 space-y-5">
+    <RevealSection editable className="glass p-4 sm:p-5 space-y-5 transition-shadow has-[[data-research-new]]:ring-2 has-[[data-research-new]]:ring-highlightpink/70">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex-1 text-black dark:text-white text-xl font-bold">{isEditing ? <button type="button" onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed} aria-controls="lore-editor-content" className="flex min-h-11 w-full items-center justify-between gap-3 text-left" aria-label={collapsed ? 'Expand Lore' : 'Collapse Lore'}>Lore <ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${collapsed ? "" : "rotate-180"}`} /></button> : 'Lore'}</h2>
+          {isEditing ? <h2 className="flex-1 text-black dark:text-white text-xl font-bold"><button type="button" onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed} aria-controls="lore-editor-content" className="flex min-h-11 w-full items-center justify-between gap-3 text-left" aria-label={collapsed ? 'Expand Lore' : 'Collapse Lore'}><span className="flex items-center gap-2.5">Lore <ResearchNewCount kind="sources" keys={approvedSources.map(source => source.id)} /></span><ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${collapsed ? "" : "rotate-180"}`} /></button></h2> : <div className="flex items-center gap-2.5"><h2 className="text-black dark:text-white text-xl font-bold">Lore</h2><ResearchNewCount kind="sources" keys={approvedSources.map(source => source.id)} /></div>}
           {canEdit && !isEditing && <Button type="button" size="sm" variant="outline" className="text-black dark:text-white" onClick={toggle}>Add to Lore</Button>}
         </div>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{isEditing ? 'Review answers, manage your sources, and shape your story.' : 'Stories, interviews, and other sources curated by the artist.'}</p>
       </div>
       <div id="lore-editor-content" hidden={isEditing && collapsed}>
-      <ResearchPending step="vault" label="reading what’s written about you…">
+      {/* VaultManager owns the approved list in edit mode. */}
+      <ResearchPending step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
         {!isEditing && <div id="mn-sources"><PressAndFeatures key={artistId} sources={approvedSources} /></div>}
       </ResearchPending>
       {canEdit && isEditing && <Tabs defaultValue="sources" className="space-y-5">
