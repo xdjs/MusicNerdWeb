@@ -13,6 +13,7 @@
  */
 import { and, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
+import { storedReelTranscript } from "@/lib/social/storedReelTranscript";
 import { withResearchJobWrite, OwnershipChangedError, type WriteDb } from '@/server/utils/queries/ownershipWrites';
 import { artistSocialPosts, artists } from "@/server/db/schema";
 import type { SocialPostRow } from "@/server/utils/socialSignals";
@@ -212,6 +213,7 @@ export function mapApifyPost(rawItem: unknown, artistId: string, handle: string,
 
     const storedRaw = { ...raw };
     delete (storedRaw as Record<string, unknown>)._musicnerdThumbnail;
+    delete (storedRaw as Record<string, unknown>)._musicnerdTranscript;
     return {
         artistId,
         platform: "instagram",
@@ -255,14 +257,17 @@ export async function upsertSocialPost(row: SocialPostInsert, writer: WriteDb = 
                 coauthors: row.coauthors,
                 musicTitle: row.musicTitle,
                 musicArtist: row.musicArtist,
-                raw: sql`CASE
+                raw: sql`(CASE
                     WHEN ${JSON.stringify(row.raw)}::jsonb->'_musicnerdThumbnail'->>'version' = '1'
                         THEN ${JSON.stringify(row.raw)}::jsonb
                     WHEN ${artistSocialPosts.raw}->'_musicnerdThumbnail'->>'version' = '1'
                         THEN ${JSON.stringify(row.raw)}::jsonb || jsonb_build_object(
                             'displayUrl', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->>'url',
                             '_musicnerdThumbnail', ${artistSocialPosts.raw}->'_musicnerdThumbnail')
-                    ELSE ${JSON.stringify(row.raw)}::jsonb END`,
+                    ELSE ${JSON.stringify(row.raw)}::jsonb END) || CASE
+                    WHEN ${artistSocialPosts.raw}->'_musicnerdTranscript'->>'version' = '1'
+                        THEN jsonb_build_object('_musicnerdTranscript', ${artistSocialPosts.raw}->'_musicnerdTranscript')
+                    ELSE '{}'::jsonb END`,
             },
         });
 }
@@ -388,7 +393,7 @@ export async function hasOlderPostsLearnedSince(artistId: string, since: string)
             .from(artistSocialPosts)
             .where(and(
                 eq(artistSocialPosts.artistId, artistId),
-                gt(artistSocialPosts.createdAt, since),
+                or(gt(artistSocialPosts.createdAt, since), sql`(${artistSocialPosts.raw}->'_musicnerdTranscript'->>'version' = '1' and ${artistSocialPosts.raw}->'_musicnerdTranscript'->>'actor' = 'apify/instagram-reel-scraper' and ${artistSocialPosts.raw}->'_musicnerdTranscript'->>'fetchedAt' > ${new Date(since).toISOString()})`),
                 // A post with no posted_at is undatable, so it cannot be shown
                 // to be new — treat it as old material, which is the safe read:
                 // it widens the window rather than dropping the post.
@@ -426,6 +431,7 @@ export async function getSocialPostsForArtist(artistId: string): Promise<SocialP
             coauthors: r.coauthors ?? [],
             musicTitle: r.musicTitle,
             musicArtist: r.musicArtist,
+            ...(storedReelTranscript(r.raw) ? {transcript: storedReelTranscript(r.raw)!} : {}),
         }));
     } catch (e) {
         console.error("[getSocialPostsForArtist] Error:", e);

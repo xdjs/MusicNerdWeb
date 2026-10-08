@@ -14,6 +14,14 @@ jest.mock('@/server/lib/ai/generateText', () => ({ generateText: jest.fn() }));
 jest.mock('@/server/lib/ai/streamText', () => ({ streamText: jest.fn() }));
 
 describe('artistDocService', () => {
+    it('keeps cited audio context in website Lore rebuilds after interview answers', async () => {
+        const post={platform:'instagram',platformPostId:'1',ownerUsername:'nova',isOwnPost:true,caption:null,url:'https://www.instagram.com/p/AUDIO/',postedAt:'2026-10-02',likeCount:0,commentCount:0,playCount:0,hashtags:[],mentions:[],coauthors:[],musicTitle:null,musicArtist:null,transcript:'The drums were recorded before the bass.'};
+        const {svc}=await setup({posts:[post]});
+        const result=await svc.buildDocContext('a1');
+        expect(result.sources).toContainEqual(expect.objectContaining({label:'Instagram reel audio context (speaker unverified)',url:post.url}));
+        expect(result.context).toContain('Audio transcript:');
+        expect(result.context).toContain('uploader is not necessarily the speaker');
+    });
     beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); });
 
     async function setup({ geminiText = '## Overview\nA real doc.', posts, vaultSources } = {}) {
