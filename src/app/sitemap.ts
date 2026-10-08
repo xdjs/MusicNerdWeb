@@ -54,12 +54,16 @@ export async function generateSitemaps(): Promise<{ id: number }[]> {
     return Array.from({ length: chunks }, (_, id) => ({ id }));
 }
 
-export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
+export default async function sitemap({ id: rawId }: { id: number | string }): Promise<MetadataRoute.Sitemap> {
+    // Next passes the id from the url, so chunk 0 arrives as the string "0".
+    const id = Number(rawId);
     // The pages that are not artists ride in the first chunk.
     const staticPages: MetadataRoute.Sitemap = id === 0
         ? [
             { url: `${BASE}/`, changeFrequency: "daily", priority: 1 },
             { url: `${BASE}/leaderboard`, changeFrequency: "daily", priority: 0.5 },
+            { url: `${BASE}/terms`, changeFrequency: "yearly", priority: 0.1 },
+            { url: `${BASE}/privacy`, changeFrequency: "yearly", priority: 0.1 },
         ]
         : [];
 
