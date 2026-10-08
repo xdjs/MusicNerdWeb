@@ -545,7 +545,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [loading, setLoading] = useState(false);
     const requestPending = useRef(false);
     const activeRequest = useRef<AbortController | null>(null);
-    const [resume, setResume] = useState<{ question: string; jobId: string } | null>(null);
+    const [resume, setResume] = useState<{ question: string; jobId: string; complete: boolean } | null>(null);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -553,8 +553,9 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
         setTurns([]); setResume(null); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
-        try { const saved = JSON.parse(sessionStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
-            if (saved?.version === 1 && typeof saved.question === 'string' && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f-]{36}$/i.test(saved.jobId) && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) setResume(saved);
+        try { const saved = JSON.parse(localStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
+            if (saved?.version === 2 && typeof saved.question === 'string' && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f-]{36}$/i.test(saved.jobId) && typeof saved.complete === 'boolean' && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) setResume(saved);
+            else localStorage.removeItem(`musicnerd-research:${artistId}`);
         } catch { /* Storage may be unavailable; the API job is still durable. */ }
         return () => { activeRequest.current?.abort(); };
     }, [artistId, artistName]);
@@ -564,6 +565,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         if (!trimmed || requestPending.current) return;
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
+        let activeJobId = jobId;
         setLoading(true);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
@@ -580,18 +582,21 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             const data = await runArtistResearch({ artistId, question: trimmed, jobId, signal: controller.signal,
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
+                    activeJobId = progress.jobId;
                     finish({ jobId: progress.jobId, progress: progress.message });
-                    const saved = { version: 1, question: trimmed, jobId: progress.jobId, savedAt: Date.now() };
+                    const saved = { version: 2, question: trimmed, jobId: progress.jobId, complete: false, savedAt: Date.now() };
                     setResume(saved);
-                    try { sessionStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional reconnect convenience. */ }
+                    try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional reconnect convenience. */ }
                 },
             });
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
                 return;
             }
-            if (!controller.signal.aborted) {
-                setResume(null); try { sessionStorage.removeItem(`musicnerd-research:${artistId}`); } catch { /* Optional storage. */ }
+            if (!controller.signal.aborted && activeJobId) {
+                const saved = { version: 2, question: trimmed, jobId: activeJobId, complete: true, savedAt: Date.now() };
+                setResume(saved);
+                try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional storage. */ }
             }
             finish({
                 answer: data.answer,
@@ -641,7 +646,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
                     setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
                 }}>Stop waiting</button>}
-                {resume && !loading && <button type="button" className="min-h-11 text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>Resume saved research: {resume.question}</button>}
+                {resume && !loading && !turns.some(turn => turn.jobId === resume.jobId && turn.answer) && <button type="button" className="min-h-11 text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>{resume.complete ? 'Reopen saved answer' : 'Resume saved research'}: {resume.question}</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (

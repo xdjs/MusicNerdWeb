@@ -169,6 +169,8 @@ export async function draftResearchAnswer(
       category,
       status,
     });
+    if (error && typeof error === "object")
+      Object.assign(error, { verificationStage: stage });
     throw error;
   }
 }
