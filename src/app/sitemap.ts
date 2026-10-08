@@ -60,6 +60,8 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         ? [
             { url: `${BASE}/`, changeFrequency: "daily", priority: 1 },
             { url: `${BASE}/leaderboard`, changeFrequency: "daily", priority: 0.5 },
+            { url: `${BASE}/terms`, changeFrequency: "yearly", priority: 0.1 },
+            { url: `${BASE}/privacy`, changeFrequency: "yearly", priority: 0.1 },
         ]
         : [];
 

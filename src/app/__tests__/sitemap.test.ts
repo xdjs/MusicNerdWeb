@@ -61,6 +61,12 @@ describe('sitemap', () => {
         expect((await sitemap({ id: 1 })).map(e => e.url)).not.toContain('https://musicnerd.net/');
     });
 
+    it('lists the Terms and Privacy pages in the first chunk', async () => {
+        const { default: sitemap } = await load([]);
+        const urls = (await sitemap({ id: 0 })).map(e => e.url);
+        expect(urls).toEqual(expect.arrayContaining(['https://musicnerd.net/terms', 'https://musicnerd.net/privacy']));
+    });
+
     it('windows by id rather than by date, so a chunk means the same thing twice', async () => {
         // Ordering by updated_at would shuffle artists between chunks whenever
         // anything changed, handing a crawler a different set of pages at the
@@ -78,7 +84,7 @@ describe('sitemap', () => {
         // error as a reason to back off the whole site.
         const { default: sitemap } = await load(jest.fn(async () => { throw new Error('db down'); }));
         const out = await sitemap({ id: 0 });
-        expect(out).toHaveLength(2);
+        expect(out).toHaveLength(4);   // home, leaderboard, terms, privacy
         expect(out[0].url).toBe('https://musicnerd.net/');
     });
 });
