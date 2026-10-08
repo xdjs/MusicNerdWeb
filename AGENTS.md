@@ -88,7 +88,7 @@ Feature/fix branch off `main` → reviewed PR to `main` → squash merge.
 Use a contributor prefix (Codex uses `codex/`), conventional commits, and stage only intended files.
 Open every PR as a draft. Mark it ready only when its developer says it is good to merge; a ready
 PR can be merged by anyone. Research and API code goes in
-[MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI); see `skills/mn-dev`.
+[MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI); see [`mn-dev`](https://github.com/xdjs/MusicNerdSkills/blob/main/skills/mn-dev/SKILL.md).
 Docs follow the same route. The legacy Git `staging` branch is retired; the persistent staging
 environment remains. **Do not merge or deploy without authorization.** After main's checks pass,
 the exact merged SHA deploys to `staging.musicnerd.net`. A main merge does not publish production.
@@ -109,11 +109,14 @@ and distinguish locally implemented from shipped. Don't create releases solely t
 
 ## Skills
 
-Repository skills live in [`skills/`](skills/). **`skills/mn-dev/SKILL.md`** is how work is tracked
+Music Nerd's agent skills live in their own repo, [xdjs/MusicNerdSkills](https://github.com/xdjs/MusicNerdSkills)
+(moved out of this repo on 2026-10-08; install with `npx skills add xdjs/MusicNerdSkills`).
+**[`mn-dev`](https://github.com/xdjs/MusicNerdSkills/blob/main/skills/mn-dev/SKILL.md)** is how work is tracked
 and shipped here: the tracking-issue format (PR matrix, closure notes, dated decision callouts)
 and the delivery loop (docs first, TDD, one function per file, Vercel preview verification with
 a documented-vs-observed matrix and captures on the PR, main-only PRs → staging validation → approved production build). Read it
 before writing or updating an issue, opening a PR, or preview-testing one.
+**`mn-marketing`** makes the short videos that get artists to claim their profile.
 
 Read the available relevant skill before using it: Next.js/React for UI and server boundaries;
 Supabase/Postgres for database work; browser verification for UI flows; deployment/observability
