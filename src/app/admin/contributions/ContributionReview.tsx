@@ -7,6 +7,7 @@ import { approveUgcAdminAction } from '@/app/actions/serverActions';
 import { updateSourceStatus } from '@/app/actions/dashboardActions';
 import type { Contribution, getAdminContributions } from '@/server/utils/contributions/getAdminContributions';
 import ContributionFilters from './ContributionFilters';
+import BulkApproveContributor from './BulkApproveContributor';
 import layout from './Contributions.module.css';
 import { triggerLabels } from '@/lib/activity/activityLabels';
 import styles from '@/components/community/Community.module.css';
@@ -14,8 +15,9 @@ import surface from '@/app/profile/ProfileConcept.module.css';
 const origins = { user: 'User submissions', research: 'Automated research', unknown: 'Unknown origin' };
 const types = { link: 'Link submission', lore: 'Lore source', upload: 'Upload' };
 
-export default function ContributionReview({ data, onApproveLinks = approveUgcAdminAction, onReviewLore = updateSourceStatus }: {
+export default function ContributionReview({ data, contributorName, onApproveLinks = approveUgcAdminAction, onReviewLore = updateSourceStatus }: {
  data: Awaited<ReturnType<typeof getAdminContributions>>;
+ contributorName?: string;
  onApproveLinks?: typeof approveUgcAdminAction; onReviewLore?: typeof updateSourceStatus;
 }) {
  const router = useRouter();
@@ -46,6 +48,7 @@ export default function ContributionReview({ data, onApproveLinks = approveUgcAd
    <span><strong>{total.toLocaleString()}</strong> {data.query || data.type ? 'matching ' : ''}{total===1?'contribution':'contributions'}</span>
    <span>{pending.toLocaleString()} awaiting review</span>
   </div>
+  {data.userId && <div><BulkApproveContributor contributorId={data.userId} contributorName={contributorName || 'this contributor'} /></div>}
   {data.counts.user.pending > 0 && !(data.origin==='user' && data.status==='pending') && <Link href={href({origin:'user',status:'pending',page:'1'})} className={layout.reviewShortcut}>Review pending user submissions</Link>}
   <ContributionFilters key={`${data.userId}:${data.query}:${data.type}:${data.origin}:${data.status}`} data={data}/>
   <div className={layout.results} aria-live="polite"><span>{data.total ? `Showing ${((data.page-1)*data.pageSize+1).toLocaleString()}–${Math.min(data.page*data.pageSize,data.total).toLocaleString()} of ${data.total.toLocaleString()}` : 'No matching contributions'}</span>{data.total > data.pageSize && <span>Page {data.page} of {Math.ceil(data.total / data.pageSize)}</span>}</div>

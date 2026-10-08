@@ -72,7 +72,7 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 10 | `questionGenerator.ts` verifier | Question vs source statement | flash | temp 0, JSON schema, thinking 512 | 12 s → `"verifier timeout"` | same |
 | 11 | `sourceRelevance.ts` `judgeSourceRelevance` | Is this page about this artist | flash | temp 0, JSON schema, thinking 0 | 20 s → `"relevance judge timeout"` | `vaultWebSearch` |
 | 12 | `socialCredits.ts` `extractCaptionCredits` | Credits from Instagram captions, 15 per batch | flash | temp 0, JSON schema | 90 s → `"caption extraction timed out"` | `researchRunner`, `socialIngest` |
-| 13 | `onboarding/turnHandlers.ts` ack | One-line chat acknowledgement | flash | temp 0.7, thinking 0 | 5 s → `"ack timeout"` | onboarding chat |
+| 13 | ~~`onboarding/turnHandlers.ts` ack~~ | Moved to MusicNerdAPI (`lib/onboarding/generateInterviewAck.ts`) with the onboarding chat (#1365, cutover 2) | — | — | — | — |
 | 14 | `api/funFacts/[type]/route.ts` | Fun fact | flash | temp 0.8 | 15 s → `"Gemini timeout"` → HTTP 408, inside the route's 20 s budget | profile (user) |
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
@@ -92,15 +92,14 @@ Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen
 > route's 60 s `maxDuration`.
 
 Sites 5 and 6 (`src/server/utils/artistDoc/synthesizeArtistDoc.ts` and `generateAboutFromDoc.ts`, one function per file) call `streamText` and take an optional `{ onTextDelta }` last argument. Only the
-auto-build (`runAutoBuild` in `onboarding/turnHandlers.ts`) passes it; every other caller gets
+auto-build passed it, and the auto-build now runs in MusicNerdAPI (#1365, cutover 2); every other caller gets
 the same finished string as before. Timeouts, citation validation (`validateCitations`) and
 length caps run on the finished text exactly as they did; what streams is the raw draft,
 citation markers included, and the page shows the validated version.
 
 `runAutoBuild` turns each delta into a `TurnEvent`
-`{ kind: "text-delta", group: "about-write", call: "doc" | "about", delta }` on the existing
-`/api/onboarding/[artistId]/chat` stream, through `yieldWhileRunning`
-(`src/lib/async/yieldWhileRunning.ts`): a generator cannot `yield` from inside a callback, so the
+`{ kind: "text-delta", group: "about-write", call: "doc" | "about", delta }` on MusicNerdAPI's
+`/api/onboarding/{artistId}/chat` stream, through `yieldWhileRunning` (in MusicNerdAPI): a generator cannot `yield` from inside a callback, so the
 helper runs the call, yields what it emits while it runs, and returns its result (or rethrows
 its error) once it settles. `useOnboardingChat` appends deltas to one `writing` item per `call`,
 and the [research view](research-view.md) renders them as Markdown under "Writing your About".

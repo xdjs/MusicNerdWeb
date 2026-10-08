@@ -1,7 +1,11 @@
 /// <reference types="@testing-library/jest-dom" />
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { OnboardingProgressContext } from '@/app/artist/[id]/_components/onboarding/OnboardingProgressContext';
 import HeroSection from '@/app/artist/[id]/_components/HeroSection';
+const researchNone = { profiles: null, vault: null, interview: null, publish: null };
+const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] }, ...over });
+
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
 function renderWith(isEditing: boolean, refreshProfile = jest.fn()) {
@@ -76,4 +80,27 @@ it('refreshes all server-provided portrait consumers after provider selection', 
   fireEvent.click(screen.getByRole('button', { name: 'Save photo' }));
   await waitFor(() => expect(refreshProfile).toHaveBeenCalledTimes(1));
   fetchMock.mockRestore();
+});
+
+describe('Hero About while research writes it', () => {
+  it('shows text-line skeletons in place of the About until the publish step is confirmed', () => {
+    const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
+    render(<OnboardingProgressContext.Provider value={research({ steps })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    const status = screen.getByRole('status', { name: 'writing your about…' });
+    expect(status.querySelectorAll('[data-skeleton=line]')).toHaveLength(3);
+    expect(screen.queryByText('Music from Miami.')).toBeNull();
+  });
+
+  it('draws the About skeleton in the portrait hero\'s white text', () => {
+    const steps = { profiles: 't1', vault: 't2', interview: null, publish: null };
+    render(<OnboardingProgressContext.Provider value={research({ steps })}><HeroSection imageUrl="/portrait.jpg" artistName="Nova" artistId="a1" hasPortrait bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    expect(screen.getByRole('status', { name: 'writing your about…' }).closest('#mn-about')).toHaveClass('text-white');
+  });
+
+  it('marks the About as new when it arrives', () => {
+    const steps = { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' };
+    render(<OnboardingProgressContext.Provider value={research({ steps, fresh: { profiles: false, vault: false, publish: true } })}><HeroSection imageUrl="/small.jpg" artistName="Nova" artistId="a1" bio="Music from Miami." /></OnboardingProgressContext.Provider>);
+    expect(screen.getByText('New About')).toBeInTheDocument();
+    expect(screen.getByText('Music from Miami.')).toBeInTheDocument();
+  });
 });

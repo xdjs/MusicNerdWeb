@@ -10,6 +10,13 @@ test('Listen includes stored music and support services and excludes social prof
     expect(result.map(item => item.siteName)).toEqual(['spotify', 'deezer', 'soundcloud', 'bandcamp', 'subvert']);
     expect(result.find(item => item.siteName === 'deezer')?.iconSrc).toBe('/siteIcons/deezer_icon.svg');
 });
+test.each(['soundcloud', 'audius', 'mixcloud'])('retains the direct %s artist link when a separate audio source stays in Lore', siteName => {
+    const saved = link(siteName, { artistUrl:`https://${siteName === 'audius' ? 'audius.co' : `${siteName}.com`}/artist` });
+    const source = { id: 'show', type: 'audio', url: saved.artistUrl.replace('/artist', '/show') };
+    expect(getListeningLinks({ spotify:null, deezer:null }, [saved], [source])).toEqual([
+        expect.objectContaining({ siteName, href:saved.artistUrl }),
+    ]);
+});
 test('Apple Music needs a saved approved website artist URL, not an album or lookalike host', () => {
     const sources = [
         { type: 'website', url: 'https://music.apple.com.evil.test/us/artist/fake/1' },

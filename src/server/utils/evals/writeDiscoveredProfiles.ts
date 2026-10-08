@@ -1,5 +1,5 @@
 import { discoverArtistProfilesStream, type DiscoveredProfile } from "@/server/utils/profileDiscovery";
-import { applyProfileLinkDecisions } from "@/server/utils/onboarding/turnHandlers";
+import { applyProfileLinkDecisions } from "@/server/utils/onboarding/applyProfileLinkDecisions";
 
 export type DiscoveryWrite = {
     /** Accounts discovery found, across all platforms. */

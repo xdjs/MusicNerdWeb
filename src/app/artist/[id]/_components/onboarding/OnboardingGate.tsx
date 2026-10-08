@@ -2,9 +2,11 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import OnboardingChat from "./OnboardingChat";
-import type { LatestRelease } from "@/server/utils/musicPlatform/latestReleases";
+import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
+import type { ResearchItems } from "./ResearchInPlace";
 import OnboardingBanner from "./OnboardingBanner";
-import { armTour, tourFlagKey } from "./ProfileTour";
+import { armTour } from "@/app/artist/[id]/_components/onboarding/armTour";
+import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
 
 export function skipFlagKey(artistId: string): string {
     return `mn-onboarding-skip-${artistId}`;
@@ -13,12 +15,12 @@ export function skipFlagKey(artistId: string): string {
 type Props = {
     artistId: string;
     artistName: string;
-    currentStep: string | null;
-    /** For the research view's hero (docs/research-view.md). */
-    imageUrl?: string;
-    releases?: Promise<LatestRelease[]>;
-    /** The artist page. While onboarding runs the chat decides whether to show
-     *  it (the research view takes its place); otherwise it's shown as usual. */
+    /** The onboarding state the page rendered with, from MusicNerdAPI (docs/research-view.md). */
+    state: OnboardingStateView;
+    /** The profile links and approved sources the page shows now (what counts as new). */
+    researchItems?: ResearchItems;
+    /** The artist page. While onboarding runs, research paints it in place
+     *  (docs/research-view.md); otherwise it's shown as usual. */
     children?: ReactNode;
 };
 
@@ -27,14 +29,25 @@ type Props = {
  * state; the skip flag lives in sessionStorage and is invisible to the server
  * component (spec §8). Skip is session-scoped: a later visit reopens the chat.
  */
-export default function OnboardingGate({ artistId, artistName, currentStep, imageUrl, releases, children }: Props) {
+export default function OnboardingGate({ artistId, artistName, state, researchItems, children }: Props) {
     // Start closed and decide after mount — sessionStorage is unavailable during SSR.
     const [mode, setMode] = useState<"closed" | "chat" | "banner">("closed");
+    // The page renders the gate for the claimant whatever the state, so a build
+    // that completes during the visit keeps its view (docs/research-view.md,
+    // "Done"). A page that arrived complete has nothing to show here.
+    const [completeOnArrival] = useState(state.complete);
 
     useEffect(() => {
+        if (completeOnArrival) return;
         const skipped = sessionStorage.getItem(skipFlagKey(artistId)) === "1";
         setMode(skipped ? "banner" : "chat");
-    }, [artistId]);
+    }, [artistId, completeOnArrival]);
+
+    const armTourOnce = () => {
+        let alreadyDone = false;
+        try { alreadyDone = sessionStorage.getItem(tourFlagKey(artistId)) === "1"; } catch { /* private mode */ }
+        if (!alreadyDone) armTour(artistId);
+    };
 
     if (mode === "closed") return <>{children}</>;
     if (mode === "chat") {
@@ -42,8 +55,8 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
             <OnboardingChat
                 artistId={artistId}
                 artistName={artistName}
-                imageUrl={imageUrl}
-                releases={releases}
+                initialState={state}
+                researchItems={researchItems}
                 onSkip={() => {
                     sessionStorage.setItem(skipFlagKey(artistId), "1");
                     setMode("banner");
@@ -59,11 +72,12 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
                 // outlives both. Skipping the chat arms nothing: someone who
                 // dismissed the setup does not want a guided pass either.
                 onFinish={() => {
-                    let alreadyDone = false;
-                    try { alreadyDone = sessionStorage.getItem(tourFlagKey(artistId)) === "1"; } catch { /* private mode */ }
-                    if (!alreadyDone) armTour(artistId);
+                    armTourOnce();
                     setMode("closed");
                 }}
+                // The build finished while the artist watched: arm the tour but keep
+                // the page as it is, with the ready card and the new-item marks.
+                onBuildComplete={armTourOnce}
             >
                 {children}
             </OnboardingChat>
@@ -72,7 +86,7 @@ export default function OnboardingGate({ artistId, artistName, currentStep, imag
     return (
         <>
             <OnboardingBanner
-                currentStep={currentStep}
+                currentStep={state.currentStep}
                 onContinue={() => {
                     sessionStorage.removeItem(skipFlagKey(artistId));
                     setMode("chat");

@@ -8,6 +8,7 @@ import HeaderPhotoPosition from "./HeaderPhotoPosition";
 import { Camera, MoveVertical } from "lucide-react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import BlurbSection from "./BlurbSection";
+import ResearchPending from "./onboarding/ResearchPending";
 import ListenPicker from "./ListenPicker";
 import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
@@ -20,10 +21,11 @@ interface HeroSectionProps {
     initialPosition?: number;
     bio?: string | null;
     listenLinks?: ProfileLink[];
+    statusBadge?: ReactNode;
     children?: ReactNode;
 }
 
-export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], children }: HeroSectionProps) {
+export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], statusBadge, children }: HeroSectionProps) {
     const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
@@ -99,7 +101,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "" : "mx-auto"}`}><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></ResearchPending></div>
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
@@ -116,6 +118,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                     <ListenPicker artistName={artistName} links={listenLinks} />
                     {children}
+                    {statusBadge && <div className="ml-auto shrink-0">{statusBadge}</div>}
                 </div>
             </div>
         </div> : <>
@@ -125,6 +128,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
                 <div className="absolute inset-0 flex items-center justify-center">
                     <Image src={img} alt={artistName} width={160} height={160} unoptimized priority className="h-32 w-32 rounded-full border-4 border-white/25 object-cover md:h-40 md:w-40" />
                 </div>
+                {statusBadge && <div className="absolute bottom-4 right-4 z-10">{statusBadge}</div>}
                 {photoControl}
             </div>
             <div className="text-center">{identity}</div>

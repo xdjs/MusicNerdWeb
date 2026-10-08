@@ -1,6 +1,8 @@
 "use client";
+import { isDestinationSource } from "@/lib/musicLinks/isDestinationSource";
 
 import { useState, useRef, useMemo } from "react";
+import ResearchNewMark from "./onboarding/ResearchNewMark";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { groupPodcastSources } from "@/lib/source/groupPodcastSources";
@@ -50,6 +52,7 @@ const TYPE_LABELS: Record<string, string> = {
     news: "News",
     video: "Video",
     audio: "Audio",
+    music: "Music",
     social: "Social",
     document: "Document",
     image: "Image",
@@ -170,7 +173,7 @@ function PodcastCard({ sources }: { sources: VaultSource[] }) {
 export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
     // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
     // it isn't press, and rendering it here too would show it twice.
-    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => s.type !== "website")), [allSources]);
+    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => !isDestinationSource(s))), [allSources]);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -259,7 +262,9 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                 >
                     {filtered.map((card) => (
                         <div key={card.id} className="snap-start" data-vault-card>
-                            {card.kind === "podcast" ? <PodcastCard sources={card.sources} /> : <SourceCard source={card.source} />}
+                            <ResearchNewMark kind="sources" itemKey={card.kind === "podcast" ? card.sources[0].id : card.source.id}>
+                                {card.kind === "podcast" ? <PodcastCard sources={card.sources} /> : <SourceCard source={card.source} />}
+                            </ResearchNewMark>
                         </div>
                     ))}
                 </div>

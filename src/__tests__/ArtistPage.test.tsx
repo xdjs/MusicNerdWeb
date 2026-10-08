@@ -6,6 +6,10 @@ jest.mock('@/server/utils/source/addSourceContributors', () => ({
     addSourceContributors: jest.fn(async (_id, sources) => sources.map(source => ({ ...source, contributorName: 'Contributor' }))),
 }));
 
+jest.mock('@/server/utils/musicLinks/getConflictingMusicSourceIds', () => ({
+    getConflictingMusicSourceIds: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock('@/server/auth', () => ({
     getServerAuthSession: jest.fn(),
 }));
@@ -60,10 +64,17 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
         />
     );
 });
-jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{children}</div>; });
+jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{statusBadge}{children}</div>; });
 jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
+jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({
+    __esModule: true,
+    default: function ProfileTour({ hasSupportLinks }: { hasSupportLinks: boolean }) {
+        return <div data-testid="profile-tour" data-has-support={String(hasSupportLinks)} />;
+    },
+    TOUR_FINISHED_EVENT: 'mn-tour-finished',
+}));
 // Same reason as SeoArtistLinks: an async server component that reads the link
 // table, which this suite does not stand up.
 jest.mock('@/app/artist/[id]/_components/ArtistJsonLd', () => function ArtistJsonLd() { return null; });
@@ -78,14 +89,18 @@ jest.mock('@/server/utils/queries/dashboardQueries', () => ({
     getVaultSourcesByArtistId: jest.fn().mockResolvedValue([]),
 }));
 jest.mock('@/app/artist/[id]/_components/LatestSection', () => function LatestSection() { return <section id="mn-latest"><h2>Latest</h2></section>; });
-jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null), getOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/queries/onboardingQueries', () => ({ getArtistDoc: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/server/utils/onboarding/fetchOnboardingState', () => ({ fetchOnboardingState: jest.fn().mockResolvedValue(null) }));
+jest.mock('@/app/artist/[id]/_components/onboarding/OnboardingGate', () => function OnboardingGate({ state, researchItems, children }) {
+    return <div data-testid="onboarding-gate" data-step={state.currentStep} data-complete={String(state.complete)} data-sources={researchItems?.sources.join(',')}>{children}</div>;
+});
 jest.mock('@/server/utils/dev-auth', () => ({
     getDevSession: jest.fn().mockResolvedValue(null),
 }));
 
 import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
-import { getArtistById, getAllLinks } from '@/server/utils/queries/artistQueries';
+import { getArtistById, getAllLinks, getArtistLinks } from '@/server/utils/queries/artistQueries';
 import { musicPlatformData } from '@/server/utils/musicPlatform';
 
 const mockArtist = {
@@ -120,7 +135,7 @@ function setupMocks({ session = null, artist = mockArtist } = {}) {
 
 async function renderArtistPage(
     id = 'artist-uuid',
-    searchParams?: { addLink?: string | string[] },
+    searchParams?: { addLink?: string | string[]; tourPreview?: string },
 ) {
     const jsx = await ArtistProfile({
         params: Promise.resolve({ id }),
@@ -136,6 +151,17 @@ describe('ArtistProfile page', () => {
     });
 
     describe('Unauthenticated rendering', () => {
+        it('hides claim status and the claim action when the lookup fails', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce(undefined);
+
+            await renderArtistPage();
+
+            expect(screen.getByRole('heading', { name: 'Test Artist' })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /claimed artist profile/i })).not.toBeInTheDocument();
+            expect(screen.queryByTestId('claim-button')).not.toBeInTheDocument();
+        });
+
         it('does not load private contributor names for visitors', async () => {
             const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
             await renderArtistPage();
@@ -292,6 +318,54 @@ describe('ArtistProfile page', () => {
             });
         });
 
+        it('reads onboarding state from MusicNerdAPI for the approved claimant and paints the build in place', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue({ complete: false, currentStep: 'vault', steps: { profiles: 't1', vault: null, interview: null, publish: null } });
+
+            await renderArtistPage();
+
+            expect(fetchOnboardingState).toHaveBeenCalledWith('artist-uuid');
+            const gate = screen.getByTestId('onboarding-gate');
+            expect(gate).toHaveAttribute('data-step', 'vault');
+            expect(gate).toHaveTextContent('Test Artist');
+        });
+
+        it('keeps the gate for a completed build, with the sources it counts new against', async () => {
+            const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (getVaultSourcesByArtistId as jest.Mock).mockResolvedValueOnce([{ id: 's1', url: 'https://a.example/1', status: 'approved', type: 'article' }]).mockResolvedValueOnce([]);
+            (fetchOnboardingState as jest.Mock).mockResolvedValue({ complete: true, currentStep: null, steps: { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' } });
+
+            await renderArtistPage();
+
+            const gate = screen.getByTestId('onboarding-gate');
+            expect(gate).toHaveAttribute('data-complete', 'true');
+            expect(gate).toHaveAttribute('data-sources', 's1');
+        });
+
+        it('renders no takeover when the onboarding state is unreadable (fail closed)', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'user-uuid', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(null);
+
+            await renderArtistPage();
+
+            expect(screen.queryByTestId('onboarding-gate')).not.toBeInTheDocument();
+        });
+
+        it('does not read onboarding state for anyone but the approved claimant', async () => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            (getClaimByArtistId as jest.Mock).mockResolvedValue({ id: 'claim-uuid', artistId: 'artist-uuid', userId: 'someone-else', status: 'approved' });
+            (fetchOnboardingState as jest.Mock).mockClear();
+            await renderArtistPage();
+            expect(fetchOnboardingState).not.toHaveBeenCalled();
+        });
+
         it('preserves direct link editing for an approved claimed artist', async () => {
             const { getUserById } = await import('@/server/utils/queries/userQueries');
             const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
@@ -352,6 +426,107 @@ describe('ArtistProfile page', () => {
         });
     });
 
+    describe('Completed research tour support links', () => {
+        describe.each(['owner', 'preview'])('%s tour source-backed support', (mode) => {
+            it.each([
+                ['approved Bandcamp', 'https://artist.bandcamp.com/', 'approved', false, true],
+                ['approved Subvert', 'https://www.subvert.fm/artist', 'approved', false, true],
+                ['approved Supercollector', 'https://release.supercollector.xyz/artist/joey-collins', 'approved', false, true],
+                ['pending Bandcamp', 'https://artist.bandcamp.com/', 'pending', false, false],
+                ['identity-conflicting Bandcamp', 'https://artist.bandcamp.com/', 'approved', true, false],
+                ['streaming-only source', 'https://open.spotify.com/artist/5RUy3e0zVDPXCvJCA3TUXi', 'approved', false, false],
+            ])('matches visible Support for %s', async (_name, url, status, blocked, expected) => {
+                const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+                const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+                const { getConflictingMusicSourceIds } = await import('@/server/utils/musicLinks/getConflictingMusicSourceIds');
+                const source = { id: 'source-support', url, status, type: 'article', title: 'Artist music' };
+                (getVaultSourcesByArtistId as jest.Mock)
+                    .mockResolvedValueOnce(status === 'approved' ? [source] : [])
+                    .mockResolvedValueOnce(status === 'pending' ? [source] : []);
+                (getConflictingMusicSourceIds as jest.Mock).mockResolvedValueOnce(blocked ? [source.id] : []);
+
+                const previousEnv = process.env.VERCEL_ENV;
+                try {
+                    if (mode === 'owner') {
+                        setupMocks({ session: { user: { id: 'user-uuid' } } });
+                        (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+                        (fetchOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+                    } else {
+                        process.env.VERCEL_ENV = 'preview';
+                    }
+                    await renderArtistPage('artist-uuid', mode === 'preview' ? { tourPreview: '1' } : undefined);
+                    expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', String(expected));
+                } finally {
+                    if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                    else process.env.VERCEL_ENV = previousEnv;
+                }
+            });
+        });
+
+        it('keeps the review-only tour parameter out of production', async () => {
+            const previousEnv = process.env.VERCEL_ENV;
+            process.env.VERCEL_ENV = 'production';
+            try {
+                await renderArtistPage('artist-uuid', { tourPreview: '1' });
+                expect(screen.queryByRole('button', { name: 'Start tour preview' })).not.toBeInTheDocument();
+                expect(screen.queryByTestId('profile-tour')).not.toBeInTheDocument();
+            } finally {
+                if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                else process.env.VERCEL_ENV = previousEnv;
+            }
+        });
+
+        it('lets previews exercise the real saved-data condition without a research run', async () => {
+            const previousEnv = process.env.VERCEL_ENV;
+            process.env.VERCEL_ENV = 'preview';
+            try {
+                await renderArtistPage('artist-uuid', { tourPreview: '1' });
+                expect(screen.getByRole('button', { name: 'Start tour preview' })).toBeInTheDocument();
+                expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', 'false');
+            } finally {
+                if (previousEnv === undefined) delete process.env.VERCEL_ENV;
+                else process.env.VERCEL_ENV = previousEnv;
+            }
+        });
+
+        it.each([
+            ['no support destination', [], false],
+            ['social link only', [{ siteName: 'instagram', artistUrl: 'https://instagram.com/artist', isMonetized: false }], false],
+            ['Bandcamp', [{ siteName: 'bandcamp', artistUrl: 'https://artist.bandcamp.com', isMonetized: false }], true],
+            ['In Process', [{ siteName: 'inprocess', artistUrl: 'https://inprocess.world/artist', isMonetized: false }], true],
+            ['another monetized service', [{ siteName: 'patreon', artistUrl: 'https://patreon.com/artist', isMonetized: true }], true],
+        ])('passes the displayed Support state for %s', async (_name, links, expected) => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            setupMocks({ session: { user: { id: 'user-uuid' } } });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+            (fetchOnboardingState as jest.Mock).mockResolvedValueOnce({ complete: true });
+            (getArtistLinks as jest.Mock).mockResolvedValueOnce(links);
+
+            await renderArtistPage();
+
+            expect(screen.getByTestId('profile-tour')).toHaveAttribute('data-has-support', String(expected));
+        });
+
+        it.each([
+            ['visitor', null, null],
+            ['missing onboarding state', { user: { id: 'user-uuid' } }, null],
+            ['unfinished research', { user: { id: 'user-uuid' } }, { complete: false }],
+        ])('does not offer the tour for %s', async (_name, session, state) => {
+            const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { fetchOnboardingState } = await import('@/server/utils/onboarding/fetchOnboardingState');
+            setupMocks({ session });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce({ status: 'approved', userId: 'user-uuid' });
+            // Avoid leaving an unconsumed once-value for the visitor case.
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(state);
+
+            await renderArtistPage();
+
+            expect(screen.queryByTestId('profile-tour')).not.toBeInTheDocument();
+            (fetchOnboardingState as jest.Mock).mockResolvedValue(null);
+        });
+    });
+
     describe('generateMetadata', () => {
         it('uses the preferred provider image for social previews', async () => {
             (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
@@ -366,7 +541,7 @@ describe('ArtistProfile page', () => {
             expect(metadata.title).toBe('Test Artist | Music Nerd');
             // The fixture has an About, so that is the description now.
             expect(metadata.description).toBe('A great artist.');
-            expect(metadata.alternates?.canonical).toBe('https://www.musicnerd.xyz/artist/artist-uuid');
+            expect(metadata.alternates?.canonical).toBe('https://musicnerd.net/artist/artist-uuid');
         });
 
         it('describes the artist with their own About when one is written', async () => {

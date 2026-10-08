@@ -22,7 +22,7 @@ treating a handoff as live evidence. Preserve user edits and ignored files.
 | Routes / actions / business queries | `src/app/api/`, `src/app/actions/`, `src/server/utils/queries/` |
 | Data model / client / types | `src/server/db/schema.ts`, `drizzle.ts`, `DbTypes.ts` |
 | Authentication and authorization | `src/server/auth.ts`, `src/lib/auth-helpers.ts` |
-| Research workers and scheduler | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) runs every `artist_research_jobs` kind and its cron; this repo only queues jobs (`requestArtistResearch.ts`, `latest/requestLatestRefresh.ts`) |
+| Research workers and scheduler | [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) runs every `artist_research_jobs` kind and its cron; this repo only queues jobs (`latest/requestLatestRefresh.ts`). The onboarding chat runs there too (`/api/onboarding/{artistId}/chat`) |
 | MCP tools and shared link writes | `src/app/api/mcp/`, `src/server/utils/artistLinkService.ts` |
 
 [Development reference](docs/development.md) covers setup, test patterns, integrations, and
@@ -91,7 +91,7 @@ PR can be merged by anyone. Research and API code goes in
 [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI); see `skills/mn-dev`.
 Docs follow the same route. The legacy Git `staging` branch is retired; the persistent staging
 environment remains. **Do not merge or deploy without authorization.** After main's checks pass,
-the exact merged SHA deploys to `staging.musicnerd.xyz`. A main merge does not publish production.
+the exact merged SHA deploys to `staging.musicnerd.net`. A main merge does not publish production.
 The protected GitHub `production-release` job requires approval from any one of Carl (`clt`),
 Pete (`p3t3rango`) or Sweetman (`sweetmantech`). It builds that same SHA with production
 configuration, checks the candidate, then promotes it without rebuilding during promotion.

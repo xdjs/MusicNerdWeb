@@ -5,6 +5,7 @@ import { withArtistUploadWrite, withScopedArtistWrite, type WriteDb } from './ow
 import { getArtistOperationOwnership } from '../artistOperationContext';
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { sql } from 'drizzle-orm';
+import { queueApprovedSourceExtraction } from '@/server/utils/source/queueApprovedSourceExtraction';
 
 export async function insertVaultSource(data: {
     artistId: string;
@@ -25,13 +26,29 @@ export async function insertVaultSource(data: {
     /** ISO date (YYYY-MM-DD) the source says it was published, or null. */
     publishedAt?: string | null;
 }, authorization?: { userId: string; expectedClaimId: string | null }, provenance?: {
-    userId: string; trigger: string;
+    userId: string; trigger: string; approveIfTrusted?: boolean;
 }) {
     try {
         const url = canonicalizeLoreUrl(data.url) ?? data.url;
         const write = async (writer: WriteDb) => {
+        // Serialize with claim changes and worker checkpoints before any source write.
+        await writer.execute(sql`select id from artists where id=${data.artistId}::uuid for update`);
         const context = getArtistOperationOwnership(data.artistId);
         const userId = provenance?.userId ?? authorization?.userId ?? context?.userId;
+        let status = data.status ?? 'pending';
+        let submissionTrigger = provenance?.trigger;
+        if (provenance?.approveIfTrusted) {
+            // Hold the current role through publication. A completed revocation
+            // before this lock saves pending; a concurrent revocation waits.
+            const [user] = await writer.execute(sql`
+                select is_admin, is_white_listed from users
+                where id = ${provenance.userId}::uuid for share
+            `);
+            if (!user) throw new Error('Submitting account no longer exists');
+            const trusted = !!(user.is_admin || user.is_white_listed);
+            status = trusted ? 'approved' : 'pending';
+            if (trusted) submissionTrigger = 'trusted_submission';
+        }
         const origin = context?.sourceOrigin ?? (userId ? data.filePath ? 'upload' : 'submission' : 'unknown');
         let activityId = context?.activityId ?? null;
         // onConflictDoNothing pairs with the unique index on (artist_id, url)
@@ -47,7 +64,7 @@ export async function insertVaultSource(data: {
                 title: data.title,
                 snippet: data.snippet,
                 type: data.type ?? "article",
-                status: data.status ?? "pending",
+                status,
                 fileName: data.fileName,
                 fileSize: data.fileSize,
                 filePath: data.filePath,
@@ -71,10 +88,11 @@ export async function insertVaultSource(data: {
             activityId = await recordArtistActivity(data.artistId,
                 origin === 'upload' ? 'source_upload' : origin === 'submission' ? 'source_submission' : 'source_added', {
                     userId, sourceId: source.id,
-                    trigger: provenance?.trigger ?? (data.filePath ? 'upload' : context?.trigger ?? 'editor_source'),
+                    trigger: submissionTrigger ?? (data.filePath ? 'upload' : context?.trigger ?? 'editor_source'),
                 }, writer);
             await writer.execute(sql`update artist_vault_sources set activity_id = ${activityId}::uuid where id = ${source.id}::uuid`);
         }
+        await queueApprovedSourceExtraction(writer, source, activityId);
         return { ...source, activityId };
         };
         return authorization

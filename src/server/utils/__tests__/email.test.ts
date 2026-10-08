@@ -34,17 +34,17 @@ describe('sendClaimApprovedEmail', () => {
     beforeEach(() => { jest.resetModules(); global.fetch = jest.fn().mockResolvedValue({ ok: true }); });
 
     it('links the CTA to the artist page and uses Music Nerd (two words) branding', async () => {
-        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.xyz' }));
+        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.net' }));
         const { sendClaimApprovedEmail } = await import('@/server/utils/email');
         await sendClaimApprovedEmail('artist@example.com', 'Nova Reyes', 'artist-uuid-1');
         const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-        expect(body.html).toContain('https://staging.musicnerd.xyz/artist/artist-uuid-1');
+        expect(body.html).toContain('https://staging.musicnerd.net/artist/artist-uuid-1');
         expect(body.html).toContain('Music Nerd');
         expect(body.html).not.toMatch(/MusicNerd[^ ]/);
     });
 
     it('escapes HTML markup in artist name to prevent injection', async () => {
-        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.xyz' }));
+        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.net' }));
         const { sendClaimApprovedEmail } = await import('@/server/utils/email');
         await sendClaimApprovedEmail('artist@example.com', '<script>alert(1)</script>Nova', 'artist-uuid-1');
         const body = JSON.parse(global.fetch.mock.calls[0][1].body);
@@ -53,7 +53,7 @@ describe('sendClaimApprovedEmail', () => {
     });
 
     it('degrades to generic-but-grammatical copy when artistName is null (no "Your your artist" doubling)', async () => {
-        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.xyz' }));
+        jest.mock('@/env', () => ({ RESEND_API_KEY: 'rk_test', NEXTAUTH_URL: 'https://staging.musicnerd.net' }));
         const { sendClaimApprovedEmail } = await import('@/server/utils/email');
         await sendClaimApprovedEmail('artist@example.com', null, 'artist-uuid-1');
         const body = JSON.parse(global.fetch.mock.calls[0][1].body);

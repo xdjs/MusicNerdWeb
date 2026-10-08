@@ -28,8 +28,8 @@ describe('sitemap', () => {
     it('lists every artist, with no bar on what is on the page', async () => {
         const { default: sitemap } = await load([{ id: 'a1', updated_at: '2026-08-20T00:00:00Z' }, { id: 'a2', updated_at: null }]);
         const urls = (await sitemap({ id: 0 })).map(e => e.url);
-        expect(urls).toContain('https://www.musicnerd.xyz/artist/a1');
-        expect(urls).toContain('https://www.musicnerd.xyz/artist/a2');
+        expect(urls).toContain('https://musicnerd.net/artist/a1');
+        expect(urls).toContain('https://musicnerd.net/artist/a2');
     });
 
     it('carries what we last knew, and does not invent it', async () => {
@@ -57,8 +57,8 @@ describe('sitemap', () => {
 
     it('puts the pages that are not artists in the first chunk only', async () => {
         const { default: sitemap } = await load([{ id: 'a1', updated_at: null }]);
-        expect((await sitemap({ id: 0 })).map(e => e.url)).toContain('https://www.musicnerd.xyz/');
-        expect((await sitemap({ id: 1 })).map(e => e.url)).not.toContain('https://www.musicnerd.xyz/');
+        expect((await sitemap({ id: 0 })).map(e => e.url)).toContain('https://musicnerd.net/');
+        expect((await sitemap({ id: 1 })).map(e => e.url)).not.toContain('https://musicnerd.net/');
     });
 
     it('windows by id rather than by date, so a chunk means the same thing twice', async () => {
@@ -79,7 +79,7 @@ describe('sitemap', () => {
         const { default: sitemap } = await load(jest.fn(async () => { throw new Error('db down'); }));
         const out = await sitemap({ id: 0 });
         expect(out).toHaveLength(2);
-        expect(out[0].url).toBe('https://www.musicnerd.xyz/');
+        expect(out[0].url).toBe('https://musicnerd.net/');
     });
 });
 
@@ -92,9 +92,9 @@ describe('robots', () => {
         const { default: robots } = await import('../robots');
         const out = await robots();
         expect(out.sitemap).toEqual([
-            'https://www.musicnerd.xyz/sitemap/0.xml',
-            'https://www.musicnerd.xyz/sitemap/1.xml',
-            'https://www.musicnerd.xyz/sitemap/2.xml',
+            'https://musicnerd.net/sitemap/0.xml',
+            'https://musicnerd.net/sitemap/1.xml',
+            'https://musicnerd.net/sitemap/2.xml',
         ]);
         expect(out.rules).toMatchObject({ allow: '/' });
     });
@@ -104,6 +104,6 @@ describe('robots', () => {
         db.execute = jest.fn(async () => { throw new Error('db down'); });
         const { default: robots } = await import('../robots');
         // One chunk named is worth serving; a 500 tells a crawler to stay away.
-        expect((await robots()).sitemap).toEqual(['https://www.musicnerd.xyz/sitemap/0.xml']);
+        expect((await robots()).sitemap).toEqual(['https://musicnerd.net/sitemap/0.xml']);
     });
 });

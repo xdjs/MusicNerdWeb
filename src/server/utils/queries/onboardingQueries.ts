@@ -3,39 +3,10 @@ import { eq, sql } from "drizzle-orm";
 import { artistDocs, artistInterviewAnswers, artistOnboardingSteps } from "@/server/db/schema";
 import { withScopedArtistWrite } from './ownershipWrites';
 
-/**
- * Post-claim onboarding state. The step order is the chat's forced chain.
- * There is NO stored cursor: the current step is always the first step
- * lacking an explicit confirmation row (see the design spec §5).
- */
+/** The onboarding steps, in the chat's forced order. Reading their state is
+ *  MusicNerdAPI's job now (GET /api/onboarding/{artistId}/state). */
 export const ONBOARDING_STEPS = ["profiles", "vault", "interview", "publish"] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
-export type OnboardingState = { complete: boolean; currentStep: OnboardingStep | null };
-
-/** Pure derivation — unit-test this, it is where the resume logic lives. */
-export function firstUnconfirmedStep(confirmed: ReadonlySet<string>): OnboardingStep | null {
-    for (const step of ONBOARDING_STEPS) {
-        if (!confirmed.has(step)) return step;
-    }
-    return null;
-}
-
-/** `null` return means the read FAILED (e.g. migration not applied, missing
- *  grants) — distinguishable from a brand-new claimant with zero confirmed
- *  steps (an empty Set). Callers MUST treat `null` as "unknown", never as
- *  "incomplete, start at profiles" — conflating the two fails OPEN into a
- *  permanent stuck takeover for every claimant whenever this read breaks. */
-export async function getConfirmedSteps(artistId: string): Promise<Set<OnboardingStep> | null> {
-    try {
-        const rows = await db.query.artistOnboardingSteps.findMany({
-            where: eq(artistOnboardingSteps.artistId, artistId),
-        });
-        return new Set(rows.map(r => r.step as OnboardingStep));
-    } catch (e) {
-        console.error("[getConfirmedSteps] Error:", e);
-        return null;
-    }
-}
 
 /** Written ONLY by an explicit artist action in the chat. Idempotent (two-tab safe). */
 export async function confirmOnboardingStep(artistId: string, step: OnboardingStep): Promise<void> {
@@ -45,49 +16,7 @@ export async function confirmOnboardingStep(artistId: string, step: OnboardingSt
         .onConflictDoNothing({ target: [artistOnboardingSteps.artistId, artistOnboardingSteps.step] }); });
 }
 
-/** `null` return means onboarding state is UNKNOWN (the confirmed-steps read
- *  failed) — callers must render/act as if there is no onboarding takeover at
- *  all, not fall back to a default state (spec fail-CLOSED requirement). */
-export async function getOnboardingState(artistId: string): Promise<OnboardingState | null> {
-    const confirmed = await getConfirmedSteps(artistId);
-    if (confirmed === null) return null;
-    return { complete: confirmed.has("publish"), currentStep: firstUnconfirmedStep(confirmed) };
-}
-
-export async function upsertInterviewAnswer(input: {
-    artistId: string;
-    questionKey: string;
-    question: string;
-    answer: string | null;
-    /** Used only if this is the INSERT side of the upsert. The conflict update
-     *  deliberately never changes the sitting already stored on the row. */
-    sitting: number;
-    /** "offered" is a question we PUT to them that they have not dealt with
-     *  yet — the boundary of a sitting. It becomes "followup" the moment they
-     *  answer it or skip it. Without it there is no way to tell a sitting
-     *  somebody abandoned from one they finished, because a lifetime row count
-     *  cannot see where one offer ended and the next began. */
-    source: "onboarding" | "followup" | "offered";
-}): Promise<void> {
-    await withScopedArtistWrite(input.artistId, async tx => { await tx
-        .insert(artistInterviewAnswers)
-        .values(input)
-        .onConflictDoUpdate({
-            target: [artistInterviewAnswers.artistId, artistInterviewAnswers.questionKey],
-            set: {
-                question: input.question,
-                answer: input.answer,
-                source: input.source,
-                // `createdAt` is answer chronology. `offeredAt`, deliberately
-                // absent from this update, is the immutable material watermark
-                // established by the first insert. That also makes duplicate
-                // submits/two-tab retries unable to advance the cutoff.
-                createdAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-                // `sitting` IS DELIBERATELY ABSENT FROM THIS SET LIST. Answering
-                // a question must leave its stored membership intact.
-            },
-        }); });
-}
+export { upsertInterviewAnswer } from "./upsertInterviewAnswer";
 
 /**
  * Write down a batch of questions PUT to somebody, and never anything more.

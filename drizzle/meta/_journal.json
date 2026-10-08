@@ -253,6 +253,41 @@
       "when": 1790869768048,
       "tag": "0035_account_merge_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791230836722,
+      "tag": "0036_music_destination_owner_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791241970263,
+      "tag": "0037_source_extract",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791244020000,
+      "tag": "0038_automatic_source_extraction",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791304532481,
+      "tag": "0039_source_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791413319969,
+      "tag": "0043_interview_response_versions",
+      "breakpoints": true
     }
   ]
 }

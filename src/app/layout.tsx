@@ -17,12 +17,12 @@ export const metadata: Metadata = {
   description: "A crowd-sourced directory of music artists",
   openGraph: {
     type: "website",
-    url: "https://www.musicnerd.xyz",
+    url: "https://musicnerd.net",
     title: "Music Nerd",
     description: "A crowd-sourced directory of music artists",
     images: [
       {
-        url: "https://www.musicnerd.xyz/icon.ico",
+        url: "https://musicnerd.net/icon.ico",
         width: 800,
         height: 800,
         alt: "Music Nerd Icon",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     site: "@musicnerd.xyz",
     title: "Music Nerd",
     description: "A crowd-sourced directory of music artists",
-    images: ["https://www.musicnerd.xyz/icon.ico"],
+    images: ["https://musicnerd.net/icon.ico"],
   },
   icons: {
     icon: "/icon.ico",

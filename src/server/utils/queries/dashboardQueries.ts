@@ -1,37 +1,13 @@
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
-import { eq, and, or, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
 import { canonicalizeLoreUrl } from '@/lib/source/canonicalizeLoreUrl';
 
-/**
- * Returns the artist's **active** claim (pending or approved), if any.
- *
- * Invariant: rejected claims persist in the table for audit history but are
- * NEVER considered "the claim for this artist." UI badges and re-claim
- * blocking logic both read through this function and so naturally inherit
- * the right behavior — a rejected user must be able to claim again, and a
- * profile showing one previously-rejected attempt must not look claimed.
- */
-export async function getClaimByArtistId(artistId: string) {
-    try {
-        return await db.query.artistClaims.findFirst({
-            where: and(
-                eq(artistClaims.artistId, artistId),
-                or(
-                    eq(artistClaims.status, "pending"),
-                    eq(artistClaims.status, "approved"),
-                ),
-            ),
-        });
-    } catch (e) {
-        console.error("[getClaimByArtistId] Error:", e);
-        return undefined;
-    }
-}
+export { getClaimByArtistId } from './getClaimByArtistId';
 
 export async function getClaimById(claimId: string) {
     try {
@@ -340,25 +316,7 @@ async function withVaultSourceWrite<T>(sourceId: string, write: (tx: ScopedWrite
     return withScopedArtistWrite(scope.artistId, tx => write(tx, and(eq(artistVaultSources.id, sourceId), eq(artistVaultSources.artistId, scope.artistId))!));
 }
 
-export async function updateVaultSourceStatus(sourceId: string, status: "approved" | "rejected", expectedStatus?: "pending") {
-    try {
-        const updated = await withVaultSourceWrite(sourceId, async (tx, predicate) => {
-            const [row] = await tx.update(artistVaultSources)
-            .set({
-                status,
-                updatedAt: sql`(now() AT TIME ZONE 'utc'::text)`,
-            })
-            .where(expectedStatus ? and(predicate, eq(artistVaultSources.status, expectedStatus)) : predicate)
-            .returning();
-            if (row) await recordArtistActivity(row.artistId, `source_${status}`, { sourceId }, tx);
-            return row;
-        });
-        return updated;
-    } catch (e) {
-        console.error("[updateVaultSourceStatus] Error:", e);
-        throw e;
-    }
-}
+export { updateVaultSourceStatus } from './updateVaultSourceStatus';
 
 export { insertVaultSource } from './insertVaultSource';
 

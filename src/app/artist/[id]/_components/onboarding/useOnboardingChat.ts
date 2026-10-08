@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 import type { ProfileCandidate, DocSource } from "./StepCards";
 import type { SourceView } from "@/lib/onboarding/buildStages";
+import { getAccessToken } from "@privy-io/react-auth";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 export type ChatItem = {
     id: string;
@@ -38,7 +40,8 @@ export type ChatItem = {
     // `unreachable` only: platforms that refused discovery, by display name.
     platforms?: string[];
     // `source` (the one just saved) and `sources` (every source on the page
-    // once the stage ends): what the research view shows as source cards.
+    // once the stage ends). Nothing shows these since the research view was
+    // removed; slice 3 of #1365 (deferred) would paint them into the Lore.
     saved?: SourceView[];
     // Set only on "progress" items that belong to a collapsible batch (e.g.
     // the profiles step's per-platform search) — see the `push` reconciliation
@@ -164,9 +167,10 @@ export function useOnboardingChat(artistId: string) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 65_000);
         try {
-            const res = await fetch(`/api/onboarding/${artistId}/chat`, {
+            // MusicNerdAPI (#1365), signed in with the Privy access token.
+            const res = await fetch(musicNerdApiUrl(`/api/onboarding/${artistId}/chat`), {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getAccessToken()}` },
                 body: JSON.stringify(turn),
                 signal: controller.signal,
             });
@@ -206,8 +210,8 @@ export function useOnboardingChat(artistId: string) {
                             // no-terminal-frame error path below.
                             case "text-delta": push({ kind: "writing", stage: event.call, text: event.delta }); break;
                             case "candidate": push({ kind: "candidates", candidates: [event.profile] }); break;
-                            // Auto-build only, for the research view: what the build
-                            // wrote (its cards swap to these), and who refused to answer.
+                            // Auto-build only: what the build wrote, and who refused to
+                            // answer. Unused since the research view was removed (#1365).
                             case "linked": push({ kind: "linked", candidates: event.profiles }); break;
                             case "unreachable": push({ kind: "unreachable", platforms: event.platforms }); break;
                             case "source": push({ kind: "source", saved: [event.source] }); break;

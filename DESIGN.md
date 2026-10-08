@@ -38,10 +38,10 @@ records several; the inventory stays the engineering source of truth.
 | **Real UI** | show the product as it ships (the claim button, the research view, found-profile cards) rather than inventing screens. | App |
 
 **The call to action is claiming the profile.** An artist searches their name at
-`https://www.musicnerd.xyz`, opens their page and taps **Claim**: the frosted glass button with a shield
+`https://musicnerd.net`, opens their page and taps **Claim**: the frosted glass button with a shield
 icon beside the pink Listen button. It opens *Claim This Profile*, shows *Pending verification* until
-approved, then *Claimed*. Say it as one line: "claim your profile at musicnerd.xyz".
-Use the `www` URL in links; the bare domain does not resolve.
+approved, then *Claimed*. Say it as one line: "claim your profile at musicnerd.net".
+Use the bare `https://musicnerd.net` URL in links; `www` redirects there.
 
 ## Design philosophy
 

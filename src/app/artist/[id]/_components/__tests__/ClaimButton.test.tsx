@@ -67,15 +67,19 @@ describe("ClaimButton claim events", () => {
 
 describe('claim status visibility', () => {
     afterEach(cleanup);
+    beforeEach(() => { mockTrackEvent.mockReset(); mockClaim.mockReset(); });
     it.each([
         ['anonymous', null, false],
         ['another account', {user: {id: 'other'}}, false],
         ['claim owner', {user: {id: 'owner'}}, true],
-    ])('shows an approved claim to %s without offering a new claim', (_viewer, session, isClaimedByUser) => {
+    ])('offers no claim action to %s on an approved profile', (_viewer, session, isClaimedByUser) => {
         (useSession as jest.Mock).mockReturnValue({data: session});
         render(<ClaimButton {...props} isClaimed isClaimedByUser={isClaimedByUser as boolean} compactOnMobile />);
-        expect(screen.getByLabelText('Claimed')).toBeInTheDocument();
-        expect(screen.queryByRole('button', {name: /claim/i})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Claim profile'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(mockClaim).not.toHaveBeenCalled();
+        expect(mockTrackEvent).not.toHaveBeenCalled();
     });
     it('keeps another account’s pending claim private', () => {
         (useSession as jest.Mock).mockReturnValue({data: null});
@@ -86,6 +90,6 @@ describe('claim status visibility', () => {
         (useSession as jest.Mock).mockReturnValue({data: {user: {id: 'owner'}}});
         render(<ClaimButton {...props} isPending isPendingByUser />);
         expect(screen.getByLabelText('Pending verification')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Claimed')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Claimed artist profile'})).not.toBeInTheDocument();
     });
 });

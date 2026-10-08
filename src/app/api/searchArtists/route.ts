@@ -1,5 +1,5 @@
 import { searchForArtistByName } from "@/server/utils/queries/artistQueries";
-import { customImageUrl } from "@/lib/artist/artistImage";
+import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import type { Artist } from "@/server/db/DbTypes";
 

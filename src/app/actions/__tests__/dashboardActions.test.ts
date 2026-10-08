@@ -2,6 +2,8 @@
 import { jest } from "@jest/globals";
 jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('claim-1') }));
 
+jest.mock('@/server/utils/linkPreview', () => ({ fetchLinkPreview: jest.fn().mockResolvedValue({title:'Article title',imageUrl:null}) }));
+
 jest.mock("@/server/auth", () => ({
     getServerAuthSession: jest.fn(),
 }));
@@ -92,7 +94,7 @@ describe('bio actions pass original ownership to the locked mutation', () => {
     });
 });
 
-describe("dashboardActions.addVaultSource", () => {
+describe("addVaultSource", () => {
     beforeEach(() => {
         jest.resetModules();
     });
@@ -100,7 +102,7 @@ describe("dashboardActions.addVaultSource", () => {
     async function setup() {
         const { getServerAuthSession } = await import("@/server/auth");
         const { getApprovedClaimForArtistByUserId, insertVaultSource } = await import("@/server/utils/queries/dashboardQueries");
-        const { addVaultSource } = await import("../dashboardActions");
+        const { addVaultSource } = await import("../addVaultSource");
 
         (getServerAuthSession as jest.Mock).mockResolvedValue({ user: { id: "user-1", email: "user@test.com" } });
         // canEditArtist authorizes the owner via the per-artist claim lookup
@@ -162,13 +164,51 @@ describe("dashboardActions.addVaultSource", () => {
             artistId: "artist-1",
             url: "https://pitchfork.com/reviews/albums/example",
             status: "pending",
-        }), { userId: "user-1", expectedClaimId: "claim-1" });
+        }), { userId: "user-1", expectedClaimId: "claim-1" }, { userId: "user-1", trigger: "editor_source", approveIfTrusted: true });
     });
 
     it("stores the canonical URL without a fragment", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         expect((await addVaultSource("artist-1", "HTTPS://PITCHFORK.COM:443/a#bio")).success).toBe(true);
-        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }), { userId: "user-1", expectedClaimId: "claim-1" });
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({ url: "https://pitchfork.com/a" }), { userId: "user-1", expectedClaimId: "claim-1" }, { userId: "user-1", trigger: "editor_source", approveIfTrusted: true });
+    });
+
+    it.each([{ isAdmin: true, isWhiteListed: false }, { isAdmin: false, isWhiteListed: true }])("queues the saved editor approval after the transaction checks roles %j", async role => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { getUserById } = await import("@/server/utils/queries/userQueries");
+        const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
+        getUserById.mockResolvedValue({ id: "user-1", ...role });
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
+        const result = await addVaultSource("artist-1", "https://example.com/interview");
+        expect(result).toMatchObject({ success: true, source: { status: "approved" } });
+        expect(queueLoreRefresh).toHaveBeenCalledWith("artist-1", "claim-1", { userId: "user-1", trigger: "source_submission" });
+    });
+
+    it("returns a warning if the approved editor source is saved but the refresh cannot queue", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { getUserById } = await import("@/server/utils/queries/userQueries");
+        const { queueLoreRefresh } = await import("@/server/utils/queries/loreRefresh");
+        getUserById.mockResolvedValue({ id: "user-1", isWhiteListed: true });
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
+        queueLoreRefresh.mockRejectedValueOnce(new Error("queue unavailable"));
+        expect(await addVaultSource("artist-1", "https://example.com/interview")).toMatchObject({
+            success: true, source: { status: "approved" }, warning: expect.stringMatching(/saved/i),
+        });
+    });
+
+    it("reports an insert conflict instead of claiming an existing source was added", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        insertVaultSource.mockResolvedValueOnce(undefined);
+        expect(await addVaultSource("artist-1", "https://example.com/interview")).toMatchObject({ success: false, error: expect.stringMatching(/already/) });
+    });
+
+    it("leaves ordinary source text to the transactional ingestion queue", async () => {
+        const { addVaultSource, insertVaultSource } = await setup();
+        const { fetchPageContent } = await import("@/server/utils/fetchPageContent");
+        insertVaultSource.mockImplementation(async data => ({ id: "source-1", ...data, status: "approved" }));
+        expect((await addVaultSource("artist-1", "https://example.com/article")).success).toBe(true);
+        expect(fetchPageContent).not.toHaveBeenCalled();
+        expect(insertVaultSource).toHaveBeenCalledWith(expect.objectContaining({title:'Article title'}),expect.anything(),expect.anything());
     });
 
     it("finishes podcast metadata persistence before returning", async () => {

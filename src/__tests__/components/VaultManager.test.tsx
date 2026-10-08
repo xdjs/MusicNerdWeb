@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import VaultManager from '@/app/artist/[id]/_components/VaultManager';
 import { EditModeContext } from '@/app/_components/EditModeContext';
+const mockToast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }));
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: jest.fn() }),
@@ -15,9 +17,12 @@ jest.mock('@/app/actions/dashboardActions', () => ({
   searchWebForSources: jest.fn().mockResolvedValue({ success: true, count: 2 }),
   removeVaultSource: jest.fn().mockResolvedValue({ success: true }),
   removeVaultSources: jest.fn().mockResolvedValue({ success: true, count: 1 }),
+}));
+jest.mock('@/app/actions/addVaultSource', () => ({
   addVaultSource: jest.fn().mockResolvedValue({ success: true }),
 }));
-import { updateSourceStatus, removeVaultSource, removeVaultSources, addVaultSource, searchWebForSources } from '@/app/actions/dashboardActions';
+import { addVaultSource } from '@/app/actions/addVaultSource';
+import { updateSourceStatus, removeVaultSource, removeVaultSources, searchWebForSources } from '@/app/actions/dashboardActions';
 
 const pending = [{ id: 'p1', artistId: 'a1', url: 'http://e/1', title: 'Pending One', status: 'pending' }];
 const approved = [{ id: 'ap1', artistId: 'a1', url: 'http://e/2', title: 'Approved One', status: 'approved' }];
@@ -102,9 +107,23 @@ describe('VaultManager', () => {
     expect(screen.getByText('Pending One')).toBeInTheDocument();
 
     // The Approved heading should be present (matches "Approved (2)")
-    expect(screen.getByText(/^approved \(\d+\)$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^approved sources \(\d+\)$/i)).toBeInTheDocument();
 
     global.fetch = originalFetch;
+  });
+
+  it('removing a destination records a rejection and hides Lore-only controls', async () => {
+    render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+      <VaultManager artistId="a1" pendingSources={pending} approvedSources={approved} reviewOnly />
+    </EditModeContext.Provider>);
+    expect(screen.queryByRole('button', { name: /search web for sources/i })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/add a source by url/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[1]);
+    await waitFor(() => expect(updateSourceStatus).toHaveBeenCalledWith('ap1', 'rejected'));
+    expect(removeVaultSource).not.toHaveBeenCalled();
+    expect(removeVaultSources).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('Approved One')).not.toBeInTheDocument());
   });
 
   it('delete removes a pending source', async () => {
@@ -141,6 +160,20 @@ describe('VaultManager', () => {
     fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
 
     await waitFor(() => expect(addVaultSource).toHaveBeenCalledWith('a1', 'https://pitchfork.com/x'));
+  });
+
+  it.each(['approved', 'pending'])('places a new URL in the returned %s list immediately', async status => {
+    addVaultSource.mockResolvedValueOnce({ success: true, source: {
+      id: 'new-source', artistId: 'a1', url: 'https://example.com/interview', title: 'New Interview', status,
+    } });
+    renderEditing(true);
+    fireEvent.change(screen.getByPlaceholderText(/add a source by url/i), { target: { value: 'https://example.com/interview' } });
+    fireEvent.click(screen.getByRole('button', { name: /^add$/i }));
+    await screen.findByText('New Interview');
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      description: status === 'approved' ? 'Added to Lore.' : 'Added to pending review.',
+    }));
+    expect(screen.getByText(status === 'approved' ? 'Approved sources (2)' : 'Pending review (2)')).toBeInTheDocument();
   });
 
   it('bulk delete: selecting an approved source and deleting calls removeVaultSources', async () => {
@@ -186,4 +219,16 @@ it('retains contributor attribution through approval and receives refreshed disp
   expect(screen.getByText('Suggested by First name')).toBeInTheDocument();
   rerender(view('Updated name'));
   expect(screen.getByText('Suggested by Updated name')).toBeInTheDocument();
+});
+
+it('bounds long Lore lists and resets the page when searching', () => {
+  renderEditing(true, Array.from({length:13},(_,i)=>({...approved[0],id:`source-${i}`,title:`Saved article ${i}`})));
+  expect(screen.getByText('Saved article 4')).toBeVisible();
+  expect(screen.queryByText('Saved article 5')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Next source page'}));
+  expect(screen.getByText('Saved article 5')).toBeVisible();
+  fireEvent.change(screen.getByRole('textbox',{name:'Search saved sources'}),{target:{value:'article 12'}});
+  expect(screen.getByText('Saved article 12')).toBeVisible();
+  expect(screen.getByRole('button',{name:'Previous source page'})).toBeDisabled();
+  expect(screen.getByRole('button',{name:'Next source page'})).toBeDisabled();
 });

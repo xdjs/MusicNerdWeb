@@ -164,6 +164,9 @@
 .filterSummary button { min-height: 36px; text-decoration: underline; text-underline-offset: 3px; color: hsl(var(--foreground)); }
 .loreList { display: grid; gap: 12px; }
 .loreCard { min-width: 0; border-radius: 16px; padding: 20px; }
+.loreCheckbox[role="checkbox"] { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; }
+/* The legacy global checked selector also paints Radix's inner indicator. */
+.loreCheckbox[role="checkbox"] > span { background-color: transparent !important; border-color: transparent !important; }
 .loreCardTop { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .loreActions { display: flex; flex-wrap: wrap; gap: 8px; }
 .loreActions button { min-height: 44px; }

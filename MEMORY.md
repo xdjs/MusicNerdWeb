@@ -1,3 +1,44 @@
+## Optional support links after research — October 5
+
+Pete simplified [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305): on the
+existing post-build tour's Links step, show optional Subvert, Bandcamp and
+Supercollector hyperlinks only if the visible Support section has no links.
+Implemented in [draft #1429](https://github.com/xdjs/MusicNerdWeb/pull/1429)
+on `codex/onboarding-support-options`; not merged or released.
+See [the contract](docs/research-view.md#after-research-optional-support-links).
+The artist page reuses `getProfileLinks(..., 'support')` plus approved source-backed
+Support destinations from `getSourceLinks` after excluding `blockedMusicSourceIds`.
+No new API, database or research work beyond the #1273 presentation dependency.
+Preview-only `?tourPreview=1` permits review with saved data without rerunning research.
+#1429 is stacked on #1430; both real and preview tour callers match public Support.
+Merge #1430 first, retarget #1429 to main after that squash merge, then recheck and
+merge #1429. Production promotion remains separate.
+
+## Primary domain migration — October 5
+
+[#1427](https://github.com/xdjs/MusicNerdWeb/issues/1427) tracks Carl’s move to
+`https://musicnerd.net`. The new apex now serves the existing production deployment;
+www redirects with HTTPS, path and query preserved. Squarespace stays authoritative;
+its old `.net` → `.xyz` forwarding rule was removed and the website A/CNAME records
+now point to Vercel. Existing `.xyz` traffic and email DNS remain unchanged.
+Carl confirmed matching `.net` service hostnames and retirement of `wb0`. Canonical
+URL and production release-check updates merged in
+[PR #1428](https://github.com/xdjs/MusicNerdWeb/pull/1428) (`f62d3885`). Check the
+owning issue for protected production release and authentication-origin status;
+the merge alone does not establish those. See [the cutover contract](docs/domain-migration.md).
+
+## Trusted Lore and contributor bulk approval — October 5
+
+[#1423](https://github.com/xdjs/MusicNerdWeb/issues/1423) and
+[PR #1425](https://github.com/xdjs/MusicNerdWeb/pull/1425) are released. Pete
+squash-merged `8ff99a61`; the protected production release promoted that SHA on
+2026-10-05. [Release evidence](https://github.com/xdjs/MusicNerdWeb/pull/1425#issuecomment-6000593312)
+links the passing checks, deployment, exact-head code/security reviews and
+production Admin verification. Whitelisted/admin Lore auto-approval, contributor
+bulk approval for Lore and links, and selected-source approval in Admin's Lore
+queue are live. No migration was required. Tempo Menace's attributed backlog was
+already approved; C.Y., Carl and Pete were already whitelisted.
+
 ## Instagram refresh reliability — October 2
 
 [#1408](https://github.com/xdjs/MusicNerdWeb/issues/1408) is being implemented on

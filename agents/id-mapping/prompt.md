@@ -51,7 +51,7 @@ Wikidata stores verified cross-platform ID mappings. A Spotify ID match is unamb
 ```bash
 curl -s -X POST 'https://query.wikidata.org/sparql' \
   -H 'Accept: application/json' \
-  -H 'User-Agent: MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)' \
+  -H 'User-Agent: MusicNerdWeb/1.0 (https://musicnerd.net; contact@musicnerd.xyz)' \
   --data-urlencode 'query=<SPARQL>'
 ```
 
@@ -112,7 +112,7 @@ MusicBrainz has curated, human-verified cross-platform links. Slower due to the 
 
 **1 request per second. This is non-negotiable.** MusicBrainz will block your IP if you exceed this. Wait at least 1 second between every request to `musicbrainz.org`.
 
-All requests must include: `User-Agent: MusicNerdWeb/1.0 (https://musicnerd.xyz; contact@musicnerd.xyz)`
+All requests must include: `User-Agent: MusicNerdWeb/1.0 (https://musicnerd.net; contact@musicnerd.xyz)`
 
 ### Path A — Artist has an MBID
 

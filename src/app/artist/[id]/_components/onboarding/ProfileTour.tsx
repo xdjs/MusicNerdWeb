@@ -2,31 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export function tourFlagKey(artistId: string): string {
-    return `mn-tour-done-${artistId}`;
-}
-
-/** Set when the build finishes, read when the tour mounts.
- *
- *  The tour used to live inside OnboardingGate, which the page renders ONLY
- *  while onboarding is incomplete. The build's last act is confirming
- *  `publish` — so by the time there is anything to tour, the component holding
- *  the tour has stopped being rendered. It appeared, the page re-fetched, and
- *  it vanished. A flag survives both the refresh and the completion. */
-export function tourPendingKey(artistId: string): string {
-    return `mn-tour-pending-${artistId}`;
-}
-
-/** Fired when the build arms the tour.
- *
- *  The flag alone is not enough. ProfileTour is rendered by the artist page on
- *  INITIAL LOAD — before the build has even started — so its mount effect reads
- *  "not pending" and that is the last time it ever looks. The flag is set
- *  minutes later, and `router.refresh()` re-renders server components without
- *  remounting a client component in the same position, so the effect never runs
- *  again. Result: the build completes, the flag is set, and nothing is
- *  listening. An event closes that gap without polling. */
-export const TOUR_ARMED_EVENT = "mn-tour-armed";
+import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
+import { tourPendingKey } from "@/app/artist/[id]/_components/onboarding/tourPendingKey";
+import { TOUR_ARMED_EVENT } from "@/app/artist/[id]/_components/onboarding/armTour";
 
 /** Fired when the tour ends, however it ends.
  *
@@ -36,13 +14,6 @@ export const TOUR_ARMED_EVENT = "mn-tour-armed";
  *  prop because the tour and the offer are siblings on the page, not nested,
  *  and the tour has no business knowing what comes after it. */
 export const TOUR_FINISHED_EVENT = "mn-tour-finished";
-
-export function armTour(artistId: string): void {
-    try {
-        sessionStorage.setItem(tourPendingKey(artistId), "1");
-    } catch { /* private mode */ }
-    window.dispatchEvent(new CustomEvent(TOUR_ARMED_EVENT, { detail: artistId }));
-}
 
 type Stop = {
     anchor: string;
@@ -57,7 +28,7 @@ const STOPS: Stop[] = [
     {
         anchor: "mn-about",
         title: "We wrote you a first draft",
-        body: "It comes from the sources further down this page. Rewrite it in your own words, or replace it completely. Plenty of artists would rather write their own.",
+        body: "This draft is based on the sources on your profile. Edit it or write your own.",
     },
     {
         anchor: "mn-ask",
@@ -101,7 +72,7 @@ function place(rect: DOMRect, vw: number, vh: number, cardHeight: number): Place
     }
     const horizontalCenter = clampLeft(rect.left + rect.width / 2 - CARD_WIDTH / 2);
     if (rect.bottom + GAP + cardHeight + EDGE <= vh) {
-        return { top: rect.bottom + GAP, left: horizontalCenter, side: "below" };
+        return { top: clampTop(rect.bottom + GAP), left: horizontalCenter, side: "below" };
     }
     return { top: clampTop(rect.top - GAP - cardHeight), left: horizontalCenter, side: "above" };
 }
@@ -128,7 +99,7 @@ function place(rect: DOMRect, vw: number, vh: number, cardHeight: number): Place
  * Targets element ids rather than layout, so the page can be rearranged without
  * touching this, and it still renders if a section is missing.
  */
-export default function ProfileTour({ artistId }: { artistId: string }) {
+export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: string; hasSupportLinks: boolean }) {
     const [index, setIndex] = useState(0);
     const [dismissed, setDismissed] = useState(false);
     // Starts closed and decides after mount — sessionStorage is unavailable
@@ -171,14 +142,13 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
         setPlacement(place(rect, window.innerWidth, window.innerHeight, cardHeight));
     }, [stop]);
 
-    // Scroll the section into view, lift it above the dim, and ring it. Cleanup
-    // restores the element's own styles so the tour leaves no trace.
+    // Highlight the current section without moving the reader when the build
+    // automatically arms the tour. Only Next/Back request a scroll below.
+    // Cleanup restores the element's own styles so the tour leaves no trace.
     useEffect(() => {
         if (!armed || dismissed || !stop) return;
         const el = document.getElementById(stop.anchor);
         if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-
         const prev = {
             boxShadow: el.style.boxShadow,
             position: el.style.position,
@@ -220,7 +190,14 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
             window.removeEventListener("scroll", onMove);
             window.removeEventListener("resize", onMove);
         };
-    }, [index, armed, dismissed, reposition]);
+    }, [index, armed, dismissed, reposition, hasSupportLinks]);
+
+    const goToStop = (nextIndex: number) => {
+        const nextStop = STOPS[nextIndex];
+        if (!nextStop) return;
+        document.getElementById(nextStop.anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setIndex(nextIndex);
+    };
 
     const finish = (reachedTheEnd: boolean) => {
         try {
@@ -252,7 +229,7 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
             {/* Dims the page so the ringed section is the only lit thing. Never
                 blocks clicks — the artist can still use the section we're
                 pointing at, which is the entire point of pointing at it. */}
-            <div className="fixed inset-0 z-40 bg-black/50 pointer-events-none" aria-hidden="true" />
+            <div className="fixed inset-0 !m-0 z-40 bg-black/50 pointer-events-none" aria-hidden="true" />
 
             <div
                 ref={cardRef}
@@ -263,7 +240,7 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
                         ? { position: "fixed", top: placement.top, left: placement.left, width: CARD_WIDTH }
                         : { position: "fixed", bottom: EDGE, left: EDGE, right: EDGE }
                 }
-                className="z-50 rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 p-5 space-y-3 shadow-2xl"
+                className="!m-0 z-50 max-w-[calc(100vw-24px)] rounded-xl border border-pink-500/40 bg-white dark:bg-neutral-900 shadow-2xl"
             >
                 {placement && (
                     <div
@@ -277,34 +254,48 @@ export default function ProfileTour({ artistId }: { artistId: string }) {
                     />
                 )}
 
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium text-pink-500">{index + 1} of {STOPS.length}</p>
-                    <button
-                        onClick={() => finish(false)}
-                        className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                        Skip
-                    </button>
-                </div>
-
-                <h3 className="text-lg font-bold text-black dark:text-white">{stop.title}</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{stop.body}</p>
-
-                <div className="flex gap-2 pt-1">
-                    {index > 0 && (
+                <div className="max-h-[calc(100dvh-26px)] overflow-y-auto overscroll-contain rounded-xl p-5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-medium text-pink-500">{index + 1} of {STOPS.length}</p>
                         <button
-                            onClick={() => setIndex(i => i - 1)}
-                            className="text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/20 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                            onClick={() => finish(false)}
+                            className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
-                            Back
+                            Skip
                         </button>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-black dark:text-white">{stop.title}</h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{stop.body}</p>
+
+                    {stop.anchor === "mn-links" && hasSupportLinks === false && (
+                        <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                            <p>
+                                We didn&apos;t find any support links. Give fans a way to support your music with{" "}
+                                <a href="https://subvert.fm/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Subvert</a>,{" "}
+                                <a href="https://bandcamp.com/artists" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Bandcamp</a>, or{" "}
+                                <a href="https://supercollector.xyz/" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">Supercollector</a>.
+                            </p>
+                            <p>Already have a page? Add its link under <strong>Support the artist</strong>.</p>
+                        </div>
                     )}
-                    <button
-                        onClick={() => (isLast ? finish(true) : setIndex(i => i + 1))}
-                        className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
-                    >
-                        {isLast ? "Got it" : "Next"}
-                    </button>
+
+                    <div className="flex gap-2 pt-1">
+                        {index > 0 && (
+                            <button
+                                onClick={() => goToStop(index - 1)}
+                                className="text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/20 text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                            >
+                                Back
+                            </button>
+                        )}
+                        <button
+                            onClick={() => (isLast ? finish(true) : goToStop(index + 1))}
+                            className="flex-1 button-pink bg-highlightpink hover:bg-highlightpink/80 active:bg-highlightpink/70 transition-colors text-black font-semibold py-2 rounded-lg"
+                        >
+                            {isLast ? "Got it" : "Next"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </>

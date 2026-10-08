@@ -1,4 +1,4 @@
-const UA = "MusicNerd/1.0 (https://musicnerd.xyz)";
+const UA = "MusicNerd/1.0 (https://musicnerd.net)";
 const MIN_EXTRACT = 40; // ignore stub articles
 
 export type VerifiedGrounding = { source: "wikipedia"; url: string; extract: string };

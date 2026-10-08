@@ -24,7 +24,7 @@ beforeAll(async () => {
     create table artists (id uuid primary key, name text);
     create table artist_claims (id uuid primary key, artist_id uuid, user_id uuid, status text, reference_code text, created_at timestamptz default now(), updated_at timestamptz default now());
     create table artist_research_jobs (id uuid primary key default gen_random_uuid(), artist_id uuid, kind text constraint artist_research_jobs_kind_check check (kind in ('social_ingest', 'caption_extract', 'lore_refresh')), status text default 'pending', cursor integer default 0, total integer, attempts integer default 0, state jsonb default '{}', claimed_at timestamptz, last_error text, created_at timestamptz default now(), updated_at timestamptz default now());
-    create unique index jobs_live on artist_research_jobs (artist_id, kind) where status in ('pending', 'running');
+    create unique index artist_research_jobs_one_live on artist_research_jobs (artist_id, kind) where status in ('pending', 'running');
     create table artist_vault_sources (id uuid primary key default gen_random_uuid(), artist_id uuid, status text, title text, url text, created_at timestamptz default now(), updated_at timestamptz default now(), snippet text, type text, file_name text, file_size integer, file_path text, content_type text, extracted_text text, og_image text, published_at date, podcast_episode_key text, podcast_show_title text, podcast_episode_title text);
     create unique index sources_unique on artist_vault_sources (artist_id, url);
     insert into artists values ('${artist}', 'Example Artist');
@@ -35,6 +35,9 @@ beforeAll(async () => {
   // inherited grant as well as deny the public Data API roles.
   await client.exec('alter default privileges in schema public grant select, insert, update, delete on tables to mnweb, anon, authenticated');
   await client.exec(readFileSync('drizzle/0031_lore_attribution.sql', 'utf8'));
+  await client.exec("alter table artist_research_jobs add constraint artist_research_jobs_status_check check(status in ('pending','running','done','failed'))");
+  await client.exec(readFileSync('drizzle/0037_source_extract.sql', 'utf8'));
+  await client.exec(readFileSync('drizzle/0038_automatic_source_extraction.sql', 'utf8'));
 }, 30000);
 afterAll(async () => { await client.close(); });
 it('leaves legacy origins unknown and creates no guessed actor', async () => {

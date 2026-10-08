@@ -20,6 +20,6 @@ export default function ContributionWorkspace({data,accountName}:{data:Awaited<R
    <Link href={`/admin/contributions?userId=${data.userId}&status=all`} aria-current="page">Contributions</Link>
    <Link href={`/admin?section=activity&activityQuery=${data.userId}`}>Research activity</Link>
   </nav>}
-  <ContributionReview key={data.userId} data={data}/>
+  <ContributionReview key={data.userId} data={data} contributorName={accountName}/>
  </section>;
 }

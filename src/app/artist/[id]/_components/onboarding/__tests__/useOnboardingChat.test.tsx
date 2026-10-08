@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { renderHook, act } from '@testing-library/react';
 import { useOnboardingChat } from '../useOnboardingChat';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
+
+jest.mock('@privy-io/react-auth', () => ({ getAccessToken: jest.fn(async () => 'privy-token') }));
 
 // Mock fetch for every test in this file — the hook's real risk surface (SSE
 // buffer/frame-split parsing, error classification, userEcho) never touches
@@ -41,6 +44,23 @@ describe('useOnboardingChat', () => {
         expect(result.current.items.some(i => i.kind === 'bot' && i.text === 'Hi there')).toBe(true);
         expect(result.current.items.some(i => i.kind === 'complete')).toBe(true);
         expect(result.current.busy).toBe(false);
+    });
+
+    it('posts each turn to MusicNerdAPI with the Privy access token', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce(
+            fakeStreamResponse(['data: {"kind":"complete"}\n\n'])
+        );
+
+        const { result } = renderHook(() => useOnboardingChat('artist-1'));
+        await act(async () => {
+            await result.current.sendTurn({ type: 'open' });
+        });
+
+        const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+        expect(url).toBe(musicNerdApiUrl('/api/onboarding/artist-1/chat'));
+        expect(init.method).toBe('POST');
+        expect(init.headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer privy-token' });
+        expect(JSON.parse(init.body)).toEqual({ type: 'open' });
     });
 
     it('b) frame split across reads — retained buffer reassembles the frame', async () => {
@@ -245,7 +265,7 @@ describe('useOnboardingChat', () => {
         ]);
     });
 
-    it('n) linked and unreachable frames reach the research view as their own items', async () => {
+    it('n) linked and unreachable frames arrive as their own items', async () => {
         const profile = { siteName: 'spotify', displayName: 'Spotify', value: 'bio', profileUrl: 'https://open.spotify.com/artist/bio', logoUrl: null, previewImage: null };
         (global.fetch as jest.Mock).mockResolvedValueOnce(fakeStreamResponse([
             `data: ${JSON.stringify({ kind: 'linked', profiles: [profile] })}\n\n`,

@@ -194,6 +194,12 @@ export const artists = pgTable("artists", {
 	index("artists_name_trgm_idx").using("gist", table.name.asc().nullsLast().op("gist_trgm_ops")),
 	uniqueIndex("artists_spotify_uniq").using("btree", table.spotify.asc().nullsLast().op("text_ops")).where(sql`(spotify IS NOT NULL)`),
 	uniqueIndex("artists_deezer_uniq").using("btree", table.deezer.asc().nullsLast().op("text_ops")).where(sql`(deezer IS NOT NULL)`),
+	index("artists_music_bandcamp_owner_idx").on(sql`lower(ltrim(btrim(${table.bandcamp}), '@'))`),
+	index("artists_music_subvert_owner_idx").on(sql`lower(ltrim(btrim(${table.subvert}), '@'))`),
+	index("artists_music_supercollector_owner_idx").on(sql`regexp_replace(lower(ltrim(btrim(${table.supercollector}), '@')), '[.]eth$', '')`),
+	index("artists_music_soundcloud_owner_idx").on(sql`lower(ltrim(btrim(${table.soundcloud}), '@'))`),
+	index("artists_music_audius_owner_idx").on(sql`lower(ltrim(btrim(${table.audius}), '@'))`),
+	index("artists_music_mixcloud_owner_idx").on(sql`lower(ltrim(btrim(${table.mixcloud}), '@'))`),
 	index("idx_artists_added_by").using("btree", table.addedBy.asc().nullsLast().op("uuid_ops")),
 	index("idx_artists_name").using("btree", table.name.asc().nullsLast().op("text_ops")),
 	index("idx_artists_name_gin").using("gin", sql`to_tsvector('english'::regconfig, name)`),
@@ -742,7 +748,11 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
-	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh')`),
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract')`),
+	check("artist_research_jobs_status_check", sql`${table.status} in ('pending','running','done','failed') or (${table.status} = 'queued' and ${table.kind} = 'source_extract' and coalesce(${table.state}->>'version','') = '2' and coalesce(${table.state}->>'autoSourceId','') <> '')`),
+	uniqueIndex("artist_research_jobs_one_live").on(table.artistId, table.kind).where(sql`${table.status} in ('pending', 'running')`),
+	uniqueIndex("artist_research_jobs_auto_source_live").on(table.artistId, sql`(${table.state}->>'autoSourceId')`)
+		.where(sql`${table.kind} = 'source_extract' and ${table.state}->>'version' = '2' and ${table.status} in ('queued','pending','running')`),
 	index("artist_research_jobs_claimable").using("btree", table.status.asc().nullsLast(), table.claimedAt.asc().nullsLast(), table.createdAt.asc().nullsLast()),
 	foreignKey({
 		columns: [table.artistId],
@@ -959,4 +969,62 @@ export const userArtistBookmarks = pgTable("user_artist_bookmarks", {
 	pgPolicy("mnweb_insert_user_artist_bookmarks", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 	pgPolicy("mnweb_update_user_artist_bookmarks", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 	pgPolicy("mnweb_delete_user_artist_bookmarks", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
+// Prospective original retention. The writer's transaction captures old eligible
+// evidence; API authorization and current parent eligibility govern every read.
+export const artistVaultSourceVersions = pgTable("artist_vault_source_versions", {
+    sourceId: uuid("source_id").notNull().references(() => artistVaultSources.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    fingerprint: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.sourceId, table.fingerprint] }),
+    index("artist_vault_source_versions_artist").on(table.artistId),
+    check("artist_vault_source_versions_fingerprint", sql`${table.fingerprint} ~ '^[a-f0-9]{64}$'`),
+    check("artist_vault_source_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.sourceId}::text
+        AND ${table.snapshot}->>'artistId' = ${table.artistId}::text
+        AND ${table.snapshot}->>'kind' = 'vault' AND ${table.snapshot}->>'version' = '1', false)`),
+    pgPolicy("mnweb_select_artist_vault_source_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_vault_source_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// Prospective original retention. The writer's transaction captures old eligible
+// evidence; API authorization and current parent eligibility govern every read.
+export const artistSocialPostVersions = pgTable("artist_social_post_versions", {
+    sourceId: uuid("source_id").notNull().references(() => artistSocialPosts.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    fingerprint: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.sourceId, table.fingerprint] }),
+    index("artist_social_post_versions_artist").on(table.artistId),
+    check("artist_social_post_versions_fingerprint", sql`${table.fingerprint} ~ '^[a-f0-9]{64}$'`),
+    check("artist_social_post_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.sourceId}::text
+        AND ${table.snapshot}->>'artistId' = ${table.artistId}::text
+        AND ${table.snapshot}->>'kind' = 'social' AND ${table.snapshot}->>'version' = '1', false)`),
+    pgPolicy("mnweb_select_artist_social_post_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_social_post_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();
+
+// Private exact artist wording. Shared API edits retain original/current revisions
+// atomically; current claimant/admin authorization is required for every read.
+export const artistInterviewAnswerVersions = pgTable("artist_interview_answer_versions", {
+    answerId: uuid("answer_id").notNull().references(() => artistInterviewAnswers.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    revision: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    note: text(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.answerId, table.revision], name: "artist_interview_answer_versions_answer_revision" }),
+    index("artist_interview_answer_versions_artist").on(table.artistId),
+    check("artist_interview_answer_versions_revision", sql`${table.revision} ~ '^[a-f0-9]{64}$'`),
+    check("artist_interview_answer_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.answerId}::text AND ${table.snapshot}->>'artistId' = ${table.artistId}::text AND jsonb_typeof(${table.snapshot}->'answer') = 'string', false)`),
+    check("artist_interview_answer_versions_note", sql`${table.note} IS NULL OR char_length(${table.note}) <= 400`),
+    pgPolicy("mnweb_select_artist_interview_answer_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_interview_answer_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]).enableRLS();
