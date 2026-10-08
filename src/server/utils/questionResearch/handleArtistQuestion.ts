@@ -1,0 +1,137 @@
+import { z } from "zod";
+import { getArtistById } from "@/server/utils/queries/artistQueries";
+import { planArtistQuestion } from "./planArtistQuestion";
+import { callResearchApi } from "./callResearchApi";
+import { draftResearchAnswer } from "./draftResearchAnswer";
+import { researchStatusSchema } from "@/lib/questionResearch/schemas";
+/** Public chat is limited to the API's public evidence capability; private history is never loaded. */
+export async function handleArtistQuestion(request: Request) {
+  const headers = { "Cache-Control": "private, no-store" };
+  try {
+    const raw = await request.text();
+    if (raw.length > 3000)
+      return Response.json(
+        { error: "Question too long" },
+        { status: 400, headers },
+      );
+    let input: unknown;
+    try {
+      input = JSON.parse(raw);
+    } catch {
+      return Response.json(
+        { error: "Invalid question" },
+        { status: 400, headers },
+      );
+    }
+    const parsed = z
+      .object({
+        artistId: z.string().uuid(),
+        question: z.string().trim().min(1).max(500),
+        jobId: z.string().uuid().optional(),
+      })
+      .strict()
+      .safeParse(input);
+    if (!parsed.success)
+      return Response.json(
+        { error: "Invalid artist or question" },
+        { status: 400, headers },
+      );
+    const { artistId, question, jobId } = parsed.data;
+    const artist = await getArtistById(artistId);
+    if (!artist)
+      return Response.json(
+        { error: "Artist not found" },
+        { status: 404, headers },
+      );
+    const name = artist.name ?? "This artist";
+    const state = researchStatusSchema.parse(
+      jobId
+        ? await callResearchApi(
+            `/api/artist/${artistId}/research/questions/${jobId}`,
+            { signal: request.signal },
+          )
+        : await callResearchApi(`/api/artist/${artistId}/research/questions`, {
+            body: await planArtistQuestion(name, question, request.signal),
+            signal: request.signal,
+          }),
+    );
+    if (
+      !jobId ||
+      !["complete", "unresolved", "failed", "cancelled"].includes(state.stage)
+    )
+      return Response.json(
+        {
+          research: {
+            jobId: state.jobId,
+            stage: state.stage,
+            message: state.message,
+            provider: state.provider,
+          },
+        },
+        { status: 202, headers },
+      );
+    if (state.stage !== "complete")
+      return Response.json(
+        {
+          answer:
+            state.stage === "unresolved"
+              ? "I could not establish that from the sources I could read."
+              : "Research could not finish. That does not mean the information doesn't exist.",
+          sources: [],
+          suggestions: [],
+          research: {
+            jobId: state.jobId,
+            stage: state.stage,
+            message: state.message,
+          },
+          limitations: state.limitations,
+        },
+        { headers },
+      );
+    try {
+      const answer = await draftResearchAnswer(
+        artistId,
+        name,
+        question,
+        state.references,
+        request.signal,
+      );
+      return Response.json(
+        {
+          ...answer,
+          bandcamp: artist.bandcamp
+            ? `https://${artist.bandcamp}.bandcamp.com`
+            : null,
+          limitations: state.limitations,
+        },
+        { headers },
+      );
+    } catch {
+      return Response.json(
+        {
+          error:
+            "I could not verify an answer from those originals. You can retry the saved research.",
+          jobId: state.jobId,
+        },
+        { status: 503, headers },
+      );
+    }
+  } catch (error) {
+    const status =
+      typeof error === "object" &&
+      error &&
+      "status" in error &&
+      error.status === 429
+        ? 429
+        : 503;
+    return Response.json(
+      {
+        error:
+          status === 429
+            ? "The research limit has been reached. Try again later."
+            : "Research is temporarily unavailable. Please try again.",
+      },
+      { status, headers },
+    );
+  }
+}

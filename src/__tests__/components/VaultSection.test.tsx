@@ -28,14 +28,14 @@ describe('VaultSection visibility', () => {
 
   it('shows for a public viewer when approved sources exist', () => {
     renderCtx({ isEditing: false, canEdit: false }, { approvedSources: approved });
-    expect(screen.getByRole('heading', {name: /Lore/})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Lore'})).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Artist interview/ })).toHaveAttribute('href', 'https://example.com/interview');
     expect(screen.queryByText(/No Lore sources to show yet/)).not.toBeInTheDocument();
   });
 
   it('shows for an editor in edit mode even with no approved sources', () => {
     renderCtx({ isEditing: true, canEdit: true }, { approvedSources: [] });
-    expect(screen.getByRole('heading', {name: /Lore/})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Lore'})).toBeInTheDocument();
     expect(screen.getByTestId('vault-manager')).toBeInTheDocument();
   });
 

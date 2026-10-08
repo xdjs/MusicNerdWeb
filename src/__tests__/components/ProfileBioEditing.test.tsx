@@ -1,3 +1,4 @@
+jest.mock('@/app/artist/[id]/_components/ResearchDiscoveryReview', () => function MockDiscoveryReview() { return null; });
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { EditModeProvider } from '@/app/_components/EditModeContext';
 import EditModeToggle from '@/app/_components/EditModeToggle';

@@ -37,3 +37,5 @@ export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";
 // Apify (Instagram post ingestion — see socialIngest.ts). Empty = ingestion no-ops.
 export const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN ?? "";
 
+// Server-only public knowledge/research capability; never grants private artist access.
+export const MUSICNERD_RESEARCH_API_KEY = process.env.MUSICNERD_RESEARCH_API_KEY ?? "";
