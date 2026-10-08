@@ -1,3 +1,4 @@
+import GuidedDemo from './_components/GuidedDemo';
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
@@ -33,7 +34,7 @@ import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string; guidedDemo?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -124,6 +125,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
+    const guidedDemo = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') && resolvedSearchParams?.guidedDemo === '1';
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
     const session = await getServerAuthSession() ?? await getDevSession();
     const dbUser = session ? await getUserById(session.user.id) : null;
@@ -243,6 +245,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     </OnboardingGate>
                 ) : profile}
             </div>
+            {guidedDemo && <GuidedDemo />}
             <OutboundClickTracker />
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />
