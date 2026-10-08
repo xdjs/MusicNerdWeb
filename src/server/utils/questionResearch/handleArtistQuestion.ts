@@ -8,7 +8,6 @@ import { researchStatusSchema } from "@/lib/questionResearch/schemas";
 /** Public chat is limited to the API's public evidence capability; private history is never loaded. */
 export async function handleArtistQuestion(request: Request) {
   const headers = { "Cache-Control": "private, no-store" };
-  let diagnosticStage = "input";
   try {
     const raw = await request.text();
     if (raw.length > 3000)
@@ -39,7 +38,6 @@ export async function handleArtistQuestion(request: Request) {
         { status: 400, headers },
       );
     const { artistId, question, jobId } = parsed.data;
-    diagnosticStage = "artist_lookup";
     const artist = await getArtistById(artistId);
     if (!artist)
       return Response.json(
@@ -47,7 +45,6 @@ export async function handleArtistQuestion(request: Request) {
         { status: 404, headers },
       );
     const name = artist.name ?? "This artist";
-    diagnosticStage = "planning_or_api";
     const state = researchStatusSchema.parse(
       jobId
         ? await callResearchApi(
@@ -146,10 +143,6 @@ export async function handleArtistQuestion(request: Request) {
       );
     }
   } catch (error) {
-    if (process.env.VERCEL_ENV === "preview") {
-      const detail = error as { name?: string; message?: string; status?: number; statusCode?: number };
-      console.error("[guided-preview research]", { stage: diagnosticStage, name: detail?.name, status: detail?.status ?? detail?.statusCode, message: detail?.message?.replace(/https?:\/\/\S+/g, "[url]").slice(0, 220) });
-    }
     const status =
       typeof error === "object" &&
       error &&
