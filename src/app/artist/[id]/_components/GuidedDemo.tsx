@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 
 const steps = [
-  { title: "Your real artist profile", target: '#mn-about', text: "This is the real preview app and API. During a fresh onboarding build, watch the existing research status and sections fill. If this artist is already built, the page shows saved data; replaying this guide does not restart research." },
+  { title: "Your real artist profile", target: '#guided-build-start, #mn-about', text: "This is the real preview app and API. For a fresh profile, press Start profile build when ready. Research does not start before that click. Then watch the actual status and sections fill. If this artist is already built, the page shows saved data; replaying this guide does not restart research." },
   { title: "Edit your profile", target: '[data-testid="edit-mode-toggle"]', text: "Click Edit profile in the artist header. These are the normal profile controls. If the button is missing, sign in with an account allowed to edit this artist." },
   { title: "Review your Lore", target: '#mn-lore', text: "Open Lore. Search the real approved sources, move between pages, or switch to Questions and Bios. Source changes here are real changes in this preview environment." },
   { title: "Ask about the artist", target: '#mn-ask', text: "Open Ask and type your question. For LATASHÁ, try: Who made the PPNE NYC music visualizer? The answer comes from the actual API. Read its citations and original passages." },
@@ -18,12 +18,21 @@ const steps = [
 /** Preview-only orientation. Never intercepts data or clicks mutation controls. */
 export default function GuidedDemo() {
   const [step, setStep] = useState(0);
+  const [nativeTour, setNativeTour] = useState(false);
+  useEffect(() => {
+    let last = false;
+    const check = () => { const next = Boolean(document.querySelector('[role="dialog"][aria-label^="Getting started:"]')); if (next !== last) { last = next; setNativeTour(next); } };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   const [collapsed, setCollapsed] = useState(false);
   const [visible, setVisible] = useState(true);
   const [found, setFound] = useState(true);
   const [focusRevision, setFocusRevision] = useState(0);
   useEffect(() => {
-    if (!visible || collapsed) return;
+    if (!visible || collapsed || nativeTour) return;
     let target: HTMLElement | null = null;
     let previousOutline = "";
     let previousOffset = "";
@@ -42,7 +51,8 @@ export default function GuidedDemo() {
       window.clearTimeout(timer);
       if (target) { target.style.outline = previousOutline; target.style.outlineOffset = previousOffset; }
     };
-  }, [step, visible, collapsed, focusRevision]);
+  }, [step, visible, collapsed, focusRevision, nativeTour]);
+  if (nativeTour) return null;
   if (!visible) return <button type="button" onClick={() => setVisible(true)} className="fixed bottom-4 left-4 z-40 rounded-xl border border-pink-400/50 bg-neutral-950 px-4 py-3 text-sm text-white shadow-lg">Open walkthrough</button>;
   return <aside aria-label="Live preview walkthrough" className="fixed bottom-4 left-3 z-50 w-[min(290px,calc(100vw-24px))] rounded-2xl border border-pink-400/50 bg-neutral-950/95 p-4 text-white shadow-2xl backdrop-blur-md sm:left-4">
     <div className="flex items-center justify-between gap-2">

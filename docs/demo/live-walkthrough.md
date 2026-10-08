@@ -17,3 +17,5 @@ Before a live demonstration, verify the preview's database/API targets and signe
 access. The overlay itself does not prove isolation. Use the same matching private research
 key as the preview API if outside-Lore questions are enabled. Never copy production secrets
 into public files, and never use a hostname alone as proof of environment.
+
+For incomplete guided-preview onboarding, Start profile build mounts the real onboarding tree only after the user clicks. The guide yields while the native post-build tour is visible.

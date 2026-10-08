@@ -1,3 +1,4 @@
+import GuidedBuildStart from './_components/GuidedBuildStart';
 import GuidedDemo from './_components/GuidedDemo';
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
@@ -231,7 +232,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     gate is rendered for the claimant whatever the state, so a build
                     that completes during the visit keeps its ready card and new-item
                     marks; a page that arrives complete renders just the profile. */}
-                {!interviewPreview && !tourPreview && onboardingState ? (
+                {guidedDemo && !interviewPreview && !tourPreview && onboardingState && !onboardingState.complete ? (
+                    <GuidedBuildStart artistName={artist.name ?? "your"}>
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
@@ -243,7 +245,20 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     >
                         {profile}
                     </OnboardingGate>
-                ) : profile}
+                    </GuidedBuildStart>
+                ) : (!interviewPreview && !tourPreview && onboardingState ? (
+                    <OnboardingGate
+                        artistId={artist.id}
+                        artistName={artist.name ?? "your profile"}
+                        state={onboardingState}
+                        researchItems={{
+                            links: [...getProfileLinks(artist, artistLinks, 'links'), ...getProfileLinks(artist, artistLinks, 'support')].map(link => link.siteName),
+                            sources: approvedSources.map(source => source.id),
+                        }}
+                    >
+                        {profile}
+                    </OnboardingGate>
+                ) : profile)}
             </div>
             {guidedDemo && <GuidedDemo />}
             <OutboundClickTracker />
