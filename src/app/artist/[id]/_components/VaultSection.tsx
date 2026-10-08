@@ -7,6 +7,7 @@ import { isDestinationSource } from "@/lib/musicLinks/isDestinationSource";
 import { getSourceReviewKey } from "@/lib/source/getSourceReviewKey";
 import PressAndFeatures from "./PressAndFeatures";
 import ResearchPending from "./onboarding/ResearchPending";
+import ResearchNewCount from "./onboarding/ResearchNewCount";
 import BioVersionHistory from "./BioVersionHistory";
 import VaultManager from "./VaultManager";
 import SuggestLoreSource from "./SuggestLoreSource";
@@ -28,10 +29,10 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
   const approvedLore = approvedSources.filter(source => !isDestinationSource(source));
 
   return (
-    <RevealSection editable className="glass p-4 sm:p-5 space-y-5">
+    <RevealSection editable className="glass p-4 sm:p-5 space-y-5 transition-shadow has-[[data-research-new]]:ring-2 has-[[data-research-new]]:ring-highlightpink/70">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-black dark:text-white text-xl font-bold">Lore</h2>
+          <div className="flex items-center gap-2.5"><h2 className="text-black dark:text-white text-xl font-bold">Lore</h2><ResearchNewCount kind="sources" keys={approvedSources.map(source => source.id)} /></div>
           {canEdit && !isEditing && <Button type="button" size="sm" variant="outline" className="text-black dark:text-white" onClick={toggle}>Add to Lore</Button>}
         </div>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Stories, interviews, and other sources curated by the artist.</p>
@@ -39,7 +40,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
       <div id="mn-sources" className="space-y-3">
       {/* Public carousel only outside edit mode; VaultManager owns the approved
           list while editing (its own optimistic state) to avoid a stale-card flash. */}
-      <ResearchPending step="vault" label="reading what’s written about you…">
+      <ResearchPending step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
         {!isEditing && <PressAndFeatures key={artistId} sources={approvedSources} />}
       </ResearchPending>
       {canEdit && isEditing && (
