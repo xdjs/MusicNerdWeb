@@ -73,3 +73,20 @@ it("rejects an unregistered question before any model call", async () => {
   expect(await getOrDraftResearchAnswer({ ...input, question: "A different question?" })).toEqual({ state: "unregistered" });
   expect(draft).not.toHaveBeenCalled();
 });
+it("keeps citation 2 attached to its exact passage when one source has two windows", async () => {
+  const second = { ...ref, start: 50, end: 68, text: "I finished the song" };
+  const cited = { ...source, n: 2 };
+  draft.mockResolvedValue({ ...result, sources: [cited] });
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ claim_token: "token" }] as never)
+    .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
+  expect((await getOrDraftResearchAnswer({ ...input, references: [ref, second] })).state).toBe("ready");
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: {
+      ...result, sources: [cited], basis: [{ sourceId: second.sourceId, revision: second.revision,
+        start: second.start, end: second.end, url: second.url, textHash: hash(second.text) }],
+    } }] as never);
+  expect((await getOrDraftResearchAnswer({ ...input, references: [second, ref] })).state).toBe("ready");
+  expect(draft).toHaveBeenCalledTimes(1);
+});

@@ -80,10 +80,11 @@ export async function getOrDraftResearchAnswer(input: {
       if (!parsed.success) return { state: "unavailable" };
       // The API status already rechecked these exact slices against current
       // public originals and removed revoked/wrong-artist sources.
-      if (!parsed.data.basis.every(b => references.some(r =>
+      const current = parsed.data.basis.map(b => references.find(r =>
         r.sourceId === b.sourceId && r.revision === b.revision &&
         r.start === b.start && r.end === b.end && r.url === b.url &&
-        hash(r.text) === b.textHash)))
+        hash(r.text) === b.textHash));
+      if (current.some(r => !r) || current.length !== parsed.data.sources.length)
         return { state: "unavailable" };
       const result = {
         answer: parsed.data.answer,
@@ -97,10 +98,11 @@ export async function getOrDraftResearchAnswer(input: {
         state: "ready",
         result: {
           ...result,
-          sources: result.sources.map(s => ({
+          sources: result.sources.map((s, i) => ({
             ...s,
-            curation: references.find(r => r.sourceId === s.sourceId && r.revision === s.revision)!.curation,
+            curation: current[i]!.curation,
           })),
+          fromOpenWeb: current.some(r => r!.curation === "pending"),
         },
       };
     }
@@ -127,8 +129,10 @@ export async function getOrDraftResearchAnswer(input: {
     const drafted = await draftResearchAnswer(
       artistId, artistName, question, references, signal,
     );
-    const used = references.filter(r => drafted.sources.some(s =>
-      s.sourceId === r.sourceId && s.revision === r.revision));
+    const used = drafted.sources.map(s => references[s.n - 1]);
+    if (used.some((r, i) => !r || r.sourceId !== drafted.sources[i].sourceId ||
+      r.revision !== drafted.sources[i].revision))
+      throw Object.assign(new Error("Cited reference unavailable"), { verificationStage: "store_result" });
     const result = saved.parse({
       ...drafted,
       basis: used.map(r => ({
@@ -140,7 +144,7 @@ export async function getOrDraftResearchAnswer(input: {
       throw Object.assign(new Error("Cited reference unavailable"), { verificationStage: "store_result" });
     const committed = await db.execute<{ job_id: string }>(sql`
       update artist_question_answers
-      set status='verified',result=${JSON.stringify(result)}::jsonb,
+      set status='verified',result=${JSON.stringify(result)}::text::jsonb,
         failure_stage=null,updated_at=now()
       where job_id=${jobId}::uuid and artist_id=${artistId}::uuid
         and question_hash=${questionHash} and claim_token=${token}::uuid
