@@ -1,6 +1,6 @@
 {
-  "id": "d99710bf-58ca-4003-81d1-52afed07ef57",
-  "prevId": "35ca2092-2b9b-4e1e-9936-7781c267fa4d",
+  "id": "5edd617b-aa93-45e8-ad6c-2b2249b087aa",
+  "prevId": "de0e8e1f-aa22-4f08-a725-7e1db215ad45",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1438,158 +1438,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.artist_interview_answer_versions": {
-      "name": "artist_interview_answer_versions",
-      "schema": "",
-      "columns": {
-        "answer_id": {
-          "name": "answer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revision": {
-          "name": "revision",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "actor_user_id": {
-          "name": "actor_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "captured_at": {
-          "name": "captured_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "artist_interview_answer_versions_artist": {
-          "name": "artist_interview_answer_versions_artist",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_interview_answer_versions_answer_id_artist_interview_answers_id_fk": {
-          "name": "artist_interview_answer_versions_answer_id_artist_interview_answers_id_fk",
-          "tableFrom": "artist_interview_answer_versions",
-          "tableTo": "artist_interview_answers",
-          "columnsFrom": [
-            "answer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_interview_answer_versions_artist_id_artists_id_fk": {
-          "name": "artist_interview_answer_versions_artist_id_artists_id_fk",
-          "tableFrom": "artist_interview_answer_versions",
-          "tableTo": "artists",
-          "columnsFrom": [
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_interview_answer_versions_actor_user_id_users_id_fk": {
-          "name": "artist_interview_answer_versions_actor_user_id_users_id_fk",
-          "tableFrom": "artist_interview_answer_versions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "artist_interview_answer_versions_answer_revision": {
-          "name": "artist_interview_answer_versions_answer_revision",
-          "columns": [
-            "answer_id",
-            "revision"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {
-        "mnweb_select_artist_interview_answer_versions": {
-          "name": "mnweb_select_artist_interview_answer_versions",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_insert_artist_interview_answer_versions": {
-          "name": "mnweb_insert_artist_interview_answer_versions",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_interview_answer_versions_revision": {
-          "name": "artist_interview_answer_versions_revision",
-          "value": "\"artist_interview_answer_versions\".\"revision\" ~ '^[a-f0-9]{64}$'"
-        },
-        "artist_interview_answer_versions_identity": {
-          "name": "artist_interview_answer_versions_identity",
-          "value": "coalesce(\"artist_interview_answer_versions\".\"snapshot\"->>'id' = \"artist_interview_answer_versions\".\"answer_id\"::text AND \"artist_interview_answer_versions\".\"snapshot\"->>'artistId' = \"artist_interview_answer_versions\".\"artist_id\"::text AND jsonb_typeof(\"artist_interview_answer_versions\".\"snapshot\"->'answer') = 'string', false)"
-        },
-        "artist_interview_answer_versions_note": {
-          "name": "artist_interview_answer_versions_note",
-          "value": "\"artist_interview_answer_versions\".\"note\" IS NULL OR char_length(\"artist_interview_answer_versions\".\"note\") <= 400"
-        }
-      },
-      "isRLSEnabled": true
-    },
     "public.artist_interview_answers": {
       "name": "artist_interview_answers",
       "schema": "",
@@ -1969,6 +1817,440 @@
       },
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.artist_research_candidates": {
+      "name": "artist_research_candidates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destination": {
+          "name": "destination",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "platform_id": {
+          "name": "platform_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "identity": {
+          "name": "identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unresolved'"
+        },
+        "curation": {
+          "name": "curation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "review_activity_id": {
+          "name": "review_activity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "reviewed_revision": {
+          "name": "reviewed_revision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_revision": {
+          "name": "current_revision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "artist_research_candidates_review": {
+          "name": "artist_research_candidates_review",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "curation",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artist_research_candidates_artist_id_artists_id_fk": {
+          "name": "artist_research_candidates_artist_id_artists_id_fk",
+          "tableFrom": "artist_research_candidates",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "artist_research_candidates_source_id_artist_vault_sources_id_fk": {
+          "name": "artist_research_candidates_source_id_artist_vault_sources_id_fk",
+          "tableFrom": "artist_research_candidates",
+          "tableTo": "artist_vault_sources",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "artist_research_candidates_reviewed_by_users_id_fk": {
+          "name": "artist_research_candidates_reviewed_by_users_id_fk",
+          "tableFrom": "artist_research_candidates",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "artist_research_candidates_review_activity_id_artist_activity_events_id_fk": {
+          "name": "artist_research_candidates_review_activity_id_artist_activity_events_id_fk",
+          "tableFrom": "artist_research_candidates",
+          "tableTo": "artist_activity_events",
+          "columnsFrom": [
+            "review_activity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "artist_research_candidates_artist_url": {
+          "name": "artist_research_candidates_artist_url",
+          "nullsNotDistinct": false,
+          "columns": [
+            "artist_id",
+            "url"
+          ]
+        },
+        "artist_research_candidates_artist_id": {
+          "name": "artist_research_candidates_artist_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "artist_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "mnweb_select_artist_research_candidates": {
+          "name": "mnweb_select_artist_research_candidates",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_artist_research_candidates": {
+          "name": "mnweb_insert_artist_research_candidates",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        },
+        "mnweb_update_artist_research_candidates": {
+          "name": "mnweb_update_artist_research_candidates",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "mnweb_delete_artist_research_candidates": {
+          "name": "mnweb_delete_artist_research_candidates",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {
+        "artist_research_candidates_url": {
+          "name": "artist_research_candidates_url",
+          "value": "char_length(\"artist_research_candidates\".\"url\") between 1 and 2048 AND \"artist_research_candidates\".\"url\" ~ '^https?://'"
+        },
+        "artist_research_candidates_destination": {
+          "name": "artist_research_candidates_destination",
+          "value": "\"artist_research_candidates\".\"destination\" = 'lore' OR (\"artist_research_candidates\".\"destination\" = 'link' AND \"artist_research_candidates\".\"platform\" IS NOT NULL AND \"artist_research_candidates\".\"platform_id\" IS NOT NULL)"
+        },
+        "artist_research_candidates_reason": {
+          "name": "artist_research_candidates_reason",
+          "value": "\"artist_research_candidates\".\"reason\" IN ('reporting','release_date','credits','social_caption','spoken_content')"
+        },
+        "artist_research_candidates_identity": {
+          "name": "artist_research_candidates_identity",
+          "value": "\"artist_research_candidates\".\"identity\" IN ('confirmed','unresolved','wrong_artist')"
+        },
+        "artist_research_candidates_curation": {
+          "name": "artist_research_candidates_curation",
+          "value": "\"artist_research_candidates\".\"curation\" IN ('pending','approved','declined','wrong_artist','incorrect')"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.artist_research_evidence": {
+      "name": "artist_research_evidence",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "candidate_id": {
+          "name": "candidate_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_text": {
+          "name": "original_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provenance": {
+          "name": "provenance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retrieved_at": {
+          "name": "retrieved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "artist_research_evidence_latest": {
+          "name": "artist_research_evidence_latest",
+          "columns": [
+            {
+              "expression": "candidate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "retrieved_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "artist_research_evidence_artist": {
+          "name": "artist_research_evidence_artist",
+          "columns": [
+            {
+              "expression": "artist_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "artist_research_evidence_candidate_artist": {
+          "name": "artist_research_evidence_candidate_artist",
+          "tableFrom": "artist_research_evidence",
+          "tableTo": "artist_research_candidates",
+          "columnsFrom": [
+            "artist_id",
+            "candidate_id"
+          ],
+          "columnsTo": [
+            "artist_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "artist_research_evidence_candidate_revision": {
+          "name": "artist_research_evidence_candidate_revision",
+          "nullsNotDistinct": false,
+          "columns": [
+            "candidate_id",
+            "revision"
+          ]
+        }
+      },
+      "policies": {
+        "mnweb_select_artist_research_evidence": {
+          "name": "mnweb_select_artist_research_evidence",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_artist_research_evidence": {
+          "name": "mnweb_insert_artist_research_evidence",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {
+        "artist_research_evidence_revision": {
+          "name": "artist_research_evidence_revision",
+          "value": "\"artist_research_evidence\".\"revision\" ~ '^[a-f0-9]{64}$'"
+        },
+        "artist_research_evidence_text": {
+          "name": "artist_research_evidence_text",
+          "value": "char_length(btrim(\"artist_research_evidence\".\"original_text\")) > 0 AND char_length(\"artist_research_evidence\".\"original_text\") <= 50000 AND char_length(coalesce(\"artist_research_evidence\".\"title\",'')) <= 500"
+        },
+        "artist_research_evidence_provenance": {
+          "name": "artist_research_evidence_provenance",
+          "value": "jsonb_typeof(\"artist_research_evidence\".\"provenance\") = 'object' AND octet_length(\"artist_research_evidence\".\"provenance\"::text) <= 16384 AND coalesce(\"artist_research_evidence\".\"provenance\"->>'kind' IN ('original_text','caption','provider_transcript'), false)"
+        }
+      },
+      "isRLSEnabled": true
     },
     "public.artist_research_jobs": {
       "name": "artist_research_jobs",
@@ -5700,1098 +5982,6 @@
       },
       "checkConstraints": {},
       "isRLSEnabled": false
-    },
-    "public.artist_interview_boundaries": {
-      "name": "artist_interview_boundaries",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_id": {
-          "name": "request_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "wording": {
-          "name": "wording",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sitting": {
-          "name": "sitting",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "origin_answer_id": {
-          "name": "origin_answer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "origin_question_key": {
-          "name": "origin_question_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "origin_question": {
-          "name": "origin_question",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "activity_id": {
-          "name": "activity_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "retracted_at": {
-          "name": "retracted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "retracted_by": {
-          "name": "retracted_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "retraction_activity_id": {
-          "name": "retraction_activity_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "artist_interview_boundaries_active": {
-          "name": "artist_interview_boundaries_active",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sitting",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"artist_interview_boundaries\".\"retracted_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_boundaries_origin": {
-          "name": "artist_interview_boundaries_origin",
-          "columns": [
-            {
-              "expression": "origin_answer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_boundaries_creator": {
-          "name": "artist_interview_boundaries_creator",
-          "columns": [
-            {
-              "expression": "created_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_boundaries_retractor": {
-          "name": "artist_interview_boundaries_retractor",
-          "columns": [
-            {
-              "expression": "retracted_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_boundaries_activity": {
-          "name": "artist_interview_boundaries_activity",
-          "columns": [
-            {
-              "expression": "activity_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_boundaries_retraction_activity": {
-          "name": "artist_interview_boundaries_retraction_activity",
-          "columns": [
-            {
-              "expression": "retraction_activity_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_interview_boundaries_artist_id_artists_id_fk": {
-          "name": "artist_interview_boundaries_artist_id_artists_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "artists",
-          "columnsFrom": [
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_interview_boundaries_origin_answer_id_artist_interview_answers_id_fk": {
-          "name": "artist_interview_boundaries_origin_answer_id_artist_interview_answers_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "artist_interview_answers",
-          "columnsFrom": [
-            "origin_answer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_interview_boundaries_created_by_users_id_fk": {
-          "name": "artist_interview_boundaries_created_by_users_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_interview_boundaries_activity_id_artist_activity_events_id_fk": {
-          "name": "artist_interview_boundaries_activity_id_artist_activity_events_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "artist_activity_events",
-          "columnsFrom": [
-            "activity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_interview_boundaries_retracted_by_users_id_fk": {
-          "name": "artist_interview_boundaries_retracted_by_users_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "retracted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_interview_boundaries_retraction_activity_id_artist_activity_events_id_fk": {
-          "name": "artist_interview_boundaries_retraction_activity_id_artist_activity_events_id_fk",
-          "tableFrom": "artist_interview_boundaries",
-          "tableTo": "artist_activity_events",
-          "columnsFrom": [
-            "retraction_activity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artist_interview_boundaries_request": {
-          "name": "artist_interview_boundaries_request",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_id",
-            "request_id"
-          ]
-        }
-      },
-      "policies": {
-        "mnweb_select_artist_interview_boundaries": {
-          "name": "mnweb_select_artist_interview_boundaries",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_insert_artist_interview_boundaries": {
-          "name": "mnweb_insert_artist_interview_boundaries",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        },
-        "mnweb_retract_artist_interview_boundaries": {
-          "name": "mnweb_retract_artist_interview_boundaries",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true",
-          "withCheck": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_interview_boundaries_scope": {
-          "name": "artist_interview_boundaries_scope",
-          "value": "\"artist_interview_boundaries\".\"scope\" in ('sitting','until_retracted') AND \"artist_interview_boundaries\".\"sitting\" > 0"
-        },
-        "artist_interview_boundaries_wording": {
-          "name": "artist_interview_boundaries_wording",
-          "value": "char_length(btrim(\"artist_interview_boundaries\".\"wording\")) > 0 AND char_length(\"artist_interview_boundaries\".\"wording\") <= 4000 AND char_length(\"artist_interview_boundaries\".\"origin_question_key\") between 1 and 500 AND char_length(\"artist_interview_boundaries\".\"origin_question\") between 1 and 8000"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.artist_interview_question_evidence": {
-      "name": "artist_interview_question_evidence",
-      "schema": "",
-      "columns": {
-        "answer_id": {
-          "name": "answer_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ordinal": {
-          "name": "ordinal",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "memory_snapshot_id": {
-          "name": "memory_snapshot_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_references": {
-          "name": "evidence_references",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "artist_interview_evidence_artist": {
-          "name": "artist_interview_evidence_artist",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_interview_question_evidence_answer_id_artist_interview_answers_id_fk": {
-          "name": "artist_interview_question_evidence_answer_id_artist_interview_answers_id_fk",
-          "tableFrom": "artist_interview_question_evidence",
-          "tableTo": "artist_interview_answers",
-          "columnsFrom": [
-            "answer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_interview_question_evidence_artist_id_artists_id_fk": {
-          "name": "artist_interview_question_evidence_artist_id_artists_id_fk",
-          "tableFrom": "artist_interview_question_evidence",
-          "tableTo": "artists",
-          "columnsFrom": [
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interview_evidence_session_artist": {
-          "name": "interview_evidence_session_artist",
-          "tableFrom": "artist_interview_question_evidence",
-          "tableTo": "artist_interview_sessions",
-          "columnsFrom": [
-            "session_id",
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id",
-            "artist_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artist_interview_evidence_ordinal": {
-          "name": "artist_interview_evidence_ordinal",
-          "nullsNotDistinct": false,
-          "columns": [
-            "session_id",
-            "ordinal"
-          ]
-        }
-      },
-      "policies": {
-        "mnweb_read_interview_evidence": {
-          "name": "mnweb_read_interview_evidence",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_create_interview_evidence": {
-          "name": "mnweb_create_interview_evidence",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_interview_evidence_valid": {
-          "name": "artist_interview_evidence_valid",
-          "value": "\"artist_interview_question_evidence\".\"ordinal\" between 1 and 3 AND \"artist_interview_question_evidence\".\"memory_snapshot_id\" ~ '^[a-f0-9]{64}$' AND jsonb_typeof(\"artist_interview_question_evidence\".\"evidence_references\") = 'array' AND jsonb_array_length(\"artist_interview_question_evidence\".\"evidence_references\") between 1 and 3 AND char_length(\"artist_interview_question_evidence\".\"evidence_references\"::text) <= 16000"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.artist_interview_sessions": {
-      "name": "artist_interview_sessions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_id": {
-          "name": "request_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sitting": {
-          "name": "sitting",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "artist_interview_sessions_active": {
-          "name": "artist_interview_sessions_active",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"artist_interview_sessions\".\"state\" = 'active'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_interview_sessions_creator": {
-          "name": "artist_interview_sessions_creator",
-          "columns": [
-            {
-              "expression": "created_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_interview_sessions_artist_id_artists_id_fk": {
-          "name": "artist_interview_sessions_artist_id_artists_id_fk",
-          "tableFrom": "artist_interview_sessions",
-          "tableTo": "artists",
-          "columnsFrom": [
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_interview_sessions_created_by_users_id_fk": {
-          "name": "artist_interview_sessions_created_by_users_id_fk",
-          "tableFrom": "artist_interview_sessions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artist_interview_sessions_request": {
-          "name": "artist_interview_sessions_request",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_id",
-            "request_id"
-          ]
-        },
-        "artist_interview_sessions_sitting": {
-          "name": "artist_interview_sessions_sitting",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_id",
-            "sitting"
-          ]
-        },
-        "artist_interview_sessions_identity": {
-          "name": "artist_interview_sessions_identity",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "artist_id"
-          ]
-        }
-      },
-      "policies": {
-        "mnweb_read_interview_sessions": {
-          "name": "mnweb_read_interview_sessions",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_create_interview_sessions": {
-          "name": "mnweb_create_interview_sessions",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        },
-        "mnweb_close_interview_sessions": {
-          "name": "mnweb_close_interview_sessions",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true",
-          "withCheck": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_interview_sessions_state": {
-          "name": "artist_interview_sessions_state",
-          "value": "\"artist_interview_sessions\".\"sitting\" > 0 AND ((\"artist_interview_sessions\".\"state\" = 'active' AND \"artist_interview_sessions\".\"closed_at\" IS NULL) OR (\"artist_interview_sessions\".\"state\" = 'finished' AND \"artist_interview_sessions\".\"closed_at\" IS NOT NULL))"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.artist_research_candidates": {
-      "name": "artist_research_candidates",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "destination": {
-          "name": "destination",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "platform": {
-          "name": "platform",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "platform_id": {
-          "name": "platform_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "identity": {
-          "name": "identity",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'unresolved'"
-        },
-        "curation": {
-          "name": "curation",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "source_id": {
-          "name": "source_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reviewed_by": {
-          "name": "reviewed_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "review_activity_id": {
-          "name": "review_activity_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reviewed_revision": {
-          "name": "reviewed_revision",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_revision": {
-          "name": "current_revision",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "artist_research_candidates_review": {
-          "name": "artist_research_candidates_review",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "curation",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_research_candidates_artist_id_artists_id_fk": {
-          "name": "artist_research_candidates_artist_id_artists_id_fk",
-          "tableFrom": "artist_research_candidates",
-          "tableTo": "artists",
-          "columnsFrom": [
-            "artist_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "artist_research_candidates_source_id_artist_vault_sources_id_fk": {
-          "name": "artist_research_candidates_source_id_artist_vault_sources_id_fk",
-          "tableFrom": "artist_research_candidates",
-          "tableTo": "artist_vault_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_research_candidates_reviewed_by_users_id_fk": {
-          "name": "artist_research_candidates_reviewed_by_users_id_fk",
-          "tableFrom": "artist_research_candidates",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reviewed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "artist_research_candidates_review_activity_id_artist_activity_events_id_fk": {
-          "name": "artist_research_candidates_review_activity_id_artist_activity_events_id_fk",
-          "tableFrom": "artist_research_candidates",
-          "tableTo": "artist_activity_events",
-          "columnsFrom": [
-            "review_activity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artist_research_candidates_artist_url": {
-          "name": "artist_research_candidates_artist_url",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_id",
-            "url"
-          ]
-        },
-        "artist_research_candidates_artist_id": {
-          "name": "artist_research_candidates_artist_id",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {
-        "mnweb_select_artist_research_candidates": {
-          "name": "mnweb_select_artist_research_candidates",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_insert_artist_research_candidates": {
-          "name": "mnweb_insert_artist_research_candidates",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        },
-        "mnweb_update_artist_research_candidates": {
-          "name": "mnweb_update_artist_research_candidates",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true",
-          "withCheck": "true"
-        },
-        "mnweb_delete_artist_research_candidates": {
-          "name": "mnweb_delete_artist_research_candidates",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_research_candidates_url": {
-          "name": "artist_research_candidates_url",
-          "value": "char_length(\"artist_research_candidates\".\"url\") between 1 and 2048 AND \"artist_research_candidates\".\"url\" ~ '^https?://'"
-        },
-        "artist_research_candidates_destination": {
-          "name": "artist_research_candidates_destination",
-          "value": "\"artist_research_candidates\".\"destination\" = 'lore' OR (\"artist_research_candidates\".\"destination\" = 'link' AND \"artist_research_candidates\".\"platform\" IS NOT NULL AND \"artist_research_candidates\".\"platform_id\" IS NOT NULL)"
-        },
-        "artist_research_candidates_reason": {
-          "name": "artist_research_candidates_reason",
-          "value": "\"artist_research_candidates\".\"reason\" IN ('reporting','release_date','credits','social_caption','spoken_content')"
-        },
-        "artist_research_candidates_identity": {
-          "name": "artist_research_candidates_identity",
-          "value": "\"artist_research_candidates\".\"identity\" IN ('confirmed','unresolved','wrong_artist')"
-        },
-        "artist_research_candidates_curation": {
-          "name": "artist_research_candidates_curation",
-          "value": "\"artist_research_candidates\".\"curation\" IN ('pending','approved','declined','wrong_artist','incorrect')"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.artist_research_evidence": {
-      "name": "artist_research_evidence",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "candidate_id": {
-          "name": "candidate_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "artist_id": {
-          "name": "artist_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revision": {
-          "name": "revision",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "original_text": {
-          "name": "original_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provenance": {
-          "name": "provenance",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "retrieved_at": {
-          "name": "retrieved_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "artist_research_evidence_latest": {
-          "name": "artist_research_evidence_latest",
-          "columns": [
-            {
-              "expression": "candidate_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "retrieved_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "artist_research_evidence_artist": {
-          "name": "artist_research_evidence_artist",
-          "columns": [
-            {
-              "expression": "artist_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "artist_research_evidence_candidate_artist": {
-          "name": "artist_research_evidence_candidate_artist",
-          "tableFrom": "artist_research_evidence",
-          "tableTo": "artist_research_candidates",
-          "columnsFrom": [
-            "artist_id",
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "artist_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "artist_research_evidence_candidate_revision": {
-          "name": "artist_research_evidence_candidate_revision",
-          "nullsNotDistinct": false,
-          "columns": [
-            "candidate_id",
-            "revision"
-          ]
-        }
-      },
-      "policies": {
-        "mnweb_select_artist_research_evidence": {
-          "name": "mnweb_select_artist_research_evidence",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "mnweb"
-          ],
-          "using": "true"
-        },
-        "mnweb_insert_artist_research_evidence": {
-          "name": "mnweb_insert_artist_research_evidence",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "mnweb"
-          ],
-          "withCheck": "true"
-        }
-      },
-      "checkConstraints": {
-        "artist_research_evidence_revision": {
-          "name": "artist_research_evidence_revision",
-          "value": "\"artist_research_evidence\".\"revision\" ~ '^[a-f0-9]{64}$'"
-        },
-        "artist_research_evidence_text": {
-          "name": "artist_research_evidence_text",
-          "value": "char_length(btrim(\"artist_research_evidence\".\"original_text\")) > 0 AND char_length(\"artist_research_evidence\".\"original_text\") <= 50000 AND char_length(coalesce(\"artist_research_evidence\".\"title\",'')) <= 500"
-        },
-        "artist_research_evidence_provenance": {
-          "name": "artist_research_evidence_provenance",
-          "value": "jsonb_typeof(\"artist_research_evidence\".\"provenance\") = 'object' AND octet_length(\"artist_research_evidence\".\"provenance\"::text) <= 16384 AND coalesce(\"artist_research_evidence\".\"provenance\"->>'kind' IN ('original_text','caption','provider_transcript'), false)"
-        }
-      },
-      "isRLSEnabled": true
     }
   },
   "enums": {
