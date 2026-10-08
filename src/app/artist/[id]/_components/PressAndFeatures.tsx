@@ -254,10 +254,10 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                     <ChevronLeft size={18} />
                 </button>
 
-                {/* Scrollable container — extra padding for hover scale */}
+                {/* Keep glow inside the scroll viewport; overflow-y:visible clips with overflow-x:auto. */}
                 <div
                     ref={scrollRef}
-                    className="flex gap-4 overflow-x-auto overflow-y-visible py-4 px-2 -mx-2 scrollbar-none snap-x snap-mandatory"
+                    className="flex min-w-0 gap-4 overflow-x-auto overflow-y-hidden p-8 scroll-p-8 scrollbar-none snap-x snap-mandatory"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                     {filtered.map((card) => (

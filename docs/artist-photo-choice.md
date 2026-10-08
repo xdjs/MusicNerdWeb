@@ -1,7 +1,7 @@
 # Artist photo choices
 
-Tracks #1378. Deezer is the automatic portrait/thumbnail default, falling back to
-Spotify when unavailable. `artists.custom_image` is an explicit saved photo
+Tracks #1378. As requested by Pete on October 8, 2026, Spotify is the automatic
+portrait/thumbnail default, falling back to Deezer when unavailable. `artists.custom_image` is an explicit saved photo
 (uploaded or selected from a provider) and always wins, irrespective of claim state.
 No page read writes an image. Existing selections and crop coordinates are preserved.
 
@@ -20,7 +20,7 @@ same current photo preserves it. Upload retains the existing storage flow.
 
 ## Preservation and release
 
-Apply `scripts/release/preserve-bike-lane-portrait.sql` before the default changes. It saves Bike
+The earlier Deezer-first release used `scripts/release/preserve-bike-lane-portrait.sql`. It saves Bike
 Lane's September 28 production Spotify portrait only when her stable Spotify ID and
 name match and no custom photo exists. Existing custom photos, including Pete Rango's,
 are never updated. Matching uses the provider identity because staging and production

@@ -59,20 +59,20 @@ export class ArtistMusicPlatformDataProvider {
     private async resolveImage(artist: Artist, portrait: boolean): Promise<string | null> {
         const saved = artist.customImage?.trim();
         if (saved) return saved;
-        const { primaryId, fallbackId } = this.resolveIds(artist);
-        if (primaryId) {
+        const { primaryId: deezerId, fallbackId: spotifyId } = this.resolveIds(artist);
+        // Image preference is independent from the Deezer-first catalog lookup.
+        if (spotifyId) {
+            try {
+                const image = await this.fallbackProvider.getArtistImage(spotifyId);
+                if (image?.trim()) return image.trim();
+            } catch { /* Try the linked Deezer profile when Spotify is unavailable. */ }
+        }
+        if (deezerId) {
             try {
                 const image = portrait
-                    ? (await this.primaryProvider.getArtist(primaryId))?.imageUrl
-                    : await this.primaryProvider.getArtistImage(primaryId);
-                if (image?.trim()) return image;
-            } catch {
-                // Provider downtime must not prevent the Spotify fallback.
-            }
-        }
-        if (fallbackId) {
-            try {
-                return (await this.fallbackProvider.getArtistImage(fallbackId))?.trim() || null;
+                    ? (await this.primaryProvider.getArtist(deezerId))?.imageUrl
+                    : await this.primaryProvider.getArtistImage(deezerId);
+                if (image?.trim()) return image.trim();
             } catch { /* No usable provider photo. */ }
         }
         return null;
