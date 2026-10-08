@@ -1,8 +1,11 @@
 import { isMusicSource } from './isMusicSource';
 import { parseMusicDestination } from './parseMusicDestination';
 
-/** Destination placement preserves explicit spoken sources and ambiguous audio. */
+/** Artist destinations belong in Links/Support; individual releases remain Lore sources. */
 export function isDestinationSource(source: { url: string; type?: string | null; podcastEpisodeKey?: string | null }): boolean {
   if (source.podcastEpisodeKey) return false;
-  return parseMusicDestination(source.url) ? isMusicSource(source) : source.type === 'website';
+  const destination = parseMusicDestination(source.url);
+  return destination
+    ? destination.kind === 'artist' && isMusicSource(source)
+    : source.type === 'website';
 }

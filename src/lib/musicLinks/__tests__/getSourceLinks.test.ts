@@ -1,6 +1,7 @@
 import providerInformationUrls from './fixtures/providerInformationUrls.json';
 import { getSourceLinks } from '../getSourceLinks';
 import { isDestinationSource } from '../isDestinationSource';
+import { parseMusicDestination } from '../parseMusicDestination';
 import { getListeningLinks } from '@/lib/artist/getListeningLinks';
 import { SOURCE_TYPES } from '@/lib/source/sourceTypes';
 
@@ -18,13 +19,13 @@ describe('getSourceLinks', () => {
   it('moves legacy music sources into named destinations without changing the records', () => {
     const original = JSON.stringify(sources);
     expect(getSourceLinks(sources).map(link => [link.label, link.kind])).toEqual([
-      ['peterango.com', 'website'], ['Apple Music', 'artist'], ['Beatport', 'artist'], ['rush · Beatport', 'release'],
+      ['peterango.com', 'website'], ['Apple Music', 'artist'], ['Beatport', 'artist'],
     ]);
     expect(JSON.stringify(sources)).toBe(original);
-    expect(sources.filter(isDestinationSource)).toHaveLength(5);
+    expect(sources.filter(isDestinationSource)).toHaveLength(3);
   });
   it('separates support destinations for the support section and onboarding prompt', () => {
-    expect(getSourceLinks(sources, [], 'support')).toEqual([expect.objectContaining({sourceId: 'support', label: 'Bandcamp'})]);
+    expect(getSourceLinks([...sources, source('support-artist', 'https://peterango.bandcamp.com/')], [], 'support')).toEqual([expect.objectContaining({sourceId: 'support-artist', label: 'Bandcamp'})]);
   });
   it('keeps Subvert policy and update sources out of Support and artist Listen candidates', () => {
     const information = ['changelog', 'privacy-policy', 'terms-of-use'].map(slug =>
@@ -33,22 +34,20 @@ describe('getSourceLinks', () => {
     expect(getSourceLinks(information, [], 'support')).toEqual([]);
     expect(getSourceLinks(information)).toEqual([]);
   });
-  it('moves a legacy Subvert releases URL from Lore into Support without becoming an artist Listen link', () => {
+  it('retains a legacy Subvert release in Lore instead of Support', () => {
     const release = source('subvert-release', 'https://subvert.fm/dutchyyy/releases/unfinished-hugs', 'article', 'Unfinished Hugs');
-    expect(isDestinationSource(release)).toBe(true);
-    expect(getSourceLinks([release], [], 'support')).toEqual([
-      expect.objectContaining({sourceId: 'subvert-release', kind: 'release', href: release.url, label: 'Unfinished Hugs · Subvert'}),
-    ]);
+    expect(isDestinationSource(release)).toBe(false);
+    expect(getSourceLinks([release], [], 'support')).toEqual([]);
   });
   it('keeps existing direct artist links and deduplicates catalog profile variants', () => {
     const existing = [{ siteName: 'applemusic', href: 'https://music.apple.com/artist/42', label: 'Apple Music', iconSrc: '' }];
-    expect(getSourceLinks([...sources, source('alternate', 'https://beatport.com/artist/renamed/1041889')], existing).map(link => link.sourceId)).toEqual(['website', 'beatport', 'release']);
+    expect(getSourceLinks([...sources, source('alternate', 'https://beatport.com/artist/renamed/1041889')], existing).map(link => link.sourceId)).toEqual(['website', 'beatport']);
   });
-  it('routes independent music services and support releases without exposing pending sources', () => {
+  it('routes independent artist profiles without exposing pending sources', () => {
     const records = [
-      source('subvert', 'https://subvert.fm/pete-rango/tracks/rush'),
-      source('supercollector', 'https://release.supercollector.xyz/yin-yang-joey-collins'),
-      source('soundcloud', 'https://soundcloud.com/dutchyyy/a-track', 'music'),
+      source('subvert', 'https://subvert.fm/pete-rango'),
+      source('supercollector', 'https://release.supercollector.xyz/artist/joey-collins'),
+      source('soundcloud', 'https://soundcloud.com/dutchyyy', 'music'),
       source('spoken', 'https://mixcloud.com/dj/an-interview', 'interview'),
       { ...source('pending', 'https://audius.co/Dutchyyy'), status: 'pending' },
     ];
@@ -67,7 +66,7 @@ it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('does not infer music f
   const spoken = source('spoken', `https://${host}/show/artist-conversation`, 'audio');
   expect(isDestinationSource(spoken)).toBe(false);
   expect(getSourceLinks([spoken])).toEqual([]);
-  expect(isDestinationSource({...spoken, type:'music'})).toBe(true);
+  expect(isDestinationSource({...spoken, type:'music'})).toBe(false);
 });
 
 it.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('keeps explicitly audio-typed show profiles in Lore rather than Links or Listen (%s)', host => {
@@ -99,7 +98,7 @@ describe.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('mixed-use source
     it.each(SOURCE_TYPES)('preserves the placement contract for type=%s with and without podcast evidence', type => {
       const url = `https://${host}/show${kind === 'release' ? '/a-conversation' : ''}`;
       const record = { ...source('source',url,type), status:'approved' };
-      const routesToLinks = kind === 'release' ? type === 'music' : !['audio','interview'].includes(type);
+      const routesToLinks = kind === 'artist' && !['audio','interview'].includes(type);
       expect(isDestinationSource(record)).toBe(routesToLinks);
       expect(getSourceLinks([record])).toHaveLength(routesToLinks ? 1 : 0);
       expect(getListeningLinks({spotify:null,deezer:null},[],[record])).toHaveLength(routesToLinks && kind === 'artist' ? 1 : 0);
@@ -109,4 +108,45 @@ describe.each(['soundcloud.com', 'mixcloud.com', 'audius.co'])('mixed-use source
       expect(getListeningLinks({spotify:null,deezer:null},[],[podcast])).toEqual([]);
     });
   });
+});
+
+
+describe('release source placement', () => {
+  const releases = [
+    'https://open.spotify.com/album/3DmaZbBPnKSGnxYRpHobss',
+    'https://open.spotify.com/track/3DmaZbBPnKSGnxYRpHobss',
+    'https://music.apple.com/us/album/rush/123?i=456',
+    'https://music.apple.com/us/song/rush/456',
+    'https://www.beatport.com/track/rush/123',
+    'https://www.beatport.com/release/rush/123',
+    'https://www.deezer.com/album/123',
+    'https://listen.tidal.com/track/123',
+    'https://www.qobuz.com/us-en/album/rush/abc123',
+    'https://music.amazon.com/albums/B0012345AB',
+    'https://peterango.bandcamp.com/album/rush',
+    'https://subvert.fm/pete-rango/tracks/rush',
+    'https://release.supercollector.xyz/yin-yang-joey-collins',
+    'https://soundcloud.com/pete-rango/rush',
+    'https://audius.co/pete-rango/rush',
+    'https://mixcloud.com/pete-rango/rush',
+  ];
+  it.each(releases)('keeps %s as a source rather than an artist destination, regardless of source type', url => {
+    expect(parseMusicDestination(url)?.kind).toBe('release');
+    for (const type of SOURCE_TYPES) {
+      const record = {...source('release', url, type), status: 'approved'};
+      const original = {...record};
+      expect(isDestinationSource(record)).toBe(false);
+      expect(getSourceLinks([record])).toEqual([]);
+      expect(getSourceLinks([record], [], 'support')).toEqual([]);
+      expect(getListeningLinks({spotify:null,deezer:null},[],[record])).toEqual([]);
+      expect(record).toEqual(original);
+    }
+  });
+});
+
+it('assigns local platform icons to source-backed Apple Music and Beatport artist links', () => {
+  expect(getSourceLinks([
+    source('apple','https://music.apple.com/us/artist/pete-rango/1513734272'),
+    source('beatport','https://www.beatport.com/artist/pete-rango/1041889'),
+  ]).map(link=>link.iconSrc)).toEqual(['/siteIcons/applemusic_icon.svg','/siteIcons/beatport_icon.svg']);
 });

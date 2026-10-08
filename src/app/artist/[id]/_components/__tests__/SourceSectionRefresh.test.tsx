@@ -22,11 +22,11 @@ const source = (id: string, url: string, type: string, status: ArtistVaultSource
 
 const website = source('Official website', 'https://artist.example/', 'website');
 const article = source('Existing interview', 'https://magazine.example/interview', 'interview');
-const moving = source('Source being reclassified', 'https://soundcloud.com/artist/an-interview', 'music');
+const moving = source('Source being reclassified', 'https://soundcloud.com/artist', 'music');
 const editing = { isEditing: true, canEdit: true, toggle: jest.fn() };
 
-function view(type: string, status: ArtistVaultSource['status']) {
-  const entry = { ...moving, type, status };
+function view(type: string, status: ArtistVaultSource['status'], url = moving.url) {
+  const entry = { ...moving, type, status, url };
   const approvedSources = [website, article, ...(status === 'approved' ? [entry] : [])];
   const pendingSources = status === 'pending' ? [entry] : [];
   return <EditModeContext.Provider value={editing}>
@@ -62,4 +62,15 @@ it('preserves an unfinished Lore URL when an unrelated server refresh returns th
   fireEvent.change(screen.getByPlaceholderText(/add a source by url/i), { target: { value: 'https://magazine.example/new' } });
   rerender(view('music', 'approved'));
   expect(screen.getByPlaceholderText(/add a source by url/i)).toHaveValue('https://magazine.example/new');
+});
+
+
+it.each(['approved', 'pending'] as const)('keeps a %s individual track in Lore when reclassified as music during editing', status => {
+  const trackUrl = 'https://soundcloud.com/artist/individual-track';
+  const { rerender } = render(view('interview', status, trackUrl));
+  rerender(view('music', status, trackUrl));
+
+  expect(within(screen.getByTestId('links-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
+  expect(within(screen.getByTestId('lore-editor')).getByText(moving.title!)).toBeVisible();
+  expect(screen.getAllByText(moving.title!)).toHaveLength(1);
 });
