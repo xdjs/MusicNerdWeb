@@ -635,7 +635,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 {turns.length === 0 && <p className="mb-3 text-sm leading-relaxed text-white/75">What would you like to know about {artistName}?</p>}
                 {turns.map((turn, index) => (
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
-                        <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
+                        <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
                         {turn.error
                             ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
@@ -646,7 +646,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
                     setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
                 }}>Stop waiting</button>}
-                {resume && !loading && !turns.some(turn => turn.jobId === resume.jobId && turn.answer) && <button type="button" className="min-h-11 text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>{resume.complete ? 'Reopen saved answer' : 'Resume saved research'}: {resume.question}</button>}
+                {resume && !loading && !turns.some(turn => turn.jobId === resume.jobId && turn.answer) && <button type="button" className="min-h-11 max-w-full [overflow-wrap:anywhere] text-left text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>{resume.complete ? 'Reopen saved answer' : 'Resume saved research'}: {resume.question}</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (

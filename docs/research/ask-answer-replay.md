@@ -9,3 +9,7 @@ The API owns the durable `question_research` job and revalidates its public orig
 The browser retains only the last question text and job ID for this artist in its own local storage for up to 24 hours, so a new browser session can offer “Reopen saved answer.” It does not cache the answer: reopening calls Web, which checks the API's current source eligibility before replaying the server result. This is per-browser convenience, not a listener account history or an artist-facing question inbox.
 
 Migration 0044 must be applied to staging before preview verification and to production before the dependent Web build is promoted. Verify grants and RLS as `mnweb` in each environment. Existing completed jobs have no saved answer and receive one draft/check on first reopen. Exact result replay lasts for the bounded retention period; after expiry, a new draft may be necessary if the research job and its public evidence remain available.
+
+## Long questions on narrow screens
+
+Question bubbles and the saved-question reopen control wrap long URLs within their available width. Ordinary prose keeps normal word wrapping; the full question text is retained when reopened. Verify both views at 390 px and 832 px in light and dark themes (issue #1450).
