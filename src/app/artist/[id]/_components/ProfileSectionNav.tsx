@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useContext, useEffect, useRef, useState, type PointerEvent } from "react";
+import { OnboardingProgressContext } from "./onboarding/OnboardingProgressContext";
 import styles from "./ProfileSectionNav.module.css";
 
 const sections = [
     { id: "mn-latest", label: "Latest" },
-    { id: "mn-links", label: "Links" },
-    { id: "mn-lore", label: "Lore" },
-];
+    { id: "mn-links", label: "Links", research: "profiles" },
+    { id: "mn-lore", label: "Lore", research: "vault" },
+] as const;
 const clamp = (value: number) => Math.max(0, Math.min(sections.length - 1, value));
 
 export default function ProfileSectionNav() {
+    const research = useContext(OnboardingProgressContext);
     const [active, setActive] = useState(0);
     const [dragPosition, setDragPosition] = useState<number | null>(null);
     const [instant, setInstant] = useState(false);
@@ -128,6 +130,9 @@ export default function ProfileSectionNav() {
                 links.current[next]?.focus();
                 select(next, true);
             }}
-        >{section.label}</a>)}
+        >{section.label}{"research" in section && research?.fresh[section.research] && <>
+            <span aria-hidden="true" className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-highlightpink align-middle" />
+            <span className="sr-only">, new</span>
+        </>}</a>)}
     </nav>;
 }

@@ -1,0 +1,36 @@
+/** @jest-environment node */
+const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite') as typeof import('@electric-sql/pglite');
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+const artist = '11111111-1111-4111-8111-111111111111';
+const other = '22222222-2222-4222-8222-222222222222';
+const candidate = '33333333-3333-4333-8333-333333333333';
+let db: InstanceType<typeof PGlite>;
+const exec = (s: string) => db.exec(s);
+const scalar = async (s: string) => (await db.query<Record<string, unknown>>(s)).rows[0];
+beforeAll(async () => {
+    db = new PGlite();
+    await exec(`create role mnweb; create role anon; create role authenticated;
+      create function uuid_generate_v4() returns uuid language sql as 'select gen_random_uuid()';
+      create table artists(id uuid primary key); create table users(id uuid primary key);
+      create table artist_vault_sources(id uuid primary key); create table artist_activity_events(id uuid primary key);
+      create table artist_research_jobs(id uuid primary key default gen_random_uuid(),artist_id uuid references artists(id),kind text,status text default 'pending',created_at timestamptz default now(), constraint artist_research_jobs_kind_check check(kind in ('source_extract')));
+      grant usage on schema public to mnweb;
+      grant select,insert,update,delete on artists,artist_research_jobs to mnweb;
+      insert into artists values('${artist}'),('${other}');`);
+    await exec(readFileSync(resolve(process.cwd(), 'drizzle/0040_question_research.sql'), 'utf8'));
+});
+afterAll(async () => { await db?.close(); });
+beforeEach(async () => { await exec(`reset role; delete from artist_research_candidates; delete from artist_research_jobs; set role mnweb;
+    insert into artist_research_candidates(id,artist_id,url,destination,reason) values('${candidate}','${artist}','https://artist.example/interview','lore','reporting');`); });
+const evidence = (artistId = artist) => `insert into artist_research_evidence(candidate_id,artist_id,revision,original_text,provenance) values('${candidate}','${artistId}',repeat('a',64),'Original 🥁 passage','{"kind":"original_text","provider":"web","speaker":"unverified"}')`;
+it('permits the new job while preserving all released kinds', async () => { for (const kind of ['question_research','source_extract','social_ingest','caption_extract','lore_refresh','source_search','latest_refresh']) await exec(`insert into artist_research_jobs(artist_id,kind) values('${artist}','${kind}')`); });
+it('defaults discoveries to pending with unresolved identity', async () => { expect(await scalar('select curation,identity from artist_research_candidates')).toEqual({curation:'pending',identity:'unresolved'}); });
+it('deduplicates a URL per artist without deduplicating different artists', async () => { await assert.rejects(exec(`insert into artist_research_candidates(artist_id,url,destination,reason) values('${artist}','https://artist.example/interview','lore','reporting')`), /duplicate key/); await exec(`insert into artist_research_candidates(artist_id,url,destination,reason) values('${other}','https://artist.example/interview','lore','reporting')`); });
+it('stores exact immutable originals and rejects changes from the application', async () => { await exec(evidence()); expect(await scalar('select original_text from artist_research_evidence')).toEqual({original_text:'Original 🥁 passage'}); await assert.rejects(exec("update artist_research_evidence set original_text='changed'"), /permission denied/); await assert.rejects(exec('delete from artist_research_evidence'), /permission denied/); });
+it('requires an evidence version to belong to its artist and candidate', async () => { await assert.rejects(exec(evidence(other)), /foreign key/); });
+it('deduplicates revisions and rejects oversized or invalid originals', async () => { await exec(evidence()); await assert.rejects(exec(evidence()), /duplicate key/); await assert.rejects(exec(`insert into artist_research_evidence(candidate_id,artist_id,revision,original_text,provenance) values('${candidate}','${artist}','bad',repeat('x',50001),'{}')`), /check constraint/); });
+it('separates curation decline from wrong identity', async () => { await exec("update artist_research_candidates set curation='declined',identity='confirmed'"); expect(await scalar('select curation,identity from artist_research_candidates')).toEqual({curation:'declined',identity:'confirmed'}); });
+it('denies both browser roles and enables RLS on both new tables', async () => { for (const role of ['anon','authenticated']) { await exec(`reset role; set role ${role}`); await assert.rejects(exec('select * from artist_research_candidates'), /permission denied/); await assert.rejects(exec('select * from artist_research_evidence'), /permission denied/); } await exec('reset role'); expect((await db.query("select relrowsecurity from pg_class where relname in ('artist_research_candidates','artist_research_evidence')")).rows).toEqual([{relrowsecurity:true},{relrowsecurity:true}]); });
+it('purges originals through candidate and artist deletion', async () => { await exec(evidence()); await exec('delete from artist_research_candidates'); expect(await scalar('select count(*)::int as n from artist_research_evidence')).toEqual({n:0}); });

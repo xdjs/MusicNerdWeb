@@ -225,12 +225,19 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 )}
 
                 {/* The artist page. While a fresh claim's onboarding runs, research
-                    paints it in place, section by section (docs/research-view.md). */}
-                {!interviewPreview && !tourPreview && onboardingState && !onboardingState.complete ? (
+                    paints it in place, section by section (docs/research-view.md). The
+                    gate is rendered for the claimant whatever the state, so a build
+                    that completes during the visit keeps its ready card and new-item
+                    marks; a page that arrives complete renders just the profile. */}
+                {!interviewPreview && !tourPreview && onboardingState ? (
                     <OnboardingGate
                         artistId={artist.id}
                         artistName={artist.name ?? "your profile"}
                         state={onboardingState}
+                        researchItems={{
+                            links: [...getProfileLinks(artist, artistLinks, 'links'), ...getProfileLinks(artist, artistLinks, 'support')].map(link => link.siteName),
+                            sources: approvedSources.map(source => source.id),
+                        }}
                     >
                         {profile}
                     </OnboardingGate>

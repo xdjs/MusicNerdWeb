@@ -20,3 +20,14 @@ it("renders one podcast card with separate source links and a visible story coun
     expect(screen.getByRole("link", { name: "iHeart" })).toHaveAttribute("href", iheart);
     expect(screen.getByRole("button", { name: "All (2)" })).toBeInTheDocument();
 });
+
+it("marks sources that arrived with the build being watched, and only those", () => {
+    const { OnboardingProgressContext } = jest.requireActual("../onboarding/OnboardingProgressContext");
+    const value = { steps: { profiles: "t1", vault: "t2", interview: null, publish: null }, fresh: { profiles: false, vault: true, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: ["old"] } };
+    render(<OnboardingProgressContext.Provider value={value}><PressAndFeatures sources={[
+        { id: "old", artistId: "artist-1", url: "https://example.org/old", title: "Old story", type: "article" },
+        { id: "new", artistId: "artist-1", url: "https://example.org/new", title: "New story", type: "article" },
+    ]} /></OnboardingProgressContext.Provider>);
+    expect(screen.getByText("New story").closest("[data-research-new-item]")).not.toBeNull();
+    expect(screen.getByText("Old story").closest("[data-research-new-item]")).toBeNull();
+});

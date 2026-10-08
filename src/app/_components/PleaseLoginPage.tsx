@@ -9,7 +9,7 @@ export default function PleaseLoginPage({text = "Log in to access this page"}: {
     }
     
     return (
-        <section className="px-10 py-5 space-y-6 flex items-center justify-center flex-col">
+        <section className="px-10 py-5 space-y-6 flex items-center justify-center flex-col text-foreground">
             <h1 className="text-2xl text-center font-bold">{text}</h1>
             <Button variant="pink" onClick={handleLogin}>Log In</Button>
         </section>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import ResearchInPlace from "./ResearchInPlace";
+import ResearchInPlace, { type ResearchItems } from "./ResearchInPlace";
 import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
 import { useOnboardingChat, type ChatItem } from "./useOnboardingChat";
 import { useResearchPump } from "./useResearchPump";
@@ -15,12 +15,18 @@ type Props = {
     artistName: string;
     onSkip: () => void;
     onFinish: () => void;
+    /** The build finished while the page watched: the page stays, now complete. */
+    onBuildComplete?: () => void;
     /** The state the page rendered with, from MusicNerdAPI (docs/research-view.md). */
     initialState: OnboardingStateView;
+    /** The profile links and approved sources the page shows now (what counts as new). */
+    researchItems?: ResearchItems;
     /** The artist page. Research paints it in place while the build runs; the
      *  resume path's step cards sit over it. */
     children?: ReactNode;
 };
+
+const NO_ITEMS: ResearchItems = { links: [], sources: [] };
 
 // Presentational only — progress rail order + stage derivation for display purposes.
 const STEP_ORDER = ["profiles", "vault", "interview", "publish"] as const;
@@ -50,7 +56,7 @@ function prefersReducedMotion(): boolean {
     return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, initialState, children }: Props) {
+export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, onBuildComplete, initialState, researchItems = NO_ITEMS, children }: Props) {
     const { items, busy, sendTurn } = useOnboardingChat(artistId);
     // Keeps the scrape and the caption extraction moving while the artist is
     // here. They are minutes of work and no request lives that long, so the
@@ -305,10 +311,11 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
             <ResearchInPlace
                 artistId={artistId}
                 initialState={initialState}
+                researchItems={researchItems}
                 items={items}
                 onSkip={onSkip}
                 onRetry={() => void sendTurn({ type: "open" })}
-                onComplete={onFinish}
+                onComplete={onBuildComplete ?? onFinish}
             >
                 {children}
             </ResearchInPlace>
