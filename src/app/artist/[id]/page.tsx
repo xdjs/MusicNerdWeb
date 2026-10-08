@@ -35,7 +35,7 @@ import ProfileTourPreview from "./_components/onboarding/ProfileTourPreview";
 
 type ArtistProfileProps = {
     params: Promise<{ id: string }>;
-    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string; guidedDemo?: string }>;
+    searchParams?: Promise<{ addLink?: string | string[]; interviewPreview?: string; tourPreview?: string; guidedDemo?: string; buildPreview?: string }>;
 }
 
 function getAddLinkPrefill(addLink: string | string[] | undefined): string | undefined {
@@ -126,6 +126,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const interviewPreview = isInterviewPreviewEnabled() && resolvedSearchParams?.interviewPreview === "1";
     const tourPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview')
         && resolvedSearchParams?.tourPreview === "1";
+    const buildPreview = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') && resolvedSearchParams?.buildPreview === '1';
     const guidedDemo = (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') && resolvedSearchParams?.guidedDemo === '1';
     const addLinkPrefill = getAddLinkPrefill(resolvedSearchParams?.addLink);
     const session = await getServerAuthSession() ?? await getDevSession();
@@ -232,7 +233,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     gate is rendered for the claimant whatever the state, so a build
                     that completes during the visit keeps its ready card and new-item
                     marks; a page that arrives complete renders just the profile. */}
-                {guidedDemo && !interviewPreview && !tourPreview && onboardingState && !onboardingState.complete ? (
+                {(guidedDemo || buildPreview) && !interviewPreview && !tourPreview && onboardingState && !onboardingState.complete ? (
                     <GuidedBuildStart artistName={artist.name ?? "your"}>
                     <OnboardingGate
                         artistId={artist.id}
