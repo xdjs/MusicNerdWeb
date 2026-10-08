@@ -10,8 +10,8 @@ it('names the operator, the contact and the Terms of Service', () => {
   render(<Page />);
   expect(screen.getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeInTheDocument();
   expect(screen.getAllByText(/xDJs/).length).toBeGreaterThan(0);
-  const contacts = screen.getAllByRole('link', { name: 'hello@musicnerd.xyz' });
-  contacts.forEach(a => expect(a).toHaveAttribute('href', 'mailto:hello@musicnerd.xyz'));
+  const contacts = screen.getAllByRole('link', { name: 'dev@xdjs.com' });
+  contacts.forEach(a => expect(a).toHaveAttribute('href', 'mailto:dev@xdjs.com'));
   expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
 });
 

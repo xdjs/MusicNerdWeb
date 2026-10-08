@@ -2,7 +2,7 @@
 export const LEGAL_EFFECTIVE_DATE = '2026-10-08';
 
 /** Where questions and data requests go. */
-export const LEGAL_CONTACT_EMAIL = 'hello@musicnerd.xyz';
+export const LEGAL_CONTACT_EMAIL = 'dev@xdjs.com';
 
 /** Who runs Music Nerd. */
 export const LEGAL_OPERATOR = 'xDJs';

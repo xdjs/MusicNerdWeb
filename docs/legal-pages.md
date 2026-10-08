@@ -13,7 +13,7 @@
 Both are static server components with no data reads, rendered through the shared
 `src/app/_components/legal/LegalPage.tsx` (title, effective date, body). Both are listed in the
 first sitemap chunk (`src/app/sitemap.ts`) and are indexable. The operator named on both pages
-is xDJs; the contact for questions and data requests is `hello@musicnerd.xyz`.
+is xDJs; the contact for questions and data requests is `dev@xdjs.com`.
 
 ## The effective date
 
