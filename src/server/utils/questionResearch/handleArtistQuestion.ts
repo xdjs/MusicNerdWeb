@@ -2,7 +2,8 @@ import { z } from "zod";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "./planArtistQuestion";
 import { callResearchApi } from "./callResearchApi";
-import { draftResearchAnswer } from "./draftResearchAnswer";
+import { getOrDraftResearchAnswer } from "./getOrDraftResearchAnswer";
+import { registerResearchQuestion } from "./registerResearchQuestion";
 import { researchStatusSchema } from "@/lib/questionResearch/schemas";
 /** Public chat is limited to the API's public evidence capability; private history is never loaded. */
 export async function handleArtistQuestion(request: Request) {
@@ -55,6 +56,10 @@ export async function handleArtistQuestion(request: Request) {
             signal: request.signal,
           }),
     );
+    if (!jobId && !(await registerResearchQuestion(artistId, state.jobId, question)))
+      return Response.json({
+        error: "This saved research has reached its answer limit. Try a different question later.",
+      }, { status: 429, headers });
     if (
       !jobId ||
       !["complete", "unresolved", "failed", "cancelled"].includes(state.stage)
@@ -89,16 +94,37 @@ export async function handleArtistQuestion(request: Request) {
         { headers },
       );
     try {
-      const answer = await draftResearchAnswer(
-        artistId,
-        name,
-        question,
-        state.references,
-        request.signal,
-      );
+      const outcome = await getOrDraftResearchAnswer({
+        artistId, artistName: name, jobId: state.jobId, question,
+        references: state.references, signal: request.signal,
+      });
+      if (outcome.state === "drafting")
+        return Response.json({ research: {
+          jobId: state.jobId, stage: "complete",
+          message: "Checking the sourced answer…",
+          provider: state.provider,
+        } }, { status: 202, headers });
+      if (outcome.state === "unregistered")
+        return Response.json({
+          error: "This question is not attached to the saved research. Start a new question.",
+        }, { status: 409, headers });
+      if (outcome.state === "unavailable")
+        return Response.json({
+          answer: "The saved answer's supporting source is no longer available. I cannot verify it now.",
+          sources: [], suggestions: [],
+          research: { jobId: state.jobId, stage: "unresolved", message: "Source access changed." },
+        }, { headers });
+      if (outcome.state === "failed")
+        return Response.json({
+          error: outcome.retryable
+            ? "I could not verify an answer from those originals. You can retry shortly."
+            : "I could not verify an answer from those originals after several checks.",
+          jobId: state.jobId,
+          verification: { stage: outcome.stage, retryable: outcome.retryable },
+        }, { status: 503, headers });
       return Response.json(
         {
-          ...answer,
+          ...outcome.result,
           bandcamp: artist.bandcamp
             ? `https://${artist.bandcamp}.bandcamp.com`
             : null,

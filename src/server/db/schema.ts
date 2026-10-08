@@ -766,6 +766,34 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	pgPolicy("mnweb_delete_artist_research_jobs", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
 ]);
 
+// Public Ask About results are private to the server database role until the
+// API has revalidated the currently eligible originals on each replay.
+export const artistQuestionAnswers = pgTable("artist_question_answers", {
+	jobId: uuid("job_id").notNull().references(() => artistResearchJobs.id, { onDelete: "cascade" }),
+	artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+	questionHash: text("question_hash").notNull(),
+	status: text().notNull(),
+	claimToken: uuid("claim_token").notNull(),
+	claimUntil: timestamp("claim_until", { withTimezone: true, mode: "string" }).notNull(),
+	attempts: integer().default(0).notNull(),
+	result: jsonb(),
+	failureStage: text("failure_stage"),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).default(sql`now()`).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.jobId, table.questionHash] }),
+	check("artist_question_answers_hash", sql`${table.questionHash} ~ '^[a-f0-9]{64}$'`),
+	check("artist_question_answers_status", sql`${table.status} in ('waiting','drafting','verified','failed')`),
+	check("artist_question_answers_attempts", sql`${table.attempts} between 0 and 3`),
+	check("artist_question_answers_result", sql`(${table.status} = 'verified' and jsonb_typeof(${table.result}) = 'object') or (${table.status} <> 'verified' and ${table.result} is null)`),
+	index("artist_question_answers_expiry").on(table.expiresAt),
+	pgPolicy("mnweb_select_artist_question_answers", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+	pgPolicy("mnweb_insert_artist_question_answers", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+	pgPolicy("mnweb_update_artist_question_answers", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+	pgPolicy("mnweb_delete_artist_question_answers", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
+]);
+
 // What an artist's own captions say: role credits and statements, extracted once
 // per ingest by socialCredits.ts and read by questionGenerator + artistDocService.
 // Every row cites the post it came from and carries the verified quote.

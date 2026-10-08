@@ -72,6 +72,19 @@ it("reconnects with the saved job and never submits an initial new request", asy
     JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string).jobId,
   ).toBe("saved");
 });
+it("keeps polling when a concurrent worker holds the answer-check lease", async () => {
+  const reply = (body: unknown, status = 200) => ({ ok: true, status, json: async () => body });
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce(reply({ research: { jobId: "job", stage: "complete", message: "Research done" } }, 202))
+    .mockResolvedValueOnce(reply({ jobId: "job", stage: "complete", message: "Research done" }))
+    .mockResolvedValueOnce(reply({ research: { jobId: "job", stage: "complete", message: "Checking the sourced answer" } }, 202))
+    .mockResolvedValueOnce(reply({ jobId: "job", stage: "complete", message: "Research done" }))
+    .mockResolvedValueOnce(reply({ answer: "Saved answer", sources: [] }));
+  const promise = runArtistResearch({ artistId: "artist", question: "Question?", signal: new AbortController().signal, onProgress: () => {} });
+  await jest.advanceTimersByTimeAsync(6000);
+  expect((await promise).answer).toBe("Saved answer");
+  expect(jest.mocked(fetch).mock.calls.filter(([, opts]) => opts?.method === "POST")).toHaveLength(3);
+});
 it("retains a saved job when answer verification fails before any progress response", async () => {
   const jobId = "22222222-2222-4222-8222-222222222222";
   const onProgress = jest.fn();

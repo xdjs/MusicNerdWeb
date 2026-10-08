@@ -63,6 +63,52 @@ it("reopens the original before drafting and retains exact stable references wit
     curation: "pending",
   });
 });
+it("keeps the original citation when a model collapses whitespace in its quote", async () => {
+  const text =
+    "Dutchyyy has been building it out  over the past year\n\nto escape platform dependency & reach listeners.";
+  const spaced = { ...reference, text, end: text.length };
+  api.mockResolvedValue({
+    status: "ok",
+    passage: spaced,
+    totalChars: text.length,
+    nextStart: null,
+  });
+  model.mockReset();
+  model
+    .mockResolvedValueOnce({
+      output: {
+        sentences: [
+          {
+            text: "The vault helps him escape platform dependency.",
+            evidence: [
+              {
+                n: 1,
+                quote:
+                  "building it out over the past year to escape platform dependency",
+              },
+            ],
+          },
+        ],
+        unanswered: null,
+      },
+    } as never)
+    .mockResolvedValueOnce({
+      output: { supported: true, reason: "Passage establishes purpose." },
+    } as never);
+  const result = await draftResearchAnswer(
+    "artist",
+    "Dutchyyy",
+    "Why the vault?",
+    [spaced],
+  );
+  expect(result.answer).toBe("The vault helps him escape platform dependency. [1]");
+  expect(result.sources[0]).toMatchObject({
+    sourceId: spaced.sourceId,
+    revision: spaced.revision,
+    start: 0,
+    end: text.length,
+  });
+});
 it("withholds unknown or fabricated quote references before checking a claim", async () => {
   model.mockReset();
   model.mockResolvedValue({

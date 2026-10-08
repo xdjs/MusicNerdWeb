@@ -3,13 +3,15 @@ import { handleArtistQuestion } from "../handleArtistQuestion";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "../planArtistQuestion";
 import { callResearchApi } from "../callResearchApi";
-import { draftResearchAnswer } from "../draftResearchAnswer";
+import { getOrDraftResearchAnswer } from "../getOrDraftResearchAnswer";
+import { registerResearchQuestion } from "../registerResearchQuestion";
 jest.mock("@/server/utils/queries/artistQueries", () => ({
   getArtistById: jest.fn(),
 }));
 jest.mock("../planArtistQuestion", () => ({ planArtistQuestion: jest.fn() }));
 jest.mock("../callResearchApi", () => ({ callResearchApi: jest.fn() }));
-jest.mock("../draftResearchAnswer", () => ({ draftResearchAnswer: jest.fn() }));
+jest.mock("../getOrDraftResearchAnswer", () => ({ getOrDraftResearchAnswer: jest.fn() }));
+jest.mock("../registerResearchQuestion", () => ({ registerResearchQuestion: jest.fn() }));
 if (!Response.json)
   Response.json = (body, init) =>
     new Response(JSON.stringify(body), {
@@ -44,13 +46,16 @@ beforeEach(() => {
     freshness: "stored",
   });
   jest.mocked(callResearchApi).mockResolvedValue(status);
+  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({ state: "drafting" });
+  jest.mocked(registerResearchQuestion).mockResolvedValue(true);
 });
 it("acknowledges the durable job before any collection or answer call", async () => {
   const r = await handleArtistQuestion(request());
   expect(r.status).toBe(202);
   expect((await r.json()).research.jobId).toBe(jobId);
   expect(callResearchApi).toHaveBeenCalledTimes(1);
-  expect(draftResearchAnswer).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who played drums?");
+  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
 it("resumes the known artist-scoped job without replanning or enqueueing", async () => {
   const r = await handleArtistQuestion(request({ jobId }));
@@ -67,7 +72,7 @@ it("does not generate a guessed answer to an unresolved request", async () => {
     .mockResolvedValue({ ...status, stage: "unresolved" });
   const r = await handleArtistQuestion(request({ jobId }));
   expect((await r.json()).answer).toMatch(/could not establish/i);
-  expect(draftResearchAnswer).not.toHaveBeenCalled();
+  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
 it("rejects invalid request scope before any API/model work", async () => {
   expect(
@@ -94,5 +99,42 @@ it("treats a cached complete acknowledgement as a job to reopen, never an eviden
   const r = await handleArtistQuestion(request());
   expect(r.status).toBe(202);
   expect((await r.json()).research.jobId).toBe(jobId);
-  expect(draftResearchAnswer).not.toHaveBeenCalled();
+  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it("returns checked saved results without invoking the model in the route", async () => {
+  jest.mocked(callResearchApi).mockResolvedValue({ ...status, stage: "complete" });
+  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({ state: "ready", result: {
+    answer: "They played drums. [1]", sources: [], instagramMentions: [],
+    fromOpenWeb: false, webDomains: [], suggestions: [],
+  } });
+  const r = await handleArtistQuestion(request({ jobId }));
+  expect(r.status).toBe(200);
+  expect((await r.json()).answer).toBe("They played drums. [1]");
+  expect(getOrDraftResearchAnswer).toHaveBeenCalledWith(expect.objectContaining({ jobId, artistId }));
+});
+it("tells concurrent pollers the checked answer is still being prepared", async () => {
+  jest.mocked(callResearchApi).mockResolvedValue({ ...status, stage: "complete" });
+  const r = await handleArtistQuestion(request({ jobId }));
+  expect(r.status).toBe(202);
+  expect((await r.json()).research.message).toMatch(/checking/i);
+});
+it("returns a safe verification stage and retry boundary", async () => {
+  jest.mocked(callResearchApi).mockResolvedValue({ ...status, stage: "complete" });
+  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({ state: "failed", stage: "claim_check", retryable: true });
+  const r = await handleArtistQuestion(request({ jobId }));
+  expect(r.status).toBe(503);
+  expect((await r.json()).verification).toEqual({ stage: "claim_check", retryable: true });
+});
+it("rejects an unregistered completed-job question before drafting", async () => {
+  jest.mocked(callResearchApi).mockResolvedValue({ ...status, stage: "complete" });
+  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({ state: "unregistered" });
+  const r = await handleArtistQuestion(request({ jobId, question: "A different question?" }));
+  expect(r.status).toBe(409);
+  expect((await r.json()).error).toMatch(/not attached/i);
+});
+it("enforces the per-job answer budget on initial submission", async () => {
+  jest.mocked(registerResearchQuestion).mockResolvedValue(false);
+  const r = await handleArtistQuestion(request());
+  expect(r.status).toBe(429);
+  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });

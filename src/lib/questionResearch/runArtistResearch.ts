@@ -78,8 +78,11 @@ export async function runArtistResearch(input: {
     input.onProgress(progress);
     if (
       ["complete", "unresolved", "failed", "cancelled"].includes(progress.stage)
-    )
-      return (await post(jobId)).data;
+    ) {
+      const answer = await post(jobId);
+      if (answer.status !== 202) return answer.data;
+      input.onProgress(answer.data.research);
+    }
     await new Promise<void>((resolve, reject) => {
       const onAbort = () => {
         clearTimeout(timer);
