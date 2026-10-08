@@ -22,6 +22,12 @@ is confirmed. The approved design is linked from the issue.
 > status card goes away and the tour takes over. Tracked on
 > [#1464](https://github.com/xdjs/MusicNerdWeb/issues/1464).
 
+> **Decision 2026-10-08 ([R&D sync](https://github.com/xdjs/MusicNerdWeb/issues/1464); Pete,
+> Sweetman): research scrolls by itself, until the artist scrolls.** Pete asked for a way to
+> follow the build without knowing to scroll; Sweetman proposed following by default and stopping
+> once the artist scrolls; Pete: "that's perfect". This narrows the earlier "nothing scrolls by
+> itself" rule to the tour.
+
 ## When it shows
 
 `page.tsx` fetches the onboarding state from MusicNerdAPI (`fetchOnboardingState`) for the
@@ -70,12 +76,19 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   truth: a reload mid-build shows whatever has been written.
 - **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
   never treated as "not started".
+- **Follow.** While the build runs, the page scrolls to the section being researched each time
+  the current step changes: `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`),
+  `interview`/`publish` → About (`#mn-about`). It smooth-scrolls, or jumps with reduced motion.
+  The artist's own scroll input (wheel, touch, or a scroll key) stops following for the rest of the
+  visit. A scroll event alone doesn't count, because the page's own scrolling fires those too. A
+  failure or completion stops it; a reload mid-build follows again.
 - **Status card.** Above the fold: the current step (`buildStepLabel`), three segments (Links, Lore,
   About: done, running or waiting; `interview` counts as About) and "skip for now".
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
   page loaded already complete renders just the profile), so the marks stay. The status card goes
-  away, and the tour's opening card (About) is the next thing the artist sees. Nothing scrolls by itself: opening or restoring the tour preserves
+  away, and the tour's opening card (About) is the next thing the artist sees. Following ends on
+  About, where the tour opens. Apart from following during the build, nothing scrolls by itself: opening or restoring the tour preserves
   the artist's scroll position, and only the artist choosing **Next** or **Back** scrolls to a tour
   section. The opening card stays within the viewport even when About is above the reader's
   current position. Its About copy is: "This draft is based on the sources on your profile. Edit it
