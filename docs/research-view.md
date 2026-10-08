@@ -16,6 +16,12 @@ is confirmed. The approved design is linked from the issue.
 > MusicNerdAPI's public `GET /api/onboarding/{artistId}/state`
 > ([docs](https://musicnerd-docs.vercel.app/api-reference/onboarding/state)), not the database.
 
+> **Decision 2026-10-08 ([R&D sync](https://github.com/xdjs/MusicNerdWeb/issues/1464); Pete,
+> Sweetman): no "Your page is ready" card.** Its **See what we found** only scrolled to a
+> hard-coded section, and the tour already opens on completion. When research completes, the
+> status card goes away and the tour takes over. Tracked on
+> [#1464](https://github.com/xdjs/MusicNerdWeb/issues/1464).
+
 ## When it shows
 
 `page.tsx` fetches the onboarding state from MusicNerdAPI (`fetchOnboardingState`) for the
@@ -68,9 +74,8 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   About: done, running or waiting; `interview` counts as About) and "skip for now".
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
-  page loaded already complete renders just the profile), so the marks stay. The status card turns
-  into "Your page is ready", with what was found and **See what we found**, which scrolls to the
-  first section that changed. Nothing scrolls by itself: opening or restoring the tour preserves
+  page loaded already complete renders just the profile), so the marks stay. The status card goes
+  away, and the tour's opening card (About) is the next thing the artist sees. Nothing scrolls by itself: opening or restoring the tour preserves
   the artist's scroll position, and only the artist choosing **Next** or **Back** scrolls to a tour
   section. The opening card stays within the viewport even when About is above the reader's
   current position. Its About copy is: "This draft is based on the sources on your profile. Edit it
