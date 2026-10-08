@@ -22,12 +22,12 @@ module.
 
 | Path | Role |
 | --- | --- |
-| `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"`. Every site uses it. |
+| `src/server/lib/ai/models.ts` | The only place a model id lives: `MODEL_FLASH = "google/gemini-2.5-flash"` remains the existing default. The flagged API interviewer has separate research/writer and checker constants. |
 | `src/server/lib/ai/generateText.ts` | One exported function, `generateText`, wrapping `ai`'s `generateText`. Takes `{ model, instructions, prompt, temperature, thinkingBudget, googleSearch, output }`, defaults `model` to `MODEL_FLASH`, turns `thinkingBudget` into `providerOptions.google.thinkingConfig` and `googleSearch: true` into the provider-executed `google.tools.googleSearch({})`. Returns the SDK result (`text`, `output`, `sources`, `usage`). |
 | `src/server/lib/ai/streamText.ts` | One exported function, `streamText`: the same options as `generateText` (no `output`) plus `onTextDelta(delta)`, called with each piece of text as the model writes it. Wraps `ai`'s `streamText`, reads its `fullStream`, and resolves `{ text }` once the stream ends, so a site swaps it in without changing how it reads the reply. An `error` part rejects the call, as `generateText` would have thrown. Sites 5 and 6. |
 | `src/server/lib/ai/generateArray.ts` | `generateArray({ element, ...same })`: the reply is a list validated against the zod `element` schema (`Output.array`). Sites 3, 9, 10, 11. Mirrors Recoup's `lib/ai/generateArray.ts`. |
 | `src/server/lib/ai/generateObject.ts` | `generateObject({ schema, ...same })`: the reply is one object validated against the zod `schema` (`Output.object`). Site 12. |
-| Each call site (table below) | Imports one of the four and passes exactly the config in its row. Nothing outside `src/server/lib/ai` imports `ai` or `@ai-sdk/google`. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
+| Each call site (table below) | Imports one of the four and passes exactly the config in its row. Model execution stays in `src/server/lib/ai`; the new interviewer orchestration may import SDK schema/tool builders, but does not create a separate model client. Tests mock the helper the site imports, as they mocked `@/server/lib/gemini`. |
 
 Removed by the switch: `src/server/lib/gemini.ts` (`@google/genai`), `src/server/lib/openai.ts`
 (`openai`, never called at runtime), and the `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`,
@@ -178,3 +178,9 @@ asked, and `Output.array` / `Output.object` wrapping.
   is green; the stub build runs without an LLM variable.
 - Per-site timings recorded on the PR next to the pre-switch numbers (the 90 s caption batch is
   the one to watch).
+
+## API-backed interviewer (draft flag)
+
+`MUSICNERD_API_INTERVIEWER_ENABLED=true` uses `researchInterviewAngles` (AI SDK ToolLoopAgent, Gemini 3.8 Flash, at most eight steps) followed by a Gemini 3.8 Flash writer and independent Opus 5.5 evidence/conversation checker through the existing Gateway. The host restores complete mandatory memory and the prior-question index first. Six read-only tools call MusicNerdAPI, capped at ten calls and 48,000 serialized response characters. Generation stops at 75 seconds with no provider retries, and verifies current memory again before the API atomically accepts the offer. Web never scrapes or writes interview rows directly on this path. Page load only restores an existing API session; Start/Continue is explicit. Model guard approval is not editorial acceptance. Requires migrations 0041/0042 and the matching API before setting the server-only flag. Production stays on the current interview while the flag is absent.
+
+The flagged interviewer model pair is scoped to Web#1443 / #1422, with model-choice evidence linked from #1259. One rejected draft can be revised and checked once inside the same deadline. The revised question, observation, intended unknown and rationale are checked together; references remain the validated original spans. A valid evidence set reserves the last research step for synthesis. The private local pilot compares full pipelines and retains failures, not just successful questions. Its stronger checker caught selected unsupported premises missed by Flash, but these small development runs are not general editorial acceptance. No other call-site model or production flag changes.

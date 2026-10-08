@@ -37,5 +37,8 @@ export const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET ?? "";
 // Apify (Instagram post ingestion — see socialIngest.ts). Empty = ingestion no-ops.
 export const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN ?? "";
 
+// Explicit rollout: the API session/memory schema and paired API must be ready first.
+export const MUSICNERD_API_INTERVIEWER_ENABLED = process.env.MUSICNERD_API_INTERVIEWER_ENABLED === 'true';
+
 // Server-only public knowledge/research capability; never grants private artist access.
 export const MUSICNERD_RESEARCH_API_KEY = process.env.MUSICNERD_RESEARCH_API_KEY ?? "";

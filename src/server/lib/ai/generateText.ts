@@ -13,17 +13,20 @@ export type GenerateTextOptions<OUTPUT extends OutputInterface = TextOutput> = {
     temperature?: number;
     /** Gemini thinking budget in tokens; omitted means the model's default. */
     thinkingBudget?: number;
+    /** Gemini 3+ reasoning level, selected explicitly by the caller. */
+    thinkingLevel?: "low";
     /** `Output.object({ schema })` or `Output.array({ element })` for the sites that parse JSON today. */
     output?: OUTPUT;
     /** Google Search grounding, executed by the provider; the result's `sources` say what it used. */
     googleSearch?: boolean;
     abortSignal?: AbortSignal;
     maxOutputTokens?: number;
+    maxRetries?: number;
 };
 
-/** The one entry point for model calls. Routes through Vercel AI Gateway (docs/llm.md). */
+/** Shared entry point for single model calls; tool agents use researchInterviewAngles. Routes through Vercel AI Gateway (docs/llm.md). */
 export function generateText<OUTPUT extends OutputInterface = TextOutput>(options: GenerateTextOptions<OUTPUT>) {
-    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, output, googleSearch, abortSignal, maxOutputTokens } = options;
+    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, thinkingLevel, output, googleSearch, abortSignal, maxOutputTokens, maxRetries } = options;
     return sdkGenerateText({
         model,
         instructions,
@@ -32,7 +35,8 @@ export function generateText<OUTPUT extends OutputInterface = TextOutput>(option
         output,
         abortSignal,
         maxOutputTokens,
+        maxRetries,
         ...(googleSearch ? { tools: { google_search: google.tools.googleSearch({}) } } : {}),
-        ...(thinkingBudget !== undefined ? { providerOptions: { google: { thinkingConfig: { thinkingBudget } } } } : {}),
+        ...(thinkingBudget !== undefined || thinkingLevel !== undefined ? { providerOptions: { google: { thinkingConfig: { thinkingBudget, thinkingLevel } } } } : {}),
     });
 }
