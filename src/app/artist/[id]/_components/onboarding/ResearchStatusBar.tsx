@@ -16,18 +16,16 @@ const BAR = {
 /**
  * The status card above the fold while research paints the profile in place
  * (docs/research-view.md, "Status card" and "Done"): the current step, three
- * segments and "skip for now"; once complete, "Your page is ready" with a way
- * to what changed; or a failure with "try again".
+ * segments and "skip for now"; or a failure with "try again". Once complete it
+ * renders nothing: the profile tour takes over.
  */
-export default function ResearchStatusBar({ steps, currentStep, complete, summary, failure, onSkip, onRetry, onSeeResults }: {
+export default function ResearchStatusBar({ steps, currentStep, complete, failure, onSkip, onRetry }: {
     steps: OnboardingSteps;
     currentStep: OnboardingStepName | null;
     complete: boolean;
-    summary: string;
     failure: string | null;
     onSkip: () => void;
     onRetry: () => void;
-    onSeeResults: () => void;
 }) {
     if (failure) {
         return (
@@ -37,20 +35,7 @@ export default function ResearchStatusBar({ steps, currentStep, complete, summar
             </div>
         );
     }
-    if (complete) {
-        return (
-            <section aria-label="Your page is ready" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-highlightpink/70 bg-highlightpink/10 px-4 py-3 text-foreground">
-                <p role="status" className="m-0 flex flex-col gap-0.5">
-                    <strong className="text-base">Your page is ready</strong>
-                    <span className="text-sm text-[hsl(var(--muted-foreground))]">{summary}</span>
-                </p>
-                <Button variant="pink" onClick={onSeeResults} className="rounded-xl text-[15px]">
-                    See what we found
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-                </Button>
-            </section>
-        );
-    }
+    if (complete) return null;
     return (
         <section aria-label="Research status" className="flex flex-col gap-3 rounded-2xl px-4 py-3 shadow-[0_0_0_1px_hsl(var(--border))]">
             <div className="flex items-center justify-between gap-3">

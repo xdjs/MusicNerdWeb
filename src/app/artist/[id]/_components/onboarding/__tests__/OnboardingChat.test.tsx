@@ -343,11 +343,12 @@ describe('OnboardingChat', () => {
         expect(onFinish).not.toHaveBeenCalled();
     });
 
-    it('shows the ready card with what research found once the build is complete', () => {
+    it('leaves just the artist page once the build is complete, with no ready card', () => {
         setChat({ items: [] });
         setProgress({ complete: true, currentStep: null, steps: { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' } });
         render(<OnboardingChat artistId="a1" artistName="Nova Reyes" initialState={initialState} researchItems={{ links: ['deezer', 'spotify'], sources: ['s1'] }} onSkip={jest.fn()} onFinish={jest.fn()} onBuildComplete={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(screen.getByText('Your page is ready')).toBeInTheDocument();
+        expect(screen.queryByText('Your page is ready')).not.toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Research status' })).not.toBeInTheDocument();
         expect(screen.getByText('artist page')).toBeInTheDocument();
     });
 
