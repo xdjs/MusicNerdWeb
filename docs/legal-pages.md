@@ -40,8 +40,11 @@ The copy must match what the code does. Update the page in the same PR as any ch
 - **Processors:** Vercel, Supabase, Privy, Resend, and the AI and data providers above.
 - **API access:** tokens from `/access` are the user's Privy session, as in the API docs.
 
-## Approval
+## Approval and links
 
-The copy is a draft until Pete and the reviewer he names approve it on the PR. Linking the
-pages from the footer and the About page is [#1452](https://github.com/xdjs/MusicNerdWeb/issues/1452),
-after the approved pages reach production.
+Pete approved both pages' copy at the 2026-10-08 R&D sync. The site footer
+(`src/app/_components/Footer.tsx`, on every page) links to them through
+`src/app/_components/FooterLinks.tsx`: **Docs** (the API documentation at
+`https://musicnerd-docs.vercel.app`, opens in a new tab), **Terms** and **Privacy**. The About page
+and its menu entry are [#1452](https://github.com/xdjs/MusicNerdWeb/issues/1452) (Pete); add it to
+`FooterLinks` when it exists.
