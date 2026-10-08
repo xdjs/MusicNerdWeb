@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
+import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 
 interface AskAboutArtistProps {
@@ -16,7 +18,7 @@ const DEFAULT_SUGGESTIONS = (name: string) => [
     `What is ${name} known for?`,
 ];
 
-type AnswerSource = { n: number; title: string; url: string };
+type AnswerSource = { n: number; title: string; url: string; sourceId?: string; revision?: string; start?: number; curation?: string };
 type AnswerMention = { name: string; artistId?: string; instagram?: string; role?: string };
 type AnswerSong = { title: string; spotifyUrl: string; kind?: string };
 type TrackLink = { service: string; url: string };
@@ -432,6 +434,9 @@ function SongLink({
 }
 
 type ConversationTurn = {
+    id: string;
+    jobId?: string;
+    progress?: string;
     question: string;
     answer?: string;
     sources: AnswerSource[];
@@ -444,7 +449,7 @@ type ConversationTurn = {
     error?: string;
 };
 
-function ConversationAnswer({ turn, artistName }: { turn: ConversationTurn; artistName: string }) {
+function ConversationAnswer({ turn, artistName, artistId }: { turn: ConversationTurn; artistName: string; artistId: string }) {
     const { answer, sources, mentions, instagramMentions, songs, bandcamp, fromOpenWeb, webDomains } = turn;
     return <div className="space-y-3 px-1">
         {/* Answer */}
@@ -495,6 +500,8 @@ function ConversationAnswer({ turn, artistName }: { turn: ConversationTurn; arti
             </div>
         )}
 
+        {sources.map(source => <ResearchSourcePassage key={`${source.n}:${source.revision}`} artistId={artistId} source={source} />)}
+
         {/* Answered from the open web, because our own sources did
           * not cover it. Named as such: a reader has to be able to
           * tell "this is from the artist's own posts and their
@@ -502,7 +509,7 @@ function ConversationAnswer({ turn, artistName }: { turn: ConversationTurn; arti
         {answer && fromOpenWeb && (
             <div className="flex flex-col gap-1 pt-1">
                 <p className="text-[10px] text-white/60">
-                    Not in {artistName}&apos;s sources — answered from the web
+                    {sources.some(s => s.curation === "pending") ? "Includes research outside approved Lore, awaiting artist review" : <>Not in {artistName}&apos;s sources — answered from the web</>}
                 </p>
                 {webDomains.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -537,55 +544,73 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS(artistName));
     const [loading, setLoading] = useState(false);
     const requestPending = useRef(false);
+    const activeRequest = useRef<AbortController | null>(null);
+    const [resume, setResume] = useState<{ question: string; jobId: string } | null>(null);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    const ask = async (q: string) => {
+    useEffect(() => {
+        activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
+        setTurns([]); setResume(null); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        try { const saved = JSON.parse(sessionStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
+            if (saved?.version === 1 && typeof saved.question === 'string' && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f-]{36}$/i.test(saved.jobId) && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) setResume(saved);
+        } catch { /* Storage may be unavailable; the API job is still durable. */ }
+        return () => { activeRequest.current?.abort(); };
+    }, [artistId, artistName]);
+
+    const ask = async (q: string, jobId?: string) => {
         const trimmed = q.trim();
         if (!trimmed || requestPending.current) return;
         requestPending.current = true;
+        const controller = new AbortController(); activeRequest.current = controller;
         setLoading(true);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
-            question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
+            id: crypto.randomUUID(), jobId, question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
         setTurns(previous => [...previous, pending]);
         const finish = (result: Partial<ConversationTurn>) => {
-            setTurns(previous => [...previous.slice(0, -1), { ...pending, ...result }]);
+            if (controller.signal.aborted) return;
+            setTurns(previous => previous.map(turn => turn.id === pending.id ? { ...turn, ...result } : turn));
         };
         try {
-            const res = await fetch("/api/askArtist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ artistId, question: trimmed }),
+            const data = await runArtistResearch({ artistId, question: trimmed, jobId, signal: controller.signal,
+                onProgress: progress => {
+                    if (controller.signal.aborted) return;
+                    finish({ jobId: progress.jobId, progress: progress.message });
+                    const saved = { version: 1, question: trimmed, jobId: progress.jobId, savedAt: Date.now() };
+                    setResume(saved);
+                    try { sessionStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional reconnect convenience. */ }
+                },
             });
-            const data = await res.json();
-            if (!res.ok || data.error || typeof data.answer !== "string" || !data.answer.trim()) {
+            if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
                 return;
             }
+            if (!controller.signal.aborted) {
+                setResume(null); try { sessionStorage.removeItem(`musicnerd-research:${artistId}`); } catch { /* Optional storage. */ }
+            }
             finish({
                 answer: data.answer,
-                sources: Array.isArray(data.sources) ? data.sources : [],
-                mentions: Array.isArray(data.mentions) ? data.mentions : [],
+                sources: Array.isArray(data.sources) ? data.sources as AnswerSource[] : [],
+                mentions: Array.isArray(data.mentions) ? data.mentions as AnswerMention[] : [],
                 instagramMentions: Array.isArray(data.instagramMentions) ? data.instagramMentions.filter((handle: unknown) => typeof handle === 'string') : [],
-                songs: Array.isArray(data.songs) ? data.songs : [],
+                songs: Array.isArray(data.songs) ? data.songs as AnswerSong[] : [],
                 bandcamp: typeof data.bandcamp === "string" ? data.bandcamp : null,
                 fromOpenWeb: data.fromOpenWeb === true,
-                webDomains: Array.isArray(data.webDomains) ? data.webDomains : [],
+                webDomains: Array.isArray(data.webDomains) ? data.webDomains.filter((v): v is string => typeof v === "string") : [],
             });
             if (Array.isArray(data.suggestions)) {
-                setSuggestions(data.suggestions.filter((s: string) =>
+                setSuggestions(data.suggestions.filter((s): s is string =>
                     typeof s === "string" && !askedQuestions.current.has(s.toLowerCase())));
             }
-        } catch {
-            finish({ error: "Failed to get an answer. Try again." });
+        } catch (error) {
+            finish({ error: error instanceof Error ? error.message : "Failed to get an answer. Try again." });
         } finally {
-            requestPending.current = false;
-            setLoading(false);
+            if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
     };
 
@@ -607,11 +632,16 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                         <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
                         {turn.error
-                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
-                            : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} />
-                                : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />Finding an answer…</p>}
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                            : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
+                                : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
                     </div>
                 ))}
+                {resume && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
+                    activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
+                    setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
+                }}>Stop waiting</button>}
+                {resume && !loading && <button type="button" className="min-h-11 text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>Resume saved research: {resume.question}</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (
