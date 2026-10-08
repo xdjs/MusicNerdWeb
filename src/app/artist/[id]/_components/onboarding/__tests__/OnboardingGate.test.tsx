@@ -15,13 +15,15 @@
 // `src/app/profile/__tests__/ClientWrapper.test.tsx` for the same working pattern.
 import { render, screen, fireEvent } from '@testing-library/react';
 import OnboardingGate, { skipFlagKey } from '../OnboardingGate';
+import { tourPendingKey } from '../tourPendingKey';
 
 jest.mock('../OnboardingChat', () => ({
     __esModule: true,
-    default: ({ onSkip, onFinish, initialState, children }) => (
-        <div data-testid="onboarding-chat" data-initial-step={initialState?.currentStep}>
+    default: ({ onSkip, onFinish, onBuildComplete, initialState, researchItems, children }) => (
+        <div data-testid="onboarding-chat" data-initial-step={initialState?.currentStep} data-links={researchItems?.links.join(',')}>
             <button onClick={onSkip}>skip</button>
             <button onClick={onFinish}>finish</button>
+            <button onClick={onBuildComplete}>build complete</button>
             <div data-testid="passed-page">{children}</div>
         </div>
     ),
@@ -65,6 +67,21 @@ describe('OnboardingGate', () => {
         expect(sessionStorage.getItem(skipFlagKey('a1'))).toBeNull();
         expect(screen.queryByTestId('onboarding-chat')).not.toBeInTheDocument();
         expect(screen.queryByText(/finish setting up/i)).not.toBeInTheDocument();
+    });
+
+    it('renders just the page when onboarding was already complete on arrival', () => {
+        render(<OnboardingGate artistId="a1" artistName="Nova Reyes" state={{ complete: true, currentStep: null, steps: { profiles: 'a', vault: 'b', interview: 'c', publish: 'c' } }}><p>artist page</p></OnboardingGate>);
+        expect(screen.queryByTestId('onboarding-chat')).toBeNull();
+        expect(screen.queryByText(/finish setting up/i)).toBeNull();
+        expect(screen.getByText('artist page')).toBeInTheDocument();
+    });
+
+    it('keeps the build view mounted when the build completes during the visit, and arms the tour', () => {
+        render(<OnboardingGate artistId="a1" artistName="Nova Reyes" state={at('profiles')} researchItems={{ links: ['deezer'], sources: [] }} />);
+        expect(screen.getByTestId('onboarding-chat')).toHaveAttribute('data-links', 'deezer');
+        fireEvent.click(screen.getByText('build complete'));
+        expect(screen.getByTestId('onboarding-chat')).toBeInTheDocument();
+        expect(sessionStorage.getItem(tourPendingKey('a1'))).toBe('1');
     });
 
     it("hands the page's onboarding state to the chat", () => {

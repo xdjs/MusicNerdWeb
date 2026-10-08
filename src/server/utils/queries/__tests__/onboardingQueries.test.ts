@@ -87,17 +87,17 @@ describe('write paths use ON CONFLICT upserts', () => {
     });
 
     it('upsertInterviewAnswer upserts on (artistId, questionKey)', async () => {
-        const onConflictDoUpdate = jest.fn().mockResolvedValue(undefined);
+        const onConflictDoUpdate = jest.fn().mockReturnValue({returning:jest.fn().mockResolvedValue([{id:"saved"}])});
         db.insert.mockReturnValue({ values: jest.fn().mockReturnValue({ onConflictDoUpdate }) });
         await upsertInterviewAnswer({
             artistId: 'artist-1', questionKey: 'offline_fact',
             question: 'q', answer: null, sitting: 1, source: 'onboarding',
         });
-        expect(onConflictDoUpdate).toHaveBeenCalled();
+        expect(new PgDialect().sqlToQuery(onConflictDoUpdate.mock.calls[0][0].setWhere).params).toEqual(["offered"]);
     });
 
     it('keeps answer chronology separate from the offer-time watermark', async () => {
-        const onConflictDoUpdate = jest.fn().mockResolvedValue(undefined);
+        const onConflictDoUpdate = jest.fn().mockReturnValue({returning:jest.fn().mockResolvedValue([{id:"saved"}])});
         db.insert.mockReturnValue({ values: jest.fn().mockReturnValue({ onConflictDoUpdate }) });
         await upsertInterviewAnswer({
             artistId: 'artist-1', questionKey: 'q1', question: 'q',

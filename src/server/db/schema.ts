@@ -1138,3 +1138,23 @@ export const artistInterviewQuestionEvidence = pgTable("artist_interview_questio
     pgPolicy("mnweb_read_interview_evidence", { for: "select", to: ["mnweb"], using: sql`true` }),
     pgPolicy("mnweb_create_interview_evidence", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]).enableRLS();
+
+// Private exact artist wording. Shared API edits retain original/current revisions
+// atomically; current claimant/admin authorization is required for every read.
+export const artistInterviewAnswerVersions = pgTable("artist_interview_answer_versions", {
+    answerId: uuid("answer_id").notNull().references(() => artistInterviewAnswers.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+    revision: text().notNull(),
+    snapshot: jsonb().$type<Record<string, unknown>>().notNull(),
+    note: text(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    capturedAt: timestamp("captured_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, (table) => [
+    primaryKey({ columns: [table.answerId, table.revision], name: "artist_interview_answer_versions_answer_revision" }),
+    index("artist_interview_answer_versions_artist").on(table.artistId),
+    check("artist_interview_answer_versions_revision", sql`${table.revision} ~ '^[a-f0-9]{64}$'`),
+    check("artist_interview_answer_versions_identity", sql`coalesce(${table.snapshot}->>'id' = ${table.answerId}::text AND ${table.snapshot}->>'artistId' = ${table.artistId}::text AND jsonb_typeof(${table.snapshot}->'answer') = 'string', false)`),
+    check("artist_interview_answer_versions_note", sql`${table.note} IS NULL OR char_length(${table.note}) <= 400`),
+    pgPolicy("mnweb_select_artist_interview_answer_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_artist_interview_answer_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+]).enableRLS();

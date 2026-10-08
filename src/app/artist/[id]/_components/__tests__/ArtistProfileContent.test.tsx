@@ -20,6 +20,9 @@ jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside 
 
 import ArtistProfileContent from "../ArtistProfileContent";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
+const researchNone = { profiles: null, vault: null, interview: null, publish: null };
+const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] }, ...over });
+
 
 const base = {
     artist: { id: "a1", name: "Bio Ritmo", bio: "A salsa band from Richmond.", spotify: null, deezer: "416544" },
@@ -87,10 +90,11 @@ describe("ArtistProfileContent", () => {
         });
     });
 
-    it("shows a loading line in Links until the profiles step is confirmed", () => {
-        const steps = { profiles: null, vault: null, interview: null, publish: null };
-        const { container } = render(<OnboardingProgressContext.Provider value={steps}><ArtistProfileContent {...base} /></OnboardingProgressContext.Provider>);
-        expect(container.querySelector("#mn-links [role=status]")).toHaveTextContent("finding your profiles…");
+    it("shows profile-tile skeletons in Links until the profiles step is confirmed", () => {
+        const { container } = render(<OnboardingProgressContext.Provider value={research()}><ArtistProfileContent {...base} /></OnboardingProgressContext.Provider>);
+        const status = container.querySelector("#mn-links [role=status]");
+        expect(status).toHaveTextContent("finding your profiles…");
+        expect(status?.querySelectorAll("[data-skeleton=tile]").length).toBeGreaterThan(0);
     });
 });
 
