@@ -559,8 +559,11 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         // Prior turns resolve follow-up wording, not factual evidence. Keep the
         // exact request context on retries so later turns cannot change its meaning.
         const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error).slice(-4)
-            .map(turn => ({ question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000) }));
-        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length, 0) > 12000) conversation.shift();
+            .map(turn => {
+                const sourceUrls = [...new Set(turn.sources.map(source => source.url).filter((url): url is string => typeof url === "string" && url.length <= 2048 && /^https?:\/\//i.test(url)))].slice(0, 3);
+                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000), ...(sourceUrls.length ? { sourceUrls } : {}) };
+            });
+        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0), 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
         setActiveJobId(jobId ?? null);

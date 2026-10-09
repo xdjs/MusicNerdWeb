@@ -82,3 +82,14 @@ it("preserves explicit dates for latest retrieval", async () => {
   }} as never);
   expect(await planArtistQuestion("Artist", "What was the latest post in September 2026?")).toMatchObject({ fromDate: "2026-09-01", toDate: "2026-09-30" });
 });
+it('allows an exact cited original for a matching follow-up and explains the subject boundary', async()=>{
+ const sourceUrl='https://www.instagram.com/p/example-original/';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'rooftop visualizer filming credit',evidenceNeed:'credits',freshness:'stored',retrieval:'relevance',resolvedQuestion:'Who filmed the rooftop visualizer described in the cited post?',targetUrl:sourceUrl,platform:'instagram',fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What is this post about?',answer:'The rooftop visualizer.',sourceUrls:[sourceUrl]}])).toMatchObject({targetUrl:sourceUrl});
+ expect(jest.mocked(generateText).mock.calls.at(-1)![0].instructions).toContain('Do not carry citation URLs into an unrelated new question');
+});
+it('does not accept a routing URL merely embedded in prior answer prose',async()=>{
+ const sourceUrl='https://untrusted.example/work';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'film credit',evidenceNeed:'credits',freshness:'stored',resolvedQuestion:'Who filmed the visualizer?',targetUrl:sourceUrl,platform:null,fromDate:null,toDate:null}} as never);
+ await expect(planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What post?',answer:`See ${sourceUrl}`}])).rejects.toThrow(/URL/);
+});

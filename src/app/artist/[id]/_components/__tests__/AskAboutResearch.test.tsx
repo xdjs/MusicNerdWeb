@@ -56,7 +56,7 @@ it('keeps the current answer through minimize/reopen without issuing another req
  expect(research).toHaveBeenCalledTimes(1);
 });
 it('sends completed same-page context and preserves the resolved question on explicit retry',async()=>{
- research.mockResolvedValueOnce({answer:'OUT HERE was mixed and mastered by the credited engineer.',sources:[]});
+ research.mockResolvedValueOnce({answer:'OUT HERE was mixed and mastered by the credited engineer.',sources:[{n:1,title:'Original caption',url:'https://artist.example/original-post'}]});
  research.mockImplementationOnce(async input=>{input.onProgress({jobId,stage:'complete',message:'Checking answer',resolvedQuestion:'Who mixed OUT HERE?'});throw new Error('Verification interrupted');});
  research.mockResolvedValueOnce({answer:'The credited engineer.',sources:[]});
  render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
@@ -64,7 +64,7 @@ it('sends completed same-page context and preserves the resolved question on exp
  await screen.findByText('OUT HERE was mixed and mastered by the credited engineer.');
  fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who mixed it?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
  await screen.findByRole('button',{name:'Try again'});
- const expected=[{question:'Tell me about OUT HERE',answer:'OUT HERE was mixed and mastered by the credited engineer.'}];
+ const expected=[{question:'Tell me about OUT HERE',answer:'OUT HERE was mixed and mastered by the credited engineer.',sourceUrls:['https://artist.example/original-post']}];
  expect(research.mock.calls[1][0]).toEqual(expect.objectContaining({question:'Who mixed it?',conversation:expected}));
  fireEvent.click(screen.getByRole('button',{name:'Try again'}));
  await screen.findByText('The credited engineer.');

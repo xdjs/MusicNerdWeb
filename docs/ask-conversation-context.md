@@ -2,7 +2,9 @@
 
 Ask About may send up to four completed turns from the current artist's current
 page visit. Each question is at most 500 characters and each answer at most 3,000;
-combined text is limited to 12,000 characters. The server rejects oversized or
+Each turn can also carry up to three exact citation URLs from its rendered answer,
+HTTP(S) only and at most 2,048 characters each. Combined question, answer and URL
+text is limited to 12,000 characters. The server rejects oversized or
 unexpected fields before model/API work. This is public visitor conversation,
 never private interview memory. Context is untrusted reference-resolution input,
 not evidence for a factual answer.
@@ -11,7 +13,13 @@ The planner resolves a follow-up to one standalone question, preserves the
 visitor's scope, and sends only neutral public research terms to MusicNerdAPI.
 The standalone question binds the durable checked-answer cache and is returned to
 the client for polling and explicit retry. Original wording remains in the chat.
-No prior conversation is persisted. Missing or ambiguous context must not invent
+For a follow-up about the same post/work/version, the planner can select an exact
+prior citation as `targetUrl`, preserving the original source rather than widening
+the search to every related work. An unrelated question, ambiguous citation, or
+comparison must not inherit that anchor. The server accepts only exact current-question
+URLs or explicit `sourceUrls`, never a URL merely embedded in prior answer prose.
+These URLs are navigation hints; API eligibility and original-source reading still
+apply, and conversation text never becomes evidence. No prior conversation is persisted. Missing or ambiguous context must not invent
 a work, person or relationship.
 
 `retrieval: latest` requests the newest available dated material for an overview
