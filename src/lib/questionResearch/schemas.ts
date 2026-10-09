@@ -92,7 +92,7 @@ export const answerDraftSchema = z.object({
             z.object({
               n: z.number().int().min(1).max(3),
               field: z.enum(["text", "publishedAt", "activityDate"]).default("text"),
-              quote: z.string().min(8).max(1800),
+              quote: z.string().min(4).max(1800),
             }),
           )
           .min(1)

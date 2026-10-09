@@ -346,3 +346,34 @@ it("rejects an unsupported second draft without a third repair", async () => {
   await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/support/);
   expect(model).toHaveBeenCalledTimes(4);
 });
+it("renders a fixed scoped limitation instead of model-written unanswered prose", async () => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { ...draft, unanswered: 'There are no records anywhere about the release.' } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: 'Mock checker approval cannot authorize arbitrary limitation prose.' } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'What did they play and when?', [reference]);
+  expect(result.answer).toBe('They played drums. [1] The sources I could read don’t establish that detail.');
+  expect(result.sources[0].sourceId).toBe(reference.sourceId);
+  expect(result.answer).not.toContain('anywhere');
+});
+it.each(['2025', '2025-08'])("accepts an exact partial activity date without inventing precision: %s", async activityDate => {
+  const dated = { ...reference, activityDate, activityDateKind: 'release' as const };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: `The catalog release date is ${activityDate}.`, evidence: [{ n: 1, field: 'activityDate', quote: activityDate }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: 'Exact catalog date precision.' } } as never);
+  expect((await draftResearchAnswer('artist', 'Artist', 'When?', [dated])).answer).toContain(activityDate);
+});
+it("rejects invented day precision for a year-only activity date", async () => {
+  const dated = { ...reference, activityDate: '2025', activityDateKind: 'release' as const };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValue({ output: { sentences: [{ text: 'Released January 1, 2025.', evidence: [{ n: 1, field: 'activityDate', quote: '2025-01-01' }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow(/evidence/);
+  expect(model).toHaveBeenCalledTimes(2);
+});
+it("preserves the eight-character minimum for text evidence", async () => {
+  model.mockReset();
+  model.mockResolvedValue({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 1, field: 'text', quote: 'played' }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/evidence/);
+  expect(model).toHaveBeenCalledTimes(2);
+});
