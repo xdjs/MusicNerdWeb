@@ -94,3 +94,47 @@ it('does not accept a routing URL merely embedded in prior answer prose',async()
  jest.mocked(generateText).mockResolvedValue({output:{topic:'film credit',evidenceNeed:'credits',freshness:'stored',resolvedQuestion:'Who filmed the visualizer?',targetUrl:sourceUrl,platform:null,fromDate:null,toDate:null}} as never);
  await expect(planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What post?',answer:`See ${sourceUrl}`}])).rejects.toThrow(/URL/);
 });
+it.each([
+ ['What did Pete post most recently on InProcess?', 'inprocess'],
+ ['What is the latest Spotify release?', 'spotify'],
+ ['What is their latest Deezer release?', 'deezer'],
+])('preserves explicit platform even when the model picks a different provider: %s', async (question, platform) => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'recent',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist',question)).toMatchObject({platform,retrieval:'latest',freshness:'stored'});
+});
+it('does not invent a platform restriction for a broad latest overview', async () => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist','What is the latest?')).not.toHaveProperty('platform');
+});
+it('drops a stale cited target when the current question explicitly changes platforms', async () => {
+ const url='https://www.tiktok.com/@artist/video/123';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',resolvedQuestion:'What is their latest InProcess post?',targetUrl:url,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ const plan=await planArtistQuestion('Artist','What is their latest on InProcess?',undefined,[{question:'What is this TikTok?',answer:'A video.',sourceUrls:[url]}]);
+ expect(plan).toMatchObject({platform:'inprocess'});
+ expect(plan).not.toHaveProperty('targetUrl');
+});
+it("routes an explicit latest-release identification to catalog evidence even when the model calls it reporting", async () => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest music release',evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Dutchyyy',"What's Dutchyyy's latest release?")).toMatchObject({evidenceNeed:'release_date',retrieval:'latest'});
+});
+
+it.each([
+ ["What inspired Dutchyyy's latest album?", 'reporting'],
+ ["What is the latest release post about?", 'social_caption'],
+ ["Who produced Dutchyyy's latest release?", 'credits'],
+])('preserves the evidence type for a question about a release: %s', async (question, evidenceNeed) => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest release context',evidenceNeed,freshness:'stored',retrieval:'relevance',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Dutchyyy',question)).toMatchObject({evidenceNeed,retrieval:'relevance'});
+});
+it('keeps a broader recent-activity follow-up recent and excludes already discussed sources',async()=>{
+ const url='https://www.inprocess.world/collect/base:example/2';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Pete Rango other projects',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
+ const result=await planArtistQuestion('Pete Rango','what else has he been up to?',undefined,[{question:"What's Pete Rango's latest project?",answer:'Plugin designs.',sourceUrls:[url]}]);
+ expect(result).toMatchObject({retrieval:'latest',freshness:'stored',excludeSourceUrls:[url]});
+ expect(result).not.toHaveProperty('targetUrl');expect(result).not.toHaveProperty('platform');
+});
+
+it('normalizes artist possessives so the same topic can reuse its saved job',async()=>{
+ jest.mocked(generateText).mockResolvedValue({output:{topic:"Artist's latest project",evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist',"What's Artist's latest project?")).toMatchObject({topic:'Artist latest project'});
+});

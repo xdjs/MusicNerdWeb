@@ -127,3 +127,8 @@ it("retries the same resolved question without sending a different conversation"
   await runArtistResearch({ artistId: "artist", question: "Who created it?", resolvedQuestion: "Who created PPNE NYC?", jobId: "job", conversation: [{ question: "Later unrelated ask?", answer: "Other work" }], signal: new AbortController().signal, onProgress: jest.fn() });
   expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({ artistId: "artist", question: "Who created PPNE NYC?", jobId: "job" });
 });
+it('passes a terminal-worker retry boundary to the UI instead of treating it as an answer',async()=>{
+ global.fetch=jest.fn().mockResolvedValue({ok:false,status:503,json:async()=>({error:'Lookup failed.',retryFromStart:true})});
+ const result=await runArtistResearch({artistId:'artist',question:'What else?',jobId:'dead-job',signal:new AbortController().signal,onProgress:jest.fn()});
+ expect(result).toEqual({error:'Lookup failed.',retryFromStart:true});expect(global.fetch).toHaveBeenCalledTimes(1);
+});

@@ -88,3 +88,27 @@ it('bounds prior answers and excludes another artist after navigation',async()=>
  await waitFor(()=>expect(research).toHaveBeenCalledTimes(7));
  expect(research.mock.calls[6][0].conversation).toEqual([]);
 });
+it('uses a short loading label instead of internal research instructions',async()=>{
+ research.mockImplementation(input=>{input.onProgress({jobId,stage:'complete',message:'Original evidence is ready to read. Check its scope and qualifications before answering.'});return new Promise(()=>{});});
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'What is new?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText('Checking Lore…');expect(screen.queryByText(/Original evidence is ready/)).not.toBeInTheDocument();
+});
+it('retries a terminal worker failure as a fresh bounded request with the same conversation',async()=>{
+ research.mockResolvedValueOnce({answer:'Plugin designs.',sources:[{n:1,title:'Original',url:'https://artist.example/post'}]});
+ research.mockImplementationOnce(async input=>{input.onProgress({jobId,stage:'checking_saved',message:'Checking saved sources'});return {error:"I couldn't finish that lookup. Please try again.",retryFromStart:true};});
+ research.mockResolvedValueOnce({answer:'Another recent update.',sources:[]});
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Latest project?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));await screen.findByText('Plugin designs.');
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'What else has he been up to?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText("I couldn't finish that lookup. Please try again.");
+ expect(screen.getAllByTestId('answer')).toHaveLength(1);
+ fireEvent.click(screen.getByRole('button',{name:'Try again'}));await screen.findByText('Another recent update.');
+ expect(research.mock.calls[2][0].jobId).toBeUndefined();expect(research.mock.calls[2][0].conversation).toEqual(research.mock.calls[1][0].conversation);
+});
+it('keeps outside research progress short and distinct from Lore',async()=>{
+ research.mockImplementation(input=>{input.onProgress({jobId,stage:'searching',message:'I have not found enough evidence in the saved originals so now searching outside.'});return new Promise(()=>{});});
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'What is new?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText('Searching outside Lore…');
+});

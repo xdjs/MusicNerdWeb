@@ -179,3 +179,15 @@ it.each([['saved_evidence_quota','saved-source answer limit'],['research_busy','
 
 it('does not plan after bounded planning admission is denied',async()=>{jest.mocked(reserveQuestionPlanning).mockRejectedValue(Object.assign(new Error('limit'),{status:429,code:'question_planning_quota'}));expect((await handleArtistQuestion(request())).status).toBe(429);expect(planArtistQuestion).not.toHaveBeenCalled();expect(callResearchApi).not.toHaveBeenCalled()});
 it('polls an existing job without spending a planning reservation',async()=>{await handleArtistQuestion(request({jobId}));expect(reserveQuestionPlanning).not.toHaveBeenCalled()});
+it('explains when the requested provider needs a refresh without claiming no information exists', async () => {
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',limitations:['provider_latest_refresh_required']});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toMatch(/saved information from that source/);
+ expect(body.answer).toMatch(/refresh/);
+ expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it('returns an operational error rather than an answer for a failed research job',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'failed'});
+ const r=await handleArtistQuestion(request({jobId}));
+ expect(r.status).toBe(503);const body=await r.json();expect(body).toMatchObject({retryFromStart:true});expect(body).not.toHaveProperty('answer');
+});

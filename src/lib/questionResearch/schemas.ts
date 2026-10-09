@@ -71,7 +71,7 @@ export const questionPlanSchema = z
     retrieval: z.enum(["latest", "relevance"]).default("relevance"),
     resolvedQuestion: z.string().trim().min(1).max(500).optional(),
     targetUrl: publicUrl.nullable(),
-    platform: z.enum(["instagram", "tiktok", "x"]).nullable(),
+    platform: z.enum(["instagram", "tiktok", "x", "inprocess", "spotify", "deezer"]).nullable(),
     fromDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -91,8 +91,8 @@ export const answerDraftSchema = z.object({
           .array(
             z.object({
               n: z.number().int().min(1).max(3),
-              field: z.enum(["text", "publishedAt"]).default("text"),
-              quote: z.string().min(8).max(1800),
+              field: z.enum(["text", "publishedAt", "activityDate"]).default("text"),
+              quote: z.string().min(4).max(1800),
             }),
           )
           .min(1)

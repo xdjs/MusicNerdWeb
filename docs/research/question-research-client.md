@@ -31,3 +31,26 @@ Relative-time descriptions (new/latest/upcoming) in undated or older originals r
 ## Conversational answers (2026-10-09)
 
 Ask About speaks like an informed music fan: lead with the useful update, use plain verbs and natural contractions, and include a source/date where it helps. Avoid report-like openings such as “the newest material in these sources indicates that.” A dated, attributed update can answer a latest question without claiming exhaustive coverage; explicit newest claims still require bounded wording. Keep uncertainty that changes the meaning, exact evidence, citations and source-reading safeguards. Do not turn experimenting into a launch, a caption into speech, or a post date into a release date. This changes public Ask About wording only; interviewer prompts and memory are separate.
+
+## Explicit source routing (2026-10-09)
+
+A platform explicitly named in the current question is a routing constraint, not a model suggestion. Instagram, TikTok, X/Twitter, InProcess, Spotify and Deezer are supported source scopes. The planner cannot silently substitute another source. Recognized source URLs carry their provider scope; a conflicting requested platform and URL is rejected. Multiple named platforms must not collapse to a single model-selected platform. An unspecified platform leaves saved-source retrieval broad. InProcess/Spotify/Deezer use their durable provider originals; unavailable scoped evidence reports the need to refresh that provider rather than launching unrelated social research. Follow-ups may reuse an exact cited source only when consistent with the current request.
+
+### Regression review cases
+
+Keep these as distinct checks when changing retrieval, models or prompts; a model's approval alone is not editorial acceptance:
+
+| Question or negative control | Required behavior |
+| --- | --- |
+| What did Pete post most recently on InProcess? | Preserve InProcess scope; use its newest eligible saved original, never substitute TikTok. |
+| What has Pete shared about his Rango Labs plugin designs? | Attribute the experiment to the post; use the original moment date, not fabricated publication metadata or a launch claim. |
+| What is LATASHA's latest Instagram post about? | Date and cite the retrieved caption; qualify any newest claim; preserve music-production versus filming credits and exact supported identities. |
+| Who filmed it? after that answer | Resolve to the same cited visualizer and its exact filming credits. |
+| What is DUTCHYYY's latest release? | Prefer eligible catalog release records over newer social posts; do not treat upload time as release time. |
+| What exact knob controls are shown in that video? with only the post record | Do not infer visual content from title or MIME type. |
+| When did Pete release those plugins? with only an experiment post | Do not convert an experiment or intended release into an actual launch. |
+| Bad draft: the visualizer “which she produced with Eli” when the caption credits music production to a handle | Reject role compression and unsupported handle-to-name expansion. Accept wording that preserves music production and the original handle. |
+
+Record all failures, correction attempts and latency alongside successes. The small fixture set is diagnostic coverage, not a claim that all music questions or all supported sources have passed editorial review.
+
+The end-to-end DUTCHYYY regression “What's Dutchyyy's latest release?” initially planned `reporting/latest`, selecting a newer InProcess moment instead of a catalog record. Latest-release identification now requests `release_date/latest`; questions about a release's credits, captions or story retain their respective evidence needs. This is a Web planning correction in addition to the API catalog preference.

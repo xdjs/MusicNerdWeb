@@ -84,6 +84,11 @@ export async function handleArtistQuestion(request: Request) {
         },
         { status: 202, headers },
       );
+    if (state.stage === "failed" || state.stage === "cancelled")
+      return Response.json(
+        { error: "I couldn't finish that lookup. Please try again.", retryFromStart: true },
+        { status: 503, headers },
+      );
     if (state.stage !== "complete")
       return Response.json(
         {
@@ -91,7 +96,11 @@ export async function handleArtistQuestion(request: Request) {
             state.stage === "unresolved"
               ? state.outsideResearchReason === "quota"
                 ? "The saved sources I checked did not answer that. Outside research is at its limit, so I could not look further."
-                : "I could not establish that from the sources I could read."
+                : state.limitations.includes("provider_latest_refresh_required")
+                  ? "I don't have enough saved information from that source, and I can't refresh it from this chat yet."
+                  : state.limitations.includes("connected_account_required")
+                    ? "I need a connected account for that source before I can check it."
+                    : "I could not establish that from the sources I could read."
               : "Research could not finish. That does not mean the information doesn't exist.",
           sources: [],
           suggestions: [],
