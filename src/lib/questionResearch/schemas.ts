@@ -10,7 +10,7 @@ export const referenceSchema = z.object({
     .string()
     .regex(
       new RegExp(
-        `^(?:(?:discovery|vault):${uuid}|social:${uuid}:(?:caption|transcript))$`,
+        `^(?:(?:discovery|vault|public_answer):${uuid}|social:${uuid}:(?:caption|transcript))$`,
         "i",
       ),
     ),
