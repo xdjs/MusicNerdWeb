@@ -1,8 +1,12 @@
-# Artist Latest — first experiment
+# Artist Latest
 
-> **Unreleased local feature contract (`pete/artist-latest`).** The implementation, migration
-> and test files described below are not included in this documentation release. Read
-> [MEMORY.md](../MEMORY.md) for verification and release gates before using these commands.
+## Shared stored Latest — October 9, 2026 (#1424, #1472)
+
+Web#1473 and MusicNerdAPI#31 replace the provider read path described in the historical notes below. Web `getArtistLatest` calls the public API `GET /api/artist/{id}/latest`. The API reads eligible stored Instagram posts, published responses and `artist_latest_provider_snapshots`. Ordinary reads perform no provider fetches, model calls or writes. Web only enriches already-public answer cards with their existing original links.
+
+Known connected Spotify/Deezer catalogs and InProcess timelines are collected in bounded `latest_refresh` worker slices. Cards and research use the same saved originals, current connected-account checks and stable revisions. Successful refreshes replace the snapshot, including an empty result; failed refreshes retain the last good snapshot and report incomplete coverage. Date precision is retained; release dates are activity dates, not source publication dates. Saved stale data is usable but must not be described as exhaustive current coverage.
+
+Migration 0045 adds server-only snapshot storage (RLS, SELECT/INSERT/UPDATE for mnweb, no direct public grants). Release order: migration, API deployment, bounded connected-provider bootstrap, then Web deployment. Existing artists need bootstrap before switching Web; no live-provider fallback hides missing snapshots. This follow-up remains under preview verification until its PR records production promotion.
 
 ## September 21 filter alignment (#1309)
 

@@ -13,11 +13,7 @@ rechecks ownership and all connected identities under the artist lock. Results a
 cooldowns from an obsolete scope are ignored; a new request cancels the obsolete live
 job before queuing a refresh for the current connections.
 
-The request checks In Process and each linked Spotify/Deezer catalog independently and in
-parallel, using artist/provider-specific cache tags (`checkLatestSources`), outside the artist
-lock. Published interview answers are reread from Music Nerd. These checks stay in this app
-because they expire its own cache. The queued job carries only the Instagram check, which
-MusicNerdAPI runs (#1365); with nothing for Instagram to do, it is saved as done. Instagram collects at most nine recent own posts within the last thirty days,
+October 9, 2026 — Web#1473 / MusicNerdAPI#31 supersede inline provider checks. The request queues every connected provider. API worker slices collect InProcess and Spotify/Deezer into shared durable snapshots, then complete the existing bounded Instagram check. Published answers remain stored reads. A job stays pending whenever any source is pending. Instagram collects at most nine recent own posts within the last thirty days,
 retains thumbnails through the existing collector and never queues extraction or Lore.
 Provider-start intent is persisted before the paid POST; a lost response is terminal for
 that request rather than a second paid run. Instagram is capped at $0.03 per run. Repeated
@@ -27,16 +23,12 @@ Latest skips its Instagram check; if Latest is checking Instagram first, social 
 is not queued and Look again explains that it must wait. Other Latest sources still run.
 
 Results identify each source as checked, unavailable, not connected or still checking.
-No claim of new-item counts is made from upsert counts. Successful checks invalidate only that connected identity’s cache; cards repaint through
-router.refresh. In Process and catalogs are checked directly before invalidation, so a
-failed check leaves existing cache entries intact. The next read fetches again; a second
-upstream failure at that point still uses the existing public-read fallback. This costs
-one extra bounded read per successful manual source check.
+No claim of new-item counts is made from upsert counts. Successful catalog/timeline checks atomically replace that connected account’s snapshot. Failed checks retain the last successful data and mark coverage failed. The next profile read uses those saved snapshots without another provider request.
 No About/Lore rebuild or interview generation is triggered. X/TikTok are not yet supported.
 
 ## Migration and API cutover
 
-The queue constraint must allow `latest_refresh` before code runs. No new table/grants.
+The queue constraint must allow `latest_refresh` before code runs. The October 9 shared-provider path additionally requires migration 0045 and a bounded bootstrap before Web switches readers.
 Migration 0034 follows the username migration 0033.
 
 September 30, 2026 (#1365, Sweetman): MusicNerdAPI runs `latest_refresh` (API 1d,
