@@ -254,7 +254,8 @@ it('rejects changed catalog activity date before drafting',async()=>{
 it("bounds structured drafting and checking without hidden thinking or provider retries", async () => {
   await draftResearchAnswer("artist", "Artist", "What did they play?", [reference]);
   expect(model).toHaveBeenCalledTimes(2);
-  expect(model.mock.calls[0][0]).toMatchObject({ thinkingBudget: 0, maxRetries: 0 });
+  expect(model.mock.calls[0][0]).toMatchObject({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 });
+  expect(model.mock.calls[0][0]).not.toHaveProperty("thinkingBudget");
   expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-opus-5.5', maxRetries: 0, maxOutputTokens: 1500 });
   expect(model.mock.calls[1][0]).not.toHaveProperty('thinkingBudget');
   expect(model.mock.calls[1][0]).not.toHaveProperty('temperature');
