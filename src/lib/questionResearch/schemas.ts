@@ -88,6 +88,7 @@ export const answerDraftSchema = z.object({
           .array(
             z.object({
               n: z.number().int().min(1).max(3),
+              field: z.enum(["text", "publishedAt"]).default("text"),
               quote: z.string().min(8).max(1800),
             }),
           )

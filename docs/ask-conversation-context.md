@@ -23,3 +23,14 @@ filter. This optional routing field requires the paired MusicNerdAPI change.
 Verification covers reference resolution input, source-only answer grounding,
 request budgets, cache binding, polling/retry continuity, and generic latest
 versus topical recent routing. Interview routes and memory are unchanged.
+
+Publication-date citations use a typed evidence field: `text` (the default)
+requires a matching original-body quote; `publishedAt` requires exact equality
+to non-null publication metadata. The latter establishes only source publication
+time, never event/release timing or post content. Mixed claims need their relevant
+body evidence too. The checker enforces those meanings and rejects unqualified
+claims to know an artist's latest material from a bounded collection.
+
+The checked-answer cache binds the source's publication value as well as exact
+text, revision and offsets. Changed publication metadata or legacy cached answers
+without that recorded value are withheld rather than silently replayed.

@@ -33,7 +33,7 @@ const input = {
 const saved = {
   ...result,
   basis: [{ sourceId: ref.sourceId, revision: ref.revision,
-    start: ref.start, end: ref.end, url: ref.url, textHash: hash(ref.text) }],
+    start: ref.start, end: ref.end, url: ref.url, textHash: hash(ref.text), publishedAt: ref.publishedAt }],
 };
 beforeEach(() => { jest.resetAllMocks(); draft.mockResolvedValue(result); });
 it("saves the first checked answer and returns it unchanged on a later poll", async () => {
@@ -85,8 +85,19 @@ it("keeps citation 2 attached to its exact passage when one source has two windo
   execute.mockResolvedValueOnce([] as never)
     .mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: {
       ...result, sources: [cited], basis: [{ sourceId: second.sourceId, revision: second.revision,
-        start: second.start, end: second.end, url: second.url, textHash: hash(second.text) }],
+        start: second.start, end: second.end, url: second.url, textHash: hash(second.text), publishedAt: second.publishedAt }],
     } }] as never);
   expect((await getOrDraftResearchAnswer({ ...input, references: [second, ref] })).state).toBe("ready");
   expect(draft).toHaveBeenCalledTimes(1);
+});
+it("withholds an old cached answer whose publication-date basis was not recorded", async () => {
+  const legacy = { ...saved, basis: saved.basis.map(({ publishedAt: _date, ...b }) => b) };
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: legacy }] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
+  expect(draft).not.toHaveBeenCalled();
+});
+it("withholds a cached answer when date metadata changes without changing original text", async () => {
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: { ...saved, basis: saved.basis.map(b => ({ ...b, publishedAt: "2026-10-05" })) } }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, references: [{ ...ref, publishedAt: "2026-10-06" }] })).toEqual({ state: "unavailable" });
+  expect(draft).not.toHaveBeenCalled();
 });
