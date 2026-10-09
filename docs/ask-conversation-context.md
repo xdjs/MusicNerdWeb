@@ -44,3 +44,7 @@ text, revision and offsets. Changed publication metadata or legacy cached answer
 without that recorded value are withheld rather than silently replayed.
 
 If the third drafting attempt loses its worker and its lease expires, polling returns a terminal verification failure; it cannot keep waiting or start a fourth attempt.
+
+Typed `activityDate` evidence must equal the current original metadata and require the original’s server-authoritative `activityDateKind`: `release` dates a catalog release; `moment` dates the recorded item/post, not an event shown or a product launch. Date-plus-content claims require both date and text evidence. An In Process structured provider title can establish the posted topic with attribution; generic search/page titles and untranscribed video remain insufficient for claims about spoken or visual content.
+
+A failed exact-quote or factual check permits one internal repair using the same reopened originals and 45-second deadline. Feedback is untrusted diagnostic data, never new evidence. The repair repeats exact validation and the full factual check; a second rejection fails closed. This raises the per-attempt model ceiling from two to four calls (two drafts and two checks); the durable three-attempt job/question cap is unchanged. Provider/service/schema failures do not trigger an automatic model retry, and repair never starts outside research.

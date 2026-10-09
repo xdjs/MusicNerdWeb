@@ -125,10 +125,15 @@ it("withholds unknown or fabricated quote references before checking a claim", a
   await expect(
     draftResearchAnswer("artist", "Artist", "Who produced it?", [reference]),
   ).rejects.toThrow(/evidence/i);
-  expect(model).toHaveBeenCalledTimes(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 it("withholds a claim when the checker finds an omitted qualification", async () => {
   model.mockReset();
+  model
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({
+      output: { supported: false, reason: "Qualification omitted" },
+    } as never);
   model
     .mockResolvedValueOnce({ output: draft } as never)
     .mockResolvedValueOnce({
@@ -199,9 +204,9 @@ it.each([
   const dated = { ...reference, publishedAt: "2026-10-05T19:43:02.000Z" };
   api.mockResolvedValue({ status: "ok", passage: dated, totalChars: dated.text.length, nextStart: null });
   model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
+  model.mockResolvedValue({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer("artist", "Artist", "Latest?", [dated])).rejects.toThrow(/evidence/i);
-  expect(model).toHaveBeenCalledTimes(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 it("refuses an original whose publication metadata changed before drafting", async () => {
   api.mockResolvedValue({ status: "ok", passage: { ...reference, publishedAt: "2026-10-06" }, totalChars: reference.text.length, nextStart: null });
@@ -210,14 +215,16 @@ it("refuses an original whose publication metadata changed before drafting", asy
 });
 it("does not treat an unknown publication date as typed date evidence", async () => {
   model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, field: "publishedAt", quote: "2026-10-05" }] }], unanswered: null } } as never);
+  model.mockResolvedValue({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, field: "publishedAt", quote: "2026-10-05" }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer("artist", "Artist", "Latest?", [reference])).rejects.toThrow(/evidence/i);
-  expect(model).toHaveBeenCalledTimes(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 it("still requires the claim checker to reject using a publication date as a release date", async () => {
   const dated = { ...reference, publishedAt: "2026-10-05" };
   api.mockResolvedValue({ status: "ok", passage: dated, totalChars: dated.text.length, nextStart: null });
   model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "The song was released October 5.", evidence: [{ n: 1, field: "publishedAt", quote: dated.publishedAt }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: "Publication is not release timing." } } as never);
   model.mockResolvedValueOnce({ output: { sentences: [{ text: "The song was released October 5.", evidence: [{ n: 1, field: "publishedAt", quote: dated.publishedAt }] }], unanswered: null } } as never)
     .mockResolvedValueOnce({ output: { supported: false, reason: "Publication is not release timing." } } as never);
   await expect(draftResearchAnswer("artist", "Artist", "Release date?", [dated])).rejects.toThrow(/support/i);
@@ -277,18 +284,18 @@ it.each([
   const dated = { ...reference, activityDate: '2026-10-08', activityDateKind: 'moment' as const };
   api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
   model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
+  model.mockResolvedValue({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow();
-  expect(model).toHaveBeenCalledTimes(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 
 it("rejects activity date evidence when the original has no date kind", async () => {
   const dated = { ...reference, activityDate: '2026-10-08' };
   api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
   model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never);
+  model.mockResolvedValue({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow();
-  expect(model).toHaveBeenCalledTimes(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 it("lets the semantic checker reject a release date misrepresented as a post date", async () => {
   const dated = { ...reference, activityDate: '2026-10-08', activityDateKind: 'release' as const };
@@ -296,6 +303,42 @@ it("lets the semantic checker reject a release date misrepresented as a post dat
   model.mockReset();
   model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They posted this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never)
     .mockResolvedValueOnce({ output: { supported: false, reason: 'Release date does not establish post date.' } } as never);
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They posted this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: 'Release date does not establish post date.' } } as never);
   await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow(/support/);
   expect(JSON.parse(model.mock.calls[1][0].prompt).input.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+});
+it("repairs rejected latest wording once using unchanged originals and rechecks the result", async () => {
+  const wrong = { ...draft, sentences: [{ ...draft.sentences[0], text: "Their latest post says they played drums." }] };
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: wrong } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: "Unqualified latest claim. Use attribution without exhaustive recency." } } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'What is latest?', [reference]);
+  expect(result.answer).toBe('They played drums. [1]');
+  expect(model).toHaveBeenCalledTimes(4);
+  expect(api).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback).toMatchObject({ reason: expect.stringContaining('Unqualified latest') });
+  expect(model.mock.calls[2][0].abortSignal).toBe(model.mock.calls[0][0].abortSignal);
+});
+it("repairs a bad exact quote once before checking the new claim", async () => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { ...draft, sentences: [{ text: 'They played drums.', evidence: [{ n: 1, quote: 'They played percussion.' }] }] } } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: 'Supported.' } } as never);
+  expect((await draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference])).answer).toBe('They played drums. [1]');
+  expect(model).toHaveBeenCalledTimes(3);
+  expect(api).toHaveBeenCalledTimes(1);
+});
+it("does not automatically repair a model service failure", async () => {
+  model.mockReset(); model.mockRejectedValue(new Error('Provider unavailable'));
+  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow('Provider unavailable');
+  expect(model).toHaveBeenCalledTimes(1);
+});
+it("rejects an unsupported second draft without a third repair", async () => {
+  model.mockReset();
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: 'Unsupported visual claim.' } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/support/);
+  expect(model).toHaveBeenCalledTimes(4);
 });
