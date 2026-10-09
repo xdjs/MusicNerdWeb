@@ -1,126 +1,84 @@
-import { getArtistLatest } from '../artistLatestQueries';
-import { db } from '@/server/db/drizzle';
-import type { Artist } from '@/server/db/DbTypes';
-import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
-import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
-import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
-import { orderLatestItems, latestDateLabel, latestExternalUrl, instagramPostImage } from '@/lib/artist/artistLatest';
-
-jest.mock('@/server/utils/musicPlatform/latestReleases', () => ({ getLatestArtistReleases: jest.fn() }));
-jest.mock('@/server/utils/questionGenerator', () => ({ sourceUrlsForQuestionKeys: jest.fn() }));
-jest.mock('@/server/db/drizzle', () => ({ db: { select: jest.fn() } }));
-jest.mock('@/server/utils/fetchArtistTimeline', () => ({ fetchArtistTimeline: jest.fn() }));
-
-const artist = { id: 'artist-1', name: 'Test Artist', deezer: '123', spotify: null } as Artist;
-const sourceUrl = 'https://www.instagram.com/reel/ABC_def/';
-const post = { id: 'post-1', caption: 'A night in the studio.', url: sourceUrl, postedAt: '2026-08-20T10:00:00Z', raw: { displayUrl: 'https://cdn.example.com/post.jpg', secret: 'never expose raw data' } };
-const answer = { id: 'answer-1', questionKey: 'social_standout_ABC_def', question: 'What happened in the studio?', answer: 'We recorded the chorus.', createdAt: '2026-09-01T10:00:00Z' };
-
-function selectResult(result: unknown[], reject = false) {
-    const limit = jest.fn(() => reject ? Promise.reject(new Error('database unavailable')) : Promise.resolve(result));
-    return { from: jest.fn().mockReturnValue({ where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ limit }) }) }) };
-}
-
+/** @jest-environment node */
+jest.mock("@/server/db/drizzle", () => ({ db: {} }));
+jest.mock("@/server/utils/questionGenerator", () => ({
+  sourceUrlsForQuestionKeys: jest.fn(),
+}));
+jest.mock("@/lib/musicNerdApi/const", () => ({
+  MUSICNERD_API_URL: "https://api.example",
+}));
+import { getArtistLatest } from "../artistLatestQueries";
+import type { Artist } from "@/server/db/DbTypes";
+const artist = {
+  id: "00000000-0000-4000-8000-000000000001",
+  name: "Artist",
+} as Artist;
+const fetchMock = jest.fn();
 beforeEach(() => {
-    jest.clearAllMocks();
-    jest.mocked(db.select).mockImplementationOnce(() => selectResult([post]) as never).mockImplementationOnce(() => selectResult([answer]) as never);
-    jest.mocked(sourceUrlsForQuestionKeys).mockResolvedValue(new Map([[answer.questionKey, sourceUrl]]));
-    jest.mocked(getLatestArtistReleases).mockResolvedValue([{ id: 'album-1', title: 'New record', releaseDate: '2026-08-25', url: 'https://www.deezer.com/album/123', imageUrl: 'https://cdn.example.com/album.jpg', kind: 'single', platform: 'deezer' }]);
-    jest.mocked(fetchArtistTimeline).mockResolvedValue([]);
+  global.fetch = fetchMock;
+  fetchMock.mockReset();
+});
+it("reads only the shared public endpoint and preserves partial dates", async () => {
+  fetchMock.mockResolvedValue(
+    streamResponse(
+      JSON.stringify({
+        status: "ok",
+        unavailable: false,
+        coverage: [],
+        items: [
+          {
+            id: "release:1",
+            kind: "release",
+            title: "Record",
+            text: "Album",
+            date: "2020-02",
+            imageUrl: null,
+            imageCaption: "art",
+            sourceUrl: "https://open.spotify.com/album/1",
+            sourceLabel: "Listen",
+          },
+        ],
+      }),
+    ),
+  );
+  const result = await getArtistLatest(artist);
+  expect(result.items[0].date).toBe("2020-02");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(String(fetchMock.mock.calls[0][0])).toBe(
+    `https://api.example/api/artist/${artist.id}/latest`,
+  );
+});
+it("does not fall back to live provider requests on failure", async () => {
+  fetchMock.mockResolvedValue(streamResponse("", { status: 503 }));
+  expect(await getArtistLatest(artist)).toEqual({
+    items: [],
+    unavailable: true,
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+it("rejects unsafe source URLs rather than rendering them", async () => {
+  fetchMock.mockResolvedValue(
+    streamResponse(
+      JSON.stringify({
+        status: "ok",
+        unavailable: false,
+        coverage: [],
+        items: [
+          {
+            id: "1",
+            kind: "release",
+            title: "Record",
+            text: "Album",
+            date: "2020",
+            imageUrl: null,
+            imageCaption: "art",
+            sourceUrl: "javascript:alert(1)",
+            sourceLabel: "Listen",
+          },
+        ],
+      }),
+    ),
+  );
+  expect((await getArtistLatest(artist)).unavailable).toBe(true);
 });
 
-it('combines real read adapters, orders by answer chronology, and projects only public card fields', async () => {
-    const result = await getArtistLatest(artist);
-    expect(result.unavailable).toBe(false);
-    expect(result.items.map(item => item.kind)).toEqual(['interview', 'release', 'instagram']);
-    expect(result.items[0]).toMatchObject({ text: answer.answer, date: answer.createdAt, sourceUrl, imageUrl: post.raw.displayUrl });
-    expect(JSON.stringify(result)).not.toContain('never expose raw data');
-    expect(sourceUrlsForQuestionKeys).toHaveBeenCalledWith(artist.id, [answer.questionKey]);
-    expect(getLatestArtistReleases).toHaveBeenCalledWith(artist);
-});
-
-it('passes matching retained image dimensions to Instagram and answer cards without exposing retention metadata', async () => {
-    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([{ ...post, raw: { ...post.raw,
-        _musicnerdThumbnail: { url: post.raw.displayUrl, width: 640, height: 427, sourceUrl: 'private-original-url' },
-    } }]) as never).mockImplementationOnce(() => selectResult([answer]) as never);
-    const result = await getArtistLatest(artist);
-    expect(result.items.find(item => item.kind === 'instagram')).toMatchObject({ imageDimensions: { width: 640, height: 427 } });
-    expect(result.items.find(item => item.kind === 'interview')).toMatchObject({ imageUrl: post.raw.displayUrl, imageDimensions: { width: 640, height: 427 } });
-    expect(JSON.stringify(result)).not.toContain('private-original-url');
-    expect(JSON.stringify(result)).not.toContain('_musicnerdThumbnail');
-});
-
-it('retains releases when the DB is unavailable and reports partial failure', async () => {
-    jest.mocked(db.select).mockReset().mockImplementation(() => selectResult([], true) as never);
-    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const result = await getArtistLatest(artist);
-    expect(result.unavailable).toBe(true);
-    expect(result.items.map(item => item.kind)).toEqual(['release']);
-    expect(sourceUrlsForQuestionKeys).not.toHaveBeenCalled();
-    error.mockRestore();
-});
-
-it('keeps public posts and releases when interview publication cannot be read', async () => {
-    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([post]) as never)
-        .mockImplementationOnce(() => selectResult([], true) as never);
-    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const result = await getArtistLatest(artist);
-    expect(result.unavailable).toBe(true);
-    expect(result.items.map(item => item.kind)).toEqual(['release', 'instagram']);
-    expect(sourceUrlsForQuestionKeys).not.toHaveBeenCalled();
-    error.mockRestore();
-});
-
-it('does not fabricate sources, keep skipped answers, or expose off-platform post links', async () => {
-    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([{ ...post, url: 'https://example.com/not-instagram' }]) as never)
-        .mockImplementationOnce(() => selectResult([{ ...answer, answer: ' ' }, { ...answer, id: 'static', questionKey: 'sound_in_own_words' }]) as never);
-    jest.mocked(sourceUrlsForQuestionKeys).mockResolvedValue(new Map());
-    const result = await getArtistLatest(artist);
-    expect(result.items.filter(item => item.kind === 'instagram')).toEqual([]);
-    expect(result.items.filter(item => item.kind === 'interview')).toHaveLength(1);
-    expect(result.items[0].sourceUrl).toBeNull();
-});
-
-it('rejects unsafe links and keeps image selection tied to stored post fields', () => {
-    expect(latestExternalUrl('javascript:alert(1)')).toBeNull();
-    expect(latestExternalUrl('https://user:password@example.com')).toBeNull();
-    expect(instagramPostImage({ displayUrl: 'data:image/png;base64,abc', thumbnailSrc: post.raw.displayUrl })).toBe(post.raw.displayUrl);
-    expect(instagramPostImage({ caption: 'https://example.com/unrelated.jpg' })).toBeNull();
-});
-
-it('keeps date precision and rejects undated/future activity with deterministic ties', () => {
-    expect(latestDateLabel('2025')).toBe('2025');
-    expect(latestDateLabel('2025-02')).toBe('Feb 2025');
-    expect(latestDateLabel('2025-02-13')).toBe('Feb 13, 2025');
-    const item = { id: 'a', kind: 'interview' as const, title: '', text: '', date: '2026-01-01', imageUrl: null, imageCaption: '', sourceUrl: null, sourceLabel: '' };
-    expect(orderLatestItems([item, item, { ...item, id: 'b', date: 'invalid' }, { ...item, id: 'c', date: '2027-01-01' }], Date.parse('2026-09-01'))).toEqual([item]);
-});
-
-it('folds In Process moments into the same ordered gallery when the artist has a link', async () => {
-    const inprocess = '0x1f8dadb40c2cdb0d6d281add31c76e14f8ba6a91';
-    jest.mocked(fetchArtistTimeline).mockResolvedValue([
-        { id: 'm-1', title: 'studio session 09', kind: 'video', imageUrl: 'https://arweave.net/abc', createdAt: '2026-08-28T13:08:00+00:00', url: 'https://www.inprocess.world/collect/base:0xabc/75', description: 'Rushed the edit on this one.' },
-    ]);
-    const result = await getArtistLatest({ ...artist, inprocess });
-    expect(fetchArtistTimeline).toHaveBeenCalledWith(inprocess);
-    expect(result.items.map(item => item.kind)).toEqual(['interview', 'moment', 'release', 'instagram']);
-    expect(result.items[1]).toMatchObject({ id: 'moment:m-1', momentKind: 'video', text: 'Rushed the edit on this one.', sourceUrl: 'https://www.inprocess.world/collect/base:0xabc/75', sourceLabel: 'Open on In Process' });
-});
-
-it('leaves Latest untouched when In Process is empty or the artist has no link', async () => {
-    const result = await getArtistLatest(artist);
-    expect(fetchArtistTimeline).toHaveBeenCalledWith(artist.inprocess);
-    expect(result.items.some(item => item.kind === 'moment')).toBe(false);
-    expect(result.unavailable).toBe(false);
-});
-
-
-it('retains In Process and Lore source links on saved interview cards', async () => {
-    const url = 'https://inprocess.world/collect/base:0xabc/75';
-    const key = 'profile_recent_encoded';
-    jest.mocked(db.select).mockReset().mockImplementationOnce(() => selectResult([]) as never)
-        .mockImplementationOnce(() => selectResult([{ ...answer, questionKey: key }]) as never);
-    jest.mocked(sourceUrlsForQuestionKeys).mockResolvedValue(new Map([[key, url]]));
-    const result = await getArtistLatest(artist);
-    expect(result.items.find(item => item.kind === 'interview')).toMatchObject({ sourceUrl: url, sourceLabel: 'View the source behind this answer' });
-});
+function streamResponse(text:string,init?:{status?:number}){return {ok:!init?.status||init.status<400,body:new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode(text));controller.close()}})}}

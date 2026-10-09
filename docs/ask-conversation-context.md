@@ -42,3 +42,5 @@ claims to know an artist's latest material from a bounded collection.
 The checked-answer cache binds the source's publication value as well as exact
 text, revision and offsets. Changed publication metadata or legacy cached answers
 without that recorded value are withheld rather than silently replayed.
+
+If the third drafting attempt loses its worker and its lease expires, polling returns a terminal verification failure; it cannot keep waiting or start a fourth attempt.

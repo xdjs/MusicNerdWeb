@@ -101,3 +101,18 @@ it("withholds a cached answer when date metadata changes without changing origin
   expect(await getOrDraftResearchAnswer({ ...input, references: [{ ...ref, publishedAt: "2026-10-06" }] })).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
+
+it("stops polling when the final drafting lease expired without a recorded outcome", async () => {
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "drafting", claim_until: new Date(0).toISOString(), attempts: 3 }] as never)
+    .mockResolvedValueOnce([] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "failed", stage: "draft", retryable: false });
+  expect(draft).not.toHaveBeenCalled();
+  expect(execute).toHaveBeenCalledTimes(2);
+});
+it("keeps waiting for the live final drafting lease without spending another attempt", async () => {
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "drafting", claim_until: new Date(Date.now() + 60000).toISOString(), attempts: 3 }] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "drafting" });
+  expect(draft).not.toHaveBeenCalled();
+});

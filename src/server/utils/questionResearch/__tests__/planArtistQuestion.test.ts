@@ -24,6 +24,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     retrieval: "relevance",
     resolvedQuestion: "Who played drums?",
   });
+  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingBudget: 0, maxRetries: 0 }));
 });
 it("never accepts a model-invented original URL that was not in the question", async () => {
   jest

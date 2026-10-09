@@ -27,3 +27,7 @@ Failed answer verification records only its stage (original read, draft, exact q
 The queue response is always an acknowledgement, including a reused completed job. Web returns the job first and reads status to obtain revalidated references before answering. An answer-verification failure retains its job id for retry even when it occurs before the first progress response.
 
 Relative-time descriptions (new/latest/upcoming) in undated or older originals remain attributed to that source or are omitted; they are not promoted into current release facts. An official third-person bio is not automatically first-person artist speech. The complete-process evaluation retains guard rejections and missed qualifications, including ones a model checker approves.
+
+## Conversational answers (2026-10-09)
+
+Ask About speaks like an informed music fan: lead with the useful update, use plain verbs and natural contractions, and include a source/date where it helps. Avoid report-like openings such as “the newest material in these sources indicates that.” A dated, attributed update can answer a latest question without claiming exhaustive coverage; explicit newest claims still require bounded wording. Keep uncertainty that changes the meaning, exact evidence, citations and source-reading safeguards. Do not turn experimenting into a launch, a caption into speech, or a post date into a release date. This changes public Ask About wording only; interviewer prompts and memory are separate.

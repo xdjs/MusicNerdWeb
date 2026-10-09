@@ -1,103 +1,169 @@
-import { and, desc, eq, isNotNull, or, sql } from 'drizzle-orm';
-import type { Artist } from '@/server/db/DbTypes';
-import { db } from '@/server/db/drizzle';
-import { artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts } from '@/server/db/schema';
-import { getLatestArtistReleases } from '@/server/utils/musicPlatform/latestReleases';
-import { sourceUrlsForQuestionKeys } from '@/server/utils/questionGenerator';
-import { fetchArtistTimeline } from '@/server/utils/fetchArtistTimeline';
-import { instagramPostImage, instagramPostUrl, latestExternalUrl, orderLatestItems, type ArtistLatestItem } from '@/lib/artist/artistLatest';
-import { momentToLatestItem } from '@/lib/artist/momentToLatestItem';
-import { instagramPostImageDimensions } from '@/lib/artist/instagramPostImageDimensions';
-
+import { eq, inArray, and } from "drizzle-orm";
+import { db } from "@/server/db/drizzle";
+import { artistInterviewAnswers } from "@/server/db/schema";
+import { sourceUrlsForQuestionKeys } from "@/server/utils/questionGenerator";
+import { latestExternalUrl } from "@/lib/artist/artistLatest";
+import { z } from "zod";
+import type { Artist } from "@/server/db/DbTypes";
+import { MUSICNERD_API_URL } from "@/lib/musicNerdApi/const";
+import {
+  orderLatestItems,
+  type ArtistLatestItem,
+} from "@/lib/artist/artistLatest";
+const url = z
+  .string()
+  .url()
+  .refine((value) => {
+    const u = new URL(value);
+    return u.protocol === "https:" && !u.username && !u.password;
+  });
+const card = z.object({
+  id: z.string().max(200),
+  kind: z.enum(["release", "instagram", "interview", "moment"]),
+  title: z.string().max(2000),
+  text: z.string().max(30000),
+  date: z.string().max(100),
+  imageUrl: url.nullable(),
+  imageCaption: z.string().max(2000),
+  sourceUrl: url.nullable(),
+  sourceLabel: z.string().max(200),
+  imageDimensions: z
+    .object({ width: z.number().positive(), height: z.number().positive() })
+    .optional(),
+  momentKind: z
+    .enum(["video", "audio", "image", "writing", "other"])
+    .optional(),
+  listeningLinks: z
+    .array(
+      z.object({
+        siteName: z.string(),
+        href: url,
+        label: z.string(),
+        iconSrc: z.string(),
+      }),
+    )
+    .max(10)
+    .optional(),
+});
+const responseSchema = z.object({
+  status: z.literal("ok"),
+  items: z.array(card).max(30),
+  unavailable: z.boolean(),
+  coverage: z
+    .array(
+      z.object({
+        provider: z.enum(["spotify", "deezer", "inprocess"]),
+        status: z.enum(["checked", "failed", "missing", "disconnected"]),
+        checkedAt: z.string().nullable(),
+        lastAttemptAt: z.string().nullable(),
+        stale: z.boolean(),
+      }),
+    )
+    .max(3),
+});
 export interface ArtistLatestResult {
-    items: ArtistLatestItem[];
-    unavailable: boolean;
+  items: ArtistLatestItem[];
+  unavailable: boolean;
+  coverage?: z.infer<typeof responseSchema>["coverage"];
 }
-
-/** Public read only. Scraping, extraction and interview offers stay in their existing workers/actions. */
-export async function getArtistLatest(artist: Artist): Promise<ArtistLatestResult> {
-    const [postsResult, answersResult, releasesResult, moments] = await Promise.all([
-        Promise.allSettled([
-            db.select({
-                id: artistSocialPosts.id, caption: artistSocialPosts.caption, url: artistSocialPosts.url,
-                postedAt: artistSocialPosts.postedAt,
-                // Extract just the image fields rather than loading the full scraped payload.
-                raw: sql<unknown>`jsonb_build_object('displayUrl', ${artistSocialPosts.raw}->'displayUrl', 'thumbnailSrc', ${artistSocialPosts.raw}->'thumbnailSrc', 'images', ${artistSocialPosts.raw}->'images',
-                    '_musicnerdThumbnail', jsonb_build_object('url', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'url', 'width', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'width', 'height', ${artistSocialPosts.raw}->'_musicnerdThumbnail'->'height'))`,
-            }).from(artistSocialPosts).where(and(
-                eq(artistSocialPosts.artistId, artist.id), eq(artistSocialPosts.platform, 'instagram'),
-                eq(artistSocialPosts.isOwnPost, true), isNotNull(artistSocialPosts.postedAt),
-                sql`${artistSocialPosts.postedAt} <= now()`,
-            )).orderBy(desc(artistSocialPosts.postedAt)).limit(9),
-            db.select({
-                id: artistInterviewAnswers.id, questionKey: artistInterviewAnswers.questionKey,
-                question: artistInterviewAnswers.question, answer: artistInterviewAnswers.answer,
-                createdAt: artistInterviewAnswers.createdAt,
-            }).from(artistInterviewAnswers).where(and(
-                eq(artistInterviewAnswers.artistId, artist.id),
-                // Follow-ups publish on Send. Onboarding answers stay private until
-                // the artist confirms Publish; evaluate both in the same DB snapshot.
-                or(
-                    eq(artistInterviewAnswers.source, 'followup'),
-                    and(
-                        eq(artistInterviewAnswers.source, 'onboarding'),
-                        sql`EXISTS (SELECT 1 FROM ${artistOnboardingSteps}
-                            WHERE ${artistOnboardingSteps.artistId} = ${artistInterviewAnswers.artistId}
-                            AND ${artistOnboardingSteps.step} = 'publish')`,
-                    ),
-                ),
-                isNotNull(artistInterviewAnswers.answer), sql`length(trim(${artistInterviewAnswers.answer})) > 0`,
-            )).orderBy(desc(artistInterviewAnswers.createdAt)).limit(6),
-            getLatestArtistReleases(artist),
-        ]),
-        // In Process moments (issue #1228, folded into Latest 2026-09-14). fetchArtistTimeline
-        // never throws and answers [] for artists without a link, so it sits outside the
-        // partial-failure accounting: a broken In Process means no moment cards, not a notice.
-        fetchArtistTimeline(artist.inprocess),
-    ]).then(([settled, moments]) => [...settled, moments] as const);
-    const items: ArtistLatestItem[] = [];
-    let unavailable = false;
-    for (const [index, result] of [postsResult, answersResult, releasesResult].entries()) {
-        if (result.status === 'rejected') {
-            unavailable = true;
-            // Do not log DB errors with bound SQL/user text or credential-bearing provider requests.
-            console.error('[artistLatest] Source unavailable', { artistId: artist.id, source: ['instagram', 'interview', 'releases'][index] });
+/** Read shared API snapshots. Page views never contact catalogs or start research. */
+export async function getArtistLatest(
+  artist: Artist,
+): Promise<ArtistLatestResult> {
+  try {
+    if (!z.string().uuid().safeParse(artist.id).success)
+      throw new Error("Invalid artist");
+    const origin = new URL(MUSICNERD_API_URL);
+    if (
+      origin.pathname !== "/" ||
+      origin.search ||
+      origin.hash ||
+      origin.username ||
+      origin.password ||
+      !(
+        origin.protocol === "https:" ||
+        (origin.protocol === "http:" &&
+          ["localhost", "127.0.0.1"].includes(origin.hostname))
+      )
+    )
+      throw new Error("Invalid API origin");
+    const response = await fetch(
+      new URL(`/api/artist/${artist.id}/latest`, origin),
+      {
+        cache: "no-store",
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!response.ok) throw new Error("Latest unavailable");
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Latest unavailable");
+    let bytes = 0;
+    const chunks: Uint8Array[] = [];
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        bytes += part.value.length;
+        if (bytes > 1000000) throw new Error("Latest too large");
+        chunks.push(part.value);
+      }
+    } finally {
+      await reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+    }
+    const text = Buffer.concat(chunks).toString("utf8");
+    const parsed = responseSchema.parse(JSON.parse(text));
+    const answerCards = parsed.items.filter(
+      (item) => item.kind === "interview",
+    );
+    if (answerCards.length) {
+      try {
+        const rows = await db
+          .select({
+            id: artistInterviewAnswers.id,
+            questionKey: artistInterviewAnswers.questionKey,
+          })
+          .from(artistInterviewAnswers)
+          .where(
+            and(
+              eq(artistInterviewAnswers.artistId, artist.id),
+              inArray(
+                artistInterviewAnswers.id,
+                answerCards.map((item) => item.id.replace("interview:", "")),
+              ),
+            ),
+          );
+        const sources = await sourceUrlsForQuestionKeys(
+          artist.id,
+          rows.map((row) => row.questionKey),
+        );
+        for (const item of answerCards) {
+          const row = rows.find((row) => `interview:${row.id}` === item.id);
+          const original = row
+            ? latestExternalUrl(sources.get(row.questionKey))
+            : null;
+          item.sourceUrl = original;
+          item.sourceLabel = "View the source behind this answer";
+          const post = parsed.items.find(
+            (post) => post.kind === "instagram" && post.sourceUrl === original,
+          );
+          if (post) {
+            item.imageUrl = post.imageUrl;
+            item.imageDimensions = post.imageDimensions;
+            item.imageCaption = "The post behind this answer";
+          }
         }
+      } catch {
+        /* Missing optional attribution does not hide public activity. */
+      }
     }
-    const posts = postsResult.status === 'fulfilled' ? postsResult.value : [];
-    for (const post of posts) {
-        const sourceUrl = instagramPostUrl(post.url);
-        if (!sourceUrl || !post.postedAt) continue;
-        items.push({ id: `instagram:${post.id}`, kind: 'instagram', title: 'From Instagram',
-            text: post.caption?.trim() || 'A new moment shared on Instagram.', date: post.postedAt,
-            imageUrl: instagramPostImage(post.raw), imageCaption: `Instagram post by ${artist.name ?? 'the artist'}`,
-            imageDimensions: instagramPostImageDimensions(post.raw),
-            sourceUrl, sourceLabel: 'View on Instagram' });
-    }
-    const answers = answersResult.status === 'fulfilled' ? answersResult.value : [];
-    const sources = answers.length ? await sourceUrlsForQuestionKeys(artist.id, answers.map(a => a.questionKey)).catch(() => new Map<string, string>()) : new Map<string, string>();
-    for (const answer of answers) {
-        if (!answer.answer?.trim()) continue;
-        const sourceUrl = latestExternalUrl(sources.get(answer.questionKey));
-        const post = sourceUrl ? posts.find(p => instagramPostUrl(p.url) === sourceUrl) : undefined;
-        items.push({ id: `interview:${answer.id}`, kind: 'interview', title: answer.question,
-            text: answer.answer, date: answer.createdAt, imageUrl: post ? instagramPostImage(post.raw) : null,
-            imageDimensions: post ? instagramPostImageDimensions(post.raw) : undefined,
-            imageCaption: post ? `The post behind this answer` : `${artist.name ?? 'Artist'} portrait`,
-            sourceUrl, sourceLabel: answer.questionKey.startsWith('profile_') ? 'View the source behind this answer' : 'See the post behind this answer' });
-    }
-    if (releasesResult.status === 'fulfilled') {
-        for (const release of releasesResult.value) {
-            const sourceUrl = latestExternalUrl(release.url);
-            if (!sourceUrl) continue;
-            items.push({ id: `release:${release.platform}:${release.id}`, kind: 'release', title: release.title,
-                text: `${release.kind.charAt(0).toUpperCase() + release.kind.slice(1)} by ${artist.name ?? 'this artist'}`,
-                date: release.releaseDate, imageUrl: latestExternalUrl(release.imageUrl),
-                imageCaption: `${release.title} artwork`, sourceUrl,
-                listeningLinks: release.listeningLinks,
-                sourceLabel: `Listen on ${release.platform === 'deezer' ? 'Deezer' : 'Spotify'}` });
-        }
-    }
-    for (const moment of moments) items.push(momentToLatestItem(moment));
-    return { items: orderLatestItems(items), unavailable };
+    return {
+      items: orderLatestItems(parsed.items),
+      unavailable: parsed.unavailable,
+      coverage: parsed.coverage,
+    };
+  } catch {
+    return { items: [], unavailable: true };
+  }
 }
