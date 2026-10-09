@@ -254,7 +254,10 @@ it('rejects changed catalog activity date before drafting',async()=>{
 it("bounds structured drafting and checking without hidden thinking or provider retries", async () => {
   await draftResearchAnswer("artist", "Artist", "What did they play?", [reference]);
   expect(model).toHaveBeenCalledTimes(2);
-  for (const [options] of model.mock.calls) expect(options).toMatchObject({ thinkingBudget: 0, maxRetries: 0 });
+  expect(model.mock.calls[0][0]).toMatchObject({ thinkingBudget: 0, maxRetries: 0 });
+  expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-opus-5.5', maxRetries: 0, maxOutputTokens: 1500 });
+  expect(model.mock.calls[1][0]).not.toHaveProperty('thinkingBudget');
+  expect(model.mock.calls[1][0]).not.toHaveProperty('temperature');
 });
 it.each(["length", "stop", "PRIVATE PAYLOAD"])("logs only allowlisted finish reasons: %s", async finishReason => {
   const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
