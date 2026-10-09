@@ -15,3 +15,7 @@ Migration 0044 must be applied to staging before preview verification and to pro
 ## Long questions on narrow screens
 
 Question bubbles wrap long URLs within their available width. Ordinary prose keeps normal word wrapping; the full question text is retained during same-page retries. Verify the conversation at 390 px and 832 px in light and dark themes (issue #1450).
+
+## Same-page follow-up context
+
+The UI supplies up to four completed preceding question/answer turns from the current artist conversation, with each question capped at 500 characters and each answer at 3,000. Oldest turns are dropped until the combined text is at most 12,000 characters. This context disambiguates wording; it is not source evidence. Each question retains the exact context originally sent and the server-resolved standalone question, so explicit retries use the same meaning and job binding. The visible question stays in the listener's original words. Artist navigation clears this context.

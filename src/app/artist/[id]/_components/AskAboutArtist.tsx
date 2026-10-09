@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
+import type { PublicChatTurn } from "@/lib/questionResearch/publicChatTypes";
 import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 
@@ -436,6 +437,8 @@ function SongLink({
 type ConversationTurn = {
     id: string;
     jobId?: string;
+    requestConversation?: PublicChatTurn[];
+    resolvedQuestion?: string;
     progress?: string;
     question: string;
     answer?: string;
@@ -550,9 +553,14 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    const ask = useCallback(async (q: string, jobId?: string, turnId?: string) => {
+    const ask = useCallback(async (q: string, jobId?: string, turnId?: string, retryConversation?: PublicChatTurn[], resolvedQuestion?: string) => {
         const trimmed = q.trim();
         if (!trimmed || requestPending.current) return;
+        // Prior turns resolve follow-up wording, not factual evidence. Keep the
+        // exact request context on retries so later turns cannot change its meaning.
+        const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error).slice(-4)
+            .map(turn => ({ question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000) }));
+        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length, 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
         setActiveJobId(jobId ?? null);
@@ -560,7 +568,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
-            id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
+            id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, requestConversation: conversation, resolvedQuestion, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
         setTurns(previous => turnId ? previous.map(turn => turn.id === turnId ? pending : turn) : [...previous, pending]);
@@ -569,11 +577,11 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             setTurns(previous => previous.map(turn => turn.id === pending.id ? { ...turn, ...result } : turn));
         };
         try {
-            const data = await runArtistResearch({ artistId, question: trimmed, jobId, signal: controller.signal,
+            const data = await runArtistResearch({ artistId, question: trimmed, jobId, conversation, resolvedQuestion, signal: controller.signal,
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
                     setActiveJobId(progress.jobId);
-                    finish({ jobId: progress.jobId, progress: progress.message });
+                    finish({ jobId: progress.jobId, progress: progress.message, ...(progress.resolvedQuestion ? { resolvedQuestion: progress.resolvedQuestion } : {}) });
 
                 },
             });
@@ -600,7 +608,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
-    }, [artistId]);
+    }, [artistId, turns]);
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
@@ -628,7 +636,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                         <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
                         {turn.error
-                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
                     </div>
