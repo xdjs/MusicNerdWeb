@@ -145,3 +145,16 @@ it('new source-backed Add Link submission enters artist review and owner direct 
  expect(await hidden(artist)).toEqual([]);
  await expect(submitArtistDestination(artist,contributor,'https://music.apple.com/us/album/song/123')).rejects.toThrow('not a song');
 });
+it('uses the recorded UGC processing timestamp when historical reviewer activity is absent, without guessing source review dates',async()=>{
+ await client.query("insert into ugcresearch(artist_id,user_id,ugc_url,site_name,site_username,accepted,date_processed)values($1,$2,'https://instagram.com/historical','instagram','historical',true,'2026-10-05 12:34:56.789')",[artist,contributor]);
+ const source=(await pending())!;
+ await client.query("update artist_vault_sources set status='approved',updated_at='2026-10-06 15:00:00Z' where id=$1",[source.id]);
+ const items=(await list(artist,admin)).items;
+ expect(items.find(item=>item.kind==='ugc')).toMatchObject({reviewedAt:'2026-10-05T12:34:56.789Z',reviewedBy:{id:null,name:'Not recorded'}});
+ expect(items.find(item=>item.kind==='source')).toMatchObject({reviewedAt:null,reviewedBy:null});
+});
+it('prefers attributed review activity over a legacy processing timestamp',async()=>{
+ const result=await client.query<{id:string}>("insert into ugcresearch(artist_id,user_id,ugc_url,site_name,site_username,accepted,date_processed)values($1,$2,'https://instagram.com/historical','instagram','historical',false,'2026-10-05 12:34:56') returning id",[artist,contributor]);
+ await client.query("insert into artist_activity_events(artist_id,source_id,actor_user_id,actor_kind,action,trigger,created_at)values($1,$2,$3,'user','link_rejected','artist_link_review','2026-10-06 09:15:00Z')",[artist,result.rows[0].id,admin]);
+ expect((await list(artist,admin)).items[0]).toMatchObject({status:'rejected',reviewedAt:'2026-10-06T09:15:00.000Z',reviewedBy:{id:admin,name:'Artist'}});
+});
