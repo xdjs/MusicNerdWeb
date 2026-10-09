@@ -94,3 +94,22 @@ it('does not accept a routing URL merely embedded in prior answer prose',async()
  jest.mocked(generateText).mockResolvedValue({output:{topic:'film credit',evidenceNeed:'credits',freshness:'stored',resolvedQuestion:'Who filmed the visualizer?',targetUrl:sourceUrl,platform:null,fromDate:null,toDate:null}} as never);
  await expect(planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What post?',answer:`See ${sourceUrl}`}])).rejects.toThrow(/URL/);
 });
+it.each([
+ ['What did Pete post most recently on InProcess?', 'inprocess'],
+ ['What is the latest Spotify release?', 'spotify'],
+ ['What is their latest Deezer release?', 'deezer'],
+])('preserves explicit platform even when the model picks a different provider: %s', async (question, platform) => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'recent',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist',question)).toMatchObject({platform,retrieval:'latest',freshness:'stored'});
+});
+it('does not invent a platform restriction for a broad latest overview', async () => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist','What is the latest?')).not.toHaveProperty('platform');
+});
+it('drops a stale cited target when the current question explicitly changes platforms', async () => {
+ const url='https://www.tiktok.com/@artist/video/123';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'latest artist posts',evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',resolvedQuestion:'What is their latest InProcess post?',targetUrl:url,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ const plan=await planArtistQuestion('Artist','What is their latest on InProcess?',undefined,[{question:'What is this TikTok?',answer:'A video.',sourceUrls:[url]}]);
+ expect(plan).toMatchObject({platform:'inprocess'});
+ expect(plan).not.toHaveProperty('targetUrl');
+});
