@@ -110,7 +110,8 @@ export async function getOrDraftResearchAnswer(input: {
         },
       };
     }
-    if (row.attempts >= 3 && row.status === "failed")
+    if (row.attempts >= 3 && (row.status === "failed" ||
+      (row.status === "drafting" && Date.parse(row.claim_until) <= Date.now())))
       return { state: "failed", stage: row.failure_stage ?? "draft", retryable: false };
     if (row.status !== "waiting" && Date.parse(row.claim_until) > Date.now())
       return row.status === "failed"
