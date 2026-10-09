@@ -19,7 +19,7 @@ is confirmed. The approved design is linked from the issue.
 > **Decision 2026-10-08 ([R&D sync](https://github.com/xdjs/MusicNerdWeb/issues/1464); Pete,
 > Sweetman): no "Your page is ready" card.** Its **See what we found** only scrolled to a
 > hard-coded section, and the tour already opens on completion. When research completes, the
-> status card goes away and the tour takes over. Tracked on
+> status (now the progress pill) goes away and the tour takes over. Tracked on
 > [#1464](https://github.com/xdjs/MusicNerdWeb/issues/1464).
 
 > **Decision 2026-10-08 ([R&D sync](https://github.com/xdjs/MusicNerdWeb/issues/1464); Pete,
@@ -27,6 +27,17 @@ is confirmed. The approved design is linked from the issue.
 > follow the build without knowing to scroll; Sweetman proposed following by default and stopping
 > once the artist scrolls; Pete: "that's perfect". This narrows the earlier "nothing scrolls by
 > itself" rule to the tour.
+
+> **Decision 2026-10-09 (Sweetman): nothing scrolls by itself during the build; a progress pill
+> instead.** Being moved around the page was jarring. Like the jump-to-latest arrow in ChatGPT and
+> Claude, a pill shows the progress and takes the artist to the research only when they click it.
+> This supersedes the 2026-10-08 follow decision above. Tracked on
+> [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
+
+> **Decision 2026-10-09 (Sweetman): no "skip for now" during the build.** Skip only ever hid the
+> page's progress (the build carries on server-side); the pill covers nothing, so there is nothing
+> to skip. The step-card modal keeps its "Skip for now". Tracked on
+> [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
 ## When it shows
 
@@ -76,31 +87,29 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   truth: a reload mid-build shows whatever has been written.
 - **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
   never treated as "not started".
-- **Follow.** While the build runs, the page scrolls to the section being researched each time
-  the current step changes: `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`),
-  `interview`/`publish` → About (`#mn-about`). It smooth-scrolls, or jumps with reduced motion.
-  The artist's own scroll input (wheel, touch, or a scroll key) stops following for the rest of the
-  visit. A scroll event alone doesn't count, because the page's own scrolling fires those too. A
-  failure stops it; a reload mid-build follows again. When the build completes while still
-  following, the page lands on About once more: the status card above the hero unmounts then, and
-  without this About would slide under the sticky header just as the tour opens on it.
-- **Status card.** Above the fold: the current step (`buildStepLabel`), three segments (Links, Lore,
-  About: done, running or waiting; `interview` counts as About) and "skip for now".
+- **Progress pill.** Fixed at the bottom right, where the Ask button sits; Ask is hidden while it
+  shows. It carries the current step (`buildStepLabel`, announced politely) and three segments
+  (Links, Lore, About: done, running or waiting; `interview` counts as About). It sits outside the
+  page flow, so it shifts nothing when it appears or goes away.
+- **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
+  `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About
+  (`#mn-about`). It smooth-scrolls, or jumps with reduced motion. Otherwise the page stays where
+  the artist puts it.
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
-  page loaded already complete renders just the profile), so the marks stay. The status card goes
-  away, and the tour's opening card (About) is the next thing the artist sees. Following ends on
-  About, where the tour opens. Apart from following during the build, nothing scrolls by itself: opening or restoring the tour preserves
-  the artist's scroll position, and only the artist choosing **Next** or **Back** scrolls to a tour
-  section. The opening card stays within the viewport even when About is above the reader's
-  current position. Its About copy is: "This draft is based on the sources on your profile. Edit it
-  or write your own."
-- **Failure.** The card shows a failure, with "try again" (`{ type: "open" }`), when the turn's
+  page loaded already complete renders just the profile), so the marks stay. The pill goes away,
+  the Ask button comes back, and the tour's opening card (About) is the next thing the artist sees.
+  Opening or restoring the tour preserves the artist's scroll position, and only the artist
+  choosing **Next** or **Back** scrolls to a tour section. The opening card stays within the
+  viewport even when About is above the reader's current position. Its About copy is: "This draft
+  is based on the sources on your profile. Edit it or write your own."
+- **Failure.** The pill shows a failure and clicking it tries again (`{ type: "open" }`), when the turn's
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
-  incomplete ("This is taking longer than usual."). "try again" resets that clock. What already
+  incomplete ("This is taking longer than usual."). Trying again resets that clock. What already
   painted stays.
-- **Skip** keeps its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons.
-  The build carries on server-side.
+- **Skip.** There is none during the build. The step-card modal (the resume path) keeps "Skip for
+  now", with its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons. The build
+  carries on server-side.
 
 ## After research: optional support links
 
