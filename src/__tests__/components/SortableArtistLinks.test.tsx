@@ -80,3 +80,20 @@ test('marks links that arrived with the build being watched, and only those', ()
     expect(screen.getByRole('link', { name: /spotify/i }).closest('[data-research-new-item]')).not.toBeNull();
     expect(screen.getByRole('link', { name: /deezer/i }).closest('[data-research-new-item]')).toBeNull();
 });
+
+test('source-backed platforms share the icon grid but retain source-managed editing', async () => {
+    const supplementalLinks = [{siteName:'applemusic',label:'Apple Music',href:'https://music.apple.com/us/artist/pete/1513734272',iconSrc:'/siteIcons/applemusic_icon.svg'}];
+    const fetchMock = jest.spyOn(global,'fetch').mockResolvedValue({ok:true} as Response);
+    render(<EditModeProvider canEdit><EditModeToggle/><SortableArtistLinks artistId="a1" section="links" links={links} supplementalLinks={supplementalLinks} canEdit/></EditModeProvider>);
+    const apple = screen.getByRole('link',{name:'Apple Music'});
+    expect(apple.querySelector('img')).toHaveAttribute('src','/siteIcons/applemusic_icon.svg');
+    expect(apple.closest('.grid')).toBe(screen.getByRole('link',{name:'Spotify'}).closest('.grid'));
+    fireEvent.click(screen.getByRole('button',{name:'Edit profile'}));
+    expect(screen.queryByRole('button',{name:'Remove Apple Music'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Reorder Apple Music'})).not.toBeInTheDocument();
+    drag();
+    fireEvent.click(screen.getByRole('button',{name:'Done'}));
+    await waitFor(()=>expect(refresh).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).order).toEqual(['deezer','spotify']);
+    fetchMock.mockRestore();
+});

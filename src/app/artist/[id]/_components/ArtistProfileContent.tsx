@@ -94,7 +94,7 @@ export default function ArtistProfileContent({
                         />
                     </div>
                     <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready">
-                        <ArtistLinksGrid isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks).filter(link => link.kind === "artist")} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     </ResearchPending>
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
@@ -108,7 +108,7 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").filter(link => link.kind === "artist")} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
                 </RevealSection>
                 <div id="mn-lore">

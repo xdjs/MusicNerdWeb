@@ -3,6 +3,14 @@ import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
 import { isDestinationSource } from './isDestinationSource';
 import { parseMusicDestination } from './parseMusicDestination';
 
+const MUSIC_ICONS: Record<string, string> = {
+  apple_music: '/siteIcons/applemusic_icon.svg', beatport: '/siteIcons/beatport_icon.svg',
+  spotify: '/siteIcons/spotify_icon.svg', deezer: '/siteIcons/deezer_icon.svg',
+  bandcamp: '/siteIcons/bandcamp_icon.svg', soundcloud: '/siteIcons/soundcloud_icon.svg',
+  audius: '/siteIcons/audius_icon.svg',
+  subvert: '/siteIcons/subvert_icon.jpg',
+};
+
 /** Approved source records retain their review/provenance while displaying as destinations. */
 export function getSourceLinks(
   sources: { id: string; url: string; type?: string | null; title?: string | null; podcastEpisodeKey?: string | null; status?: string }[],
@@ -28,7 +36,7 @@ export function getSourceLinks(
         : destination.label
       : new URL(href).hostname.replace(/^www\./, '');
     const siteName = destination?.kind === 'artist' ? destination.platform === 'apple_music' ? 'applemusic' : destination.platform : `source:${source.id}`;
-    result.push({ siteName, href, label, iconSrc: '', sourceId: source.id, kind: destination?.kind ?? 'website' });
+    result.push({ siteName, href, label, iconSrc: destination ? MUSIC_ICONS[destination.platform] ?? '/siteIcons/music_icon.svg' : '', sourceId: source.id, kind: destination?.kind ?? 'website' });
     if (destination?.kind === 'artist') seen.add(destination.platform);
     urls.add(href);
   }

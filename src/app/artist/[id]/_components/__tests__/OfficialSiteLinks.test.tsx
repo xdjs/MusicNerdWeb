@@ -10,9 +10,9 @@ const source = (id: string, url: string, status = 'approved', type = 'article') 
 const apple = source('apple', 'https://music.apple.com/us/artist/pete-rango/1513734272', 'approved', 'profile');
 const pending = source('beatport', 'https://www.beatport.com/artist/pete-rango/1041889', 'pending');
 
-it('shows approved music destinations with platform names and keeps pending links private', () => {
+it('leaves artist platforms to the shared icon grid and keeps pending links private', () => {
   render(<OfficialSiteLinks artistId="a1" sources={[apple]} pendingSources={[pending]} />);
-  expect(screen.getByRole('link', { name: /Apple Music/ })).toHaveAttribute('href', apple.url);
+  expect(screen.queryByRole('link', { name: /Apple Music/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: /Beatport/ })).not.toBeInTheDocument();
   expect(screen.queryByTestId('review')).not.toBeInTheDocument();
 });

@@ -12,7 +12,7 @@ jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav
 jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
-jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} /> }));
+jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks, supplementalLinks = [] }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} data-icons={supplementalLinks.map(link => link.label).join(",")} /> }));
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
@@ -111,11 +111,12 @@ describe("ArtistProfileContent", () => {
 
  it("suppresses grid empty states only when approved supplemental destinations exist", () => {
     const { rerender } = render(<ArtistProfileContent {...base} approvedSources={[
-        { id: "support", type: "article", status: "approved", url: "https://release.supercollector.xyz/yin-yang-joey-collins" },
+        { id: "support", type: "article", status: "approved", url: "https://release.supercollector.xyz/artist/pete-rango" },
         { id: "music", type: "article", status: "approved", url: "https://www.beatport.com/artist/pete-rango/1041889" },
     ]} />);
     expect(screen.getByTestId("support-grid")).toHaveAttribute("data-supplemental", "true");
     expect(screen.getByTestId("links-grid")).toHaveAttribute("data-supplemental", "true");
+    expect(screen.getByTestId("links-grid")).toHaveAttribute("data-icons", "Beatport");
     rerender(<ArtistProfileContent {...base} pendingSources={[
         { id: "pending", status: "pending", url: "https://www.subvert.fm/pete-rango" },
     ]} />);
@@ -127,5 +128,13 @@ it('keeps conflicting legacy profiles out of public Links and Listen', () => {
   const url = 'https://music.apple.com/artist/1330310245';
   render(<ArtistProfileContent {...base} approvedSources={[{id:'conflict',url,type:'profile',status:'approved'}]} blockedMusicSourceIds={['conflict']} />);
   expect(screen.getByTestId('links-grid')).toHaveAttribute('data-supplemental','false');
+  expect(screen.getByTestId('hero').getAttribute('data-listen')).not.toContain(url);
+});
+
+it('does not route a saved Spotify single to the platform grid or Listen', () => {
+  const url='https://open.spotify.com/album/1234567890123456789012';
+  render(<ArtistProfileContent {...base} approvedSources={[{id:'single',url,type:'website',status:'approved',title:'A single'}]}/>);
+  expect(screen.getByTestId('links-grid')).toHaveAttribute('data-supplemental','false');
+  expect(screen.getByTestId('links-grid')).toHaveAttribute('data-icons','');
   expect(screen.getByTestId('hero').getAttribute('data-listen')).not.toContain(url);
 });
