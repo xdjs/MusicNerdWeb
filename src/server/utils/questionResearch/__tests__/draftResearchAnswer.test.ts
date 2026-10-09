@@ -258,3 +258,44 @@ it.each(["length", "stop", "PRIVATE PAYLOAD"])("logs only allowlisted finish rea
   expect(JSON.stringify(warning.mock.calls)).not.toContain("PRIVATE");
   warning.mockRestore();
 });
+it.each(['moment', 'release'] as const)("accepts exact typed %s activity dates alongside content evidence", async activityDateKind => {
+  const dated = { ...reference, activityDate: '2026-10-08', activityDateKind };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'The October 8 record says they played drums.', evidence: [
+    { n: 1, field: 'activityDate', quote: dated.activityDate },
+    { n: 1, field: 'text', quote: 'I played drums.' },
+  ] }], unanswered: null } } as never).mockResolvedValueOnce({ output: { supported: true, reason: 'Recorded date and content.' } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'What did they share?', [dated]);
+  expect(result.sources[0].sourceId).toBe(reference.sourceId);
+  expect(model.mock.calls[1][0].instructions).toContain('activityDateKind');
+});
+it.each([
+  { field: 'activityDate', activityDateKind: 'moment', quote: '2026-10-09' },
+  { field: 'publishedAt', quote: '2026-10-08' },
+])('rejects a mismatched date or null publication field: %j', async evidence => {
+  const dated = { ...reference, activityDate: '2026-10-08', activityDateKind: 'moment' as const };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow();
+  expect(model).toHaveBeenCalledTimes(1);
+});
+
+it("rejects activity date evidence when the original has no date kind", async () => {
+  const dated = { ...reference, activityDate: '2026-10-08' };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They shared this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow();
+  expect(model).toHaveBeenCalledTimes(1);
+});
+it("lets the semantic checker reject a release date misrepresented as a post date", async () => {
+  const dated = { ...reference, activityDate: '2026-10-08', activityDateKind: 'release' as const };
+  api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They posted this October 8.', evidence: [{ n: 1, field: 'activityDate', quote: dated.activityDate }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: 'Release date does not establish post date.' } } as never);
+  await expect(draftResearchAnswer('artist', 'Artist', 'When?', [dated])).rejects.toThrow(/support/);
+  expect(JSON.parse(model.mock.calls[1][0].prompt).input.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+});
