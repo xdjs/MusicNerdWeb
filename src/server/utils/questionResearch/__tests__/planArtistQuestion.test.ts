@@ -133,3 +133,8 @@ it('keeps a broader recent-activity follow-up recent and excludes already discus
  expect(result).toMatchObject({retrieval:'latest',freshness:'stored',excludeSourceUrls:[url]});
  expect(result).not.toHaveProperty('targetUrl');expect(result).not.toHaveProperty('platform');
 });
+
+it('normalizes artist possessives so the same topic can reuse its saved job',async()=>{
+ jest.mocked(generateText).mockResolvedValue({output:{topic:"Artist's latest project",evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist',"What's Artist's latest project?")).toMatchObject({topic:'Artist latest project'});
+});

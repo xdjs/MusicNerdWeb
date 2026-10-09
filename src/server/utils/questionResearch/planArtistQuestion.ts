@@ -35,6 +35,12 @@ export async function planArtistQuestion(
     ]),
   });
   const parsed = questionPlanSchema.parse(response.output);
+  // A grammatical possessive must not spend another research slot for the same topic.
+  for (const possessive of ["'s ", "’s "]) {
+    const prefix = artistName + possessive;
+    if (parsed.topic.toLowerCase().startsWith(prefix.toLowerCase()))
+      parsed.topic = artistName + " " + parsed.topic.slice(prefix.length);
+  }
   // Identifying a newest release requires catalog dates, not a newer activity post.
   // Keep credits, captions and questions about a release's story in their own lanes.
   if (parsed.evidenceNeed === "reporting"
