@@ -222,3 +222,18 @@ it("still requires the claim checker to reject using a publication date as a rel
   await expect(draftResearchAnswer("artist", "Artist", "Release date?", [dated])).rejects.toThrow(/support/i);
   expect(model.mock.calls[1][0].instructions).toContain("never an event/release date");
 });
+it('keeps a resolved credit follow-up scoped even when originals mention other versions', async () => {
+  const text = 'The rooftop visualizer was filmed by Morgan. The earlier studio video was filmed by Casey.';
+  const scoped = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: 'ok', passage: scoped, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'Morgan filmed the rooftop visualizer.', evidence: [{ n: 1, quote: 'The rooftop visualizer was filmed by Morgan.' }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: 'Exact requested visualizer credit.' } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'Who filmed the rooftop visualizer?', [scoped]);
+  expect(model.mock.calls[0][0].instructions).toContain('One sentence is enough');
+  expect(model.mock.calls[0][0].instructions).toContain('Do not add credits or facts about other works, versions, editions, dates or locations');
+  expect(model.mock.calls[1][0].instructions).toContain('Reject extra facts about other works or versions');
+  expect(model.mock.calls[1][0].instructions).toContain('explicit comparison or necessary disambiguation');
+  expect(model.mock.calls[1][0].prompt).toContain('The earlier studio video was filmed by Casey.');
+  expect(result.answer).toBe('Morgan filmed the rooftop visualizer. [1]');
+});
