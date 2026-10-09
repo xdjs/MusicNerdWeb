@@ -545,7 +545,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [loading, setLoading] = useState(false);
     const requestPending = useRef(false);
     const activeRequest = useRef<AbortController | null>(null);
-    const [resume, setResume] = useState<{ question: string; jobId: string; complete: boolean } | null>(null);
+    const [activeJobId, setActiveJobId] = useState<string | null>(null);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -555,7 +555,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         if (!trimmed || requestPending.current) return;
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
-        let activeJobId = jobId;
+        setActiveJobId(jobId ?? null);
         setLoading(true);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
@@ -572,21 +572,14 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             const data = await runArtistResearch({ artistId, question: trimmed, jobId, signal: controller.signal,
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
-                    activeJobId = progress.jobId;
+                    setActiveJobId(progress.jobId);
                     finish({ jobId: progress.jobId, progress: progress.message });
-                    const saved = { version: 2, question: trimmed, jobId: progress.jobId, complete: false, savedAt: Date.now() };
-                    setResume(saved);
-                    try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional reconnect convenience. */ }
+
                 },
             });
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
                 return;
-            }
-            if (!controller.signal.aborted && activeJobId) {
-                const saved = { version: 2, question: trimmed, jobId: activeJobId, complete: true, savedAt: Date.now() };
-                setResume(saved);
-                try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional storage. */ }
             }
             finish({
                 answer: data.answer,
@@ -611,21 +604,11 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-        setTurns([]); setResume(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
-        let cancelled = false;
-        try {
-            const saved = JSON.parse(localStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
-            if (saved?.version === 2 && typeof saved.question === 'string' && saved.question.trim() && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.jobId) && typeof saved.complete === 'boolean' && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) {
-                setResume(saved);
-                // Defer until effect setup settles: Strict Mode's discarded setup
-                // must not issue a second request. Recovery always reuses the job.
-                void Promise.resolve().then(() => {
-                    if (!cancelled) void ask(saved.question, saved.jobId);
-                });
-            } else localStorage.removeItem(`musicnerd-research:${artistId}`);
-        } catch { /* Storage may be unavailable; the API job is still durable. */ }
-        return () => { cancelled = true; activeRequest.current?.abort(); };
-    }, [artistId, artistName, ask]);
+        setTurns([]); setActiveJobId(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        // A fresh chat is idle. Reopening a profile must never retry an old
+        // failed question or advance research from a browser recovery record.
+        return () => { activeRequest.current?.abort(); };
+    }, [artistId, artistName]);
 
     useEffect(() => {
         // Scroll only the conversation, never the artist page behind it. Show
@@ -650,9 +633,9 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
                     </div>
                 ))}
-                {resume && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
+                {activeJobId && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-                    setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
+                    setTurns(previous => previous.map(turn => turn.jobId === activeJobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
                 }}>Stop waiting</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
