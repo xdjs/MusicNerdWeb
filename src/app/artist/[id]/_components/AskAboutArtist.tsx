@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
+import type { PublicChatTurn } from "@/lib/questionResearch/publicChatTypes";
 import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 
@@ -436,6 +437,8 @@ function SongLink({
 type ConversationTurn = {
     id: string;
     jobId?: string;
+    requestConversation?: PublicChatTurn[];
+    resolvedQuestion?: string;
     progress?: string;
     question: string;
     answer?: string;
@@ -545,22 +548,30 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [loading, setLoading] = useState(false);
     const requestPending = useRef(false);
     const activeRequest = useRef<AbortController | null>(null);
-    const [resume, setResume] = useState<{ question: string; jobId: string; complete: boolean } | null>(null);
+    const [activeJobId, setActiveJobId] = useState<string | null>(null);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    const ask = useCallback(async (q: string, jobId?: string, turnId?: string) => {
+    const ask = useCallback(async (q: string, jobId?: string, turnId?: string, retryConversation?: PublicChatTurn[], resolvedQuestion?: string) => {
         const trimmed = q.trim();
         if (!trimmed || requestPending.current) return;
+        // Prior turns resolve follow-up wording, not factual evidence. Keep the
+        // exact request context on retries so later turns cannot change its meaning.
+        const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error).slice(-4)
+            .map(turn => {
+                const sourceUrls = [...new Set(turn.sources.map(source => source.url).filter((url): url is string => typeof url === "string" && url.length <= 2048 && /^https?:\/\//i.test(url)))].slice(0, 3);
+                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000), ...(sourceUrls.length ? { sourceUrls } : {}) };
+            });
+        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0), 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
-        let activeJobId = jobId;
+        setActiveJobId(jobId ?? null);
         setLoading(true);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
-            id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
+            id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, requestConversation: conversation, resolvedQuestion, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
         setTurns(previous => turnId ? previous.map(turn => turn.id === turnId ? pending : turn) : [...previous, pending]);
@@ -569,24 +580,17 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             setTurns(previous => previous.map(turn => turn.id === pending.id ? { ...turn, ...result } : turn));
         };
         try {
-            const data = await runArtistResearch({ artistId, question: trimmed, jobId, signal: controller.signal,
+            const data = await runArtistResearch({ artistId, question: trimmed, jobId, conversation, resolvedQuestion, signal: controller.signal,
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
-                    activeJobId = progress.jobId;
-                    finish({ jobId: progress.jobId, progress: progress.message });
-                    const saved = { version: 2, question: trimmed, jobId: progress.jobId, complete: false, savedAt: Date.now() };
-                    setResume(saved);
-                    try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional reconnect convenience. */ }
+                    setActiveJobId(progress.jobId);
+                    finish({ jobId: progress.jobId, progress: progress.message, ...(progress.resolvedQuestion ? { resolvedQuestion: progress.resolvedQuestion } : {}) });
+
                 },
             });
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
                 return;
-            }
-            if (!controller.signal.aborted && activeJobId) {
-                const saved = { version: 2, question: trimmed, jobId: activeJobId, complete: true, savedAt: Date.now() };
-                setResume(saved);
-                try { localStorage.setItem(`musicnerd-research:${artistId}`, JSON.stringify(saved)); } catch { /* Optional storage. */ }
             }
             finish({
                 answer: data.answer,
@@ -607,25 +611,15 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
-    }, [artistId]);
+    }, [artistId, turns]);
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-        setTurns([]); setResume(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
-        let cancelled = false;
-        try {
-            const saved = JSON.parse(localStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
-            if (saved?.version === 2 && typeof saved.question === 'string' && saved.question.trim() && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.jobId) && typeof saved.complete === 'boolean' && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) {
-                setResume(saved);
-                // Defer until effect setup settles: Strict Mode's discarded setup
-                // must not issue a second request. Recovery always reuses the job.
-                void Promise.resolve().then(() => {
-                    if (!cancelled) void ask(saved.question, saved.jobId);
-                });
-            } else localStorage.removeItem(`musicnerd-research:${artistId}`);
-        } catch { /* Storage may be unavailable; the API job is still durable. */ }
-        return () => { cancelled = true; activeRequest.current?.abort(); };
-    }, [artistId, artistName, ask]);
+        setTurns([]); setActiveJobId(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        // A fresh chat is idle. Reopening a profile must never retry an old
+        // failed question or advance research from a browser recovery record.
+        return () => { activeRequest.current?.abort(); };
+    }, [artistId, artistName]);
 
     useEffect(() => {
         // Scroll only the conversation, never the artist page behind it. Show
@@ -645,14 +639,14 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                         <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
                         {turn.error
-                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
                     </div>
                 ))}
-                {resume && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
+                {activeJobId && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-                    setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
+                    setTurns(previous => previous.map(turn => turn.jobId === activeJobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
                 }}>Stop waiting</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">

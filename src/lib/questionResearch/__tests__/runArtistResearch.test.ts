@@ -107,3 +107,23 @@ it("retains a saved job when answer verification fails before any progress respo
     expect.objectContaining({ jobId, stage: "complete" }),
   );
 });
+it("sends bounded conversation only when starting and polls with the resolved standalone question", async () => {
+  const reply = (body: unknown, status = 200) => ({ ok: true, status, json: async () => body });
+  const resolvedQuestion = "Who created the PPNE NYC visualizer?";
+  const conversation = [{ question: "What post?", answer: "The PPNE NYC visualizer." }];
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce(reply({ research: { jobId: "job", stage: "checking_saved", message: "Checking", resolvedQuestion } }, 202))
+    .mockResolvedValueOnce(reply({ jobId: "job", stage: "complete", message: "Read originals" }))
+    .mockResolvedValueOnce(reply({ answer: "The verified creator." }));
+  const onProgress = jest.fn();
+  await runArtistResearch({ artistId: "artist", question: "Who created it?", conversation, signal: new AbortController().signal, onProgress });
+  const posts = jest.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(JSON.parse(posts[0][1]!.body as string)).toMatchObject({ question: "Who created it?", conversation });
+  expect(JSON.parse(posts[1][1]!.body as string)).toEqual({ artistId: "artist", question: resolvedQuestion, jobId: "job" });
+  expect(onProgress).toHaveBeenLastCalledWith(expect.objectContaining({ resolvedQuestion }));
+});
+it("retries the same resolved question without sending a different conversation", async () => {
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ answer: "Saved answer" }) });
+  await runArtistResearch({ artistId: "artist", question: "Who created it?", resolvedQuestion: "Who created PPNE NYC?", jobId: "job", conversation: [{ question: "Later unrelated ask?", answer: "Other work" }], signal: new AbortController().signal, onProgress: jest.fn() });
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({ artistId: "artist", question: "Who created PPNE NYC?", jobId: "job" });
+});

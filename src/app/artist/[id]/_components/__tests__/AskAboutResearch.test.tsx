@@ -6,30 +6,25 @@ import { runArtistResearch } from '@/lib/questionResearch/runArtistResearch';
 jest.mock('@/lib/questionResearch/runArtistResearch',()=>({runArtistResearch:jest.fn()}));
 const research=jest.mocked(runArtistResearch),jobId='22222222-2222-4222-8222-222222222222';
 beforeEach(()=>{localStorage.clear();research.mockReset();});
-it('restores interrupted research inline after a new session and retries the same turn',async()=>{
- research.mockImplementation(async input=>{input.onProgress({jobId,stage:'searching',message:"I haven't found this in Lore. Checking public reporting."});throw new Error('Connection interrupted');});
- const view=render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
- fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
- await screen.findByRole('button',{name:'Try again'});view.unmount();research.mockClear();
+it.each([true,false])('does not restore or request old saved work on a fresh mount (complete=%s)',async complete=>{
+ localStorage.setItem('musicnerd-research:a1',JSON.stringify({version:2,question:'Old question',jobId,complete,savedAt:Date.now()}));
+ render(<StrictMode><AskAboutArtist artistId="a1" artistName="Artist"/></StrictMode>);
+ await act(async()=>{});
+ expect(research).not.toHaveBeenCalled();
+ expect(screen.queryByText('Old question')).not.toBeInTheDocument();
+ expect(screen.getByText('What would you like to know about Artist?')).toBeVisible();
+});
+it('retries failed work only on explicit action, updating the same turn and job',async()=>{
+ research.mockImplementation(async input=>{input.onProgress({jobId,stage:'searching',message:'Checking public reporting.'});throw new Error('Connection interrupted');});
  render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
  await screen.findByRole('button',{name:'Try again'});
- expect(screen.queryByText(/Resume saved research/)).not.toBeInTheDocument();
  expect(research).toHaveBeenCalledTimes(1);
  fireEvent.click(screen.getByRole('button',{name:'Try again'}));
  await waitFor(()=>expect(research).toHaveBeenCalledTimes(2));
+ expect(research).toHaveBeenLastCalledWith(expect.objectContaining({jobId,question:'Who played drums?'}));
  expect(screen.getAllByText('Who played drums?')).toHaveLength(1);
- await waitFor(()=>expect(research).toHaveBeenCalledWith(expect.objectContaining({jobId,question:'Who played drums?'})));
-});
-it('reopens the same checked answer after an artist page remount without new research',async()=>{
- research.mockImplementation(async input=>{input.onProgress({jobId,stage:'complete',message:'Checking the sourced answer'});return {answer:'They played drums.',sources:[]};});
- const view=render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
- fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
- await screen.findByText('They played drums.');view.unmount();research.mockClear();
- render(<StrictMode><AskAboutArtist artistId="a1" artistName="Artist"/></StrictMode>);
- await screen.findByText('They played drums.');
- expect(screen.queryByText(/Reopen saved answer/)).not.toBeInTheDocument();
- expect(research).toHaveBeenCalledTimes(1);
- await waitFor(()=>expect(research).toHaveBeenCalledWith(expect.objectContaining({jobId,question:'Who played drums?'})));
+ expect(localStorage.getItem('musicnerd-research:a1')).toBeNull();
 });
 it('does not show a stale answer after navigating to another artist',async()=>{
  let finish!:(value:{answer:string})=>void;
@@ -39,35 +34,57 @@ it('does not show a stale answer after navigating to another artist',async()=>{
  view.rerender(<AskAboutArtist artistId="a2" artistName="Second"/>);
  await act(async()=>finish({answer:'STALE answer'}));expect(screen.queryByText('STALE answer')).not.toBeInTheDocument();expect(screen.getByText('What would you like to know about Second?')).toBeInTheDocument();
 });
-
-it.each([Date.now()-25*60*60_000, Date.now()+60_000])('ignores expired or future recovery records (%s)',async savedAt=>{
- localStorage.setItem('musicnerd-research:a1',JSON.stringify({version:2,question:'Old question',jobId,complete:true,savedAt}));
+it('stops current polling and keeps explicit retry on the existing turn',async()=>{
+ research.mockImplementation(input=>{input.onProgress({jobId,stage:'searching',message:'Checking public reporting.'});return new Promise(()=>{});});
  render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
- await act(async()=>{});
- expect(research).not.toHaveBeenCalled();
- expect(localStorage.getItem('musicnerd-research:a1')).toBeNull();
-});
-it('stops restored polling and keeps explicit retry on the existing turn',async()=>{
- localStorage.setItem('musicnerd-research:a1',JSON.stringify({version:2,question:'Who played drums?',jobId,complete:false,savedAt:Date.now()}));
- research.mockImplementation(()=>new Promise(()=>{}));
- render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
  fireEvent.click(await screen.findByRole('button',{name:'Stop waiting'}));
  expect(research.mock.calls[0][0].signal.aborted).toBe(true);
  expect(screen.getByRole('button',{name:'Try again'})).toBeEnabled();
  expect(screen.getAllByText('Who played drums?')).toHaveLength(1);
- expect(JSON.parse(localStorage.getItem('musicnerd-research:a1')!).jobId).toBe(jobId);
 });
-
-it('does not reconnect merely on a profile visit, and minimizing keeps the conversation',async()=>{
- localStorage.setItem('musicnerd-research:a1',JSON.stringify({version:2,question:'Who played drums?',jobId,complete:true,savedAt:Date.now()}));
- research.mockResolvedValue({answer:'They played drums.',sources:[]});
+it('keeps the current answer through minimize/reopen without issuing another request',async()=>{
+ research.mockImplementation(async input=>{input.onProgress({jobId,stage:'complete',message:'Checking the sourced answer'});return {answer:'They played drums.',sources:[]};});
  render(<ArtistAskSheet artistId="a1" artistName="Artist"/>);
- await act(async()=>{});
  expect(research).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'Ask about Artist'}));
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
  await screen.findByText('They played drums.');
  fireEvent.click(screen.getByRole('button',{name:'Minimize chat'}));
  fireEvent.click(screen.getByRole('button',{name:'Ask about Artist'}));
  expect(screen.getByText('They played drums.')).toBeVisible();
  expect(research).toHaveBeenCalledTimes(1);
+});
+it('sends completed same-page context and preserves the resolved question on explicit retry',async()=>{
+ research.mockResolvedValueOnce({answer:'OUT HERE was mixed and mastered by the credited engineer.',sources:[{n:1,title:'Original caption',url:'https://artist.example/original-post'}]});
+ research.mockImplementationOnce(async input=>{input.onProgress({jobId,stage:'complete',message:'Checking answer',resolvedQuestion:'Who mixed OUT HERE?'});throw new Error('Verification interrupted');});
+ research.mockResolvedValueOnce({answer:'The credited engineer.',sources:[]});
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Tell me about OUT HERE'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText('OUT HERE was mixed and mastered by the credited engineer.');
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who mixed it?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByRole('button',{name:'Try again'});
+ const expected=[{question:'Tell me about OUT HERE',answer:'OUT HERE was mixed and mastered by the credited engineer.',sourceUrls:['https://artist.example/original-post']}];
+ expect(research.mock.calls[1][0]).toEqual(expect.objectContaining({question:'Who mixed it?',conversation:expected}));
+ fireEvent.click(screen.getByRole('button',{name:'Try again'}));
+ await screen.findByText('The credited engineer.');
+ expect(research.mock.calls[2][0]).toEqual(expect.objectContaining({question:'Who mixed it?',jobId,conversation:expected,resolvedQuestion:'Who mixed OUT HERE?'}));
+ expect(screen.getAllByText('Who mixed it?')).toHaveLength(1);
+ expect(screen.queryByText('Who mixed OUT HERE?')).not.toBeInTheDocument();
+});
+it('bounds prior answers and excludes another artist after navigation',async()=>{
+ research.mockResolvedValue({answer:'A'.repeat(3100),sources:[]});
+ const view=render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ for(let index=0;index<6;index++){
+  fireEvent.change(screen.getByRole('textbox'),{target:{value:`Question ${index}`}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+  await waitFor(()=>expect(screen.getAllByTestId('answer')).toHaveLength(index+1));
+ }
+ const history=research.mock.calls[5][0].conversation!;
+ expect(history.map(turn=>turn.question)).toEqual(['Question 2','Question 3','Question 4']);
+ expect(history.every(turn=>turn.answer.length<=3000&&turn.question.length<=500)).toBe(true);
+ expect(history.reduce((total,turn)=>total+turn.question.length+turn.answer.length,0)).toBeLessThanOrEqual(12000);
+ view.rerender(<AskAboutArtist artistId="a2" artistName="Second"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'New artist question'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await waitFor(()=>expect(research).toHaveBeenCalledTimes(7));
+ expect(research.mock.calls[6][0].conversation).toEqual([]);
 });

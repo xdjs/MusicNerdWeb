@@ -10,7 +10,7 @@ export const referenceSchema = z.object({
     .string()
     .regex(
       new RegExp(
-        `^(?:(?:discovery|vault):${uuid}|social:${uuid}:(?:caption|transcript))$`,
+        `^(?:(?:discovery|vault|public_answer):${uuid}|social:${uuid}:(?:caption|transcript))$`,
         "i",
       ),
     ),
@@ -65,6 +65,8 @@ export const questionPlanSchema = z
       "spoken_content",
     ]),
     freshness: z.enum(["stored", "recent"]),
+    retrieval: z.enum(["latest", "relevance"]).default("relevance"),
+    resolvedQuestion: z.string().trim().min(1).max(500).optional(),
     targetUrl: publicUrl.nullable(),
     platform: z.enum(["instagram", "tiktok", "x"]).nullable(),
     fromDate: z
@@ -86,6 +88,7 @@ export const answerDraftSchema = z.object({
           .array(
             z.object({
               n: z.number().int().min(1).max(3),
+              field: z.enum(["text", "publishedAt"]).default("text"),
               quote: z.string().min(8).max(1800),
             }),
           )

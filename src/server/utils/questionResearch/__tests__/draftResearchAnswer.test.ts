@@ -181,3 +181,59 @@ it("records a safe failure stage without logging source text, questions or model
   );
   warning.mockRestore();
 });
+it("accepts a source publication date only as exact typed metadata evidence", async () => {
+  const dated = { ...reference, publishedAt: "2026-10-05T19:43:02.000Z" };
+  api.mockResolvedValue({ status: "ok", passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "In a post published October 5, they said they played drums.", evidence: [
+    { n: 1, field: "publishedAt", quote: dated.publishedAt }, { n: 1, field: "text", quote: "I played drums." },
+  ] }], unanswered: null } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "Date metadata and exact drums statement." } } as never);
+  expect((await draftResearchAnswer("artist", "Artist", "Latest?", [dated])).answer).toContain("published October 5");
+});
+it.each([
+  { field: "text", quote: 'publishedAt": "2026-10-05T19:43:02.000Z' },
+  { field: "publishedAt", quote: "2026-10-06T19:43:02.000Z" },
+  { field: "publishedAt", quote: 'publishedAt": "2026-10-05T19:43:02.000Z' },
+])("rejects fabricated or incorrectly typed date evidence %#", async (evidence) => {
+  const dated = { ...reference, publishedAt: "2026-10-05T19:43:02.000Z" };
+  api.mockResolvedValue({ status: "ok", passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, ...evidence }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "Latest?", [dated])).rejects.toThrow(/evidence/i);
+  expect(model).toHaveBeenCalledTimes(1);
+});
+it("refuses an original whose publication metadata changed before drafting", async () => {
+  api.mockResolvedValue({ status: "ok", passage: { ...reference, publishedAt: "2026-10-06" }, totalChars: reference.text.length, nextStart: null });
+  await expect(draftResearchAnswer("artist", "Artist", "Latest?", [{ ...reference, publishedAt: "2026-10-05" }])).rejects.toThrow(/changed/i);
+  expect(model).not.toHaveBeenCalled();
+});
+it("does not treat an unknown publication date as typed date evidence", async () => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "Published October 5.", evidence: [{ n: 1, field: "publishedAt", quote: "2026-10-05" }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "Latest?", [reference])).rejects.toThrow(/evidence/i);
+  expect(model).toHaveBeenCalledTimes(1);
+});
+it("still requires the claim checker to reject using a publication date as a release date", async () => {
+  const dated = { ...reference, publishedAt: "2026-10-05" };
+  api.mockResolvedValue({ status: "ok", passage: dated, totalChars: dated.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "The song was released October 5.", evidence: [{ n: 1, field: "publishedAt", quote: dated.publishedAt }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: "Publication is not release timing." } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "Release date?", [dated])).rejects.toThrow(/support/i);
+  expect(model.mock.calls[1][0].instructions).toContain("never an event/release date");
+});
+it('keeps a resolved credit follow-up scoped even when originals mention other versions', async () => {
+  const text = 'The rooftop visualizer was filmed by Morgan. The earlier studio video was filmed by Casey.';
+  const scoped = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: 'ok', passage: scoped, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: 'Morgan filmed the rooftop visualizer.', evidence: [{ n: 1, quote: 'The rooftop visualizer was filmed by Morgan.' }] }], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: 'Exact requested visualizer credit.' } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'Who filmed the rooftop visualizer?', [scoped]);
+  expect(model.mock.calls[0][0].instructions).toContain('One sentence is enough');
+  expect(model.mock.calls[0][0].instructions).toContain('Do not add credits or facts about other works, versions, editions, dates or locations');
+  expect(model.mock.calls[1][0].instructions).toContain('Reject extra facts about other works or versions');
+  expect(model.mock.calls[1][0].instructions).toContain('explicit comparison or necessary disambiguation');
+  expect(model.mock.calls[1][0].prompt).toContain('The earlier studio video was filmed by Casey.');
+  expect(result.answer).toBe('Morgan filmed the rooftop visualizer. [1]');
+});
