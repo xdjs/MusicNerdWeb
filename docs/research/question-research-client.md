@@ -52,3 +52,5 @@ Keep these as distinct checks when changing retrieval, models or prompts; a mode
 | Bad draft: the visualizer “which she produced with Eli” when the caption credits music production to a handle | Reject role compression and unsupported handle-to-name expansion. Accept wording that preserves music production and the original handle. |
 
 Record all failures, correction attempts and latency alongside successes. The small fixture set is diagnostic coverage, not a claim that all music questions or all supported sources have passed editorial review.
+
+The end-to-end DUTCHYYY regression “What's Dutchyyy's latest release?” initially planned `reporting/latest`, selecting a newer InProcess moment instead of a catalog record. Latest-release identification now requests `release_date/latest`; questions about a release's credits, captions or story retain their respective evidence needs. This is a Web planning correction in addition to the API catalog preference.

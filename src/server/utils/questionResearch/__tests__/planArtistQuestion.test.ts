@@ -113,3 +113,16 @@ it('drops a stale cited target when the current question explicitly changes plat
  expect(plan).toMatchObject({platform:'inprocess'});
  expect(plan).not.toHaveProperty('targetUrl');
 });
+it("routes an explicit latest-release identification to catalog evidence even when the model calls it reporting", async () => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest music release',evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Dutchyyy',"What's Dutchyyy's latest release?")).toMatchObject({evidenceNeed:'release_date',retrieval:'latest'});
+});
+
+it.each([
+ ["What inspired Dutchyyy's latest album?", 'reporting'],
+ ["What is the latest release post about?", 'social_caption'],
+ ["Who produced Dutchyyy's latest release?", 'credits'],
+])('preserves the evidence type for a question about a release: %s', async (question, evidenceNeed) => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest release context',evidenceNeed,freshness:'stored',retrieval:'relevance',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Dutchyyy',question)).toMatchObject({evidenceNeed,retrieval:'relevance'});
+});
