@@ -35,3 +35,20 @@ Ask About speaks like an informed music fan: lead with the useful update, use pl
 ## Explicit source routing (2026-10-09)
 
 A platform explicitly named in the current question is a routing constraint, not a model suggestion. Instagram, TikTok, X/Twitter, InProcess, Spotify and Deezer are supported source scopes. The planner cannot silently substitute another source. Recognized source URLs carry their provider scope; a conflicting requested platform and URL is rejected. Multiple named platforms must not collapse to a single model-selected platform. An unspecified platform leaves saved-source retrieval broad. InProcess/Spotify/Deezer use their durable provider originals; unavailable scoped evidence reports the need to refresh that provider rather than launching unrelated social research. Follow-ups may reuse an exact cited source only when consistent with the current request.
+
+### Regression review cases
+
+Keep these as distinct checks when changing retrieval, models or prompts; a model's approval alone is not editorial acceptance:
+
+| Question or negative control | Required behavior |
+| --- | --- |
+| What did Pete post most recently on InProcess? | Preserve InProcess scope; use its newest eligible saved original, never substitute TikTok. |
+| What has Pete shared about his Rango Labs plugin designs? | Attribute the experiment to the post; use the original moment date, not fabricated publication metadata or a launch claim. |
+| What is LATASHA's latest Instagram post about? | Date and cite the retrieved caption; qualify any newest claim; preserve music-production versus filming credits and exact supported identities. |
+| Who filmed it? after that answer | Resolve to the same cited visualizer and its exact filming credits. |
+| What is DUTCHYYY's latest release? | Prefer eligible catalog release records over newer social posts; do not treat upload time as release time. |
+| What exact knob controls are shown in that video? with only the post record | Do not infer visual content from title or MIME type. |
+| When did Pete release those plugins? with only an experiment post | Do not convert an experiment or intended release into an actual launch. |
+| Bad draft: the visualizer “which she produced with Eli” when the caption credits music production to a handle | Reject role compression and unsupported handle-to-name expansion. Accept wording that preserves music production and the original handle. |
+
+Record all failures, correction attempts and latency alongside successes. The small fixture set is diagnostic coverage, not a claim that all music questions or all supported sources have passed editorial review.
