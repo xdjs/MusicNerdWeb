@@ -174,6 +174,7 @@ it("records a safe failure stage without logging source text, questions or model
       stage: "draft",
       category: "operation_failed",
       status: null,
+      finishReason: null,
     },
   );
   expect(JSON.stringify(warning.mock.calls)).not.toMatch(
@@ -241,4 +242,19 @@ it('rejects changed catalog activity date before drafting',async()=>{
  const catalog={...reference,sourceId:`latest:spotify:${'b'.repeat(64)}`,activityDate:'2020-02',activityDateKind:'release' as const};
  api.mockResolvedValue({status:'ok',passage:{...catalog,activityDate:'2020-03'},totalChars:catalog.text.length,nextStart:null});
  await expect(draftResearchAnswer('artist','Artist','When released?',[catalog])).rejects.toThrow(/changed/);expect(model).not.toHaveBeenCalled();
+});
+
+it("bounds structured drafting and checking without hidden thinking or provider retries", async () => {
+  await draftResearchAnswer("artist", "Artist", "What did they play?", [reference]);
+  expect(model).toHaveBeenCalledTimes(2);
+  for (const [options] of model.mock.calls) expect(options).toMatchObject({ thinkingBudget: 0, maxRetries: 0 });
+});
+it.each(["length", "stop", "PRIVATE PAYLOAD"])("logs only allowlisted finish reasons: %s", async finishReason => {
+  const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+  model.mockReset();
+  model.mockRejectedValue(Object.assign(new Error("PRIVATE BODY"), { name: "AI_NoObjectGeneratedError", finishReason, text: "PRIVATE RESPONSE" }));
+  await expect(draftResearchAnswer("artist", "Artist", "PRIVATE QUESTION", [reference])).rejects.toThrow();
+  expect(warning).toHaveBeenCalledWith("[questionResearch] answer verification failed", expect.objectContaining({ finishReason: finishReason === "PRIVATE PAYLOAD" ? null : finishReason }));
+  expect(JSON.stringify(warning.mock.calls)).not.toContain("PRIVATE");
+  warning.mockRestore();
 });
