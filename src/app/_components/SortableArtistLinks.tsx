@@ -21,7 +21,7 @@ function LinkItem({ link, artistId, canEdit, editing, saving }: {
     </div>;
 }
 
-export default function SortableArtistLinks({ artistId, section, links, supplementalLinks = [], canEdit }: { artistId: string; section: LinkSection; links: ProfileLink[]; supplementalLinks?: ProfileLink[]; canEdit: boolean }) {
+export default function SortableArtistLinks({ artistId, section, links, supplementalLinks = [], canEdit }: { artistId: string; section: LinkSection; links: ProfileLink[]; supplementalLinks?: (ProfileLink & {sourceId?: string})[]; canEdit: boolean }) {
     const { isEditing, isSaving = false, registerSave } = useContext(EditModeContext);
     const [draftOrder, setDraftOrder] = useState<string[] | null>(null);
     const sourceOrder = JSON.stringify(links.map(link => link.siteName));
@@ -56,7 +56,7 @@ export default function SortableArtistLinks({ artistId, section, links, suppleme
             <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-7">
                 {items.map(link => <LinkItem key={link.siteName} link={link} artistId={artistId} canEdit={canEdit} editing={editing} saving={isSaving} />)}
                 {supplementalLinks.filter(link => !items.some(item => item.siteName === link.siteName)).map(link => <div key={link.siteName} className="min-w-0">
-                    <ResearchNewMark kind="links" itemKey={link.siteName}><EditableLinkIcon {...link} artistId={artistId} canEdit={false} /></ResearchNewMark>
+                    <ResearchNewMark kind="links" itemKey={link.siteName}><EditableLinkIcon {...link} artistId={artistId} canEdit={canEdit && !isSaving} /></ResearchNewMark>
                 </div>)}
             </div>
         </SortableContext>

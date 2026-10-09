@@ -17,22 +17,16 @@ it('leaves artist platforms to the shared icon grid and keeps pending links priv
   expect(screen.queryByTestId('review')).not.toBeInTheDocument();
 });
 
-it('reuses exact source records for editor approval and removal in Links', () => {
+it('keeps source-review controls out of Links in edit mode', () => {
   render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
     <OfficialSiteLinks artistId="a1" sources={[apple]} pendingSources={[pending]} />
   </EditModeContext.Provider>);
-  expect(screen.getByTestId('review')).toHaveAttribute('data-pending', '1');
-  expect(screen.getByTestId('review')).toHaveAttribute('data-approved', '1');
-  expect(screen.getByTestId('review')).toHaveAttribute('data-review-only', 'true');
+  expect(screen.queryByTestId('review')).not.toBeInTheDocument();
+  expect(screen.queryByText('Website and music links')).not.toBeInTheDocument();
 });
-
-it('suppresses established identity conflicts publicly but keeps the source available for editor review', () => {
-  const {unmount} = render(<OfficialSiteLinks artistId="a1" sources={[apple]} blockedSourceIds={[apple.id]} />);
-  expect(screen.queryByRole('link', {name:/Apple Music/})).not.toBeInTheDocument();
-  unmount();
-  render(<EditModeContext.Provider value={{isEditing:true, canEdit:true, toggle:jest.fn()}}>
+it('does not expose blocked destinations publicly or in the Links editor', () => {
+  render(<EditModeContext.Provider value={{isEditing:true, canEdit:true,toggle:jest.fn()}}>
     <OfficialSiteLinks artistId="a1" sources={[apple]} blockedSourceIds={[apple.id]} />
   </EditModeContext.Provider>);
-  expect(screen.getByTestId('review')).toHaveAttribute('data-approved','1');
-  expect(screen.getByText(/needs identity review/)).toBeInTheDocument();
+  expect(screen.queryByRole('link', {name:/Apple Music/})).not.toBeInTheDocument();
 });

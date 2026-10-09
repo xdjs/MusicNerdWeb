@@ -89,7 +89,7 @@ test('source-backed platforms share the icon grid but retain source-managed edit
     expect(apple.querySelector('img')).toHaveAttribute('src','/siteIcons/applemusic_icon.svg');
     expect(apple.closest('.grid')).toBe(screen.getByRole('link',{name:'Spotify'}).closest('.grid'));
     fireEvent.click(screen.getByRole('button',{name:'Edit profile'}));
-    expect(screen.queryByRole('button',{name:'Remove Apple Music'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Remove Apple Music'})).toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Reorder Apple Music'})).not.toBeInTheDocument();
     drag();
     fireEvent.click(screen.getByRole('button',{name:'Done'}));

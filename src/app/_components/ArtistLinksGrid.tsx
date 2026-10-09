@@ -9,7 +9,7 @@ interface ArtistLinksGridProps {
     availableLinks: UrlMap[];
     canEdit?: boolean;
     hasSupplementalLinks?: boolean;
-    supplementalLinks?: ProfileLink[];
+    supplementalLinks?: (ProfileLink & {sourceId?: string})[];
 }
 
 export default async function ArtistLinksGrid({ isMonetized, artist, canEdit = false, hasSupplementalLinks = false, supplementalLinks = [] }: ArtistLinksGridProps) {

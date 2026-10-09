@@ -1,3 +1,4 @@
+jest.mock('@/app/artist/[id]/_components/SuggestedLinkReview', () => function MockSuggestedLinkReview() { return null; });
 jest.mock('@/app/artist/[id]/_components/ResearchDiscoveryReview', () => function MockDiscoveryReview() { return null; });
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { EditModeProvider } from '@/app/_components/EditModeContext';

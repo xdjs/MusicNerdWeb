@@ -1,3 +1,4 @@
+import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
@@ -144,7 +145,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
         getArtistLinks(artist),
     ]);
 
-    const blockedMusicSourceIds = await getConflictingMusicSourceIds(id, approvedSources);
+    const [conflictingMusicSourceIds, hiddenLinkSourceIds] = await Promise.all([getConflictingMusicSourceIds(id, approvedSources), getHiddenLinkSourceIds(id)]);
+    const blockedMusicSourceIds = [...conflictingMusicSourceIds, ...hiddenLinkSourceIds];
     const hasSupportLinks = getProfileLinks(artist, artistLinks, 'support').length > 0
         || getSourceLinks(
             approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id)),
