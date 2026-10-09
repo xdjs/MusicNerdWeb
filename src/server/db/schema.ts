@@ -1186,3 +1186,23 @@ export const artistInterviewAnswerVersions = pgTable("artist_interview_answer_ve
     pgPolicy("mnweb_select_artist_interview_answer_versions", { for: "select", to: ["mnweb"], using: sql`true` }),
     pgPolicy("mnweb_insert_artist_interview_answer_versions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
 ]).enableRLS();
+
+// Durable provider originals shared by profile Latest and public API research.
+export const artistLatestProviderSnapshots = pgTable("artist_latest_provider_snapshots", {
+  artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  accountId: text("account_id").notNull(),
+  items: jsonb("items").notNull().default(sql`'[]'::jsonb`),
+  checkedAt: timestamp("checked_at", { withTimezone: true, mode: "string" }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  status: text("status").notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.artistId, table.provider] }),
+  check("artist_latest_provider_snapshots_provider", sql`${table.provider} in ('spotify','deezer','inprocess')`),
+  check("artist_latest_provider_snapshots_account", sql`length(${table.accountId}) between 1 and 2048`),
+  check("artist_latest_provider_snapshots_status", sql`${table.status} in ('checked','failed')`),
+  check("artist_latest_provider_snapshots_items", sql`jsonb_typeof(${table.items}) = 'array' and jsonb_array_length(${table.items}) <= 50 and octet_length(${table.items}::text) <= 400000`),
+  pgPolicy("mnweb_select_artist_latest_provider_snapshots", { for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_latest_provider_snapshots", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_latest_provider_snapshots", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
