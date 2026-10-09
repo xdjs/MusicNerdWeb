@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
 import ResearchSourcePassage from "./ResearchSourcePassage";
@@ -550,17 +550,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-        setTurns([]); setResume(null); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
-        try { const saved = JSON.parse(localStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
-            if (saved?.version === 2 && typeof saved.question === 'string' && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f-]{36}$/i.test(saved.jobId) && typeof saved.complete === 'boolean' && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) setResume(saved);
-            else localStorage.removeItem(`musicnerd-research:${artistId}`);
-        } catch { /* Storage may be unavailable; the API job is still durable. */ }
-        return () => { activeRequest.current?.abort(); };
-    }, [artistId, artistName]);
-
-    const ask = async (q: string, jobId?: string) => {
+    const ask = useCallback(async (q: string, jobId?: string, turnId?: string) => {
         const trimmed = q.trim();
         if (!trimmed || requestPending.current) return;
         requestPending.current = true;
@@ -570,10 +560,10 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
-            id: crypto.randomUUID(), jobId, question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
+            id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
-        setTurns(previous => [...previous, pending]);
+        setTurns(previous => turnId ? previous.map(turn => turn.id === turnId ? pending : turn) : [...previous, pending]);
         const finish = (result: Partial<ConversationTurn>) => {
             if (controller.signal.aborted) return;
             setTurns(previous => previous.map(turn => turn.id === pending.id ? { ...turn, ...result } : turn));
@@ -617,7 +607,25 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
-    };
+    }, [artistId]);
+
+    useEffect(() => {
+        activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
+        setTurns([]); setResume(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        let cancelled = false;
+        try {
+            const saved = JSON.parse(localStorage.getItem(`musicnerd-research:${artistId}`) ?? 'null');
+            if (saved?.version === 2 && typeof saved.question === 'string' && saved.question.trim() && saved.question.length <= 500 && typeof saved.jobId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.jobId) && typeof saved.complete === 'boolean' && Number.isFinite(saved.savedAt) && saved.savedAt <= Date.now() && Date.now() - saved.savedAt < 24*60*60_000) {
+                setResume(saved);
+                // Defer until effect setup settles: Strict Mode's discarded setup
+                // must not issue a second request. Recovery always reuses the job.
+                void Promise.resolve().then(() => {
+                    if (!cancelled) void ask(saved.question, saved.jobId);
+                });
+            } else localStorage.removeItem(`musicnerd-research:${artistId}`);
+        } catch { /* Storage may be unavailable; the API job is still durable. */ }
+        return () => { cancelled = true; activeRequest.current?.abort(); };
+    }, [artistId, artistName, ask]);
 
     useEffect(() => {
         // Scroll only the conversation, never the artist page behind it. Show
@@ -637,7 +645,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                         <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
                         {turn.error
-                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
                     </div>
@@ -646,7 +654,6 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
                     setTurns(previous => previous.map(turn => turn.jobId === resume.jobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
                 }}>Stop waiting</button>}
-                {resume && !loading && !turns.some(turn => turn.jobId === resume.jobId && turn.answer) && <button type="button" className="min-h-11 max-w-full [overflow-wrap:anywhere] text-left text-sm text-pastypink underline underline-offset-4" onClick={() => void ask(resume.question, resume.jobId)}>{resume.complete ? 'Reopen saved answer' : 'Resume saved research'}: {resume.question}</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (
