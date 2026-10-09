@@ -84,6 +84,11 @@ export async function handleArtistQuestion(request: Request) {
         },
         { status: 202, headers },
       );
+    if (state.stage === "failed" || state.stage === "cancelled")
+      return Response.json(
+        { error: "I couldn't finish that lookup. Please try again.", retryFromStart: true },
+        { status: 503, headers },
+      );
     if (state.stage !== "complete")
       return Response.json(
         {

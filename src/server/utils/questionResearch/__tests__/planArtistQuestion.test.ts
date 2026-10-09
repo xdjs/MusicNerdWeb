@@ -126,3 +126,10 @@ it.each([
  jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest release context',evidenceNeed,freshness:'stored',retrieval:'relevance',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Dutchyyy',question)).toMatchObject({evidenceNeed,retrieval:'relevance'});
 });
+it('keeps a broader recent-activity follow-up recent and excludes already discussed sources',async()=>{
+ const url='https://www.inprocess.world/collect/base:example/2';
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Pete Rango other projects',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
+ const result=await planArtistQuestion('Pete Rango','what else has he been up to?',undefined,[{question:"What's Pete Rango's latest project?",answer:'Plugin designs.',sourceUrls:[url]}]);
+ expect(result).toMatchObject({retrieval:'latest',freshness:'stored',excludeSourceUrls:[url]});
+ expect(result).not.toHaveProperty('targetUrl');expect(result).not.toHaveProperty('platform');
+});

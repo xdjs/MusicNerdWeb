@@ -186,3 +186,8 @@ it('explains when the requested provider needs a refresh without claiming no inf
  expect(body.answer).toMatch(/refresh/);
  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
+it('returns an operational error rather than an answer for a failed research job',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'failed'});
+ const r=await handleArtistQuestion(request({jobId}));
+ expect(r.status).toBe(503);const body=await r.json();expect(body).toMatchObject({retryFromStart:true});expect(body).not.toHaveProperty('answer');
+});

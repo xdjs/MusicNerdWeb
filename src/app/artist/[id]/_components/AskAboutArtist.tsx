@@ -584,12 +584,12 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
                     setActiveJobId(progress.jobId);
-                    finish({ jobId: progress.jobId, progress: progress.message, ...(progress.resolvedQuestion ? { resolvedQuestion: progress.resolvedQuestion } : {}) });
+                    finish({ jobId: progress.jobId, progress: ["searching", "reading", "transcribing", "waiting_provider"].includes(progress.stage) ? "Searching outside Lore…" : "Checking Lore…", ...(progress.resolvedQuestion ? { resolvedQuestion: progress.resolvedQuestion } : {}) });
 
                 },
             });
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
-                finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again." });
+                finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again.", ...(data.retryFromStart ? { jobId: undefined, resolvedQuestion: undefined } : {}) });
                 return;
             }
             finish({
@@ -641,7 +641,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                         {turn.error
                             ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
-                                : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Finding an answer…"}</p>}
+                                : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Checking Lore…"}</p>}
                     </div>
                 ))}
                 {activeJobId && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {

@@ -9,6 +9,7 @@ export type ResearchProgress = {
 export type QuestionAnswer = {
   answer?: string;
   error?: string;
+  retryFromStart?: boolean;
   sources?: unknown[];
   suggestions?: unknown[];
   mentions?: unknown[];
@@ -49,6 +50,8 @@ export async function runArtistResearch(input: {
     if (typeof data.research?.resolvedQuestion === "string" && data.research.resolvedQuestion.length <= 500)
       resolvedQuestion = data.research.resolvedQuestion;
     if (!r.ok) {
+      if (r.status === 503 && data.retryFromStart === true && typeof data.error === "string")
+        return { data, status: r.status };
       if (
         r.status === 503 &&
         typeof data.jobId === "string" &&
