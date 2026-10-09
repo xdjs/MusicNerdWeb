@@ -12,6 +12,7 @@ jest.mock('@/app/actions/dashboardActions', () => ({
   removeVaultSources: jest.fn(), searchWebForSources: jest.fn(),
 }));
 jest.mock('@/app/actions/addVaultSource', () => ({ addVaultSource: jest.fn() }));
+jest.mock('../SuggestedLinkReview', () => function SuggestedLinkReview(){return null;});
 jest.mock('../BioVersionHistory', () => function BioVersionHistory() { return null; });
 jest.mock('../SuggestLoreSource', () => function SuggestLoreSource() { return null; });
 jest.mock('../RevealSection', () => function RevealSection({ children }: { children: React.ReactNode }) { return <section>{children}</section>; });
@@ -35,26 +36,18 @@ function view(type: string, status: ArtistVaultSource['status'], url = moving.ur
   </EditModeContext.Provider>;
 }
 
-it.each(['approved', 'pending'] as const)('moves a %s source from Links to Lore after a server refresh without leaving edit mode', status => {
-  const { rerender } = render(view('music', status));
-  expect(within(screen.getByTestId('links-editor')).getByText(moving.title!)).toBeVisible();
-  expect(within(screen.getByTestId('lore-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
-
-  rerender(view('interview', status));
-  expect(within(screen.getByTestId('links-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
+it('keeps approved source evidence in Lore when its destination classification changes', () => {
+  const {rerender}=render(view('music','approved'));
   expect(within(screen.getByTestId('lore-editor')).getByText(moving.title!)).toBeVisible();
-  expect(screen.getAllByText(moving.title!)).toHaveLength(1);
+  rerender(view('interview','approved'));
+  expect(within(screen.getByTestId('lore-editor')).getByText(moving.title!)).toBeVisible();
+  expect(within(screen.getByTestId('links-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
 });
-
-it.each(['approved', 'pending'] as const)('moves a %s source from Lore to Links after a server refresh without leaving edit mode', status => {
-  const { rerender } = render(view('interview', status));
-  expect(within(screen.getByTestId('lore-editor')).getByText(moving.title!)).toBeVisible();
-  expect(within(screen.getByTestId('links-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
-
-  rerender(view('music', status));
+it('moves a pending destination to source review when reclassified as an interview', () => {
+  const {rerender}=render(view('music','pending'));
   expect(within(screen.getByTestId('lore-editor')).queryByText(moving.title!)).not.toBeInTheDocument();
-  expect(within(screen.getByTestId('links-editor')).getByText(moving.title!)).toBeVisible();
-  expect(screen.getAllByText(moving.title!)).toHaveLength(1);
+  rerender(view('interview','pending'));
+  expect(within(screen.getByTestId('lore-editor')).getByText(moving.title!)).toBeVisible();
 });
 
 it('preserves an unfinished Lore URL when an unrelated server refresh returns the same sources', () => {

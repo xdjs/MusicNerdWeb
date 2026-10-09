@@ -1,3 +1,5 @@
+import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
+import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
 import { requireAuth } from "@/lib/auth-helpers";
 import { canEditArtist } from "@/server/utils/artistEditAuth";
 import { notifyDiscordOfArtistLinkAdded } from "@/server/utils/artistLinkDiscordNotifier";
@@ -43,6 +45,12 @@ export async function POST(req: Request) {
                 return Response.json({ error: "url is required for set action" }, { status: 400 });
             }
 
+            const destination = parseMusicDestination(url);
+            if (destination?.kind === 'release') return Response.json({error:'Add an artist profile link, not a song or album.'},{status:400});
+            if (destination?.kind === 'artist' && ['apple_music','beatport'].includes(destination.platform)) {
+                const result = await submitArtistDestination(artistId, authResult.userId, url, true);
+                return Response.json({success:true,siteName:result.platform,platformName:result.label});
+            }
             const extracted = await extractArtistId(url);
             if (!extracted?.siteName || !extracted?.id) {
                 return Response.json({ error: LINK_NOT_SUPPORTED_LONG }, { status: 400 });
