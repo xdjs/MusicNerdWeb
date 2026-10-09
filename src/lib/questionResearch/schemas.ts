@@ -65,6 +65,8 @@ export const questionPlanSchema = z
       "spoken_content",
     ]),
     freshness: z.enum(["stored", "recent"]),
+    retrieval: z.enum(["latest", "relevance"]).default("relevance"),
+    resolvedQuestion: z.string().trim().min(1).max(500).optional(),
     targetUrl: publicUrl.nullable(),
     platform: z.enum(["instagram", "tiktok", "x"]).nullable(),
     fromDate: z

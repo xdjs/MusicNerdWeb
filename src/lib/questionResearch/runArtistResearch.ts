@@ -1,8 +1,10 @@
+import type { PublicChatTurn } from "./publicChatTypes";
 export type ResearchProgress = {
   jobId: string;
   stage: string;
   message: string;
   provider?: string | null;
+  resolvedQuestion?: string;
 };
 export type QuestionAnswer = {
   answer?: string;
@@ -20,6 +22,8 @@ export type QuestionAnswer = {
 export async function runArtistResearch(input: {
   artistId: string;
   question: string;
+  conversation?: PublicChatTurn[];
+  resolvedQuestion?: string;
   jobId?: string;
   signal: AbortSignal;
   onProgress: (progress: ResearchProgress) => void;
@@ -28,18 +32,22 @@ export async function runArtistResearch(input: {
     input.signal,
     AbortSignal.timeout(5 * 60_000),
   ]);
+  let resolvedQuestion = input.resolvedQuestion;
   const post = async (jobId?: string) => {
     const r = await fetch("/api/askArtist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         artistId: input.artistId,
-        question: input.question,
+        question: jobId ? resolvedQuestion ?? input.question : input.question,
+        ...(!jobId && input.conversation?.length ? { conversation: input.conversation } : {}),
         ...(jobId ? { jobId } : {}),
       }),
       signal,
     });
     const data = await r.json();
+    if (typeof data.research?.resolvedQuestion === "string" && data.research.resolvedQuestion.length <= 500)
+      resolvedQuestion = data.research.resolvedQuestion;
     if (!r.ok) {
       if (
         r.status === 503 &&
@@ -59,6 +67,7 @@ export async function runArtistResearch(input: {
           : "Research could not finish.",
       );
     }
+    if (data.research && resolvedQuestion) data.research.resolvedQuestion = resolvedQuestion;
     return { data, status: r.status };
   };
   const first = await post(input.jobId);
@@ -75,7 +84,7 @@ export async function runArtistResearch(input: {
     const progress = await r.json();
     if (!r.ok)
       throw new Error(progress.error ?? "Research could not be checked.");
-    input.onProgress(progress);
+    input.onProgress({ ...progress, ...(resolvedQuestion ? { resolvedQuestion } : {}) });
     if (
       ["complete", "unresolved", "failed", "cancelled"].includes(progress.stage)
     ) {

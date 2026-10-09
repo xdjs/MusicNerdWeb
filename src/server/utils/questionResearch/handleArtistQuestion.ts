@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { questionRequestSchema } from "@/lib/questionResearch/questionRequestSchema";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "./planArtistQuestion";
 import { callResearchApi } from "./callResearchApi";
@@ -10,7 +10,7 @@ export async function handleArtistQuestion(request: Request) {
   const headers = { "Cache-Control": "private, no-store" };
   try {
     const raw = await request.text();
-    if (raw.length > 3000)
+    if (raw.length > 18000)
       return Response.json(
         { error: "Question too long" },
         { status: 400, headers },
@@ -24,20 +24,13 @@ export async function handleArtistQuestion(request: Request) {
         { status: 400, headers },
       );
     }
-    const parsed = z
-      .object({
-        artistId: z.string().uuid(),
-        question: z.string().trim().min(1).max(500),
-        jobId: z.string().uuid().optional(),
-      })
-      .strict()
-      .safeParse(input);
+    const parsed = questionRequestSchema.safeParse(input);
     if (!parsed.success)
       return Response.json(
         { error: "Invalid artist or question" },
         { status: 400, headers },
       );
-    const { artistId, question, jobId } = parsed.data;
+    const { artistId, question, jobId, conversation } = parsed.data;
     const artist = await getArtistById(artistId);
     if (!artist)
       return Response.json(
@@ -45,6 +38,9 @@ export async function handleArtistQuestion(request: Request) {
         { status: 404, headers },
       );
     const name = artist.name ?? "This artist";
+    const plan = jobId ? null : await planArtistQuestion(name, question, request.signal, conversation);
+    const { resolvedQuestion: resolved = question, ...routing } = plan ?? {};
+    const resolvedQuestion = typeof resolved === "string" ? resolved : question;
     const state = researchStatusSchema.parse(
       jobId
         ? await callResearchApi(
@@ -52,11 +48,11 @@ export async function handleArtistQuestion(request: Request) {
             { signal: request.signal },
           )
         : await callResearchApi(`/api/artist/${artistId}/research/questions`, {
-            body: await planArtistQuestion(name, question, request.signal),
+            body: routing,
             signal: request.signal,
           }),
     );
-    if (!jobId && !(await registerResearchQuestion(artistId, state.jobId, question)))
+    if (!jobId && !(await registerResearchQuestion(artistId, state.jobId, resolvedQuestion)))
       return Response.json({
         error: "This saved research has reached its answer limit. Try a different question later.",
       }, { status: 429, headers });
@@ -68,6 +64,7 @@ export async function handleArtistQuestion(request: Request) {
         {
           research: {
             jobId: state.jobId,
+            resolvedQuestion,
             stage: state.stage,
             message: state.message,
             provider: state.provider,
@@ -86,6 +83,7 @@ export async function handleArtistQuestion(request: Request) {
           suggestions: [],
           research: {
             jobId: state.jobId,
+            resolvedQuestion,
             stage: state.stage,
             message: state.message,
           },
@@ -95,7 +93,7 @@ export async function handleArtistQuestion(request: Request) {
       );
     try {
       const outcome = await getOrDraftResearchAnswer({
-        artistId, artistName: name, jobId: state.jobId, question,
+        artistId, artistName: name, jobId: state.jobId, question: resolvedQuestion,
         references: state.references, signal: request.signal,
       });
       if (outcome.state === "drafting")

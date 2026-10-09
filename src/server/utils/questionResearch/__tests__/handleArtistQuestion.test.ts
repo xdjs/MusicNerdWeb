@@ -138,3 +138,30 @@ it("enforces the per-job answer budget on initial submission", async () => {
   expect(r.status).toBe(429);
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
+it("binds a follow-up's standalone question to its job and does not send chat history to the API", async () => {
+  const conversation = [{ question: "What was the post about?", answer: "The PPNE NYC visualizer." }];
+  jest.mocked(planArtistQuestion).mockResolvedValue({
+    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored",
+    retrieval: "relevance", resolvedQuestion: "Who created the PPNE NYC visualizer?",
+  });
+  const r = await handleArtistQuestion(request({ question: "Who created it?", conversation }));
+  expect(r.status).toBe(202);
+  expect(jest.mocked(planArtistQuestion).mock.calls[0].filter((_, i) => i !== 2)).toEqual(["Artist", "Who created it?", conversation]);
+  expect(callResearchApi).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ body: {
+    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored", retrieval: "relevance",
+  } }));
+  expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who created the PPNE NYC visualizer?");
+  expect((await r.json()).research.resolvedQuestion).toBe("Who created the PPNE NYC visualizer?");
+});
+it.each([
+  { conversation: Array.from({ length: 5 }, () => ({ question: "q", answer: "a" })) },
+  { conversation: [{ question: "q", answer: "a".repeat(3001) }] },
+  { conversation: [{ question: "q", answer: "a", privateMemory: "secret" }] },
+  { conversation: Array.from({ length: 4 }, () => ({ question: "q".repeat(500), answer: "a".repeat(3000) })) },
+  { interviewMemory: "must never be accepted" },
+])("rejects invalid conversation context before any provider work %#", async (extra) => {
+  const r = await handleArtistQuestion(request(extra));
+  expect(r.status).toBe(400);
+  expect(planArtistQuestion).not.toHaveBeenCalled();
+  expect(callResearchApi).not.toHaveBeenCalled();
+});
