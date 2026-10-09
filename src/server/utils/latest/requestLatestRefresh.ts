@@ -1,16 +1,8 @@
 import { getArtistOperationOwnership } from "../artistOperationContext";
-import { checkLatestSources } from "./checkLatestSources";
 import { draftLatestRefresh } from "./draftLatestRefresh";
 import { saveLatestRefresh } from "./saveLatestRefresh";
 
-/**
- * Caller supplies authenticated operation context; the artist lock serializes the cooldown.
- *
- * The quick sources (In Process, Spotify, Deezer, published answers) are
- * checked here, outside the lock, because they expire this app's own cache.
- * The job that is queued carries only the Instagram check, which MusicNerdAPI
- * runs (#1365); with nothing for Instagram to do, it is saved as done.
- */
+/** Queue all connected sources for the API worker; no provider fetches in this request. */
 export async function requestLatestRefresh(artistId: string) {
   const context = getArtistOperationOwnership(artistId);
   if (!context?.userId) throw new Error("Missing Latest requester");
@@ -20,7 +12,7 @@ export async function requestLatestRefresh(artistId: string) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const draft = await draftLatestRefresh(artistId, context);
     if (typeof draft === "string") return draft;
-    const state = { ...draft, sources: await checkLatestSources(artistId, draft) };
+    const state = draft;
     const id = await saveLatestRefresh(artistId, state);
     if (id) return id;
   }

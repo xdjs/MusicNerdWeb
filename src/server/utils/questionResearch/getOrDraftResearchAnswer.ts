@@ -31,6 +31,8 @@ const saved = z.object({
     url: z.string().url(),
     textHash: z.string().regex(/^[a-f0-9]{64}$/),
     publishedAt: z.string().nullable(),
+    activityDate: z.string().optional(),
+    activityDateKind: z.enum(["release", "moment"]).optional(),
   })).max(3),
 });
 type Row = {
@@ -84,7 +86,8 @@ export async function getOrDraftResearchAnswer(input: {
       const current = parsed.data.basis.map(b => references.find(r =>
         r.sourceId === b.sourceId && r.revision === b.revision &&
         r.start === b.start && r.end === b.end && r.url === b.url &&
-        hash(r.text) === b.textHash && r.publishedAt === b.publishedAt));
+        hash(r.text) === b.textHash && r.publishedAt === b.publishedAt &&
+        r.activityDate === b.activityDate && r.activityDateKind === b.activityDateKind));
       if (current.some(r => !r) || current.length !== parsed.data.sources.length)
         return { state: "unavailable" };
       const result = {
@@ -139,6 +142,7 @@ export async function getOrDraftResearchAnswer(input: {
       basis: used.map(r => ({
         sourceId: r.sourceId, revision: r.revision, start: r.start,
         end: r.end, url: r.url, textHash: hash(r.text), publishedAt: r.publishedAt,
+        activityDate: r.activityDate, activityDateKind: r.activityDateKind,
       })),
     });
     if (result.sources.length !== result.basis.length)

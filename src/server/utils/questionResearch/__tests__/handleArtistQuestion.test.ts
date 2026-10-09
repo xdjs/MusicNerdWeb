@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { reserveQuestionPlanning } from "../reserveQuestionPlanning";
+jest.mock("../reserveQuestionPlanning",()=>({reserveQuestionPlanning:jest.fn()}));
 import { handleArtistQuestion } from "../handleArtistQuestion";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "../planArtistQuestion";
@@ -165,3 +167,15 @@ it.each([
   expect(planArtistQuestion).not.toHaveBeenCalled();
   expect(callResearchApi).not.toHaveBeenCalled();
 });
+it('explains outside quota separately from missing saved evidence',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',outsideResearchReason:'quota'});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toMatch(/saved sources.*Outside research is at its limit/);expect(body.research.outsideResearchReason).toBe('quota');expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it.each([['saved_evidence_quota','saved-source answer limit'],['research_busy','busy right now']])('distinguishes %s',async(code,message)=>{
+ jest.mocked(callResearchApi).mockRejectedValue(Object.assign(new Error('private details'),{status:429,code}));
+ const body=await (await handleArtistQuestion(request())).json();expect(body.error).toContain(message);expect(body.code).toBe(code);
+});
+
+it('does not plan after bounded planning admission is denied',async()=>{jest.mocked(reserveQuestionPlanning).mockRejectedValue(Object.assign(new Error('limit'),{status:429,code:'question_planning_quota'}));expect((await handleArtistQuestion(request())).status).toBe(429);expect(planArtistQuestion).not.toHaveBeenCalled();expect(callResearchApi).not.toHaveBeenCalled()});
+it('polls an existing job without spending a planning reservation',async()=>{await handleArtistQuestion(request({jobId}));expect(reserveQuestionPlanning).not.toHaveBeenCalled()});

@@ -1,3 +1,4 @@
+import { reserveQuestionPlanning } from "./reserveQuestionPlanning";
 import { questionRequestSchema } from "@/lib/questionResearch/questionRequestSchema";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "./planArtistQuestion";
@@ -38,7 +39,10 @@ export async function handleArtistQuestion(request: Request) {
         { status: 404, headers },
       );
     const name = artist.name ?? "This artist";
-    const plan = jobId ? null : await planArtistQuestion(name, question, request.signal, conversation);
+    if (!jobId) await reserveQuestionPlanning(artistId);
+    const plan = jobId
+      ? null
+      : await planArtistQuestion(name, question, request.signal, conversation);
     const { resolvedQuestion: resolved = question, ...routing } = plan ?? {};
     const resolvedQuestion = typeof resolved === "string" ? resolved : question;
     const state = researchStatusSchema.parse(
@@ -52,10 +56,17 @@ export async function handleArtistQuestion(request: Request) {
             signal: request.signal,
           }),
     );
-    if (!jobId && !(await registerResearchQuestion(artistId, state.jobId, resolvedQuestion)))
-      return Response.json({
-        error: "This saved research has reached its answer limit. Try a different question later.",
-      }, { status: 429, headers });
+    if (
+      !jobId &&
+      !(await registerResearchQuestion(artistId, state.jobId, resolvedQuestion))
+    )
+      return Response.json(
+        {
+          error:
+            "This saved research has reached its answer limit. Try a different question later.",
+        },
+        { status: 429, headers },
+      );
     if (
       !jobId ||
       !["complete", "unresolved", "failed", "cancelled"].includes(state.stage)
@@ -65,6 +76,7 @@ export async function handleArtistQuestion(request: Request) {
           research: {
             jobId: state.jobId,
             resolvedQuestion,
+            outsideResearchReason: state.outsideResearchReason,
             stage: state.stage,
             message: state.message,
             provider: state.provider,
@@ -77,13 +89,16 @@ export async function handleArtistQuestion(request: Request) {
         {
           answer:
             state.stage === "unresolved"
-              ? "I could not establish that from the sources I could read."
+              ? state.outsideResearchReason === "quota"
+                ? "The saved sources I checked did not answer that. Outside research is at its limit, so I could not look further."
+                : "I could not establish that from the sources I could read."
               : "Research could not finish. That does not mean the information doesn't exist.",
           sources: [],
           suggestions: [],
           research: {
             jobId: state.jobId,
             resolvedQuestion,
+            outsideResearchReason: state.outsideResearchReason,
             stage: state.stage,
             message: state.message,
           },
@@ -93,33 +108,62 @@ export async function handleArtistQuestion(request: Request) {
       );
     try {
       const outcome = await getOrDraftResearchAnswer({
-        artistId, artistName: name, jobId: state.jobId, question: resolvedQuestion,
-        references: state.references, signal: request.signal,
+        artistId,
+        artistName: name,
+        jobId: state.jobId,
+        question: resolvedQuestion,
+        references: state.references,
+        signal: request.signal,
       });
       if (outcome.state === "drafting")
-        return Response.json({ research: {
-          jobId: state.jobId, stage: "complete",
-          message: "Checking the sourced answer…",
-          provider: state.provider,
-        } }, { status: 202, headers });
+        return Response.json(
+          {
+            research: {
+              jobId: state.jobId,
+              stage: "complete",
+              message: "Checking the sourced answer…",
+              provider: state.provider,
+            },
+          },
+          { status: 202, headers },
+        );
       if (outcome.state === "unregistered")
-        return Response.json({
-          error: "This question is not attached to the saved research. Start a new question.",
-        }, { status: 409, headers });
+        return Response.json(
+          {
+            error:
+              "This question is not attached to the saved research. Start a new question.",
+          },
+          { status: 409, headers },
+        );
       if (outcome.state === "unavailable")
-        return Response.json({
-          answer: "The saved answer's supporting source is no longer available. I cannot verify it now.",
-          sources: [], suggestions: [],
-          research: { jobId: state.jobId, stage: "unresolved", message: "Source access changed." },
-        }, { headers });
+        return Response.json(
+          {
+            answer:
+              "The saved answer's supporting source is no longer available. I cannot verify it now.",
+            sources: [],
+            suggestions: [],
+            research: {
+              jobId: state.jobId,
+              stage: "unresolved",
+              message: "Source access changed.",
+            },
+          },
+          { headers },
+        );
       if (outcome.state === "failed")
-        return Response.json({
-          error: outcome.retryable
-            ? "I could not verify an answer from those originals. You can retry shortly."
-            : "I could not verify an answer from those originals after several checks.",
-          jobId: state.jobId,
-          verification: { stage: outcome.stage, retryable: outcome.retryable },
-        }, { status: 503, headers });
+        return Response.json(
+          {
+            error: outcome.retryable
+              ? "I could not verify an answer from those originals. You can retry shortly."
+              : "I could not verify an answer from those originals after several checks.",
+            jobId: state.jobId,
+            verification: {
+              stage: outcome.stage,
+              retryable: outcome.retryable,
+            },
+          },
+          { status: 503, headers },
+        );
       return Response.json(
         {
           ...outcome.result,
@@ -148,12 +192,23 @@ export async function handleArtistQuestion(request: Request) {
       error.status === 429
         ? 429
         : 503;
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? error.code
+        : undefined;
     return Response.json(
       {
+        code,
         error:
-          status === 429
-            ? "The research limit has been reached. Try again later."
-            : "Research is temporarily unavailable. Please try again.",
+          code === "question_planning_quota"
+            ? "The question limit has been reached. Please try again later."
+            : code === "saved_evidence_quota"
+              ? "The saved-source answer limit has been reached. Please try again later."
+              : code === "research_busy"
+                ? "Research is busy right now. Please try again shortly."
+                : status === 429
+                  ? "The research limit has been reached. Try again later."
+                  : "Research is temporarily unavailable. Please try again.",
       },
       { status, headers },
     );

@@ -237,3 +237,8 @@ it('keeps a resolved credit follow-up scoped even when originals mention other v
   expect(model.mock.calls[1][0].prompt).toContain('The earlier studio video was filmed by Casey.');
   expect(result.answer).toBe('Morgan filmed the rooftop visualizer. [1]');
 });
+it('rejects changed catalog activity date before drafting',async()=>{
+ const catalog={...reference,sourceId:`latest:spotify:${'b'.repeat(64)}`,activityDate:'2020-02',activityDateKind:'release' as const};
+ api.mockResolvedValue({status:'ok',passage:{...catalog,activityDate:'2020-03'},totalChars:catalog.text.length,nextStart:null});
+ await expect(draftResearchAnswer('artist','Artist','When released?',[catalog])).rejects.toThrow(/changed/);expect(model).not.toHaveBeenCalled();
+});

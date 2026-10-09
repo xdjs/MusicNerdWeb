@@ -10,7 +10,7 @@ export const referenceSchema = z.object({
     .string()
     .regex(
       new RegExp(
-        `^(?:(?:discovery|vault|public_answer):${uuid}|social:${uuid}:(?:caption|transcript))$`,
+        `^(?:(?:discovery|vault|public_answer):${uuid}|social:${uuid}:(?:caption|transcript)|latest:(?:spotify|deezer|inprocess):[a-f0-9]{64})$`,
         "i",
       ),
     ),
@@ -23,11 +23,14 @@ export const referenceSchema = z.object({
   evidenceKind: z.enum(["original_text", "caption", "provider_transcript"]),
   speaker: z.enum(["not_applicable", "unverified"]),
   publishedAt: z.string().nullable(),
+  activityDate: z.string().max(100).optional(),
+  activityDateKind: z.enum(["release", "moment"]).optional(),
   retrievedAt: z.string().nullable(),
   truncated: z.boolean().nullable(),
 });
 export const researchStatusSchema = z.object({
   status: z.literal("ok"),
+  outsideResearchReason: z.literal("quota").optional(),
   jobId: z.string().uuid(),
   stage: z.enum([
     "checking_saved",

@@ -141,43 +141,30 @@ it("hides a request after claim revocation and releases the cooldown for an admi
     ),
   ).not.toBe(id);
 });
-it("checks the other sources inline and queues only the Instagram check", async () => {
+it("queues every connected source without inline network checks", async () => {
   await client.exec("update artists set spotify='s'");
   await call();
-  expect(checkLatestSources).toHaveBeenCalledTimes(1);
+  expect(checkLatestSources).not.toHaveBeenCalled();
   const { rows: [job] } = await client.query<{ status: string; state: import("@/lib/latest/types").LatestRefreshState }>(
     "select status,state from artist_research_jobs",
   );
   expect(job.status).toBe("pending");
   expect(job.state.sources).toMatchObject({
     instagram: { status: "pending" },
-    spotify: { status: "checked" },
-    interviews: { status: "checked" },
+    spotify: { status: "pending" },
+    interviews: { status: "pending" },
     deezer: { status: "disconnected" },
   });
 });
-it("checks again when a connection changes during the checks, and queues the new one", async () => {
-  checkLatestSources.mockImplementationOnce(async (_a, state) => {
-    await client.exec("update artists set instagram='renamed'");
-    return state.sources;
-  });
-  const id = await call();
-  expect(checkLatestSources).toHaveBeenCalledTimes(2);
-  const { rows: [job] } = await client.query<{ state: import("@/lib/latest/types").LatestRefreshState }>(
-    "select state from artist_research_jobs where id=$1", [id],
-  );
-  expect(job.state.instagram).toBe("renamed");
-  expect((await read(artist))?.id).toBe(id);
-});
-it("finishes at once when there is no Instagram to check", async () => {
+it("queues the API public-answer check even without Instagram", async () => {
   await client.exec("update artists set instagram=null");
   await call();
-  expect((await read(artist))?.status).toBe("done");
+  expect((await read(artist))?.status).toBe("pending");
 });
 it("does not check again for a request inside the cooldown", async () => {
   const id = await call();
   expect(await call()).toBe(id);
-  expect(checkLatestSources).toHaveBeenCalledTimes(1);
+  expect(checkLatestSources).not.toHaveBeenCalled();
 });
 
 it("invalidates completed results when their initiating admin loses access", async () => {
