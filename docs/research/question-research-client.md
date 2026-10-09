@@ -54,3 +54,14 @@ Keep these as distinct checks when changing retrieval, models or prompts; a mode
 Record all failures, correction attempts and latency alongside successes. The small fixture set is diagnostic coverage, not a claim that all music questions or all supported sources have passed editorial review.
 
 The end-to-end DUTCHYYY regression “What's Dutchyyy's latest release?” initially planned `reporting/latest`, selecting a newer InProcess moment instead of a catalog record. Latest-release identification now requests `release_date/latest`; questions about a release's credits, captions or story retain their respective evidence needs. This is a Web planning correction in addition to the API catalog preference.
+
+## Readable provider evidence (2026-10-09)
+
+For Spotify/Deezer catalog records and In Process moments, Ask About labels the
+original reader **Source details**. It displays the stored title, release type and
+release date, or collection, description and posted date, with an original-source
+link. It omits internal account and record identifiers. Dates retain their stored
+precision. Invalid or incomplete records show an unavailable message instead of
+raw JSON. Captions, transcripts and article passages retain the **Read passage**
+label and exact text. This changes presentation only: original revisions and the
+evidence used to check answers are unchanged, and opening details starts no research.
