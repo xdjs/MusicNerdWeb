@@ -93,3 +93,16 @@ it("does not expose malformed provider JSON", async () => {
   ).toBeInTheDocument();
   expect(container.textContent).not.toContain("artist_account");
 });
+it("assembles a long structured record before displaying its fields", async () => {
+  const sourceId = `latest:inprocess:${"c".repeat(64)}`;
+  const full = JSON.stringify({ provider: "inprocess", title: "By Design", description: "x".repeat(14000), created_at: "2026-10-09T14:00:13Z" });
+  (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+    const start = Number(new URL(url, "https://example.test").searchParams.get("start"));
+    const end = Math.min(start + 12000, full.length);
+    return { ok: true, json: async () => ({ status: "ok", passage: { sourceId, revision, start, end, text: full.slice(start, end), url: "https://www.inprocess.world/collect/example", curation: "approved", evidenceKind: "original_text", speaker: "unverified", publishedAt: null, retrievedAt: null, truncated: end < full.length }, totalChars: full.length, nextStart: end < full.length ? end : null }) };
+  });
+  render(<ResearchSourcePassage artistId="artist" source={{ n: 1, sourceId, revision, start: 400 }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Source details [1]" }));
+  expect(await screen.findByText("By Design")).toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
