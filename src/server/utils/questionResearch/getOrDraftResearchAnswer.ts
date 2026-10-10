@@ -1,3 +1,4 @@
+import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -65,7 +66,7 @@ export async function getOrDraftResearchAnswer(input: {
   signal?: AbortSignal;
 }): Promise<Outcome> {
   const { artistId, artistName, jobId, question, references, signal } = input;
-  const questionHash = hash(question);
+  const questionHash = getResearchQuestionHash(question);
   const token = randomUUID();
   // Opportunistic physical cleanup; the expiry index keeps this bounded. Job
   // and artist deletion also cascade, including when no visitor returns.

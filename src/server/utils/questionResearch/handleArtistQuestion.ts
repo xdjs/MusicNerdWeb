@@ -100,7 +100,7 @@ export async function handleArtistQuestion(request: Request) {
                   ? "I don't have enough saved information from that source, and I can't refresh it from this chat yet."
                   : state.limitations.includes("connected_account_required")
                     ? "I need a connected account for that source before I can check it."
-                    : "I could not establish that from the sources I could read."
+                    : "I don't have enough information to answer that yet."
               : "Research could not finish. That does not mean the information doesn't exist.",
           sources: [],
           suggestions: [],

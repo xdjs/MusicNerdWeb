@@ -69,6 +69,7 @@ export const questionPlanSchema = z
     ]),
     freshness: z.enum(["stored", "recent"]),
     retrieval: z.enum(["latest", "relevance"]).default("relevance"),
+    answerScope: z.enum(["overview", "focused"]).default("focused"),
     resolvedQuestion: z.string().trim().min(1).max(500).optional(),
     targetUrl: publicUrl.nullable(),
     platform: z.enum(["instagram", "tiktok", "x", "inprocess", "spotify", "deezer"]).nullable(),

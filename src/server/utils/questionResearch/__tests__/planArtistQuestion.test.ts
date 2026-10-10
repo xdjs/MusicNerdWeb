@@ -22,6 +22,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     evidenceNeed: "credits",
     freshness: "stored",
     retrieval: "relevance",
+    answerScope: "focused",
     resolvedQuestion: "Who played drums?",
   });
   expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingBudget: 0, maxRetries: 0 }));
@@ -137,4 +138,19 @@ it('keeps a broader recent-activity follow-up recent and excludes already discus
 it('normalizes artist possessives so the same topic can reuse its saved job',async()=>{
  jest.mocked(generateText).mockResolvedValue({output:{topic:"Artist's latest project",evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Artist',"What's Artist's latest project?")).toMatchObject({topic:'Artist latest project'});
+});
+
+it("retains overview intent for a broad request and focused intent for a latest post", async () => {
+  const base = {topic: "Artist recent activity", evidenceNeed: "reporting", freshness: "stored", retrieval: "latest", platform: null, targetUrl: null, fromDate: null, toDate: null};
+  jest.mocked(generateText).mockResolvedValue({output:{...base, answerScope:"overview"}} as never);
+  expect(await planArtistQuestion("Artist", "What's new with Artist?")).toMatchObject({answerScope:"overview", retrieval:"latest"});
+  jest.mocked(generateText).mockResolvedValue({output:{...base, answerScope:"focused", evidenceNeed:"social_caption"}} as never);
+  expect(await planArtistQuestion("Artist", "What is their latest Instagram post?")).toMatchObject({answerScope:"focused", platform:"instagram"});
+});
+it("does not broaden a follow-up explicitly anchored to the same video", async () => {
+  const url = "https://www.instagram.com/p/clip/";
+  jest.mocked(generateText).mockResolvedValue({ output: { topic: "Artist same video activity", evidenceNeed: "spoken_content", freshness: "stored", retrieval: "relevance", answerScope: "focused", targetUrl: url, platform: "instagram", fromDate: null, toDate: null, resolvedQuestion: "What else is Artist doing in that video?" } } as never);
+  const result = await planArtistQuestion("Artist", "What else is he doing in that video?", undefined, [{ question: "What is this video about?", answer: "An archive session.", sourceUrls: [url] }]);
+  expect(result).toMatchObject({ answerScope: "focused", targetUrl: url, retrieval: "relevance" });
+  expect(result.excludeSourceUrls).toBeUndefined();
 });
