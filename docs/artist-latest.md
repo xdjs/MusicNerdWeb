@@ -280,3 +280,12 @@ reopen an interview even without a new Instagram post.
 The artist/admin **Update Latest** flow is specified in [latest-refresh](latest-refresh.md),
 issue #1376. It is collection-only and independent of About/Lore generation. Its
 queue migration and API cutover compatibility must be verified before release.
+
+### Opening long source details
+
+Opening a structured Latest citation reads its exact stored revision from the start,
+then follows at most four contiguous 12,000-character windows (48,000 characters total).
+The display joins only windows with matching source identity, revision, URL, dates and
+length. It never changes original text or increases the answer model's reading budget.
+Records beyond this display limit retain an original-source link without exposing raw
+JSON. Opening details does not start research or write artist data.

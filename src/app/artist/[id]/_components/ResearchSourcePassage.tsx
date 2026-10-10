@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { formatLatestSourceDetails } from "@/lib/questionResearch/formatLatestSourceDetails";
-import { researchReadSchema } from "@/lib/questionResearch/schemas";
+import { readSourceDetails } from "@/lib/questionResearch/readSourceDetails";
 /** Read the exact stored revision on demand; opening a citation never starts research. */
 export default function ResearchSourcePassage({
   artistId,
@@ -38,22 +38,11 @@ export default function ResearchSourcePassage({
     controller.current = c;
     setError(null);
     try {
-      const q = new URLSearchParams({
-        sourceId: source.sourceId!,
-        revision: source.revision!,
-        start: String(source.start ?? 0),
-      });
-      const response = await fetch(
-        `/api/artist/${artistId}/questionResearch/source?${q}`,
-        { signal: c.signal, cache: "no-store" },
-      );
-      if (!response.ok)
-        throw new Error(
-          "This original changed or is no longer available. Refresh the research.",
-        );
-      const original = researchReadSchema.parse(await response.json());
-      setText(original.passage.text);
-      setSourceUrl(original.passage.url);
+      const original = await readSourceDetails(artistId, {
+        sourceId: source.sourceId!, revision: source.revision!, start: source.start,
+      }, c.signal);
+      setText(original.text);
+      setSourceUrl(original.url);
     } catch (e) {
       if (!c.signal.aborted)
         setError(e instanceof Error ? e.message : "Original unavailable");
