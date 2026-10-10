@@ -28,12 +28,10 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('../useOnboardingChat', () => ({ useOnboardingChat: jest.fn() }));
 jest.mock('../useOnboardingProgress', () => ({ useOnboardingProgress: jest.fn() }));
-jest.mock('../useFollowResearch', () => ({ useFollowResearch: jest.fn() }));
 
 import { useRouter } from 'next/navigation';
 import { useOnboardingChat } from '../useOnboardingChat';
 import { useOnboardingProgress } from '../useOnboardingProgress';
-import { useFollowResearch } from '../useFollowResearch';
 import OnboardingChat from '../OnboardingChat';
 
 const mockUseOnboardingChat = useOnboardingChat;
@@ -176,19 +174,6 @@ describe('OnboardingChat', () => {
         fireEvent.click(screen.getByRole('button', { name: 'try again' }));
         expect(sendTurn).toHaveBeenCalledWith({ type: 'open' });
         expect(resetStall).toHaveBeenCalled();
-    });
-
-    it('follows the step being researched while the build runs, and tells it about failure and completion', () => {
-        setChat({ items: [] });
-        setProgress({ currentStep: 'vault' });
-        const { rerender } = render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false, false);
-        setProgress({ currentStep: 'vault', stalled: true });
-        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith('vault', false, true);
-        setProgress({ complete: true, currentStep: null });
-        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
-        expect(useFollowResearch).toHaveBeenLastCalledWith(null, true, false);
     });
 
     it('offers try again when no step has been confirmed for a while', () => {
@@ -334,15 +319,29 @@ describe('OnboardingChat', () => {
         });
     });
 
-    it('shows the artist page itself while the build runs, with the current step and skip', () => {
+    it('shows the artist page itself while the build runs, with the progress pill and no skip', () => {
         setChat({ items: [{ id: 'p1', kind: 'progress', group: 'platform-search', text: 'Finding your profiles', done: false }] });
-        const onSkip = jest.fn();
-        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={onSkip} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
         expect(screen.getByText('artist page')).toBeInTheDocument();
         expect(screen.getByText('finding your profiles…')).toBeInTheDocument();
         expect(screen.getByRole('list', { name: 'Research steps' }).children).toHaveLength(3);
-        fireEvent.click(screen.getByRole('button', { name: 'skip for now' }));
-        expect(onSkip).toHaveBeenCalled();
+        expect(screen.queryByRole('button', { name: /skip/i })).not.toBeInTheDocument();
+    });
+
+    it('never scrolls the page by itself while the build runs or when it completes', () => {
+        const scrollIntoView = jest.fn();
+        Element.prototype.scrollIntoView = scrollIntoView;
+        window.scrollTo = jest.fn();
+        setChat({ items: [] });
+        setProgress({ currentStep: 'profiles' });
+        const page = <><div id="mn-links" /><div id="mn-lore" /><div id="mn-about" /></>;
+        const { rerender } = render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}>{page}</OnboardingChat>);
+        setProgress({ currentStep: 'vault' });
+        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}>{page}</OnboardingChat>);
+        setProgress({ complete: true, currentStep: null });
+        rerender(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={jest.fn()} onFinish={jest.fn()}>{page}</OnboardingChat>);
+        expect(scrollIntoView).not.toHaveBeenCalled();
+        expect(window.scrollTo).not.toHaveBeenCalled();
     });
 
     it('follows the build from the state endpoint; finishing it calls onBuildComplete and keeps the page (not onFinish)', () => {
@@ -365,6 +364,14 @@ describe('OnboardingChat', () => {
         expect(screen.queryByText('Your page is ready')).not.toBeInTheDocument();
         expect(screen.queryByRole('region', { name: 'Research status' })).not.toBeInTheDocument();
         expect(screen.getByText('artist page')).toBeInTheDocument();
+    });
+
+    it('keeps "Skip for now" on the resume path\'s step-card modal, its only way out', () => {
+        setChat({ items: [RESUME_STEP] });
+        const onSkip = jest.fn();
+        render(<OnboardingChat artistId="a1" artistName="Nova Reyes" onSkip={onSkip} onFinish={jest.fn()}><p>artist page</p></OnboardingChat>);
+        fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+        expect(onSkip).toHaveBeenCalled();
     });
 
     it('keeps the artist page under the resume path\'s step cards', () => {

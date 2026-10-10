@@ -21,7 +21,7 @@ jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside 
 import ArtistProfileContent from "../ArtistProfileContent";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
-const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] }, ...over });
+const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
 
 const base = {

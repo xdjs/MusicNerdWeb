@@ -103,7 +103,7 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   choosing **Next** or **Back** scrolls to a tour section. The opening card stays within the
   viewport even when About is above the reader's current position. Its About copy is: "This draft
   is based on the sources on your profile. Edit it or write your own."
-- **Failure.** The pill shows a failure and clicking it tries again (`{ type: "open" }`), when the turn's
+- **Failure.** In the same place, the pill shows the failure with "try again" (`{ type: "open" }`) when the turn’s
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
   incomplete ("This is taking longer than usual."). Trying again resets that clock. What already
   painted stays.

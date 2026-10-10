@@ -313,7 +313,6 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
                 initialState={initialState}
                 researchItems={researchItems}
                 items={items}
-                onSkip={onSkip}
                 onRetry={() => void sendTurn({ type: "open" })}
                 onComplete={onBuildComplete ?? onFinish}
             >

@@ -75,7 +75,7 @@ test('Done without a reordered link does not write', async () => {
 
 test('marks links that arrived with the build being watched, and only those', () => {
     const { OnboardingProgressContext } = jest.requireActual('@/app/artist/[id]/_components/onboarding/OnboardingProgressContext');
-    const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: ['deezer'], sources: [] } };
+    const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: ['deezer'], sources: [] } };
     render(<OnboardingProgressContext.Provider value={value}>{view()}</OnboardingProgressContext.Provider>);
     expect(screen.getByRole('link', { name: /spotify/i }).closest('[data-research-new-item]')).not.toBeNull();
     expect(screen.getByRole('link', { name: /deezer/i }).closest('[data-research-new-item]')).toBeNull();

@@ -113,7 +113,7 @@ it('restores a shared section URL and responds to fragment navigation', () => {
 describe('ProfileSectionNav while research lands', () => {
     it('puts a "new" dot on a section that just arrived', () => {
         const { OnboardingProgressContext } = jest.requireActual('@/app/artist/[id]/_components/onboarding/OnboardingProgressContext');
-        const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] } };
+        const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] } };
         render(<OnboardingProgressContext.Provider value={value}><ProfileSectionNav /></OnboardingProgressContext.Provider>);
         expect(screen.getByRole('link', { name: /Links/ })).toHaveAccessibleName(expect.stringMatching(/^Links\W+new$/));
         expect(screen.getByRole('link', { name: /Lore/ })).toHaveAccessibleName('Lore');

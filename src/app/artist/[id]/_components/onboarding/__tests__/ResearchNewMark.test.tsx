@@ -7,7 +7,7 @@ const none = { profiles: null, vault: null, interview: null, publish: null };
 
 /** A research context for tests: nothing confirmed, nothing fresh, an empty baseline. */
 function researchContext(over: Partial<ResearchContextValue> = {}): ResearchContextValue {
-    return { steps: none, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] }, ...over };
+    return { steps: none, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over };
 }
 
 const linksFresh = researchContext({ fresh: { profiles: true, vault: false, publish: false }, baseline: { links: ["deezer"], sources: ["s0"] } });
