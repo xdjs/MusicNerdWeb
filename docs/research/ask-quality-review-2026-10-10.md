@@ -64,3 +64,16 @@ current-policy registrations take priority over legacy exact-question registrati
 legacy leases and result writes retain the selected hash. Exhausted legacy attempts
 stay exhausted, and verified legacy answers still require eligible original evidence.
 This replaces the earlier expected-409/resubmit behavior for in-flight requests.
+
+## Final browser finding: excluded projects
+
+The exact preview returned a different archival post when asked for activity besides
+the archival posts. The planner had reduced the named Searching For A Save Point
+project to a generic exclusion; URL exclusion alone did not identify another post
+from that project. The planner now retains named project boundaries from permitted
+public history, and draft/check instructions reject other details from excluded
+projects. The API assessment reinforces that boundary. A live planner replay
+resolved the exclusion to the actual project name. Held-out checks with only an
+excluded project returned no factual sentences; a mixed fixture checks that an
+unrelated activity remains answerable. These narrow fixtures do not establish a
+general semantic exclusion success rate.

@@ -97,3 +97,10 @@ resolution; prior prose is not factual evidence. The private artist interviewer 
 separate and unchanged. Legacy chat remains a configuration fallback and is not
 evidence of shared-API verification. Stored provider coverage is incomplete and
 URL exclusions can be broader than one fact; do not claim comprehensive freshness.
+
+Broader follow-ups resolve generic exclusions (such as “the archival posts”) to
+named projects in permitted public conversation. These names constrain retrieval
+and drafting; the old answer remains navigation context, never factual evidence.
+Different URLs or incidental details from the excluded project do not count as
+other activity. If no supplied original answers outside that boundary, return a
+missing-information response rather than repeating the project.
