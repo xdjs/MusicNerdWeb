@@ -73,7 +73,7 @@ it("does not generate a guessed answer to an unresolved request", async () => {
     .mocked(callResearchApi)
     .mockResolvedValue({ ...status, stage: "unresolved" });
   const r = await handleArtistQuestion(request({ jobId }));
-  expect((await r.json()).answer).toMatch(/could not establish/i);
+  expect((await r.json()).answer).toMatch(/not have enough information|don.t have enough information/i);
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
 it("rejects invalid request scope before any API/model work", async () => {

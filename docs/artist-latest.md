@@ -2,11 +2,19 @@
 
 ## Shared stored Latest — October 9, 2026 (#1424, #1472)
 
-Web#1473 and MusicNerdAPI#31 replace the provider read path described in the historical notes below. Web `getArtistLatest` calls the public API `GET /api/artist/{id}/latest`. The API reads eligible stored Instagram posts, published responses and `artist_latest_provider_snapshots`. Ordinary reads perform no provider fetches, model calls or writes. Web only enriches already-public answer cards with their existing original links.
+Web#1473 and MusicNerdAPI#31 replace the provider read path described in the historical notes below. Web `getArtistLatest` calls the public API `GET /api/artist/{id}/latest`. The API reads eligible stored Instagram posts, published responses and `artist_latest_provider_snapshots`. The API performs no provider fetches, model calls or writes on ordinary reads. Web enriches already-public answer cards with their existing original links and temporarily retains the missing-snapshot compatibility behavior below.
 
 Known connected Spotify/Deezer catalogs and InProcess timelines are collected in bounded `latest_refresh` worker slices. Cards and research use the same saved originals, current connected-account checks and stable revisions. Successful refreshes replace the snapshot, including an empty result; failed refreshes retain the last good snapshot and report incomplete coverage. Date precision is retained; release dates are activity dates, not source publication dates. Saved stale data is usable but must not be described as exhaustive current coverage.
 
-Migration 0045 adds server-only snapshot storage (RLS, SELECT/INSERT/UPDATE for mnweb, no direct public grants). Release order: migration, API deployment, bounded connected-provider bootstrap, then Web deployment. Existing artists need bootstrap before switching Web; no live-provider fallback hides missing snapshots. This follow-up remains under preview verification until its PR records production promotion.
+Migration 0045 adds server-only snapshot storage (RLS, SELECT/INSERT/UPDATE for mnweb, no direct public grants). Release order: migration, API deployment, bounded connected-provider bootstrap, then Web deployment. Existing artists need a staged bootstrap; the compatibility reader below prevents their existing release and moment cards disappearing before those snapshots exist. This follow-up remains under preview verification until its PR records production promotion.
+
+### Temporary missing-snapshot compatibility — October 10, 2026
+
+Production has 39,638 artists with a nonempty supported provider connection; 11 have approved claims. A small fixture bootstrap cannot establish full-corpus coverage. When a valid API response explicitly marks a currently connected provider `missing`, Web uses the existing bounded cached catalog/timeline helper for only that provider. Release cards are merged by exact normalized title, original date and release type, retain both listening links, and remain capped at three. Shared cards keep priority. No jobs, model calls, Apify scrapes or database writes are introduced.
+
+There is no fallback for checked-empty, failed, stale existing or disconnected snapshots, missing coverage entries, malformed responses, or API errors. Original coverage and `unavailable` remain unchanged: compatibility display does not pretend the shared API has those originals. These display-only cards are not supplied to public Ask as retained research evidence. The fallback ends independently for each provider once its snapshot exists. During this transition a cold Web cache may still contact a catalog or timeline provider; the API's stored-read contract remains unchanged.
+
+Full-corpus snapshot materialization and removal of this compatibility path remain tracked under #1424. Provider bootstrap must be paginated, bounded and attributed, preserve account/claim checks, and report failures without clearing healthy data. No bulk provider sweep is part of this release.
 
 ## September 21 filter alignment (#1309)
 

@@ -65,3 +65,42 @@ precision. Invalid or incomplete records show an unavailable message instead of
 raw JSON. Captions, transcripts and article passages retain the **Read passage**
 label and exact text. This changes presentation only: original revisions and the
 evidence used to check answers are unchanged, and opening details starts no research.
+## Public-chat answer quality (2026-10-10)
+
+The planner distinguishes broad activity overviews (`answerScope=overview`) from
+focused questions (`focused`, the default). A broad latest overview asks the shared
+API to consider several recent originals and select distinct activities; a latest
+post or release question retains its narrow scope. Web reopens at most three
+selected originals, drafts once and checks once, with the existing single bounded
+repair. There is no extra stylistic model pass.
+
+Answers lead with the useful activity, in plain language. Dates, platform names,
+filenames and collection titles appear only when they help answer the question.
+Source cards carry provenance; source attribution in prose remains necessary for
+interpretation, recollections and uncertainty. An archival upload is not a new
+release; an artist not finding a file does not establish that no copy exists.
+Broad answers cover distinct supported updates when available, group related posts
+and do not invent thematic or causal connections. One supported update is acceptable
+when that is all the evidence establishes.
+
+New answer registrations use a versioned question fingerprint so checked answers
+from the earlier response policy are not presented as newly evaluated output.
+The existing per-job answer limit and expiry remain enforced. Requests already in
+flight across deployment resume their existing registration: the current policy
+row wins when present; otherwise the legacy exact-question row is used, including
+its existing lease, attempts and expiry. A verified legacy answer may replay only
+while its original evidence remains eligible. No old answer rows are deleted or
+budget counters reset for this change.
+
+Audit boundaries: public shared-API chat carries up to four public turns for reference
+resolution; prior prose is not factual evidence. The private artist interviewer is
+separate and unchanged. Legacy chat remains a configuration fallback and is not
+evidence of shared-API verification. Stored provider coverage is incomplete and
+URL exclusions can be broader than one fact; do not claim comprehensive freshness.
+
+Broader follow-ups resolve generic exclusions (such as “the archival posts”) to
+named projects in permitted public conversation. These names constrain retrieval
+and drafting; the old answer remains navigation context, never factual evidence.
+Different URLs or incidental details from the excluded project do not count as
+other activity. If no supplied original answers outside that boundary, return a
+missing-information response rather than repeating the project.

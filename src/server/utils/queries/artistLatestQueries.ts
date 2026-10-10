@@ -1,3 +1,4 @@
+import { fillMissingLatestProviders } from "./fillMissingLatestProviders";
 import { eq, inArray, and } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
 import { artistInterviewAnswers } from "@/server/db/schema";
@@ -66,7 +67,7 @@ export interface ArtistLatestResult {
   unavailable: boolean;
   coverage?: z.infer<typeof responseSchema>["coverage"];
 }
-/** Read shared API snapshots. Page views never contact catalogs or start research. */
+/** Read shared API snapshots, preserving legacy display only for explicitly missing provider snapshots. */
 export async function getArtistLatest(
   artist: Artist,
 ): Promise<ArtistLatestResult> {
@@ -159,7 +160,7 @@ export async function getArtistLatest(
       }
     }
     return {
-      items: orderLatestItems(parsed.items),
+      items: await fillMissingLatestProviders(artist, orderLatestItems(parsed.items), parsed.coverage),
       unavailable: parsed.unavailable,
       coverage: parsed.coverage,
     };

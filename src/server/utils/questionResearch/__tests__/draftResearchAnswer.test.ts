@@ -351,7 +351,7 @@ it("renders a fixed scoped limitation instead of model-written unanswered prose"
   model.mockResolvedValueOnce({ output: { ...draft, unanswered: 'There are no records anywhere about the release.' } } as never)
     .mockResolvedValueOnce({ output: { supported: true, reason: 'Mock checker approval cannot authorize arbitrary limitation prose.' } } as never);
   const result = await draftResearchAnswer('artist', 'Artist', 'What did they play and when?', [reference]);
-  expect(result.answer).toBe('They played drums. [1] The sources I could read don’t establish that detail.');
+  expect(result.answer).toBe('They played drums. [1] I couldn’t confirm the other details.');
   expect(result.sources[0].sourceId).toBe(reference.sourceId);
   expect(result.answer).not.toContain('anywhere');
 });
