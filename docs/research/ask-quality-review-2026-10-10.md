@@ -86,3 +86,17 @@ is available, adding named examples without substituting them for the category.
 The captured real conversation is reproducible with
 `npx tsx scripts/eval/ask-followup-scope.ts`; the corrected real-model plan retained
 archival posts in both request fields (1.235 seconds). No quota was reset.
+
+LATASHA's final-preview overview found originals but failed at claim checking. An
+unchanged-source replay exposed draft/checker asymmetry: the draft expanded credited
+handles into identities, which the checker correctly rejected. That replay repaired
+successfully; it does not reconstruct the failed deployed second draft. The writer
+now mirrors the existing exact-handle and credit-role rules and leaves unnecessary
+credit lists out of broad updates. The real-original replay passed on its first
+attempt in 10.8 seconds. A held-out credit/ambiguous-project case used the existing
+bounded repair to remove a false connection (24.8 seconds). The evaluation runner
+now retains both attempts and uses the same two-attempt, 45-second limit.
+
+The final integrated DUTCHYYY replay reached the existing saved-source quota. Its
+corrected planner and API evidence stages passed separately; no quota was reset.
+This limit is recorded separately from a successful full-browser replay.
