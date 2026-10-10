@@ -16,7 +16,7 @@ jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, defaul
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
 jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
-jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: () => <aside data-testid="ask" /> }));
+jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: ({ researching }) => <aside data-testid="ask" data-researching={String(researching)} /> }));
 
 import ArtistProfileContent from "../ArtistProfileContent";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
@@ -69,6 +69,13 @@ describe("ArtistProfileContent", () => {
         expect(ids[0]).toBe("hero");
         expect(ids[ids.length - 1]).toBe("ask");
         expect(ids).toEqual(expect.arrayContaining(["latest", "vault", "knowledge"]));
+    });
+
+    it("tells Ask when the claimant's research is running, so it waits for the progress pill", () => {
+        const { rerender } = render(<ArtistProfileContent {...base} />);
+        expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "false");
+        rerender(<ArtistProfileContent {...base} researching />);
+        expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "true");
     });
 
     it("gives the hero the artist's own About, and nothing for an empty one", () => {

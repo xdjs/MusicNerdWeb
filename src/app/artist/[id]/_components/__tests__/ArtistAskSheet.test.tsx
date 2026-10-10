@@ -24,7 +24,12 @@ describe("ArtistAskSheet", () => {
     });
 
     it("comes back once research is complete", () => {
-        render(<OnboardingProgressContext.Provider value={research(true)}><ArtistAskSheet artistId="a1" artistName="Nova" /></OnboardingProgressContext.Provider>);
+        render(<OnboardingProgressContext.Provider value={research(true)}><ArtistAskSheet artistId="a1" artistName="Nova" researching /></OnboardingProgressContext.Provider>);
         expect(screen.getByRole("button", { name: "Ask about Nova" })).toBeInTheDocument();
+    });
+
+    it("stays hidden from the first render when the page arrived mid-build, before the pill mounts", () => {
+        render(<ArtistAskSheet artistId="a1" artistName="Nova" researching />);
+        expect(screen.queryByRole("button", { name: "Ask about Nova" })).not.toBeInTheDocument();
     });
 });

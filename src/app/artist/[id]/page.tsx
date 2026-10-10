@@ -194,6 +194,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             isPendingByUser={isPendingByUser}
             canEdit={canEdit}
             autoApprove={isAdmin || !!dbUser?.isWhiteListed}
+            researching={!interviewPreview && !tourPreview && onboardingState?.complete === false}
         />
     );
 

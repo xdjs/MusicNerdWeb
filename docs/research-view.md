@@ -88,7 +88,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 - **Unreadable poll.** A 503 or a network error is skipped and the next poll tries again. It is
   never treated as "not started".
 - **Progress pill.** Fixed at the bottom right, where the Ask button sits; Ask is hidden while it
-  shows. It carries the current step (`buildStepLabel`, announced politely) and three segments
+  shows. Ask is hidden from the first paint when the claimant's page arrives mid-build, so it
+  doesn't flash before the pill mounts; on that visit it stays hidden under the step-card modal
+  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely) and three segments
   (Links, Lore, About: done, running or waiting; `interview` counts as About). It sits outside the
   page flow, so it shifts nothing when it appears or goes away.
 - **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
