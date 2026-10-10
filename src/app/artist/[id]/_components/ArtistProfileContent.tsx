@@ -26,7 +26,7 @@ import VaultSection from "./VaultSection";
  *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
     artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
-    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true,
+    blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
 }: {
     artist: Artist;
     imageUrl: string;
@@ -46,6 +46,8 @@ export default function ArtistProfileContent({
     /** Admin and whitelisted additions are auto-approved UGC, so they appear in
      *  the feed; claim owners keep direct editing (`isClaimedByUser`). */
     autoApprove: boolean;
+    /** The claimant's research build is running (page.tsx); Ask waits for it. */
+    researching?: boolean;
 }) {
     const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
     const profileLinks = [...getProfileLinks(artist, artistLinks, "links"), ...getProfileLinks(artist, artistLinks, "support")];
@@ -115,7 +117,7 @@ export default function ArtistProfileContent({
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
-                <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} />
+                <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} researching={researching} />
         </>
     );
 }

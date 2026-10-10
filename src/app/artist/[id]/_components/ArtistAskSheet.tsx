@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Minus } from "lucide-react";
 import AskAboutArtist from "./AskAboutArtist";
+import { OnboardingProgressContext } from "./onboarding/OnboardingProgressContext";
 
-export default function ArtistAskSheet({ artistId, artistName }: { artistId: string; artistName: string }) {
+/**
+ * `researching`: the claimant's page arrived mid-build (page.tsx), so Ask starts
+ * hidden rather than flashing before the research progress pill mounts.
+ */
+export default function ArtistAskSheet({ artistId, artistName, researching = false }: { artistId: string; artistName: string; researching?: boolean }) {
     const [open, setOpen] = useState(false);
     const [openedArtistId, setOpenedArtistId] = useState<string | null>(null);
     const [viewport, setViewport] = useState<{ height: number; bottom: number } | null>(null);
     const keyboardOpen = useRef(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLElement>(null);
+    const research = useContext(OnboardingProgressContext);
 
     const minimize = () => {
         setOpen(false);
@@ -42,6 +48,9 @@ export default function ArtistAskSheet({ artistId, artistName }: { artistId: str
             visual.removeEventListener("scroll", update);
         };
     }, [open]);
+
+    // While research runs, the progress pill holds this corner (docs/research-view.md).
+    if (research ? !research.complete : researching) return null;
 
     return <>
             <Button ref={triggerRef} aria-expanded={open} aria-controls="artist-ask-conversation" aria-haspopup="dialog" onClick={() => { if (open) minimize(); else { setOpenedArtistId(artistId); setOpen(true); } }} id="mn-ask" type="button" variant="pink" aria-label={`Ask about ${artistName}`}
