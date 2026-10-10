@@ -94,8 +94,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   (Links, Lore, About: done, running or waiting; `interview` counts as About). It sits outside the
   page flow, so it shifts nothing when it appears or goes away.
 - **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
-  `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About
-  (`#mn-about`). It smooth-scrolls, or jumps with reduced motion. Otherwise the page stays where
+  `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About,
+  which goes to the top of the page so the header shows with it (Sweetman, 2026-10-09 manual test).
+  It smooth-scrolls, or jumps with reduced motion. Otherwise the page stays where
   the artist puts it.
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
