@@ -77,3 +77,12 @@ resolved the exclusion to the actual project name. Held-out checks with only an
 excluded project returned no factual sentences; a mixed fixture checks that an
 unrelated activity remains answerable. These narrow fixtures do not establish a
 general semantic exclusion success rate.
+
+A second browser run exposed a narrower failure: the concise answer omitted the
+collection name, and the planner replaced “besides the archival posts” with the
+three recordings mentioned. That allowed other archival recordings through. The
+planner now preserves the entire excluded category even when no collection name
+is available, adding named examples without substituting them for the category.
+The captured real conversation is reproducible with
+`npx tsx scripts/eval/ask-followup-scope.ts`; the corrected real-model plan retained
+archival posts in both request fields (1.235 seconds). No quota was reset.
