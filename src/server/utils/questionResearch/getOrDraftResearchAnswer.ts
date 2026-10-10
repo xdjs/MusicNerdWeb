@@ -37,6 +37,7 @@ const saved = z.object({
   })).max(3),
 });
 type Row = {
+  question_hash: string;
   artist_id: string;
   status: string;
   claim_until: string;
@@ -66,7 +67,9 @@ export async function getOrDraftResearchAnswer(input: {
   signal?: AbortSignal;
 }): Promise<Outcome> {
   const { artistId, artistName, jobId, question, references, signal } = input;
-  const questionHash = getResearchQuestionHash(question);
+  const currentQuestionHash = getResearchQuestionHash(question);
+  const legacyQuestionHash = hash(question);
+  let questionHash = currentQuestionHash;
   const token = randomUUID();
   // Opportunistic physical cleanup; the expiry index keeps this bounded. Job
   // and artist deletion also cascade, including when no visitor returns.
@@ -74,11 +77,14 @@ export async function getOrDraftResearchAnswer(input: {
   let ownsLease = false;
   {
     const [row] = await db.execute<Row>(sql`
-      select artist_id,status,claim_until,attempts,result,failure_stage
+      select artist_id,status,claim_until,attempts,result,failure_stage,question_hash
       from artist_question_answers
       where job_id=${jobId}::uuid and artist_id=${artistId}::uuid
-        and question_hash=${questionHash} and expires_at>now()`);
+        and question_hash in (${currentQuestionHash}, ${legacyQuestionHash}) and expires_at>now()
+      order by (question_hash=${currentQuestionHash}) desc limit 1`);
     if (!row) return { state: "unregistered" };
+    // Resume the registered policy in place; never reset attempts or create a new lease row.
+    questionHash = row.question_hash;
     if (row.status === "verified") {
       const parsed = saved.safeParse(row.result);
       if (!parsed.success) return { state: "unavailable" };

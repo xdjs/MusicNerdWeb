@@ -10,7 +10,7 @@ Refs MusicNerdWeb#1424. Public Ask About only; private artist interviews are unc
 | Select originals | Three newest candidates could all cover one activity; assessment could stop at one source | API considers six saved windows within the same 12,000-character budget, selecting up to three useful originals |
 | Draft | Instructions explicitly favored date-first post attribution and filenames | Activity-first prose, concise sentences, useful examples, grouped related activity |
 | Check | Factual support alone was mistaken for answer quality | Keep factual checking; separately inspect usefulness, readability, qualifications, and repetition |
-| Replay | Same job/question could return old wording after a prompt update | New registrations use a versioned fingerprint; existing limits/expiry remain |
+| Replay | Same job/question could return old wording after a prompt update | New registrations use a versioned fingerprint; in-flight legacy registrations resume without resetting attempts, limits or expiry |
 | Failure copy | Robotic unsupported-answer wording | Short direct missing-information wording; no model-written absence claims rendered |
 
 The shared API path is enabled by MUSICNERD_RESEARCH_API_KEY. The older configuration
@@ -58,3 +58,9 @@ Stored provider coverage is not a comprehensive live sweep. URL-based exclusions
 can hide multiple public answers sharing one profile URL. External collection
 keeps its existing candidate budget. Unit tests establish bounds and routing,
 not general editorial quality. Release verification is recorded on the PR.
+
+Cross-deployment recovery was checked with compiled SQL selection assertions:
+current-policy registrations take priority over legacy exact-question registrations;
+legacy leases and result writes retain the selected hash. Exhausted legacy attempts
+stay exhausted, and verified legacy answers still require eligible original evidence.
+This replaces the earlier expected-409/resubmit behavior for in-flight requests.

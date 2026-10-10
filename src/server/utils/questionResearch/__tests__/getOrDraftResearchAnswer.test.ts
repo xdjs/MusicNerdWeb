@@ -1,4 +1,7 @@
 /** @jest-environment node */
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
+import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash } from "node:crypto";
 import { db } from "@/server/db/drizzle";
 import { draftResearchAnswer } from "../draftResearchAnswer";
@@ -38,31 +41,31 @@ const saved = {
 beforeEach(() => { jest.resetAllMocks(); draft.mockResolvedValue(result); });
 it("saves the first checked answer and returns it unchanged on a later poll", async () => {
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
     .mockResolvedValueOnce([{ claim_token: "token" }] as never)
     .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "ready", result });
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: saved }] as never);
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: saved }] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "ready", result });
   expect(draft).toHaveBeenCalledTimes(1);
 });
 it("does not launch another draft while a concurrent poller owns the lease", async () => {
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "drafting", claim_until: new Date(Date.now() + 60_000).toISOString(), attempts: 1 }] as never);
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "drafting", claim_until: new Date(Date.now() + 60_000).toISOString(), attempts: 1 }] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "drafting" });
   expect(draft).not.toHaveBeenCalled();
 });
 it("withholds a cached answer if the API no longer considers its original eligible", async () => {
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: saved }] as never);
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: saved }] as never);
   expect(await getOrDraftResearchAnswer({ ...input, references: [] })).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
 it("records a safe draft failure without returning or replacing a verified answer", async () => {
   draft.mockRejectedValue(Object.assign(new Error("private model details"), { verificationStage: "claim_check" }));
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
     .mockResolvedValueOnce([{ claim_token: "token" }] as never)
     .mockResolvedValueOnce([] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "failed", stage: "claim_check", retryable: true });
@@ -78,12 +81,12 @@ it("keeps citation 2 attached to its exact passage when one source has two windo
   const cited = { ...source, n: 2 };
   draft.mockResolvedValue({ ...result, sources: [cited] });
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
     .mockResolvedValueOnce([{ claim_token: "token" }] as never)
     .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
   expect((await getOrDraftResearchAnswer({ ...input, references: [ref, second] })).state).toBe("ready");
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: {
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: {
       ...result, sources: [cited], basis: [{ sourceId: second.sourceId, revision: second.revision,
         start: second.start, end: second.end, url: second.url, textHash: hash(second.text), publishedAt: second.publishedAt }],
     } }] as never);
@@ -92,19 +95,19 @@ it("keeps citation 2 attached to its exact passage when one source has two windo
 });
 it("withholds an old cached answer whose publication-date basis was not recorded", async () => {
   const legacy = { ...saved, basis: saved.basis.map(({ publishedAt: _date, ...b }) => b) };
-  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: legacy }] as never);
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: legacy }] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
 it("withholds a cached answer when date metadata changes without changing original text", async () => {
-  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, status: "verified", result: { ...saved, basis: saved.basis.map(b => ({ ...b, publishedAt: "2026-10-05" })) } }] as never);
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: { ...saved, basis: saved.basis.map(b => ({ ...b, publishedAt: "2026-10-05" })) } }] as never);
   expect(await getOrDraftResearchAnswer({ ...input, references: [{ ...ref, publishedAt: "2026-10-06" }] })).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
 
 it("stops polling when the final drafting lease expired without a recorded outcome", async () => {
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "drafting", claim_until: new Date(0).toISOString(), attempts: 3 }] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "drafting", claim_until: new Date(0).toISOString(), attempts: 3 }] as never)
     .mockResolvedValueOnce([] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "failed", stage: "draft", retryable: false });
   expect(draft).not.toHaveBeenCalled();
@@ -112,7 +115,39 @@ it("stops polling when the final drafting lease expired without a recorded outco
 });
 it("keeps waiting for the live final drafting lease without spending another attempt", async () => {
   execute.mockResolvedValueOnce([] as never)
-    .mockResolvedValueOnce([{ artist_id: input.artistId, status: "drafting", claim_until: new Date(Date.now() + 60000).toISOString(), attempts: 3 }] as never);
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "drafting", claim_until: new Date(Date.now() + 60000).toISOString(), attempts: 3 }] as never);
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "drafting" });
   expect(draft).not.toHaveBeenCalled();
+});
+it('selects the existing legacy registration and keeps its hash for lease and verified writes', async () => {
+  const legacy = hash(input.question);
+  const dialect = new PgDialect();
+  const queries: ReturnType<PgDialect['sqlToQuery']>[] = [];
+  execute.mockImplementation((async (query: Parameters<typeof db.execute>[0]) => {
+    const compiled = dialect.sqlToQuery(query as SQL);
+    queries.push(compiled);
+    if (compiled.sql.includes('select artist_id')) {
+      expect(compiled.params).toContain(legacy);
+      expect(compiled.params).toContain(getResearchQuestionHash(input.question));
+      expect(compiled.sql).toMatch(/order by.*question_hash.*desc\s+limit 1/i);
+      return [{artist_id:input.artistId,question_hash:legacy,status:'waiting',claim_until:new Date(0).toISOString(),attempts:2}] as never;
+    }
+    if (compiled.sql.includes("set status='drafting'")) return [{claim_token:'token'}] as never;
+    if (compiled.sql.includes("set status='verified'")) return [{job_id:input.jobId}] as never;
+    return [] as never;
+  }) as never);
+  expect((await getOrDraftResearchAnswer(input)).state).toBe('ready');
+  for (const query of queries.filter(q=>q.sql.trim().startsWith('update'))) {
+    expect(query.params).toContain(legacy);
+    expect(query.params).not.toContain(getResearchQuestionHash(input.question));
+  }
+  expect(queries.some(q=>/insert into/i.test(q.sql))).toBe(false);
+});
+it('does not reset an exhausted legacy registration',async()=>{
+ execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{artist_id:input.artistId,question_hash:hash(input.question),status:'failed',claim_until:new Date(0).toISOString(),attempts:3,failure_stage:'claim_check'}] as never);
+ expect(await getOrDraftResearchAnswer(input)).toEqual({state:'failed',stage:'claim_check',retryable:false});expect(draft).not.toHaveBeenCalled();expect(execute).toHaveBeenCalledTimes(2);
+});
+it('can replay a verified legacy registration only while its originals remain eligible',async()=>{
+ execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{artist_id:input.artistId,question_hash:hash(input.question),status:'verified',result:saved}] as never);
+ expect(await getOrDraftResearchAnswer(input)).toEqual({state:'ready',result});expect(draft).not.toHaveBeenCalled();
 });

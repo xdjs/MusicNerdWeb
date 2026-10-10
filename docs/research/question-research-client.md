@@ -86,8 +86,11 @@ when that is all the evidence establishes.
 New answer registrations use a versioned question fingerprint so checked answers
 from the earlier response policy are not presented as newly evaluated output.
 The existing per-job answer limit and expiry remain enforced. Requests already in
-flight across deployment may need to be submitted again; no old answer rows are
-deleted or budget counters reset for this change.
+flight across deployment resume their existing registration: the current policy
+row wins when present; otherwise the legacy exact-question row is used, including
+its existing lease, attempts and expiry. A verified legacy answer may replay only
+while its original evidence remains eligible. No old answer rows are deleted or
+budget counters reset for this change.
 
 Audit boundaries: public shared-API chat carries up to four public turns for reference
 resolution; prior prose is not factual evidence. The private artist interviewer is
