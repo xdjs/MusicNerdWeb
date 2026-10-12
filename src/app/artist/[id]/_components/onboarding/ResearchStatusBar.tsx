@@ -60,7 +60,7 @@ export default function ResearchStatusBar({ steps, currentStep, complete, failur
                     setHint(false);
                     showResearchSection(currentStep);
                 }}
-                className={`flex min-h-[52px] w-64 max-w-full flex-col justify-center gap-2 rounded-2xl bg-background px-4 py-2.5 text-left ${GLOW} transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
+                className={`flex min-h-[52px] w-[21rem] max-w-full flex-col justify-center gap-2 rounded-2xl bg-background px-4 py-2.5 text-left ${GLOW} transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
                 <span className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
                     <span className="h-2 w-2 flex-none rounded-full bg-pastypink motion-safe:animate-pulse dark:bg-pastyblue" aria-hidden="true" />
                     <span aria-live="polite" className="min-w-0 flex-1 truncate">{buildStepLabel(currentStep)}…</span>
