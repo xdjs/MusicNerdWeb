@@ -1,3 +1,5 @@
+> October 12, 2026 — #1371 supersedes the historical public-unclaimed-bio plan below. See [directory onboarding visibility](directory-onboarding-visibility.md). Links/Latest remain public; prepared About/Lore are private before an approved claim.
+
 # Lore provenance and activity
 
 Tracking: [#1371](https://github.com/xdjs/MusicNerdWeb/issues/1371). The implemented attribution foundation is in [#1373](https://github.com/xdjs/MusicNerdWeb/pull/1373); the About containment fix is in draft [#1372](https://github.com/xdjs/MusicNerdWeb/pull/1372). Neither alone completes the revised plan below.
