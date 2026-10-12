@@ -107,8 +107,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   segments (Links, Lore, About: done, running or waiting; `interview` counts as About). The running
   segment sweeps and the pill has a soft glow (`pastypink` in light, `pastyblue` in dark), so it
   reads as live. Until the artist first taps it, a "Tap to follow along" hint with a bouncing arrow
-  sits above it (Pete, 2026-10-12: "the person wouldn't have known to click that"); the hint is not
-  remembered across visits. It sits outside the
+  sits above it (Pete, 2026-10-12: "the person wouldn't have known to click that"). Tapping the hint
+  does what tapping the pill does (Sweetman, 2026-10-12 preview test); it is out of the tab order and
+  hidden from screen readers, the pill being the one control. The hint is not remembered across visits. It sits outside the
   page flow, so it shifts nothing when it appears or goes away.
 - **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
   `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About,

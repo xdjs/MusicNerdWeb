@@ -24,7 +24,8 @@ const GLOW = "shadow-[0_0_0_1px_theme(colors.pastypink),0_0_18px_theme(colors.pa
  * (docs/research-view.md, "Progress pill" and "Done"): the current step and
  * three segments, the running one sweeping, and which step of three it is;
  * clicking it takes the artist to the section being researched. Until the
- * first click a "Tap to follow along" hint sits above it. Nothing else scrolls. On a failure it offers "try again". Once
+ * first click a "Tap to follow along" hint sits above it; tapping the hint
+ * does what tapping the pill does. Nothing else scrolls. On a failure it offers "try again". Once
  * complete it renders nothing: the profile tour takes over and Ask comes back.
  */
 export default function ResearchStatusBar({ steps, currentStep, complete, failure, onRetry }: {
@@ -46,20 +47,21 @@ export default function ResearchStatusBar({ steps, currentStep, complete, failur
     if (complete) return null;
     const segments = stepSegments(steps, currentStep);
     const position = segments.findIndex(segment => segment.state === "active") + 1;
+    const follow = () => {
+        setHint(false);
+        showResearchSection(currentStep);
+    };
     return (
         <section aria-label="Research status" className={`${PLACE} flex flex-col items-end gap-2`}>
             {hint && (
-                <span aria-hidden="true" className="flex items-center gap-1.5 rounded-full bg-highlightpink px-2.5 py-1.5 text-[13px] font-semibold text-black">
+                <button type="button" tabIndex={-1} aria-hidden="true" onClick={follow} className="flex min-h-9 items-center gap-1.5 rounded-full bg-highlightpink px-2.5 py-1.5 text-[13px] font-semibold text-black hover:opacity-90">
                     Tap to follow along
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="motion-safe:animate-bounce"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
-                </span>
+                </button>
             )}
             <button
                 type="button"
-                onClick={() => {
-                    setHint(false);
-                    showResearchSection(currentStep);
-                }}
+                onClick={follow}
                 className={`flex min-h-[52px] w-[21rem] max-w-full flex-col justify-center gap-2 rounded-2xl bg-background px-4 py-2.5 text-left ${GLOW} transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
                 <span className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
                     <span className="h-2 w-2 flex-none rounded-full bg-pastypink motion-safe:animate-pulse dark:bg-pastyblue" aria-hidden="true" />
