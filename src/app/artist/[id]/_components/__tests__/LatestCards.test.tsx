@@ -338,3 +338,15 @@ it('keeps an empty category selected and explains its empty state', () => {
     expect(screen.getByRole('button', {name:'Lore'})).toHaveAttribute('aria-pressed','true');
     expect(screen.getByText('No Lore updates yet.')).toBeInTheDocument();
 });
+it('fades only carousel edges with more content and clears fades at either end', () => {
+    setup();
+    const gallery = screen.getByRole('region', { name: 'Latest updates gallery' });
+    Object.defineProperties(gallery, { scrollWidth: { value: 1000 }, clientWidth: { value: 400 }, scrollLeft: { value: 0, writable: true } });
+    fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute('data-fade-start', 'false');
+    expect(gallery).toHaveAttribute('data-fade-end', 'true');
+    gallery.scrollLeft = 200; fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute('data-fade-start', 'true');
+    gallery.scrollLeft = 600; fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute('data-fade-end', 'false');
+});

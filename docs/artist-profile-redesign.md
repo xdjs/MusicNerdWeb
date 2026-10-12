@@ -178,3 +178,13 @@ Lore cards reserve 32px inside the horizontal scroll viewport for their 30px hov
 glow and new-source ring. Scroll snapping keeps the first/last card inside this
 gutter; the scroll container stays within the profile width, without negative
 horizontal margins or page-level overflow.
+
+### October 11 carousel correction
+
+Latest and Lore now use a rounded inset highlight only on the hovered or focused
+card. Persistent outside shadows are removed so adjacent cards cannot form a pink
+strip. Viewports fade only the edge with additional offscreen content; the first
+and last card remain fully readable at their respective ends. Focus outlines stay
+inside cards. Native scrolling and existing arrow/keyboard navigation are retained.
+This supersedes the October 8 gutter-only treatment: padding alone cannot prevent
+shadows being cut at intermediate horizontal positions.

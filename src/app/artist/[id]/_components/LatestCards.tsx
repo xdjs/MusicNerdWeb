@@ -79,6 +79,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
             <button type="button" aria-label="Previous updates" aria-controls={`${sectionId}-gallery`} disabled={!canScroll.previous} onClick={() => scrollGallery(-1)}
                 className="absolute -left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-md transition-opacity hover:bg-black/80 disabled:pointer-events-none disabled:opacity-0 sm:flex sm:opacity-0 sm:group-hover/gallery:opacity-100 sm:group-focus-within/gallery:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink"><ChevronLeft size={18} aria-hidden="true" /></button>
             <div ref={galleryRef} id={`${sectionId}-gallery`} role="region" aria-label="Latest updates gallery" tabIndex={0}
+                data-fade-start={canScroll.previous} data-fade-end={canScroll.next}
                 onScroll={updateScrollBounds}
                 onKeyDown={event => {
                     if (event.target !== event.currentTarget) return;
@@ -87,7 +88,7 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
                         scrollGallery(event.key === 'ArrowLeft' ? -1 : 1);
                     }
                 }}
-                className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth py-2 motion-reduce:scroll-auto focus-visible:rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
+                className="artist-carousel-viewport scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth py-2 motion-reduce:scroll-auto focus-visible:rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pastypink">
                 {visible.map(item => {
                     const Icon = icons[item.kind];
                     return <article key={item.id} className="relative w-[72%] min-w-0 shrink-0 snap-start sm:w-[280px]">
