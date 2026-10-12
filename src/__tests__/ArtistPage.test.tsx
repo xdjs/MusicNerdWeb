@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
 jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -618,4 +619,14 @@ describe('Museum page composition', () => {
         for (const id of ['mn-about', 'mn-sources', 'mn-links', 'mn-ask']) expect(container.querySelector(`#${id}`)).toBeInTheDocument();
         for (const a of screen.getByRole('navigation', { name: 'Explore artist profile' }).querySelectorAll('a')) expect(container.querySelector(a.getAttribute('href'))).toBeInTheDocument();
     });
+});
+
+it('does not expose an unclaimed About in public metadata', async () => {
+  const { getLoreClaimGeneration } = await import('@/server/utils/queries/lorePersistence');
+  const { getArtistById } = await import('@/server/utils/queries/artistQueries');
+  const { generateMetadata } = await import('@/app/artist/[id]/page');
+  getLoreClaimGeneration.mockResolvedValueOnce(null);
+  getArtistById.mockResolvedValueOnce({ id: 'artist-uuid', name: 'Artist', bio: 'Private prepared About' });
+  const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
+  expect(JSON.stringify(metadata)).not.toContain('Private prepared About');
 });

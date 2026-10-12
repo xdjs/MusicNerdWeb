@@ -48,7 +48,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const artist = await getArtistById(id);
     if (!artist) return NextResponse.json({ error: "Artist not found" }, { status: 404, headers: CORS_HEADERS });
     // A cache miss is a read, including profiles with pending Lore or identity links.
-    return NextResponse.json({ bio: isRealBio(artist.bio) ? artist.bio : ABOUT_EMPTY_STATE }, { headers: CORS_HEADERS });
+    const claimed = await getLoreClaimGeneration(id);
+    return NextResponse.json({ bio: claimed && isRealBio(artist.bio) ? artist.bio : ABOUT_EMPTY_STATE }, { headers: { ...CORS_HEADERS, "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error('[About] Read failed', error);
     return NextResponse.json({ error: "Unable to read About. Please try again." }, { status: 500, headers: CORS_HEADERS });

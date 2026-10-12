@@ -1,3 +1,4 @@
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue(null) }));
 import '@/test/setup/testEnv';
 import { POST } from '../route';
 import { getArtistByProperty } from '@/server/utils/queries/artistQueries';
@@ -43,10 +44,10 @@ describe('findArtistByDeezerID API', () => {
     expect(text).toContain('Missing or invalid required parameters: deezerID');
   });
 
-  it('returns artist data when found', async () => {
+  it('returns identity but hides prepared About without a claim', async () => {
     (getArtistByProperty as jest.Mock).mockResolvedValue({
       status: 200,
-      data: { id: '1', name: 'David Morales', deezer: '11600' },
+      data: { bio: 'Private prepared About', id: '1', name: 'David Morales', deezer: '11600' },
       message: '',
       isError: false,
     });
@@ -55,7 +56,7 @@ describe('findArtistByDeezerID API', () => {
     expect(getArtistByProperty).toHaveBeenCalledWith(artists.deezer, '11600');
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toEqual({ result: { id: '1', name: 'David Morales', deezer: '11600' } });
+    expect(json).toEqual({ result: { bio: null, id: '1', name: 'David Morales', deezer: '11600' } });
   });
 
   it('propagates error status and message from getArtistByProperty', async () => {

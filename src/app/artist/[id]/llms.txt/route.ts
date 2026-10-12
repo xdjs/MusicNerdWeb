@@ -1,27 +1,4 @@
-/**
- * The artist's knowledge document, public, for machines.
- *
- * WHY THIS EXISTS. The document is the best thing we have — prose assembled
- * from the artist's own posts, their interview answers and vetted sources, with
- * every claim carrying a citation. Until now the only ways to reach it were the
- * owner's export (401 to everyone else) and `/api/askArtist`, which answers
- * questions about it but never hands it over. So a model could be told what we
- * know only by asking one question at a time, and could not cite us.
- *
- * NOT A NEW DISCLOSURE. `askArtist` is already public and already grounded in
- * this document; what it says in paraphrase, this says verbatim and with the
- * sources attached. Publishing it makes the citation trail visible, which is
- * the opposite of leaking — a reader can now check us.
- *
- * WHAT IS DELIBERATELY NOT HERE. The owner's export at
- * /api/artist/<id>/knowledge-doc/export stays gated and keeps `?format=csv`.
- * That door is "take your profile with you" and is the artist's alone. This one
- * is "here is what Music Nerd knows about this artist, and where each part came
- * from". Same text, different promise.
- *
- * SERVED INLINE, NOT AS A DOWNLOAD. A Content-Disposition attachment makes a
- * crawler save a file instead of reading a page.
- */
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getArtistDocStrict } from "@/server/utils/queries/onboardingQueries";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { renderKnowledgeMarkdown, type DocSource } from "@/server/utils/knowledgeDocMarkdown";
@@ -48,6 +25,7 @@ export async function GET(
         // 503. getArtistDoc swallows and returns undefined, which would take
         // the "no document yet" branch and hand a crawler a cacheable 404 for
         // an artist we have plenty about.
+        if (!(await getLoreClaimGeneration(id))) return new Response("Not found\n", { status: 404, headers: { "Cache-Control": "private, no-store" } });
         const [artist, doc] = await Promise.all([getArtistById(id), getArtistDocStrict(id)]);
 
         // 404, NOT AN EMPTY FILE. An artist with no document yet is not the
@@ -81,7 +59,7 @@ export async function GET(
                 // answers something — minutes at the fastest, never per-request.
                 // Serving a slightly stale copy instantly beats rebuilding it
                 // for every crawler that asks.
-                "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+                "Cache-Control": "private, no-store",
                 "X-Robots-Tag": "index, follow",
             },
         });
