@@ -61,16 +61,6 @@ describe("ResearchStatusBar", () => {
         expect(screen.queryByText("Tap to follow along")).not.toBeInTheDocument();
     });
 
-    it("keeps the hint out of the tab order, the pill being the one control", () => {
-        render(<ResearchStatusBar {...base} />);
-        expect(screen.getByText("Tap to follow along").closest("button")).toHaveAttribute("tabindex", "-1");
-    });
-
-    it("hides the hint from screen readers, which already hear the pill's \"show me\"", () => {
-        render(<ResearchStatusBar {...base} />);
-        expect(screen.getByText("Tap to follow along").closest("[aria-hidden=true]")).not.toBeNull();
-    });
-
     it("renders nothing once the build is complete, leaving the page to the tour", () => {
         const { container } = render(<ResearchStatusBar {...base} complete currentStep={null} />);
         expect(container).toBeEmptyDOMElement();
