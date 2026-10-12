@@ -1,15 +1,16 @@
 "use client";
 
 import { createContext } from "react";
-import type { OnboardingSteps } from "@/lib/onboarding/onboardingStateTypes";
+import type { OnboardingStepName, OnboardingSteps } from "@/lib/onboarding/onboardingStateTypes";
 import type { FreshSections, SectionStep } from "./useFreshSections";
 
 /** What the page knows while it watches a build (docs/research-view.md): each
- *  step's confirmation time, which sections just arrived, whether the build is
+ *  step's confirmation time, the step running now, which sections just arrived, whether the build is
  *  complete, and the links and sources the page had when watching began (what
  *  counts as new). */
 export type ResearchContextValue = {
     steps: OnboardingSteps;
+    currentStep: OnboardingStepName | null;
     fresh: FreshSections;
     markSeen: (step: SectionStep) => void;
     complete: boolean;

@@ -2,14 +2,17 @@
 
 import { useContext, useEffect, useRef, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { researchingSection } from "@/lib/onboarding/researchingSection";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
 import SkeletonShape, { type SkeletonKind } from "./SkeletonShape";
 import type { SectionStep } from "./useFreshSections";
 
 /**
  * A profile section research fills (docs/research-view.md, "Sections"). While
- * its step isn't confirmed: a skeleton in the section's shape and a caption
- * (above the section, or for the About instead of it). When it has just
+ * its step isn't confirmed: a skeleton in the section's shape (above the
+ * section, or for the About instead of it), with no caption: the progress pill
+ * is the one voice. It pulses, and announces `label`, only while this section
+ * is being researched; a waiting one is still and hidden from screen readers. When it has just
  * arrived: the section fades in, is marked, announces itself once and reports
  * when it has been on screen. Otherwise, or with no build being watched, just
  * the section.
@@ -45,12 +48,14 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
 
     if (!research) return <>{children}</>;
     if (research.steps[step] === null) {
+        const researching = researchingSection(research.currentStep) === step;
         return (
             <>
-                <div role="status" aria-label={label} className="flex flex-col gap-3">
-                    <SkeletonShape kind={skeleton} />
-                    <span className={`text-sm ${skeleton === "about" ? "opacity-80" : "text-[hsl(var(--muted-foreground))]"}`}>{label}</span>
-                </div>
+                {researching ? (
+                    <div role="status" aria-label={label}><SkeletonShape kind={skeleton} /></div>
+                ) : (
+                    <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
+                )}
                 {skeleton !== "about" && children}
             </>
         );
