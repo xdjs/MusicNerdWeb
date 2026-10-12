@@ -6,29 +6,49 @@ const none = { profiles: null, vault: null, interview: null, publish: null };
 
 /** A research context for tests: nothing confirmed, nothing fresh, an empty baseline. */
 function researchContext(over: Partial<ResearchContextValue> = {}): ResearchContextValue {
-    return { steps: none, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over };
+    return { steps: none, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over };
 }
 
 const inBuild = (value: ResearchContextValue, ui: React.ReactNode) =>
     render(<OnboardingProgressContext.Provider value={value}>{ui}</OnboardingProgressContext.Provider>);
 
 describe("ResearchPending", () => {
-    it("shows link-tile skeletons and the caption above the section while its step isn't confirmed", () => {
-        inBuild(researchContext(), <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready"><p>links</p></ResearchPending>);
+    it("pulses link-tile skeletons with no caption while Links is being researched, the pill being the one voice", () => {
+        inBuild(researchContext({ currentStep: "profiles" }), <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready"><p>links</p></ResearchPending>);
         const status = screen.getByRole("status", { name: "finding your profiles…" });
         expect(status.querySelectorAll("[data-skeleton]").length).toBeGreaterThan(0);
-        expect(status).toHaveTextContent("finding your profiles…");
+        expect(status.querySelector("[data-still]")).toBeNull();
+        expect(screen.queryByText("finding your profiles…")).not.toBeInTheDocument();
         expect(screen.getByText("links")).toBeInTheDocument();
     });
 
-    it("shows source-card skeletons for Lore", () => {
-        inBuild(researchContext(), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="Your lore is ready"><p>lore</p></ResearchPending>);
+    it("shows source-card skeletons for Lore while it is being researched", () => {
+        inBuild(researchContext({ currentStep: "vault" }), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="Your lore is ready"><p>lore</p></ResearchPending>);
         expect(screen.getByRole("status", { name: "reading…" }).querySelectorAll("[data-skeleton=card]").length).toBeGreaterThan(0);
     });
 
-    it("shows text-line skeletons instead of the About", () => {
-        inBuild(researchContext(), <ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><p>about</p></ResearchPending>);
-        expect(screen.getByRole("status", { name: "writing your about…" }).querySelectorAll("[data-skeleton=line]")).toHaveLength(3);
+    it("keeps a waiting section's skeleton still, silent and hidden from screen readers", () => {
+        const { container } = inBuild(researchContext({ currentStep: "profiles" }), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="ready"><p>lore</p></ResearchPending>);
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        const waiting = container.querySelector("[data-still]");
+        expect(waiting).not.toBeNull();
+        expect(waiting?.closest("[aria-hidden=true]")).not.toBeNull();
+        expect(screen.queryByText("reading…")).not.toBeInTheDocument();
+    });
+
+    it("never says it is writing the About while Links is being researched", () => {
+        inBuild(researchContext({ currentStep: "profiles" }), <ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><p>about</p></ResearchPending>);
+        expect(screen.queryByText("writing your about…")).not.toBeInTheDocument();
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        expect(document.querySelectorAll("[data-skeleton=line]")).toHaveLength(3);
+        expect(screen.queryByText("about")).not.toBeInTheDocument();
+    });
+
+    it("shows pulsing text-line skeletons instead of the About while it is being written, interview included", () => {
+        inBuild(researchContext({ currentStep: "interview" }), <ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><p>about</p></ResearchPending>);
+        const status = screen.getByRole("status", { name: "writing your about…" });
+        expect(status.querySelectorAll("[data-skeleton=line]")).toHaveLength(3);
+        expect(status.querySelector("[data-still]")).toBeNull();
         expect(screen.queryByText("about")).not.toBeInTheDocument();
     });
 

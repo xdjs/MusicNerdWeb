@@ -21,7 +21,7 @@ jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: ({ researchin
 import ArtistProfileContent from "../ArtistProfileContent";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
-const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
+const research = (over = {}) => ({ steps: researchNone, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
 
 const base = {
@@ -98,9 +98,10 @@ describe("ArtistProfileContent", () => {
     });
 
     it("shows profile-tile skeletons in Links until the profiles step is confirmed", () => {
-        const { container } = render(<OnboardingProgressContext.Provider value={research()}><ArtistProfileContent {...base} /></OnboardingProgressContext.Provider>);
+        const { container } = render(<OnboardingProgressContext.Provider value={research({ currentStep: 'profiles' })}><ArtistProfileContent {...base} /></OnboardingProgressContext.Provider>);
         const status = container.querySelector("#mn-links [role=status]");
-        expect(status).toHaveTextContent("finding your profiles…");
+        expect(status).toHaveAttribute("aria-label", "finding your profiles…");
+        expect(status).toHaveTextContent("");
         expect(status?.querySelectorAll("[data-skeleton=tile]").length).toBeGreaterThan(0);
     });
 });
