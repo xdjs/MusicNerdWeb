@@ -1206,3 +1206,29 @@ export const artistLatestProviderSnapshots = pgTable("artist_latest_provider_sna
   pgPolicy("mnweb_insert_artist_latest_provider_snapshots", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
   pgPolicy("mnweb_update_artist_latest_provider_snapshots", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 ]).enableRLS();
+
+
+/** Private exact public-request digests and short planning leases; never raw history. */
+export const artistQuestionRequests = pgTable("artist_question_requests", {
+  artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  requestHash: text("request_hash").notNull(),
+  token: uuid().notNull(),
+  leaseUntil: timestamp("lease_until", { withTimezone: true, mode: 'string' }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }).notNull(),
+  jobId: uuid("job_id").references(() => artistResearchJobs.id, { onDelete: "cascade" }),
+  questionHash: text("question_hash"),
+  reusable: boolean().default(false).notNull(),
+  answerIntent: text("answer_intent"),
+  routing: jsonb().default({}).notNull(),
+}, table => [
+  primaryKey({ columns: [table.artistId,table.requestHash] }),
+  check("artist_question_requests_hash", sql`${table.requestHash} ~ '^[a-f0-9]{64}$'`),
+  check("artist_question_requests_binding", sql`(${table.jobId} is null and ${table.questionHash} is null and not ${table.reusable}) or (${table.jobId} is not null and ${table.questionHash} is not null and ${table.questionHash} ~ '^[a-f0-9]{64}$')`),
+  check("artist_question_requests_intent", sql`${table.answerIntent} is null or length(${table.answerIntent}) between 1 and 500`),
+  check("artist_question_requests_routing", sql`jsonb_typeof(${table.routing}) = 'object' and octet_length(${table.routing}::text)<=16000`),
+  index("artist_question_requests_expiry").on(table.expiresAt),
+  pgPolicy("mnweb_select_artist_question_requests", { for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_question_requests", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_question_requests", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+  pgPolicy("mnweb_delete_artist_question_requests", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();

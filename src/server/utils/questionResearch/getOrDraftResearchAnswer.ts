@@ -65,10 +65,12 @@ export async function getOrDraftResearchAnswer(input: {
   question: string;
   references: ResearchReference[];
   signal?: AbortSignal;
+  /** Internal hash binding; read-only reuse must never acquire a drafting lease. */
+  readOnlyQuestionHash?: string;
 }): Promise<Outcome> {
   const { artistId, artistName, jobId, question, references, signal } = input;
-  const currentQuestionHash = getResearchQuestionHash(question);
-  const legacyQuestionHash = hash(question);
+  const currentQuestionHash = input.readOnlyQuestionHash ?? getResearchQuestionHash(question);
+  const legacyQuestionHash = input.readOnlyQuestionHash ?? hash(question);
   let questionHash = currentQuestionHash;
   const token = randomUUID();
   // Opportunistic physical cleanup; the expiry index keeps this bounded. Job
@@ -117,6 +119,8 @@ export async function getOrDraftResearchAnswer(input: {
         },
       };
     }
+    if (input.readOnlyQuestionHash) return row.status === "drafting" && Date.parse(row.claim_until) > Date.now()
+      ? { state: "drafting" } : { state: "unavailable" };
     if (row.attempts >= 3 && (row.status === "failed" ||
       (row.status === "drafting" && Date.parse(row.claim_until) <= Date.now())))
       return { state: "failed", stage: row.failure_stage ?? "draft", retryable: false };

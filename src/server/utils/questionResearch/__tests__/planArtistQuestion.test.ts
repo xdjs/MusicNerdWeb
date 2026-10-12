@@ -21,6 +21,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     topic: "Record drum credits",
     evidenceNeed: "credits",
     freshness: "stored",
+    reuseAction: "none",
     retrieval: "relevance",
     answerScope: "focused",
     resolvedQuestion: "Who played drums?",
