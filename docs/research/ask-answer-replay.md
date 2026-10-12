@@ -19,3 +19,23 @@ Question bubbles wrap long URLs within their available width. Ordinary prose kee
 ## Same-page follow-up context
 
 The UI supplies up to four completed preceding question/answer turns from the current artist conversation, with each question capped at 500 characters and each answer at 3,000. Up to three exact HTTP(S) citation URLs (2,048 characters each) accompany each turn as source anchors. Oldest turns are dropped until the combined question, answer and URL text is at most 12,000 characters. This context disambiguates wording; it is not source evidence. Each question retains the exact context originally sent and the server-resolved standalone question, so explicit retries use the same meaning and job binding. The visible question stays in the listener's original words. Artist navigation clears this context.
+
+## Pre-planning reuse (#1472, proposed)
+
+A new server-only request index links a hash of the artist, current question and exact bounded
+public conversation to the registered answer hash and research job. No raw question or history
+is retained in this index. Exact wording, source URLs and their order remain significant; similar
+wording is not considered equivalent. A changed conversation or explicit constraint is a new request.
+
+Before reserving planning allowance, Web checks this binding and asks the API to revalidate its
+originals. Only an already verified answer can return through this path. Private interview memory
+is never consulted. Time-sensitive plans (latest/recent retrieval or explicit date windows) are not
+reused here: validating an old source alone cannot establish that it is still newest. They retain
+normal planning admission. A short durable request lease prevents concurrent identical requests
+from spending duplicate planning slots. A competing request receives the existing busy response;
+it does not start another planner. Failures do not refund planning allowance.
+
+The index expires after 24 hours and cascades on artist/job deletion. Browser roles have no access;
+`mnweb` has scoped table grants and RLS policies, with request authorization in the application.
+Migration 0046 must be applied and verified with the app role before enabling this code in each
+environment. Local SQL/mocked tests are not evidence of a deployed exhausted-quota browser check.
