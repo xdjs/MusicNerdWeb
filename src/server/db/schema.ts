@@ -1232,3 +1232,32 @@ export const artistQuestionRequests = pgTable("artist_question_requests", {
   pgPolicy("mnweb_update_artist_question_requests", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
   pgPolicy("mnweb_delete_artist_question_requests", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
+
+/** Exact, private identity assessment; pending curation never becomes approval. */
+export const artistSourceAssessments = pgTable('artist_source_assessments', {
+    sourceId: uuid('source_id').primaryKey().references(() => artistVaultSources.id, { onDelete: 'cascade' }),
+    artistId: uuid('artist_id').notNull().references(() => artists.id, { onDelete: 'cascade' }),
+    activityId: uuid('activity_id').notNull().references(() => artistActivityEvents.id, { onDelete: 'cascade' }),
+    snapshot: jsonb().notNull(),
+    assessedAt: timestamp('assessed_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, table => [
+    index('artist_source_assessments_artist').on(table.artistId),
+    pgPolicy('mnweb_source_assessments', { for: 'all', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
+
+/** Never a public bio/doc; claimants review sources and explicitly publish separately. */
+export const artistDirectoryPreparations = pgTable('artist_directory_preparations', {
+    artistId: uuid('artist_id').primaryKey().references(() => artists.id, { onDelete: 'cascade' }),
+    activityId: uuid('activity_id').notNull().references(() => artistActivityEvents.id, { onDelete: 'cascade' }),
+    jobId: uuid('job_id').notNull().references(() => artistResearchJobs.id, { onDelete: 'cascade' }),
+    status: text().notNull(),
+    document: text(),
+    about: text(),
+    startingBio: text('starting_bio'),
+    manifest: jsonb().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, table => [
+    check('artist_directory_preparations_status', sql`${table.status} in ('ready','insufficient')`),
+    check('artist_directory_preparations_ready', sql`${table.status} <> 'ready' or (${table.document} is not null and ${table.about} is not null)`),
+    pgPolicy('mnweb_directory_preparations', { for: 'all', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
