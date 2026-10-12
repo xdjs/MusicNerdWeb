@@ -285,3 +285,11 @@ in the hero’s status slot only when the lookup succeeded. `ClaimButton` retain
 and renders nothing for approved claims. The status interaction never starts a
 claim or login. Owner/admin edit checks, routes, persistence, jobs, external
 services and migrations are unchanged.
+
+## Admin claim submission dates
+
+Claim review normalizes PostgreSQL and ISO timestamps before displaying the submission
+in the viewer's local timezone. Space or `T` separators, up to six fractional digits,
+and `Z`, hour-only or hour/minute numeric offsets are supported. Unzoned database
+values retain the existing UTC interpretation. Invalid or missing values display
+`Date unavailable` once. Formatting never changes stored dates, claim status, or ownership.
