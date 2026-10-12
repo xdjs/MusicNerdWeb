@@ -2,6 +2,8 @@
 
 import { jest } from '@jest/globals';
 
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
+
 // Mock modules at the top level
 jest.mock('@/server/auth', () => ({
   getServerAuthSession: jest.fn(),
@@ -317,7 +319,7 @@ describe('/api/artistBio/[id]', () => {
 
       const response = await GET(createGetRegenerateRequest(), { params: paramsPromise });
 
-      expect(mockGenerateArtistBio).toHaveBeenCalledWith('artist-123', { userId: 'admin-uuid', expectedClaimId: null });
+      expect(mockGenerateArtistBio).toHaveBeenCalledWith('artist-123', { userId: 'admin-uuid', expectedClaimId: 'approved-claim' });
       const data = await response.json();
       expect(data.bio).toBe('Regenerated bio');
     });
@@ -333,4 +335,15 @@ describe('/api/artistBio/[id]', () => {
       expect(data.error).toBe('Artist not found');
     });
   });
+});
+
+it('does not return a stored bio before claim', async () => {
+  const { getLoreClaimGeneration } = await import('@/server/utils/queries/lorePersistence');
+  const { getArtistById } = await import('@/server/utils/queries/artistQueries');
+  getLoreClaimGeneration.mockResolvedValueOnce(null);
+  getArtistById.mockResolvedValueOnce({ id: 'artist-123', bio: 'Private prepared biography' });
+  const { GET } = await import('../route');
+  const response = await GET(new Request('http://localhost/api/artistBio/artist-123'), { params: Promise.resolve({ id: 'artist-123' }) });
+  expect(await response.text()).not.toContain('Private prepared');
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
 });

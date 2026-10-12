@@ -1,3 +1,4 @@
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { toArtistSummary } from "../transformers/artist-summary";

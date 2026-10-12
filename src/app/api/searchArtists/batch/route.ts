@@ -89,6 +89,7 @@ export async function POST(req: Request) {
           const [best] = rows
             .map((r) => ({
               ...r,
+              bio: null, // Do not retain claim-sensitive About in the search cache.
               isSpotifyOnly: false,
               matchScore: getMatchScore(r.name || "", q),
             }))

@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
 /**
  * When our own sources do not cover a question, the ask goes to the open web.
  * That is a second surface on the same artist's page, and the blocklist has to

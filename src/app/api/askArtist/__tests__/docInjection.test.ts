@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue('approved-claim') }));
 import { jest } from '@jest/globals';
 
 const mockTrackServerEvent = jest.fn(async () => undefined);
@@ -77,4 +78,23 @@ describe('POST /api/askArtist injects the artist doc', () => {
         }));
         expect(res.status).toBe(200);
     });
+});
+
+it('does not feed prepared About, Lore originals or compiled Lore into unclaimed chat', async () => {
+    const { getLoreClaimGeneration } = await import('@/server/utils/queries/lorePersistence');
+    const { getArtistById } = await import('@/server/utils/queries/artistQueries');
+    const { getArtistDocContext } = await import('@/server/utils/artistDocService');
+    const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+    const { generateText } = await import('@/server/lib/ai/generateText');
+    getLoreClaimGeneration.mockResolvedValueOnce(null);
+    getArtistById.mockResolvedValue({ id: 'a1', name: 'Nova', bio: 'PRIVATE ABOUT' });
+    getArtistDocContext.mockClear();
+    getVaultSourcesByArtistId.mockClear();
+    generateText.mockClear().mockResolvedValue({ text: 'No relevant evidence' });
+    const { POST } = await import('../route');
+    const response = await POST(new Request('http://x/api/askArtist', { method: 'POST', body: JSON.stringify({ artistId: 'a1', question: 'Tell me about Nova' }) }));
+    expect(response.status).toBe(200);
+    expect(getArtistDocContext).not.toHaveBeenCalled();
+    expect(getVaultSourcesByArtistId).not.toHaveBeenCalled();
+    expect(JSON.stringify(generateText.mock.calls)).not.toContain('PRIVATE ABOUT');
 });

@@ -8,6 +8,8 @@
  */
 import { jest } from '@jest/globals';
 
+const getLoreClaimGeneration = jest.fn();
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: (...a) => getLoreClaimGeneration(...a) }));
 const getArtistDocStrict = jest.fn();
 const getArtistById = jest.fn();
 
@@ -24,6 +26,7 @@ async function get(id = ID) {
 describe('GET /artist/[id]/llms.txt', () => {
     beforeEach(() => {
         jest.resetModules();
+        getLoreClaimGeneration.mockResolvedValue('approved-claim');
         getArtistDocStrict.mockReset();
         getArtistById.mockReset();
         getArtistById.mockResolvedValue({ id: ID, name: 'Tom Vek' });
@@ -84,4 +87,13 @@ describe('GET /artist/[id]/llms.txt', () => {
         getArtistDocStrict.mockRejectedValue(new Error('db down'));
         expect((await get()).status).toBe(503);
     });
+});
+
+it('hides prepared documents before claim and does not cache across claim transitions', async () => {
+  getLoreClaimGeneration.mockResolvedValueOnce(null);
+  getArtistDocStrict.mockClear();
+  const res = await get();
+  expect(res.status).toBe(404);
+  expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(getArtistDocStrict).not.toHaveBeenCalled();
 });
