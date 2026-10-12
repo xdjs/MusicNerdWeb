@@ -1,3 +1,5 @@
+import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
+import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
 import { approveUGC } from "./approveUGC";
 export { approveUGC } from "./approveUGC";
 import { db } from "@/server/db/drizzle";
@@ -838,6 +840,16 @@ export async function addArtistData(artistUrl: string, artist: Artist): Promise<
 
     if (!session) {
         throw new Error("Not authenticated");
+    }
+
+    const destination = parseMusicDestination(artistUrl);
+    if (destination?.kind === 'release') return { status: 'error', message: 'Add an artist profile link, not a song or album.' };
+    if (destination?.kind === 'artist' && ['apple_music','beatport'].includes(destination.platform)) {
+        try {
+            if (!session.user?.id) throw new Error('Not authenticated');
+            const result = await submitArtistDestination(artist.id, session.user.id, artistUrl);
+            return { status: 'success', message: "Thanks for adding, the artist or an admin can review this link in Lore", siteName: result.label };
+        } catch (error) { return { status: 'error', message: error instanceof Error ? error.message : 'Could not submit this link' }; }
     }
 
     const artistIdFromUrl = await extractArtistId(artistUrl);

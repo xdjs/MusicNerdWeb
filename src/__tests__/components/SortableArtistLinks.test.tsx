@@ -75,8 +75,25 @@ test('Done without a reordered link does not write', async () => {
 
 test('marks links that arrived with the build being watched, and only those', () => {
     const { OnboardingProgressContext } = jest.requireActual('@/app/artist/[id]/_components/onboarding/OnboardingProgressContext');
-    const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: ['deezer'], sources: [] } };
+    const value = { steps: { profiles: 't1', vault: null, interview: null, publish: null }, fresh: { profiles: true, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: ['deezer'], sources: [] } };
     render(<OnboardingProgressContext.Provider value={value}>{view()}</OnboardingProgressContext.Provider>);
     expect(screen.getByRole('link', { name: /spotify/i }).closest('[data-research-new-item]')).not.toBeNull();
     expect(screen.getByRole('link', { name: /deezer/i }).closest('[data-research-new-item]')).toBeNull();
+});
+
+test('source-backed platforms share the icon grid but retain source-managed editing', async () => {
+    const supplementalLinks = [{siteName:'applemusic',label:'Apple Music',href:'https://music.apple.com/us/artist/pete/1513734272',iconSrc:'/siteIcons/applemusic_icon.svg'}];
+    const fetchMock = jest.spyOn(global,'fetch').mockResolvedValue({ok:true} as Response);
+    render(<EditModeProvider canEdit><EditModeToggle/><SortableArtistLinks artistId="a1" section="links" links={links} supplementalLinks={supplementalLinks} canEdit/></EditModeProvider>);
+    const apple = screen.getByRole('link',{name:'Apple Music'});
+    expect(apple.querySelector('img')).toHaveAttribute('src','/siteIcons/applemusic_icon.svg');
+    expect(apple.closest('.grid')).toBe(screen.getByRole('link',{name:'Spotify'}).closest('.grid'));
+    fireEvent.click(screen.getByRole('button',{name:'Edit profile'}));
+    expect(screen.getByRole('button',{name:'Remove Apple Music'})).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Reorder Apple Music'})).not.toBeInTheDocument();
+    drag();
+    fireEvent.click(screen.getByRole('button',{name:'Done'}));
+    await waitFor(()=>expect(refresh).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).order).toEqual(['deezer','spotify']);
+    fetchMock.mockRestore();
 });

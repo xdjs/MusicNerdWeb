@@ -4,7 +4,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import VaultSection from "../VaultSection";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
-const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), baseline: { links: [], sources: [] }, ...over });
+const research = (over = {}) => ({ steps: researchNone, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
 
 jest.mock("../PressAndFeatures", () => function MockPressAndFeatures() { return <div>Public Lore</div>; });

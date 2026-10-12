@@ -10,7 +10,7 @@ export const referenceSchema = z.object({
     .string()
     .regex(
       new RegExp(
-        `^(?:(?:discovery|vault):${uuid}|social:${uuid}:(?:caption|transcript))$`,
+        `^(?:(?:discovery|vault|public_answer):${uuid}|social:${uuid}:(?:caption|transcript)|latest:(?:spotify|deezer|inprocess):[a-f0-9]{64})$`,
         "i",
       ),
     ),
@@ -23,11 +23,14 @@ export const referenceSchema = z.object({
   evidenceKind: z.enum(["original_text", "caption", "provider_transcript"]),
   speaker: z.enum(["not_applicable", "unverified"]),
   publishedAt: z.string().nullable(),
+  activityDate: z.string().max(100).optional(),
+  activityDateKind: z.enum(["release", "moment"]).optional(),
   retrievedAt: z.string().nullable(),
   truncated: z.boolean().nullable(),
 });
 export const researchStatusSchema = z.object({
   status: z.literal("ok"),
+  outsideResearchReason: z.literal("quota").optional(),
   jobId: z.string().uuid(),
   stage: z.enum([
     "checking_saved",
@@ -65,8 +68,11 @@ export const questionPlanSchema = z
       "spoken_content",
     ]),
     freshness: z.enum(["stored", "recent"]),
+    retrieval: z.enum(["latest", "relevance"]).default("relevance"),
+    answerScope: z.enum(["overview", "focused"]).default("focused"),
+    resolvedQuestion: z.string().trim().min(1).max(500).optional(),
     targetUrl: publicUrl.nullable(),
-    platform: z.enum(["instagram", "tiktok", "x"]).nullable(),
+    platform: z.enum(["instagram", "tiktok", "x", "inprocess", "spotify", "deezer"]).nullable(),
     fromDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -86,7 +92,8 @@ export const answerDraftSchema = z.object({
           .array(
             z.object({
               n: z.number().int().min(1).max(3),
-              quote: z.string().min(8).max(1800),
+              field: z.enum(["text", "publishedAt", "activityDate"]).default("text"),
+              quote: z.string().min(4).max(1800),
             }),
           )
           .min(1)

@@ -1,3 +1,4 @@
+jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 // @ts-nocheck
 import React from 'react';
 import { render, screen } from '@testing-library/react';

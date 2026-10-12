@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { researchReadSchema } from "@/lib/questionResearch/schemas";
+import { formatLatestSourceDetails } from "@/lib/questionResearch/formatLatestSourceDetails";
+import { readSourceDetails } from "@/lib/questionResearch/readSourceDetails";
 /** Read the exact stored revision on demand; opening a citation never starts research. */
 export default function ResearchSourcePassage({
   artistId,
@@ -17,10 +18,14 @@ export default function ResearchSourcePassage({
 }) {
   const [open, setOpen] = useState(false),
     [text, setText] = useState<string | null>(null),
-    [error, setError] = useState<string | null>(null);
+    [error, setError] = useState<string | null>(null),
+    [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   if (!source.sourceId || !source.revision) return null;
+  const structured = source.sourceId.startsWith("latest:");
+  const details =
+    text === null ? null : formatLatestSourceDetails(source.sourceId, text);
   const read = async () => {
     if (open) {
       setOpen(false);
@@ -33,21 +38,11 @@ export default function ResearchSourcePassage({
     controller.current = c;
     setError(null);
     try {
-      const q = new URLSearchParams({
-        sourceId: source.sourceId!,
-        revision: source.revision!,
-        start: String(source.start ?? 0),
-      });
-      const response = await fetch(
-        `/api/artist/${artistId}/questionResearch/source?${q}`,
-        { signal: c.signal, cache: "no-store" },
-      );
-      if (!response.ok)
-        throw new Error(
-          "This original changed or is no longer available. Refresh the research.",
-        );
-      const original = researchReadSchema.parse(await response.json());
-      setText(original.passage.text);
+      const original = await readSourceDetails(artistId, {
+        sourceId: source.sourceId!, revision: source.revision!, start: source.start,
+      }, c.signal);
+      setText(original.text);
+      setSourceUrl(original.url);
     } catch (e) {
       if (!c.signal.aborted)
         setError(e instanceof Error ? e.message : "Original unavailable");
@@ -61,7 +56,7 @@ export default function ResearchSourcePassage({
         aria-expanded={open}
         className="min-h-11 underline underline-offset-4"
       >
-        Read passage [{source.n}]
+        {structured ? "Source details" : "Read passage"} [{source.n}]
       </button>
       {source.curation === "pending" && (
         <span className="ml-2">Awaiting artist review</span>
@@ -72,6 +67,33 @@ export default function ResearchSourcePassage({
             <p role="alert">{error}</p>
           ) : text === null ? (
             <p role="status">Opening the original…</p>
+          ) : structured ? (
+            <div className="space-y-3">
+              {details ? (
+                <dl className="space-y-2">
+                  {details.map(({ label, value }) => (
+                    <div key={label}>
+                      <dt className="text-white/50">{label}</dt>
+                      <dd className="whitespace-pre-wrap break-words text-white/90">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p>Source details aren’t available here.</p>
+              )}
+              {sourceUrl && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                >
+                  Open original source ↗
+                </a>
+              )}
+            </div>
           ) : (
             <blockquote className="whitespace-pre-wrap">{text}</blockquote>
           )}

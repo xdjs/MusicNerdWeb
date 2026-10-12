@@ -13,6 +13,7 @@ interface EditableLinkIconProps {
     iconSrc: string;
     label: string;
     canEdit?: boolean;
+    sourceId?: string;
     dragHandleProps?: ButtonHTMLAttributes<HTMLButtonElement>;
     children?: React.ReactNode;
 }
@@ -24,9 +25,10 @@ export default function EditableLinkIcon({
     iconSrc,
     label,
     canEdit = true,
+    sourceId,
     dragHandleProps,
 }: EditableLinkIconProps) {
-    const { isEditing } = useContext(EditModeContext);
+    const { isEditing, refreshProfile } = useContext(EditModeContext);
     const [deleting, setDeleting] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
@@ -36,14 +38,14 @@ export default function EditableLinkIcon({
         e.stopPropagation();
         setDeleting(true);
         try {
-            const res = await fetch("/api/directEditLink", {
+            const res = await fetch(sourceId ? `/api/artist/${encodeURIComponent(artistId)}/link-suggestions` : "/api/directEditLink", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ artistId, action: "clear", siteName }),
+                body: JSON.stringify(sourceId ? {id: sourceId, kind: "source", decision: "remove"} : { artistId, action: "clear", siteName }),
             });
             if (res.ok) {
                 toast({ title: `Removed ${label}` });
-                router.refresh();
+                if (refreshProfile) refreshProfile(); else router.refresh();
             } else {
                 const data = await res.json();
                 toast({ title: "Error", description: data.error, variant: "destructive" });

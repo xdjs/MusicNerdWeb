@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
+import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "@/server/db/drizzle";
 
@@ -8,7 +9,7 @@ export async function registerResearchQuestion(
   jobId: string,
   question: string,
 ): Promise<boolean> {
-  const questionHash = createHash("sha256").update(question).digest("hex");
+  const questionHash = getResearchQuestionHash(question);
   return db.transaction(async tx => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${jobId}))`);
     await tx.execute(sql`delete from artist_question_answers where expires_at<now()`);

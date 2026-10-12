@@ -1,5 +1,6 @@
 "use client";
 
+import SuggestedLinkReview from "./SuggestedLinkReview";
 import { useContext, useState, type ReactNode } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { ChevronDown } from "lucide-react";
@@ -31,7 +32,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
   const { isEditing, canEdit, toggle } = useContext(EditModeContext);
   const [collapsed, setCollapsed] = useState(false);
   const pendingLore = pendingSources.filter(source => !isDestinationSource(source));
-  const approvedLore = approvedSources.filter(source => !isDestinationSource(source));
+  const approvedLore = approvedSources;
 
   return (
     <RevealSection editable className="glass p-4 sm:p-5 space-y-5 transition-shadow has-[[data-research-new]]:ring-2 has-[[data-research-new]]:ring-highlightpink/70">
@@ -54,7 +55,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
           <TabsTrigger value="bios" className="min-h-11 rounded-lg px-1 text-xs text-gray-600 transition-colors data-[state=active]:bg-pink-500/10 data-[state=active]:text-pink-800 data-[state=active]:shadow-none dark:text-gray-300 dark:data-[state=active]:text-pink-200 sm:text-sm">Bios</TabsTrigger>
         </TabsList>
         <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden"><ArtistInterviews key={artistId} artistId={artistId} /></TabsContent>
-        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><VaultManager key={getSourceReviewKey(artistId, 'lore', pendingLore, approvedLore)} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={artistId} artistId={artistId} /></div></TabsContent>
+        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><SuggestedLinkReview key={artistId} artistId={artistId} /><VaultManager key={getSourceReviewKey(artistId, 'lore', pendingLore, approvedLore)} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={artistId} artistId={artistId} /></div></TabsContent>
         <TabsContent value="bios" forceMount className="data-[state=inactive]:hidden"><h3 className="text-base font-semibold text-foreground">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></TabsContent>
       </Tabs>}
       {!canEdit && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove={autoApprove} />}

@@ -1,4 +1,5 @@
-"use client"
+"use client";
+import { parseMusicDestination } from "@/lib/musicLinks/parseMusicDestination"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -171,6 +172,9 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
 
     // Add a function to call the backend validator
     async function validatePlatformLinkBackend(url: string): Promise<boolean> {
+        const destination = parseMusicDestination(url);
+        if (destination?.kind === "release") return false;
+        if (destination?.kind === "artist" && ["apple_music", "beatport"].includes(destination.platform)) return true;
         // The page only supplies prefillUrl after validating an exact Spotify or
         // Deezer artist URL on the server. If the optional client regex lookup
         // fails, let that untouched value reach the authoritative server write

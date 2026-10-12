@@ -96,7 +96,7 @@ it('finishes an in-flight answer while minimized without resubmitting when reope
     const trigger = screen.getByRole('button', { name: 'Ask about Nova' });
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole('button', { name: 'How did Nova get started?' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Finding an answer');
+    expect(screen.getByRole('status')).toHaveTextContent('Checking Lore…');
     fireEvent.click(screen.getByRole('button', { name: 'Minimize chat' }));
     await act(async () => resolve({ ok: true, json: async () => ({ answer: 'Ready when you return.', suggestions: [] }) } as Response));
     fireEvent.click(trigger);

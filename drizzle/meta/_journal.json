@@ -316,6 +316,13 @@
       "when": 1791435739967,
       "tag": "0044_question_answer_replay",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1791521958585,
+      "tag": "0045_latest_provider_snapshots",
+      "breakpoints": true
     }
   ]
 }

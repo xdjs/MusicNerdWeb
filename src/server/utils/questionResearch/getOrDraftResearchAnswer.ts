@@ -1,3 +1,4 @@
+import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -30,9 +31,13 @@ const saved = z.object({
     end: z.number().int().nonnegative(),
     url: z.string().url(),
     textHash: z.string().regex(/^[a-f0-9]{64}$/),
+    publishedAt: z.string().nullable(),
+    activityDate: z.string().optional(),
+    activityDateKind: z.enum(["release", "moment"]).optional(),
   })).max(3),
 });
 type Row = {
+  question_hash: string;
   artist_id: string;
   status: string;
   claim_until: string;
@@ -62,7 +67,9 @@ export async function getOrDraftResearchAnswer(input: {
   signal?: AbortSignal;
 }): Promise<Outcome> {
   const { artistId, artistName, jobId, question, references, signal } = input;
-  const questionHash = hash(question);
+  const currentQuestionHash = getResearchQuestionHash(question);
+  const legacyQuestionHash = hash(question);
+  let questionHash = currentQuestionHash;
   const token = randomUUID();
   // Opportunistic physical cleanup; the expiry index keeps this bounded. Job
   // and artist deletion also cascade, including when no visitor returns.
@@ -70,11 +77,14 @@ export async function getOrDraftResearchAnswer(input: {
   let ownsLease = false;
   {
     const [row] = await db.execute<Row>(sql`
-      select artist_id,status,claim_until,attempts,result,failure_stage
+      select artist_id,status,claim_until,attempts,result,failure_stage,question_hash
       from artist_question_answers
       where job_id=${jobId}::uuid and artist_id=${artistId}::uuid
-        and question_hash=${questionHash} and expires_at>now()`);
+        and question_hash in (${currentQuestionHash}, ${legacyQuestionHash}) and expires_at>now()
+      order by (question_hash=${currentQuestionHash}) desc limit 1`);
     if (!row) return { state: "unregistered" };
+    // Resume the registered policy in place; never reset attempts or create a new lease row.
+    questionHash = row.question_hash;
     if (row.status === "verified") {
       const parsed = saved.safeParse(row.result);
       if (!parsed.success) return { state: "unavailable" };
@@ -83,7 +93,8 @@ export async function getOrDraftResearchAnswer(input: {
       const current = parsed.data.basis.map(b => references.find(r =>
         r.sourceId === b.sourceId && r.revision === b.revision &&
         r.start === b.start && r.end === b.end && r.url === b.url &&
-        hash(r.text) === b.textHash));
+        hash(r.text) === b.textHash && r.publishedAt === b.publishedAt &&
+        r.activityDate === b.activityDate && r.activityDateKind === b.activityDateKind));
       if (current.some(r => !r) || current.length !== parsed.data.sources.length)
         return { state: "unavailable" };
       const result = {
@@ -106,7 +117,8 @@ export async function getOrDraftResearchAnswer(input: {
         },
       };
     }
-    if (row.attempts >= 3 && row.status === "failed")
+    if (row.attempts >= 3 && (row.status === "failed" ||
+      (row.status === "drafting" && Date.parse(row.claim_until) <= Date.now())))
       return { state: "failed", stage: row.failure_stage ?? "draft", retryable: false };
     if (row.status !== "waiting" && Date.parse(row.claim_until) > Date.now())
       return row.status === "failed"
@@ -137,7 +149,8 @@ export async function getOrDraftResearchAnswer(input: {
       ...drafted,
       basis: used.map(r => ({
         sourceId: r.sourceId, revision: r.revision, start: r.start,
-        end: r.end, url: r.url, textHash: hash(r.text),
+        end: r.end, url: r.url, textHash: hash(r.text), publishedAt: r.publishedAt,
+        activityDate: r.activityDate, activityDateKind: r.activityDateKind,
       })),
     });
     if (result.sources.length !== result.basis.length)

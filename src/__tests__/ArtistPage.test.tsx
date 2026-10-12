@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/artistLinkReview/getHiddenLinkSourceIds',()=>({getHiddenLinkSourceIds:jest.fn().mockResolvedValue([])}));
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
@@ -224,7 +225,7 @@ describe('ArtistProfile page', () => {
 
         it('opens the existing Ask UI from its persistent trigger', async () => {
             await renderArtistPage();
-            expect(screen.getByTestId('ask-about-artist')).not.toBeVisible();
+            expect(screen.queryByTestId('ask-about-artist')).not.toBeInTheDocument();
             fireEvent.click(screen.getByRole('button', { name: 'Ask about Test Artist' }));
             expect(screen.getByTestId('ask-about-artist')).toBeVisible();
         });

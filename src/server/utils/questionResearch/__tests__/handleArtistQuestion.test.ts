@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { reserveQuestionPlanning } from "../reserveQuestionPlanning";
+jest.mock("../reserveQuestionPlanning",()=>({reserveQuestionPlanning:jest.fn()}));
 import { handleArtistQuestion } from "../handleArtistQuestion";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { planArtistQuestion } from "../planArtistQuestion";
@@ -71,7 +73,7 @@ it("does not generate a guessed answer to an unresolved request", async () => {
     .mocked(callResearchApi)
     .mockResolvedValue({ ...status, stage: "unresolved" });
   const r = await handleArtistQuestion(request({ jobId }));
-  expect((await r.json()).answer).toMatch(/could not establish/i);
+  expect((await r.json()).answer).toMatch(/not have enough information|don.t have enough information/i);
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
 it("rejects invalid request scope before any API/model work", async () => {
@@ -137,4 +139,55 @@ it("enforces the per-job answer budget on initial submission", async () => {
   const r = await handleArtistQuestion(request());
   expect(r.status).toBe(429);
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it("binds a follow-up's standalone question to its job and does not send chat history to the API", async () => {
+  const conversation = [{ question: "What was the post about?", answer: "The PPNE NYC visualizer." }];
+  jest.mocked(planArtistQuestion).mockResolvedValue({
+    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored",
+    retrieval: "relevance", resolvedQuestion: "Who created the PPNE NYC visualizer?",
+  });
+  const r = await handleArtistQuestion(request({ question: "Who created it?", conversation }));
+  expect(r.status).toBe(202);
+  expect(jest.mocked(planArtistQuestion).mock.calls[0].filter((_, i) => i !== 2)).toEqual(["Artist", "Who created it?", conversation]);
+  expect(callResearchApi).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ body: {
+    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored", retrieval: "relevance",
+  } }));
+  expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who created the PPNE NYC visualizer?");
+  expect((await r.json()).research.resolvedQuestion).toBe("Who created the PPNE NYC visualizer?");
+});
+it.each([
+  { conversation: Array.from({ length: 5 }, () => ({ question: "q", answer: "a" })) },
+  { conversation: [{ question: "q", answer: "a".repeat(3001) }] },
+  { conversation: [{ question: "q", answer: "a", privateMemory: "secret" }] },
+  { conversation: Array.from({ length: 4 }, () => ({ question: "q".repeat(500), answer: "a".repeat(3000) })) },
+  { interviewMemory: "must never be accepted" },
+])("rejects invalid conversation context before any provider work %#", async (extra) => {
+  const r = await handleArtistQuestion(request(extra));
+  expect(r.status).toBe(400);
+  expect(planArtistQuestion).not.toHaveBeenCalled();
+  expect(callResearchApi).not.toHaveBeenCalled();
+});
+it('explains outside quota separately from missing saved evidence',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',outsideResearchReason:'quota'});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toMatch(/saved sources.*Outside research is at its limit/);expect(body.research.outsideResearchReason).toBe('quota');expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it.each([['saved_evidence_quota','saved-source answer limit'],['research_busy','busy right now']])('distinguishes %s',async(code,message)=>{
+ jest.mocked(callResearchApi).mockRejectedValue(Object.assign(new Error('private details'),{status:429,code}));
+ const body=await (await handleArtistQuestion(request())).json();expect(body.error).toContain(message);expect(body.code).toBe(code);
+});
+
+it('does not plan after bounded planning admission is denied',async()=>{jest.mocked(reserveQuestionPlanning).mockRejectedValue(Object.assign(new Error('limit'),{status:429,code:'question_planning_quota'}));expect((await handleArtistQuestion(request())).status).toBe(429);expect(planArtistQuestion).not.toHaveBeenCalled();expect(callResearchApi).not.toHaveBeenCalled()});
+it('polls an existing job without spending a planning reservation',async()=>{await handleArtistQuestion(request({jobId}));expect(reserveQuestionPlanning).not.toHaveBeenCalled()});
+it('explains when the requested provider needs a refresh without claiming no information exists', async () => {
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',limitations:['provider_latest_refresh_required']});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toMatch(/saved information from that source/);
+ expect(body.answer).toMatch(/refresh/);
+ expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+it('returns an operational error rather than an answer for a failed research job',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'failed'});
+ const r=await handleArtistQuestion(request({jobId}));
+ expect(r.status).toBe(503);const body=await r.json();expect(body).toMatchObject({retryFromStart:true});expect(body).not.toHaveProperty('answer');
 });

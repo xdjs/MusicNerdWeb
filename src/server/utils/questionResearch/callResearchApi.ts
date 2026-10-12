@@ -56,6 +56,18 @@ export async function callResearchApi(
     reader.releaseLock();
   }
   if (!response.ok) {
+    let code: unknown;
+    try {
+      code = JSON.parse(Buffer.concat(chunks).toString("utf8")).code;
+    } catch {
+      /* Safe fallback below. */
+    }
+    if (
+      !["saved_evidence_quota", "research_quota", "research_busy"].includes(
+        String(code),
+      )
+    )
+      code = undefined;
     const error = new Error(
       response.status === 429
         ? "The research limit has been reached. Try again later."
@@ -63,7 +75,7 @@ export async function callResearchApi(
           ? "The source changed. Reload the research before continuing."
           : "Research is temporarily unavailable.",
     );
-    Object.assign(error, { status: response.status });
+    Object.assign(error, { status: response.status, code });
     throw error;
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
