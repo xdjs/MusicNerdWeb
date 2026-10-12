@@ -23,3 +23,17 @@ it('surfaces failed research after approval and refreshes the committed claim st
     expect(approveClaimAction).toHaveBeenCalledWith('claim');
     expect(refresh).toHaveBeenCalledTimes(1);
 });
+
+it('renders database submission dates on initial and refreshed claim lists without a write', () => {
+    jest.mocked(approveClaimAction).mockClear();
+    jest.mocked(useRouter).mockReturnValue({ refresh: jest.fn() } as unknown as ReturnType<typeof useRouter>);
+    jest.mocked(useToast).mockReturnValue({ toast: jest.fn() } as unknown as ReturnType<typeof useToast>);
+    const claim: ClaimRow = { id: 'claim', artistId: 'artist', artistName: 'Artist', status: 'pending', referenceCode: 'MN-TEST', artistInstagram: null, userEmail: null, userName: 'Requester', createdAt: '2026-10-11 12:34:56.123456+00' };
+    const { rerender } = render(<ClaimsDataTable columns={claimsColumns} data={[claim]} />);
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Date unavailable')).not.toBeInTheDocument();
+    rerender(<ClaimsDataTable columns={claimsColumns} data={[{ ...claim, createdAt: 'bad value' }]} />);
+    expect(screen.getByText('Date unavailable')).toBeInTheDocument();
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+    expect(approveClaimAction).not.toHaveBeenCalled();
+});
