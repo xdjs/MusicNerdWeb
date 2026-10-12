@@ -11,7 +11,7 @@ export const triggerLabels: Record<string, string> = {
   ask_about_budget: 'Ask About budget',
   manual_latest_refresh: 'Update Latest',
   onboarding: 'Onboarding', editor_search: 'Search web for sources', visitor_suggestion: 'Visitor suggestion',
-  editor_source: 'Add to Lore', upload: 'File upload', claim_approval: 'Claim approval',
+  editor_source: 'Add to Lore', upload: 'File upload', claim_approval: 'Claim approved',
   manual_refresh: 'Look again', source_change: 'Source change', lore_correction: 'Lore correction',
   source_review: 'Source review',
   trusted_submission: 'Auto-approved submission', source_submission: 'Lore submission', admin_bulk_review: 'Admin bulk review',

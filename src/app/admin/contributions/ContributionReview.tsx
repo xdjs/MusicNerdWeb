@@ -9,6 +9,7 @@ import type { Contribution, getAdminContributions } from '@/server/utils/contrib
 import ContributionFilters from './ContributionFilters';
 import BulkApproveContributor from './BulkApproveContributor';
 import layout from './Contributions.module.css';
+import { researchAttribution } from '@/lib/activity/researchAttribution';
 import { triggerLabels } from '@/lib/activity/activityLabels';
 import styles from '@/components/community/Community.module.css';
 import surface from '@/app/profile/ProfileConcept.module.css';
@@ -66,10 +67,10 @@ export default function ContributionReview({ data, contributorName, onApproveLin
      </div>
      {item.url && (/^https?:\/\//i.test(item.url) ? <a className={styles.loreUrl} href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a> : <p className={styles.loreUrl}>{item.url}</p>)}
      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{types[item.type]}</span><span>{origins[item.origin]}</span><span className="capitalize">{item.status}</span></div>
-     <p className="break-words text-sm">{item.origin==='research'?'Research initiated by':item.origin==='user'?'Submitted by':'Recorded account:'} {actor}</p>
+     <p className="break-words text-sm">{item.origin==='research' ? researchAttribution(actor,item.trigger).actorLabel : `${item.origin==='user' ? item.type==='upload' ? 'Uploaded by' : 'Submitted by' : 'Recorded account:'} ${actor}`}</p>
      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
       {item.createdAt && <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('en-US',{timeZone:'UTC'})} UTC</time>}
-      {item.trigger && <span>{triggerLabels[item.trigger] || item.trigger}</span>}
+      {item.origin==='research' ? <span>{researchAttribution(actor,item.trigger).reasonLabel}</span> : item.trigger && <span>{triggerLabels[item.trigger] || item.trigger}</span>}
      </div>
      <div className="flex flex-wrap gap-4 text-sm">
       {item.userId && !data.userId && <Link className="underline" href={`/admin/contributions?userId=${item.userId}&status=all`}>View user contributions</Link>}

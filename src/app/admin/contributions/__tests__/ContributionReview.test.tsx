@@ -15,7 +15,7 @@ it('shows full totals, preserves account in filters/pages and identifies researc
  expect(screen.getByRole('option', {name:'User submissions (40 total)'})).toBeInTheDocument();
  expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('55');
  expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('37 awaiting review');
- expect(screen.getByText('Research initiated by Demo user')).toBeInTheDocument();
+ expect(screen.getByText('Research requested by Demo user')).toBeInTheDocument();
  expect(screen.queryByText('Submitted by Demo user')).not.toBeInTheDocument();
  expect(screen.getByRole('link', {name:'Next'}).getAttribute('href')).toContain('userId=account');
  expect(screen.getByRole('link', {name:'Next'}).getAttribute('href')).toContain('origin=research');
@@ -36,4 +36,16 @@ it('does not offer review actions for completed submissions', () => {
 it('hides the user review shortcut when no user submissions are pending', () => {
  render(<ContributionReview data={{...data,counts:{...data.counts,user:{total:40,pending:0}}}} />);
  expect(screen.queryByRole('link',{name:'Review pending user submissions'})).not.toBeInTheDocument();
+});
+
+it.each([
+ ['research', 'lore', 'claim_approval', 'Claim approved by Demo user'],
+ ['research', 'lore', 'editor_search', 'Research requested by Demo user'],
+ ['user', 'lore', 'visitor_suggestion', 'Submitted by Demo user'],
+ ['user', 'upload', 'upload', 'Uploaded by Demo user'],
+ ['unknown', 'lore', 'claim_approval', 'Recorded account: Demo user'],
+] as const)('preserves contributor role for %s / %s / %s', (origin,type,trigger,label) => {
+ render(<ContributionReview data={{...data,items:[{...data.items[0],origin,type,trigger}]}} />);
+ expect(screen.getByText(label)).toBeInTheDocument();
+ if(origin==='research' && trigger==='claim_approval') expect(screen.getByText('Research reason: Claim approved')).toBeInTheDocument();
 });

@@ -301,5 +301,6 @@ role from the reason work began. Research triggered by `claim_approval` displays
 `Research reason: Claim approved` and `Claim approved by {actor}`. Manual source
 search remains `Research requested by {actor}`. Direct contributions remain
 `Submitted by {contributor}`, and uploads retain uploader attribution. Legacy unknown
-origin/actor information stays unknown. This is presentation only: actor IDs, triggers,
+origin/actor information stays unknown; missing or unrecorded research reasons use the
+neutral `Recorded account` label. This is presentation only: actor IDs, triggers,
 submission timestamps, claim records, and research execution are unchanged.
