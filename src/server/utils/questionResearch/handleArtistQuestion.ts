@@ -1,3 +1,8 @@
+import { listReusableQuestionCandidates } from "./listReusableQuestionCandidates";
+import { hasCompatibleReuseScope } from "@/lib/questionResearch/hasCompatibleReuseScope";
+import { releaseQuestionRequest } from "./releaseQuestionRequest";
+import { reuseQuestionRequest } from "./reuseQuestionRequest";
+import { bindQuestionRequest } from "./bindQuestionRequest";
 import { reserveQuestionPlanning } from "./reserveQuestionPlanning";
 import { questionRequestSchema } from "@/lib/questionResearch/questionRequestSchema";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
@@ -8,7 +13,9 @@ import { registerResearchQuestion } from "./registerResearchQuestion";
 import { researchStatusSchema } from "@/lib/questionResearch/schemas";
 /** Public chat is limited to the API's public evidence capability; private history is never loaded. */
 export async function handleArtistQuestion(request: Request) {
+  const signal = AbortSignal.any([...(request.signal ? [request.signal] : []), AbortSignal.timeout(55000)]);
   const headers = { "Cache-Control": "private, no-store" };
+  let requestLease: { artistId: string; requestHash: string; token: string } | undefined;
   try {
     const raw = await request.text();
     if (raw.length > 18000)
@@ -39,21 +46,57 @@ export async function handleArtistQuestion(request: Request) {
         { status: 404, headers },
       );
     const name = artist.name ?? "This artist";
+    const reuse = jobId ? null : await reuseQuestionRequest({ artistId, artistName: name, question, conversation, signal });
+    if (reuse?.state === "ready") return Response.json({
+      ...reuse.result,
+      bandcamp: artist.bandcamp ? `https://${artist.bandcamp}.bandcamp.com` : null,
+      limitations: reuse.limitations,
+    }, { headers });
+    if (reuse?.state === "busy") throw Object.assign(new Error("An identical request is already running"), { status: 429, code: "research_busy" });
+    if (reuse?.state === "claimed") requestLease = { artistId, requestHash: reuse.requestHash, token: reuse.token };
     if (!jobId) await reserveQuestionPlanning(artistId);
+    const candidates = jobId ? [] : await listReusableQuestionCandidates(artistId);
     const plan = jobId
       ? null
-      : await planArtistQuestion(name, question, request.signal, conversation);
-    const { resolvedQuestion: resolved = question, ...routing } = plan ?? {};
+      : await planArtistQuestion(name, question, signal, conversation, candidates);
+    const { resolvedQuestion: resolved = question, answerIntent, reuseCandidateId, reuseAction, ...routing } = plan ?? {};
     const resolvedQuestion = typeof resolved === "string" ? resolved : question;
+    const candidate = typeof reuseCandidateId === "string"
+      ? candidates.find(c => c.id === reuseCandidateId && hasCompatibleReuseScope(routing, c, String(reuseAction))) : undefined;
+    if (candidate && reuse?.state === "claimed" && typeof answerIntent === "string"
+      && ["same_answer","adapt_evidence"].includes(String(reuseAction))) {
+      const current = researchStatusSchema.parse(await callResearchApi(
+        `/api/artist/${artistId}/research/questions/${candidate.jobId}`, { signal },
+      ));
+      if (current.stage === "complete") {
+        const checked = await getOrDraftResearchAnswer({
+          artistId, artistName:name, jobId:candidate.jobId, question:resolvedQuestion,
+          references:current.references, signal, readOnlyQuestionHash:candidate.questionHash,
+        });
+        if (checked.state === "ready" && await registerResearchQuestion(artistId,candidate.jobId,resolvedQuestion)) {
+          // The planner proposes evidence, never permission to reuse an answer for a new meaning.
+          const variant = await getOrDraftResearchAnswer({artistId,artistName:name,
+            jobId:candidate.jobId,question:resolvedQuestion,references:current.references,signal});
+          if (variant.state === "ready" && variant.result.sources.length > 0) {
+            await bindQuestionRequest({artistId,requestHash:reuse.requestHash,token:reuse.token,
+              jobId:candidate.jobId,question:resolvedQuestion,reusable:true,answerIntent,routing});
+            return Response.json({...variant.result,bandcamp:artist.bandcamp ? `https://${artist.bandcamp}.bandcamp.com` : null,limitations:current.limitations},{headers});
+          }
+          if (variant.state === "drafting") throw Object.assign(new Error("The answer is already being checked"),{status:429,code:"research_busy"});
+          if (variant.state === "failed") throw new Error("The saved evidence could not be checked");
+          // An empty/invalid answer is not proof the fact is absent: continue normal research.
+        }
+      }
+    }
     const state = researchStatusSchema.parse(
       jobId
         ? await callResearchApi(
             `/api/artist/${artistId}/research/questions/${jobId}`,
-            { signal: request.signal },
+            { signal },
           )
         : await callResearchApi(`/api/artist/${artistId}/research/questions`, {
             body: routing,
-            signal: request.signal,
+            signal,
           }),
     );
     if (
@@ -67,6 +110,14 @@ export async function handleArtistQuestion(request: Request) {
         },
         { status: 429, headers },
       );
+    if (reuse?.state === "claimed") await bindQuestionRequest({
+      artistId, requestHash: reuse.requestHash, token: reuse.token,
+      jobId: state.jobId, question: resolvedQuestion,
+      answerIntent: typeof answerIntent === "string" ? answerIntent : undefined, routing,
+      // An original remaining readable does not prove it is still the newest.
+      reusable: routing.retrieval !== "latest" && routing.freshness !== "recent"
+        && !routing.fromDate && !routing.toDate,
+    });
     if (
       !jobId ||
       !["complete", "unresolved", "failed", "cancelled"].includes(state.stage)
@@ -122,7 +173,7 @@ export async function handleArtistQuestion(request: Request) {
         jobId: state.jobId,
         question: resolvedQuestion,
         references: state.references,
-        signal: request.signal,
+        signal,
       });
       if (outcome.state === "drafting")
         return Response.json(
@@ -221,5 +272,7 @@ export async function handleArtistQuestion(request: Request) {
       },
       { status, headers },
     );
+  } finally {
+    if (requestLease) await releaseQuestionRequest(requestLease.artistId, requestLease.requestHash, requestLease.token).catch(() => undefined);
   }
 }

@@ -19,3 +19,56 @@ Question bubbles wrap long URLs within their available width. Ordinary prose kee
 ## Same-page follow-up context
 
 The UI supplies up to four completed preceding question/answer turns from the current artist conversation, with each question capped at 500 characters and each answer at 3,000. Up to three exact HTTP(S) citation URLs (2,048 characters each) accompany each turn as source anchors. Oldest turns are dropped until the combined question, answer and URL text is at most 12,000 characters. This context disambiguates wording; it is not source evidence. Each question retains the exact context originally sent and the server-resolved standalone question, so explicit retries use the same meaning and job binding. The visible question stays in the listener's original words. Artist navigation clears this context.
+
+## Pre-planning reuse (#1472, proposed)
+
+A new server-only request index links a hash of the artist, current question and exact bounded
+public conversation to the registered answer hash and research job. No raw question or history
+is retained in this index. Exact wording, source URLs and their order remain significant; similar
+wording is evaluated separately by the admitted semantic path described below. A changed conversation or explicit constraint is a new request.
+
+Before reserving planning allowance, Web checks this binding and asks the API to revalidate its
+originals. Only an already verified answer can return through this path. Private interview memory
+is never consulted. Time-sensitive plans (latest/recent retrieval or explicit date windows) are not
+reused here: validating an old source alone cannot establish that it is still newest. They retain
+normal planning admission. A short durable request lease prevents concurrent identical requests
+from spending duplicate planning slots. A competing request receives the existing busy response;
+it does not start another planner. Failures do not refund planning allowance.
+
+The index expires after 24 hours and cascades on artist/job deletion. Browser roles have no access;
+`mnweb` has scoped table grants and RLS policies, with request authorization in the application.
+Migration 0046 must be applied and verified with the app role before enabling this code in each
+environment. Local SQL/mocked tests are not evidence of a deployed exhausted-quota browser check.
+
+### Meaning-aware reuse — approved October 12
+
+Exact matching is only the zero-model fast path. On its first occurrence, a paraphrase shares the
+existing admitted planning call with candidate selection: Web supplies at most five verified answers
+for this artist, their neutral public intent/routing and at most three 1,000-character passage
+excerpts apiece. The planner resolves the current public follow-up and decides whether an answer
+fully covers it, whether the originals answer a different angle, or whether new research is needed.
+No embeddings, vector database or additional classification call are introduced.
+
+The model may select only an allowlisted candidate. Deterministic platform, original-URL, date and
+exclusion boundaries cannot be overridden. Exact answer reuse additionally preserves evidence need
+and answer scope. New wording and different angles may use the same originals, but always receive a registered, budgeted draft and original-context verification. Topic similarity alone never establishes a credit,
+role, work/version or speaker. Every selected answer's actual source revisions/slices are rechecked
+by the API before reuse; a revoked source, changed claim or invalidated revision falls back to normal
+admitted research. Every first-time semantic variant, including a proposed equivalent paraphrase, must reopen originals and pass the existing question-aware draft/check pipeline before acceptance. The planner is a candidate selector, not editorial approval. Successful variants become digest aliases to their own checked answer, so subsequent exact repeats avoid planning too. Missing evidence continues through the normal
+research path. Newest/recent/date-window questions are excluded from this answer cache and keep
+normal retrieval; this change does not promise a fresh provider scrape.
+
+`answer_intent` is model-generated neutral public intent, not the listener's verbatim question or
+resolved conversation. Only the intent, existing neutral routing fields and digests are indexed.
+Raw history, asker identity and private interview answers are never retained or searched here.
+The index has the planning lane's 10-per-artist / 200-global active-key ceilings. Existing aliases
+are checked before that ceiling. Failed unfinished admissions release their lease, without refunding
+planning usage; abandoned unbound leases expire after 90 seconds. A completed job whose answer was
+never drafted returns to admitted planning rather than becoming permanently busy.
+
+A zero-citation check falls through to normal research with the already-computed routing; it does
+not establish that information is absent. Operational check failures remain errors rather than
+triggering blind new collection. The whole Web request shares a 55-second abort deadline beneath
+the route's 60-second limit. An already active answer lease returns the existing busy response and
+can be explicitly retried; it never causes an unbounded second draft. The existing maximum of
+three registered question variants per research job remains in force.

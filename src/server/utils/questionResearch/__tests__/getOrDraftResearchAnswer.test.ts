@@ -151,3 +151,9 @@ it('can replay a verified legacy registration only while its originals remain el
  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{artist_id:input.artistId,question_hash:hash(input.question),status:'verified',result:saved}] as never);
  expect(await getOrDraftResearchAnswer(input)).toEqual({state:'ready',result});expect(draft).not.toHaveBeenCalled();
 });
+it('read-only lookup cannot draft or strand an abandoned waiting answer',async()=>{
+ execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{question_hash:'a'.repeat(64),status:'waiting',attempts:0,claim_until:new Date(0).toISOString()}] as never);
+ expect(await getOrDraftResearchAnswer({...input,readOnlyQuestionHash:'a'.repeat(64)})).toEqual({state:'unavailable'});
+ expect(draft).not.toHaveBeenCalled();
+ expect(execute).toHaveBeenCalledTimes(2);
+});
