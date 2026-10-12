@@ -1,4 +1,5 @@
 export const activityLabels: Record<string, string> = {
+  directory_add: 'Artist added to directory',
   question_plan: 'Question planning reserved',
   latest_refresh: 'Latest update requested',
   source_added: 'Source added', source_search: 'Source research requested', profile_discovery: 'Profile discovery requested',
@@ -8,6 +9,7 @@ export const activityLabels: Record<string, string> = {
   about_generated: 'About generated', about_edited: 'About edited',
 };
 export const triggerLabels: Record<string, string> = {
+  directory_add: 'Directory add',
   ask_about_budget: 'Ask About budget',
   manual_latest_refresh: 'Update Latest',
   onboarding: 'Onboarding', editor_search: 'Search web for sources', visitor_suggestion: 'Visitor suggestion',
