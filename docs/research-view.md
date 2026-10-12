@@ -39,6 +39,14 @@ is confirmed. The approved design is linked from the issue.
 > to skip. The step-card modal keeps its "Skip for now". Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
+> **Decision 2026-10-12 ([stand-up](https://github.com/xdjs/MusicNerdWeb/pull/1490); Pete, Carl,
+> Sweetman): one voice.** In Pete's live test the About said "writing your about…" while the pill
+> said it was finding profiles. Carl: keep the pill where it is and take the text off the page, so
+> the pill is the one thing saying what is happening; Pete's concern was "two things that aren't in
+> sync". Only the section being researched animates; the pill gets a moving segment, a glow, a
+> step count and a "Tap to follow along" hint. Sweetman approved the design the same day. Tracked
+> on [#1494](https://github.com/xdjs/MusicNerdWeb/issues/1494).
+
 ## When it shows
 
 `page.tsx` fetches the onboarding state from MusicNerdAPI (`fetchOnboardingState`) for the
@@ -58,11 +66,16 @@ step cards open over the page as before.
 Each section research fills shows that it is being researched, then makes its arrival visible
 (design approved 2026-10-05, on #1365 under Design › Section research states).
 
-| Section | Waits on step | While researching | When it arrives |
-|---|---|---|---|
-| About (`#mn-about`, in the hero) | `publish` | three skeleton text lines in place of the blurb, "writing your about…" | the About, ringed, with a "New About" chip |
-| Links (`#mn-links`) | `profiles` | skeleton profile tiles, "finding your profiles…" | the links; each new one ringed with a dot; "N new" by the heading |
-| Lore (`#mn-lore`, its sources) | `vault` | skeleton source cards, "reading what's written about you…" | the sources; each new one ringed with a "new" chip; "N new" by the heading |
+| Section | Waits on step | While waiting | While researching | When it arrives |
+|---|---|---|---|---|
+| About (`#mn-about`, in the hero) | `publish` | three still, dim skeleton text lines in place of the blurb | the lines pulse | the About, ringed, with a "New About" chip |
+| Links (`#mn-links`) | `profiles` | still, dim skeleton profile tiles | the tiles pulse | the links; each new one ringed with a dot; "N new" by the heading |
+| Lore (`#mn-lore`, its sources) | `vault` | still, dim skeleton source cards | the cards pulse | the sources; each new one ringed with a "new" chip; "N new" by the heading |
+
+A section is **researching** when it is the build's current step (`interview` counts as the About),
+otherwise **waiting**. The sections carry no captions: the pill alone says what the build is doing,
+so the page and the pill never disagree. Screen readers hear the researching section's status
+(`role="status"`, named for its step); a waiting skeleton is hidden from them.
 
 Latest (`#mn-latest`) does not depend on research and is unchanged. A section is pending only while
 a build is being watched and its step has no confirmation time; otherwise it renders as usual.
@@ -76,7 +89,7 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   border, and its tab in the section nav gets a dot. A section stays fresh until 5 s after it has
   been on screen, so a phone user who scrolls down later still sees the marks. The section announces
   itself once to screen readers.
-- **Reduced motion.** No shimmer and no fade; the marks still show.
+- **Reduced motion.** No pulse, sweep, bounce or fade; the marks still show.
 
 ## Progress
 
@@ -90,8 +103,12 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 - **Progress pill.** Fixed at the bottom right, where the Ask button sits; Ask is hidden while it
   shows. Ask is hidden from the first paint when the claimant's page arrives mid-build, so it
   doesn't flash before the pill mounts; on that visit it stays hidden under the step-card modal
-  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely) and three segments
-  (Links, Lore, About: done, running or waiting; `interview` counts as About). It sits outside the
+  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely), its place ("1 of 3"), and three
+  segments (Links, Lore, About: done, running or waiting; `interview` counts as About). The running
+  segment sweeps and the pill has a soft glow (`pastypink` in light, `pastyblue` in dark), so it
+  reads as live. Until the artist first taps it, a "Tap to follow along" hint with a bouncing arrow
+  sits above it (Pete, 2026-10-12: "the person wouldn't have known to click that"); the hint is not
+  remembered across visits. It sits outside the
   page flow, so it shifts nothing when it appears or goes away.
 - **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
   `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About,
@@ -150,8 +167,9 @@ offer an interview. The parameter has no effect in production.
 ## Rules
 
 - **Tokens only.** `bg-background`, `text-foreground`, `border` and the stock radii; dark mode
-  follows the tokens. The one colour is the activity dot (`pastypink` in light, `pastyblue` in
-  dark). Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
+  follows the tokens. The activity colour is `pastypink` in light and `pastyblue` in dark (the dot,
+  the running segment, the pill's glow); the follow hint uses the action pink, `highlightpink`, with
+  black text. Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
   `globals.css` forces `.dark .text-muted-foreground` to white with `!important` (DESIGN.md,
   inconsistency #5).
 - **Artist-facing copy.** No internal reasons, step ids, issue numbers or error codes.
