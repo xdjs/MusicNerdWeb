@@ -2,6 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
+import { formatClaimDate } from "@/lib/claims/formatClaimDate";
 
 export interface ClaimRow {
     id: string;
@@ -14,17 +15,6 @@ export interface ClaimRow {
     userName: string | null;
     createdAt: string;
 }
-
-const formatDate = (value: string | null | undefined): string => {
-    if (!value) return "";
-    const hasExplicitTZ = /Z$|[+-]\d{2}:?\d{2}$/.test(value);
-    const dateObj = new Date(hasExplicitTZ ? value : `${value}Z`);
-    const datePart = dateObj.toLocaleDateString();
-    const timePart = dateObj
-        .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
-        .replace(/\s([AP]M)$/i, "\u00A0$1");
-    return `${datePart} ${timePart}`;
-};
 
 const statusColors: Record<string, string> = {
     pending: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
@@ -94,7 +84,7 @@ export const claimsColumns: ColumnDef<ClaimRow>[] = [
         accessorKey: "createdAt",
         header: "Submitted",
         cell: ({ row }) => (
-            <span className="text-sm">{formatDate(row.original.createdAt)}</span>
+            <span className="text-sm">{formatClaimDate(row.original.createdAt)}</span>
         ),
     },
 ];
