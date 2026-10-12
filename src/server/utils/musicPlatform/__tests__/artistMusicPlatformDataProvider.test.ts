@@ -184,23 +184,28 @@ describe('ArtistMusicPlatformDataProvider', () => {
             expect(await ampdp.getArtistPortrait(artist)).toBe(artist.customImage);
             expect(await ampdp.getArtistImage(artist)).toBe(artist.customImage);
         });
-        it('uses Deezer first for thumbnails and large portraits', async () => {
+        it('prefers Spotify for thumbnails and portraits when both providers have images', async () => {
             const artist = makeArtist({ deezer: '4738512', spotify: 'spotify-123', customImage: '  ' });
-            expect(await ampdp.getArtistImage(artist)).toBe(mockDeezerResult.imageUrl);
-            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
-            expect(primary.getArtist).toHaveBeenCalledWith('4738512');
-            expect(fallback.getArtistImage).not.toHaveBeenCalled();
-        });
-        it('falls back to Spotify on missing Deezer images', async () => {
-            primary.getArtistImage.mockResolvedValueOnce(null);
-            primary.getArtist.mockResolvedValueOnce({ ...mockDeezerResult, imageUrl: null });
-            const artist = makeArtist({ deezer: '1', spotify: 'sp' });
             expect(await ampdp.getArtistImage(artist)).toBe(mockSpotifyResult.imageUrl);
             expect(await ampdp.getArtistPortrait(artist)).toBe(mockSpotifyResult.imageUrl);
+            expect(fallback.getArtistImage).toHaveBeenCalledWith('spotify-123');
+            expect(primary.getArtist).not.toHaveBeenCalled();
+            expect(primary.getArtistImage).not.toHaveBeenCalled();
         });
-        it('survives Deezer failures and missing Spotify images', async () => {
-            primary.getArtist.mockRejectedValueOnce(new Error('Unavailable'));
-            fallback.getArtistImage.mockResolvedValueOnce(null);
+        it.each([null, '', '  '])('falls back to Deezer when Spotify image is %p', async image => {
+            fallback.getArtistImage.mockResolvedValue(image);
+            const artist = makeArtist({ deezer: '1', spotify: 'sp' });
+            expect(await ampdp.getArtistImage(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(await ampdp.getArtistPortrait(artist)).toBe(mockDeezerResult.imageUrl);
+            expect(primary.getArtist).toHaveBeenCalledWith('1');
+        });
+        it('uses Deezer if Spotify throws', async () => {
+            fallback.getArtistImage.mockRejectedValue(new Error('Unavailable'));
+            expect(await ampdp.getArtistPortrait(makeArtist({ deezer: '1', spotify: 'sp' }))).toBe(mockDeezerResult.imageUrl);
+        });
+        it('returns null when both image providers fail', async () => {
+            fallback.getArtistImage.mockRejectedValue(new Error('Unavailable'));
+            primary.getArtist.mockRejectedValue(new Error('Unavailable'));
             expect(await ampdp.getArtistPortrait(makeArtist({ deezer: '1', spotify: 'sp' }))).toBeNull();
         });
         it('keeps Spotify-only artists working', async () => {

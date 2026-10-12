@@ -866,3 +866,33 @@ body {
   outline-offset: 2px;
   box-shadow: none;
 }
+
+/* Keep carousel emphasis within each rounded card, not in overlapping outside shadows. */
+.artist-carousel-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow 150ms ease;
+}
+.artist-carousel-card:hover::after,
+.artist-carousel-card:focus-within::after {
+  box-shadow: inset 0 0 0 1px rgb(239 149 255 / .55), inset 0 0 18px rgb(239 149 255 / .24);
+}
+.artist-carousel-card:focus-visible {
+  outline: 2px solid var(--highlightpink, #ff66d6);
+  outline-offset: -3px;
+}
+.artist-carousel-viewport {
+  --edge-start: 0px;
+  --edge-end: 0px;
+  mask-image: linear-gradient(to right, transparent, #000 var(--edge-start), #000 calc(100% - var(--edge-end)), transparent);
+}
+.artist-carousel-viewport[data-fade-start="true"] { --edge-start: 12px; }
+.artist-carousel-viewport[data-fade-end="true"] { --edge-end: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .artist-carousel-card::after { transition: none; }
+}

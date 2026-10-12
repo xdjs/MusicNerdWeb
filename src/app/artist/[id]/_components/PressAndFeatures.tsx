@@ -1,7 +1,7 @@
 "use client";
 import { isDestinationSource } from "@/lib/musicLinks/isDestinationSource";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import ResearchNewMark from "./onboarding/ResearchNewMark";
 import { SOURCE_TYPE_COLORS, type SourceType } from "@/lib/source/sourceTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -71,7 +71,7 @@ function SourceCard({ source }: { source: VaultSource }) {
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex-shrink-0 w-[260px] sm:w-[320px] h-[300px] sm:h-[320px] glass-subtle overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,149,255,0.35)]"
+            className="artist-carousel-card relative group flex-shrink-0 w-[260px] sm:w-[320px] h-[300px] sm:h-[320px] glass-subtle overflow-hidden flex flex-col"
         >
             {/* Thumbnail — fixed height, gradient always behind as fallback */}
             <div className="relative w-full h-[160px] sm:h-[180px] shrink-0 overflow-hidden bg-gradient-to-br from-pastypink/10 via-purple-900/20 to-transparent">
@@ -144,7 +144,7 @@ function PodcastCard({ sources }: { sources: VaultSource[] }) {
     const show = sources.find(source => source.podcastShowTitle)?.podcastShowTitle;
 
     return (
-        <div className="group flex-shrink-0 w-[260px] sm:w-[320px] h-[300px] sm:h-[320px] glass-subtle overflow-hidden flex flex-col">
+        <div className="artist-carousel-card relative group flex-shrink-0 w-[260px] sm:w-[320px] h-[300px] sm:h-[320px] glass-subtle overflow-hidden flex flex-col">
             <div className="relative w-full h-[135px] sm:h-[150px] shrink-0 overflow-hidden bg-gradient-to-br from-pastypink/10 via-purple-900/20 to-transparent">
                 {artwork && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -191,6 +191,22 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
             filtered: items,
         };
     }, [cards, activeFilter]);
+
+    const [edges, setEdges] = useState({ start: false, end: false });
+    const updateEdges = useCallback(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const start = el.scrollLeft > 1, end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+        setEdges(old => old.start === start && old.end === end ? old : { start, end });
+    }, []);
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        updateEdges();
+        const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateEdges);
+        observer?.observe(el);
+        return () => observer?.disconnect();
+    }, [filtered, updateEdges]);
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollRef.current) return;
@@ -254,10 +270,11 @@ export default function PressAndFeatures({ sources: allSources }: PressAndFeatur
                     <ChevronLeft size={18} />
                 </button>
 
-                {/* Scrollable container — extra padding for hover scale */}
+                {/* Keep glow inside the scroll viewport; overflow-y:visible clips with overflow-x:auto. */}
                 <div
                     ref={scrollRef}
-                    className="flex gap-4 overflow-x-auto overflow-y-visible py-4 px-2 -mx-2 scrollbar-none snap-x snap-mandatory"
+                    data-fade-start={edges.start} data-fade-end={edges.end} onScroll={updateEdges}
+                    className="artist-carousel-viewport flex min-w-0 gap-4 overflow-x-auto overflow-y-hidden p-2 scroll-p-2 scrollbar-none snap-x snap-mandatory"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                     {filtered.map((card) => (

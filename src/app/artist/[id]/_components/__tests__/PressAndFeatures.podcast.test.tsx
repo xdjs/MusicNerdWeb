@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import PressAndFeatures from "../PressAndFeatures";
 
 const apple = "https://podcasts.apple.com/us/podcast/episode/id123?i=456";
@@ -30,4 +30,17 @@ it("marks sources that arrived with the build being watched, and only those", ()
     ]} /></OnboardingProgressContext.Provider>);
     expect(screen.getByText("New story").closest("[data-research-new-item]")).not.toBeNull();
     expect(screen.getByText("Old story").closest("[data-research-new-item]")).toBeNull();
+});
+
+it("tracks Lore edges without fading its fully visible endpoints", () => {
+    const { container } = render(<PressAndFeatures sources={[{id:"a",artistId:"a",url:"https://example.org/a",title:"Story",type:"article"}]} />);
+    const gallery = container.querySelector(".artist-carousel-viewport") as HTMLElement;
+    Object.defineProperties(gallery, { scrollWidth:{value:1000}, clientWidth:{value:400}, scrollLeft:{value:0,writable:true} });
+    fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute("data-fade-start","false");
+    expect(gallery).toHaveAttribute("data-fade-end","true");
+    gallery.scrollLeft=200;fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute("data-fade-start","true");
+    gallery.scrollLeft=600;fireEvent.scroll(gallery);
+    expect(gallery).toHaveAttribute("data-fade-end","false");
 });
