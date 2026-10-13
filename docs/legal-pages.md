@@ -44,7 +44,6 @@ The copy must match what the code does. Update the page in the same PR as any ch
 
 Pete approved both pages' copy at the 2026-10-08 R&D sync. The site footer
 (`src/app/_components/Footer.tsx`, on every page) links to them through
-`src/app/_components/FooterLinks.tsx`: **Docs** (the API documentation at
-`https://musicnerd-docs.vercel.app`, opens in a new tab), **Terms** and **Privacy**. The About page
-and its menu entry are [#1452](https://github.com/xdjs/MusicNerdWeb/issues/1452) (Pete); add it to
-`FooterLinks` when it exists.
+`src/app/_components/FooterLinks.tsx`: **About**, **Docs** (the API documentation at
+`https://musicnerd-docs.vercel.app`, opens in a new tab), **Terms** and **Privacy**.
+The About page and menu entry are tracked in [#1463](https://github.com/xdjs/MusicNerdWeb/issues/1463).

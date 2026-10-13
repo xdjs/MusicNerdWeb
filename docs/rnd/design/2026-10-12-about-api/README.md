@@ -20,3 +20,11 @@ Use existing Music Nerd typography and themes: dark #191919, light #fafafa, blac
 
 ## Pending decision
 Review About copy and choose profile-tab placement versus a simple link to /access. No functional authentication change is ready for release from this prototype. Keep this branch isolated until reviewed.
+
+## Release scope approved October 13, 2026
+Pete approved the About page for squash merge and production promotion after reviewing the
+copy, supplied logo, social icons, and transparent glasses menu icon. Instagram and X both
+use `musicnerdnet`; Substack is `musicnerds.substack.com`; Discord uses the supplied invite.
+Production About links to the existing `/access` flow. The sample-token profile tab remains
+preview-only exploration under #1455, unavailable on production; no credentials or auth
+permissions change. No database migration is required.
