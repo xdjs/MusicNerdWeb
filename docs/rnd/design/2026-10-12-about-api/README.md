@@ -28,3 +28,9 @@ use `musicnerdnet`; Substack is `musicnerds.substack.com`; Discord uses the supp
 Production About links to the existing `/access` flow. The sample-token profile tab remains
 preview-only exploration under #1455, unavailable on production; no credentials or auth
 permissions change. No database migration is required.
+
+## Audience headings — October 13, 2026
+C.Y. suggested naming the four sections by audience, and Pete approved this refinement
+in #1500: **For fans**, **For artists**, **For nerds**, and **For builders**, in that order.
+The existing descriptions, layout and link destinations stay the same. This is display copy
+only; routes, account actions, persistence, research jobs and external services are unaffected.
