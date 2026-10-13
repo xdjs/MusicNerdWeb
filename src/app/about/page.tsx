@@ -30,13 +30,13 @@ export default function AboutPage() {
       <div className="md:pl-6"><Link href={preview ? '/preview/about-api?tab=api' : '/access'} className="inline-flex items-center justify-center rounded-xl button-pink bg-highlightpink text-black font-medium px-5 min-h-12 hover:bg-highlightpink/80">{preview ? 'Connect from your profile' : 'Get an access token'}</Link><a href="https://musicnerd-docs.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-4 text-sm underline underline-offset-4">Explore the API docs <ArrowUpRight size={16}/></a>{preview && <p className="text-xs text-muted-foreground mt-3">Preview the proposed API tab with a sample token.</p>}</div>
     </section>
     <section className="mt-12 sm:mt-16 border-t border-border pt-8 pb-5"><h2 className="text-xl font-semibold">Who’s behind Music Nerd?</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-2xl">Music Nerd is built by a small team of artists, music fans and developers, with contributions from the community. Meet the contributors below or follow the project on <a href="https://github.com/xdjs/MusicNerdWeb" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">GitHub</a>.</p>
-      <nav aria-label="Music Nerd social accounts" className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+      <nav aria-label="Music Nerd social accounts" className="mt-5 flex flex-wrap items-center gap-3">
         {[
-          { label: 'Instagram', href: 'https://www.instagram.com/musicnerdxyz/' },
-          { label: 'X', href: 'https://x.com/musicnerdxyz' },
-          { label: 'Discord', href: 'https://discord.gg/xY7tYJG8UD' },
-          { label: 'Substack', href: 'https://musicnerds.substack.com' },
-        ].map(({ label, href }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">{label}<ArrowUpRight size={15} aria-hidden="true" /></a>)}
+          { label: 'Instagram', icon: '/brand/instagram.svg', href: 'https://www.instagram.com/musicnerdxyz/' },
+          { label: 'X', icon: '/brand/x.svg', href: 'https://x.com/musicnerdxyz' },
+          { label: 'Discord', icon: '/brand/discord.svg', href: 'https://discord.gg/xY7tYJG8UD' },
+          { label: 'Substack', icon: '/brand/substack.svg', href: 'https://musicnerds.substack.com' },
+        ].map(({ label, href, icon }) => <a key={label} href={href} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-white transition-shadow hover:shadow-[0_0_0_2px_#ff75d8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-highlightpink"><Image src={icon} alt="" width={24} height={24} className="h-6 w-6 object-contain" /></a>)}
       </nav>
     </section>
   </article></>;
