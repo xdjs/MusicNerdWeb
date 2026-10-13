@@ -38,3 +38,5 @@ only; routes, account actions, persistence, research jobs and external services 
 ### Source examples — 2026-10-13
 
 Pete requested clarification of “suggest a source” in the For nerds paragraph. Name articles, interviews and social posts as examples, and explain that they help tell an artist’s story and support answers to fans’ questions. This changes explanatory copy only; contribution review and publication behavior are unchanged.
+
+Pete approved the final wording: “Help fill in an artist’s story. Share missing links, articles, interviews or social posts that give fans more context about their music.” This replaces the longer source explanation above.
