@@ -337,6 +337,13 @@
       "when": 1791825231263,
       "tag": "0047_private_directory_preparation",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791853759974,
+      "tag": "0048_social_refreshes",
+      "breakpoints": true
     }
   ]
 }

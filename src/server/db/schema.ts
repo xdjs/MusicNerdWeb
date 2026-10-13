@@ -1261,3 +1261,30 @@ export const artistDirectoryPreparations = pgTable('artist_directory_preparation
     check('artist_directory_preparations_ready', sql`${table.status} <> 'ready' or (${table.document} is not null and ${table.about} is not null)`),
     pgPolicy('mnweb_directory_preparations', { for: 'all', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
 ]).enableRLS();
+
+
+/** Private account scan progress; targeted post reads never advance this checkpoint. */
+export const artistSocialRefreshes = pgTable("artist_social_refreshes", {
+  artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  platform: text("platform").notNull(),
+  accountHandle: text("account_handle").notNull(),
+  coveredThrough: timestamp("covered_through", { withTimezone: true, mode: "string" }),
+  checkedAt: timestamp("checked_at", { withTimezone: true, mode: "string" }).notNull(),
+  scanStartedAt: timestamp("scan_started_at", { withTimezone: true, mode: "string" }).notNull(),
+  status: text("status").notNull(),
+  itemCount: integer("item_count").notNull(),
+  runId: text("run_id").notNull(),
+}, table => [
+  primaryKey({ columns: [table.artistId, table.platform, table.accountHandle] }),
+  check("artist_social_refreshes_platform", sql`${table.platform} in ('instagram','tiktok','x')`),
+  check("artist_social_refreshes_handle", sql`${table.accountHandle} ~ '^[a-z0-9_.]{1,64}$'`),
+  check("artist_social_refreshes_status", sql`${table.status} in ('complete','limited')`),
+  check("artist_social_refreshes_complete", sql`${table.status} <> 'complete' or ${table.coveredThrough} is not null`),
+  check("artist_social_refreshes_count", sql`${table.itemCount} >= 0`),
+  check("artist_social_refreshes_run", sql`length(btrim(${table.runId})) > 0`),
+  check("artist_social_refreshes_dates", sql`${table.checkedAt} >= ${table.scanStartedAt} and (${table.coveredThrough} is null or ${table.coveredThrough} <= ${table.scanStartedAt})`),
+  pgPolicy("mnweb_select_artist_social_refreshes", { for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_artist_social_refreshes", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_update_artist_social_refreshes", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+  pgPolicy("mnweb_delete_artist_social_refreshes", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
