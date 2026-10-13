@@ -6,7 +6,10 @@ Migration `0048_social_refreshes.sql` adds private scan state for MusicNerdAPI.
 It follows `0047_private_directory_preparation.sql` from PR #1493; this schema
 change is stacked on that PR and must not be treated as an independent journal.
 
-Each artist, platform, and normalized connected account has its own record.
+Each artist, platform, normalized connected account, and scan scope has its own record.
+Instagram Latest uses `latest`; broader account research uses `profile`. A recent
+30-day Latest check cannot suppress an initial broader profile baseline or
+advance its coverage. Other platforms support only `profile`.
 `scan_started_at`, `checked_at`, `item_count`, and `run_id` identify the latest
 successfully collected profile scan. `status` distinguishes a complete bounded
 scan from one limited by its collection budget. `covered_through` is nullable:

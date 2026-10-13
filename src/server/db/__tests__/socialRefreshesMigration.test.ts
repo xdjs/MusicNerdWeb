@@ -35,19 +35,28 @@ it("permits actual server CRUD but denies public roles and enables four RLS poli
 });
 
 it("validates identity, scan dates, status, count and run id", async () => {
-  await db.exec(`insert into artist_social_refreshes values('${artist}','x','artist_handle',null,now(),now(),'limited',0,'run-2')`);
-  for (const assignment of ["platform='youtube'", "account_handle=''", "account_handle='@artist'", "account_handle='Artist'", "account_handle=' artist'", "status='failed'", "status='complete'", "item_count=-1", "run_id=''", "run_id=' '", "checked_at=scan_started_at-interval '1 second'", "covered_through=scan_started_at+interval '1 second'"]) {
+  await db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,covered_through,checked_at,scan_started_at,status,item_count,run_id) values('${artist}','x','artist_handle',null,now(),now(),'limited',0,'run-2')`);
+  for (const assignment of ["platform='youtube'", "account_handle=''", "account_handle='@artist'", "account_handle='Artist'", "account_handle=' artist'", "scope='unknown'", "scope='latest'", "status='failed'", "status='complete'", "item_count=-1", "run_id=''", "run_id=' '", "checked_at=scan_started_at-interval '1 second'", "covered_through=scan_started_at+interval '1 second'"]) {
     await assert.rejects(db.exec(`update artist_social_refreshes set ${assignment}`), /check constraint/);
   }
   await assert.rejects(db.exec("update artist_social_refreshes set checked_at=null"), /not-null constraint/);
   await db.exec("delete from artist_social_refreshes");
 });
 
+it("keeps Latest coverage separate from a full profile baseline", async () => {
+  await db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,scope,covered_through,checked_at,scan_started_at,status,item_count,run_id) values
+    ('${artist}','instagram','scope_test','latest',now(),now(),now(),'complete',2,'latest-run'),
+    ('${artist}','instagram','scope_test','profile',null,now(),now(),'limited',200,'profile-run')`);
+  expect((await db.query("select covered_through from artist_social_refreshes where scope='profile'")).rows).toEqual([{ covered_through: null }]);
+  expect((await db.query("select count(*)::int as count from artist_social_refreshes where account_handle='scope_test'")).rows).toEqual([{ count: 2 }]);
+  await db.exec("delete from artist_social_refreshes");
+});
+
 it("keeps different account checkpoints separate and deletes them with the artist", async () => {
-  await db.exec(`insert into artist_social_refreshes values
+  await db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,covered_through,checked_at,scan_started_at,status,item_count,run_id) values
     ('${artist}','tiktok','first',null,now(),now(),'limited',50,'run-3'),
     ('${artist}','tiktok','second',null,now(),now(),'limited',50,'run-4')`);
-  await assert.rejects(db.exec(`insert into artist_social_refreshes values('${artist}','tiktok','first',null,now(),now(),'limited',50,'run-5')`), /duplicate key/);
+  await assert.rejects(db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,covered_through,checked_at,scan_started_at,status,item_count,run_id) values('${artist}','tiktok','first',null,now(),now(),'limited',50,'run-5')`), /duplicate key/);
   await assert.rejects(db.exec("update artist_social_refreshes set artist_id='22222222-2222-4222-8222-222222222222'"), /foreign key constraint/);
   await db.exec(`delete from artists where id='${artist}'`);
   expect((await db.query("select * from artist_social_refreshes")).rows).toEqual([]);

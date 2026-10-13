@@ -1,5 +1,5 @@
 {
-  "id": "4adcda66-d250-4559-befe-a19dee3d521e",
+  "id": "f9db95e5-7970-4d36-9aed-e7ebc0f68edc",
   "prevId": "1023dfca-b8f3-4315-9e70-9c176e7a3eb8",
   "version": "7",
   "dialect": "postgresql",
@@ -4803,6 +4803,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'profile'"
+        },
         "covered_through": {
           "name": "covered_through",
           "type": "timestamp with time zone",
@@ -4857,12 +4864,13 @@
         }
       },
       "compositePrimaryKeys": {
-        "artist_social_refreshes_artist_id_platform_account_handle_pk": {
-          "name": "artist_social_refreshes_artist_id_platform_account_handle_pk",
+        "artist_social_refreshes_artist_id_platform_account_handle_scope_pk": {
+          "name": "artist_social_refreshes_artist_id_platform_account_handle_scope_pk",
           "columns": [
             "artist_id",
             "platform",
-            "account_handle"
+            "account_handle",
+            "scope"
           ]
         }
       },
@@ -4919,6 +4927,14 @@
           "name": "artist_social_refreshes_status",
           "value": "\"artist_social_refreshes\".\"status\" in ('complete','limited')"
         },
+        "artist_social_refreshes_complete": {
+          "name": "artist_social_refreshes_complete",
+          "value": "\"artist_social_refreshes\".\"status\" <> 'complete' or \"artist_social_refreshes\".\"covered_through\" is not null"
+        },
+        "artist_social_refreshes_scope": {
+          "name": "artist_social_refreshes_scope",
+          "value": "\"artist_social_refreshes\".\"scope\" in ('latest','profile') and (\"artist_social_refreshes\".\"scope\" <> 'latest' or \"artist_social_refreshes\".\"platform\" = 'instagram')"
+        },
         "artist_social_refreshes_count": {
           "name": "artist_social_refreshes_count",
           "value": "\"artist_social_refreshes\".\"item_count\" >= 0"
@@ -4930,10 +4946,6 @@
         "artist_social_refreshes_dates": {
           "name": "artist_social_refreshes_dates",
           "value": "\"artist_social_refreshes\".\"checked_at\" >= \"artist_social_refreshes\".\"scan_started_at\" and (\"artist_social_refreshes\".\"covered_through\" is null or \"artist_social_refreshes\".\"covered_through\" <= \"artist_social_refreshes\".\"scan_started_at\")"
-        },
-        "artist_social_refreshes_complete": {
-          "name": "artist_social_refreshes_complete",
-          "value": "\"artist_social_refreshes\".\"status\" <> 'complete' or \"artist_social_refreshes\".\"covered_through\" is not null"
         }
       },
       "isRLSEnabled": true
