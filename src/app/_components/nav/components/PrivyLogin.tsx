@@ -405,7 +405,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem className={accountMenuItemClass} asChild>
-              <Link href="/about"><Info aria-hidden="true" />About Music Nerd</Link>
+              <Link href="/about"><Info aria-hidden="true" />About</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
@@ -482,7 +482,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             )}
 
             <DropdownMenuItem className={accountMenuItemClass} asChild>
-              <Link href="/about"><Info aria-hidden="true" />About Music Nerd</Link>
+              <Link href="/about"><Info aria-hidden="true" />About</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>

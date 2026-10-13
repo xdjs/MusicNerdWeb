@@ -29,6 +29,15 @@ export default function AboutPage() {
       <div><h2 id="build-heading" className="text-2xl sm:text-3xl font-semibold tracking-tight">Make something with it.</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-xl">Building an app, an agent or a new way to explore music? Use the Music Nerd API to work with artist data and supported research tools.</p></div>
       <div className="md:pl-6"><Link href={preview ? '/preview/about-api?tab=api' : '/access'} className="inline-flex items-center justify-center rounded-xl button-pink bg-highlightpink text-black font-medium px-5 min-h-12 hover:bg-highlightpink/80">{preview ? 'Connect from your profile' : 'Get an access token'}</Link><a href="https://musicnerd-docs.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-4 text-sm underline underline-offset-4">Explore the API docs <ArrowUpRight size={16}/></a>{preview && <p className="text-xs text-muted-foreground mt-3">Preview the proposed API tab with a sample token.</p>}</div>
     </section>
-    <section className="mt-12 sm:mt-16 border-t border-border pt-8 pb-5"><h2 className="text-xl font-semibold">Who’s behind Music Nerd?</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-2xl">Music Nerd is built by a small team of artists, music fans and developers, with contributions from the community. Meet the contributors below or follow the project on <a href="https://github.com/xdjs/MusicNerdWeb" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">GitHub</a>.</p></section>
+    <section className="mt-12 sm:mt-16 border-t border-border pt-8 pb-5"><h2 className="text-xl font-semibold">Who’s behind Music Nerd?</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-2xl">Music Nerd is built by a small team of artists, music fans and developers, with contributions from the community. Meet the contributors below or follow the project on <a href="https://github.com/xdjs/MusicNerdWeb" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">GitHub</a>.</p>
+      <nav aria-label="Music Nerd social accounts" className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+        {[
+          { label: 'Instagram', href: 'https://www.instagram.com/musicnerdxyz/' },
+          { label: 'X', href: 'https://x.com/musicnerdxyz' },
+          { label: 'Discord', href: 'https://discord.gg/xY7tYJG8UD' },
+          { label: 'Substack', href: 'https://musicnerds.substack.com' },
+        ].map(({ label, href }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">{label}<ArrowUpRight size={15} aria-hidden="true" /></a>)}
+      </nav>
+    </section>
   </article></>;
 }
