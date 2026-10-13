@@ -36,7 +36,7 @@ export default function AboutPage() {
           { label: 'X', icon: '/brand/x.svg', href: 'https://x.com/musicnerdxyz' },
           { label: 'Discord', icon: '/brand/discord.svg', href: 'https://discord.gg/xY7tYJG8UD' },
           { label: 'Substack', icon: '/brand/substack.svg', href: 'https://musicnerds.substack.com' },
-        ].map(({ label, href, icon }) => <a key={label} href={href} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-white transition-shadow hover:shadow-[0_0_0_2px_#ff75d8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-highlightpink"><Image src={icon} alt="" width={24} height={24} className="h-6 w-6 object-contain" /></a>)}
+        ].map(({ label, href, icon }) => <a key={label} href={href} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-[#fff] transition-shadow hover:shadow-[0_0_0_2px_#ff75d8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-highlightpink"><Image src={icon} alt="" width={24} height={24} className="h-6 w-6 object-contain" /></a>)}
       </nav>
     </section>
   </article></>;
