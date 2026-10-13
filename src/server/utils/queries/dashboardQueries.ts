@@ -1,7 +1,7 @@
 import { recordArtistActivity } from '../activity/recordArtistActivity';
 import { db } from "@/server/db/drizzle";
 import { eq, and, sql } from "drizzle-orm";
-import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
+import { artistClaims, artistVaultSources, artistBioVersions, artists, artistDocs, artistInterviewAnswers, artistOnboardingSteps, artistSocialPosts, artistSocialRefreshes, artistSocialProfiles, artistResearchJobs, artistSocialCredits, artistDocCorrections } from "@/server/db/schema";
 import { withArtistUploadWrite, withScopedArtistWrite, authorizeLockedArtistWrite, type ArtistWriteAuth, type WriteDb, type ScopedWriteDb } from './ownershipWrites';
 import { getActiveArtistOperation } from '../artistOperationContext';
 import { ABOUT_EMPTY_STATE, isRealBio } from '@/lib/bio/bioConstants';
@@ -182,6 +182,11 @@ export async function revokeApprovedClaim(claimId: string) {
             await tx
                 .delete(artistSocialPosts)
                 .where(eq(artistSocialPosts.artistId, deleted.artistId));
+            // Coverage cannot survive deletion of the posts it describes. Clear
+            // every account and scope while holding the same revocation lock.
+            await tx
+                .delete(artistSocialRefreshes)
+                .where(eq(artistSocialRefreshes.artistId, deleted.artistId));
             await tx
                 .delete(artistSocialProfiles)
                 .where(eq(artistSocialProfiles.artistId, deleted.artistId));

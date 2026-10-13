@@ -18,6 +18,9 @@ A complete scan requires a non-null boundary. It cannot exceed the new scan's st
 this account checkpoint. Historical archive completeness is not implied.
 
 The table survives research job replacement and is deleted with the artist.
+Claim revocation clears every account and scope checkpoint in the same guarded
+transaction that removes social posts, so a new claimant starts without stale
+coverage or cooldown.
 Only the server role `mnweb` has CRUD grants and RLS policies; public and
 authenticated browser database roles have no access. Application workers remain
 responsible for checking current artist/account authorization and atomically
