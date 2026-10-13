@@ -404,6 +404,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
                 <UserRound aria-hidden="true" />User Profile
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
+              <Link href="/about"><span aria-hidden="true" className="inline-block h-5 w-5 shrink-0 bg-current opacity-60" style={{ mask: 'url(/music-nerd-shades.png) center / contain no-repeat', WebkitMask: 'url(/music-nerd-shades.png) center / contain no-repeat' }} />About</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
             {themeMenuItem}
@@ -478,6 +481,9 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               </DropdownMenuItem>
             )}
 
+            <DropdownMenuItem className={accountMenuItemClass} asChild>
+              <Link href="/about"><span aria-hidden="true" className="inline-block h-5 w-5 shrink-0 bg-current opacity-60" style={{ mask: 'url(/music-nerd-shades.png) center / contain no-repeat', WebkitMask: 'url(/music-nerd-shades.png) center / contain no-repeat' }} />About</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
             {session?.user?.needsLegacyLink && (

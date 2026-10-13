@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import FooterLinks from '../FooterLinks';
 
-it('links to the API docs, Terms and Privacy', () => {
+it('links to About, the API docs, Terms and Privacy', () => {
   render(<FooterLinks />);
+  expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about');
   const docs = screen.getByRole('link', { name: 'Docs' });
   expect(docs).toHaveAttribute('href', 'https://musicnerd-docs.vercel.app');
   expect(docs).toHaveAttribute('target', '_blank');

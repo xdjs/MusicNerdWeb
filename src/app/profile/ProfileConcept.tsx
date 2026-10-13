@@ -2,6 +2,8 @@
 
 import { matchesProfileUpdateFilter } from '@/lib/profile/matchesProfileUpdateFilter';
 import CollectionArtistImage from './CollectionArtistImage';
+import ApiConnectionPreview from './ApiConnectionPreview';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -47,7 +49,7 @@ const sampleUpdates: PreviewUpdate[] = [
 ];
 
 /** Shared profile presentation. The live adapter supplies all account data and mutations. */
-export default function ProfileConcept({ user, showcase = false, emptyPreview = false, emptyCollection = false, live }: { user: Pick<User, 'id' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'>; showcase?: boolean; emptyPreview?: boolean; emptyCollection?: boolean; live?: LiveProfileModel }) {
+export default function ProfileConcept({ user, showcase = false, apiPrototype = false, initialApiTab = false, emptyPreview = false, emptyCollection = false, live }: { user: Pick<User, 'id' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'>; showcase?: boolean; apiPrototype?: boolean; initialApiTab?: boolean; emptyPreview?: boolean; emptyCollection?: boolean; live?: LiveProfileModel }) {
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [sharingLink, setSharingLink] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -114,6 +116,13 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
       <Button variant="outline" aria-label="Edit profile" className="rounded-full shrink-0 w-10 h-10 sm:w-auto px-0 sm:px-4 bg-neutral-100 dark:bg-[#242424] border-neutral-300 dark:border-white/15 text-foreground hover:bg-neutral-200 dark:hover:bg-[#303030] hover:text-foreground" onClick={() => { setDraftName(name); setDraftPhoto(photo); setDraftFile(null); setPhotoError(''); setEditing(true); }}><Pencil size={16} className="sm:mr-2" /><span className="hidden sm:inline">Edit profile</span></Button>
     </header>
 
+    <Tabs defaultValue={apiPrototype && initialApiTab ? 'api' : 'overview'}>
+      {apiPrototype && <TabsList aria-label="Your profile" className="h-auto w-full justify-start gap-2 rounded-none border-b border-border bg-transparent p-0 mb-7">
+        <TabsTrigger value="overview" className="rounded-none px-5 py-3 text-base data-[state=active]:border-b-2 data-[state=active]:border-highlightpink data-[state=active]:bg-transparent data-[state=active]:shadow-none">Overview</TabsTrigger>
+        <TabsTrigger value="api" className="rounded-none px-5 py-3 text-base data-[state=active]:border-b-2 data-[state=active]:border-highlightpink data-[state=active]:bg-transparent data-[state=active]:shadow-none">API</TabsTrigger>
+      </TabsList>}
+      {apiPrototype && <TabsContent value="api"><ApiConnectionPreview /></TabsContent>}
+      <TabsContent value="overview">
     <section aria-labelledby="concept-impact" className="border-t border-b border-border py-4 sm:py-6 mb-8">
       <div className="flex items-center justify-between gap-3 mb-3"><h2 id="concept-impact" className="flex items-center gap-2 text-xl sm:text-2xl font-semibold tracking-tight">Your impact
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -191,6 +200,9 @@ export default function ProfileConcept({ user, showcase = false, emptyPreview = 
 
 
     </div>
+
+    </TabsContent>
+    </Tabs>
 
     <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent className="mn-themed-dialog w-[calc(100%_-_2rem)] max-w-4xl max-h-[85dvh] overflow-y-auto rounded-2xl bg-background p-5 sm:p-6">
       <DialogHeader className="text-left"><DialogTitle>All contributions</DialogTitle><DialogDescription>{live ? "Your contributions and their review status." : "Sample activity for this design preview. Your real history is unchanged."}</DialogDescription></DialogHeader>
