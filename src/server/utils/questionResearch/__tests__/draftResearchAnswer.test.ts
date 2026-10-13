@@ -343,7 +343,7 @@ it("does not automatically repair a model service failure", async () => {
 it("rejects an unsupported second draft without a third repair", async () => {
   model.mockReset();
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: 'Unsupported visual claim.' } } as never);
-  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/support/);
+  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toMatchObject({verificationCode: 'claim_rejected', verificationStage: 'claim_check'});
   expect(model).toHaveBeenCalledTimes(4);
 });
 it("renders a fixed scoped limitation instead of model-written unanswered prose", async () => {

@@ -155,3 +155,26 @@ it("does not broaden a follow-up explicitly anchored to the same video", async (
   expect(result).toMatchObject({ answerScope: "focused", targetUrl: url, retrieval: "relevance" });
   expect(result.excludeSourceUrls).toBeUndefined();
 });
+
+
+describe("dated originals and pasted source URLs (#1491)", () => {
+  const url = "https://www.instagram.com/p/DeH-zaDygKO/";
+  const output = { topic: "PPNE caption choices", evidenceNeed: "social_caption", freshness: "stored", retrieval: "relevance", resolvedQuestion: "Which choices appear in the October 7 caption?", targetUrl: url, platform: "instagram", fromDate: "2023-10-07", toDate: "2023-10-07" };
+  beforeEach(() => { jest.useFakeTimers({now: new Date("2026-10-13T12:00:00Z"), doNotFake: ["nextTick", "setImmediate"]}); });
+  afterEach(() => jest.useRealTimers());
+  it("uses the clock for a yearless date and drops the older citation", async () => {
+    jest.mocked(generateText).mockResolvedValue({output} as never);
+    const plan = await planArtistQuestion("LATASHA", "In her October 7 Instagram caption, which versions of PPNE does she ask listeners to choose between?", undefined, [{question: "What's latest?", answer: "October 5 PPNE visualizer", sourceUrls: [url]}]);
+    expect(plan).toMatchObject({fromDate:"2026-10-07",toDate:"2026-10-07",platform:"instagram"});
+    expect(plan).not.toHaveProperty("targetUrl");
+    expect(JSON.parse(jest.mocked(generateText).mock.calls.at(-1)![0].prompt as string).currentDate).toBe("2026-10-13");
+  });
+  it.each([",", ".", ")", "\n"])("accepts a literal URL followed by %s", async punctuation => {
+    jest.mocked(generateText).mockResolvedValue({output:{...output,fromDate:null,toDate:null}} as never);
+    expect(await planArtistQuestion("LATASHA", `According to (${url}${punctuation} who filmed PPNE?`)).toMatchObject({targetUrl:url});
+  });
+  it("preserves an explicit historical year", async () => {
+    jest.mocked(generateText).mockResolvedValue({output:{...output,targetUrl:null}} as never);
+    expect(await planArtistQuestion("Artist", "What did their October 7, 2023 caption say?")).toMatchObject({fromDate:"2023-10-07",toDate:"2023-10-07"});
+  });
+});

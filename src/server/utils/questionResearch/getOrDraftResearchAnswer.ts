@@ -176,6 +176,10 @@ export async function getOrDraftResearchAnswer(input: {
     };
     return { state: "ready", result: publicResult };
   } catch (error) {
+    const reason = error && typeof error === "object" && "verificationCode" in error
+      && ["quote_rejected", "claim_rejected", "original_mismatch"].includes(String(error.verificationCode))
+      ? String(error.verificationCode) : "operation_failed";
+    console.warn("[questionResearch] answer attempt failed", { jobId: input.jobId, reason });
     const raw = error && typeof error === "object" && "verificationStage" in error
       ? error.verificationStage : null;
     const stage = typeof raw === "string" && allowedStages.has(raw) ? raw : "store_result";
