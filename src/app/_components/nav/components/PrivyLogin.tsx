@@ -17,7 +17,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { Info, Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
+import Image from 'next/image';
+import { Menu, X, LogIn, LogOut, Trophy, UserRound, Music2, ShieldCheck, Wallet, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/app/_components/ThemeProvider';
 import AccountMenuAvatar from './AccountMenuAvatar';
@@ -405,7 +406,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem className={accountMenuItemClass} asChild>
-              <Link href="/about"><Info aria-hidden="true" />About</Link>
+              <Link href="/about"><Image src="/icon.ico" alt="" width={20} height={20} className="h-5 w-5 shrink-0" />About</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
@@ -482,7 +483,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
             )}
 
             <DropdownMenuItem className={accountMenuItemClass} asChild>
-              <Link href="/about"><Info aria-hidden="true" />About</Link>
+              <Link href="/about"><Image src="/icon.ico" alt="" width={20} height={20} className="h-5 w-5 shrink-0" />About</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 my-2 bg-white/10" />
             <DropdownMenuLabel className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/45">Account</DropdownMenuLabel>
