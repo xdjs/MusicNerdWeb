@@ -1275,6 +1275,7 @@ export const artistSocialRefreshes = pgTable("artist_social_refreshes", {
   status: text("status").notNull(),
   itemCount: integer("item_count").notNull(),
   runId: text("run_id").notNull(),
+  scanReference: jsonb("scan_reference").default(sql`'{}'::jsonb`).notNull(),
 }, table => [
   primaryKey({ columns: [table.artistId, table.platform, table.accountHandle, table.scope] }),
   check("artist_social_refreshes_platform", sql`${table.platform} in ('instagram','tiktok','x')`),
@@ -1282,6 +1283,7 @@ export const artistSocialRefreshes = pgTable("artist_social_refreshes", {
   check("artist_social_refreshes_status", sql`${table.status} in ('complete','limited')`),
   check("artist_social_refreshes_complete", sql`${table.status} <> 'complete' or ${table.coveredThrough} is not null`),
   check("artist_social_refreshes_scope", sql`${table.scope} in ('latest','profile') and (${table.scope} <> 'latest' or ${table.platform} = 'instagram')`),
+  check("artist_social_refreshes_reference", sql`jsonb_typeof(${table.scanReference}) = 'object'`),
   check("artist_social_refreshes_count", sql`${table.itemCount} >= 0`),
   check("artist_social_refreshes_run", sql`length(btrim(${table.runId})) > 0`),
   check("artist_social_refreshes_dates", sql`${table.checkedAt} >= ${table.scanStartedAt} and (${table.coveredThrough} is null or ${table.coveredThrough} <= ${table.scanStartedAt})`),

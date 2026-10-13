@@ -17,6 +17,12 @@ limited scans can preserve an earlier safe boundary without inventing coverage.
 A complete scan requires a non-null boundary. It cannot exceed the new scan's start time. Targeted post reads must never advance
 this account checkpoint. Historical archive completeness is not implied.
 
+`scan_reference` defaults to an empty JSON object. The API validates its `anchors`
+array of `{id, postedAt}` and nullable ISO `gapSince`; the database enforces the
+outer object shape. Anchors must come from guarded account scan results, never
+arbitrary externally added or targeted post rows. This permits recent-feed
+continuity tracking without treating a partial result as historical coverage.
+
 The table survives research job replacement and is deleted with the artist.
 Claim revocation clears every account and scope checkpoint in the same guarded
 transaction that removes social posts, so a new claimant starts without stale

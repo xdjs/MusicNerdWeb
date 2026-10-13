@@ -28,6 +28,9 @@ it("permits actual server CRUD but denies public roles and enables four RLS poli
   await db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,checked_at,scan_started_at,status,item_count,run_id)
     values('${artist}','instagram','artist_handle',now(),now(),'limited',9,'run-1')`);
   expect((await db.query("select covered_through from artist_social_refreshes")).rows).toEqual([{ covered_through: null }]);
+  expect((await db.query("select scan_reference from artist_social_refreshes")).rows).toEqual([{ scan_reference: {} }]);
+  await db.exec(`update artist_social_refreshes set scan_reference='{"anchors":[{"id":"post-1","postedAt":"2026-10-12T00:00:00Z"}],"gapSince":null}'`);
+  expect((await db.query("select scan_reference from artist_social_refreshes")).rows).toEqual([{ scan_reference: { anchors: [{ id: "post-1", postedAt: "2026-10-12T00:00:00Z" }], gapSince: null } }]);
   await db.exec("update artist_social_refreshes set status='complete', covered_through=scan_started_at");
   expect((await db.query("select status from artist_social_refreshes")).rows).toEqual([{ status: "complete" }]);
   await db.exec("delete from artist_social_refreshes");
@@ -36,9 +39,10 @@ it("permits actual server CRUD but denies public roles and enables four RLS poli
 
 it("validates identity, scan dates, status, count and run id", async () => {
   await db.exec(`insert into artist_social_refreshes(artist_id,platform,account_handle,covered_through,checked_at,scan_started_at,status,item_count,run_id) values('${artist}','x','artist_handle',null,now(),now(),'limited',0,'run-2')`);
-  for (const assignment of ["platform='youtube'", "account_handle=''", "account_handle='@artist'", "account_handle='Artist'", "account_handle=' artist'", "scope='unknown'", "scope='latest'", "status='failed'", "status='complete'", "item_count=-1", "run_id=''", "run_id=' '", "checked_at=scan_started_at-interval '1 second'", "covered_through=scan_started_at+interval '1 second'"]) {
+  for (const assignment of ["platform='youtube'", "account_handle=''", "account_handle='@artist'", "account_handle='Artist'", "account_handle=' artist'", "scan_reference='[]'", "scan_reference='null'", "scan_reference='1'", "scope='unknown'", "scope='latest'", "status='failed'", "status='complete'", "item_count=-1", "run_id=''", "run_id=' '", "checked_at=scan_started_at-interval '1 second'", "covered_through=scan_started_at+interval '1 second'"]) {
     await assert.rejects(db.exec(`update artist_social_refreshes set ${assignment}`), /check constraint/);
   }
+  await assert.rejects(db.exec("update artist_social_refreshes set scan_reference=null"), /not-null constraint/);
   await assert.rejects(db.exec("update artist_social_refreshes set checked_at=null"), /not-null constraint/);
   await db.exec("delete from artist_social_refreshes");
 });

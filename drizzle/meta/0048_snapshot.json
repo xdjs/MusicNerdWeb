@@ -1,5 +1,5 @@
 {
-  "id": "f9db95e5-7970-4d36-9aed-e7ebc0f68edc",
+  "id": "4b2787f3-4c1b-40d3-9bce-1d19ae3a9eda",
   "prevId": "1023dfca-b8f3-4315-9e70-9c176e7a3eb8",
   "version": "7",
   "dialect": "postgresql",
@@ -4845,6 +4845,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "scan_reference": {
+          "name": "scan_reference",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {},
@@ -4934,6 +4941,10 @@
         "artist_social_refreshes_scope": {
           "name": "artist_social_refreshes_scope",
           "value": "\"artist_social_refreshes\".\"scope\" in ('latest','profile') and (\"artist_social_refreshes\".\"scope\" <> 'latest' or \"artist_social_refreshes\".\"platform\" = 'instagram')"
+        },
+        "artist_social_refreshes_reference": {
+          "name": "artist_social_refreshes_reference",
+          "value": "jsonb_typeof(\"artist_social_refreshes\".\"scan_reference\") = 'object'"
         },
         "artist_social_refreshes_count": {
           "name": "artist_social_refreshes_count",
