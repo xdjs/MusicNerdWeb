@@ -32,7 +32,7 @@ export default function AboutPage() {
     <section className="mt-12 sm:mt-16 border-t border-border pt-8 pb-5"><h2 className="text-xl font-semibold">Who’s behind Music Nerd?</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-2xl">Music Nerd is built by a small team of artists, music fans and developers, with contributions from the community. Meet the contributors below or follow the project on <a href="https://github.com/xdjs/MusicNerdWeb" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 decoration-highlightpink hover:decoration-2">GitHub</a>.</p>
       <nav aria-label="Music Nerd social accounts" className="mt-5 flex flex-wrap items-center gap-3">
         {[
-          { label: 'Instagram', icon: '/brand/instagram.svg', href: 'https://www.instagram.com/musicnerdxyz/' },
+          { label: 'Instagram', icon: '/brand/instagram.svg', href: 'https://www.instagram.com/musicnerdnet/' },
           { label: 'X', icon: '/brand/x.svg', href: 'https://x.com/musicnerdxyz' },
           { label: 'Discord', icon: '/brand/discord.svg', href: 'https://discord.gg/xY7tYJG8UD' },
           { label: 'Substack', icon: '/brand/substack.svg', href: 'https://musicnerds.substack.com' },
