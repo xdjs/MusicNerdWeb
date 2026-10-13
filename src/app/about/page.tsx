@@ -23,7 +23,7 @@ export default function AboutPage() {
     <div className="grid md:grid-cols-3 gap-8 md:gap-10 mt-14 pt-9 border-t border-border">
       <section><h2 className="text-xl font-semibold">For fans</h2><p className="text-muted-foreground leading-relaxed mt-3">Find an artist’s official links and latest updates. Ask about their work and follow the sources behind the answer.</p></section>
       <section><h2 className="text-xl font-semibold">For artists</h2><p className="text-muted-foreground leading-relaxed mt-3">Claim your artist profile, curate your Lore, and add your own words through interviews. Review and correct what’s there.</p></section>
-      <section><h2 className="text-xl font-semibold">For nerds</h2><p className="text-muted-foreground leading-relaxed mt-3">Share a missing artist link or suggest a source. Contributions help make the directory more useful for everyone.</p></section>
+      <section><h2 className="text-xl font-semibold">For nerds</h2><p className="text-muted-foreground leading-relaxed mt-3">Share a missing artist link, or suggest an article, interview or social post about their work. These sources help tell the artist’s story and back up answers to fans’ questions.</p></section>
     </div>
     <section className="mt-12 sm:mt-16 rounded-2xl border border-border bg-white/50 dark:bg-white/[0.03] p-6 sm:p-9 grid md:grid-cols-[1.25fr_1fr] gap-7 items-center" aria-labelledby="build-heading">
       <div><h2 id="build-heading" className="text-2xl sm:text-3xl font-semibold tracking-tight">For builders</h2><p className="text-muted-foreground leading-relaxed mt-3 max-w-xl">Building an app, an agent or a new way to explore music? Use the Music Nerd API to work with artist data and supported research tools.</p></div>

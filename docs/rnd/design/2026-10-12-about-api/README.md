@@ -34,3 +34,7 @@ C.Y. suggested naming the four sections by audience, and Pete approved this refi
 in #1500: **For fans**, **For artists**, **For nerds**, and **For builders**, in that order.
 The existing descriptions, layout and link destinations stay the same. This is display copy
 only; routes, account actions, persistence, research jobs and external services are unaffected.
+
+### Source examples — 2026-10-13
+
+Pete requested clarification of “suggest a source” in the For nerds paragraph. Name articles, interviews and social posts as examples, and explain that they help tell an artist’s story and support answers to fans’ questions. This changes explanatory copy only; contribution review and publication behavior are unchanged.
