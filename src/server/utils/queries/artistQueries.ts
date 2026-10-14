@@ -1,3 +1,4 @@
+import { queueDirectoryDiscovery } from "./queueDirectoryDiscovery";
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
 import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
 import { approveUGC } from "./approveUGC";
@@ -749,6 +750,7 @@ export async function addArtist(
                     )
                 `);
             }
+            await queueDirectoryDiscovery(database, newArtist.id, session.user.id);
             console.debug("[Server] New artist created:", newArtist);
             notificationCreatedAt = newArtist.createdAt;
 

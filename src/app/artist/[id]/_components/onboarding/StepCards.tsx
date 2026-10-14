@@ -417,7 +417,7 @@ export function ProfilesCard({ payload, onConfirm, onFindMore, disabled }: {
         // artist "Still missing: TikTok" on the line directly below the TikTok
         // link he had just added.
         ...added.flatMap(platformsInUrl),
-    ]);
+    ].map(siteName => siteName === 'youtubechannel' ? 'youtube' : siteName));
     const unreachable = (payload.unreachable ?? []).filter(p => !coveredSiteNames.has(p));
     const unreachableSet = new Set(unreachable);
     const stillMissing = SUPPORTED_PLATFORMS.filter(p => !coveredSiteNames.has(p) && !unreachableSet.has(p));
