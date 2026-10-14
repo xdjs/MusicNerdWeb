@@ -62,18 +62,21 @@ describe('ProfileTour', () => {
         expect(screen.getByText(/answers come from your Lore sources/i)).toBeInTheDocument();
     });
 
-    it('preserves the current position on opening and scrolls only for Next or Back', () => {
+    it('opens at the About and scrolls to each section on Next or Back', () => {
+        // 2026-10-14 stand-up: the build finished with the artist at the bottom
+        // of the page and the About card opened with About off screen. The card
+        // must always be next to the section it is calling out.
+        const scrolledTo = () => (Element.prototype.scrollIntoView as jest.Mock).mock.contexts;
         render(<ProfileTour artistId="a1" hasSupportLinks />);
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+        expect(scrolledTo()).toEqual([document.getElementById('mn-about')]);
 
         fireEvent.click(screen.getByRole('button', { name: /next/i }));
-        expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
-        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts[0]).toBe(document.getElementById('mn-ask'));
+        expect(scrolledTo()[1]).toBe(document.getElementById('mn-ask'));
 
         fireEvent.click(screen.getByRole('button', { name: /back/i }));
-        expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(2);
-        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts[1]).toBe(document.getElementById('mn-about'));
+        expect(scrolledTo()[2]).toBe(document.getElementById('mn-about'));
+        expect(scrolledTo()).toHaveLength(3);
     });
 
     it('rings the section it is describing, and un-rings it on the way out', () => {
@@ -101,7 +104,7 @@ describe('ProfileTour', () => {
         expect(card.style.bottom).toBe('');
     });
 
-    it('keeps the opening card on screen when the reader is already below About', () => {
+    it('scrolls back to About and keeps the card on screen when the reader is below it', () => {
         const viewportWidth = window.innerWidth;
         Object.defineProperty(window, 'innerWidth', { value: 832, configurable: true });
         document.getElementById('mn-about').getBoundingClientRect = () => ({
@@ -111,7 +114,7 @@ describe('ProfileTour', () => {
         try {
             render(<ProfileTour artistId="a1" hasSupportLinks />);
             expect(Number.parseFloat(screen.getByRole('dialog').style.top)).toBeGreaterThanOrEqual(12);
-            expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+            expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts).toEqual([document.getElementById('mn-about')]);
         } finally {
             Object.defineProperty(window, 'innerWidth', { value: viewportWidth, configurable: true });
         }
@@ -250,9 +253,11 @@ describe('ProfileTour — surviving the end of onboarding', () => {
         // A server re-fetch unmounted the tour mid-flight — "appeared and
         // disappeared". A flag outlives the remount.
         first.unmount();
+        (Element.prototype.scrollIntoView as jest.Mock).mockClear();
         render(<ProfileTour artistId="a1" hasSupportLinks />);
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+        // Restored on the About, so it scrolls there again.
+        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts).toEqual([document.getElementById('mn-about')]);
     });
 
     it('does not come back after it has been completed', () => {
@@ -291,7 +296,8 @@ describe('ProfileTour — armed while already mounted', () => {
 
         expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByText(/we wrote you a first draft/i)).toBeInTheDocument();
-        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+        // The artist may be anywhere on the page when the build finishes.
+        expect((Element.prototype.scrollIntoView as jest.Mock).mock.contexts).toEqual([document.getElementById('mn-about')]);
     });
 
     it('ignores an arming event for a different artist', () => {

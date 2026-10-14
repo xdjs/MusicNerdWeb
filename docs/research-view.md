@@ -34,6 +34,12 @@ is confirmed. The approved design is linked from the issue.
 > This supersedes the 2026-10-08 follow decision above. Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
+> **Decision 2026-10-14 (stand-up): the tour opens at the section it describes.** In the
+> 2026-10-13 test the build finished with the artist at the bottom of the page, and the tour's
+> About card opened with About off screen. The tour should always be next to the section it is
+> calling out, so opening it scrolls to that section. This supersedes the 2026-10-06 rule (#1435)
+> that opening the tour keeps the reader's position; the build itself still never scrolls on its own.
+
 > **Decision 2026-10-09 (Sweetman): no "skip for now" during the build.** Skip only ever hid the
 > page's progress (the build carries on server-side); the pill covers nothing, so there is nothing
 > to skip. The step-card modal keeps its "Skip for now". Tracked on
@@ -120,9 +126,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
   page loaded already complete renders just the profile), so the marks stay. The pill goes away,
   the Ask button comes back, and the tour's opening card (About) is the next thing the artist sees.
-  Opening or restoring the tour preserves the artist's scroll position, and only the artist
-  choosing **Next** or **Back** scrolls to a tour section. The opening card stays within the
-  viewport even when About is above the reader's current position. Its About copy is: "This draft
+  Opening or restoring the tour scrolls to the section the card describes (About first), and
+  **Next** and **Back** scroll to theirs, so the card is always beside its section. The card stays
+  within the viewport. Its About copy is: "This draft
   is based on the sources on your profile. Edit it or write your own."
 - **Failure.** In the same place, the pill shows the failure with "try again" (`{ type: "open" }`) when the turn’s
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while

@@ -142,13 +142,16 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
         setPlacement(place(rect, window.innerWidth, window.innerHeight, cardHeight));
     }, [stop]);
 
-    // Highlight the current section without moving the reader when the build
-    // automatically arms the tour. Only Next/Back request a scroll below.
+    // Scroll the section into view, lift it above the dim, and ring it. Opening
+    // scrolls too: the build can finish with the artist anywhere on the page, and
+    // the card must be beside the section it describes (2026-10-14 stand-up).
     // Cleanup restores the element's own styles so the tour leaves no trace.
     useEffect(() => {
         if (!armed || dismissed || !stop) return;
         const el = document.getElementById(stop.anchor);
         if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+
         const prev = {
             boxShadow: el.style.boxShadow,
             position: el.style.position,
@@ -193,10 +196,7 @@ export default function ProfileTour({ artistId, hasSupportLinks }: { artistId: s
     }, [index, armed, dismissed, reposition, hasSupportLinks]);
 
     const goToStop = (nextIndex: number) => {
-        const nextStop = STOPS[nextIndex];
-        if (!nextStop) return;
-        document.getElementById(nextStop.anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
-        setIndex(nextIndex);
+        if (STOPS[nextIndex]) setIndex(nextIndex);
     };
 
     const finish = (reachedTheEnd: boolean) => {
