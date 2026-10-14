@@ -1,3 +1,4 @@
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { z } from "zod";
 import { generateText } from "@/server/lib/ai/generateText";
 import { generateArray } from "@/server/lib/ai/generateArray";
@@ -74,6 +75,7 @@ export async function legacyAskArtist(req: Request) {
             return Response.json({ error: "Artist not found" }, { status: 404 });
         }
 
+        const publicLoreAllowed = !!(await getLoreClaimGeneration(artistId));
         const artistName = artist.name ?? "Unknown Artist";
 
         // Build context from artist data + vault sources
@@ -125,12 +127,12 @@ export async function legacyAskArtist(req: Request) {
         }
 
         // Skip the claim-nudge empty-state — it isn't a real bio, so don't feed it back as context.
-        if (isRealBio(artist.bio)) contextParts.push(`\nExisting bio:\n${artist.bio}`);
+        if (publicLoreAllowed && isRealBio(artist.bio)) contextParts.push(`\nExisting bio:\n${artist.bio}`);
         const passageStats: string[] = [];
         /** Concrete things we hold that a question could go at next. */
         const unexplored: string[] = [];
         try {
-            const vaultSources = await getVaultSourcesByArtistId(artistId, "approved");
+            const vaultSources = publicLoreAllowed ? await getVaultSourcesByArtistId(artistId, "approved") : [];
             if (vaultSources.length > 0) {
                 const ranked = byAuthority(vaultSources, s => ({ url: s.url ?? "", type: null }));
                 const vaultContext = ranked.map(s => {
@@ -337,7 +339,7 @@ export async function legacyAskArtist(req: Request) {
         // Artist doc (post-claim onboarding knowledgebase) — capped slice, ground truth
         // like the vault sources. Interview quotes inside it are the artist's own words.
         try {
-            const docContext = await getArtistDocContext(artistId);
+            const docContext = publicLoreAllowed ? await getArtistDocContext(artistId) : null;
             if (docContext) {
                 contextParts.push(`\n--- ARTIST DOC (AI-compiled reference, not independent evidence; verify its claims against the primary sources above and never use it to override them) ---\n${docContext}\n--- END ARTIST DOC ---`);
             }

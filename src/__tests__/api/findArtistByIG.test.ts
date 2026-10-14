@@ -1,3 +1,4 @@
+jest.mock('@/server/utils/queries/lorePersistence', () => ({ getLoreClaimGeneration: jest.fn().mockResolvedValue(null) }));
 import '../../test/setup/testEnv';
 import { POST } from '@/app/api/findArtistByIG/route';
 import { getArtistByProperty } from '@/server/utils/queries/artistQueries';
@@ -46,11 +47,11 @@ describe('findArtistByIG API route', () => {
         expect(text).toContain('Missing or invalid required parameters: instagram handle');
     });
 
-    it('returns artist data when found', async () => {
+    it('returns identity but hides prepared About without a claim', async () => {
         (getArtistByProperty as jest.Mock).mockResolvedValue({
             isError: false,
             message: '',
-            data: { id: '1', instagram: 'test', name: 'Test Artist' },
+            data: { bio: 'Private prepared About', id: '1', instagram: 'test', name: 'Test Artist' },
             status: 200,
         });
 
@@ -58,7 +59,7 @@ describe('findArtistByIG API route', () => {
         expect(getArtistByProperty).toHaveBeenCalledWith(artists.instagram, 'test');
         expect(response.status).toBe(200);
         const json = await response.json();
-        expect(json).toEqual({ result: { id: '1', instagram: 'test', name: 'Test Artist' } });
+        expect(json).toEqual({ result: { bio: null, id: '1', instagram: 'test', name: 'Test Artist' } });
     });
 
     it('returns error message when artist is not found', async () => {

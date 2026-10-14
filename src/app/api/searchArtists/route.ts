@@ -142,6 +142,7 @@ export async function POST(req: Request) {
 
       const dbArtistsWithImages = (dbResults ?? []).map((artist) => ({
         ...artist,
+        bio: null, // Search results carry identity; About uses its claim-checked endpoint.
         isExternalOnly: false,
         imageUrl: customImageUrl(artist.customImage) ?? imageMap.get(artist.id) ?? null,
         matchScore: getMatchScore(artist.name || "", query),

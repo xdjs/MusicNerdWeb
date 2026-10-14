@@ -1,3 +1,5 @@
+import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
@@ -68,7 +70,8 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
     // search result shows, what a shared link previews as, and what an
     // assistant quotes, and it says nothing about the artist. The About is
     // right there and is the best 160 characters we have.
-    const description = artist.bio && isRealBio(artist.bio)
+    const publicClaim = await getLoreClaimGeneration(id);
+    const description = publicClaim && artist.bio && isRealBio(artist.bio)
         ? summarize(artist.bio)
         : `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`;
     const pageUrl = `https://musicnerd.net/artist/${id}`;
@@ -159,6 +162,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
+    const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources);
 
     // Resolve contributor display names only for authorized reviewers, never visitors.
     const editorSources = canEdit
@@ -178,13 +182,13 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
     const profile = (
         <ArtistProfileContent
-            artist={artist}
+            artist={canEdit ? artist : publicProfile.artist}
             claimStatusKnown={existingClaim !== undefined}
             imageUrl={imageUrl}
             platformImage={platformImage}
             artistLinks={artistLinks}
             blockedMusicSourceIds={blockedMusicSourceIds}
-            approvedSources={canEdit ? editorApproved : approvedSources}
+            approvedSources={canEdit ? editorApproved : publicProfile.sources}
             pendingSources={editorPending}
             urlMapList={urlMapList}
             addLinkPrefill={addLinkPrefill}
@@ -250,7 +254,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
             </EditModeProvider>
             <SeoArtistLinks artist={artist} />
             <ArtistJsonLd
-                artist={artist}
+                artist={publicProfile.artist}
                 imageUrl={imageUrl}
                 pageUrl={`https://musicnerd.net/artist/${id}`}
             />

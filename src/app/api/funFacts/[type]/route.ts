@@ -1,3 +1,4 @@
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { NextResponse } from "next/server";
 import { getArtistById } from "@/server/utils/queries/artistQueries";
 import { generateText } from "@/server/lib/ai/generateText";
@@ -42,6 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       return NextResponse.json({ error: "Artist not found" }, { status: 404 });
     }
 
+    const publicLoreAllowed = !!(await getLoreClaimGeneration(id));
     const prompts = await getPrompts();
     if (!prompts) {
       console.error("Failed to fetch prompts");
@@ -69,7 +71,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
 
     // Append approved vault sources as additional context
     try {
-      const vaultSources = await getVaultSourcesByArtistId(id, "approved");
+      const vaultSources = publicLoreAllowed ? await getVaultSourcesByArtistId(id, "approved") : [];
       if (vaultSources.length > 0) {
         const vaultContext = vaultSources.map(s => {
           const parts = [`Source: ${s.title ?? s.url}`];
@@ -85,7 +87,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
 
     // Artist doc — its "Story hooks" section is exactly what fun facts want.
     try {
-      const docContext = await getArtistDocContext(id);
+      const docContext = publicLoreAllowed ? await getArtistDocContext(id) : null;
       if (docContext) {
         finalPrompt += `\n\nArtist knowledge doc (compiled with the artist — prefer its "Story hooks"):\n${docContext}`;
       }

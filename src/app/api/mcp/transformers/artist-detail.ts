@@ -1,10 +1,11 @@
+import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { Artist } from "@/server/db/DbTypes";
 import { getArtistLinks } from "@/server/utils/queries/artistQueries";
 import { isRealBio } from "@/lib/bio/bioConstants";
 import { ArtistDetail, SocialLink } from "../types";
 
 export async function toArtistDetail(artist: Artist): Promise<ArtistDetail> {
-  const artistLinks = await getArtistLinks(artist);
+  const [artistLinks, claimed] = await Promise.all([getArtistLinks(artist), getLoreClaimGeneration(artist.id)]);
 
   const socialLinks: Record<string, SocialLink> = {};
 
@@ -31,7 +32,7 @@ export async function toArtistDetail(artist: Artist): Promise<ArtistDetail> {
     id: artist.id,
     name: artist.name ?? "",
     // The claim-nudge empty-state isn't a real bio — surface null instead.
-    bio: isRealBio(artist.bio) ? artist.bio : null,
+    bio: claimed && isRealBio(artist.bio) ? artist.bio : null,
     spotifyId: artist.spotify ?? null,
     deezerId: artist.deezer ?? null,
     socialLinks,
