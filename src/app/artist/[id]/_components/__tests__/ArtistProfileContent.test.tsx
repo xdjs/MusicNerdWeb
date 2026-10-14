@@ -14,7 +14,7 @@ jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, i
 jest.mock("../AddArtistData", () => ({ __esModule: true, default: ({ directEdit, autoApprove }) => <button data-testid="add" data-direct={String(directEdit)} data-auto={String(autoApprove)} /> }));
 jest.mock("@/app/_components/ArtistLinksGrid", () => ({ __esModule: true, default: ({ isMonetized, hasSupplementalLinks, supplementalLinks = [] }) => <div data-testid={isMonetized ? "support-grid" : "links-grid"} data-supplemental={String(hasSupplementalLinks)} data-icons={supplementalLinks.map(link => link.label).join(",")} /> }));
 jest.mock("../OfficialSiteLinks", () => ({ __esModule: true, default: () => <div /> }));
-jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} /> }));
+jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSources, autoApprove, researching }) => <section data-testid="vault" data-pending={pendingSources.length} data-auto={String(autoApprove)} data-researching={String(researching)} /> }));
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: ({ researching }) => <aside data-testid="ask" data-researching={String(researching)} /> }));
 
@@ -76,6 +76,16 @@ describe("ArtistProfileContent", () => {
         expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "false");
         rerender(<ArtistProfileContent {...base} researching />);
         expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "true");
+    });
+
+    it("hides the Edit toggle and tells Lore while research runs, so nothing is edited mid-build", () => {
+        // 2026-10-14: Sweetman asked for no editing while research fills the page.
+        const { rerender } = render(<ArtistProfileContent {...base} canEdit />);
+        expect(screen.getByRole("button", { name: "edit" })).toBeInTheDocument();
+        expect(screen.getByTestId("vault")).toHaveAttribute("data-researching", "false");
+        rerender(<ArtistProfileContent {...base} canEdit researching />);
+        expect(screen.queryByRole("button", { name: "edit" })).not.toBeInTheDocument();
+        expect(screen.getByTestId("vault")).toHaveAttribute("data-researching", "true");
     });
 
     it("gives the hero the artist's own About, and nothing for an empty one", () => {

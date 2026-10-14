@@ -46,7 +46,8 @@ export default function ArtistProfileContent({
     /** Admin and whitelisted additions are auto-approved UGC, so they appear in
      *  the feed; claim owners keep direct editing (`isClaimedByUser`). */
     autoApprove: boolean;
-    /** The claimant's research build is running (page.tsx); Ask waits for it. */
+    /** The claimant's research build is running (page.tsx); Ask waits for it,
+     *  and editing (the Edit toggle and Add to Lore) waits too. */
     researching?: boolean;
 }) {
     const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
@@ -71,7 +72,7 @@ export default function ArtistProfileContent({
                             artistInstagram={artist.instagram}
                             compactOnMobile
                         />}
-                        {canEdit && <EditModeToggle compactOnMobile />}
+                        {canEdit && !researching && <EditModeToggle compactOnMobile />}
                     </div>
                 </HeroSection>
 
@@ -114,7 +115,7 @@ export default function ArtistProfileContent({
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
+                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} researching={researching} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
                 <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} researching={researching} />
