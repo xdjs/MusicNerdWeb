@@ -112,3 +112,24 @@ it('keeps outside research progress short and distinct from Lore',async()=>{
  fireEvent.change(screen.getByRole('textbox'),{target:{value:'What is new?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
  await screen.findByText('Searching outside Lore…');
 });
+
+it('shows an abortable cooldown before a new question has a saved job', async () => {
+ research.mockImplementation(input => { input.onCooldown?.(18); return new Promise(() => {}); });
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText('Waiting 18s, then continuing…');
+ fireEvent.click(screen.getByRole('button',{name:'Stop waiting'}));
+ expect(research.mock.calls[0][0].signal.aborted).toBe(true);
+ expect(screen.getByText('Stopped waiting. You can try again when ready.')).toBeVisible();
+ expect(screen.queryByText(/research is saved/)).not.toBeInTheDocument();
+});
+it('keeps a saved job through cooldown and explicit resume', async () => {
+ research.mockImplementation(input => { input.onProgress({jobId,stage:'complete',message:'Complete'}); input.onCooldown?.(3); return new Promise(() => {}); });
+ render(<AskAboutArtist artistId="a1" artistName="Artist"/>);
+ fireEvent.change(screen.getByRole('textbox'),{target:{value:'Who played drums?'}});fireEvent.click(screen.getByRole('button',{name:'Submit question'}));
+ await screen.findByText('Waiting 3s, then continuing…');
+ fireEvent.click(screen.getByRole('button',{name:'Stop waiting'}));
+ research.mockResolvedValueOnce({answer:'Saved answer',sources:[]});
+ fireEvent.click(screen.getByRole('button',{name:'Try again'}));await screen.findByText('Saved answer');
+ expect(research.mock.calls[1][0].jobId).toBe(jobId);expect(screen.getAllByText('Who played drums?')).toHaveLength(1);
+});
