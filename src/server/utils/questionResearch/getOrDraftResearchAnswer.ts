@@ -1,3 +1,4 @@
+import { MAX_RESEARCH_REFERENCES } from "@/lib/questionResearch/limits";
 import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
@@ -7,7 +8,7 @@ import type { ResearchReference } from "@/lib/questionResearch/schemas";
 import { draftResearchAnswer } from "./draftResearchAnswer";
 
 const source = z.object({
-  n: z.number().int().min(1).max(3),
+  n: z.number().int().min(1).max(MAX_RESEARCH_REFERENCES),
   title: z.string().max(500),
   url: z.string().url(),
   sourceId: z.string(),
@@ -18,8 +19,8 @@ const source = z.object({
   evidenceKind: z.enum(["original_text", "caption", "provider_transcript"]),
 });
 const saved = z.object({
-  answer: z.string().min(1).max(4000),
-  sources: z.array(source).max(3),
+  answer: z.string().trim().min(1).max(4000),
+  sources: z.array(source).max(MAX_RESEARCH_REFERENCES),
   instagramMentions: z.array(z.string().max(100)).max(30),
   fromOpenWeb: z.boolean(),
   webDomains: z.array(z.string()).max(3),
@@ -34,7 +35,7 @@ const saved = z.object({
     publishedAt: z.string().nullable(),
     activityDate: z.string().optional(),
     activityDateKind: z.enum(["release", "moment"]).optional(),
-  })).max(3),
+  })).max(MAX_RESEARCH_REFERENCES),
 });
 type Row = {
   question_hash: string;

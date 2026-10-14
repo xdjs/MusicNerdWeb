@@ -87,3 +87,20 @@ budgets remain enforced by code. Source discovery never approves Lore.
 Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
 
 After the single bounded answer repair, a rejected extra sentence must not erase independently verified useful facts. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
+
+
+## Preserve the selected evidence through drafting (#1492)
+
+Web accepts the API's complete selected set of up to six public references. Drafting,
+checked citations, saved-answer storage, and reuse candidates share that six-reference
+ceiling; none silently drops the fourth through sixth original. More than six references
+are rejected before original reads or model calls. Each original is reopened with at most
+12,000 characters, for a maximum of 72,000 original characters across the answer. Surrounding
+context never displaces the selected exact slice. This replaces the previous implicit
+36,000-character ceiling caused by reading only three references. Original identity, revision,
+offsets, metadata, exact quotes, and independent claim checks remain required. The 45-second
+deadline and at most two drafts/two checks are unchanged.
+
+A draft with zero factual sentences returns the existing fixed, nonempty evidence limitation.
+If both checked drafts lack a supported sentence, verification fails closed instead of returning
+a blank answer. Whitespace-only sentence text and saved answers are rejected.
