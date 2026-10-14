@@ -43,8 +43,8 @@ function setProgress(over = {}) {
     useOnboardingProgress.mockReturnValue({ ...initialState, stalled: false, resetStall, ...over });
 }
 
-function setChat({ items = [], busy = false, sendTurn = jest.fn() } = {}) {
-    mockUseOnboardingChat.mockReturnValue({ items, busy, sendTurn });
+function setChat({ items = [], busy = false, sendTurn = jest.fn(), authReady = true, hasSentTurn = false } = {}) {
+    mockUseOnboardingChat.mockReturnValue({ items, busy, sendTurn, authReady, hasSentTurn });
     return sendTurn;
 }
 

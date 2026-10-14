@@ -3,7 +3,9 @@ import { renderHook, act } from '@testing-library/react';
 import { useOnboardingChat } from '../useOnboardingChat';
 import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
-jest.mock('@privy-io/react-auth', () => ({ getAccessToken: jest.fn(async () => 'privy-token') }));
+jest.mock('@privy-io/react-auth', () => ({
+    usePrivy: () => ({ ready: true, authenticated: true, getAccessToken: jest.fn(async () => 'privy-token') }),
+}));
 
 // Mock fetch for every test in this file — the hook's real risk surface (SSE
 // buffer/frame-split parsing, error classification, userEcho) never touches

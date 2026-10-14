@@ -143,6 +143,19 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   now", with its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons. The build
   carries on server-side.
 
+## Sign-in readiness
+
+The automatic opening turn waits for Privy to be ready and authenticated. A Web session can
+already show **Edit profile** while Privy is still restoring its browser session; that is not a
+sign-in failure. The opening turn runs once per mounted onboarding view, including repeated
+renders while sign-in settles. See [#1514](https://github.com/xdjs/MusicNerdWeb/issues/1514).
+
+Before any turn is sent, the client obtains a nonempty access token. A briefly unavailable token
+gets up to five checks, 500 ms apart, without making an API request. If it stays unavailable,
+the existing **Try again** control remains available. Signing out or leaving the view during
+this wait prevents a late request. API authorization is unchanged; an actual rejected request
+is never automatically replayed.
+
 ## After research: optional support links
 
 The completed page's `ProfileTour` runs after the build, once onboarding is complete. On its Links
