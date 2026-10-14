@@ -46,3 +46,7 @@ This records successful discovery before downstream queue operations: a later pa
 job retry or failure cannot repeat successful discovery or extend its 24-hour age.
 A parent job without this valid checkpoint always takes the normal research path.
 Malformed, missing, future or expired completion times are ineligible.
+
+Saved profile review must show existing YouTube channel links as YouTube coverage.
+The missing-platform hint normalizes the display category only; removal still sends
+`youtubechannel` so the stored channel field is changed, not an unrelated handle.
