@@ -9,8 +9,8 @@ import type { SectionStep } from "./useFreshSections";
 
 /**
  * A profile section research fills (docs/research-view.md, "Sections"). While
- * its step isn't confirmed: a skeleton in the section's shape (above the
- * section, or for the About instead of it), with no caption: the progress pill
+ * its step isn't confirmed: a skeleton in the section's shape (above Links,
+ * instead of the About and Lore), with no caption: the progress pill
  * is the one voice. It pulses, and announces `label`, only while this section
  * is being researched; a waiting one is still and hidden from screen readers. When it has just
  * arrived: the section fades in, is marked, announces itself once and reports
@@ -56,7 +56,7 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
                 ) : (
                     <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
                 )}
-                {skeleton !== "about" && children}
+                {skeleton === "links" && children}
             </>
         );
     }

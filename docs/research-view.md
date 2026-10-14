@@ -34,6 +34,11 @@ is confirmed. The approved design is linked from the issue.
 > This supersedes the 2026-10-08 follow decision above. Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
+> **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the
+> 2026-10-13 test, Lore showed the skeleton and the sources that already existed. Until the `vault`
+> step is confirmed, the skeleton replaces the existing sources, as it does the About. Links is
+> unchanged.
+
 > **Decision 2026-10-14 (stand-up): the tour opens at the section it describes.** In the
 > 2026-10-13 test the build finished with the artist at the bottom of the page, and the tour's
 > About card opened with About off screen. The tour should always be next to the section it is
@@ -75,8 +80,8 @@ Each section research fills shows that it is being researched, then makes its ar
 | Section | Waits on step | While waiting | While researching | When it arrives |
 |---|---|---|---|---|
 | About (`#mn-about`, in the hero) | `publish` | three still, dim skeleton text lines in place of the blurb | the lines pulse | the About, ringed, with a "New About" chip |
-| Links (`#mn-links`) | `profiles` | still, dim skeleton profile tiles | the tiles pulse | the links; each new one ringed with a dot; "N new" by the heading |
-| Lore (`#mn-lore`, its sources) | `vault` | still, dim skeleton source cards | the cards pulse | the sources; each new one ringed with a "new" chip; "N new" by the heading |
+| Links (`#mn-links`) | `profiles` | still, dim skeleton profile tiles, above any existing links | the tiles pulse | the links; each new one ringed with a dot; "N new" by the heading |
+| Lore (`#mn-lore`, its sources) | `vault` | still, dim skeleton source cards in place of any existing sources | the cards pulse | the sources; each new one ringed with a "new" chip; "N new" by the heading |
 
 A section is **researching** when it is the build's current step (`interview` counts as the About),
 otherwise **waiting**. The sections carry no captions: the pill alone says what the build is doing,
