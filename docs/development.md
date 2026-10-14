@@ -293,3 +293,14 @@ in the viewer's local timezone. Space or `T` separators, up to six fractional di
 and `Z`, hour-only or hour/minute numeric offsets are supported. Unzoned database
 values retain the existing UTC interpretation. Invalid or missing values display
 `Date unavailable` once. Formatting never changes stored dates, claim status, or ownership.
+
+## Admin research attribution
+
+Lore review, contribution review, and artist activity distinguish the recorded actor's
+role from the reason work began. Research triggered by `claim_approval` displays
+`Research reason: Claim approved` and `Claim approved by {actor}`. Manual source
+search remains `Research requested by {actor}`. Direct contributions remain
+`Submitted by {contributor}`, and uploads retain uploader attribution. Legacy unknown
+origin/actor information stays unknown; missing or unrecorded research reasons use the
+neutral `Recorded account` label. This is presentation only: actor IDs, triggers,
+submission timestamps, claim records, and research execution are unchanged.

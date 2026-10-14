@@ -1,3 +1,4 @@
+import { fetchResearchResponse } from "./fetchResearchResponse";
 import type { PublicChatTurn } from "./publicChatTypes";
 export type ResearchProgress = {
   jobId: string;
@@ -28,6 +29,7 @@ export async function runArtistResearch(input: {
   jobId?: string;
   signal: AbortSignal;
   onProgress: (progress: ResearchProgress) => void;
+  onCooldown?: (seconds: number | null) => void;
 }): Promise<QuestionAnswer> {
   const signal = AbortSignal.any([
     input.signal,
@@ -35,17 +37,19 @@ export async function runArtistResearch(input: {
   ]);
   let resolvedQuestion = input.resolvedQuestion;
   const post = async (jobId?: string) => {
-    const r = await fetch("/api/askArtist", {
+    const url = jobId
+      ? `/api/artist/${encodeURIComponent(input.artistId)}/questionResearch/${encodeURIComponent(jobId)}/answer`
+      : "/api/askArtist";
+    const r = await fetchResearchResponse(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        artistId: input.artistId,
+        ...(!jobId ? { artistId: input.artistId } : {}),
         question: jobId ? resolvedQuestion ?? input.question : input.question,
         ...(!jobId && input.conversation?.length ? { conversation: input.conversation } : {}),
-        ...(jobId ? { jobId } : {}),
       }),
       signal,
-    });
+    }, input.onCooldown);
     const data = await r.json();
     if (typeof data.research?.resolvedQuestion === "string" && data.research.resolvedQuestion.length <= 500)
       resolvedQuestion = data.research.resolvedQuestion;
@@ -80,9 +84,10 @@ export async function runArtistResearch(input: {
   input.onProgress(first.data.research);
   for (;;) {
     signal.throwIfAborted();
-    const r = await fetch(
+    const r = await fetchResearchResponse(
       `/api/artist/${input.artistId}/questionResearch/${encodeURIComponent(jobId)}`,
       { signal, cache: "no-store" },
+      input.onCooldown,
     );
     const progress = await r.json();
     if (!r.ok)

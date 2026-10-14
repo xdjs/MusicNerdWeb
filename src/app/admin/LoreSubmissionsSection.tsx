@@ -13,6 +13,7 @@ import type { getPendingLoreSources } from "@/server/utils/queries/getPendingLor
 import surface from "@/app/profile/ProfileConcept.module.css";
 import styles from "@/components/community/Community.module.css";
 
+import { researchAttribution } from '@/lib/activity/researchAttribution';
 import { triggerLabels } from '@/lib/activity/activityLabels';
 
 type Props = {
@@ -133,7 +134,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
       {visible.map(item => {
         const artistName = item.artistName ?? "Unknown artist";
         const actor = item.actorName || item.actorEmail || item.actorId || (item.actorKind === 'system' ? 'Music Nerd system' : item.actorKind === 'user' ? 'Deleted account' : 'Unknown initiator');
-        const attribution = item.origin === 'research' ? `Research requested by ${actor}`
+        const attribution = item.origin === 'research' ? researchAttribution(actor, item.trigger).actorLabel
           : item.origin === 'submission' ? `Submitted by ${actor}`
           : item.origin === 'upload' ? `Uploaded by ${actor}` : 'Origin not recorded';
         return <article key={item.id} className={`${surface.surface} ${styles.loreCard}`}>
@@ -168,7 +169,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <p className="min-w-0 break-words">{attribution}</p>
             <span>{item.claimed ? 'Claimed profile' : 'Unclaimed profile'}</span>
-            {item.trigger && <span>{triggerLabels[item.trigger] ?? item.trigger}</span>}
+            {item.origin === 'research' ? <span>{researchAttribution(actor, item.trigger).reasonLabel}</span> : item.trigger && <span>{triggerLabels[item.trigger] ?? item.trigger}</span>}
           </div>
           <p className={styles.loreDate}>Added {new Date(item.createdAt).toLocaleString('en-US', { timeZone: 'UTC' }) + ' UTC'}</p>
           {item.activityId && <Link className="text-sm underline underline-offset-4" href={`/admin?section=activity&activityId=${item.activityId}`}>View initiating activity</Link>}

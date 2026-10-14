@@ -32,7 +32,7 @@ export default function ResearchInPlace({ artistId, initialState, researchItems,
     const progress = useOnboardingProgress(artistId, initialState, onComplete);
     const { fresh, markSeen } = useFreshSections(progress.steps);
     const [baseline] = useState(researchItems);
-    const value = useMemo<ResearchContextValue>(() => ({ steps: progress.steps, fresh, markSeen, complete: progress.complete, baseline }), [progress.steps, fresh, markSeen, progress.complete, baseline]);
+    const value = useMemo<ResearchContextValue>(() => ({ steps: progress.steps, currentStep: progress.currentStep, fresh, markSeen, complete: progress.complete, baseline }), [progress.steps, progress.currentStep, fresh, markSeen, progress.complete, baseline]);
     const failure = progress.complete ? null : buildFailure(items)?.message ?? (progress.stalled ? STALLED : null);
     return (
         <OnboardingProgressContext.Provider value={value}>

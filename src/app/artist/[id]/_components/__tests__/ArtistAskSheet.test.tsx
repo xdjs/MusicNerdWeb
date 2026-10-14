@@ -6,6 +6,7 @@ jest.mock("../AskAboutArtist", () => ({ __esModule: true, default: () => null })
 
 const research = (complete: boolean): ResearchContextValue => ({
     steps: { profiles: null, vault: null, interview: null, publish: null },
+    currentStep: null,
     fresh: { profiles: false, vault: false, publish: false },
     markSeen: jest.fn(),
     complete,

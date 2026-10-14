@@ -18,4 +18,16 @@ describe("SkeletonShape", () => {
         expect(lines).toHaveLength(3);
         lines.forEach(line => expect(line).toHaveClass("bg-current", "dark:bg-current"));
     });
+
+    it("draws a still, dimmer placeholder for a section that is waiting", () => {
+        const { container } = render(<SkeletonShape kind="links" still />);
+        expect(container.querySelector("[data-still]")).not.toBeNull();
+        expect(container.querySelectorAll(".motion-safe\\:animate-pulse")).toHaveLength(0);
+    });
+
+    it("pulses while its section is being researched", () => {
+        const { container } = render(<SkeletonShape kind="links" />);
+        expect(container.querySelector("[data-still]")).toBeNull();
+        expect(container.querySelectorAll(".motion-safe\\:animate-pulse").length).toBeGreaterThan(0);
+    });
 });

@@ -1,4 +1,5 @@
 import type { OnboardingStepName, OnboardingSteps } from "@/lib/onboarding/onboardingStateTypes";
+import { researchingSection } from "@/lib/onboarding/researchingSection";
 
 export type StepSegment = { label: "Links" | "Lore" | "About"; state: "done" | "active" | "waiting" };
 
@@ -11,7 +12,7 @@ const SEGMENTS: { label: StepSegment["label"]; step: OnboardingStepName }[] = [
 /** The status card's three segments (docs/research-view.md, "Status card"). The
  *  auto-build confirms interview with publish, so a current `interview` is the About. */
 export function stepSegments(steps: OnboardingSteps, currentStep: OnboardingStepName | null): StepSegment[] {
-    const current = currentStep === "interview" ? "publish" : currentStep;
+    const current = researchingSection(currentStep);
     return SEGMENTS.map(({ label, step }) => ({
         label,
         state: steps[step] !== null ? "done" : step === current ? "active" : "waiting",

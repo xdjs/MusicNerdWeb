@@ -28,6 +28,39 @@ describe("ResearchStatusBar", () => {
         expect(showResearchSection).toHaveBeenCalledWith("vault");
     });
 
+    it("says which of the three steps is running, and sweeps only the running segment", () => {
+        const { container } = render(<ResearchStatusBar {...base} steps={{ ...none, profiles: "t1" }} currentStep="vault" />);
+        expect(screen.getByText("2 of 3")).toBeInTheDocument();
+        const segments = container.querySelectorAll("[data-segment]");
+        expect([...segments].map(s => s.getAttribute("data-segment"))).toEqual(["done", "active", "waiting"]);
+        expect(segments[1].querySelector(".motion-safe\\:animate-research-sweep")).not.toBeNull();
+        expect(container.querySelectorAll(".motion-safe\\:animate-research-sweep")).toHaveLength(1);
+    });
+
+    it("counts the interview as the About, step 3", () => {
+        render(<ResearchStatusBar {...base} steps={{ ...none, profiles: "t1", vault: "t2" }} currentStep="interview" />);
+        expect(screen.getByText("3 of 3")).toBeInTheDocument();
+    });
+
+    it("shows no count before the build reports a step", () => {
+        render(<ResearchStatusBar {...base} currentStep={null} />);
+        expect(screen.queryByText(/of 3/)).not.toBeInTheDocument();
+    });
+
+    it("hints to tap along until the artist first taps the pill", () => {
+        render(<ResearchStatusBar {...base} />);
+        expect(screen.getByText("Tap to follow along")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: /finding your profiles…/ }));
+        expect(screen.queryByText("Tap to follow along")).not.toBeInTheDocument();
+    });
+
+    it("does what the pill does when the artist taps the hint itself", () => {
+        render(<ResearchStatusBar {...base} currentStep="vault" />);
+        fireEvent.click(screen.getByText("Tap to follow along"));
+        expect(showResearchSection).toHaveBeenCalledWith("vault");
+        expect(screen.queryByText("Tap to follow along")).not.toBeInTheDocument();
+    });
+
     it("renders nothing once the build is complete, leaving the page to the tour", () => {
         const { container } = render(<ResearchStatusBar {...base} complete currentStep={null} />);
         expect(container).toBeEmptyDOMElement();

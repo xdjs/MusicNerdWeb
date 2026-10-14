@@ -34,10 +34,29 @@ is confirmed. The approved design is linked from the issue.
 > This supersedes the 2026-10-08 follow decision above. Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
+> **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the
+> 2026-10-13 test, Lore showed the skeleton and the sources that already existed. Until the `vault`
+> step is confirmed, the skeleton replaces the existing sources, as it does the About. Links is
+> unchanged.
+
+> **Decision 2026-10-14 (stand-up): the tour opens at the section it describes.** In the
+> 2026-10-13 test the build finished with the artist at the bottom of the page, and the tour's
+> About card opened with About off screen. The tour should always be next to the section it is
+> calling out, so opening it scrolls to that section. This supersedes the 2026-10-06 rule (#1435)
+> that opening the tour keeps the reader's position; the build itself still never scrolls on its own.
+
 > **Decision 2026-10-09 (Sweetman): no "skip for now" during the build.** Skip only ever hid the
 > page's progress (the build carries on server-side); the pill covers nothing, so there is nothing
 > to skip. The step-card modal keeps its "Skip for now". Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
+
+> **Decision 2026-10-12 ([stand-up](https://github.com/xdjs/MusicNerdWeb/pull/1490); Pete, Carl,
+> Sweetman): one voice.** In Pete's live test the About said "writing your about…" while the pill
+> said it was finding profiles. Carl: keep the pill where it is and take the text off the page, so
+> the pill is the one thing saying what is happening; Pete's concern was "two things that aren't in
+> sync". Only the section being researched animates; the pill gets a moving segment, a glow, a
+> step count and a "Tap to follow along" hint. Sweetman approved the design the same day. Tracked
+> on [#1494](https://github.com/xdjs/MusicNerdWeb/issues/1494).
 
 ## When it shows
 
@@ -58,11 +77,16 @@ step cards open over the page as before.
 Each section research fills shows that it is being researched, then makes its arrival visible
 (design approved 2026-10-05, on #1365 under Design › Section research states).
 
-| Section | Waits on step | While researching | When it arrives |
-|---|---|---|---|
-| About (`#mn-about`, in the hero) | `publish` | three skeleton text lines in place of the blurb, "writing your about…" | the About, ringed, with a "New About" chip |
-| Links (`#mn-links`) | `profiles` | skeleton profile tiles, "finding your profiles…" | the links; each new one ringed with a dot; "N new" by the heading |
-| Lore (`#mn-lore`, its sources) | `vault` | skeleton source cards, "reading what's written about you…" | the sources; each new one ringed with a "new" chip; "N new" by the heading |
+| Section | Waits on step | While waiting | While researching | When it arrives |
+|---|---|---|---|---|
+| About (`#mn-about`, in the hero) | `publish` | three still, dim skeleton text lines in place of the blurb | the lines pulse | the About, ringed, with a "New About" chip |
+| Links (`#mn-links`) | `profiles` | still, dim skeleton profile tiles, above any existing links | the tiles pulse | the links; each new one ringed with a dot; "N new" by the heading |
+| Lore (`#mn-lore`, its sources) | `vault` | still, dim skeleton source cards in place of any existing sources | the cards pulse | the sources; each new one ringed with a "new" chip; "N new" by the heading |
+
+A section is **researching** when it is the build's current step (`interview` counts as the About),
+otherwise **waiting**. The sections carry no captions: the pill alone says what the build is doing,
+so the page and the pill never disagree. Screen readers hear the researching section's status
+(`role="status"`, named for its step); a waiting skeleton is hidden from them.
 
 Latest (`#mn-latest`) does not depend on research and is unchanged. A section is pending only while
 a build is being watched and its step has no confirmation time; otherwise it renders as usual.
@@ -76,7 +100,7 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   border, and its tab in the section nav gets a dot. A section stays fresh until 5 s after it has
   been on screen, so a phone user who scrolls down later still sees the marks. The section announces
   itself once to screen readers.
-- **Reduced motion.** No shimmer and no fade; the marks still show.
+- **Reduced motion.** No pulse, sweep, bounce or fade; the marks still show.
 
 ## Progress
 
@@ -90,8 +114,13 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 - **Progress pill.** Fixed at the bottom right, where the Ask button sits; Ask is hidden while it
   shows. Ask is hidden from the first paint when the claimant's page arrives mid-build, so it
   doesn't flash before the pill mounts; on that visit it stays hidden under the step-card modal
-  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely) and three segments
-  (Links, Lore, About: done, running or waiting; `interview` counts as About). It sits outside the
+  and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely), its place ("1 of 3"), and three
+  segments (Links, Lore, About: done, running or waiting; `interview` counts as About). The running
+  segment sweeps and the pill has a soft glow (`pastypink` in light, `pastyblue` in dark), so it
+  reads as live. Until the artist first taps it, a "Tap to follow along" hint with a bouncing arrow
+  sits above it (Pete, 2026-10-12: "the person wouldn't have known to click that"). Tapping the hint
+  does what tapping the pill does (Sweetman, 2026-10-12 preview test); it is out of the tab order and
+  hidden from screen readers, the pill being the one control. The hint is not remembered across visits. It sits outside the
   page flow, so it shifts nothing when it appears or goes away.
 - **Nothing scrolls by itself.** Clicking the pill scrolls once to the section being researched:
   `profiles` → Links (`#mn-links`), `vault` → Lore (`#mn-lore`), `interview`/`publish` → About,
@@ -102,9 +131,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
   page loaded already complete renders just the profile), so the marks stay. The pill goes away,
   the Ask button comes back, and the tour's opening card (About) is the next thing the artist sees.
-  Opening or restoring the tour preserves the artist's scroll position, and only the artist
-  choosing **Next** or **Back** scrolls to a tour section. The opening card stays within the
-  viewport even when About is above the reader's current position. Its About copy is: "This draft
+  Opening or restoring the tour scrolls to the section the card describes (About first), and
+  **Next** and **Back** scroll to theirs, so the card is always beside its section. The card stays
+  within the viewport. Its About copy is: "This draft
   is based on the sources on your profile. Edit it or write your own."
 - **Failure.** In the same place, the pill shows the failure with "try again" (`{ type: "open" }`) when the turn’s
   stream ends in an `error` event (its message), or when no step is newly confirmed for 90 s while
@@ -113,6 +142,19 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 - **Skip.** There is none during the build. The step-card modal (the resume path) keeps "Skip for
   now", with its session-scoped behaviour (`OnboardingGate`): the banner, no skeletons. The build
   carries on server-side.
+
+## Sign-in readiness
+
+The automatic opening turn waits for Privy to be ready and authenticated. A Web session can
+already show **Edit profile** while Privy is still restoring its browser session; that is not a
+sign-in failure. The opening turn runs once per mounted onboarding view, including repeated
+renders while sign-in settles. See [#1514](https://github.com/xdjs/MusicNerdWeb/issues/1514).
+
+Before any turn is sent, the client obtains a nonempty access token. A briefly unavailable token
+gets up to five checks, 500 ms apart, without making an API request. If it stays unavailable,
+the existing **Try again** control remains available. Signing out or leaving the view during
+this wait prevents a late request. API authorization is unchanged; an actual rejected request
+is never automatically replayed.
 
 ## After research: optional support links
 
@@ -150,8 +192,9 @@ offer an interview. The parameter has no effect in production.
 ## Rules
 
 - **Tokens only.** `bg-background`, `text-foreground`, `border` and the stock radii; dark mode
-  follows the tokens. The one colour is the activity dot (`pastypink` in light, `pastyblue` in
-  dark). Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
+  follows the tokens. The activity colour is `pastypink` in light and `pastyblue` in dark (the dot,
+  the running segment, the pill's glow); the follow hint uses the action pink, `highlightpink`, with
+  black text. Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
   `globals.css` forces `.dark .text-muted-foreground` to white with `!important` (DESIGN.md,
   inconsistency #5).
 - **Artist-facing copy.** No internal reasons, step ids, issue numbers or error codes.

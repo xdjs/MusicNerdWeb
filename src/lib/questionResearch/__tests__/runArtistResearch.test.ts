@@ -53,7 +53,9 @@ it("shows persisted progress, waits, and resumes the same job instead of enqueue
     .mocked(fetch)
     .mock.calls.filter(([, opts]) => opts?.method === "POST");
   expect(posts).toHaveLength(2);
-  expect(JSON.parse(posts[1][1]!.body as string).jobId).toBe("job");
+  expect(posts[0][0]).toBe("/api/askArtist");
+  expect(posts[1][0]).toBe("/api/artist/artist/questionResearch/job/answer");
+  expect(JSON.parse(posts[1][1]!.body as string)).toEqual({question:"Question?"});
 });
 it("reconnects with the saved job and never submits an initial new request", async () => {
   global.fetch = jest.fn().mockResolvedValue({
@@ -68,9 +70,8 @@ it("reconnects with the saved job and never submits an initial new request", asy
     onProgress: () => {},
     signal: new AbortController().signal,
   });
-  expect(
-    JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string).jobId,
-  ).toBe("saved");
+  expect(jest.mocked(fetch).mock.calls[0][0]).toBe("/api/artist/artist/questionResearch/saved/answer");
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({question:"Question?"});
 });
 it("keeps polling when a concurrent worker holds the answer-check lease", async () => {
   const reply = (body: unknown, status = 200) => ({ ok: true, status, json: async () => body });
@@ -119,16 +120,45 @@ it("sends bounded conversation only when starting and polls with the resolved st
   await runArtistResearch({ artistId: "artist", question: "Who created it?", conversation, signal: new AbortController().signal, onProgress });
   const posts = jest.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "POST");
   expect(JSON.parse(posts[0][1]!.body as string)).toMatchObject({ question: "Who created it?", conversation });
-  expect(JSON.parse(posts[1][1]!.body as string)).toEqual({ artistId: "artist", question: resolvedQuestion, jobId: "job" });
+  expect(JSON.parse(posts[1][1]!.body as string)).toEqual({ question: resolvedQuestion });
   expect(onProgress).toHaveBeenLastCalledWith(expect.objectContaining({ resolvedQuestion }));
 });
 it("retries the same resolved question without sending a different conversation", async () => {
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ answer: "Saved answer" }) });
   await runArtistResearch({ artistId: "artist", question: "Who created it?", resolvedQuestion: "Who created PPNE NYC?", jobId: "job", conversation: [{ question: "Later unrelated ask?", answer: "Other work" }], signal: new AbortController().signal, onProgress: jest.fn() });
-  expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({ artistId: "artist", question: "Who created PPNE NYC?", jobId: "job" });
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({ question: "Who created PPNE NYC?" });
 });
 it('passes a terminal-worker retry boundary to the UI instead of treating it as an answer',async()=>{
  global.fetch=jest.fn().mockResolvedValue({ok:false,status:503,json:async()=>({error:'Lookup failed.',retryFromStart:true})});
  const result=await runArtistResearch({artistId:'artist',question:'What else?',jobId:'dead-job',signal:new AbortController().signal,onProgress:jest.fn()});
  expect(result).toEqual({error:'Lookup failed.',retryFromStart:true});expect(global.fetch).toHaveBeenCalledTimes(1);
+});
+it('resumes a throttled completed answer without planning or creating another job', async () => {
+ const reply = (body: unknown, status = 200, retry?: string) => ({ ok: status < 400, status, headers: new Headers(retry ? { 'Retry-After': retry } : {}), json: async () => body });
+ global.fetch=jest.fn()
+  .mockResolvedValueOnce(reply({research:{jobId:'saved',stage:'checking_saved',message:'Checking',resolvedQuestion:'Who filmed the PPNE NYC visualizer?'}},202))
+  .mockResolvedValueOnce(reply({jobId:'saved',stage:'complete',message:'Complete'}))
+  .mockResolvedValueOnce(reply({error:'Too many requests'},429,'3'))
+  .mockResolvedValueOnce(reply({answer:'The credited filmmaker.'}));
+ const onCooldown=jest.fn();
+ const result=runArtistResearch({artistId:'artist',question:'Who filmed it?',signal:new AbortController().signal,onProgress:jest.fn(),onCooldown});
+ await jest.advanceTimersByTimeAsync(2999);expect(fetch).toHaveBeenCalledTimes(3);
+ await jest.advanceTimersByTimeAsync(1);expect((await result).answer).toBe('The credited filmmaker.');
+ const calls=jest.mocked(fetch).mock.calls;
+ expect(calls.filter(([url])=>url==='/api/askArtist')).toHaveLength(1);
+ expect(calls[2]).toEqual(calls[3]);expect(calls[3][0]).toBe('/api/artist/artist/questionResearch/saved/answer');
+ expect(JSON.parse(calls[3][1]!.body as string)).toEqual({question:'Who filmed the PPNE NYC visualizer?'});
+ expect(onCooldown).toHaveBeenCalledWith(3);
+});
+it('waits through a throttled status read and keeps the existing job', async () => {
+ const reply = (body: unknown, status = 200, retry?: string) => ({ ok: status < 400, status, headers: new Headers(retry ? { 'Retry-After': retry } : {}), json: async () => body });
+ global.fetch=jest.fn()
+  .mockResolvedValueOnce(reply({research:{jobId:'saved',stage:'checking_saved',message:'Checking'}},202))
+  .mockResolvedValueOnce(reply({error:'Too many requests'},429,'2'))
+  .mockResolvedValueOnce(reply({jobId:'saved',stage:'complete',message:'Complete'}))
+  .mockResolvedValueOnce(reply({answer:'Saved answer'}));
+ const result=runArtistResearch({artistId:'artist',question:'Question?',jobId:'saved',signal:new AbortController().signal,onProgress:jest.fn()});
+ await jest.advanceTimersByTimeAsync(2000);expect((await result).answer).toBe('Saved answer');
+ expect(jest.mocked(fetch).mock.calls.some(([url])=>url==='/api/askArtist')).toBe(false);
+ expect(jest.mocked(fetch).mock.calls[1]).toEqual(jest.mocked(fetch).mock.calls[2]);
 });

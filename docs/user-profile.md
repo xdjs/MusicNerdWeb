@@ -12,6 +12,18 @@ The regular `/profile` requires a real MusicNerd session. It renders the approve
 - Bookmarks are removed from the current UI. Existing records and the account bookmark API are retained; the live profile performs no bookmark imports or writes.
 - Profile edits and errors retain their existing behavior. A collection/feed failure does not block identity or contribution history.
 
+## API access — October 14, 2026
+
+The signed-in profile header includes **API access**, a keyboard-accessible link to the
+existing `/access` page. It uses the normal account profile, not the sample API-tab
+prototype. The profile does not request or display a token. `/access` keeps its existing
+Privy sign-in, temporary token, Copy and Refresh behavior. The signed-out profile still
+asks the visitor to log in, and public artist profiles do not expose account credentials.
+
+This is navigation only: no new token service, permissions, database writes, research jobs
+or external service calls are introduced. Verify the profile entry and signed-out destination
+on desktop and phone in both themes; do not include real tokens or account details in captures.
+
 ## Release verification
 
 Verify anonymous rejection, account switching, qualifying additions/approved contributions/self-edits, repeated-artist deduplication, pending and bookmark-only exclusion, collection search/pagination, feed filter/fanout bounds, and empty/loading/error states. Check phone/desktop in both themes, profile editing and existing card/listening flows. This change requires no migration. Production release remains separately authorized.

@@ -157,3 +157,29 @@ it('read-only lookup cannot draft or strand an abandoned waiting answer',async()
  expect(draft).not.toHaveBeenCalled();
  expect(execute).toHaveBeenCalledTimes(2);
 });
+
+
+it("saves and reopens a six-source answer without dropping citations four through six", async () => {
+  const refs = Array.from({ length: 6 }, (_, i) => ({ ...ref, sourceId: `vault:${String(i + 1).repeat(8)}-1111-4111-8111-111111111111`, url: `https://artist.example/credits/${i + 1}` }));
+  const sixResult = { ...result, answer: "They played drums. [1, 2, 3, 4, 5, 6]", sources: refs.map((r, i) => ({ ...source, n: i + 1, sourceId: r.sourceId, url: r.url })) };
+  draft.mockResolvedValue(sixResult);
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ claim_token: "token" }] as never)
+    .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, references: refs })).toEqual({ state: "ready", result: sixResult });
+  const query = new PgDialect().sqlToQuery(execute.mock.calls[3][0] as SQL);
+  const stored = query.params.find((value): value is string => typeof value === "string" && value.includes('"basis"'));
+  expect(stored).toBeDefined();
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: JSON.parse(stored!) }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, references: refs })).toEqual({ state: "ready", result: sixResult });
+  expect(draft).toHaveBeenCalledTimes(1);
+});
+
+it("rejects a blank cached answer instead of returning ready with no visible content", async () => {
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: { ...saved, answer: "   " } }] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
+  expect(draft).not.toHaveBeenCalled();
+});
