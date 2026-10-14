@@ -83,3 +83,5 @@ When outside research is needed, the model chooses among server-validated availa
 lookups; there is no fixed Instagram-first priority. Explicit source restrictions,
 connected-account identity, public-source access, durable job checkpoints and spending
 budgets remain enforced by code. Source discovery never approves Lore.
+
+Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
