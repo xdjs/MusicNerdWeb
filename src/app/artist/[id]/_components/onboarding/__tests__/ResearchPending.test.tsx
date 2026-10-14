@@ -47,6 +47,7 @@ describe("ResearchPending", () => {
         expect(waiting).not.toBeNull();
         expect(waiting?.closest("[aria-hidden=true]")).not.toBeNull();
         expect(screen.queryByText("reading…")).not.toBeInTheDocument();
+        expect(screen.queryByText("lore")).not.toBeInTheDocument();
     });
 
     it("never says it is writing the About while Links is being researched", () => {

@@ -60,10 +60,12 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
             </>
         );
     }
-    if (!fresh) return <>{children}</>;
+    // Lore contains the editor tabs. Keep their parent stable when the arrival
+    // highlight clears so an active tab or unfinished interview answer survives.
+    if (!fresh && step !== "vault") return <>{children}</>;
     return (
-        <div ref={box} data-research-new="" className="motion-safe:animate-research-reveal">
-            <span role="status" className="sr-only">{arrivedLabel}</span>
+        <div ref={box} data-research-new={fresh ? "" : undefined} className={fresh ? "motion-safe:animate-research-reveal" : undefined}>
+            {fresh && <span role="status" className="sr-only">{arrivedLabel}</span>}
             {skeleton === "about" ? (
                 <div className="flex flex-col items-start gap-2">
                     <Badge variant="highlight">New About</Badge>

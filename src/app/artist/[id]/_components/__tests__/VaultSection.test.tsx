@@ -48,13 +48,56 @@ it("shows the suggestion path to visitors and edit controls only in edit mode", 
 });
 
 describe('VaultSection while research reads sources', () => {
-  it('shows source-card skeletons instead of the Lore until the vault step is confirmed', () => {
+  it('shows only source-card skeletons while existing Lore is being researched', () => {
     const steps = { profiles: 't1', vault: null, interview: null, publish: null };
-    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'vault' })}><VaultSection artistId="a1" isClaimed pendingSources={[]} approvedSources={[]} /></OnboardingProgressContext.Provider>);
+    render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'vault' })}><VaultSection artistId="a1" isClaimed pendingSources={[]} approvedSources={[{ id: 'saved-source', status: 'approved', type: 'article' }] as never} /></OnboardingProgressContext.Provider>);
     const status = screen.getByRole('status', { name: 'reading what’s written about you…' });
     expect(status.querySelectorAll('[data-skeleton=card]').length).toBeGreaterThan(0);
-    // 2026-10-14 stand-up: the placeholder only, not the Lore that already exists.
     expect(screen.queryByText('Public Lore')).not.toBeInTheDocument();
+  });
+
+  it('hides existing editor content while waiting and researching, then restores it when Lore is confirmed', () => {
+    const saved = [{ id: 'saved-source', status: 'approved', type: 'article' }];
+    const view = (value: React.ContextType<typeof OnboardingProgressContext>) => <OnboardingProgressContext.Provider value={value}>
+      <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}>
+        <VaultSection {...props} approvedSources={saved as never} />
+      </EditModeContext.Provider>
+    </OnboardingProgressContext.Provider>;
+    const { rerender, container } = render(view(research({ currentStep: 'profiles' })));
+    expect(container.querySelector('[data-skeleton=card]')).not.toBeNull();
+    expect(screen.queryByText('Editor Lore controls')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Questions/ })).not.toBeInTheDocument();
+    rerender(view(research({ currentStep: 'vault' })));
+    expect(screen.getByRole('status', { name: 'reading what’s written about you…' })).toBeInTheDocument();
+    expect(screen.queryByText('Editor Lore controls')).not.toBeInTheDocument();
+    rerender(view(research({ steps: { ...researchNone, profiles: 't1', vault: 't2' }, currentStep: 'interview' })));
+    expect(container.querySelector('[data-skeleton=card]')).toBeNull();
+    expect(screen.getByText('Editor Lore controls')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Questions/ })).toBeInTheDocument();
+  });
+
+  it('restores public Lore after confirmation and outside a watched build', () => {
+    const view = (value: React.ContextType<typeof OnboardingProgressContext>) => <OnboardingProgressContext.Provider value={value}><VaultSection {...props} /></OnboardingProgressContext.Provider>;
+    const { rerender, container } = render(view(research({ currentStep: 'vault' })));
+    expect(screen.queryByText('Public Lore')).not.toBeInTheDocument();
+    rerender(view(research({ steps: { ...researchNone, profiles: 't1', vault: 't2' }, currentStep: 'interview' })));
+    expect(screen.getByText('Public Lore')).toBeInTheDocument();
+    expect(container.querySelector('[data-skeleton=card]')).toBeNull();
+    rerender(view(null));
+    expect(screen.getByText('Public Lore')).toBeInTheDocument();
+  });
+
+  it('preserves an interview draft when the fresh Lore highlight clears', () => {
+    const steps = { ...researchNone, profiles: 't1', vault: 't2' };
+    const view = (fresh: boolean) => <OnboardingProgressContext.Provider value={research({ steps, fresh: { profiles: false, vault: fresh, publish: false } })}>
+      <EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}><VaultSection {...props} /></EditModeContext.Provider>
+    </OnboardingProgressContext.Provider>;
+    const { rerender } = render(view(true));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Questions' }), { button: 0, ctrlKey: false });
+    fireEvent.change(screen.getByLabelText('Draft response'), { target: { value: 'Keep these words' } });
+    rerender(view(false));
+    expect(screen.getByRole('tab', { name: 'Questions' })).toHaveAttribute('data-state', 'active');
+    expect(screen.getByLabelText('Draft response')).toHaveValue('Keep these words');
   });
 
   it('counts the sources that arrived when the Lore lands', () => {

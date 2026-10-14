@@ -36,8 +36,10 @@ is confirmed. The approved design is linked from the issue.
 
 > **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the
 > 2026-10-13 test, Lore showed the skeleton and the sources that already existed. Until the `vault`
-> step is confirmed, the skeleton replaces the existing sources, as it does the About. Links is
-> unchanged.
+> step is confirmed, the skeleton replaces the existing sources and the Lore editor with its tabs,
+> as it does the About, whether Lore is waiting or being researched. Once `vault` is confirmed,
+> Lore returns even if About is still building, and stays if a later step fails. Links is
+> unchanged ([#1508](https://github.com/xdjs/MusicNerdWeb/issues/1508)).
 
 > **Decision 2026-10-14 (stand-up): the tour opens at the section it describes.** In the
 > 2026-10-13 test the build finished with the artist at the bottom of the page, and the tour's

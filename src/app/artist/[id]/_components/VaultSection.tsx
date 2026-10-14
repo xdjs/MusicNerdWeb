@@ -47,7 +47,6 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
       {/* VaultManager owns the approved list in edit mode. */}
       <ResearchPending step="vault" skeleton="sources" label="reading what’s written about you…" arrivedLabel="Your Lore is ready">
         {!isEditing && <div id="mn-sources"><PressAndFeatures key={artistId} sources={approvedSources} /></div>}
-      </ResearchPending>
       {canEdit && isEditing && <Tabs defaultValue="sources" className="space-y-5">
         <TabsList aria-label="Lore sections" className="sticky top-[76px] z-10 grid h-auto w-full grid-cols-3 rounded-xl border border-black/10 bg-white/95 p-1 backdrop-blur-md dark:border-white/15 dark:bg-[#202020]/95">
           <TabsTrigger value="sources" className="min-h-11 gap-1.5 rounded-lg px-1 text-xs text-gray-600 transition-colors data-[state=active]:bg-pink-500/10 data-[state=active]:text-pink-800 data-[state=active]:shadow-none dark:text-gray-300 dark:data-[state=active]:text-pink-200 sm:text-sm">Lore <span className="text-[10px] opacity-70">{approvedLore.length + pendingLore.length}</span></TabsTrigger>
@@ -59,6 +58,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
         <TabsContent value="bios" forceMount className="data-[state=inactive]:hidden"><h3 className="text-base font-semibold text-foreground">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></TabsContent>
       </Tabs>}
       {!canEdit && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove={autoApprove} />}
+      </ResearchPending>
       </div>
       {children}
     </RevealSection>
