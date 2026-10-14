@@ -104,3 +104,23 @@ and drafting; the old answer remains navigation context, never factual evidence.
 Different URLs or incidental details from the excluded project do not count as
 other activity. If no supplied original answers outside that boundary, return a
 missing-information response rather than repeating the project.
+
+## New-question throttling and saved answers (2026-10-14)
+
+Issue #1506 separates starting a question from collecting an existing answer.
+`POST /api/askArtist` keeps the strict middleware allowance. The browser collects
+and resumes answers with `POST /api/artist/{id}/questionResearch/{jobId}/answer`,
+which shares the existing bounded default request tier with status reads. Its body
+accepts only the question; validated URL parameters bind the artist and saved job.
+It never plans research, registers a new question, or enqueues another job.
+The existing server-only public research key, artist/job checks, registered question,
+current-source revalidation, drafting lease and three-attempt limit still apply.
+This public result route does not require artist login or expose private memory.
+
+For a temporary429 carrying a valid `Retry-After` delay of at most two minutes,
+the browser waits and retries the same request, at most three times within the
+existing five-minute operation timeout. It displays the wait and permits stopping.
+A saved job and its resolved question survive the wait and explicit retry. A quota
+response without `Retry-After` remains an error; it does not automatically start
+new work or reset budgets. Existing clients using the old POST resume shape remain
+supported, but continue to use that route's strict request tier until refreshed.

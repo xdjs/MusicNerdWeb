@@ -548,7 +548,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [loading, setLoading] = useState(false);
     const requestPending = useRef(false);
     const activeRequest = useRef<AbortController | null>(null);
-    const [activeJobId, setActiveJobId] = useState<string | null>(null);
+    const activeTurnId = useRef<string | null>(null);
     const askedQuestions = useRef<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -566,7 +566,6 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0), 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
-        setActiveJobId(jobId ?? null);
         setLoading(true);
         setQuestion("");
         askedQuestions.current.add(trimmed.toLowerCase());
@@ -574,6 +573,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, requestConversation: conversation, resolvedQuestion, sources: [], mentions: [], instagramMentions: [], songs: [],
             bandcamp: null, fromOpenWeb: false, webDomains: [],
         };
+        activeTurnId.current = pending.id;
         setTurns(previous => turnId ? previous.map(turn => turn.id === turnId ? pending : turn) : [...previous, pending]);
         const finish = (result: Partial<ConversationTurn>) => {
             if (controller.signal.aborted) return;
@@ -581,9 +581,9 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         };
         try {
             const data = await runArtistResearch({ artistId, question: trimmed, jobId, conversation, resolvedQuestion, signal: controller.signal,
+                onCooldown: seconds => finish({ progress: seconds === null ? "Checking Lore…" : `Waiting ${seconds}s, then continuing…` }),
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
-                    setActiveJobId(progress.jobId);
                     finish({ jobId: progress.jobId, progress: ["searching", "reading", "transcribing", "waiting_provider"].includes(progress.stage) ? "Searching outside Lore…" : "Checking Lore…", ...(progress.resolvedQuestion ? { resolvedQuestion: progress.resolvedQuestion } : {}) });
 
                 },
@@ -615,7 +615,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-        setTurns([]); setActiveJobId(null); setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        setTurns([]); activeTurnId.current = null; setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
         // A fresh chat is idle. Reopening a profile must never retry an old
         // failed question or advance research from a browser recovery record.
         return () => { activeRequest.current?.abort(); };
@@ -644,9 +644,9 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Checking Lore…"}</p>}
                     </div>
                 ))}
-                {activeJobId && loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
+                {loading && <button type="button" className="min-h-11 text-sm text-white/70 underline underline-offset-4" onClick={() => {
                     activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-                    setTurns(previous => previous.map(turn => turn.jobId === activeJobId && !turn.answer ? { ...turn, error: 'Stopped waiting. Your research is saved and can be resumed.' } : turn));
+                    setTurns(previous => previous.map(turn => turn.id === activeTurnId.current && !turn.answer ? { ...turn, error: turn.jobId ? 'Stopped waiting. Your research is saved and can be resumed.' : 'Stopped waiting. You can try again when ready.' } : turn));
                 }}>Stop waiting</button>}
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">

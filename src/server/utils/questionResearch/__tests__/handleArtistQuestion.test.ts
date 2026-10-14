@@ -305,3 +305,21 @@ it('asks for missing context without queuing research or drafting an answer',asy
  expect(registerResearchQuestion).not.toHaveBeenCalled();
  expect(releaseQuestionRequest).toHaveBeenCalled();
 });
+
+it('result endpoint retains registered-question guards without planning or enqueueing', async () => {
+ const { POST } = await import('@/app/api/artist/[id]/questionResearch/[jobId]/answer/route');
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete'});
+ jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'unregistered'});
+ const response=await POST(new Request('https://web.example/result',{method:'POST',body:JSON.stringify({question:'Unregistered different question?'})}),{params:Promise.resolve({id:artistId,jobId})});
+ expect(response.status).toBe(409);
+ expect(planArtistQuestion).not.toHaveBeenCalled();expect(reserveQuestionPlanning).not.toHaveBeenCalled();expect(registerResearchQuestion).not.toHaveBeenCalled();expect(reuseQuestionRequest).not.toHaveBeenCalled();
+ expect(callResearchApi).toHaveBeenCalledTimes(1);
+ expect(callResearchApi).toHaveBeenCalledWith(`/api/artist/${artistId}/research/questions/${jobId}`,expect.objectContaining({signal:expect.anything()}));
+ expect(getOrDraftResearchAnswer).toHaveBeenCalledWith(expect.objectContaining({artistId,jobId,question:'Unregistered different question?'}));
+});
+it('result endpoint never drafts after a wrong-artist job is rejected by the public API', async () => {
+ const { POST } = await import('@/app/api/artist/[id]/questionResearch/[jobId]/answer/route');
+ jest.mocked(callResearchApi).mockRejectedValue(Object.assign(new Error('Not found'),{status:404}));
+ const response=await POST(new Request('https://web.example/result',{method:'POST',body:JSON.stringify({question:'Question?'})}),{params:Promise.resolve({id:artistId,jobId})});
+ expect(response.status).toBe(503);expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();expect(planArtistQuestion).not.toHaveBeenCalled();expect(registerResearchQuestion).not.toHaveBeenCalled();
+});
