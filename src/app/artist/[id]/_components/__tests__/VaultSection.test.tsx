@@ -48,12 +48,13 @@ it("shows the suggestion path to visitors and edit controls only in edit mode", 
 });
 
 describe('VaultSection while research reads sources', () => {
-  it('shows source-card skeletons above the Lore until the vault step is confirmed', () => {
+  it('shows source-card skeletons instead of the Lore until the vault step is confirmed', () => {
     const steps = { profiles: 't1', vault: null, interview: null, publish: null };
     render(<OnboardingProgressContext.Provider value={research({ steps, currentStep: 'vault' })}><VaultSection artistId="a1" isClaimed pendingSources={[]} approvedSources={[]} /></OnboardingProgressContext.Provider>);
     const status = screen.getByRole('status', { name: 'reading what’s written about you…' });
     expect(status.querySelectorAll('[data-skeleton=card]').length).toBeGreaterThan(0);
-    expect(screen.getByText('Public Lore')).toBeInTheDocument();
+    // 2026-10-14 stand-up: the placeholder only, not the Lore that already exists.
+    expect(screen.queryByText('Public Lore')).not.toBeInTheDocument();
   });
 
   it('counts the sources that arrived when the Lore lands', () => {

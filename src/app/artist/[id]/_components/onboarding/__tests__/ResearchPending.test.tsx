@@ -22,9 +22,22 @@ describe("ResearchPending", () => {
         expect(screen.getByText("links")).toBeInTheDocument();
     });
 
-    it("shows source-card skeletons for Lore while it is being researched", () => {
+    it("shows source-card skeletons instead of the existing Lore while it is being researched", () => {
+        // 2026-10-14 stand-up: the build showed the placeholder AND the Lore
+        // that already existed. Show the placeholder only.
         inBuild(researchContext({ currentStep: "vault" }), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="Your lore is ready"><p>lore</p></ResearchPending>);
         expect(screen.getByRole("status", { name: "reading…" }).querySelectorAll("[data-skeleton=card]").length).toBeGreaterThan(0);
+        expect(screen.queryByText("lore")).not.toBeInTheDocument();
+    });
+
+    it("hides the existing Lore while it waits its turn, too", () => {
+        inBuild(researchContext({ currentStep: "profiles" }), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="ready"><p>lore</p></ResearchPending>);
+        expect(screen.queryByText("lore")).not.toBeInTheDocument();
+    });
+
+    it("shows the Lore again once its step is confirmed", () => {
+        inBuild(researchContext({ steps: { profiles: "a", vault: "b", interview: null, publish: null } }), <ResearchPending step="vault" skeleton="sources" label="reading…" arrivedLabel="ready"><p>lore</p></ResearchPending>);
+        expect(screen.getByText("lore")).toBeInTheDocument();
     });
 
     it("keeps a waiting section's skeleton still, silent and hidden from screen readers", () => {
