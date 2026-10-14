@@ -46,7 +46,9 @@ is confirmed. The approved design is linked from the issue.
 > an unfinished build. Leaving the build, resuming source-review cards, or choosing Skip for now
 > restores editing even if setup is incomplete. Completion restores controls immediately without
 > waiting for a server refresh. An already-open Lore editor is hidden and made inert during the
-> build while its mounted tabs and unsaved drafts are retained. This does not change Ask/chat,
+> build while its mounted tabs and unsaved drafts are retained. The same derived edit context
+> suspends link removal/reordering, About and photo controls, and existing editing dialogs;
+> pending About text, photo choice/crop, and link order are not saved or discarded. This does not change Ask/chat,
 > permissions, persistence, source approval, or worker behavior.
 
 > **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the

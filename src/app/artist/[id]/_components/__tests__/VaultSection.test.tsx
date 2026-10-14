@@ -42,6 +42,7 @@ it("restores Add to Lore after leaving or completing the build", () => {
   </EditModeContext.Provider></OnboardingProgressContext.Provider>;
   const { rerender } = render(view(research()));
   expect(screen.queryByRole("button", { name: "Add to Lore" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Visitor suggestion form")).not.toBeInTheDocument();
   rerender(view(research({ complete: true })));
   expect(screen.getByRole("button", { name: "Add to Lore" })).toBeVisible();
   rerender(view(null));

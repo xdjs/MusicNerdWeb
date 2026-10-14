@@ -7,7 +7,7 @@ import { render, screen, within } from "@testing-library/react";
 // page runs hero through Ask sheet.
 jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, listenLinks, children }) => <section data-testid="hero" data-listen={listenLinks.map(link => link.href).join(",")} data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
-jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => { const {canEdit} = React.useContext(require("@/app/_components/EditModeContext").EditModeContext); return canEdit ? <button>edit</button> : null; } }));
+jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: function MockEditToggle() { const {canEdit} = React.useContext(require("@/app/_components/EditModeContext").EditModeContext); return canEdit ? <button>edit</button> : null; } }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
 jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));

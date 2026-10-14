@@ -52,3 +52,15 @@ it('disables failed image previews and retains upload when lookup fails', async 
     fireEvent.click(screen.getByRole('button', { name: 'Upload photo' }));
     expect(onUpload).toHaveBeenCalled();
 });
+
+it('suspends its portalled dialog without discarding the selected photo', async () => {
+    const view = (suspended: boolean) => <ArtistPhotoChoice artistId="artist" currentImage="/pete.png" onSaved={onSaved} onClose={onClose} onUpload={onUpload} suspended={suspended} />;
+    const {rerender} = render(view(false));
+    fireEvent.click(await screen.findByRole('button', {name:'Choose Spotify photo'}));
+    rerender(view(true));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    rerender(view(false));
+    expect(screen.getByRole('button',{name:'Choose Spotify photo'})).toHaveAttribute('aria-pressed','true');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+});

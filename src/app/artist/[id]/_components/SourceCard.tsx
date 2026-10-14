@@ -1,5 +1,7 @@
 "use client";
 
+import { useContext, useState } from "react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
 import SourceAttribution from "./SourceAttribution";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,11 +38,13 @@ function formatFileSize(bytes?: number | null): string {
 }
 
 function TypeBadge({ type, sourceId, onTypeChange }: { type: string; sourceId: string; onTypeChange?: (id: string, type: string) => void }) {
+    const { editingBlocked } = useContext(EditModeContext);
+    const [open, setOpen] = useState(false);
     const colors = SOURCE_TYPE_COLORS[type as SourceType] ?? SOURCE_TYPE_COLORS.article;
 
     if (onTypeChange) {
         return (
-            <Select value={type} onValueChange={(val) => onTypeChange(sourceId, val)}>
+            <Select value={type} open={open && !editingBlocked} onOpenChange={setOpen} onValueChange={(val) => { if (!editingBlocked) onTypeChange(sourceId, val); }}>
                 <SelectTrigger
                     className={`h-auto py-0.5 px-2 text-[10px] capitalize border rounded-full min-w-0 w-auto gap-1 ${colors.bg} ${colors.text} ${colors.border}`}
                 >

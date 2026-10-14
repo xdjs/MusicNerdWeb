@@ -59,10 +59,10 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
                 <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
             ))}
             <div ref={box} hidden={hidden} inert={hidden} data-research-new={!pending && fresh ? "" : undefined}
-                className={!pending && fresh ? "motion-safe:animate-research-reveal" : undefined}>
+                className={!pending && fresh ? `motion-safe:animate-research-reveal ${skeleton === "about" ? "flex flex-col items-start gap-2" : ""}` : undefined}>
                 {!pending && fresh && <span role="status" className="sr-only">{arrivedLabel}</span>}
                 {!pending && fresh && skeleton === "about" && <Badge variant="highlight">New About</Badge>}
-                {(!hidden || suspendedEditMode) && children}
+                <div className={!pending && fresh && skeleton === "about" ? "rounded-xl ring-2 ring-highlightpink/70 transition-shadow" : undefined}>{(!hidden || suspendedEditMode) && children}</div>
             </div>
         </>
     );
