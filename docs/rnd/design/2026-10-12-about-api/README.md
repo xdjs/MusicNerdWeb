@@ -28,3 +28,15 @@ use `musicnerdnet`; Substack is `musicnerds.substack.com`; Discord uses the supp
 Production About links to the existing `/access` flow. The sample-token profile tab remains
 preview-only exploration under #1455, unavailable on production; no credentials or auth
 permissions change. No database migration is required.
+
+## Audience headings — October 13, 2026
+C.Y. suggested naming the four sections by audience, and Pete approved this refinement
+in #1500: **For fans**, **For artists**, **For nerds**, and **For builders**, in that order.
+The existing descriptions, layout and link destinations stay the same. This is display copy
+only; routes, account actions, persistence, research jobs and external services are unaffected.
+
+### Source examples — 2026-10-13
+
+Pete requested clarification of “suggest a source” in the For nerds paragraph. Name articles, interviews and social posts as examples, and explain that they help tell an artist’s story and support answers to fans’ questions. This changes explanatory copy only; contribution review and publication behavior are unchanged.
+
+Pete approved the final wording: “Help fill in an artist’s story. Share links, articles, interviews or social posts that give fans more context about their music.” This replaces the longer source explanation above.
