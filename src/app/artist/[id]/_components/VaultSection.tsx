@@ -26,9 +26,11 @@ interface VaultSectionProps {
   autoApprove?: boolean;
   pendingSources: ArtistVaultSource[];
   approvedSources: ArtistVaultSource[];
+  /** The claimant's research build is running; no Add to Lore until it's done. */
+  researching?: boolean;
 }
 
-export default function VaultSection({ artistId, isClaimed, autoApprove = false, pendingSources, approvedSources, children }: VaultSectionProps) {
+export default function VaultSection({ artistId, isClaimed, autoApprove = false, pendingSources, approvedSources, researching = false, children }: VaultSectionProps) {
   const { isEditing, canEdit, toggle } = useContext(EditModeContext);
   const [collapsed, setCollapsed] = useState(false);
   const pendingLore = pendingSources.filter(source => !isDestinationSource(source));
@@ -39,7 +41,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {isEditing ? <h2 className="flex-1 text-black dark:text-white text-xl font-bold"><button type="button" onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed} aria-controls="lore-editor-content" className="flex min-h-11 w-full items-center justify-between gap-3 text-left" aria-label={collapsed ? 'Expand Lore' : 'Collapse Lore'}><span className="flex items-center gap-2.5">Lore <ResearchNewCount kind="sources" keys={approvedSources.map(source => source.id)} /></span><ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${collapsed ? "" : "rotate-180"}`} /></button></h2> : <div className="flex items-center gap-2.5"><h2 className="text-black dark:text-white text-xl font-bold">Lore</h2><ResearchNewCount kind="sources" keys={approvedSources.map(source => source.id)} /></div>}
-          {canEdit && !isEditing && <Button type="button" size="sm" variant="outline" className="text-black dark:text-white" onClick={toggle}>Add to Lore</Button>}
+          {canEdit && !isEditing && !researching && <Button type="button" size="sm" variant="outline" className="text-black dark:text-white" onClick={toggle}>Add to Lore</Button>}
         </div>
         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{isEditing ? 'Review answers, manage your sources, and shape your story.' : 'Stories, interviews, and other sources curated by the artist.'}</p>
       </div>
