@@ -294,3 +294,14 @@ it('falls through to normal research when the checked originals do not answer th
  expect(reserveQuestionPlanning).toHaveBeenCalledTimes(1);
  expect(planArtistQuestion).toHaveBeenCalledTimes(1);
 });
+
+it('asks for missing context without queuing research or drafting an answer',async()=>{
+ jest.mocked(planArtistQuestion).mockResolvedValue({clarification:'Which release do you mean?'});
+ const response=await handleArtistQuestion(request({question:'Who produced it?'}));
+ expect(response.status).toBe(200);
+ expect(await response.json()).toMatchObject({answer:'Which release do you mean?',sources:[]});
+ expect(callResearchApi).not.toHaveBeenCalled();
+ expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+ expect(registerResearchQuestion).not.toHaveBeenCalled();
+ expect(releaseQuestionRequest).toHaveBeenCalled();
+});

@@ -343,7 +343,7 @@ it("does not automatically repair a model service failure", async () => {
 it("rejects an unsupported second draft without a third repair", async () => {
   model.mockReset();
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: 'Unsupported visual claim.' } } as never);
-  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/support/);
+  await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toMatchObject({verificationCode: 'claim_rejected', verificationStage: 'claim_check'});
   expect(model).toHaveBeenCalledTimes(4);
 });
 it("renders a fixed scoped limitation instead of model-written unanswered prose", async () => {
@@ -376,4 +376,19 @@ it("preserves the eight-character minimum for text evidence", async () => {
   model.mockResolvedValue({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 1, field: 'text', quote: 'played' }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toThrow(/evidence/);
   expect(model).toHaveBeenCalledTimes(2);
+});
+
+it("keeps independently verified sentences when the bounded repair still has an unsupported extra", async () => {
+  const mixed = { sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null };
+  model.mockReset();
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: mixed } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "What did they do?", [reference]);
+  expect(result.answer).toBe("They played drums. [1]");
+  expect(model).toHaveBeenCalledTimes(4);
+});
+
+it("does not accept out-of-range partial-verification sentence numbers", async () => {
+  model.mockReset();
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Unsupported", supportedSentenceNumbers: [2] } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "What?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
 });

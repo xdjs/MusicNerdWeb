@@ -60,3 +60,30 @@ Typed date quotes preserve year-only and year-month catalog precision through ex
 Broad follow-ups such as “what else has he been up to?” keep newest-available retrieval and remove a single-post anchor. Previously cited public URLs become bounded `excludeSourceUrls`, so the API selects other evidence rather than repeating the same update. The history remains only the current public chat; artist interview memory is not consulted.
 
 Progress is short: “Checking Lore…” for saved evidence/answer preparation; “Searching outside Lore…” for external collection. Internal API instructions are never displayed. A failed worker is an operational error, not an AI answer. Explicit retry of a terminal failure starts a new normally budgeted request with the same public context; it does not repeatedly poll the dead job or bypass quotas.
+
+## Date and original selection (#1491)
+
+Planning receives the current UTC date. A single yearless named calendar day referring to a past post uses its latest occurrence on or before that date; explicit years stay exact. Ranges, future requests and explicit historical context remain planner interpreted. A newly dated question selects originals by date rather than inheriting an old citation; same-post follow-ups without a new date retain their anchor; a current literal URL remains authoritative and must still pass API scope checks. URLs pasted with sentence punctuation admit the prose-delimited spelling without dropping the literal spelling or broadening the source allowlist.
+
+For other-activity follow-ups, excluding an individual post/work does not exclude an entire archive or collection. Both drafting and checking enforce that distinction. They still reject a whole excluded category when requested, unsupported media descriptions, invented connections and overstated source claims. Final quote/claim rejection has a bounded diagnostic code distinct from provider, schema or timeout failures; no question, source text, rejected draft or checker explanation is logged. Historical failures with only a stored stage cannot establish their precise original cause.
+
+### Conversational routing and source selection (October 14, 2026)
+
+The model resolves follow-up intent from the bounded public conversation rather than a
+phrase whitelist. Other-activity follow-ups exclude already-discussed sources without
+silently excluding their entire collection. Explicit user exclusions retain their scope.
+
+API evidence selection is a relevance decision over original source IDs, not a second
+answer-generation task. It returns unchanged original windows; the Web answer stage still
+reopens exact revisions, verifies supporting quotes, and checks claims before displaying
+citations. A malformed quotation in an intermediate selection must not trigger a paid
+scrape. Unknown source IDs and unresolved identities remain ineligible.
+
+When outside research is needed, the model chooses among server-validated available
+lookups; there is no fixed Instagram-first priority. Explicit source restrictions,
+connected-account identity, public-source access, durable job checkpoints and spending
+budgets remain enforced by code. Source discovery never approves Lore.
+
+Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
+
+After the single bounded answer repair, a rejected extra sentence must not erase independently verified useful facts. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
