@@ -21,3 +21,22 @@ Rollout order: Web/API visibility prerequisites → schema and API worker suppor
 ### Private preparation storage (migration 0047)
 
 `artist_source_assessments` records an exact original snapshot only after both readable extraction and affirmative identity assessment; it does not change curation. `artist_directory_preparations` stores the resulting private document/About and exact manifest separately from public artist fields. Both tables have RLS and server-role-only CRUD grants. Rejected, changed, ambiguous, unreadable or unassessed sources cannot enter that draft. Beginning any claim cancels the directory operation; this stricter fence also prevents a rejected/revoked claim from accidentally reviving an older pre-claim job. Existing claim-approved research remains separate.
+
+### Recent discovery handoff
+
+Claim approval may skip its normal `source_search` enqueue only when a versioned,
+completed directory-discovery checkpoint is no more than 24 hours old and still
+matches the artist identity, original creation activity, source revisions and current
+approved claim. A ready private About alone is not proof that discovery completed.
+Human review status is excluded from the discovery fingerprint: approving or rejecting
+a source must not itself restart paid discovery, and reuse never changes that decision.
+
+Missing, stale, running, failed, changed or unrecognized checkpoints use the existing
+claim research path. An operational checkpoint-read failure also falls back to that
+path. Claim approval and notifications remain committed regardless of enqueue outcome;
+the existing research warning appears only if neither reuse nor enqueue succeeds.
+The API must enforce the same checkpoint at onboarding entry, rather than having Web
+skip work that the first onboarding request immediately repeats. Prepared narrative
+reuse remains a separate, stricter approved-manifest check at the publish step.
+Discovery reuse must preserve recovery of unfinished social ingestion; a completed
+source search alone does not prove Latest ingestion has completed.
