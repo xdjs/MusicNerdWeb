@@ -392,3 +392,68 @@ it("does not accept out-of-range partial-verification sentence numbers", async (
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Unsupported", supportedSentenceNumbers: [2] } } as never);
   await expect(draftResearchAnswer("artist", "Artist", "What?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
 });
+
+
+it("reads all six selected originals and can answer from the fourth and sixth", async () => {
+  const refs = Array.from({ length: 6 }, (_, i) => {
+    const text = `Original ${i + 1}: I played instrument ${i + 1}.`;
+    return { ...reference, sourceId: `vault:${String(i + 1).repeat(8)}-1111-4111-8111-111111111111`, text, end: text.length, url: `https://artist.example/credits/${i + 1}` };
+  });
+  api.mockReset();
+  for (const ref of refs) api.mockResolvedValueOnce({ status: "ok", passage: ref, totalChars: ref.text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [
+    { text: "They played instrument 4.", evidence: [{ n: 4, quote: "I played instrument 4." }] },
+    { text: "They also played instrument 6.", evidence: [{ n: 6, quote: "I played instrument 6." }] },
+  ], unanswered: null } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "Both originals establish these credits." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "What instruments?", refs);
+  expect(api).toHaveBeenCalledTimes(6);
+  expect(JSON.parse(model.mock.calls[0][0].prompt).originals.map((p: { text: string }) => p.text)).toEqual(refs.map(ref => ref.text));
+  expect(JSON.parse(model.mock.calls[1][0].prompt).input.originals).toHaveLength(6);
+  expect(result.answer).toBe("They played instrument 4. [4] They also played instrument 6. [6]");
+  expect(result.sources.map(source => [source.n, source.sourceId])).toEqual([[4, refs[3].sourceId], [6, refs[5].sourceId]]);
+  const totalRequested = api.mock.calls.reduce((sum, [path]) => sum + Number(new URL(path, "https://api.example").searchParams.get("maxChars")), 0);
+  expect(totalRequested).toBeLessThanOrEqual(72000);
+});
+
+it("rejects more than six references before reading or drafting instead of silently dropping them", async () => {
+  await expect(draftResearchAnswer("artist", "Artist", "What?", Array(7).fill(reference))).rejects.toThrow();
+  expect(api).not.toHaveBeenCalled();
+  expect(model).not.toHaveBeenCalled();
+});
+
+it("preserves a full 12000-character selected slice when requesting surrounding context", async () => {
+  const text = "x".repeat(11985) + "I played drums.";
+  const ref = { ...reference, start: 1500, end: 1500 + text.length, text };
+  api.mockImplementation(async path => {
+    const start = Number(new URL(path, "https://api.example").searchParams.get("start"));
+    const entire = "p".repeat(1500) + text;
+    const window = entire.slice(start, start + 12000);
+    return { status: "ok", passage: { ...ref, start, end: start + window.length, text: window }, totalChars: entire.length, nextStart: start + window.length < entire.length ? start + window.length : null };
+  });
+  expect((await draftResearchAnswer("artist", "Artist", "What?", [ref])).answer).toBe("They played drums. [1]");
+  expect(api.mock.calls[0][0]).toContain("start=1500&maxChars=12000");
+});
+
+it.each([null, "These originals do not establish another activity."])("returns a nonempty limitation for a zero-sentence draft (%s)", async unanswered => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [], unanswered } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "What else?", [reference]);
+  expect(result.answer).toBe("I don't have enough information to answer that yet.");
+  expect(result.sources).toEqual([]);
+  expect(model).toHaveBeenCalledTimes(1);
+});
+
+it("fails closed when both checked drafts have no independently verified sentence", async () => {
+  model.mockReset();
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason: "None answer the question." } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "What else?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
+  expect(model).toHaveBeenCalledTimes(4);
+});
+
+it("rejects a whitespace-only factual sentence rather than returning a citation with no answer", async () => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { sentences: [{ text: "   ", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "What?", [reference])).rejects.toThrow();
+  expect(model).toHaveBeenCalledTimes(1);
+});

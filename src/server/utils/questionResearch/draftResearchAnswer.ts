@@ -5,9 +5,11 @@ import { generateText } from "@/server/lib/ai/generateText";
 import { callResearchApi } from "./callResearchApi";
 import {
   answerDraftSchema,
+  referenceSchema,
   researchReadSchema,
   type ResearchReference,
 } from "@/lib/questionResearch/schemas";
+import { MAX_ANSWER_ORIGINAL_CHARACTERS, MAX_ORIGINAL_CHARACTERS, MAX_RESEARCH_REFERENCES } from "@/lib/questionResearch/limits";
 import { resolveInstagramMentions } from "@/lib/instagram/resolveInstagramMentions";
 import { getStructuredQuoteTexts } from "@/lib/questionResearch/getStructuredQuoteTexts";
 import { matchesOriginalQuote } from "@/lib/questionResearch/matchesOriginalQuote";
@@ -26,12 +28,18 @@ export async function draftResearchAnswer(
       ...(signal ? [signal] : []),
     ]);
     if (!references.length) throw new Error("Original evidence unavailable");
+    const selected = z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES).parse(references);
+    const readBudget = selected.length * MAX_ORIGINAL_CHARACTERS;
+    if (readBudget > MAX_ANSWER_ORIGINAL_CHARACTERS)
+      throw new Error("Original evidence exceeds reading budget");
     const originals = await Promise.all(
-      references.slice(0, 3).map(async (ref, i) => {
-        const start = Math.max(0, ref.start - 1200);
+      selected.map(async (ref, i) => {
+        // Include the full selected slice before spending spare room on preceding context.
+        const precedingContext = Math.min(1200, MAX_ORIGINAL_CHARACTERS - ref.text.length);
+        const start = Math.max(0, ref.start - precedingContext);
         stage = "fetch_original";
         const rawOriginal = await callResearchApi(
-          `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=12000`,
+          `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=${MAX_ORIGINAL_CHARACTERS}`,
           { signal: abort },
         );
         stage = "validate_original";
@@ -61,6 +69,8 @@ export async function draftResearchAnswer(
         };
       }),
     );
+    if (originals.reduce((total, original) => total + original.text.length, 0) > MAX_ANSWER_ORIGINAL_CHARACTERS)
+      throw new Error("Original evidence exceeds reading budget");
     const input = JSON.stringify({ artistName, question, currentDate: new Date().toISOString().slice(0, 10), originals });
     let draft!: z.infer<typeof answerDraftSchema>;
     let repairFeedback: { reason: string; rejectedDraft: z.infer<typeof answerDraftSchema> } | undefined;
@@ -146,7 +156,7 @@ export async function draftResearchAnswer(
     }
     // Only verified sentences reach rendering. On the final attempt, an independently
     // supported subset may survive; an unsupported whole answer still fails closed.
-    if (!draft) throw Object.assign(new Error("The sources did not support the drafted answer"), { verificationCode: "claim_rejected" });
+    if (!draft?.sentences.length) throw Object.assign(new Error("The sources did not support the drafted answer"), { verificationCode: "claim_rejected" });
     const answer =
       draft.sentences
         .map(

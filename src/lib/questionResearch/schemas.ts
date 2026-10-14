@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_ORIGINAL_CHARACTERS, MAX_RESEARCH_REFERENCES } from "./limits";
 const revision = z.string().regex(/^[a-f0-9]{64}$/);
 const publicUrl = z
   .string()
@@ -17,7 +18,7 @@ export const referenceSchema = z.object({
   revision,
   start: z.number().int().nonnegative(),
   end: z.number().int().nonnegative(),
-  text: z.string().max(12000),
+  text: z.string().max(MAX_ORIGINAL_CHARACTERS),
   url: publicUrl,
   curation: z.enum(["approved", "pending"]),
   evidenceKind: z.enum(["original_text", "caption", "provider_transcript"]),
@@ -48,7 +49,7 @@ export const researchStatusSchema = z.object({
     .nullable(),
   message: z.string().max(2000),
   updatedAt: z.string(),
-  references: z.array(referenceSchema).max(6),
+  references: z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES),
   limitations: z.array(z.string().max(2000)).max(30),
 });
 export const researchReadSchema = z.object({
@@ -87,11 +88,11 @@ export const answerDraftSchema = z.object({
   sentences: z
     .array(
       z.object({
-        text: z.string().min(1).max(700),
+        text: z.string().trim().min(1).max(700),
         evidence: z
           .array(
             z.object({
-              n: z.number().int().min(1).max(3),
+              n: z.number().int().min(1).max(MAX_RESEARCH_REFERENCES),
               field: z.enum(["text", "publishedAt", "activityDate"]).default("text"),
               quote: z.string().min(4).max(1800),
             }),

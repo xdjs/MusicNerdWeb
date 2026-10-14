@@ -1,3 +1,4 @@
+import { MAX_RESEARCH_REFERENCES } from "@/lib/questionResearch/limits";
 import { referenceSchema } from "@/lib/questionResearch/schemas";
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -8,8 +9,8 @@ const rowSchema = z.object({
   answer_intent:z.string().trim().min(1).max(500),
   routing:z.record(z.string(),z.union([z.string(),z.array(z.string()),z.null()])),
   answer:z.string().min(1).max(4000),
-  refs:z.array(referenceSchema).max(6),
-  sources:z.array(z.unknown()).min(1).max(3),
+  refs:z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES),
+  sources:z.array(z.unknown()).min(1).max(MAX_RESEARCH_REFERENCES),
 });
 /** Bounded eligible public candidates, not raw conversations or private artist memory. */
 export async function listReusableQuestionCandidates(artistId:string):Promise<QuestionReuseCandidate[]> {
@@ -26,6 +27,6 @@ export async function listReusableQuestionCandidates(artistId:string):Promise<Qu
     const parsed=rowSchema.safeParse(row);
     if(!parsed.success)return [];
     const r=parsed.data;
-    return [{id:`${r.job_id}:${r.question_hash}`,jobId:r.job_id,questionHash:r.question_hash,intent:r.answer_intent,routing:r.routing,answer:r.answer,passages:r.refs.slice(0,3).map(ref=>({text:ref.text.slice(0,1000),url:ref.url,evidenceKind:ref.evidenceKind}))}];
+    return [{id:`${r.job_id}:${r.question_hash}`,jobId:r.job_id,questionHash:r.question_hash,intent:r.answer_intent,routing:r.routing,answer:r.answer,passages:r.refs.map(ref=>({text:ref.text.slice(0,1000),url:ref.url,evidenceKind:ref.evidenceKind}))}];
   });
 }
