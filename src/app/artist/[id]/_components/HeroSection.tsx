@@ -26,7 +26,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], statusBadge, children }: HeroSectionProps) {
-    const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
+    const { isEditing, canEdit, refreshProfile, suspendedEditMode } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
     const [portrait, setPortrait] = useState(hasPortrait);
@@ -37,11 +37,11 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     const repositionButton = useRef<HTMLButtonElement>(null);
     const originalPosition = useRef(initialPosition);
     useEffect(() => {
-        if (!isEditing && repositioning) {
+        if (!isEditing && !suspendedEditMode && repositioning) {
             setPosition(originalPosition.current);
             setRepositioning(false);
         }
-    }, [isEditing, repositioning]);
+    }, [isEditing, repositioning, suspendedEditMode]);
     function closePosition() {
         setRepositioning(false);
         requestAnimationFrame(() => repositionButton.current?.focus());
@@ -105,15 +105,15 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>
-        {choosingPhoto && isEditing && canEdit && <ArtistPhotoChoice artistId={artistId} currentImage={img}
+        {choosingPhoto && ((isEditing && canEdit) || suspendedEditMode) && <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><ArtistPhotoChoice suspended={!!suspendedEditMode} artistId={artistId} currentImage={img}
             onClose={closePhotoChoice} onUpload={() => fileRef.current?.click()}
-            onSaved={(image, y) => { setImg(image); setPortrait(true); setPosition(y); refreshProfile?.(); toast({ title: "Photo updated" }); }} />}
+            onSaved={(image, y) => { setImg(image); setPortrait(true); setPosition(y); refreshProfile?.(); toast({ title: "Photo updated" }); }} /></div>}
         {portrait ? <div data-artist-portrait data-edit-highlight={highlighted || undefined} className={`relative -mx-4 min-h-[440px] overflow-hidden bg-[#1a1a1a] sm:mx-0 sm:min-h-[520px] sm:rounded-2xl ${highlighted ? styles.highlight : ""}`}>
             <Image src={img} alt={artistName} fill unoptimized priority sizes="(max-width: 800px) 100vw, 768px" className="object-cover" style={{ objectPosition: `50% ${position}%` }} />
-            <div aria-hidden="true" style={{ opacity: repositioning ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
+            <div aria-hidden="true" style={{ opacity: repositioning && !suspendedEditMode ? 0.25 : 1 }} className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.7)_180px,rgba(0,0,0,0.92)_340px,#111_100%)]" />
             {photoControl}
-            {isEditing && repositioning && <HeaderPhotoPosition artistId={artistId} imageUrl={img} position={position} onChange={setPosition} onClose={closePosition} />}
-            <div inert={repositioning ? true : undefined} style={{ display: repositioning ? "none" : undefined }} className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
+            {(isEditing || suspendedEditMode) && repositioning && <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><HeaderPhotoPosition artistId={artistId} imageUrl={img} position={position} onChange={setPosition} onClose={closePosition} /></div>}
+            <div inert={repositioning && !suspendedEditMode ? true : undefined} style={{ display: repositioning && !suspendedEditMode ? "none" : undefined }} className="relative flex min-h-[440px] flex-col justify-end px-5 pb-7 pt-48 sm:min-h-[520px] sm:px-8 sm:pb-8">
                 {identity}
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                     <ListenPicker artistName={artistName} links={listenLinks} />

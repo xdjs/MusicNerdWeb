@@ -1,12 +1,14 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
+import ResearchEditBoundary from "../onboarding/ResearchEditBoundary";
 import VaultSection from "../VaultSection";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
 const research = (over = {}) => ({ steps: researchNone, currentStep: null, fresh: { profiles: false, vault: false, publish: false }, markSeen: jest.fn(), complete: false, baseline: { links: [], sources: [] }, ...over });
 
 
+jest.mock("../RevealSection", () => function MockReveal({children}: {children: React.ReactNode}) { return <section>{children}</section>; });
 jest.mock("../PressAndFeatures", () => function MockPressAndFeatures() { return <div>Public Lore</div>; });
 jest.mock("../VaultManager", () => function MockVaultManager() { return <div>Editor Lore controls</div>; });
 jest.mock("../BioVersionHistory", () => function MockBioVersionHistory() { return <div>Saved bios</div>; });
@@ -34,15 +36,33 @@ it("gives admins and artist owners an obvious route into Lore editing", () => {
   expect(screen.queryByText("Visitor suggestion form")).not.toBeInTheDocument();
 });
 
-it("hides Add to Lore while research runs, and brings it back after", () => {
-  // 2026-10-14: Sweetman asked for no editing while research fills the page.
-  const view = (researching: boolean) => <EditModeContext.Provider value={{ isEditing: false, canEdit: true, toggle: jest.fn() }}>
-    <VaultSection {...props} researching={researching} />
-  </EditModeContext.Provider>;
-  const { rerender } = render(view(true));
+it("restores Add to Lore after leaving or completing the build", () => {
+  const view = (value: ReturnType<typeof research> | null) => <OnboardingProgressContext.Provider value={value}><EditModeContext.Provider value={{ isEditing: false, canEdit: true, toggle: jest.fn() }}>
+    <ResearchEditBoundary><VaultSection {...props} /></ResearchEditBoundary>
+  </EditModeContext.Provider></OnboardingProgressContext.Provider>;
+  const { rerender } = render(view(research()));
   expect(screen.queryByRole("button", { name: "Add to Lore" })).not.toBeInTheDocument();
-  rerender(view(false));
-  expect(screen.getByRole("button", { name: "Add to Lore" })).toBeInTheDocument();
+  rerender(view(research({ complete: true })));
+  expect(screen.getByRole("button", { name: "Add to Lore" })).toBeVisible();
+  rerender(view(null));
+  expect(screen.getByRole("button", { name: "Add to Lore" })).toBeVisible();
+});
+
+it("hides an already-open editor during the build without losing its unsaved answer", () => {
+  const view = (value: ReturnType<typeof research> | null) => <OnboardingProgressContext.Provider value={value}><EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}><ResearchEditBoundary><VaultSection {...props} /></ResearchEditBoundary></EditModeContext.Provider></OnboardingProgressContext.Provider>;
+  const { rerender } = render(view(null));
+  fireEvent.mouseDown(screen.getByRole("tab", {name:"Questions"}), {button:0,ctrlKey:false});
+  const input = screen.getByLabelText("Draft response");
+  fireEvent.change(input, { target: { value: "My unfinished answer" } });
+  rerender(view(research({ currentStep: 'vault' })));
+  expect(input).toBeInTheDocument();
+  expect(input).not.toBeVisible();
+  expect(screen.queryByRole("tab", {name:"Questions"})).not.toBeInTheDocument();
+  expect(screen.getByRole('status', {name:'reading what’s written about you…'})).toBeVisible();
+  rerender(view(null));
+  expect(screen.getByLabelText("Draft response")).toBe(input);
+  expect(input).toBeVisible();
+  expect(input).toHaveValue("My unfinished answer");
 });
 
 it("shows the suggestion path to visitors and edit controls only in edit mode", () => {

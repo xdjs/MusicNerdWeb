@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useRef, type ReactNode } from "react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Badge } from "@/components/ui/badge";
 import { researchingSection } from "@/lib/onboarding/researchingSection";
 import { OnboardingProgressContext } from "./OnboardingProgressContext";
@@ -24,6 +25,7 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
     arrivedLabel: string;
     children?: ReactNode;
 }) {
+    const { suspendedEditMode } = useContext(EditModeContext);
     const research = useContext(OnboardingProgressContext);
     const fresh = !!research?.fresh[step];
     const box = useRef<HTMLDivElement>(null);
@@ -46,30 +48,22 @@ export default function ResearchPending({ step, skeleton, label, arrivedLabel, c
         return () => observer.disconnect();
     }, [fresh, markSeen, step]);
 
-    if (!research) return <>{children}</>;
-    if (research.steps[step] === null) {
-        const researching = researchingSection(research.currentStep) === step;
-        return (
-            <>
-                {researching ? (
-                    <div role="status" aria-label={label}><SkeletonShape kind={skeleton} /></div>
-                ) : (
-                    <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
-                )}
-                {skeleton === "links" && children}
-            </>
-        );
-    }
-    if (!fresh) return <>{children}</>;
+    const pending = !!research && !research.complete && research.steps[step] === null;
+    const hidden = pending && skeleton !== "links";
+    const researching = researchingSection(research?.currentStep ?? null) === step;
     return (
-        <div ref={box} data-research-new="" className="motion-safe:animate-research-reveal">
-            <span role="status" className="sr-only">{arrivedLabel}</span>
-            {skeleton === "about" ? (
-                <div className="flex flex-col items-start gap-2">
-                    <Badge variant="highlight">New About</Badge>
-                    <div className="rounded-xl ring-2 ring-highlightpink/70 transition-shadow">{children}</div>
-                </div>
-            ) : children}
-        </div>
+        <>
+            {pending && (researching ? (
+                <div role="status" aria-label={label}><SkeletonShape kind={skeleton} /></div>
+            ) : (
+                <div aria-hidden="true"><SkeletonShape kind={skeleton} still /></div>
+            ))}
+            <div ref={box} hidden={hidden} inert={hidden} data-research-new={!pending && fresh ? "" : undefined}
+                className={!pending && fresh ? "motion-safe:animate-research-reveal" : undefined}>
+                {!pending && fresh && <span role="status" className="sr-only">{arrivedLabel}</span>}
+                {!pending && fresh && skeleton === "about" && <Badge variant="highlight">New About</Badge>}
+                {(!hidden || suspendedEditMode) && children}
+            </div>
+        </>
     );
 }

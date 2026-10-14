@@ -7,6 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 type SaveEdit = () => Promise<void>;
 export type EditModeContextType = {
     isEditing: boolean;
+    /** Build-only presentation suspension; the underlying edit session is retained. */
+    editingBlocked?: boolean;
+    suspendedEditMode?: EditModeContextType;
     toggle: () => void;
     canEdit: boolean;
     isSaving?: boolean;

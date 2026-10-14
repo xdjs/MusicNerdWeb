@@ -211,7 +211,7 @@ function ClaimRow({
  * The server action re-checks ownership regardless of this.
  */
 export default function KnowledgeSection({ artistId }: { artistId: string }) {
-    const { isEditing, canEdit } = useContext(EditModeContext);
+    const { isEditing, canEdit, suspendedEditMode } = useContext(EditModeContext);
     const [sections, setSections] = useState<DocSection[]>([]);
     const [sources, setSources] = useState<DocSource[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -280,7 +280,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
     // button is a promise nobody keeps.
     useResearchPump(artistId, canEdit && isEditing ? pumping : 0, load);
 
-    if (!canEdit || !isEditing) return null;
+    if ((!canEdit || !isEditing) && !suspendedEditMode) return null;
 
     /** Ask the researcher to look at anything posted since it last read the
      *  feed. Incremental by design: a full re-read of a three-hundred-post feed
@@ -309,7 +309,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
     };
 
     const shell = (children: React.ReactNode) => (
-        <RevealSection editable className="glass p-4 sm:p-5 space-y-3">
+        <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode}><RevealSection editable className="glass p-4 sm:p-5 space-y-3">
             <details className="group">
                 <summary className="cursor-pointer list-none text-foreground"><h2 className="flex min-h-11 items-center justify-between gap-3 text-xl font-bold">What we know about you<ChevronDown size={18} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" /></h2></summary>
                 <div className="py-3">
@@ -344,7 +344,7 @@ export default function KnowledgeSection({ artistId }: { artistId: string }) {
             )}
             {children}
             </details>
-        </RevealSection>
+        </RevealSection></div>
     );
 
     if (loading) {

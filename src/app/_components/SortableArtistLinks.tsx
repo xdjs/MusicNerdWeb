@@ -22,7 +22,7 @@ function LinkItem({ link, artistId, canEdit, editing, saving }: {
 }
 
 export default function SortableArtistLinks({ artistId, section, links, supplementalLinks = [], canEdit }: { artistId: string; section: LinkSection; links: ProfileLink[]; supplementalLinks?: (ProfileLink & {sourceId?: string})[]; canEdit: boolean }) {
-    const { isEditing, isSaving = false, registerSave } = useContext(EditModeContext);
+    const { isEditing, suspendedEditMode, isSaving = false, registerSave } = useContext(EditModeContext);
     const [draftOrder, setDraftOrder] = useState<string[] | null>(null);
     const sourceOrder = JSON.stringify(links.map(link => link.siteName));
     const [previousSourceOrder, setPreviousSourceOrder] = useState(sourceOrder);
@@ -30,7 +30,7 @@ export default function SortableArtistLinks({ artistId, section, links, suppleme
     // Done, refreshed public ordering becomes the source of truth again.
     if (previousSourceOrder !== sourceOrder) {
         setPreviousSourceOrder(sourceOrder);
-        if (!isEditing) setDraftOrder(null);
+        if (!isEditing && !suspendedEditMode) setDraftOrder(null);
     }
     const items = draftOrder ? orderProfileLinks(links, draftOrder) : links;
     const order = JSON.stringify(items.map(item => item.siteName));

@@ -19,6 +19,7 @@ import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
 import ResearchPending from "./onboarding/ResearchPending";
 import ResearchNewCount from "./onboarding/ResearchNewCount";
+import ResearchEditBoundary from "./onboarding/ResearchEditBoundary";
 import VaultSection from "./VaultSection";
 
 /** The artist page's content, hero through the Ask sheet. While a fresh claim's
@@ -46,8 +47,7 @@ export default function ArtistProfileContent({
     /** Admin and whitelisted additions are auto-approved UGC, so they appear in
      *  the feed; claim owners keep direct editing (`isClaimedByUser`). */
     autoApprove: boolean;
-    /** The claimant's research build is running (page.tsx); Ask waits for it,
-     *  and editing (the Edit toggle and Add to Lore) waits too. */
+    /** Existing server onboarding flag for Ask; editing uses the active build context. */
     researching?: boolean;
 }) {
     const heroBio = artist.bio && isRealBio(artist.bio) ? artist.bio : null;
@@ -55,7 +55,7 @@ export default function ArtistProfileContent({
     const publicLinkSources = approvedSources.filter(source => !blockedMusicSourceIds.includes(source.id));
     const listenLinks = getListeningLinks(artist, artistLinks, publicLinkSources);
     return (
-        <>
+        <ResearchEditBoundary>
                 <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
                     initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
@@ -72,7 +72,7 @@ export default function ArtistProfileContent({
                             artistInstagram={artist.instagram}
                             compactOnMobile
                         />}
-                        {canEdit && !researching && <EditModeToggle compactOnMobile />}
+                        {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
                 </HeroSection>
 
@@ -115,10 +115,10 @@ export default function ArtistProfileContent({
                     <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
                 </RevealSection>
                 <div id="mn-lore">
-                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} researching={researching} />
+                    <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
                 </div>
                 <div id="mn-knowledge"><KnowledgeSection artistId={artist.id} /></div>
                 <ArtistAskSheet key={`ask:${artist.id}`} artistId={artist.id} artistName={artist.name ?? "this artist"} researching={researching} />
-        </>
+        </ResearchEditBoundary>
     );
 }
