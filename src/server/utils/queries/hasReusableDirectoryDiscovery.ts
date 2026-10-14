@@ -16,12 +16,16 @@ export async function hasReusableDirectoryDiscovery(
       and exists(select 1 from artist_claims c where c.id=${claimId}::uuid and c.artist_id=a.id and c.status='approved')
       and e.actor_kind='user' and e.action='directory_add' and e.trigger='directory_add'
       and e.actor_user_id=a.added_by
-      and j.kind='source_search' and j.status='done'
+      and j.kind='source_search'
       and j.state->'claimId'='null'::jsonb
       and j.state->>'purpose'='directory_preparation'
       and j.state->>'creationActivityId'=e.id::text
       and j.state->'directoryDiscovery'->'version'='1'::jsonb
-      and j.updated_at between now()-interval '24 hours' and now()
+      and case
+      when jsonb_typeof(j.state->'directoryDiscovery'->'completedAt')='number'
+      then (j.state->'directoryDiscovery'->>'completedAt')::numeric
+    end between extract(epoch from (now()-interval '24 hours'))*1000
+      and extract(epoch from now())*1000
       and j.state->'directoryDiscovery'->'identity'=jsonb_build_object('name',a.name,'spotify',a.spotify,'deezer',a.deezer)
       and j.state->'directoryDiscovery'->>'sourcesRevision'=(
         select md5(coalesce(jsonb_agg(public.knowledge_vault_source_snapshot(v)-'status'-'updatedAt' order by v.id),'[]'::jsonb)::text)

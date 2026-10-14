@@ -31,7 +31,7 @@ approved claim. A ready private About alone is not proof that discovery complete
 Human review status is excluded from the discovery fingerprint: approving or rejecting
 a source must not itself restart paid discovery, and reuse never changes that decision.
 
-Missing, stale, running, failed, changed or unrecognized checkpoints use the existing
+Missing, stale, changed or unrecognized checkpoints use the existing
 claim research path. An operational checkpoint-read failure also falls back to that
 path. Claim approval and notifications remain committed regardless of enqueue outcome;
 the existing research warning appears only if neither reuse nor enqueue succeeds.
@@ -40,3 +40,9 @@ skip work that the first onboarding request immediately repeats. Prepared narrat
 reuse remains a separate, stricter approved-manifest check at the publish step.
 Discovery reuse must preserve recovery of unfinished social ingestion; a completed
 source search alone does not prove Latest ingestion has completed.
+
+The checkpoint stores immutable `completedAt` epoch milliseconds as a JSON number.
+This records successful discovery before downstream queue operations: a later parent
+job retry or failure cannot repeat successful discovery or extend its 24-hour age.
+A parent job without this valid checkpoint always takes the normal research path.
+Malformed, missing, future or expired completion times are ineligible.

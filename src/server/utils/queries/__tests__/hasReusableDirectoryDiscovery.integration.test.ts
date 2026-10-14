@@ -18,6 +18,7 @@ const checkpoint = () => client.exec(`
     'creationActivityId', '${event}',
     'directoryDiscovery', jsonb_build_object(
       'version', 1,
+      'completedAt', floor(extract(epoch from (now()-interval '1 hour'))*1000),
       'identity', jsonb_build_object('name', 'Fixture', 'spotify', null, 'deezer', '123'),
       'sourcesRevision', (
         select md5(coalesce(jsonb_agg(
@@ -66,10 +67,8 @@ it('accepts a completed empty discovery, not an absent checkpoint', async () => 
   expect(await check()).toBe(false);
 });
 it.each([
-  "update artist_research_jobs set status='running'",
-  "update artist_research_jobs set status='error'",
-  "update artist_research_jobs set updated_at=now()-interval '25 hours'",
-  "update artist_research_jobs set updated_at=now()+interval '1 hour'",
+  "update artist_research_jobs set updated_at=now(), state=jsonb_set(state,'{directoryDiscovery,completedAt}',to_jsonb(extract(epoch from (now()-interval '25 hours'))*1000))",
+  "update artist_research_jobs set state=jsonb_set(state,'{directoryDiscovery,completedAt}',to_jsonb(extract(epoch from (now()+interval '1 hour'))*1000))",
   "update artist_research_jobs set state=jsonb_set(state,'{directoryDiscovery,version}','2')",
   "update artist_research_jobs set state=jsonb_set(state,'{claimId}','\"different\"')",
   "update artist_research_jobs set state=jsonb_set(state,'{purpose}','\"claim\"')",
@@ -96,5 +95,20 @@ it('ignores unrelated sources, but detects new original-event research', async (
   await client.exec(`insert into artist_vault_sources(id,artist_id,activity_id,origin) values('${user}','${artist}','${event}','user')`);
   expect(await check()).toBe(true);
   await client.exec("update artist_vault_sources set origin='research' where origin='user'");
+  expect(await check()).toBe(false);
+});
+
+it.each(['pending', 'running', 'failed'])('reuses completed discovery during downstream %s without extending freshness', async status => {
+  await client.query('update artist_research_jobs set status=$1,updated_at=now()', [status]);
+  expect(await check()).toBe(true);
+  await client.exec("update artist_research_jobs set state=state-'directoryDiscovery'");
+  expect(await check()).toBe(false);
+});
+it.each(['null', '"invalid"', '{}', '[]', '"123"'])('falls back safely for malformed completedAt %s', async value => {
+  await client.query("update artist_research_jobs set state=jsonb_set(state,'{directoryDiscovery,completedAt}',$1::jsonb)", [value]);
+  expect(await check()).toBe(false);
+});
+it('does not use parent job time when completedAt is absent', async () => {
+  await client.exec("update artist_research_jobs set state=state #- '{directoryDiscovery,completedAt}',updated_at=now()");
   expect(await check()).toBe(false);
 });
