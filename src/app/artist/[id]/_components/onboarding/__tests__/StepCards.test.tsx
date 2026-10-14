@@ -60,6 +60,19 @@ describe('ProfilesCard — accepted-by-default', () => {
         expect(screen.getByText(/still missing/i).textContent).not.toMatch(/TikTok/);
     });
 
+    it('counts a saved YouTube channel as coverage without changing its removal key', () => {
+        const onConfirm = jest.fn();
+        render(<ProfilesCard payload={{ ...payload, links: [
+            ...payload.links,
+            { siteName: 'youtubechannel', value: 'UCfixture', displayName: 'YouTube', profileUrl: 'https://www.youtube.com/channel/UCfixture' },
+        ] }} onConfirm={onConfirm} disabled={false} />);
+        expect(screen.getByText(/still missing/i).textContent).not.toMatch(/YouTube/);
+        fireEvent.click(screen.getByLabelText('remove youtubechannel'));
+        expect(screen.getByText(/still missing/i).textContent).toMatch(/YouTube/);
+        fireEvent.click(screen.getByRole('button', { name: /looks good/i }));
+        expect(onConfirm).toHaveBeenCalledWith({ addedLinks: [], removedSiteNames: ['youtubechannel'] });
+    });
+
     it('pre-accepts a discovered profile so continuing actually saves it', () => {
         // The bug this exists for: candidates were opt-in while the card's first
         // line said "Leaving a card as-is confirms it". A real artist read that,

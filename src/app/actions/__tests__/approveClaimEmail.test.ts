@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { jest } from '@jest/globals';
 
+jest.mock('@/server/utils/queries/hasReusableDirectoryDiscovery', () => ({ hasReusableDirectoryDiscovery: jest.fn().mockResolvedValue(false) }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
 jest.mock('@/server/utils/queries/userQueries', () => ({ getUserById: jest.fn() }));
 jest.mock('@/server/utils/queries/dashboardQueries', () => ({

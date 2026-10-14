@@ -6,6 +6,8 @@ const mockDeezerGetArtist = jest.fn();
 const mockFindReciprocalArtistIdentity = jest.fn();
 const mockAcquirePlatformIdentityLock = jest.fn();
 const mockAcquireArtistNameLock = jest.fn();
+const mockQueueDirectoryDiscovery = jest.fn();
+jest.mock("@/server/utils/queries/queueDirectoryDiscovery", () => ({ queueDirectoryDiscovery: mockQueueDirectoryDiscovery }));
 
 jest.mock("@/server/auth", () => ({ getServerAuthSession: jest.fn() }));
 jest.mock("@/server/utils/musicPlatform", () => ({
@@ -81,6 +83,7 @@ describe("addArtist identity resolution", () => {
     beforeEach(() => {
         jest.resetModules();
         jest.clearAllMocks();
+        mockQueueDirectoryDiscovery.mockResolvedValue(undefined);
     });
 
     async function setup() {
@@ -166,6 +169,7 @@ describe("addArtist identity resolution", () => {
             }),
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when a mapping owner has a different first-class platform ID", async () => {
@@ -189,6 +193,7 @@ describe("addArtist identity resolution", () => {
             platformId: "spotify-123",
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns the canonical artist when the platform ID is owned by a mapping", async () => {
@@ -208,6 +213,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns a conflict without writing when direct and mapped owners disagree", async () => {
@@ -230,6 +236,7 @@ describe("addArtist identity resolution", () => {
         });
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("creates a separate homonymous artist only when forceCreate is set", async () => {
@@ -250,6 +257,7 @@ describe("addArtist identity resolution", () => {
             name: "Jonathan Pape",
         }));
         expect(insert.onConflictDoNothing).toHaveBeenCalledWith();
+        expect(mockQueueDirectoryDiscovery).toHaveBeenCalledWith(mockDb, "new-artist", "user-1");
     });
 
     it.each([
@@ -411,6 +419,7 @@ describe("addArtist identity resolution", () => {
             "6251",
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("offers the owner of a discovered reciprocal ID instead of creating a duplicate", async () => {
@@ -437,6 +446,7 @@ describe("addArtist identity resolution", () => {
             canCreateSeparate: false,
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("identifies MusicBrainz as the source when its counterpart already exists", async () => {
@@ -466,6 +476,7 @@ describe("addArtist identity resolution", () => {
             message: "MusicBrainz links this profile to an existing artist's spotify profile. Add the submitted link to that artist.",
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("recognizes a reciprocal ID owner recorded only in the mapping table", async () => {
@@ -493,6 +504,7 @@ describe("addArtist identity resolution", () => {
             candidates: [reciprocalOwner],
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when submitted and reciprocal IDs have different owners", async () => {
@@ -513,6 +525,7 @@ describe("addArtist identity resolution", () => {
             candidates: [spotifyOwner, deezerOwner],
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns the existing artist when both platform IDs have the same owner", async () => {
@@ -536,6 +549,7 @@ describe("addArtist identity resolution", () => {
             artistId: "existing-owner",
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("does not let forceCreate bypass reciprocal platform ownership", async () => {
@@ -555,6 +569,7 @@ describe("addArtist identity resolution", () => {
             candidates: [reciprocalOwner],
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("returns the race winner when a conflict-safe insert creates no row", async () => {

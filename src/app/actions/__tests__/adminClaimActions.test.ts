@@ -15,6 +15,9 @@ jest.mock("@/server/utils/queries/dashboardQueries", () => ({
     getClaimById: jest.fn(),
     revokeApprovedClaim: jest.fn(),
 }));
+jest.mock("@/server/utils/queries/hasReusableDirectoryDiscovery", () => ({
+    hasReusableDirectoryDiscovery: jest.fn().mockResolvedValue(false),
+}));
 jest.mock("@/server/utils/queries/researchJobQueries", () => ({
     enqueueResearchJob: jest.fn().mockResolvedValue(true),
 }));
@@ -45,6 +48,7 @@ describe("adminClaimActions", () => {
         const { getUserById } = await import("@/server/utils/queries/userQueries");
         const { approveClaim, rejectClaim, deleteClaim, getAllClaims, getClaimById, revokeApprovedClaim } = await import("@/server/utils/queries/dashboardQueries");
         const { enqueueResearchJob } = await import("@/server/utils/queries/researchJobQueries");
+        const { hasReusableDirectoryDiscovery } = await import("@/server/utils/queries/hasReusableDirectoryDiscovery");
         const supabaseMod = await import("@/server/lib/supabase");
         const storageMocks = (supabaseMod as any).__storageMocks;
         const { approveClaimAction, rejectClaimAction, revokeClaimAction, getAdminAllClaims } = await import("../adminClaimActions");
@@ -59,6 +63,7 @@ describe("adminClaimActions", () => {
             getClaimById: getClaimById as jest.Mock,
             revokeApprovedClaim: revokeApprovedClaim as jest.Mock,
             enqueueResearchJob: enqueueResearchJob as jest.Mock,
+            hasReusableDirectoryDiscovery: hasReusableDirectoryDiscovery as jest.Mock,
             storageList: storageMocks.list as jest.Mock,
             storageRemove: storageMocks.remove as jest.Mock,
             storageFrom: storageMocks.from as jest.Mock,
@@ -80,6 +85,29 @@ describe("adminClaimActions", () => {
     }
 
     describe("approveClaimAction", () => {
+        it("reuses only a verified discovery checkpoint without an enqueue warning", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            m.hasReusableDirectoryDiscovery.mockResolvedValue(true);
+            expect(await m.approveClaimAction('c1')).toEqual({ success: true });
+            expect(m.hasReusableDirectoryDiscovery).toHaveBeenCalledWith('a1', 'c1');
+            expect(m.enqueueResearchJob).not.toHaveBeenCalled();
+            const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
+            expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
+        });
+
+        it("falls back to normal research if checkpoint validation fails operationally", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            m.hasReusableDirectoryDiscovery.mockRejectedValue(new Error('checkpoint read unavailable'));
+            m.enqueueResearchJob.mockResolvedValue(true);
+            expect(await m.approveClaimAction('c1')).toEqual({ success: true });
+            expect(m.hasReusableDirectoryDiscovery).toHaveBeenCalledWith('a1', 'c1');
+            expect(m.enqueueResearchJob).toHaveBeenCalledWith('a1', 'source_search', { state: { claimId: 'c1' } });
+        });
+
         it.each(['false', 'throw'])('reports approval separately when research enqueue returns %s', async failure => {
             const m = await setup();
             mockAdmin(m);

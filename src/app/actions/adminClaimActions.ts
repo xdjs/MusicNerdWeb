@@ -3,6 +3,7 @@
 import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, getAllClaims, getClaimById, revokeApprovedClaim } from "@/server/utils/queries/dashboardQueries";
+import { hasReusableDirectoryDiscovery } from "@/server/utils/queries/hasReusableDirectoryDiscovery";
 import { enqueueResearchJob } from "@/server/utils/queries/researchJobQueries";
 import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -35,13 +36,21 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
 
         // Approval has committed. A failed enqueue must reach the admin without
         // pretending approval rolled back or skipping the claimant's notification.
-        let queued = false;
+        let researchReady = false;
         try {
-            queued = await withArtistOperation(claim.artistId,
-                { userId: session.user.id, expectedClaimId: claim.id, trigger: 'claim_approval' },
-                () => enqueueResearchJob(claim.artistId, 'source_search', { state: { claimId: claim.id } }));
+            researchReady = await hasReusableDirectoryDiscovery(claim.artistId, claim.id);
         } catch (error) {
-            console.error('[approveClaimAction] Source research enqueue failed:', error);
+            // A failed reuse check must fall back to normal discovery.
+            console.error('[approveClaimAction] Discovery handoff check failed:', error);
+        }
+        if (!researchReady) {
+            try {
+                researchReady = await withArtistOperation(claim.artistId,
+                    { userId: session.user.id, expectedClaimId: claim.id, trigger: 'claim_approval' },
+                    () => enqueueResearchJob(claim.artistId, 'source_search', { state: { claimId: claim.id } }));
+            } catch (error) {
+                console.error('[approveClaimAction] Source research enqueue failed:', error);
+            }
         }
 
         // Approval email — AWAITED (not fire-and-forget). On Vercel a serverless
@@ -71,7 +80,7 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
 
         return {
             success: true,
-            ...(!queued ? { warning: 'Claim approved, but source research could not be queued. Open the artist’s Lore and use “Search web for sources” to retry.' } : {}),
+            ...(!researchReady ? { warning: 'Claim approved, but source research could not be queued. Open the artist’s Lore and use “Search web for sources” to retry.' } : {}),
         };
     } catch (error) {
         console.error("[approveClaimAction] Error:", error);
