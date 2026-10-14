@@ -34,6 +34,17 @@ it("gives admins and artist owners an obvious route into Lore editing", () => {
   expect(screen.queryByText("Visitor suggestion form")).not.toBeInTheDocument();
 });
 
+it("hides Add to Lore while research runs, and brings it back after", () => {
+  // 2026-10-14: Sweetman asked for no editing while research fills the page.
+  const view = (researching: boolean) => <EditModeContext.Provider value={{ isEditing: false, canEdit: true, toggle: jest.fn() }}>
+    <VaultSection {...props} researching={researching} />
+  </EditModeContext.Provider>;
+  const { rerender } = render(view(true));
+  expect(screen.queryByRole("button", { name: "Add to Lore" })).not.toBeInTheDocument();
+  rerender(view(false));
+  expect(screen.getByRole("button", { name: "Add to Lore" })).toBeInTheDocument();
+});
+
 it("shows the suggestion path to visitors and edit controls only in edit mode", () => {
   const { rerender } = render(<EditModeContext.Provider value={{ isEditing: false, canEdit: false, toggle: jest.fn() }}>
     <VaultSection {...props} />

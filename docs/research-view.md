@@ -34,6 +34,12 @@ is confirmed. The approved design is linked from the issue.
 > This supersedes the 2026-10-08 follow decision above. Tracked on
 > [#1476](https://github.com/xdjs/MusicNerdWeb/issues/1476).
 
+> **Decision 2026-10-14 (Sweetman): no editing while research runs.** Pete found that **Add to
+> Lore** opened Lore's editor mid-build, with saved sources under the placeholder. Rather than make
+> the editor research-aware, the build hides the two ways into edit mode, the **Edit** toggle and
+> **Add to Lore**, until research is complete; they return with the refresh that ends the build.
+> Supersedes draft #1512's editor approach.
+
 > **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the
 > 2026-10-13 test, Lore showed the skeleton and the sources that already existed. Until the `vault`
 > step is confirmed, the skeleton replaces the existing sources, as it does the About. Links is
@@ -127,6 +133,8 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   which goes to the top of the page so the header shows with it (Sweetman, 2026-10-09 manual test).
   It smooth-scrolls, or jumps with reduced motion. Otherwise the page stays where
   the artist puts it.
+- **No editing during the build.** While research runs, the hero's **Edit** toggle and Lore's
+  **Add to Lore** are hidden (`researching`, the same flag that holds back Ask).
 - **Done.** On `complete` the page refreshes once more and arms the profile tour. The gate stays
   mounted for the rest of the visit (`page.tsx` renders it for the claimant whatever the state; a
   page loaded already complete renders just the profile), so the marks stay. The pill goes away,
