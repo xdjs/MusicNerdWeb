@@ -21,6 +21,13 @@ Use existing Music Nerd typography and themes: dark #191919, light #fafafa, blac
 ## Pending decision
 Review About copy and choose profile-tab placement versus a simple link to /access. No functional authentication change is ready for release from this prototype. Keep this branch isolated until reviewed.
 
+### Placement approved — October 14, 2026
+
+Pete approved the minimal **API access** link on the private User Profile, opening the
+existing `/access` page. This resolves the placement decision above. The sample-token
+API tab remains a preview exploration; the production profile does not fetch or render
+tokens. Existing account authorization and token behavior stay in `/access`.
+
 ## Release scope approved October 13, 2026
 Pete approved the About page for squash merge and production promotion after reviewing the
 copy, supplied logo, social icons, and transparent glasses menu icon. Instagram and X both

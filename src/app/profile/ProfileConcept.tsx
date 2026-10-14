@@ -13,7 +13,7 @@ import type { LiveProfileModel } from '@/lib/profile/types';
 import SelfEditHistory from './SelfEditHistory';
 import { latestDateSortTime } from '@/lib/artist/artistLatest';
 import ShareLinkDialog from './ShareLinkDialog';
-import { ArrowUpRight, Camera, Check, Clock, Pencil, Plus, Search } from 'lucide-react';
+import { ArrowUpRight, Camera, Check, Clock, KeyRound, Pencil, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -112,6 +112,7 @@ export default function ProfileConcept({ user, showcase = false, apiPrototype = 
           <p>{user.email || user.wallet || 'Signed-in account'}</p>
           <p className="text-muted-foreground">{[user.isAdmin && 'Admin', user.isWhiteListed && 'Whitelisted', user.isHidden && 'Hidden'].filter(Boolean).join(', ') || 'Member'}</p>
         </div>
+        {live && <Link href="/access" prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 rounded-md text-sm font-medium underline underline-offset-4 hover:text-[#92236e] dark:hover:text-[#ff9ce4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-400"><KeyRound size={14} aria-hidden="true" />API access</Link>}
       </div>
       <Button variant="outline" aria-label="Edit profile" className="rounded-full shrink-0 w-10 h-10 sm:w-auto px-0 sm:px-4 bg-neutral-100 dark:bg-[#242424] border-neutral-300 dark:border-white/15 text-foreground hover:bg-neutral-200 dark:hover:bg-[#303030] hover:text-foreground" onClick={() => { setDraftName(name); setDraftPhoto(photo); setDraftFile(null); setPhotoError(''); setEditing(true); }}><Pencil size={16} className="sm:mr-2" /><span className="hidden sm:inline">Edit profile</span></Button>
     </header>
