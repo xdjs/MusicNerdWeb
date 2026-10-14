@@ -140,3 +140,14 @@ it('keeps uncertain rows available and asks for refresh after a lost response', 
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('could not be confirmed'));
   expect(screen.getByRole('button', { name: 'Approve selected (3)' })).toBeEnabled();
 });
+
+it.each([
+  ['research', 'claim_approval', 'Claim approved by Pete Rango'],
+  ['research', 'editor_search', 'Research requested by Pete Rango'],
+  ['submission', 'visitor_suggestion', 'Submitted by Pete Rango'],
+  ['upload', 'upload', 'Uploaded by Pete Rango'],
+])('attributes the same account by role for %s / %s', (origin, trigger, label) => {
+  render(<LoreSubmissionsSection data={{...data, items:[{...data.items[0], origin, trigger, actorKind:'user', actorName:'Pete Rango'}]}} />);
+  expect(screen.getByText(label)).toBeInTheDocument();
+  if(trigger === 'claim_approval') expect(screen.getByText('Research reason: Claim approved')).toBeInTheDocument();
+});
