@@ -59,6 +59,9 @@ export async function handleArtistQuestion(request: Request) {
     const plan = jobId
       ? null
       : await planArtistQuestion(name, question, signal, conversation, candidates);
+    if (typeof plan?.clarification === "string") return Response.json({
+      answer: plan.clarification, sources: [], suggestions: [],
+    }, { headers });
     const { resolvedQuestion: resolved = question, answerIntent, reuseCandidateId, reuseAction, ...routing } = plan ?? {};
     const resolvedQuestion = typeof resolved === "string" ? resolved : question;
     const candidate = typeof reuseCandidateId === "string"

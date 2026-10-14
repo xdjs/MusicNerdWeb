@@ -66,3 +66,20 @@ Progress is short: “Checking Lore…” for saved evidence/answer preparation;
 Planning receives the current UTC date. A single yearless named calendar day referring to a past post uses its latest occurrence on or before that date; explicit years stay exact. Ranges, future requests and explicit historical context remain planner interpreted. A newly dated question selects originals by date rather than inheriting an old citation; same-post follow-ups without a new date retain their anchor; a current literal URL remains authoritative and must still pass API scope checks. URLs pasted with sentence punctuation admit the prose-delimited spelling without dropping the literal spelling or broadening the source allowlist.
 
 For other-activity follow-ups, excluding an individual post/work does not exclude an entire archive or collection. Both drafting and checking enforce that distinction. They still reject a whole excluded category when requested, unsupported media descriptions, invented connections and overstated source claims. Final quote/claim rejection has a bounded diagnostic code distinct from provider, schema or timeout failures; no question, source text, rejected draft or checker explanation is logged. Historical failures with only a stored stage cannot establish their precise original cause.
+
+### Conversational routing and source selection (October 14, 2026)
+
+The model resolves follow-up intent from the bounded public conversation rather than a
+phrase whitelist. Other-activity follow-ups exclude already-discussed sources without
+silently excluding their entire collection. Explicit user exclusions retain their scope.
+
+API evidence selection is a relevance decision over original source IDs, not a second
+answer-generation task. It returns unchanged original windows; the Web answer stage still
+reopens exact revisions, verifies supporting quotes, and checks claims before displaying
+citations. A malformed quotation in an intermediate selection must not trigger a paid
+scrape. Unknown source IDs and unresolved identities remain ineligible.
+
+When outside research is needed, the model chooses among server-validated available
+lookups; there is no fixed Instagram-first priority. Explicit source restrictions,
+connected-account identity, public-source access, durable job checkpoints and spending
+budgets remain enforced by code. Source discovery never approves Lore.

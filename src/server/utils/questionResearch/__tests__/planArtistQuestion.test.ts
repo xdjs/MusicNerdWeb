@@ -26,7 +26,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     answerScope: "focused",
     resolvedQuestion: "Who played drums?",
   });
-  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingBudget: 0, maxRetries: 0 }));
+  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: "low", maxRetries: 0 }));
 });
 it("never accepts a model-invented original URL that was not in the question", async () => {
   jest
@@ -49,8 +49,8 @@ it("never accepts a model-invented original URL that was not in the question", a
 it.each([
   ["How does LATASHÁ describe her music on her official website?", "stored"],
   ["What did growing up in New York contribute to her sound?", "stored"],
-  ["What are her latest TikTok posts about?", "recent"],
-  ["What has she posted this week?", "recent"],
+  ["What are her latest TikTok posts about?", "stored"],
+  ["What has she posted this week?", "stored"],
 ])("does not invent a recent-only filter for %s", async (question, freshness) => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     topic: "LATASHÁ music description", evidenceNeed: "reporting", freshness: "recent",
@@ -115,8 +115,8 @@ it('drops a stale cited target when the current question explicitly changes plat
  expect(plan).toMatchObject({platform:'inprocess'});
  expect(plan).not.toHaveProperty('targetUrl');
 });
-it("routes an explicit latest-release identification to catalog evidence even when the model calls it reporting", async () => {
- jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest music release',evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+it("retains semantic latest-release identification using catalog evidence", async () => {
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Dutchyyy latest music release',evidenceNeed:'release_date',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Dutchyyy',"What's Dutchyyy's latest release?")).toMatchObject({evidenceNeed:'release_date',retrieval:'latest'});
 });
 
@@ -130,7 +130,7 @@ it.each([
 });
 it('keeps a broader recent-activity follow-up recent and excludes already discussed sources',async()=>{
  const url='https://www.inprocess.world/collect/base:example/2';
- jest.mocked(generateText).mockResolvedValue({output:{topic:'Pete Rango other projects',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{topic:'Pete Rango other projects',followupMode:'other_activity',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
  const result=await planArtistQuestion('Pete Rango','what else has he been up to?',undefined,[{question:"What's Pete Rango's latest project?",answer:'Plugin designs.',sourceUrls:[url]}]);
  expect(result).toMatchObject({retrieval:'latest',freshness:'stored',excludeSourceUrls:[url]});
  expect(result).not.toHaveProperty('targetUrl');expect(result).not.toHaveProperty('platform');
@@ -178,3 +178,11 @@ describe("dated originals and pasted source URLs (#1491)", () => {
     expect(await planArtistQuestion("Artist", "What did their October 7, 2023 caption say?")).toMatchObject({fromDate:"2023-10-07",toDate:"2023-10-07"});
   });
 });
+
+it.each(['And beyond that?', 'Anything different happening?', 'Catch me up on the rest.'])(
+  'honors semantic other-activity intent without a phrase whitelist: %s', async question => {
+    const url='https://artist.example/previous-project';
+    jest.mocked(generateText).mockResolvedValue({output:{topic:'Artist other activity',evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',answerScope:'overview',followupMode:'other_activity',resolvedQuestion:'What other activity has Artist shared?',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+    expect(await planArtistQuestion('Artist',question,undefined,[{question:'What is new?',answer:'The artist shared a mix.',sourceUrls:[url]}])).toMatchObject({excludeSourceUrls:[url],answerScope:'overview',retrieval:'latest'});
+  }
+);
