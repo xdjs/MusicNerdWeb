@@ -57,13 +57,13 @@ function prefersReducedMotion(): boolean {
 }
 
 export default function OnboardingChat({ artistId, artistName, onSkip, onFinish, onBuildComplete, initialState, researchItems = NO_ITEMS, children }: Props) {
-    const { items, busy, sendTurn } = useOnboardingChat(artistId);
+    const { items, busy, sendTurn, authReady, hasSentTurn } = useOnboardingChat(artistId);
     // Keeps the scrape and the caption extraction moving while the artist is
     // here. They are minutes of work and no request lives that long, so the
     // person on the page is what turns a queued job into a finished one.
     useResearchPump(artistId);
     const router = useRouter();
-    const opened = useRef(false);
+    const opening = useRef(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     // Ids already rendered as of the last items-change effect run — lets us
     // diff to find just-added items instead of re-anchoring on every render.
@@ -77,11 +77,12 @@ export default function OnboardingChat({ artistId, artistName, onSkip, onFinish,
     const [hasNewBelow, setHasNewBelow] = useState(false);
 
     useEffect(() => {
-        if (!opened.current) {
-            opened.current = true;
-            void sendTurn({ type: "open" });
-        }
-    }, [sendTurn]);
+        if (!authReady || hasSentTurn || opening.current) return;
+        opening.current = true;
+        void Promise.resolve(sendTurn({ type: "open" })).finally(() => {
+            opening.current = false;
+        });
+    }, [authReady, hasSentTurn, sendTurn]);
 
     const handleScroll = useCallback(() => {
         const el = scrollRef.current;

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProfileCandidate, DocSource } from "./StepCards";
 import type { SourceView } from "@/lib/onboarding/buildStages";
-import { getAccessToken } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 export type ChatItem = {
@@ -80,11 +80,22 @@ function userEcho(turn: ClientTurnShape): string | null {
 }
 
 export function useOnboardingChat(artistId: string) {
+    const { ready, authenticated, getAccessToken } = usePrivy();
+    const authReady = ready && authenticated;
+    const authReadyRef = useRef(authReady);
+    authReadyRef.current = authReady;
+    const getTokenRef = useRef(getAccessToken);
+    getTokenRef.current = getAccessToken;
+    const mounted = useRef(true);
+    const inFlight = useRef(false);
     const [items, setItems] = useState<ChatItem[]>([]);
     const [busy, setBusy] = useState(false);
+    const [hasSentTurn, setHasSentTurn] = useState(false);
     const counter = useRef(0);
-
-
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+    }, []);
 
     const push = useCallback((item: Omit<ChatItem, "id">) => {
         counter.current += 1;
@@ -156,10 +167,11 @@ export function useOnboardingChat(artistId: string) {
     }, []);
 
     const sendTurn = useCallback(async (turn: ClientTurnShape) => {
-        if (busy) return;
+        if (!authReadyRef.current || !mounted.current || inFlight.current) return;
+        // State alone leaves a same-render window for duplicate requests while
+        // Privy is restoring its token. Hold the turn before the first await.
+        inFlight.current = true;
         setBusy(true);
-        const echo = userEcho(turn);
-        if (echo) push({ kind: "user", text: echo });
         // next dev has no server-side deadline enforcement (maxDuration is
         // Vercel-only) — without a client ceiling, a hung fetch leaves `busy`
         // true forever and every card disabled. Abort forces the catch block
@@ -167,10 +179,29 @@ export function useOnboardingChat(artistId: string) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 65_000);
         try {
+            // Privy can be ready just before its access token is available.
+            // Match login's bounded readiness window; no API turn is sent yet.
+            let token: string | null = null;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                if (!authReadyRef.current || !mounted.current) return;
+                token = (await getTokenRef.current())?.trim() || null;
+                if (token) break;
+                if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            if (!authReadyRef.current || !mounted.current || controller.signal.aborted) return;
+            if (!token) {
+                push({ kind: "error", text: "Sign-in is still loading. Try again." });
+                return;
+            }
+            const echo = userEcho(turn);
+            if (echo) push({ kind: "user", text: echo });
+            // Only a dispatched turn consumes automatic opening. Losing auth
+            // during token restoration must not strand a later signed-in mount.
+            setHasSentTurn(true);
             // MusicNerdAPI (#1365), signed in with the Privy access token.
             const res = await fetch(musicNerdApiUrl(`/api/onboarding/${artistId}/chat`), {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${await getAccessToken()}` },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(turn),
                 signal: controller.signal,
             });
@@ -235,9 +266,10 @@ export function useOnboardingChat(artistId: string) {
             push({ kind: "error", text: "Connection dropped — your progress is saved, just try again." });
         } finally {
             clearTimeout(timeoutId);
-            setBusy(false);
+            inFlight.current = false;
+            if (mounted.current) setBusy(false);
         }
-    }, [artistId, busy, push]);
+    }, [artistId, push]);
 
-    return { items, busy, sendTurn };
+    return { items, busy, sendTurn, authReady, hasSentTurn };
 }
