@@ -59,3 +59,17 @@ it.each([
   expect(data.items.map((item:{kind:string})=>item.kind).sort()).toEqual([...expected].sort());
   if(filter==='Socials') expect(data.items.map((item:{sourceUrl:string})=>item.sourceUrl)).toEqual(expect.arrayContaining(['https://instagram.com/p/example','https://inprocess.example/moment']));
 });
+
+it("uses display recovery without relabeling the shared source coverage", async () => {
+  (getContributedArtists as jest.Mock).mockResolvedValue({artists:[{id:'artist-1',name:'Artist'}],total:1});
+  (getArtistLatest as jest.Mock).mockResolvedValue({unavailable:true,displayUnavailable:false,items:[]});
+  expect((await (await GET(request())).json()).unavailable).toBe(false);
+});
+
+it("names the unavailable providers without exposing private coverage or job data", async () => {
+  (getContributedArtists as jest.Mock).mockResolvedValue({artists:[{id:'artist-1',name:'Artist'}],total:1});
+  (getArtistLatest as jest.Mock).mockResolvedValue({unavailable:true,displayUnavailable:true,displayUnavailableProviders:['spotify'],items:[],coverage:[{private:'must not leak'}]});
+  const result=await (await GET(request())).json();
+  expect(result.unavailableProviders).toEqual(['spotify']);
+  expect(result.coverage).toBeUndefined();
+});

@@ -26,8 +26,10 @@ export type LiveProfileModel = ProfileSummary & {
   updatesLoading: boolean;
   updatesError: string | null;
   updatesUnavailable: boolean;
+  updatesUnavailableSources?: string[];
   checkedArtists: number;
   hasMoreUpdates: boolean;
   loadMoreUpdates: () => void;
+  retryUpdates?: () => void;
   saveProfile: (name: string, photo: File | null) => Promise<{ name: string; photo: string | null }>;
 };

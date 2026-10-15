@@ -11,7 +11,8 @@ import { readProfileJson as readJson } from '@/lib/profile/readProfileJson';
 import { Button } from '@/components/ui/button';
 
 type Account = Pick<User, 'id' | 'username' | 'email' | 'wallet' | 'isAdmin' | 'isWhiteListed' | 'isHidden'> & { usernameNeedsConfirmation?: boolean };
-type FeedPage = { items: ProfileUpdate[]; next: number | null; checked: number; unavailable: boolean };
+type FeedPage = { items: ProfileUpdate[]; next: number | null; checked: number; unavailable: boolean; unavailableProviders?: Array<'spotify' | 'deezer' | 'inprocess'> | null };
+const providerLabels = { spotify: 'Spotify', deezer: 'Deezer', inprocess: 'In Process' };
 
 export default function LiveUserProfile({ user }: { user: Account }) {
   const queryClient = useQueryClient();
@@ -70,8 +71,11 @@ export default function LiveUserProfile({ user }: { user: Account }) {
       updates: feed.data?.pages.flatMap(page => page.items) ?? [], updatesLoading: feed.isFetching,
       updatesError: feed.error ? 'Some updates couldn’t load. Try again.' : null,
       updatesUnavailable: feed.data?.pages.some(page => page.unavailable) ?? false,
+      updatesUnavailableSources: feed.data?.pages.some(page => page.unavailable && !page.unavailableProviders?.length) ? undefined
+        : [...new Set(feed.data?.pages.flatMap(page => page.unavailableProviders ?? []) ?? [])].map(provider => providerLabels[provider]),
       checkedArtists: feed.data?.pages.at(-1)?.checked ?? 0, hasMoreUpdates: !!feed.hasNextPage,
       loadMoreUpdates: () => { if (feed.error) void feed.refetch(); else void feed.fetchNextPage(); },
+      retryUpdates: () => { if (!feed.isFetching) void feed.refetch(); },
       saveProfile: async (name, file) => {
         let next = {url: photo.data?.url ?? null};
         if (file) {

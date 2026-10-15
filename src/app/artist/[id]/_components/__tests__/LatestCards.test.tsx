@@ -350,3 +350,8 @@ it('fades only carousel edges with more content and clears fades at either end',
     gallery.scrollLeft = 600; fireEvent.scroll(gallery);
     expect(gallery).toHaveAttribute('data-fade-end', 'false');
 });
+
+it('identifies a failed provider without labeling the whole feed broken', () => {
+  render(<LatestCards items={[release]} artistName="Artist" artistImage="/test.png" unavailable unavailableSources={['Spotify']} />);
+  expect(screen.getByRole('status')).toHaveTextContent('Spotify updates couldn’t load. Showing what’s available.');
+});

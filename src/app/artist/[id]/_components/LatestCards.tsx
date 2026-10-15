@@ -25,9 +25,10 @@ import LatestCardImage from './LatestCardImage';
 const categories = { release: 'Releases', instagram: 'Instagram', interview: 'In their words', moment: 'In-Process' };
 const icons = { release: Disc3, instagram: Instagram, interview: MessageCircle, moment: InProcessIcon };
 
-export default function LatestCards({ items, artistName, artistImage, unavailable, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {}, refreshControl }: {
-    refreshControl?: ReactNode; items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
+export default function LatestCards({ items, artistName, artistImage, unavailable, unavailableSources, artistListeningLinks = [], sectionId = 'mn-latest', heading = 'Latest', showFilters = true, hideHeading = false, itemArtistNames = {}, itemArtistUrls = {}, refreshControl }: {
+    refreshControl?: ReactNode; items: ArtistLatestItem[]; artistName: string; artistImage: string; unavailable: boolean; unavailableSources?: string[]; artistListeningLinks?: ProfileLink[]; sectionId?: string; heading?: string; showFilters?: boolean; hideHeading?: boolean; itemArtistNames?: Record<string, string>; itemArtistUrls?: Record<string, string>;
 }) {
+    const unavailableMessage = unavailableSources?.length ? `${unavailableSources.join(', ')} updates couldn’t load.` : 'Some updates couldn’t load.';
     const [choice, setChoice] = useState({artistName, value: 'All'});
     const filter = choice.artistName === artistName ? choice.value : 'All';
     const [selected, setSelected] = useState<ArtistLatestItem | null>(null);
@@ -72,9 +73,9 @@ export default function LatestCards({ items, artistName, artistImage, unavailabl
         {showFilters && items.length > 0 && <ArtistUpdateFilter value={filter} onValueChange={value => setChoice({artistName, value})} />}
         {items.length > 0 && visible.length === 0 && <p role="status" className="p-6 text-sm text-muted-foreground">No {PROFILE_UPDATE_FILTERS.find(section => section.id === filter)?.label} updates yet.</p>}
         {items.length === 0 ? <p className="glass rounded-2xl p-6 text-sm text-gray-600 dark:text-gray-300">
-            {unavailable ? 'Latest updates couldn’t load right now. Please try again later.' : `When ${artistName} shares new music, Instagram posts or interview answers, they’ll appear here.`}
+            {unavailable ? unavailableSources?.length ? `${unavailableMessage} Please try again later.` : 'Latest updates couldn’t load right now. Please try again later.' : `When ${artistName} shares new music, Instagram posts or interview answers, they’ll appear here.`}
         </p> : <>
-            {unavailable && <p role="status" className="text-xs text-gray-600 dark:text-gray-400">Some updates couldn’t load. Showing what’s available.</p>}
+            {unavailable && <p role="status" className="text-xs text-gray-600 dark:text-gray-400">{unavailableMessage} Showing what’s available.</p>}
             <div className="group/gallery relative">
             <button type="button" aria-label="Previous updates" aria-controls={`${sectionId}-gallery`} disabled={!canScroll.previous} onClick={() => scrollGallery(-1)}
                 className="absolute -left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-md transition-opacity hover:bg-black/80 disabled:pointer-events-none disabled:opacity-0 sm:flex sm:opacity-0 sm:group-hover/gallery:opacity-100 sm:group-focus-within/gallery:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pastypink"><ChevronLeft size={18} aria-hidden="true" /></button>
