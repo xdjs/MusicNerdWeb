@@ -315,4 +315,18 @@ describe("artistLinkService", () => {
     const result = await clearArtistLink("artist-123", "x");
     expect(result).toEqual({ oldValue: "old-handle" });
   });
+
+ it('clearing an empty Spotify slot still cancels a pending lookup so it cannot reappear later', async () => {
+   const { db, clearArtistLink } = await setup();
+   (db as any).query.artists.findFirst.mockResolvedValue({ id:'artist-123',name:'Artist',spotify:null });
+   await clearArtistLink('artist-123','spotify');
+   expect(db.execute.mock.calls.map(([query])=>dialect.sqlToQuery(query).sql).join('\n')).toContain("kind='spotify_match'");
+ });
+ it('re-saving the same verified platform ID does not invalidate independent pending work', async () => {
+   const { db, setArtistLink } = await setup();
+   (db as any).query.artists.findFirst.mockResolvedValue({ id:'artist-123',name:'Artist',deezer:'12' });
+   await setArtistLink('artist-123','deezer','12');
+   expect(db.execute.mock.calls.map(([query])=>dialect.sqlToQuery(query).sql).join('\n')).not.toContain("kind='spotify_match'");
+ });
+
 });
