@@ -32,13 +32,24 @@ function withRowResults<T extends NativeDatabase | NativeTransaction>(database: 
                     // Own the checkout so even a failed BEGIN releases capacity.
                     const client = await pool.connect();
                     let failure: Error | undefined;
+                    // pg-pool removes its idle error listener on checkout. Socket
+                    // failures emit before pending queries reject, so keep a
+                    // listener until release restores the pool's idle handler.
+                    const onError = (error: Error) => { failure ??= error; };
+                    client.on('error', onError);
                     try {
-                        return await withRowResults(nativeDatabase(client)).transaction(callback, config);
+                        const result = await withRowResults(nativeDatabase(client)).transaction(callback, config);
+                        if (failure) throw failure;
+                        return result;
                     } catch (error) {
-                        failure = error instanceof Error ? error : new Error('Database transaction failed');
+                        failure ??= error instanceof Error ? error : new Error('Database transaction failed');
                         throw error;
                     } finally {
-                        client.release(failure);
+                        try {
+                            client.release(failure);
+                        } finally {
+                            client.removeListener('error', onError);
+                        }
                     }
                 };
             }

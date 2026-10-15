@@ -20,6 +20,9 @@ contracts. Drizzle's relational/query-builder mappings are unchanged. Transactio
 and nested savepoints use one reserved client. The wrapper owns the top-level
 checkout because Drizzle 0.44 starts BEGIN before its own release-finally; even a
 failed BEGIN must release capacity. Failed transactions discard their connection.
+Checked-out clients have a temporary error listener because pg-pool's pool-level
+listener only covers idle clients. A socket error is retained for discard/rejection,
+and the temporary listener is removed after release restores pool ownership.
 Normal application queries use unnamed statements. Do not add named prepared
 statements without checking compatibility with the selected transaction pool.
 
@@ -40,6 +43,8 @@ The opt-in integration suite covers repeated actual approved/pending source
 readers for three fixture artists, mixed parallel reads, source content and data
 types, raw rows, commit/rollback/savepoints, the actual owner/admin authorization
 guard and stranger rejection, error recovery, and failed-BEGIN checkout cleanup.
+Actual local socket failures during BEGIN and an in-flight transaction must reject
+without an unhandled client error, discard exactly once, and leave the pool usable.
 It skips without `MUSICNERD_TEST_PG_PORT`; ordinary CI does not establish this
 integration result. Artist-page unit tests check owner/admin pending sources and
 attribution. Search and session-refresh component tests mock the router; they do

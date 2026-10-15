@@ -5,6 +5,7 @@
 import { Pool } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { basename } from 'node:path';
+import type { Socket } from 'node:net';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { createDatabase } from '../createDatabase';
@@ -163,6 +164,52 @@ suite('node-postgres application compatibility on disposable PostgreSQL', () => 
             // A failing regression must still let the disposable cluster stop.
             if (!release.mock.calls.length) client.release(true);
             release.mockRestore();
+        }
+    });
+
+    it.each(['BEGIN', 'transaction'])('contains a real socket failure during %s and discards the checkout once', async phase => {
+        const client = await pool.connect();
+        const before = await client.query('select pg_backend_pid() as pid');
+        const release = jest.spyOn(client, 'release');
+        const emitted = jest.spyOn(client, 'emit'); // observes events without adding an error listener
+        const checkout = jest.spyOn(pool, 'connect');
+        (checkout as jest.Mock).mockResolvedValueOnce(client);
+        const failure = new Error(`fixture ${phase} socket disconnect`);
+        // Destroy the actual local TCP socket, exercising pg's error event and
+        // deferred query rejection, rather than mocking a rejected query promise.
+        const socket = (client as unknown as { connection: { stream: Socket } }).connection.stream;
+        const original = client.query.bind(client);
+        const query = jest.spyOn(client, 'query');
+        if (phase === 'BEGIN') {
+            query.mockImplementationOnce(((...args: Parameters<typeof client.query>) => {
+                const request = original(...args);
+                queueMicrotask(() => socket.destroy(failure));
+                return request;
+            }) as typeof client.query);
+        }
+        try {
+            await expect(db.transaction(async tx => {
+                if (phase === 'BEGIN') throw new Error('BEGIN failure must not run the callback');
+                const pending = tx.execute(sql`select pg_sleep(0.1)`);
+                await new Promise<void>(resolve => setImmediate(resolve));
+                socket.destroy(failure);
+                await pending;
+            })).rejects.toThrow();
+            expect(emitted).toHaveBeenCalledWith('error', failure);
+            expect(release).toHaveBeenCalledTimes(1);
+            expect(release).toHaveBeenCalledWith(failure);
+            checkout.mockRestore();
+            const [healthy] = await db.execute(sql`select pg_backend_pid() as pid, 9::int as value`);
+            expect(healthy.value).toBe(9);
+            expect(healthy.pid).not.toBe(before.rows[0].pid);
+            expect(pool.waitingCount).toBe(0);
+            expect(pool.idleCount).toBe(pool.totalCount);
+        } finally {
+            checkout.mockRestore();
+            query.mockRestore();
+            if (!release.mock.calls.length) client.release(true);
+            release.mockRestore();
+            emitted.mockRestore();
         }
     });
 });
