@@ -1,3 +1,4 @@
+import { deduplicateAnswerOriginals } from "@/lib/questionResearch/deduplicateAnswerOriginals";
 import { Output } from "ai";
 import { MODEL_ASK_CHECKER, MODEL_ASK_DRAFT } from "@/server/lib/ai/models";
 import { z } from "zod";
@@ -32,16 +33,22 @@ export async function draftResearchAnswer(
     const readBudget = selected.length * MAX_ORIGINAL_CHARACTERS;
     if (readBudget > MAX_ANSWER_ORIGINAL_CHARACTERS)
       throw new Error("Original evidence exceeds reading budget");
-    const originals = await Promise.all(
+    const reads = new Map<string, Promise<unknown>>();
+    const originals = deduplicateAnswerOriginals(await Promise.all(
       selected.map(async (ref, i) => {
         // Include the full selected slice before spending spare room on preceding context.
         const precedingContext = Math.min(1200, MAX_ORIGINAL_CHARACTERS - ref.text.length);
         const start = Math.max(0, ref.start - precedingContext);
         stage = "fetch_original";
-        const rawOriginal = await callResearchApi(
-          `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=${MAX_ORIGINAL_CHARACTERS}`,
-          { signal: abort },
-        );
+        const path = `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=${MAX_ORIGINAL_CHARACTERS}`;
+        // Share only this attempt's identical current-source read. Every selected slice
+        // below still validates independently, even when it shares the response.
+        let read = reads.get(path);
+        if (!read) {
+          read = callResearchApi(path, { signal: abort });
+          reads.set(path, read);
+        }
+        const rawOriginal = await read;
         stage = "validate_original";
         const result = researchReadSchema.parse(rawOriginal);
         const p = result.passage;
@@ -68,7 +75,7 @@ export async function draftResearchAnswer(
           incomplete: result.nextStart !== null || p.start > 0,
         };
       }),
-    );
+    ));
     if (originals.reduce((total, original) => total + original.text.length, 0) > MAX_ANSWER_ORIGINAL_CHARACTERS)
       throw new Error("Original evidence exceeds reading budget");
     const input = JSON.stringify({ artistName, question, currentDate: new Date().toISOString().slice(0, 10), originals });

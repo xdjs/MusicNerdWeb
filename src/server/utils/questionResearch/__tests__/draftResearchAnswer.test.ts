@@ -457,3 +457,33 @@ it("rejects a whitespace-only factual sentence rather than returning a citation 
   await expect(draftResearchAnswer("artist", "Artist", "What?", [reference])).rejects.toThrow();
   expect(model).toHaveBeenCalledTimes(1);
 });
+
+it('shares identical expanded original reads and keeps original citation numbers after deduplication', async () => {
+ const duplicate = { ...reference, start: 2, text: reference.text.slice(2) };
+ const third = { ...reference, sourceId: 'vault:33333333-3333-4333-8333-333333333333', url: 'https://artist.example/other' };
+ api.mockImplementation(async path => ({ status: 'ok', passage: path.includes('33333333') ? third : reference, totalChars: reference.text.length, nextStart: null }));
+ model.mockReset();
+ model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 1, quote: 'I played drums.' }, { n: 3, quote: 'I played drums.' }] }], unanswered: null } } as never)
+  .mockResolvedValueOnce({ output: { supported: true, reason: 'Supported.' } } as never);
+ const result = await draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, duplicate, third]);
+ expect(api).toHaveBeenCalledTimes(2);
+ const prompt = JSON.parse(model.mock.calls[0][0].prompt);
+ expect(prompt.originals.map((p: {n:number}) => p.n)).toEqual([1,3]);
+ expect(prompt.originals.map((p: {text:string}) => p.text)).toEqual([reference.text, reference.text]);
+ expect(JSON.parse(model.mock.calls[1][0].prompt).input.originals).toEqual(prompt.originals);
+ expect(result.answer).toBe('They played drums. [1, 3]');
+ expect(result.sources.map(s => [s.n, s.sourceId])).toEqual([[1,reference.sourceId],[3,third.sourceId]]);
+});
+it('validates every selected slice even when the evidence read is shared', async () => {
+ const invalid = { ...reference, start: 2, text: 'wrong slice', end: 13 };
+ await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, invalid])).rejects.toThrow(/changed/);
+ expect(api).toHaveBeenCalledTimes(1);
+ expect(model).not.toHaveBeenCalled();
+});
+it('rejects a quote using a removed duplicate citation number before the independent checker', async () => {
+ model.mockReset();
+ model.mockResolvedValue({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 2, quote: 'I played drums.' }] }], unanswered: null } } as never);
+ await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, reference])).rejects.toThrow(/evidence/);
+ expect(api).toHaveBeenCalledTimes(1);
+ expect(model.mock.calls.every(([options]) => options.instructions?.startsWith('Answer the listener'))).toBe(true);
+});

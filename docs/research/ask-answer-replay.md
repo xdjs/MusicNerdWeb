@@ -97,3 +97,16 @@ check failures remain errors with their saved job ID, rather than triggering bli
 The browser follows the server-issued continuation job while retaining the same resolved question.
 An active answer lease keeps its existing HTTP 202 behavior and never causes an unbounded second
 draft. The maximum of three registered question variants per research job remains in force.
+
+## Repeated original windows during answer verification (#1525)
+
+Within one answer attempt, identical authenticated evidence-read URLs share a single in-flight
+request. Every selected research slice is still checked against the current returned original,
+including revision, URL, date and exact text/offsets. A second invalid slice cannot pass because
+another slice used the same response. There is no cross-request cache or change to source eligibility.
+
+After validation, byte-identical expanded originals with identical metadata appear once in the
+writer and checker context. The first original citation number is retained; remaining references
+keep their original numbers, so gaps are valid and persisted source mappings remain stable.
+Distinct windows or metadata are retained. Unknown or removed citation numbers fail the ordinary
+quote check. Both writer and independent checker still see the complete unchanged original context.

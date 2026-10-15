@@ -189,3 +189,23 @@ it('keeps a recently acknowledged question in its existing answer lane before th
  expect(await getOrDraftResearchAnswer({...input,readOnlyQuestionHash:'a'.repeat(64)})).toEqual({state:'drafting'});
  expect(draft).not.toHaveBeenCalled();expect(execute).toHaveBeenCalledTimes(2);
 });
+
+it('persists stable citation 1 and 3 bases when a duplicate original 2 is omitted', async () => {
+  const third = { ...ref, sourceId: 'vault:44444444-4444-4444-8444-444444444444', url: 'https://artist.example/second', text: 'I wrote the song', start: 0, end: 16 };
+  const selected = [ref, { ...ref }, third];
+  const cited = [source, { ...source, n: 3, sourceId: third.sourceId, url: third.url }];
+  const checked = { ...result, answer: 'They played drums and wrote the song. [1, 3]', sources: cited };
+  draft.mockResolvedValue(checked);
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: 'waiting', claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ claim_token: 'token' }] as never)
+    .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, references: selected })).toEqual({ state: 'ready', result: checked });
+  const query = new PgDialect().sqlToQuery(execute.mock.calls[3][0] as SQL);
+  const stored = JSON.parse(query.params.find((p): p is string => typeof p === 'string' && p.includes('"basis"'))!);
+  expect(stored.basis.map((b: {sourceId:string,textHash:string}) => [b.sourceId,b.textHash])).toEqual([[ref.sourceId,hash(ref.text)],[third.sourceId,hash(third.text)]]);
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: 'verified', result: stored }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, references: selected })).toEqual({ state: 'ready', result: checked });
+  expect(draft).toHaveBeenCalledTimes(1);
+});
