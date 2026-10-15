@@ -1,3 +1,4 @@
+import { continueQuestionResearch } from "./continueQuestionResearch";
 import { listReusableQuestionCandidates } from "./listReusableQuestionCandidates";
 import { hasCompatibleReuseScope } from "@/lib/questionResearch/hasCompatibleReuseScope";
 import { releaseQuestionRequest } from "./releaseQuestionRequest";
@@ -76,18 +77,17 @@ export async function handleArtistQuestion(request: Request) {
           artistId, artistName:name, jobId:candidate.jobId, question:resolvedQuestion,
           references:current.references, signal, readOnlyQuestionHash:candidate.questionHash,
         });
-        if (checked.state === "ready" && await registerResearchQuestion(artistId,candidate.jobId,resolvedQuestion)) {
-          // The planner proposes evidence, never permission to reuse an answer for a new meaning.
-          const variant = await getOrDraftResearchAnswer({artistId,artistName:name,
-            jobId:candidate.jobId,question:resolvedQuestion,references:current.references,signal});
-          if (variant.state === "ready" && variant.result.sources.length > 0) {
-            await bindQuestionRequest({artistId,requestHash:reuse.requestHash,token:reuse.token,
-              jobId:candidate.jobId,question:resolvedQuestion,reusable:true,answerIntent,routing});
-            return Response.json({...variant.result,bandcamp:artist.bandcamp ? `https://${artist.bandcamp}.bandcamp.com` : null,limitations:current.limitations},{headers});
-          }
-          if (variant.state === "drafting") throw Object.assign(new Error("The answer is already being checked"),{status:429,code:"research_busy"});
-          if (variant.state === "failed") throw new Error("The saved evidence could not be checked");
-          // An empty/invalid answer is not proof the fact is absent: continue normal research.
+        if (checked.state === "ready" && checked.result.sources.length > 0
+          && await registerResearchQuestion(artistId, candidate.jobId, resolvedQuestion)) {
+          // Planning and checked-answer generation have separate bounded requests.
+          // A semantic match selects evidence; it does not approve a new answer.
+          await bindQuestionRequest({ artistId, requestHash: reuse.requestHash, token: reuse.token,
+            jobId: candidate.jobId, question: resolvedQuestion, reusable: true, answerIntent,
+            routing: { ...routing, reuseFallbackJobId: candidate.jobId } });
+          return Response.json({ research: {
+            jobId: candidate.jobId, resolvedQuestion, stage: "complete",
+            message: "Checking the sourced answer…", provider: current.provider,
+          } }, { status: 202, headers });
         }
       }
     }
@@ -227,6 +227,17 @@ export async function handleArtistQuestion(request: Request) {
           },
           { status: 503, headers },
         );
+      if (!outcome.result.sources.length) {
+        const continued = await continueQuestionResearch({ artistId, jobId: state.jobId, question: resolvedQuestion, signal });
+        if (continued && "pending" in continued) return Response.json({ research: {
+          jobId: state.jobId, resolvedQuestion, stage: "complete", message: "Checking the sourced answer…",
+        } }, { status: 202, headers });
+        if (continued) return Response.json({ research: {
+          jobId: continued.jobId, resolvedQuestion, stage: continued.stage,
+          message: continued.message, provider: continued.provider,
+          outsideResearchReason: continued.outsideResearchReason,
+        } }, { status: 202, headers });
+      }
       return Response.json(
         {
           ...outcome.result,

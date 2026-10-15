@@ -77,7 +77,6 @@ it("keeps polling when a concurrent worker holds the answer-check lease", async 
   const reply = (body: unknown, status = 200) => ({ ok: true, status, json: async () => body });
   global.fetch = jest.fn()
     .mockResolvedValueOnce(reply({ research: { jobId: "job", stage: "complete", message: "Research done" } }, 202))
-    .mockResolvedValueOnce(reply({ jobId: "job", stage: "complete", message: "Research done" }))
     .mockResolvedValueOnce(reply({ research: { jobId: "job", stage: "complete", message: "Checking the sourced answer" } }, 202))
     .mockResolvedValueOnce(reply({ jobId: "job", stage: "complete", message: "Research done" }))
     .mockResolvedValueOnce(reply({ answer: "Saved answer", sources: [] }));
@@ -161,4 +160,18 @@ it('waits through a throttled status read and keeps the existing job', async () 
  await jest.advanceTimersByTimeAsync(2000);expect((await result).answer).toBe('Saved answer');
  expect(jest.mocked(fetch).mock.calls.some(([url])=>url==='/api/askArtist')).toBe(false);
  expect(jest.mocked(fetch).mock.calls[1]).toEqual(jest.mocked(fetch).mock.calls[2]);
+});
+
+it('requests a completed acknowledgement directly and follows a server-issued continuation job',async()=>{
+ const reply=(body:unknown,status=200)=>({ok:true,status,json:async()=>body});
+ global.fetch=jest.fn()
+  .mockResolvedValueOnce(reply({research:{jobId:'saved',stage:'complete',message:'Checked sources',resolvedQuestion:'Resolved question?'}},202))
+  .mockResolvedValueOnce(reply({research:{jobId:'continued',stage:'checking_saved',message:'Checking Lore'}},202))
+  .mockResolvedValueOnce(reply({jobId:'continued',stage:'complete',message:'Ready'}))
+  .mockResolvedValueOnce(reply({answer:'A verified answer.'}));
+ const promise=runArtistResearch({artistId:'artist',question:'Question?',signal:new AbortController().signal,onProgress:jest.fn()});
+ await jest.advanceTimersByTimeAsync(5000);
+ expect((await promise).answer).toBe('A verified answer.');
+ expect(jest.mocked(fetch).mock.calls.map(([url])=>url)).toEqual(['/api/askArtist','/api/artist/artist/questionResearch/saved/answer','/api/artist/artist/questionResearch/continued','/api/artist/artist/questionResearch/continued/answer']);
+ expect(JSON.parse(jest.mocked(fetch).mock.calls[3][1]!.body as string)).toEqual({question:'Resolved question?'});
 });

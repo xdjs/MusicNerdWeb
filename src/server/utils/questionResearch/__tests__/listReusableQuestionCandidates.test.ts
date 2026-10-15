@@ -27,3 +27,8 @@ it('still rejects candidates with more than six sources', async () => {
   execute.mockResolvedValueOnce([{ ...row, sources: [...row.sources, row.sources[0]] }] as never);
   expect(await listReusableQuestionCandidates('11111111-1111-4111-8111-111111111111')).toEqual([]);
 });
+
+it('keeps server continuation state out of semantic planner candidates',async()=>{
+ execute.mockResolvedValueOnce([{...row,routing:{topic:'Influences',reuseFallbackJobId:row.job_id}}] as never);
+ expect((await listReusableQuestionCandidates('11111111-1111-4111-8111-111111111111'))[0].routing).toEqual({topic:'Influences'});
+});

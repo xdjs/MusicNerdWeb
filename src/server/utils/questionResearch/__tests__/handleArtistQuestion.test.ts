@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { continueQuestionResearch } from '../continueQuestionResearch';
+jest.mock('../continueQuestionResearch',()=>({continueQuestionResearch:jest.fn()}));
 import { listReusableQuestionCandidates } from '../listReusableQuestionCandidates';
 jest.mock('../listReusableQuestionCandidates',()=>({listReusableQuestionCandidates:jest.fn()}));
 import { releaseQuestionRequest } from '../releaseQuestionRequest';
@@ -47,6 +49,7 @@ const request = (extra = {}) =>
   });
 beforeEach(() => {
   jest.resetAllMocks();
+  jest.mocked(continueQuestionResearch).mockResolvedValue(null);
   jest.mocked(listReusableQuestionCandidates).mockResolvedValue([]);
   jest.mocked(releaseQuestionRequest).mockResolvedValue(undefined);
   jest.mocked(reuseQuestionRequest).mockResolvedValue({state:'claimed',requestHash:'hash',token:'token'});
@@ -242,14 +245,15 @@ it('uses one admitted planner for a new equivalent wording, then revalidates bef
  const result={answer:candidate.answer,sources:[{n:1,title:'Credits',url:'https://example.com/credits',sourceId:'vault:33333333-3333-4333-8333-333333333333',revision:'a'.repeat(64),start:0,end:10,curation:'approved' as const,evidenceKind:'original_text' as const}],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]};
  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result});
  const response=await handleArtistQuestion(request({question:'Who is the producer on Glass Harbor?'}));
- expect(response.status).toBe(200);
+ expect(response.status).toBe(202);
+ expect((await response.json()).research).toMatchObject({jobId,stage:'complete'});
  expect(reserveQuestionPlanning).toHaveBeenCalledTimes(1);
  expect(planArtistQuestion).toHaveBeenCalledTimes(1);
  expect(callResearchApi).toHaveBeenCalledTimes(1);
  expect(callResearchApi).toHaveBeenCalledWith(`/api/artist/${artistId}/research/questions/${jobId}`,expect.anything());
  expect(registerResearchQuestion).toHaveBeenCalledWith(artistId,jobId,'Who is the producer on Glass Harbor?');
- expect(getOrDraftResearchAnswer).toHaveBeenCalledTimes(2);
- expect(getOrDraftResearchAnswer).toHaveBeenLastCalledWith(expect.not.objectContaining({readOnlyQuestionHash:expect.anything()}));
+ expect(getOrDraftResearchAnswer).toHaveBeenCalledTimes(1);
+ expect(getOrDraftResearchAnswer).toHaveBeenLastCalledWith(expect.objectContaining({readOnlyQuestionHash:candidate.questionHash}));
  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.not.objectContaining({questionHash:candidate.questionHash}));
 });
 it('adapts a supported different angle through the existing answer registration and checking lane',async()=>{
@@ -257,7 +261,7 @@ it('adapts a supported different angle through the existing answer registration 
  jest.mocked(planArtistQuestion).mockResolvedValue({...candidate.routing,evidenceNeed:'reporting',answerIntent:'Identify the recording location of Glass Harbor',reuseCandidateId:candidate.id,reuseAction:'adapt_evidence'});
  jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete'});
  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result:{answer:'It was recorded at Studio C.',sources:[{n:1,title:'Credits',url:'https://example.com/credits',sourceId:'vault:33333333-3333-4333-8333-333333333333',revision:'a'.repeat(64),start:0,end:10,curation:'approved',evidenceKind:'original_text'}],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]}});
- expect((await handleArtistQuestion(request({question:'Where was Glass Harbor recorded?'}))).status).toBe(200);
+ expect((await handleArtistQuestion(request({question:'Where was Glass Harbor recorded?'}))).status).toBe(202);
  expect(registerResearchQuestion).toHaveBeenCalledWith(artistId,jobId,'Where was Glass Harbor recorded?');
  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.not.objectContaining({questionHash:candidate.questionHash}));
  expect(callResearchApi).toHaveBeenCalledTimes(1);
@@ -279,8 +283,9 @@ it('does not treat model equivalence as permission to return the previous versio
  const base={sources:[{n:1,title:'Credits',url:'https://example.com/credits',sourceId:'vault:33333333-3333-4333-8333-333333333333',revision:'a'.repeat(64),start:0,end:10,curation:'approved' as const,evidenceKind:'original_text' as const}],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]};
  jest.mocked(getOrDraftResearchAnswer).mockResolvedValueOnce({state:'ready',result:{...base,answer:'Mira produced the demo.'}}).mockResolvedValueOnce({state:'ready',result:{...base,answer:'Rowan produced the released recording.'}});
  const response=await handleArtistQuestion(request({question:'Who produced the released recording of Glass Harbor?'}));
- expect((await response.json()).answer).toBe('Rowan produced the released recording.');
- expect(getOrDraftResearchAnswer).toHaveBeenLastCalledWith(expect.objectContaining({question:'Who produced the released recording of Glass Harbor?'}));
+ expect(response.status).toBe(202);
+ expect(await response.json()).toMatchObject({research:{jobId,resolvedQuestion:'Who produced the released recording of Glass Harbor?'}});
+ expect(getOrDraftResearchAnswer).toHaveBeenCalledTimes(1);
 });
 it('falls through to normal research when the checked originals do not answer the new angle',async()=>{
  jest.mocked(listReusableQuestionCandidates).mockResolvedValue([candidate]);
@@ -322,4 +327,14 @@ it('result endpoint never drafts after a wrong-artist job is rejected by the pub
  jest.mocked(callResearchApi).mockRejectedValue(Object.assign(new Error('Not found'),{status:404}));
  const response=await POST(new Request('https://web.example/result',{method:'POST',body:JSON.stringify({question:'Question?'})}),{params:Promise.resolve({id:artistId,jobId})});
  expect(response.status).toBe(503);expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();expect(planArtistQuestion).not.toHaveBeenCalled();expect(registerResearchQuestion).not.toHaveBeenCalled();
+});
+
+it('continues ordinary research after a deferred semantic answer has no cited facts',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete'});
+ jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result:{answer:'Not enough information.',sources:[],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]}});
+ jest.mocked(continueQuestionResearch).mockResolvedValue({...status,jobId:'33333333-3333-4333-8333-333333333333'} as never);
+ const response=await handleArtistQuestion(request({jobId}));
+ expect(response.status).toBe(202);
+ expect((await response.json()).research.jobId).toBe('33333333-3333-4333-8333-333333333333');
+ expect(planArtistQuestion).not.toHaveBeenCalled();expect(reserveQuestionPlanning).not.toHaveBeenCalled();
 });

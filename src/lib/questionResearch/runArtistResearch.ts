@@ -79,9 +79,17 @@ export async function runArtistResearch(input: {
   };
   const first = await post(input.jobId);
   if (first.status !== 202) return first.data;
-  const jobId = first.data.research?.jobId;
+  let jobId = first.data.research?.jobId;
   if (typeof jobId !== "string") throw new Error("Research job unavailable");
   input.onProgress(first.data.research);
+  // A complete acknowledgement is not an answer, but its result endpoint performs
+  // current eligibility checks itself. Avoid an extra full-corpus status read.
+  if (first.data.research.stage === "complete" && !input.jobId) {
+    const answer = await post(jobId);
+    if (answer.status !== 202) return answer.data;
+    if (typeof answer.data.research?.jobId === "string") jobId = answer.data.research.jobId;
+    input.onProgress(answer.data.research);
+  }
   for (;;) {
     signal.throwIfAborted();
     const r = await fetchResearchResponse(
@@ -98,6 +106,7 @@ export async function runArtistResearch(input: {
     ) {
       const answer = await post(jobId);
       if (answer.status !== 202) return answer.data;
+      if (typeof answer.data.research?.jobId === "string") jobId = answer.data.research.jobId;
       input.onProgress(answer.data.research);
     }
     await new Promise<void>((resolve, reject) => {

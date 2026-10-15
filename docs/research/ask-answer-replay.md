@@ -63,12 +63,26 @@ resolved conversation. Only the intent, existing neutral routing fields and dige
 Raw history, asker identity and private interview answers are never retained or searched here.
 The index has the planning lane's 10-per-artist / 200-global active-key ceilings. Existing aliases
 are checked before that ceiling. Failed unfinished admissions release their lease, without refunding
-planning usage; abandoned unbound leases expire after 90 seconds. A completed job whose answer was
-never drafted returns to admitted planning rather than becoming permanently busy.
+planning usage; abandoned unbound leases expire after 90 seconds. A completed job whose answer was never drafted retains its acknowledgement for 90 seconds; after that grace period it can return to admitted planning rather than becoming permanently busy.
 
-A zero-citation check falls through to normal research with the already-computed routing; it does
-not establish that information is absent. Operational check failures remain errors rather than
-triggering blind new collection. The whole Web request shares a 55-second abort deadline beneath
-the route's 60-second limit. An already active answer lease returns the existing busy response and
-can be explicitly retried; it never causes an unbounded second draft. The existing maximum of
-three registered question variants per research job remains in force.
+### Separate planning and answer budgets (#1525)
+
+A semantic candidate is revalidated and the new question is registered before Web returns HTTP 202
+with its saved job ID. Planning does not start a new answer draft inside the same request. The browser
+immediately calls the existing result endpoint for a complete acknowledgement, avoiding an extra
+status read; that endpoint independently rechecks current source eligibility before drafting. Each
+request retains its 55-second deadline beneath the route's 60-second limit, and drafting/checking
+retains its own 45-second budget. This removes planning time from the answer budget without increasing
+model calls, retries, research quotas, or lease/variant limits. Progress and the resumable job reach the
+browser before expensive answer work. No opening-chat behavior changes.
+
+A zero-citation semantic check continues ordinary research using the already-admitted server routing
+stored in the request index; it is not evidence of absence. A server-only origin-job marker lets the
+result endpoint claim one short continuation lease and lets concurrent requests join the same job.
+The marker is never sent to the planner or research API. The ordinary API still enforces its provider
+budget, current source scope and idempotency, and any new job must register the exact question before
+acknowledgement. Returning the same job stops continuation instead of creating a loop. Operational
+check failures remain errors with their saved job ID, rather than triggering blind new collection.
+The browser follows the server-issued continuation job while retaining the same resolved question.
+An active answer lease keeps its existing HTTP 202 behavior and never causes an unbounded second
+draft. The maximum of three registered question variants per research job remains in force.

@@ -183,3 +183,9 @@ it("rejects a blank cached answer instead of returning ready with no visible con
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
+
+it('keeps a recently acknowledged question in its existing answer lane before the browser resumes it',async()=>{
+ execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{question_hash:'a'.repeat(64),status:'waiting',attempts:0,claim_until:new Date().toISOString()}] as never);
+ expect(await getOrDraftResearchAnswer({...input,readOnlyQuestionHash:'a'.repeat(64)})).toEqual({state:'drafting'});
+ expect(draft).not.toHaveBeenCalled();expect(execute).toHaveBeenCalledTimes(2);
+});

@@ -27,6 +27,7 @@ export async function listReusableQuestionCandidates(artistId:string):Promise<Qu
     const parsed=rowSchema.safeParse(row);
     if(!parsed.success)return [];
     const r=parsed.data;
-    return [{id:`${r.job_id}:${r.question_hash}`,jobId:r.job_id,questionHash:r.question_hash,intent:r.answer_intent,routing:r.routing,answer:r.answer,passages:r.refs.map(ref=>({text:ref.text.slice(0,1000),url:ref.url,evidenceKind:ref.evidenceKind}))}];
+    const { reuseFallbackJobId: _handoff, ...routing } = r.routing;
+    return [{id:`${r.job_id}:${r.question_hash}`,jobId:r.job_id,questionHash:r.question_hash,intent:r.answer_intent,routing,answer:r.answer,passages:r.refs.map(ref=>({text:ref.text.slice(0,1000),url:ref.url,evidenceKind:ref.evidenceKind}))}];
   });
 }

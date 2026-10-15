@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs';
 import { drizzle } from 'drizzle-orm/pglite';
 let acquire: typeof import('../acquireQuestionRequest').acquireQuestionRequest;
 let bind: typeof import('../bindQuestionRequest').bindQuestionRequest;
+let continueResearch: typeof import('../continueQuestionResearch').continueQuestionResearch;
+const callApi=jest.fn();
+jest.mock('../callResearchApi',()=>({callResearchApi:(...args:unknown[])=>callApi(...args)}));
+jest.mock('../registerResearchQuestion',()=>({registerResearchQuestion:jest.fn(async()=>true)}));
 jest.mock('@/server/db/drizzle', () => ({ get db() { return database; } }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite') as typeof import('@electric-sql/pglite');
 const client = new PGlite();
@@ -18,7 +22,8 @@ beforeAll(async () => {
  jest.resetModules();
  ({ acquireQuestionRequest: acquire } = await import('../acquireQuestionRequest'));
  ({ bindQuestionRequest: bind } = await import('../bindQuestionRequest'));
- await client.exec(`create role mnweb;create role anon;create role authenticated;create table artists(id uuid primary key);create table artist_research_jobs(id uuid primary key);insert into artists values('${artist}');insert into artist_research_jobs values('${job}');`);
+ ({ continueQuestionResearch: continueResearch } = await import('../continueQuestionResearch'));
+ await client.exec(`create role mnweb;create role anon;create role authenticated;create table artists(id uuid primary key);create table artist_research_jobs(id uuid primary key);insert into artists values('${artist}');insert into artist_research_jobs values('${job}'),('33333333-3333-4333-8333-333333333333');`);
  await client.exec(readFileSync('drizzle/0046_question_request_reuse.sql','utf8'));
 },30000);
 beforeEach(async()=>{await client.exec('reset role;delete from artist_question_requests;set role mnweb');});
@@ -57,4 +62,25 @@ it('denies browser roles access and exposes RLS as enabled',async()=>{
  await expect(client.query('insert into artist_question_requests(artist_id) values($1)',[artist])).rejects.toThrow('permission denied');
  await client.exec('reset role');
  expect((await client.query("select relrowsecurity from pg_class where relname='artist_question_requests'")).rows).toEqual([{relrowsecurity:true}]);
+});
+
+it('leases a semantic continuation once and reconnects a second poll to its new job as mnweb',async()=>{
+ const question='Where did they record it?',nextJob='33333333-3333-4333-8333-333333333333';
+ const lease=await acquire(artist,key);if(lease.state!=='claimed') throw Error('lease');
+ await bind({artistId:artist,requestHash:key,token:lease.token,jobId:job,question,reusable:true,answerIntent:'Recording location',routing:{topic:'Recording location',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',answerScope:'focused',reuseFallbackJobId:job}});
+ let finish!:(value:unknown)=>void;
+ callApi.mockReset().mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+ const input={artistId:artist,jobId:job,question};
+ const first=continueResearch(input);
+ for(let n=0;n<30&&!finish;n++)await new Promise(resolve=>setTimeout(resolve,5));
+ expect(finish).toBeDefined();
+ expect(await continueResearch(input)).toEqual({pending:true});
+ const status={status:'ok',jobId:nextJob,stage:'checking_saved',provider:null,message:'Checking',updatedAt:'2026-10-15',references:[],limitations:[]};
+ finish(status);expect(await first).toMatchObject({jobId:nextJob});
+ callApi.mockResolvedValueOnce(status);
+ expect(await continueResearch(input)).toMatchObject({jobId:nextJob});
+ expect(callApi).toHaveBeenCalledTimes(2);
+ expect(callApi.mock.calls[1][0]).toBe(`/api/artist/${artist}/research/questions/${nextJob}`);
+ const rows=(await client.query<{job_id:string;busy:boolean}>("select job_id,lease_until>now() as busy from artist_question_requests")).rows;
+ expect(rows).toEqual([{job_id:nextJob,busy:false}]);
 });
