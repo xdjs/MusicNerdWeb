@@ -50,6 +50,9 @@ coordinates, URL and text hash. Uncited research windows are omitted. The combin
 remains 30,000 characters (the former five candidates × six excerpts × 1,000 characters ceiling).
 A candidate that cannot fit is omitted rather than clipping its supporting sentence. This avoids
 discarding useful saved answers because navigation text consumed a fixed leading excerpt.
+Byte-identical passages with the same URL and evidence kind appear once in a shared originals table;
+each candidate retains its explicit passage IDs. Unequal windows are never merged or clipped.
+This reduces duplicate planner context without changing which evidence supports a candidate.
 The planner resolves the current public follow-up and decides whether an answer
 fully covers it, whether the originals answer a different angle, or whether new research is needed.
 No embeddings, vector database or additional classification call are introduced.
@@ -78,7 +81,10 @@ immediately calls the existing result endpoint for a complete acknowledgement, a
 status read; that endpoint independently rechecks current source eligibility before drafting. Each
 request retains its 55-second deadline beneath the route's 60-second limit, and drafting/checking
 retains its own 45-second budget. This removes planning time from the answer budget without increasing
-model calls, retries, research quotas, or lease/variant limits. Progress and the resumable job reach the
+model calls, retries, research quotas, or lease/variant limits. The planner retains its existing
+20-second generation deadline. Safe server diagnostics record phase, elapsed time, candidate count,
+unique evidence/prompt character counts, deadline/caller cancellation, and allowlisted error category
+or HTTP status. They never log question, conversation, source, answer or raw provider error content. Progress and the resumable job reach the
 browser before expensive answer work. No opening-chat behavior changes.
 
 A zero-citation semantic check continues ordinary research using the already-admitted server routing
