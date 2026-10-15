@@ -87,7 +87,7 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the onboarding
   chat (`useOnboardingChat`) sends every turn to MusicNerdAPI's `/api/onboarding/{artistId}/chat`,
   both with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
-  `NEXT_PUBLIC_VERCEL_ENV`: production → `musicnerd-api.vercel.app`; previews, staging and local →
+  `NEXT_PUBLIC_VERCEL_ENV`: production → `api.musicnerd.net`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.
   `questionGenerator.ts` uses stored sources; `queries/onboardingQueries.ts` saves offers/answers.
