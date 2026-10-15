@@ -18,13 +18,6 @@ export async function acquireQuestionRequest(artistId: string, requestHash: stri
     if (row?.busy) return { state: 'busy' };
     if (row?.job_id && (!invalidateToken || row.token !== invalidateToken))
       return { state: 'bound', binding: row };
-    if (!row) {
-      const [usage] = await tx.execute<{ global: number; artist: number }>(sql`
-        select count(*)::int as global,count(*) filter(where artist_id=${artistId}::uuid)::int as artist
-        from artist_question_requests where expires_at>now()`);
-      if (!usage || ![usage.global,usage.artist].every(n => Number.isInteger(n) && n >= 0)) throw new Error('Request index unavailable');
-      if (usage.global >= 200 || usage.artist >= 10) throw Object.assign(new Error('Request index limit reached'), { status: 429, code: 'question_planning_quota' });
-    }
     const token = randomUUID();
     await tx.execute(sql`
       insert into artist_question_requests(artist_id,request_hash,token,lease_until,expires_at)

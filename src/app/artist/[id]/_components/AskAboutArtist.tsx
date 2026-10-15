@@ -6,6 +6,8 @@ import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
 import type { PublicChatTurn } from "@/lib/questionResearch/publicChatTypes";
 import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
+import type { QuestionQuota } from '@/lib/questionResearch/getQuestionQuota';
+import QuestionQuotaNotice from './QuestionQuotaNotice';
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -450,6 +452,7 @@ type ConversationTurn = {
     fromOpenWeb: boolean;
     webDomains: string[];
     error?: string;
+    quota?: QuestionQuota;
 };
 
 function ConversationAnswer({ turn, artistName, artistId }: { turn: ConversationTurn; artistName: string; artistId: string }) {
@@ -546,6 +549,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const [turns, setTurns] = useState<ConversationTurn[]>([]);
     const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS(artistName));
     const [loading, setLoading] = useState(false);
+    const [quotaNow, setQuotaNow] = useState(Date.now);
     const requestPending = useRef(false);
     const activeRequest = useRef<AbortController | null>(null);
     const activeTurnId = useRef<string | null>(null);
@@ -553,12 +557,29 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    const isQuotaBlocked = useCallback((value: string, now: number) => turns.some(turn => turn.quota
+        && (!turn.quota.resetAt || Date.parse(turn.quota.resetAt) > now)
+        && (turn.quota.code !== 'research_quota' || turn.question.toLowerCase() === value.trim().toLowerCase())), [turns]);
+
+    useEffect(() => {
+        const now = Date.now();
+        setQuotaNow(now);
+        const lastReset = Math.max(0, ...turns.map(turn => turn.quota?.resetAt ? Date.parse(turn.quota.resetAt) : 0));
+        if (lastReset <= now) return;
+        const timer = setInterval(() => {
+            const current = Date.now();
+            setQuotaNow(current);
+            if (current >= lastReset) clearInterval(timer);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [turns]);
+
     const ask = useCallback(async (q: string, jobId?: string, turnId?: string, retryConversation?: PublicChatTurn[], resolvedQuestion?: string) => {
         const trimmed = q.trim();
-        if (!trimmed || requestPending.current) return;
+        if (!trimmed || requestPending.current || isQuotaBlocked(trimmed, Date.now())) return;
         // Prior turns resolve follow-up wording, not factual evidence. Keep the
         // exact request context on retries so later turns cannot change its meaning.
-        const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error).slice(-4)
+        const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error && !turn.quota).slice(-4)
             .map(turn => {
                 const sourceUrls = [...new Set(turn.sources.map(source => source.url).filter((url): url is string => typeof url === "string" && url.length <= 2048 && /^https?:\/\//i.test(url)))].slice(0, 3);
                 return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000), ...(sourceUrls.length ? { sourceUrls } : {}) };
@@ -567,7 +588,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
         setLoading(true);
-        setQuestion("");
+        setQuestion(current => current.trim().toLowerCase() === trimmed.toLowerCase() ? '' : current);
         askedQuestions.current.add(trimmed.toLowerCase());
         const pending: ConversationTurn = {
             id: turnId ?? crypto.randomUUID(), jobId, question: trimmed, requestConversation: conversation, resolvedQuestion, sources: [], mentions: [], instagramMentions: [], songs: [],
@@ -588,6 +609,13 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
 
                 },
             });
+            if (controller.signal.aborted) return;
+            if (data.quota) {
+                finish({ quota: data.quota, progress: undefined, answer: typeof data.answer === 'string' ? data.answer : undefined,
+                    ...(data.retryFromStart ? { jobId: undefined, resolvedQuestion: undefined } : {}) });
+                setQuestion(current => current || trimmed);
+                return;
+            }
             if (data.error || typeof data.answer !== "string" || !data.answer.trim()) {
                 finish({ error: typeof data.error === "string" ? data.error : "Something went wrong. Try again.", ...(data.retryFromStart ? { jobId: undefined, resolvedQuestion: undefined } : {}) });
                 return;
@@ -611,7 +639,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
-    }, [artistId, turns]);
+    }, [artistId, turns, isQuotaBlocked]);
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
@@ -638,8 +666,12 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 {turns.map((turn, index) => (
                     <div key={index} data-conversation-turn className="mb-5 space-y-4 last:mb-0">
                         <p className="ml-auto w-fit max-w-[90%] [overflow-wrap:anywhere] rounded-2xl rounded-br-sm border border-pastypink/15 bg-pastypink/10 px-3 py-2 text-sm leading-relaxed text-white/90">{turn.question}</p>
-                        {turn.error
-                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
+                        {turn.quota
+                            ? <QuestionQuotaNotice quota={turn.quota} now={quotaNow} explanation={turn.answer}
+                                disabled={loading || isQuotaBlocked(turn.question, quotaNow)}
+                                onRetry={() => { void ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion); }} />
+                            : turn.error
+                            ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading || isQuotaBlocked(turn.question, quotaNow)} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
                             : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Checking Lore…"}</p>}
                     </div>
@@ -651,21 +683,25 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                 {!loading && suggestions.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {suggestions.filter(s => !askedQuestions.current.has(s.toLowerCase())).slice(0, 2).map(suggestion => (
-                            <button key={suggestion} type="button" onClick={() => ask(suggestion)}
-                                className="min-h-11 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink">
+                            <button key={suggestion} type="button" disabled={isQuotaBlocked(suggestion, quotaNow)} onClick={() => ask(suggestion)}
+                                className="min-h-11 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-white/70 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink disabled:opacity-40">
                                 {suggestion}
                             </button>
                         ))}
                     </div>
                 )}
             </div>
-            <form onSubmit={event => { event.preventDefault(); void ask(question); }} className="shrink-0 border-t border-white/10 p-3">
+            <form onSubmit={event => {
+                event.preventDefault();
+                const retry = turns.findLast(turn => turn.quota && turn.question.toLowerCase() === question.trim().toLowerCase());
+                void ask(question, retry?.jobId, retry?.id, retry?.requestConversation, retry?.resolvedQuestion);
+            }} className="shrink-0 border-t border-white/10 p-3">
                 <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] pl-3 pr-1 focus-within:border-pastypink/50 focus-within:ring-1 focus-within:ring-pastypink/20">
                     <input ref={inputRef} type="text" value={question} onChange={event => setQuestion(event.target.value)}
                         aria-label={`Ask anything about ${artistName}`}
                         placeholder={`Ask anything about ${artistName}...`} maxLength={500}
                         className="min-h-12 min-w-0 flex-1 border-0 bg-transparent py-3 text-base text-white/90 outline-none placeholder:text-white/45" />
-                    <button type="submit" disabled={!question.trim() || loading} aria-label="Submit question"
+                    <button type="submit" disabled={!question.trim() || loading || isQuotaBlocked(question, quotaNow)} aria-label="Submit question"
                         className="button-pink flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-highlightpink text-black transition-colors hover:bg-highlightpink/80 active:bg-highlightpink/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlightpink focus-visible:ring-offset-2 disabled:opacity-30">
                         <ArrowUp size={20} aria-hidden="true" />
                     </button>

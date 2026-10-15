@@ -144,3 +144,24 @@ and spoken-only claims in 1.31–1.56 seconds. This excludes planner/network/UI 
 It supersedes the earlier Gemini-writer selection for this candidate. Separate
 writer/checker calls now use the same Sonnet model, with low effort, no retries,
 and unchanged evidence validation. Model diversity is not claimed.
+
+### October 15: visitor allowance and research budgets
+
+Approved: new planning attempts use a rolling allowance of 30 per visitor per hour,
+across artists. A verified account identifies signed-in visitors; anonymous traffic
+uses an HMAC of the trusted Vercel proxy IP (https://vercel.com/docs/headers/request-headers).
+Anonymous visitors sharing a public IP share that allowance. No raw IP, question,
+artist or account ID is stored in the ephemeral admission table. Entries older than
+one hour are pruned during admission; existing activity audit events are preserved.
+Missing trusted identity fails closed. The private table requires its migration
+before deployment. The existing 200/day global planning ceiling remains an operational
+cost guard, not a dollar-spend guarantee. A reusable checked answer is read before
+planning admission and does not consume a new slot.
+
+The API removes the shared per-artist saved-evidence cap, retains its global saved
+admission ceiling, and reserves outside-research allowance only before external work.
+The outside budgets and provider caps stay unchanged. Legacy job accounting expires
+normally. A quota response identifies its scope and uses database-derived resetAt
+and Retry-After; it is not a missing-information error. Chat shows an inline notice
+and reset time without automatically retrying. Transient short throttles retain
+bounded retry behavior. Production promotion requires database and paired API readiness.

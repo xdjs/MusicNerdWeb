@@ -33,6 +33,9 @@ export const researchStatusSchema = z.object({
   selection: z.enum(["candidates", "research"]).optional(),
   status: z.literal("ok"),
   outsideResearchReason: z.literal("quota").optional(),
+  quotaScope: z.enum(["saved_global", "outside_artist", "outside_global"]).optional(),
+  retryAfterSeconds: z.number().int().nonnegative().max(86400).optional(),
+  resetAt: z.string().datetime().optional(),
   jobId: z.string().uuid(),
   stage: z.enum([
     "checking_saved",

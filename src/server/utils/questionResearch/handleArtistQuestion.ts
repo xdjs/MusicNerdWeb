@@ -1,3 +1,5 @@
+import { getQuestionVisitorKey } from "./getQuestionVisitorKey";
+import { questionQuotaResponse } from "./questionQuotaResponse";
 import { continueCandidateResearch } from "./continueCandidateResearch";
 import { continueQuestionResearch } from "./continueQuestionResearch";
 import { listReusableQuestionCandidates } from "./listReusableQuestionCandidates";
@@ -56,7 +58,7 @@ export async function handleArtistQuestion(request: Request) {
     }, { headers });
     if (reuse?.state === "busy") throw Object.assign(new Error("An identical request is already running"), { status: 429, code: "research_busy" });
     if (reuse?.state === "claimed") requestLease = { artistId, requestHash: reuse.requestHash, token: reuse.token };
-    if (!jobId) await reserveQuestionPlanning(artistId);
+    if (!jobId) await reserveQuestionPlanning(artistId, await getQuestionVisitorKey(request));
     const candidates = jobId ? [] : await listReusableQuestionCandidates(artistId);
     const plan = jobId
       ? null
@@ -150,13 +152,16 @@ export async function handleArtistQuestion(request: Request) {
           answer:
             state.stage === "unresolved"
               ? state.outsideResearchReason === "quota"
-                ? "The saved sources I checked did not answer that. Outside research is at its limit, so I could not look further."
+                ? "The saved sources I checked did not answer that. Outside research is at its limit for now. You can still ask about saved sources."
                 : state.limitations.includes("provider_latest_refresh_required")
                   ? "I don't have enough saved information from that source, and I can't refresh it from this chat yet."
                   : state.limitations.includes("connected_account_required")
                     ? "I need a connected account for that source before I can check it."
                     : "I don't have enough information to answer that yet."
               : "Research could not finish. That does not mean the information doesn't exist.",
+          ...(state.outsideResearchReason === "quota" ? {
+            code: "research_quota", resetAt: state.resetAt, retryAfterSeconds: state.retryAfterSeconds, retryFromStart: true,
+          } : {}),
           sources: [],
           suggestions: [],
           research: {
@@ -270,6 +275,8 @@ export async function handleArtistQuestion(request: Request) {
       );
     }
   } catch (error) {
+    const quota = questionQuotaResponse(error);
+    if (quota) return quota;
     const status =
       typeof error === "object" &&
       error &&

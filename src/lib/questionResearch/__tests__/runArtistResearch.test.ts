@@ -175,3 +175,27 @@ it('requests a completed acknowledgement directly and follows a server-issued co
  expect(jest.mocked(fetch).mock.calls.map(([url])=>url)).toEqual(['/api/askArtist','/api/artist/artist/questionResearch/saved/answer','/api/artist/artist/questionResearch/continued','/api/artist/artist/questionResearch/continued/answer']);
  expect(JSON.parse(jest.mocked(fetch).mock.calls[3][1]!.body as string)).toEqual({question:'Resolved question?'});
 });
+
+it.each(['visitor_question_quota', 'question_planning_quota', 'saved_evidence_quota', 'research_quota'])('preserves %s metadata from a 429 response without throwing it away', async code => {
+ const resetAt = new Date(Date.now() + 3000).toISOString();
+ const body = { code, error: 'Budget exhausted.', resetAt, retryAfterSeconds: 3 };
+ global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '3', 'X-MusicNerd-Quota': 'true' }), json: async () => body });
+ const result = runArtistResearch({ artistId: 'artist', question: 'Who played drums?', signal: new AbortController().signal, onProgress: jest.fn() });
+ await expect(result).resolves.toMatchObject({ error: body.error, quota: { code, resetAt } });
+ expect(fetch).toHaveBeenCalledTimes(1);
+});
+it('preserves a quota received while checking an existing job', async () => {
+ const resetAt = new Date(Date.now() + 60000).toISOString();
+ global.fetch = jest.fn()
+  .mockResolvedValueOnce({ ok: true, status: 202, json: async () => ({ research: { jobId: 'saved', stage: 'reading', message: 'Reading' } }) })
+  .mockResolvedValueOnce({ ok: false, status: 429, headers: new Headers({ 'X-MusicNerd-Quota': 'true' }), json: async () => ({ code: 'saved_evidence_quota', resetAt, retryAfterSeconds: 60 }) });
+ await expect(runArtistResearch({ artistId: 'artist', question: 'Question?', jobId: 'saved', signal: new AbortController().signal, onProgress: jest.fn() }))
+  .resolves.toMatchObject({ quota: { code: 'saved_evidence_quota', resetAt } });
+ expect(fetch).toHaveBeenCalledTimes(2);
+});
+it('keeps an outside-research quota and its explanatory answer on a terminal 200', async () => {
+ const resetAt = new Date(Date.now() + 60000).toISOString();
+ global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ answer: 'Saved sources do not cover that yet.', code: 'research_quota', resetAt, retryAfterSeconds: 60 }) });
+ await expect(runArtistResearch({ artistId: 'artist', question: 'Question?', signal: new AbortController().signal, onProgress: jest.fn() }))
+  .resolves.toMatchObject({ answer: 'Saved sources do not cover that yet.', quota: { code: 'research_quota', resetAt } });
+});

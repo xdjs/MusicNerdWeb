@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("../getQuestionVisitorKey",()=>({getQuestionVisitorKey:jest.fn(async()=>"a".repeat(64))}));
 import { continueCandidateResearch } from '../continueCandidateResearch';
 jest.mock('../continueCandidateResearch',()=>({continueCandidateResearch:jest.fn()}));
 import { continueQuestionResearch } from '../continueQuestionResearch';
@@ -188,7 +189,7 @@ it('explains outside quota separately from missing saved evidence',async()=>{
  const body=await (await handleArtistQuestion(request({jobId}))).json();
  expect(body.answer).toMatch(/saved sources.*Outside research is at its limit/);expect(body.research.outsideResearchReason).toBe('quota');expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
-it.each([['saved_evidence_quota','saved-source answer limit'],['research_busy','busy right now']])('distinguishes %s',async(code,message)=>{
+it.each([['saved_evidence_quota','daily saved-source answer limit'],['research_busy','busy right now']])('distinguishes %s',async(code,message)=>{
  jest.mocked(callResearchApi).mockRejectedValue(Object.assign(new Error('private details'),{status:429,code}));
  const body=await (await handleArtistQuestion(request())).json();expect(body.error).toContain(message);expect(body.code).toBe(code);
 });
@@ -356,4 +357,25 @@ it('recovers a pending transition after API success and a Web storage interrupti
  jest.mocked(continueCandidateResearch).mockResolvedValue({pending:true});
  const response=await handleArtistQuestion(request({jobId}));
  expect(response.status).toBe(202);expect(continueCandidateResearch).toHaveBeenCalledTimes(1);
+});
+it('returns a personal hourly limit with a concrete reset and no model call',async()=>{
+ const resetAt=new Date(Date.now()+120000).toISOString();
+ jest.mocked(reserveQuestionPlanning).mockRejectedValue(Object.assign(new Error('private'),{status:429,code:'visitor_question_quota',retryAfterSeconds:120,resetAt}));
+ const response=await handleArtistQuestion(request());const body=await response.json();
+ expect(response.status).toBe(429);expect(response.headers.get('Retry-After')).toBe('120');
+ expect(response.headers.get('X-MusicNerd-Quota')).toBe('true');
+ expect(body).toMatchObject({code:'visitor_question_quota',resetAt,retryAfterSeconds:120});
+ expect(body.error).toMatch(/your question limit for this hour/i);expect(planArtistQuestion).not.toHaveBeenCalled();
+});
+it('labels the global planning cap as site-wide rather than the visitor allowance',async()=>{
+ jest.mocked(reserveQuestionPlanning).mockRejectedValue(Object.assign(new Error('private'),{status:429,code:'question_planning_quota',retryAfterSeconds:3600,resetAt:new Date(Date.now()+3600000).toISOString()}));
+ const body=await(await handleArtistQuestion(request())).json();
+ expect(body.error).toMatch(/Music Nerd.*daily/);expect(body.error).not.toMatch(/your.*limit/i);
+});
+it('keeps outside-research reset metadata on an otherwise successful saved-source response',async()=>{
+ const resetAt=new Date(Date.now()+600000).toISOString();
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',outsideResearchReason:'quota',quotaScope:'outside_artist',retryAfterSeconds:600,resetAt});
+ const response=await handleArtistQuestion(request({jobId}));const body=await response.json();
+ expect(response.status).toBe(200);expect(body).toMatchObject({code:'research_quota',resetAt,retryAfterSeconds:600});
+ expect(body.answer).toMatch(/still ask about saved sources/);
 });

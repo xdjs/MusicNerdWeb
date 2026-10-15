@@ -50,9 +50,9 @@ it('reclaims expired leases without allowing their late completion',async()=>{
  const next=await acquire(artist,key);expect(next.state).toBe('claimed');
  await expect(bind({artistId:artist,requestHash:key,token:first.token,jobId:job,question:'old',reusable:true})).rejects.toThrow('expired');
 });
-it('bounds unique-request abuse while allowing existing lookup at the ceiling',async()=>{
+it('does not apply an artist-wide chat quota to the request reuse index',async()=>{
  for(let n=0;n<10;n++) await acquire(artist,n.toString(16).padStart(64,'0'));
- await expect(acquire(artist,key)).rejects.toMatchObject({code:'question_planning_quota'});
+ expect((await acquire(artist,key)).state).toBe('claimed');
  expect((await acquire(artist,'0'.repeat(64))).state).toBe('busy');
 });
 it('denies browser roles access and exposes RLS as enabled',async()=>{

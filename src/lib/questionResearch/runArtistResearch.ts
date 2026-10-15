@@ -1,5 +1,6 @@
 import { fetchResearchResponse } from "./fetchResearchResponse";
 import type { PublicChatTurn } from "./publicChatTypes";
+import { getQuestionQuota, type QuestionQuota } from './getQuestionQuota';
 export type ResearchProgress = {
   jobId: string;
   stage: string;
@@ -11,6 +12,7 @@ export type QuestionAnswer = {
   answer?: string;
   error?: string;
   retryFromStart?: boolean;
+  quota?: QuestionQuota;
   sources?: unknown[];
   suggestions?: unknown[];
   mentions?: unknown[];
@@ -51,6 +53,8 @@ export async function runArtistResearch(input: {
       signal,
     }, input.onCooldown);
     const data = await r.json();
+    const quota = getQuestionQuota(data, r.headers);
+    if (quota) return { data: { ...data, quota }, status: r.status };
     if (typeof data.research?.resolvedQuestion === "string" && data.research.resolvedQuestion.length <= 500)
       resolvedQuestion = data.research.resolvedQuestion;
     if (!r.ok) {
@@ -98,6 +102,8 @@ export async function runArtistResearch(input: {
       input.onCooldown,
     );
     const progress = await r.json();
+    const quota = getQuestionQuota(progress, r.headers);
+    if (quota) return { ...progress, quota };
     if (!r.ok)
       throw new Error(progress.error ?? "Research could not be checked.");
     input.onProgress({ ...progress, ...(resolvedQuestion ? { resolvedQuestion } : {}) });
