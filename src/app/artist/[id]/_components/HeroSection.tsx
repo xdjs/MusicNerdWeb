@@ -42,6 +42,17 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
             setRepositioning(false);
         }
     }, [isEditing, repositioning, suspendedEditMode]);
+    // Background research must not remount About or replace an active photo draft.
+    // Explicit photo saves update local state above; saved props rebase after edit exit.
+    const editSessionOpen = isEditing || !!suspendedEditMode;
+    useEffect(() => {
+        if (editSessionOpen) return;
+        setImg(imageUrl);
+        setPortrait(hasPortrait);
+        setPosition(initialPosition);
+        originalPosition.current = initialPosition;
+    }, [imageUrl, hasPortrait, initialPosition, editSessionOpen]);
+
     function closePosition() {
         setRepositioning(false);
         requestAnimationFrame(() => repositionButton.current?.focus());
