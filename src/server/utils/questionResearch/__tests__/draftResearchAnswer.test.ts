@@ -256,7 +256,7 @@ it("bounds structured drafting and checking without hidden thinking or provider 
   expect(model).toHaveBeenCalledTimes(2);
   expect(model.mock.calls[0][0]).toMatchObject({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 });
   expect(model.mock.calls[0][0]).not.toHaveProperty("thinkingBudget");
-  expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-opus-5.5', maxRetries: 0, maxOutputTokens: 1500 });
+  expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-sonnet-5.5', maxRetries: 0, maxOutputTokens: 1500 });
   expect(model.mock.calls[1][0]).not.toHaveProperty('thinkingBudget');
   expect(model.mock.calls[1][0]).not.toHaveProperty('temperature');
 });
@@ -475,7 +475,7 @@ it('shares identical expanded original reads and keeps original citation numbers
  expect(result.sources.map(s => [s.n, s.sourceId])).toEqual([[1,reference.sourceId],[3,third.sourceId]]);
 });
 it('validates every selected slice even when the evidence read is shared', async () => {
- const invalid = { ...reference, start: 2, text: 'wrong slice', end: 13 };
+ const invalid = { ...reference, start: 2, text: 'X' + reference.text.slice(3) };
  await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, invalid])).rejects.toThrow(/changed/);
  expect(api).toHaveBeenCalledTimes(1);
  expect(model).not.toHaveBeenCalled();
@@ -486,4 +486,10 @@ it('rejects a quote using a removed duplicate citation number before the indepen
  await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, reference])).rejects.toThrow(/evidence/);
  expect(api).toHaveBeenCalledTimes(1);
  expect(model.mock.calls.every(([options]) => options.instructions?.startsWith('Answer the listener'))).toBe(true);
+});
+
+it('revalidates a short citation with bounded neighboring context rather than reopening twelve thousand characters', async () => {
+ await draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference]);
+ const url = new URL(api.mock.calls[0][0], 'https://api.example');
+ expect(Number(url.searchParams.get('maxChars'))).toBe(reference.end + 1200);
 });

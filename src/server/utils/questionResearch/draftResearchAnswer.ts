@@ -39,8 +39,9 @@ export async function draftResearchAnswer(
         // Include the full selected slice before spending spare room on preceding context.
         const precedingContext = Math.min(1200, MAX_ORIGINAL_CHARACTERS - ref.text.length);
         const start = Math.max(0, ref.start - precedingContext);
+        const maxChars = Math.min(MAX_ORIGINAL_CHARACTERS, ref.end - start + 1200);
         stage = "fetch_original";
-        const path = `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=${MAX_ORIGINAL_CHARACTERS}`;
+        const path = `/api/artist/${artistId}/research/evidence/${encodeURIComponent(ref.sourceId)}?revision=${ref.revision}&start=${start}&maxChars=${maxChars}`;
         // Share only this attempt's identical current-source read. Every selected slice
         // below still validates independently, even when it shares the response.
         let read = reads.get(path);

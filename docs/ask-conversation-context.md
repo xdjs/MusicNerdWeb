@@ -104,3 +104,28 @@ deadline and at most two drafts/two checks are unchanged.
 A draft with zero factual sentences returns the existing fixed, nonempty evidence limitation.
 If both checked drafts lack a supported sentence, verification fails closed instead of returning
 a blank answer. Whitespace-only sentence text and saved answers are rejected.
+
+
+### Saved-answer latency investigation — October 15, 2026 (#1525)
+
+The answer path revalidates the entire selected passage with up to 1,200 characters
+of preceding and following context, capped at the existing per-original limit. It
+does not expand every short selection to 12,000 characters. Every selected slice
+still verifies against the current public original and revision; identical read
+requests share one request-local promise. This is bounded context, not whole-document
+verification. A missing detail still requires further retrieval.
+
+The candidate independent checker is Sonnet 5.5; the writer remains Gemini 3.8 Flash.
+A frozen ten-case check (three supported, seven unsupported claims) accepted/rejected
+all ten correctly in one pass, including music-versus-filming roles, caption-versus-
+speech, unverified speaker attribution, publication-versus-event dates and excluded
+projects. The same fixture check with Opus 5.5 Fast missed the unverified-speaker case.
+This is a regression screen, not broad quality acceptance or production verification.
+Full source revalidation, exact-quote matching, independent semantic checking, bounded
+repair, and fail-closed handling remain required. No unchecked draft is streamed.
+
+A separate read-only API candidate selector is being evaluated to skip the model
+evidence-selection loop for readily available saved material. It must not classify
+ranked passages as sufficient, lose saved-question history, bypass quotas, or replace
+durable fallback research. Planner, registration, transport and UI timing must be
+included before claiming the live chat is fast.
