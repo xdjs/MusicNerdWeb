@@ -228,8 +228,8 @@ export async function handleArtistQuestion(request: Request) {
         return Response.json(
           {
             error: outcome.retryable
-              ? "I could not verify an answer from those originals. You can retry shortly."
-              : "I could not verify an answer from those originals after several checks.",
+              ? "I couldn't finish checking this answer. Please try again."
+              : "I couldn't finish checking this answer after several attempts. Please try again later.",
             jobId: state.jobId,
             verification: {
               stage: outcome.stage,
@@ -263,7 +263,7 @@ export async function handleArtistQuestion(request: Request) {
       return Response.json(
         {
           error:
-            "I could not verify an answer from those originals. You can retry the saved research.",
+            "I couldn't finish checking this answer. Please try again.",
           jobId: state.jobId,
         },
         { status: 503, headers },
