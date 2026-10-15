@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
+import type { Pool } from 'pg';
 import type { ArtistVaultSource } from '../src/server/db/DbTypes';
 
 async function main() {
@@ -13,6 +14,7 @@ async function main() {
   const admin = postgres(url.toString(), { max: 1 });
   let owner: ReturnType<typeof postgres> | undefined;
   let app: ReturnType<typeof postgres> | undefined;
+  let appPool: Pool | undefined;
   let contender: ReturnType<typeof postgres> | undefined;
   let created = false;
   try {
@@ -65,7 +67,10 @@ async function main() {
     url.username = 'mnweb'; url.password = '';
     process.env.SUPABASE_DB_CONNECTION = url.toString();
     const { db } = await import('../src/server/db/drizzle');
-    app = db.$client;
+    appPool = db.$client;
+    // Fixture SQL keeps its tagged-template client; application calls below use
+    // the real production driver, whose pool is closed separately in finally.
+    app = postgres(url.toString(), { max: 1 });
     contender = postgres(url.toString(), {max:1});
     const { mergeAccounts } = await import('../src/server/utils/queries/userQueries');
     const { addSourceContributors } = await import('../src/server/utils/source/addSourceContributors');
@@ -133,7 +138,7 @@ async function main() {
     assert.equal((await app`SELECT * FROM account_merge_events`).length,2);
     console.log('PASS: real mnweb merge/readers, exact grants/RLS, immutable history, rollback after transfer, repeated merge and concurrent stale insert rejection.');
   } finally {
-    await contender?.end(); await app?.end(); await owner?.end();
+    await contender?.end(); await app?.end(); await appPool?.end(); await owner?.end();
     if (created) await admin.unsafe('DROP DATABASE musicnerd_account_merge_verification');
     await admin.end();
   }
