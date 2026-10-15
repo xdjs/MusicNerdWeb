@@ -1,4 +1,5 @@
 "use client";
+import { getSourceReviewKey } from "@/lib/source/getSourceReviewKey";
 import { normalizePublicUrl } from "@/lib/links/normalizePublicUrl";
 
 
@@ -41,6 +42,18 @@ export default function VaultManager({ artistId, pendingSources, approvedSources
   ), [pendingSources, approvedSources]);
   const [pending, setPending] = useState(pendingSources);
   const [approved, setApproved] = useState(approvedSources);
+  const serverReviewKey = getSourceReviewKey(artistId, 'lore', pendingSources, approvedSources);
+  const previousReviewKey = useRef(serverReviewKey);
+  useEffect(() => {
+    if (previousReviewKey.current === serverReviewKey) return;
+    previousReviewKey.current = serverReviewKey;
+    // Replace only server-owned rows. URL/search/upload drafts and selection stay mounted.
+    setPending(pendingSources);
+    setApproved(approvedSources);
+    const existingIds = new Set(approvedSources.map(source => source.id));
+    setSelectedIds(previous => new Set([...previous].filter(id => existingIds.has(id))));
+  }, [serverReviewKey, pendingSources, approvedSources]);
+
   const [searching, setSearching] = useState(false);
   const [searchPhraseIdx, setSearchPhraseIdx] = useState(0);
   const [uploading, setUploading] = useState(false);

@@ -7,7 +7,6 @@ import { ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RevealSection from "./RevealSection";
 import { isDestinationSource } from "@/lib/musicLinks/isDestinationSource";
-import { getSourceReviewKey } from "@/lib/source/getSourceReviewKey";
 import PressAndFeatures from "./PressAndFeatures";
 import ResearchPending from "./onboarding/ResearchPending";
 import ArtistInterviews from "./ArtistInterviews";
@@ -58,7 +57,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
           <TabsTrigger value="bios" className="min-h-11 rounded-lg px-1 text-xs text-gray-600 transition-colors data-[state=active]:bg-pink-500/10 data-[state=active]:text-pink-800 data-[state=active]:shadow-none dark:text-gray-300 dark:data-[state=active]:text-pink-200 sm:text-sm">Bios</TabsTrigger>
         </TabsList>
         <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden"><ArtistInterviews key={artistId} artistId={artistId} /></TabsContent>
-        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><SuggestedLinkReview key={artistId} artistId={artistId} /><VaultManager key={getSourceReviewKey(artistId, 'lore', pendingLore, approvedLore)} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={artistId} artistId={artistId} /></div></TabsContent>
+        <TabsContent value="sources" forceMount className="data-[state=inactive]:hidden"><div id="mn-sources"><SuggestedLinkReview key={artistId} artistId={artistId} /><VaultManager key={artistId} artistId={artistId} pendingSources={pendingLore} approvedSources={approvedLore} /><ResearchDiscoveryReview key={artistId} artistId={artistId} /></div></TabsContent>
         <TabsContent value="bios" forceMount className="data-[state=inactive]:hidden"><h3 className="text-base font-semibold text-foreground">Saved bios</h3><BioVersionHistory artistId={artistId} showLockNotice={false} /></TabsContent>
       </Tabs></EditModeContext.Provider></div>}
       {!canEdit && !editingBlocked && <SuggestLoreSource artistId={artistId} isClaimed={isClaimed} autoApprove={autoApprove} />}

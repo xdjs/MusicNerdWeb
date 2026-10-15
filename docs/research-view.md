@@ -220,3 +220,21 @@ offer an interview. The parameter has no effect in production.
 - **No new work on page load** beyond the one state read for the claimant. Nothing is written.
 - **Accessible.** Loading lines are `role="status"`; the strip's step is `aria-live="polite"`; a
   failure is `role="alert"`; real buttons with 44 px targets.
+
+### Server refreshes during a suspended edit
+
+An open About edit retains its text and original Discard baseline when research refreshes the
+saved bio, including a refresh arriving with resume. Leaving edit mode deliberately rebases the
+next session to the latest saved bio. Explicit Save or selecting a pinned version establishes a new baseline; regeneration retains
+the original Discard baseline. The separate Lore → Bios history communicates the authoritative
+pinned version to the hero editor when its history refreshes; an unpinned refresh leaves drafts intact.
+Lore source membership/classification refreshes update the review lists in place, retaining the
+URL input, source search/filter, upload state and other unrelated editor state.
+Removed source IDs are cleared from bulk selection; existing selections stay selected. Artist identity
+still keys the editor; changing artists never carries drafts across profiles.
+
+The hero stays mounted per artist. Incoming saved photo/crop props are applied outside active
+or suspended edit sessions, so a discovered portrait cannot remount an unfinished About.
+Explicit photo saves still update the current image immediately. Unchanged saved props never
+revert a successful local photo/crop save when leaving edit; a changed server photo tuple
+applies normally outside editing.

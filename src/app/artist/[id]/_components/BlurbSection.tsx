@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -29,21 +29,28 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
   const [originalBio, setOriginalBio] = useState<string>("");
   const [historyRevision, setHistoryRevision] = useState(0);
 
-  // Update edit text when bio changes
-  useEffect(() => {
-    if (aiBlurb) {
-      setEditText(aiBlurb);
-      setOriginalBio(aiBlurb);
+  const handlePinnedChange = useCallback((pinned: boolean, savedBio?: string) => {
+    setIsPinned(pinned);
+    // The Bios tab has its own history instance. Its refresh communicates the
+    // authoritative locked version even while the bio hook still has old text.
+    if (pinned && savedBio !== undefined) {
+      setEditText(savedBio);
+      setOriginalBio(savedBio);
     }
-  }, [aiBlurb]);
+  }, []);
 
-  // Reset the edit text when exiting edit mode without saving
+  const baselineInitialized = useRef(false);
+  const editSessionOpen = isEditing || !!suspendedEditMode;
+  // A research refresh is saved data, not permission to replace an open draft.
+  // Establish the first loaded baseline, then rebase only after the edit session ends.
   useEffect(() => {
-    if (!isEditing && !suspendedEditMode) {
+    if (loadingAi) return;
+    if (!baselineInitialized.current || !editSessionOpen) {
       setEditText(aiBlurb ?? "");
       setOriginalBio(aiBlurb ?? "");
+      baselineInitialized.current = true;
     }
-  }, [isEditing, aiBlurb, suspendedEditMode]);
+  }, [aiBlurb, loadingAi, editSessionOpen]);
 
   async function handleSave() {
     // Prevent saving empty bios – restore original text instead
@@ -164,7 +171,11 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
             </Button>
           </div>
         </div>
-        <BioVersionHistory artistId={artistId} onChanged={refetch} revision={historyRevision} showHistory={!hero} onPinnedChange={setIsPinned} />
+        <BioVersionHistory artistId={artistId} onChanged={(selectedBio) => {
+          setEditText(selectedBio);
+          setOriginalBio(selectedBio);
+          refetch();
+        }} revision={historyRevision} showHistory={!hero} onPinnedChange={handlePinnedChange} />
       </div>
     );
   }

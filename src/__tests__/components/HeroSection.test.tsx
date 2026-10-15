@@ -104,3 +104,39 @@ describe('Hero About while research writes it', () => {
     expect(screen.getByText('Music from Miami.')).toBeInTheDocument();
   });
 });
+
+it('retains an About draft through incoming portrait and crop changes until edit exit', () => {
+  const editing = { isEditing: true, canEdit: true, toggle: jest.fn() };
+  const view = (image: string, hasPortrait: boolean, active: boolean, suspended = false) => (
+    <EditModeContext.Provider value={suspended ? { ...editing, isEditing: false, canEdit: false, suspendedEditMode: editing } : { ...editing, isEditing: active }}>
+      <HeroSection artistId="a1" artistName="Test" imageUrl={image} hasPortrait={hasPortrait} initialPosition={35} bio="Saved bio" />
+    </EditModeContext.Provider>
+  );
+  const { rerender } = render(view('/fallback.jpg', false, true));
+  const draft = screen.getByPlaceholderText('Enter artist bio...');
+  fireEvent.change(draft, { target: { value: 'Unfinished About' } });
+  rerender(view('/discovered.jpg', true, false, true));
+  rerender(view('/refreshed.jpg', true, true));
+  expect(screen.getByPlaceholderText('Enter artist bio...')).toBe(draft);
+  expect(draft).toHaveValue('Unfinished About');
+  rerender(view('/refreshed.jpg', true, false));
+  expect(screen.getByAltText('Test')).toHaveAttribute('src', '/refreshed.jpg');
+  expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 35%' });
+  rerender(view('/later.jpg', true, false));
+  expect(screen.getByAltText('Test')).toHaveAttribute('src', '/later.jpg');
+});
+
+it('keeps a successfully saved crop on Done before refreshed props arrive', async () => {
+  const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
+  const view = (isEditing: boolean, y = 0) => <EditModeContext.Provider value={{ isEditing, canEdit: true, toggle: jest.fn() }}><HeroSection artistId="a1" artistName="Test" imageUrl="/portrait.jpg" hasPortrait initialPosition={y} /></EditModeContext.Provider>;
+  const { rerender } = render(view(true));
+  fireEvent.click(screen.getByRole('button', { name: 'Reposition photo' }));
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Photo position' }), { key: 'End' });
+  fireEvent.click(screen.getByRole('button', { name: 'Save position' }));
+  await waitFor(() => expect(screen.queryByRole('slider')).not.toBeInTheDocument());
+  rerender(view(false));
+  expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 100%' });
+  rerender(view(false, 70));
+  expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 70%' });
+  fetchMock.mockRestore();
+});

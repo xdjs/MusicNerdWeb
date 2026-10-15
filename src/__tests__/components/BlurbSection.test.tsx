@@ -11,6 +11,13 @@ jest.mock('@/hooks/useArtistBio', () => ({
 
 import { useArtistBio } from '@/hooks/useArtistBio';
 
+jest.mock('@/app/actions/dashboardActions', () => ({
+    getArtistBioVersions: jest.fn().mockResolvedValue({ success: true, versions: [] }),
+    pinBioVersionAction: jest.fn().mockResolvedValue({ success: true }),
+    unpinBioAction: jest.fn().mockResolvedValue({ success: true }),
+}));
+import { getArtistBioVersions } from '@/app/actions/dashboardActions';
+
 describe('BlurbSection', () => {
     const defaultProps = {
         artistName: 'Test Artist',
@@ -30,6 +37,23 @@ describe('BlurbSection', () => {
             error: null,
             refetch: jest.fn()
         });
+    });
+
+    it('explicitly selecting a saved version rebases the editor and locks it', async () => {
+        (getArtistBioVersions as jest.Mock).mockResolvedValueOnce({ success: true, versions: [
+            { id: 'v1', bioText: 'Selected saved bio', isPinned: false, createdAt: '2026-01-01' },
+        ] });
+        render(<EditModeContext.Provider value={{ isEditing: true, canEdit: true, toggle: jest.fn() }}><BlurbSection {...defaultProps} /></EditModeContext.Provider>);
+        fireEvent.change(screen.getByPlaceholderText('Enter artist bio...'), { target: { value: 'Unsaved draft' } });
+        fireEvent.click(screen.getByText(/version history/i));
+        fireEvent.click(await screen.findByRole('button', { name: /^pin$/i }));
+        await waitFor(() => expect(screen.getByPlaceholderText('Enter artist bio...')).toHaveValue('Selected saved bio'));
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Unpin to edit' }));
+        await waitFor(() => expect(screen.getByPlaceholderText('Enter artist bio...')).not.toBeDisabled());
+        fireEvent.change(screen.getByPlaceholderText('Enter artist bio...'), { target: { value: 'Another draft' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+        expect(screen.getByPlaceholderText('Enter artist bio...')).toHaveValue('Selected saved bio');
     });
 
     describe('Basic Rendering', () => {
@@ -370,4 +394,23 @@ it('retains an unsaved About while its build placeholder suspends editing', () =
     rerender(view(false));
     expect(screen.getByRole('textbox', {name:'Artist biography'})).toBe(input);
     expect(input).toHaveValue('Unfinished About');
+});
+
+it('preserves About text and Discard baseline across suspended and resume-time saved-bio refreshes', () => {
+    const hook = useArtistBio as jest.Mock;
+    hook.mockReturnValue({bio:'Original saved bio',loading:false,refetch:jest.fn()});
+    const edit={isEditing:true,canEdit:true,toggle:jest.fn()};
+    const view=(mode:'edit'|'suspended'|'closed')=><EditModeContext.Provider value={mode==='suspended'?{...edit,isEditing:false,canEdit:false,suspendedEditMode:edit}: {...edit,isEditing:mode==='edit'}}><BlurbSection artistId="a1" artistName="Artist" /></EditModeContext.Provider>;
+    const {rerender}=render(view('edit'));
+    fireEvent.change(screen.getByRole('textbox',{name:'Artist biography'}),{target:{value:'My unsaved wording'}});
+    hook.mockReturnValue({bio:'Research refresh one',loading:false,refetch:jest.fn()});
+    rerender(view('suspended'));
+    hook.mockReturnValue({bio:'Research refresh two',loading:false,refetch:jest.fn()});
+    rerender(view('edit'));
+    expect(screen.getByRole('textbox',{name:'Artist biography'})).toHaveValue('My unsaved wording');
+    fireEvent.click(screen.getByRole('button',{name:'Discard'}));
+    expect(screen.getByRole('textbox',{name:'Artist biography'})).toHaveValue('Original saved bio');
+    rerender(view('closed'));
+    rerender(view('edit'));
+    expect(screen.getByRole('textbox',{name:'Artist biography'})).toHaveValue('Research refresh two');
 });

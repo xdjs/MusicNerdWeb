@@ -56,7 +56,7 @@ export default function ArtistProfileContent({
     const listenLinks = getListeningLinks(artist, artistLinks, publicLinkSources);
     return (
         <ResearchEditBoundary>
-                <HeroSection key={`${artist.id}:${imageUrl}:${artist.headerImagePosition?.y ?? 0}`} imageUrl={imageUrl}
+                <HeroSection key={artist.id} imageUrl={imageUrl}
                     initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
