@@ -1,5 +1,7 @@
 import { SPOTIFY_WEB_CLIENT_ID, SPOTIFY_WEB_CLIENT_SECRET } from "@/env"
 import axios from "axios";
+import { spotifyGet } from '@/server/utils/spotify/spotifyGet';
+import { runSpotifyRequest } from '@/server/utils/spotify/runSpotifyRequest';
 import queryString from 'querystring';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 
@@ -55,11 +57,11 @@ export async function refreshSpotifyToken(): Promise<SpotifyHeaderType> {
             client_secret: SPOTIFY_WEB_CLIENT_SECRET,
         };
 
-        const { data } = await axios.post(
+        const { data } = await runSpotifyRequest(() => axios.post(
             "https://accounts.spotify.com/api/token",
             queryString.stringify(payload),
             { ...headers, timeout: 2000 }
-        )
+        ))
 
         if (!data.access_token) {
             console.error("No access token in Spotify response");
@@ -153,7 +155,7 @@ export const getSpotifyArtist = cachedOrDirect(async (artistId: string, headers:
             headers = await getSpotifyHeaders();
         }
 
-        const { data } = await axios.get<SpotifyArtist>(
+        const { data } = await spotifyGet<SpotifyArtist>(
             `https://api.spotify.com/v1/artists/${artistId}`,
             headers
         );
@@ -212,7 +214,7 @@ export const getSpotifyArtists = async (artistIds: string[], headers: SpotifyHea
     
     const results = await Promise.all(
       chunks.map((chunk: string[]) => 
-        axios.get(`https://api.spotify.com/v1/artists?ids=${chunk.join(',')}`, headers)
+        spotifyGet(`https://api.spotify.com/v1/artists?ids=${chunk.join(',')}`, headers)
       )
     );
     // Combine and return results
@@ -223,7 +225,7 @@ export const getSpotifyArtists = async (artistIds: string[], headers: SpotifyHea
 export const getSpotifyImage = cachedOrDirect(async (artistSpotifyId: string | null, artistId: string="", spotifyHeaders: SpotifyHeaderType): Promise<ArtistSpotifyImage> => {
     if(!artistSpotifyId) return { artistImage: "", artistId };
     try {
-        const artistData = await axios.get(
+        const artistData = await spotifyGet(
             `https://api.spotify.com/v1/artists/${artistSpotifyId}`,
             { ...spotifyHeaders, timeout: 2000 }
         );
@@ -271,7 +273,7 @@ export const getArtistWiki = cachedOrDirect(async (wikiId: string) => {
 export const getNumberOfSpotifyReleases = cachedOrDirect(async (id: string | null, headers: SpotifyHeaderType) => {  
     if(!id) return 0;
     try {
-      const albumData = await axios.get(
+      const albumData = await spotifyGet(
         `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle`,
         headers
       );
@@ -287,7 +289,7 @@ export const getNumberOfSpotifyReleases = cachedOrDirect(async (id: string | nul
 export const getArtistTopTrack = cachedOrDirect(async (id: string | null, headers: SpotifyHeaderType): Promise<string | null> => {  
     if(!id) return null;
     try {
-        const response = await axios.get(
+        const response = await spotifyGet(
             `https://api.spotify.com/v1/artists/${id}/top-tracks`,
             headers
         );
@@ -305,7 +307,7 @@ export const getArtistTopTrack = cachedOrDirect(async (id: string | null, header
 export const getArtistTopTrackName = cachedOrDirect(async (id: string | null, headers: SpotifyHeaderType): Promise<string | null> => {  
     if(!id) return null;
     try {
-        const response = await axios.get(
+        const response = await spotifyGet(
             `https://api.spotify.com/v1/artists/${id}/top-tracks`,
             headers
         );
@@ -362,7 +364,7 @@ export async function getSpotifyCatalogDetail(
     // rare and debounced, so one uncached Spotify call is the cheaper trade.
     if (!id) return [];
     try {
-        const res = await axios.get(
+        const res = await spotifyGet(
             `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle%2Cappears_on&limit=50&market=US`,
             headers,
         );
@@ -396,8 +398,8 @@ export const getSpotifyCatalogNames = cachedOrDirect(async (
     if (!id) return { releases: [], topTracks: [] };
     try {
         const [albumsRes, tracksRes] = await Promise.allSettled([
-            axios.get(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&limit=20&market=US`, headers),
-            axios.get(`https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`, headers),
+            spotifyGet(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&limit=20&market=US`, headers),
+            spotifyGet(`https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`, headers),
         ]);
         const releases = albumsRes.status === "fulfilled"
             ? Array.from(new Set(((albumsRes.value.data.items ?? []) as Array<{ name?: string }>).map(a => a.name).filter((n): n is string => !!n))).slice(0, 15)

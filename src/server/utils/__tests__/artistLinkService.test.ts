@@ -179,8 +179,8 @@ describe("artistLinkService", () => {
     await setArtistLink("artist-123", "spotify", "spotify-123");
 
     expect(db.transaction).toHaveBeenCalledTimes(1);
-    // Stable artist/platform lock + external ID lock + artist update.
-    expect(db.execute).toHaveBeenCalledTimes(3);
+    // Stable artist/platform lock + external ID lock + cancellation + artist update.
+    expect(db.execute).toHaveBeenCalledTimes(4);
     expect(
       db.execute.mock.calls.slice(0, 2).map(([query]) =>
         dialect.sqlToQuery(query).params[0]
@@ -258,7 +258,7 @@ describe("artistLinkService", () => {
       await expect(
         setArtistLink("artist-123", platform, `${platform}-123`),
       ).resolves.toEqual({ oldValue: null, artistName: "Test Artist" });
-      expect(db.execute).toHaveBeenCalledTimes(3);
+      expect(db.execute).toHaveBeenCalledTimes(4);
     },
   );
 
@@ -277,8 +277,9 @@ describe("artistLinkService", () => {
       ).resolves.toEqual({ oldValue: `${platform}-123` });
 
       expect(db.transaction).toHaveBeenCalledTimes(1);
-      // Stable artist/platform slot lock, followed by the artist update.
-      expect(db.execute).toHaveBeenCalledTimes(2);
+      // Slot lock, pending matching cancellation, then artist update.
+      expect(db.execute).toHaveBeenCalledTimes(3);
+      expect(dialect.sqlToQuery(db.execute.mock.calls[1][0]).sql).toContain("kind='spotify_match'");
       expect(dialect.sqlToQuery(db.execute.mock.calls[0][0]).params[0]).toBe(
         `musicnerd:artist-platform-slot:artist-123:${platform}`,
       );

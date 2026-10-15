@@ -13,7 +13,7 @@ import {
     refreshSpotifyToken,
     type SpotifyArtist,
 } from '@/server/utils/queries/externalApiQueries';
-import axios from 'axios';
+import { spotifyGet } from '@/server/utils/spotify/spotifyGet';
 
 type SpotifyHeaderType = Awaited<ReturnType<typeof getSpotifyHeaders>>;
 
@@ -132,14 +132,14 @@ export class SpotifyProvider implements MusicPlatformProvider {
      *  before giving up. */
     private async runSearch(url: string, headers: SpotifyHeaderType): Promise<MusicPlatformArtist[]> {
         try {
-            const response = await axios.get<SpotifySearchResponse>(url, headers);
+            const response = await spotifyGet<SpotifySearchResponse>(url, headers);
             return response.data.artists.items.map((artist) => mapSpotifyArtist(artist, 0, null));
         } catch (error) {
             const status = (error as { response?: { status?: number } })?.response?.status;
             if (status !== 401) throw error;
             console.debug('SpotifyProvider.searchArtists got 401 — refreshing token and retrying once');
             const freshHeaders = await refreshSpotifyToken();
-            const response = await axios.get<SpotifySearchResponse>(url, freshHeaders);
+            const response = await spotifyGet<SpotifySearchResponse>(url, freshHeaders);
             return response.data.artists.items.map((artist) => mapSpotifyArtist(artist, 0, null));
         }
     }

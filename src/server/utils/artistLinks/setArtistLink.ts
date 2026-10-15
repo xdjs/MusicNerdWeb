@@ -1,3 +1,4 @@
+import { cancelSpotifyMatchForIdentityEdit } from '../spotify/cancelSpotifyMatchForIdentityEdit';
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
 import { artists } from "@/server/db/schema";
@@ -63,6 +64,10 @@ async function setArtistLinkWithExecutor(
         `That ${columnName} artist ID conflicts with an existing artist mapping`,
       );
     }
+  }
+
+  if (oldValue !== value && (columnName === 'spotify' || columnName === 'deezer')) {
+    await cancelSpotifyMatchForIdentityEdit(database, artistId);
   }
 
   // Update the link column only. We intentionally do NOT null or regenerate the

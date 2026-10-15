@@ -279,7 +279,7 @@ describe('SpotifyProvider', () => {
 
             expect(axiosGet).toHaveBeenCalledWith(
                 expect.stringContaining('&limit=5'),
-                mockHeaders,
+                { ...mockHeaders, timeout: 5000 },
             );
         });
     });
@@ -316,3 +316,6 @@ describe('SpotifyProvider', () => {
         });
     });
 });
+
+// Provider behavior is exercised separately from the durable-store guard tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

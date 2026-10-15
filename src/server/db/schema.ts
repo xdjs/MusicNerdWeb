@@ -759,7 +759,7 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
-	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research')`),
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match')`),
 	check("artist_research_jobs_status_check", sql`${table.status} in ('pending','running','done','failed') or (${table.status} = 'queued' and ${table.kind} = 'source_extract' and coalesce(${table.state}->>'version','') = '2' and coalesce(${table.state}->>'autoSourceId','') <> '')`),
 	uniqueIndex("artist_research_jobs_one_live").on(table.artistId, table.kind).where(sql`${table.status} in ('pending', 'running')`),
 	uniqueIndex("artist_research_jobs_auto_source_live").on(table.artistId, sql`(${table.state}->>'autoSourceId')`)
@@ -1272,3 +1272,14 @@ export const artistDirectoryPreparations = pgTable('artist_directory_preparation
     check('artist_directory_preparations_ready', sql`${table.status} <> 'ready' or (${table.document} is not null and ${table.about} is not null)`),
     pgPolicy('mnweb_directory_preparations', { for: 'all', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
 ]).enableRLS();
+
+/** Private shared cooldown for server-side provider credentials. */
+export const providerRequestCooldowns = pgTable("provider_request_cooldowns", {
+    providerKey: text("provider_key").primaryKey().notNull(),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, () => [
+    pgPolicy("mnweb_select_provider_request_cooldowns", { as: "permissive", for: "select", to: ["mnweb"], using: sql`true` }),
+    pgPolicy("mnweb_insert_provider_request_cooldowns", { as: "permissive", for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+    pgPolicy("mnweb_update_provider_request_cooldowns", { as: "permissive", for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]);
