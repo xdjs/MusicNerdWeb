@@ -357,3 +357,17 @@ describe('BlurbSection', () => {
         });
     });
 });
+
+it('retains an unsaved About while its build placeholder suspends editing', () => {
+    (useArtistBio as jest.Mock).mockReturnValue({bio:'Saved bio',loading:false,refetch:jest.fn()});
+    const edit = {isEditing:true,canEdit:true,toggle:jest.fn()};
+    const view = (blocked: boolean) => <EditModeContext.Provider value={blocked ? {...edit,isEditing:false,canEdit:false,suspendedEditMode:edit} : edit}><BlurbSection artistId="a1" artistName="Artist" /></EditModeContext.Provider>;
+    const {rerender} = render(view(false));
+    const input = screen.getByRole('textbox', {name:'Artist biography'});
+    fireEvent.change(input,{target:{value:'Unfinished About'}});
+    rerender(view(true));
+    expect(input).not.toBeVisible();
+    rerender(view(false));
+    expect(screen.getByRole('textbox', {name:'Artist biography'})).toBe(input);
+    expect(input).toHaveValue('Unfinished About');
+});

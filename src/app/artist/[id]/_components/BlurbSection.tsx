@@ -17,7 +17,7 @@ interface BlurbSectionProps {
 }
 
 export default function BlurbSection({ artistName, artistId, initialBio, hero = false, portrait = false }: BlurbSectionProps) {
-  const { isEditing, canEdit, refreshProfile } = useContext(EditModeContext);
+  const { isEditing, canEdit, refreshProfile, suspendedEditMode } = useContext(EditModeContext);
   const { toast } = useToast();
   const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
 
@@ -39,11 +39,11 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
 
   // Reset the edit text when exiting edit mode without saving
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing && !suspendedEditMode) {
       setEditText(aiBlurb ?? "");
       setOriginalBio(aiBlurb ?? "");
     }
-  }, [isEditing, aiBlurb]);
+  }, [isEditing, aiBlurb, suspendedEditMode]);
 
   async function handleSave() {
     // Prevent saving empty bios – restore original text instead
@@ -122,9 +122,9 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
     );
   }
 
-  if (isEditing) {
+  if (isEditing || suspendedEditMode) {
     return (
-      <div className={hero ? "bio-editor space-y-4 rounded-2xl border border-white/15 bg-neutral-950/70 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl sm:p-5" : "space-y-4"}>
+      <div hidden={!!suspendedEditMode} inert={!!suspendedEditMode} className={hero ? "bio-editor space-y-4 rounded-2xl border border-white/15 bg-neutral-950/70 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl sm:p-5" : "space-y-4"}>
         <textarea
           aria-label="Artist biography"
           disabled={isPinned || isSaving || isRegenerating}

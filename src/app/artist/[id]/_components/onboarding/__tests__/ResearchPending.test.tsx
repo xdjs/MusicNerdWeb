@@ -1,4 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
+import ResearchEditBoundary from "../ResearchEditBoundary";
+import { render, screen, fireEvent } from "@testing-library/react";
 import ResearchPending from "../ResearchPending";
 import { OnboardingProgressContext, type ResearchContextValue } from "../OnboardingProgressContext";
 
@@ -101,4 +103,17 @@ describe("ResearchPending", () => {
         expect(screen.queryByRole("status")).not.toBeInTheDocument();
         expect(screen.getByText("about")).toBeInTheDocument();
     });
+});
+
+it('keeps an existing draft mounted and hidden when the About placeholder starts', () => {
+    const view = (value: ResearchContextValue | null) => <EditModeContext.Provider value={{isEditing:true,canEdit:true,toggle:jest.fn()}}><OnboardingProgressContext.Provider value={value}><ResearchEditBoundary><ResearchPending step="publish" skeleton="about" label="writing" arrivedLabel="ready"><input aria-label="Draft" /></ResearchPending></ResearchEditBoundary></OnboardingProgressContext.Provider></EditModeContext.Provider>;
+    const {rerender} = render(view(null));
+    const input=screen.getByLabelText('Draft');
+    fireEvent.change(input,{target:{value:'Do not discard'}});
+    rerender(view(researchContext()));
+    expect(input).toBeInTheDocument();
+    expect(input).not.toBeVisible();
+    rerender(view(null));
+    expect(screen.getByLabelText('Draft')).toBe(input);
+    expect(input).toHaveValue('Do not discard');
 });

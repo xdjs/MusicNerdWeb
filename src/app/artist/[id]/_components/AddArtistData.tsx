@@ -28,7 +28,8 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { addArtistDataAction as addArtistData, type AddArtistDataResp } from "@/app/actions/serverActions";
-import { useMemo } from "react";
+import { useMemo, useContext } from "react";
+import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
@@ -319,8 +320,9 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         setIsModalOpen(true);
     }
 
+    const { editingBlocked } = useContext(EditModeContext);
     return (
-        <>
+        <div hidden={editingBlocked} inert={editingBlocked}>
             <Button
                 variant="pink"
                 size={label ? "default" : "icon"}
@@ -331,7 +333,7 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
             >
                 {label ? <span className="whitespace-nowrap">{label}</span> : <Plus size={24} aria-hidden="true" />}
             </Button>
-            <Dialog open={isModalOpen} onOpenChange={handleClose}>
+            <Dialog open={isModalOpen && !editingBlocked} onOpenChange={handleClose}>
                 <DialogContent className="artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6">
                     <DialogHeader className="space-y-2 pr-7 text-left">
                         <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">
@@ -417,6 +419,6 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
                     </Form>
                 </DialogContent>
             </Dialog>
-        </>
+        </div>
     )
 }

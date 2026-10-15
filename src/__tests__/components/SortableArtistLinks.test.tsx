@@ -1,3 +1,5 @@
+import ResearchEditBoundary from "@/app/artist/[id]/_components/onboarding/ResearchEditBoundary";
+import { OnboardingProgressContext, type ResearchContextValue } from "@/app/artist/[id]/_components/onboarding/OnboardingProgressContext";
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import SortableArtistLinks from '@/app/_components/SortableArtistLinks';
 import EditModeToggle from '@/app/_components/EditModeToggle';
@@ -92,6 +94,24 @@ test('source-backed platforms share the icon grid but retain source-managed edit
     expect(screen.getByRole('button',{name:'Remove Apple Music'})).toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Reorder Apple Music'})).not.toBeInTheDocument();
     drag();
+    fireEvent.click(screen.getByRole('button',{name:'Done'}));
+    await waitFor(()=>expect(refresh).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).order).toEqual(['deezer','spotify']);
+    fetchMock.mockRestore();
+});
+
+test('build suspension hides remove and reorder controls but retains the pending order', async () => {
+    const fetchMock = jest.spyOn(global,'fetch').mockResolvedValue({ok:true} as Response);
+    const research: ResearchContextValue = {steps:{profiles:null,vault:null,interview:null,publish:null},currentStep:'profiles',fresh:{profiles:false,vault:false,publish:false},markSeen:jest.fn(),complete:false,baseline:{links:[],sources:[]}};
+    const buildView = (blocked:boolean) => <EditModeProvider canEdit><OnboardingProgressContext.Provider value={blocked?research:null}><ResearchEditBoundary><EditModeToggle /><SortableArtistLinks artistId="a1" section="links" links={links} canEdit /></ResearchEditBoundary></OnboardingProgressContext.Provider></EditModeProvider>;
+    const {rerender} = render(buildView(false));
+    fireEvent.click(screen.getByRole('button',{name:'Edit profile'}));
+    drag();
+    rerender(buildView(true));
+    expect(screen.queryByRole('button',{name:'Done'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Remove Spotify'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Reorder Spotify'})).not.toBeInTheDocument();
+    rerender(buildView(false));
     fireEvent.click(screen.getByRole('button',{name:'Done'}));
     await waitFor(()=>expect(refresh).toHaveBeenCalled());
     expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).order).toEqual(['deezer','spotify']);

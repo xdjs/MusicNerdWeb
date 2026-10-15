@@ -7,7 +7,7 @@ import { render, screen, within } from "@testing-library/react";
 // page runs hero through Ask sheet.
 jest.mock("../HeroSection", () => ({ __esModule: true, default: ({ bio, statusBadge, listenLinks, children }) => <section data-testid="hero" data-listen={listenLinks.map(link => link.href).join(",")} data-bio={bio ?? ""}><div data-testid="image-status">{statusBadge}</div>{children}</section> }));
 jest.mock("../ClaimButton", () => ({ __esModule: true, default: () => <button>claim</button> }));
-jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: () => <button>edit</button> }));
+jest.mock("@/app/_components/EditModeToggle", () => ({ __esModule: true, default: function MockEditToggle() { const {canEdit} = React.useContext(require("@/app/_components/EditModeContext").EditModeContext); return canEdit ? <button>edit</button> : null; } }));
 jest.mock("../ProfileSectionNav", () => ({ __esModule: true, default: () => <nav /> }));
 jest.mock("../LatestSection", () => ({ __esModule: true, default: () => <section data-testid="latest" /> }));
 jest.mock("../RevealSection", () => ({ __esModule: true, default: ({ children, id }) => <section id={id}>{children}</section> }));
@@ -18,6 +18,7 @@ jest.mock("../VaultSection", () => ({ __esModule: true, default: ({ pendingSourc
 jest.mock("../KnowledgeSection", () => ({ __esModule: true, default: () => <section data-testid="knowledge" /> }));
 jest.mock("../ArtistAskSheet", () => ({ __esModule: true, default: ({ researching }) => <aside data-testid="ask" data-researching={String(researching)} /> }));
 
+import { EditModeContext } from "@/app/_components/EditModeContext";
 import ArtistProfileContent from "../ArtistProfileContent";
 import { OnboardingProgressContext } from "../onboarding/OnboardingProgressContext";
 const researchNone = { profiles: null, vault: null, interview: null, publish: null };
@@ -78,14 +79,15 @@ describe("ArtistProfileContent", () => {
         expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "true");
     });
 
-    it("hides the Edit toggle and tells Lore while research runs, so nothing is edited mid-build", () => {
-        // 2026-10-14: Sweetman asked for no editing while research fills the page.
-        const { rerender } = render(<ArtistProfileContent {...base} canEdit />);
-        expect(screen.getByRole("button", { name: "edit" })).toBeInTheDocument();
-        expect(screen.getByTestId("vault")).toHaveAttribute("data-researching", "false");
-        rerender(<ArtistProfileContent {...base} canEdit researching />);
+    it("blocks Edit only in the active build context, not incomplete or skipped setup", () => {
+        const view = value => <EditModeContext.Provider value={{canEdit:true,isEditing:false,toggle:jest.fn()}}><OnboardingProgressContext.Provider value={value}><ArtistProfileContent {...base} researching /></OnboardingProgressContext.Provider></EditModeContext.Provider>;
+        const { rerender } = render(view(research()));
         expect(screen.queryByRole("button", { name: "edit" })).not.toBeInTheDocument();
-        expect(screen.getByTestId("vault")).toHaveAttribute("data-researching", "true");
+        rerender(view(research({ complete: true })));
+        expect(screen.getByRole("button", { name: "edit" })).toBeVisible();
+        rerender(view(null)); // Skip/source-review path removes ResearchInPlace, even while server setup is incomplete.
+        expect(screen.getByRole("button", { name: "edit" })).toBeVisible();
+        expect(screen.getByTestId("ask")).toHaveAttribute("data-researching", "true");
     });
 
     it("gives the hero the artist's own About, and nothing for an empty one", () => {

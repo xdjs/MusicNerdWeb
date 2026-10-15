@@ -9,13 +9,14 @@ type Option = { source: 'deezer' | 'spotify'; providerId: string | null; imageUr
 interface Choices { expectedCustomImage: string | null; options: Option[] }
 interface Props {
     artistId: string;
+    suspended?: boolean;
     currentImage: string;
     onClose: () => void;
     onUpload: () => void;
     onSaved: (image: string, position: number) => void;
 }
 
-export default function ArtistPhotoChoice({ artistId, currentImage, onClose, onUpload, onSaved }: Props) {
+export default function ArtistPhotoChoice({ artistId, currentImage, onClose, onUpload, onSaved, suspended = false }: Props) {
     const [choices, setChoices] = useState<Choices | null>(null);
     const [selected, setSelected] = useState<Option | null>(null);
     const [error, setError] = useState('');
@@ -51,7 +52,7 @@ export default function ArtistPhotoChoice({ artistId, currentImage, onClose, onU
             setError(error instanceof Error ? error.message : 'Could not save photo. Please try again.');
         } finally { setSaving(false); }
     }
-    return <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}>
+    return <Dialog open={!suspended} onOpenChange={open => { if (!open && !saving) onClose(); }}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl p-5 sm:p-6">
             <DialogHeader>
                 <DialogTitle>Change photo</DialogTitle>

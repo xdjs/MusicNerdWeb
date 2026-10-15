@@ -40,6 +40,17 @@ is confirmed. The approved design is linked from the issue.
 > **Add to Lore**, until research is complete; they return with the refresh that ends the build.
 > Supersedes draft #1512's editor approach.
 
+> **Correction 2026-10-14 (#1508/#1515 integration verification): editing follows the
+> active build view, not incomplete setup.** `ResearchInPlace` supplies the existing
+> `OnboardingProgressContext`; Edit and Add to Lore are hidden only while that context reports
+> an unfinished build. Leaving the build, resuming source-review cards, or choosing Skip for now
+> restores editing even if setup is incomplete. Completion restores controls immediately without
+> waiting for a server refresh. An already-open Lore editor is hidden and made inert during the
+> build while its mounted tabs and unsaved drafts are retained. The same derived edit context
+> suspends link removal/reordering, About and photo controls, and existing editing dialogs;
+> pending About text, photo choice/crop, and link order are not saved or discarded. This does not change Ask/chat,
+> permissions, persistence, source approval, or worker behavior.
+
 > **Decision 2026-10-14 (stand-up): Lore shows only its placeholder during the build.** In the
 > 2026-10-13 test, Lore showed the skeleton and the sources that already existed. Until the `vault`
 > step is confirmed, the skeleton replaces the existing sources, as it does the About. Links is
