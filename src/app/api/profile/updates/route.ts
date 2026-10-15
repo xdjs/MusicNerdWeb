@@ -24,17 +24,23 @@ export async function GET(request: Request) {
     const {artists: rows, total} = await getContributedArtists(auth.userId, {offset, limit: BATCH});
     const items: ProfileUpdate[] = [];
     let unavailable = false;
+    const unavailableProviders = new Set<string>();
+    let unknownFailure = false;
     // Two artists at a time, with existing provider request budgets/timeouts.
     for (let index = 0; index < rows.length; index += 2) {
       await Promise.all(rows.slice(index, index + 2).map(async artist => {
         try {
           const latest = await getArtistLatest(artist);
-          unavailable ||= latest.unavailable;
+          if (latest.displayUnavailable ?? latest.unavailable) {
+            unavailable = true;
+            if (!latest.displayUnavailableProviders?.length) unknownFailure = true;
+            latest.displayUnavailableProviders?.forEach(provider => unavailableProviders.add(provider));
+          }
           items.push(...latest.items.filter(item => matchesProfileUpdateFilter(item.kind, filter)).slice(0, 2).map(item => ({...item, id: `${artist.id}:${item.id}`, artistId: artist.id, artistName: artist.name || 'Unknown artist'})));
-        } catch { unavailable = true; }
+        } catch { unavailable = true; unknownFailure = true; }
       }));
     }
     const checked = offset + rows.length;
-    return Response.json({userId: auth.userId, items: items.sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date) || a.id.localeCompare(b.id)), checked, next: checked < total ? checked : null, unavailable}, {headers: {'Cache-Control': 'private, no-store'}});
+    return Response.json({userId: auth.userId, items: items.sort((a,b) => latestDateSortTime(b.date) - latestDateSortTime(a.date) || a.id.localeCompare(b.id)), checked, next: checked < total ? checked : null, unavailable, unavailableProviders: unknownFailure ? null : [...unavailableProviders].sort()}, {headers: {'Cache-Control': 'private, no-store'}});
   } catch { return Response.json({error: 'Could not load artist updates'}, {status: 503}); }
 }

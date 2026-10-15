@@ -2,16 +2,16 @@
 jest.mock("@/server/utils/musicPlatform/latestReleases", () => ({
   getLatestArtistReleases: jest.fn(),
 }));
-jest.mock("@/server/utils/fetchArtistTimeline", () => ({
-  fetchArtistTimeline: jest.fn(),
+jest.mock("@/server/utils/fetchCachedArtistTimeline", () => ({
+  fetchCachedArtistTimeline: jest.fn(),
 }));
 import { fillMissingLatestProviders } from "../fillMissingLatestProviders";
 import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
-import { fetchArtistTimeline } from "@/server/utils/fetchArtistTimeline";
+import { fetchCachedArtistTimeline } from "@/server/utils/fetchCachedArtistTimeline";
 import type { Artist } from "@/server/db/DbTypes";
 import type { ArtistLatestItem } from "@/lib/artist/artistLatest";
 const catalog = jest.mocked(getLatestArtistReleases);
-const timeline = jest.mocked(fetchArtistTimeline);
+const timeline = jest.mocked(fetchCachedArtistTimeline);
 const artist = {
   name: "Artist",
   spotify: "a".repeat(22),
@@ -76,9 +76,9 @@ it("uses only missing connected provider IDs, preserving shared cards and covera
     deezer: null,
   });
   expect(timeline).not.toHaveBeenCalled();
-  expect(result).toHaveLength(1);
-  expect(result[0].id).toBe(card.id);
-  expect(result[0].listeningLinks?.map((l) => l.siteName)).toEqual([
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].id).toBe(card.id);
+  expect(result.items[0].listeningLinks?.map((l) => l.siteName)).toEqual([
     "deezer",
     "spotify",
   ]);
@@ -96,7 +96,7 @@ it.each(["checked", "failed", "disconnected"] as const)(
           { provider: "inprocess", status },
         ],
       ),
-    ).toEqual([]);
+    ).toEqual({ items: [], recoveredProviders: [] });
     expect(catalog).not.toHaveBeenCalled();
     expect(timeline).not.toHaveBeenCalled();
   },
@@ -122,7 +122,7 @@ it("keeps good shared data if the compatibility catalog fails", async () => {
       [card],
       [{ provider: "spotify", status: "missing" }],
     ),
-  ).toEqual([card]);
+  ).toEqual({ items: [card], recoveredProviders: [] });
 });
 it("caps merged releases at three without collapsing different editions or types", async () => {
   catalog.mockResolvedValue(
@@ -141,8 +141,8 @@ it("caps merged releases at three without collapsing different editions or types
     [card],
     [{ provider: "deezer", status: "missing" }],
   );
-  expect(result).toHaveLength(3);
-  expect(result.map((c) => c.date)).toEqual([
+  expect(result.items).toHaveLength(3);
+  expect(result.items.map((c) => c.date)).toEqual([
     "2026-02-03",
     "2026-02-02",
     "2026-02-01",
@@ -156,4 +156,28 @@ it("uses the timeline helper only for a missing connected InProcess snapshot", a
   );
   expect(timeline).toHaveBeenCalledWith(artist.inprocess);
   expect(catalog).not.toHaveBeenCalled();
+});
+
+it("records each catalog separately so one successful fallback cannot conceal another failure", async () => {
+  catalog.mockImplementation(async value => { if (value.spotify) throw new Error("offline"); return []; });
+  const result = await fillMissingLatestProviders(artist, [card], [
+    { provider: "spotify", status: "missing" }, { provider: "deezer", status: "missing" },
+  ]);
+  expect(result.items).toEqual([card]);
+  expect(result.recoveredProviders).toEqual(["deezer"]);
+  expect(catalog).toHaveBeenCalledTimes(2);
+});
+it("distinguishes a checked-empty timeline from a failed one", async () => {
+  const coverage = [{ provider: "inprocess" as const, status: "missing" as const }];
+  expect((await fillMissingLatestProviders(artist, [], coverage)).recoveredProviders).toEqual(["inprocess"]);
+  timeline.mockRejectedValueOnce(new Error("offline"));
+  expect((await fillMissingLatestProviders(artist, [], coverage)).recoveredProviders).toEqual([]);
+});
+it("does not label malformed connected IDs as successfully checked", async () => {
+  const result = await fillMissingLatestProviders({ ...artist, spotify: "bad", deezer: "bad", inprocess: "bad" }, [], [
+    { provider: "spotify", status: "missing" }, { provider: "deezer", status: "missing" }, { provider: "inprocess", status: "missing" },
+  ]);
+  expect(result.recoveredProviders).toEqual([]);
+  expect(catalog).not.toHaveBeenCalled();
+  expect(timeline).not.toHaveBeenCalled();
 });

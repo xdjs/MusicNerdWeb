@@ -16,6 +16,24 @@ There is no fallback for checked-empty, failed, stale existing or disconnected s
 
 Full-corpus snapshot materialization and removal of this compatibility path remain tracked under #1424. Provider bootstrap must be paginated, bounded and attributed, preserve account/claim checks, and report failures without clearing healthy data. No bulk provider sweep is part of this release.
 
+## Display recovery and retry — October 14, 2026 (#1424)
+
+The Web reader now reports display availability separately from stored API coverage.
+A missing connected provider counts as recovered for display only after its existing
+bounded catalog/timeline read succeeds, including a confirmed empty result. Check each
+catalog independently: one provider succeeding must not conceal another failing.
+Invalid connections, failed snapshots, failed fallback reads and API failures remain
+unavailable. Original API coverage and `unavailable` are preserved for research consumers;
+display recovery never claims a retained original exists or that results are exhaustive.
+
+When known, the notice names the unavailable provider (for example Spotify).
+The private profile offers **Retry updates** for partial failures as well as request
+errors, independently of **Load more artists**. Retry re-reads the loaded artist windows
+(maximum six artists per request, two at a time), keeps existing cards visible, and is
+disabled while a read is running. It creates no jobs, writes, scraping or model calls.
+A stored provider failure needs the existing authorized worker refresh to repair it;
+repeated page reads do not silently perform that operation.
+
 ## September 21 filter alignment (#1309)
 
 Pete requested the same **All · Releases · Socials · Lore** glass slider used on user profiles. The shared `src/components/ArtistUpdateFilter.tsx` supplies both. Socials includes Instagram and In-Process; Lore includes interview answers. Cards retain their original labels and destinations. Keep all four choices visible when there are updates; an empty category displays a short message. The top-level Latest / Links / Lore navigation is unchanged.

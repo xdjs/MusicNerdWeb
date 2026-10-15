@@ -192,9 +192,10 @@ export default function ProfileConcept({ user, showcase = false, apiPrototype = 
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4"><h2 id="concept-latest" className="text-2xl font-semibold tracking-tight">Your artists lately</h2>{!live && <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">Sample updates</span>}</div>
           <p className="text-sm text-muted-foreground mb-5">{live ? `Updates from ${live.checkedArtists} of ${artistTotal} artists. Newest first among loaded updates.` : 'Sample releases, Instagram posts, In-Process moments and artist answers.'}</p>
           <div className="mb-5"><ArtistUpdateFilter value={updateFilter} onValueChange={value => { setUpdateFilter(value); live?.setUpdateFilter(value); }} /></div>
-          <LatestCards sectionId="profile-lately" heading="Latest updates" hideHeading itemArtistNames={updateArtistNames} itemArtistUrls={updateArtistUrls} artistName="Your artists" artistImage="/musicNerdLogo.png" items={mixedUpdates} unavailable={live?.updatesUnavailable ?? false} showFilters={false} />
+          <LatestCards sectionId="profile-lately" heading="Latest updates" hideHeading itemArtistNames={updateArtistNames} itemArtistUrls={updateArtistUrls} artistName="Your artists" artistImage="/musicNerdLogo.png" items={mixedUpdates} unavailable={live?.updatesUnavailable ?? false} unavailableSources={live?.updatesUnavailableSources} showFilters={false} />
           {live && <div className="mt-4 text-sm text-muted-foreground" aria-live="polite">{live.updatesLoading ? 'Loading artist updates…' : live.updatesError}
-            {(live.hasMoreUpdates || live.updatesError) && <Button variant="outline" className="ml-2 rounded-full" disabled={live.updatesLoading} onClick={live.loadMoreUpdates}>{live.updatesError ? 'Retry updates' : 'Load more artists'}</Button>}
+            {(live.updatesUnavailable || live.updatesError) && <Button variant="outline" className="ml-2 rounded-full" disabled={live.updatesLoading} onClick={live.retryUpdates ?? live.loadMoreUpdates}>Retry updates</Button>}
+            {live.hasMoreUpdates && !live.updatesError && <Button variant="outline" className="ml-2 rounded-full" disabled={live.updatesLoading} onClick={live.loadMoreUpdates}>Load more artists</Button>}
           </div>}
         </section>}
       </div>

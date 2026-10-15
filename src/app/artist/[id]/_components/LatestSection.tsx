@@ -11,5 +11,5 @@ export default async function LatestSection({ artist, imageUrl, sources = [], li
         ? { ...item, listeningLinks: releaseListeningLinks(item, artist.name ?? '', sources, listenLinks) } : item);
     // Keyed by artist, as the hero and the rail are: client navigation between profiles
     // reuses this tree, and the open dialog and scroll belong to one artist.
-    return <LatestCards showFilters={false} refreshControl={canEdit ? <LatestRefreshControl key={artist.id} artistId={artist.id} /> : undefined} key={artist.id} artistName={artist.name ?? 'this artist'} artistImage={imageUrl} unavailable={result.unavailable} items={items} artistListeningLinks={listenLinks} />;
+    return <LatestCards showFilters={false} refreshControl={canEdit ? <LatestRefreshControl key={artist.id} artistId={artist.id} /> : undefined} key={artist.id} artistName={artist.name ?? 'this artist'} artistImage={imageUrl} unavailable={result.displayUnavailable ?? result.unavailable} unavailableSources={result.displayUnavailableProviders?.map(provider => ({ spotify: 'Spotify', deezer: 'Deezer', inprocess: 'In Process' })[provider])} items={items} artistListeningLinks={listenLinks} />;
 }

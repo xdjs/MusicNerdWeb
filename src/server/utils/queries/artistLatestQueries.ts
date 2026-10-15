@@ -65,6 +65,9 @@ const responseSchema = z.object({
 export interface ArtistLatestResult {
   items: ArtistLatestItem[];
   unavailable: boolean;
+  /** Display-only recovery; never replaces the API's stored evidence coverage. */
+  displayUnavailable?: boolean;
+  displayUnavailableProviders?: Array<"spotify" | "deezer" | "inprocess">;
   coverage?: z.infer<typeof responseSchema>["coverage"];
 }
 /** Read shared API snapshots, preserving legacy display only for explicitly missing provider snapshots. */
@@ -159,9 +162,14 @@ export async function getArtistLatest(
         /* Missing optional attribution does not hide public activity. */
       }
     }
+    const display = await fillMissingLatestProviders(artist, orderLatestItems(parsed.items), parsed.coverage);
+    const incomplete = parsed.coverage.filter(provider => provider.status === "failed" || provider.status === "missing");
+    const unrecovered = incomplete.filter(provider => provider.status !== "missing" || !display.recoveredProviders.includes(provider.provider));
     return {
-      items: await fillMissingLatestProviders(artist, orderLatestItems(parsed.items), parsed.coverage),
+      items: display.items,
       unavailable: parsed.unavailable,
+      displayUnavailable: unrecovered.length > 0 || (parsed.unavailable && incomplete.length === 0),
+      displayUnavailableProviders: unrecovered.map(provider => provider.provider),
       coverage: parsed.coverage,
     };
   } catch {

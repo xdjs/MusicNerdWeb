@@ -33,3 +33,15 @@ it('searches the entire server collection and offers additional result pages',()
  expect(live.setArtistSearch).toHaveBeenCalledWith('Music');
  fireEvent.click(screen.getByRole('button',{name:'Load more results'}));expect(live.loadMoreMatches).toHaveBeenCalled();
 });
+
+it('offers partial-failure retry independently of loading more artists, and disables it while reading',()=>{
+ const retryUpdates=jest.fn();
+ const live={...model(),updatesUnavailable:true,hasMoreUpdates:true,retryUpdates};
+ const view=render(<ProfileConcept user={user} live={live}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Retry updates'}));
+ expect(retryUpdates).toHaveBeenCalledTimes(1);
+ expect(live.loadMoreUpdates).not.toHaveBeenCalled();
+ expect(screen.getByRole('button',{name:'Load more artists'})).toBeVisible();
+ view.rerender(<ProfileConcept user={user} live={{...live,updatesLoading:true}}/>);
+ expect(screen.getByRole('button',{name:'Retry updates'})).toBeDisabled();
+});

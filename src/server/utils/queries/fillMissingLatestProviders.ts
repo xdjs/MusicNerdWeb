@@ -1,6 +1,7 @@
 import type { Artist } from "@/server/db/DbTypes";
 import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
-import { fetchArtistTimeline } from "@/server/utils/fetchArtistTimeline";
+import { fetchCachedArtistTimeline } from "@/server/utils/fetchCachedArtistTimeline";
+import { extractInProcessAddress } from "@/lib/inprocess/extractInProcessAddress";
 import { momentToLatestItem } from "@/lib/artist/momentToLatestItem";
 import {
   orderLatestItems,
@@ -17,22 +18,26 @@ export async function fillMissingLatestProviders(
   artist: Artist,
   items: ArtistLatestItem[],
   coverage: Coverage[],
-): Promise<ArtistLatestItem[]> {
+): Promise<{ items: ArtistLatestItem[]; recoveredProviders: Coverage["provider"][] }> {
   const missing = (provider: Coverage["provider"]) =>
     Boolean(artist[provider]) &&
     coverage.some((c) => c.provider === provider && c.status === "missing");
-  const spotify = missing("spotify") ? artist.spotify : null;
-  const deezer = missing("deezer") ? artist.deezer : null;
-  const [catalog, timeline] = await Promise.allSettled([
-    spotify || deezer
-      ? getLatestArtistReleases({ spotify, deezer })
-      : Promise.resolve([]),
-    missing("inprocess")
-      ? fetchArtistTimeline(artist.inprocess)
-      : Promise.resolve([]),
+  const providers = (["spotify", "deezer"] as const).filter(provider =>
+    missing(provider) && (provider === "spotify" ? /^[a-zA-Z0-9]{22}$/ : /^[1-9]\d*$/).test(artist[provider] ?? ""),
+  );
+  const checkTimeline = missing("inprocess") && !!extractInProcessAddress(artist.inprocess);
+  const [catalogs, timeline] = await Promise.all([
+    Promise.allSettled(providers.map(provider => getLatestArtistReleases({
+      spotify: provider === "spotify" ? artist.spotify : null,
+      deezer: provider === "deezer" ? artist.deezer : null,
+    }))),
+    Promise.allSettled(checkTimeline ? [fetchCachedArtistTimeline(artist.inprocess!)] : []),
   ]);
+  const recoveredProviders: Coverage["provider"][] = [];
   const extras: ArtistLatestItem[] = [];
-  if (catalog.status === "fulfilled")
+  for (const [index, catalog] of catalogs.entries()) {
+    if (catalog.status !== "fulfilled") continue;
+    recoveredProviders.push(providers[index]);
     for (const release of catalog.value)
       extras.push({
         id: `release:${release.platform}:${release.id}`,
@@ -46,8 +51,11 @@ export async function fillMissingLatestProviders(
         sourceLabel: `Listen on ${release.platform === "spotify" ? "Spotify" : "Deezer"}`,
         listeningLinks: release.listeningLinks,
       });
-  if (timeline.status === "fulfilled")
-    extras.push(...timeline.value.map(momentToLatestItem));
+  }
+  if (timeline[0]?.status === "fulfilled") {
+    recoveredProviders.push("inprocess");
+    extras.push(...timeline[0].value.map(momentToLatestItem));
+  }
   const releases = new Map<string, ArtistLatestItem>();
   const other: ArtistLatestItem[] = [];
   for (const item of [...items, ...extras]) {
@@ -75,8 +83,8 @@ export async function fillMissingLatestProviders(
         links.push(link);
     existing.listeningLinks = links;
   }
-  return orderLatestItems([
+  return { recoveredProviders, items: orderLatestItems([
     ...other,
     ...orderLatestItems([...releases.values()]).slice(0, 3),
-  ]);
+  ]) };
 }

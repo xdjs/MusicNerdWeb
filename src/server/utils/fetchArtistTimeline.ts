@@ -1,7 +1,6 @@
-import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
+import { fetchCachedArtistTimeline } from '@/server/utils/fetchCachedArtistTimeline';
 import { extractInProcessAddress } from '@/lib/inprocess/extractInProcessAddress';
 import type { Moment } from '@/lib/inprocess/inprocessTimeline';
-import { fetchTimelineDirect } from '@/server/utils/fetchTimelineDirect';
 import { TimelineUnavailable } from '@/server/utils/TimelineUnavailable';
 
 /**
@@ -18,10 +17,6 @@ import { TimelineUnavailable } from '@/server/utils/TimelineUnavailable';
  * Tracking issue: xdjs/MusicNerdWeb#1228.
  */
 
-const CACHE_SECONDS = 600;
-
-const cachedTimeline = (address: string) => cachedOrDirect(fetchTimelineDirect, ['inprocess-artist-timeline-v2'], { revalidate: CACHE_SECONDS, tags: [`latest:inprocess:${address}`] })(address);
-
 /**
  * Moments for the artist whose In Process link is stored in `artists.inprocess` (the
  * bare 0x address, or a full profile URL). Returns [] for anything else and on any failure.
@@ -30,7 +25,7 @@ export async function fetchArtistTimeline(inprocess: string | null | undefined):
     const address = extractInProcessAddress(inprocess);
     if (!address) return [];
     try {
-        return await cachedTimeline(address);
+        return await fetchCachedArtistTimeline(address);
     } catch (e) {
         // TimelineUnavailable was logged where it happened; anything else is the cache layer.
         if (!(e instanceof TimelineUnavailable)) console.error(`[inprocess] timeline cache failed for ${address}:`, e instanceof Error ? e.message : e);
