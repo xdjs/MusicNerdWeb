@@ -26,7 +26,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     answerScope: "focused",
     resolvedQuestion: "Who played drums?",
   });
-  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: "low", maxRetries: 0 }));
+  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 }));
 });
 it("never accepts a model-invented original URL that was not in the question", async () => {
   jest
