@@ -160,6 +160,24 @@ describe('SearchBar Add Artist Flow', () => {
         document.body.removeChild(loginBtn);
     });
 
+    it('tracks choosing "Add to MusicNerd" as the start of a search add, before login', async () => {
+        await renderAndSearch([externalResult]);
+        fireEvent.click(screen.getByText('New Artist'));
+        expect(mockTrackEvent).toHaveBeenCalledWith('add_artist', { surface: 'search', step: 'start' });
+    });
+
+    it.each([
+        [{ status: 'success', artistId: '99', artistName: 'New Artist' }, 'added'],
+        [{ status: 'exists', artistId: '42', artistName: 'New Artist' }, 'exists'],
+        [{ status: 'error', message: 'Platform API down' }, 'error'],
+    ])('tracks how a search add resolved (%o)', async (resp, step) => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        mockAddArtist.mockResolvedValue(resp);
+        await renderAndSearch([externalResult]);
+        fireEvent.click(screen.getByText('New Artist'));
+        await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith('add_artist', { surface: 'search', step }));
+    });
+
     it('completes pending add on mount when session exists and pending ID is fresh', async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
         mockSessionStorage['pendingAddArtistPlatformId'] = 'dz123';

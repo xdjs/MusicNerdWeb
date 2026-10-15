@@ -4,6 +4,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Loader2, Check, AlertCircle } from "lucide-react";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 import {
   LATEST_SOURCES,
   LATEST_SOURCE_LABELS,
@@ -112,9 +113,11 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
       const data = await response.json();
       if (!response.ok)
         throw Error(data.error || "Could not start this update.");
+      trackEvent("check_for_updates", { outcome: "started" });
       setRefresh(data.refresh);
       setClock(Date.now());
     } catch (e) {
+      trackEvent("check_for_updates", { outcome: "error" });
       setError(e instanceof Error ? e.message : "Could not start this update.");
     } finally {
       locked.current = false;
