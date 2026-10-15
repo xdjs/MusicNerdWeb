@@ -71,6 +71,10 @@ export default function AddArtist() {
     function applyResponse(resp: AddArtistResp) {
         setAddArtistStatus(resp);
         if (resp.status === "success" || resp.status === "exists") {
+            if (resp.artistId && pathname === `/artist/${resp.artistId}`) {
+                closeModal(false);
+                return;
+            }
             setAddedArtist({ artistId: resp.artistId, artistName: resp.artistName });
             if (resp.artistId) router.push(`/artist/${resp.artistId}`);
         } else {

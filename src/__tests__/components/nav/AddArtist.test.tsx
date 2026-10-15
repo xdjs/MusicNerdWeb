@@ -4,7 +4,8 @@ import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockAddArtist = jest.fn();
 const mockPush = jest.fn();
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/'  }));
+let mockPathname = '/';
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => mockPathname }));
 
 let mockSessionData: any = null;
 let mockSessionStatus = 'unauthenticated';
@@ -124,6 +125,7 @@ const VALID_DEEZER_ID = '123456';
 describe('AddArtist', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockPathname = '/';
         mockSessionData = null;
         mockSessionStatus = 'unauthenticated';
         capturedSubmitFn = null;
@@ -203,7 +205,7 @@ describe('AddArtist', () => {
                 fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
                 // Trigger submit by calling the captured handleSubmit fn directly
                 await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
-                await capturedSubmitFn!({ artistUrl: url });
+                await act(async () => { await capturedSubmitFn!({ artistUrl: url }); });
             }
 
             it('calls addArtist with the extracted Spotify ID on valid Spotify URL', async () => {
@@ -226,6 +228,14 @@ describe('AddArtist', () => {
                     expect(mockPush).toHaveBeenCalledWith('/artist/new-id');
                     expect(screen.getByRole('status', { name: 'Opening artist profile' })).toHaveTextContent('Opening Radiohead');
                 });
+            });
+
+            it('closes the dialog when the existing artist is already the current profile', async () => {
+                mockPathname = '/artist/existing-id';
+                mockAddArtist.mockResolvedValue({ status: 'exists', artistId: 'existing-id', artistName: 'Radiohead' });
+                await openModalAndSubmit(VALID_SPOTIFY_URL);
+                expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
+                expect(mockPush).not.toHaveBeenCalled();
             });
 
             it('shows success message in green', async () => {
