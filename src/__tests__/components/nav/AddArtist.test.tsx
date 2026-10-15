@@ -3,6 +3,8 @@ import React from 'react';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockAddArtist = jest.fn();
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/'  }));
 
 let mockSessionData: any = null;
 let mockSessionStatus = 'unauthenticated';
@@ -216,12 +218,13 @@ describe('AddArtist', () => {
                 expect(mockAddArtist).toHaveBeenCalledWith(VALID_DEEZER_ID, 'deezer');
             });
 
-            it('shows success links after artist is added', async () => {
+            it('opens the saved profile automatically and retains a direct link', async () => {
                 mockAddArtist.mockResolvedValue({ status: 'success', artistId: 'new-id', artistName: 'Radiohead', message: 'Added!' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
-                    expect(screen.getByText('Add links for Radiohead')).toBeInTheDocument();
+                    expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/new-id');
+                    expect(screen.getByRole('status', { name: 'Opening artist profile' })).toHaveTextContent('Opening Radiohead');
                 });
             });
 
@@ -229,7 +232,7 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'success', artistId: 'new-id', artistName: 'Radiohead', message: 'Artist added!' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Artist added!')).toHaveClass('text-green-400');
+                    expect(screen.getByRole('status', { name: 'Opening artist profile' })).toHaveTextContent('Opening Radiohead');
                 });
             });
 
@@ -254,7 +257,8 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'exists', artistId: 'existing-id', artistName: 'Existing Artist', message: 'Already in DB' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Check out Existing Artist')).toBeInTheDocument();
+                    expect(screen.getByText('Open Existing Artist profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/existing-id');
                 });
             });
 
@@ -391,7 +395,8 @@ describe('AddArtist', () => {
                         'spotify',
                         { forceCreate: true },
                     );
-                    expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
+                    expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/separate-id');
                 });
             });
 
@@ -432,7 +437,8 @@ describe('AddArtist', () => {
                     });
                 });
 
-                expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
+                expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                expect(mockPush).toHaveBeenCalledWith('/artist/separate-id');
             });
 
             it('shows identity conflicts as blocking errors', async () => {

@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { queueDirectoryDiscovery } from "./queueDirectoryDiscovery";
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
 import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
@@ -548,7 +549,7 @@ export async function addArtist(
         // Validate via platform provider
         const provider = platform === 'deezer' ? deezerProvider : spotifyProvider;
         console.debug(`[Server] Validating ${platform} artist...`);
-        const platformArtist = await provider.getArtist(platformId);
+        const platformArtist = await provider.getArtistIdentity(platformId);
         const canonicalPlatformId = platformArtist?.platformId?.trim();
 
         if (!platformArtist?.name || !canonicalPlatformId) {
@@ -706,15 +707,24 @@ export async function addArtist(
         });
 
         if (result.status === "success" && session.user?.id) {
+            // Creation and its durable discovery job have already committed. A
+            // slow notification lookup/webhook must not hold the profile handoff.
+            const userId = session.user.id;
             try {
-                const user = await getUserById(session.user.id);
-                if (user) {
-                    await sendDiscordMessage(
-                        `${getUserDisplayName(user)} added new artist named: ${result.artistName ?? ""} (Submitted ${platform}Id: ${canonicalPlatformId}) ${notificationCreatedAt ?? ""}`
-                    );
-                }
+                after(async () => {
+                    try {
+                        const user = await getUserById(userId);
+                        if (user) {
+                            await sendDiscordMessage(
+                                `${getUserDisplayName(user)} added new artist named: ${result.artistName ?? ""} (Submitted ${platform}Id: ${canonicalPlatformId}) ${notificationCreatedAt ?? ""}`
+                            );
+                        }
+                    } catch (notificationError) {
+                        console.error("[Server] Failed to send artist-added notification:", notificationError);
+                    }
+                });
             } catch (notificationError) {
-                console.error("[Server] Failed to send artist-added notification:", notificationError);
+                console.error("[Server] Failed to schedule artist-added notification:", notificationError);
             }
         }
 

@@ -10,8 +10,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,6 +42,8 @@ const formSchema = z.object({
 })
 
 export default function AddArtist() {
+    const router = useRouter();
+    const pathname = usePathname();
     const { data: session, status: sessionStatus } = useSession();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -58,10 +61,18 @@ export default function AddArtist() {
         },
     })
 
+    useEffect(() => {
+        setIsModalOpen(false);
+        setAddedArtist(null);
+        setAddArtistStatus(null);
+        requestGenerationRef.current += 1;
+    }, [pathname]);
+
     function applyResponse(resp: AddArtistResp) {
         setAddArtistStatus(resp);
         if (resp.status === "success" || resp.status === "exists") {
             setAddedArtist({ artistId: resp.artistId, artistName: resp.artistName });
+            if (resp.artistId) router.push(`/artist/${resp.artistId}`);
         } else {
             setAddedArtist(null);
         }
@@ -237,7 +248,7 @@ export default function AddArtist() {
                                                 : <span>Add Artist</span>
                                             }
                                         </Button>
-                                        {addArtistStatus && addArtistStatus.status !== "possible_duplicate" &&
+                                        {addArtistStatus && !addedArtist && addArtistStatus.status !== "possible_duplicate" &&
                                             <p
                                                 aria-live="polite"
                                                 className={cn(
@@ -265,14 +276,10 @@ export default function AddArtist() {
                                         <div className="mt-3 flex flex-col gap-2 text-foreground overflow-auto">
                                             {addedArtist &&
                                                 <>
-                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white" key="check-out">
+                                                    <p role="status" aria-label="Opening artist profile" className="text-sm">Opening {addedArtist.artistName || "artist profile"}…</p>
+                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white">
                                                         <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}`}>
-                                                            Check out {addedArtist.artistName}
-                                                        </Link>
-                                                    </Button>
-                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white" key="add-data">
-                                                        <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}?opADM=1`}>
-                                                            Add links for {addedArtist.artistName}
+                                                            Open {addedArtist.artistName} profile
                                                         </Link>
                                                     </Button>
                                                 </>

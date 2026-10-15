@@ -12,6 +12,7 @@ const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
+    usePathname: () => '/',
     useSearchParams: () => ({ get: () => null }),
 }));
 
@@ -426,6 +427,21 @@ describe('SearchBar Add Artist Flow', () => {
         await act(async () => {
             resolveAdd({ status: 'success', artistId: '99' });
         });
+    });
+
+    it('keeps an adding status visible after the search field loses focus', async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        let resolveAdd!: (value: unknown) => void;
+        mockAddArtist.mockReturnValue(new Promise(resolve => { resolveAdd = resolve; }));
+        await renderAndSearch([externalResult]);
+        fireEvent.click(screen.getByText('New Artist'));
+        fireEvent.blur(screen.getByRole('textbox', { name: 'Search for an artist' }));
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 250)); });
+        expect(screen.getByRole('status')).toHaveTextContent('Adding artist');
+        await act(async () => resolveAdd({ status: 'success', artistId: '99', artistName: 'New Artist' }));
+        expect(mockPush).toHaveBeenCalledWith('/artist/99');
+        expect(screen.getByRole('status')).toHaveTextContent('Opening New Artist');
+        expect(screen.getByRole('link', { name: 'Open profile' })).toHaveAttribute('href', '/artist/99');
     });
 
     it('ignores an add response after the user changes the search', async () => {

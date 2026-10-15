@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
 import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
@@ -56,6 +57,8 @@ type PossibleDuplicateResponse = {
 
 function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProps) {
     const router = useRouter();
+    const pathname = usePathname();
+    const [openingArtist, setOpeningArtist] = useState<{ id: string; name: string } | null>(null);
     const { toast } = useToast();
     const [query, setQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
@@ -90,6 +93,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
             if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
+                setOpeningArtist({ id: addResult.artistId, name: addResult.artistName || "artist profile" });
                 setDuplicateChoice(null);
                 setShowResults(false);
                 setQuery('');
@@ -140,6 +144,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
             if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
+                setOpeningArtist({ id: addResult.artistId, name: addResult.artistName || "artist profile" });
                 setDuplicateChoice(null);
                 setQuery('');
                 router.push(`/artist/${addResult.artistId}`);
@@ -169,6 +174,10 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             setIsCreatingSeparate(false);
         }
     }, [duplicateChoice, router, toast]);
+
+    useEffect(() => {
+        setOpeningArtist(null);
+    }, [pathname]);
 
     // After login + page reload, complete the pending add-artist flow
     useEffect(() => {
@@ -232,6 +241,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         if (isCreatingSeparate) return;
 
         const value = e.target.value;
+        setOpeningArtist(null);
         invalidateAddRequest();
         setQuery(value);
         setDuplicateChoice(null);
@@ -327,6 +337,19 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
+
+            {(addingPlatformId !== null || openingArtist) && (
+                <div role="status" className="mt-2 text-sm text-foreground">
+                    {openingArtist ? (
+                        <>
+                            Opening {openingArtist.name}…{" "}
+                            <Link href={`/artist/${openingArtist.id}`} className="underline underline-offset-4">
+                                Open profile
+                            </Link>
+                        </>
+                    ) : "Adding artist…"}
+                </div>
+            )}
 
             {duplicateChoice && (
                 <div className="absolute z-50 mt-2 max-h-[min(28rem,calc(100vh-6rem))] w-full overflow-y-auto rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800">
