@@ -34,6 +34,15 @@ describe("generateText", () => {
         expect(sdkGenerateText.mock.calls[1][0].providerOptions).toBeUndefined();
     });
 
+    it("passes explicit Anthropic effort without changing Google options", async () => {
+        const { generateText } = await import("@/server/lib/ai/generateText");
+        await generateText({ prompt: "hi", anthropicEffort: "low", thinkingLevel: "low" });
+        expect(sdkGenerateText.mock.calls[0][0].providerOptions).toEqual({
+            anthropic: { effort: "low" },
+            google: { thinkingConfig: { thinkingBudget: undefined, thinkingLevel: "low" } },
+        });
+    });
+
     it("passes output through untouched", async () => {
         const { generateText } = await import("@/server/lib/ai/generateText");
         const output = { kind: "object" };

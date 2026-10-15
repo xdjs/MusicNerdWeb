@@ -26,7 +26,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     answerScope: "focused",
     resolvedQuestion: "Who played drums?",
   });
-  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ thinkingLevel: "low", maxRetries: 0 }));
+  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 }));
 });
 it("never accepts a model-invented original URL that was not in the question", async () => {
   jest
@@ -186,3 +186,36 @@ it.each(['And beyond that?', 'Anything different happening?', 'Catch me up on th
     expect(await planArtistQuestion('Artist',question,undefined,[{question:'What is new?',answer:'The artist shared a mix.',sourceUrls:[url]}])).toMatchObject({excludeSourceUrls:[url],answerScope:'overview',retrieval:'latest'});
   }
 );
+
+it('reports a local planning deadline without logging source text or raw provider errors', async () => {
+ const timeout = new AbortController();
+ const timeoutSpy = jest.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal);
+ const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+ try {
+  jest.mocked(generateText).mockImplementation(async () => {
+   timeout.abort(new DOMException('Timed out', 'TimeoutError'));
+   throw Object.assign(new Error('PRIVATE provider body and question'), { name: 'GatewayResponseError', statusCode: 504 });
+  });
+  await expect(planArtistQuestion('PRIVATE artist', 'PRIVATE question')).rejects.toThrow();
+  expect(warn).toHaveBeenLastCalledWith('[questionResearch] planning failed', expect.objectContaining({ stage: 'plan_generate', category: 'deadline_exceeded', elapsedMs: expect.any(Number), candidateCount: 0, evidenceCharacters: 0, promptCharacters: expect.any(Number) }));
+  expect(JSON.stringify(warn.mock.calls)).not.toContain('PRIVATE');
+ } finally { timeoutSpy.mockRestore(); warn.mockRestore(); }
+});
+it('distinguishes schema parsing failures from planning deadlines without logging content', async () => {
+ const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+ try {
+  jest.mocked(generateText).mockResolvedValue({ output: { topic: 'PRIVATE invalid output' } } as never);
+  await expect(planArtistQuestion('Artist', 'PRIVATE question')).rejects.toThrow();
+  expect(warn).toHaveBeenLastCalledWith('[questionResearch] planning failed', expect.objectContaining({ stage: 'plan_parse', category: 'ZodError', candidateCount: 0 }));
+  expect(JSON.stringify(warn.mock.calls)).not.toContain('PRIVATE');
+ } finally { warn.mockRestore(); }
+});
+it('reports gateway failures separately when no deadline or caller abort occurred', async () => {
+ const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+ try {
+  jest.mocked(generateText).mockRejectedValue(Object.assign(new Error('PRIVATE gateway response'), { name: 'GatewayResponseError', statusCode: 502 }));
+  await expect(planArtistQuestion('Artist', 'PRIVATE question')).rejects.toThrow();
+  expect(warn).toHaveBeenLastCalledWith('[questionResearch] planning failed', expect.objectContaining({ stage: 'plan_generate', category: 'GatewayResponseError', status: 502 }));
+  expect(JSON.stringify(warn.mock.calls)).not.toContain('PRIVATE');
+ } finally { warn.mockRestore(); }
+});

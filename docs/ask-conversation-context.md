@@ -86,7 +86,7 @@ budgets remain enforced by code. Source discovery never approves Lore.
 
 Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
 
-After the single bounded answer repair, a rejected extra sentence must not erase independently verified useful facts. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
+A rejected extra sentence must not erase independently verified useful facts or force another model cycle. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive immediately after either check; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
 
 
 ## Preserve the selected evidence through drafting (#1492)
@@ -104,3 +104,64 @@ deadline and at most two drafts/two checks are unchanged.
 A draft with zero factual sentences returns the existing fixed, nonempty evidence limitation.
 If both checked drafts lack a supported sentence, verification fails closed instead of returning
 a blank answer. Whitespace-only sentence text and saved answers are rejected.
+
+
+### Saved-answer latency investigation — October 15, 2026 (#1525)
+
+The answer path revalidates the entire selected passage with up to 1,200 characters
+of preceding and following context, capped at the existing per-original limit. It
+does not expand every short selection to 12,000 characters. Every selected slice
+still verifies against the current public original and revision; identical read
+requests share one request-local promise. This is bounded context, not whole-document
+verification. A missing detail still requires further retrieval.
+
+The candidate independent checker is Sonnet 5.5; the writer remains Gemini 3.8 Flash.
+A frozen ten-case check (three supported, seven unsupported claims) accepted/rejected
+all ten correctly in one pass, including music-versus-filming roles, caption-versus-
+speech, unverified speaker attribution, publication-versus-event dates and excluded
+projects. The same fixture check with Opus 5.5 Fast missed the unverified-speaker case.
+This is a regression screen, not broad quality acceptance or production verification.
+Full source revalidation, exact-quote matching, independent semantic checking, bounded
+repair, and fail-closed handling remain required. No unchecked draft is streamed.
+
+A separate read-only API candidate selector is being evaluated to skip the model
+evidence-selection loop for readily available saved material. It must not classify
+ranked passages as sufficient, lose saved-question history, bypass quotas, or replace
+durable fallback research. Planner, registration, transport and UI timing must be
+included before claiming the live chat is fast.
+
+October 15 preview follow-up: the deployed candidate still failed on a latest question.
+A replay of its saved originals also reproduced false factual rejections and a
+redundant second writer/checker cycle. The revised checker focuses on factual
+support rather than writing style, requests a concise diagnostic, and accepts
+independently supported sentences after the first check. A local 12-case screen
+(10 earlier positive/negative fixtures plus two drafts from this failure) passed;
+this is targeted evidence, not production or end-to-end latency acceptance.
+
+A subsequent six-case frozen-source trial with the concise Sonnet writer completed
+the four supported questions in 2.61–5.30 seconds and withheld unsupported credit
+and spoken-only claims in 1.31–1.56 seconds. This excludes planner/network/UI time.
+It supersedes the earlier Gemini-writer selection for this candidate. Separate
+writer/checker calls now use the same Sonnet model, with low effort, no retries,
+and unchanged evidence validation. Model diversity is not claimed.
+
+### October 15: visitor allowance and research budgets
+
+Approved: new planning attempts use a rolling allowance of 30 per visitor per hour,
+across artists. A verified account identifies signed-in visitors; anonymous traffic
+uses an HMAC of the trusted Vercel proxy IP (https://vercel.com/docs/headers/request-headers).
+Anonymous visitors sharing a public IP share that allowance. No raw IP, question,
+artist or account ID is stored in the ephemeral admission table. Entries older than
+one hour are pruned during admission; existing activity audit events are preserved.
+Missing trusted identity fails closed. The private table requires its migration
+before deployment. The existing 200/day global planning ceiling remains an operational
+cost guard, not a dollar-spend guarantee. A reusable checked answer is read before
+planning admission and does not consume a new slot.
+
+The API removes the shared per-artist saved-evidence cap, retains its global saved
+admission ceiling, and reserves outside-research allowance only before external work.
+The outside budgets and provider caps stay unchanged. Legacy job accounting expires
+normally. A quota response identifies its scope and uses database-derived resetAt
+and Retry-After; it is not a missing-information error. Chat shows an inline notice
+and reset time without automatically retrying. Transient short throttles retain
+bounded retry behavior. Production promotion requires database and paired API readiness.

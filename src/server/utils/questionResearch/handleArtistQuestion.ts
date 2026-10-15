@@ -1,3 +1,7 @@
+import { getQuestionVisitorKey } from "./getQuestionVisitorKey";
+import { questionQuotaResponse } from "./questionQuotaResponse";
+import { continueCandidateResearch } from "./continueCandidateResearch";
+import { continueQuestionResearch } from "./continueQuestionResearch";
 import { listReusableQuestionCandidates } from "./listReusableQuestionCandidates";
 import { hasCompatibleReuseScope } from "@/lib/questionResearch/hasCompatibleReuseScope";
 import { releaseQuestionRequest } from "./releaseQuestionRequest";
@@ -54,7 +58,7 @@ export async function handleArtistQuestion(request: Request) {
     }, { headers });
     if (reuse?.state === "busy") throw Object.assign(new Error("An identical request is already running"), { status: 429, code: "research_busy" });
     if (reuse?.state === "claimed") requestLease = { artistId, requestHash: reuse.requestHash, token: reuse.token };
-    if (!jobId) await reserveQuestionPlanning(artistId);
+    if (!jobId) await reserveQuestionPlanning(artistId, await getQuestionVisitorKey(request));
     const candidates = jobId ? [] : await listReusableQuestionCandidates(artistId);
     const plan = jobId
       ? null
@@ -74,20 +78,19 @@ export async function handleArtistQuestion(request: Request) {
       if (current.stage === "complete") {
         const checked = await getOrDraftResearchAnswer({
           artistId, artistName:name, jobId:candidate.jobId, question:resolvedQuestion,
-          references:current.references, signal, readOnlyQuestionHash:candidate.questionHash,
+          references:current.references, selection:current.selection, signal, readOnlyQuestionHash:candidate.questionHash,
         });
-        if (checked.state === "ready" && await registerResearchQuestion(artistId,candidate.jobId,resolvedQuestion)) {
-          // The planner proposes evidence, never permission to reuse an answer for a new meaning.
-          const variant = await getOrDraftResearchAnswer({artistId,artistName:name,
-            jobId:candidate.jobId,question:resolvedQuestion,references:current.references,signal});
-          if (variant.state === "ready" && variant.result.sources.length > 0) {
-            await bindQuestionRequest({artistId,requestHash:reuse.requestHash,token:reuse.token,
-              jobId:candidate.jobId,question:resolvedQuestion,reusable:true,answerIntent,routing});
-            return Response.json({...variant.result,bandcamp:artist.bandcamp ? `https://${artist.bandcamp}.bandcamp.com` : null,limitations:current.limitations},{headers});
-          }
-          if (variant.state === "drafting") throw Object.assign(new Error("The answer is already being checked"),{status:429,code:"research_busy"});
-          if (variant.state === "failed") throw new Error("The saved evidence could not be checked");
-          // An empty/invalid answer is not proof the fact is absent: continue normal research.
+        if (checked.state === "ready" && checked.result.sources.length > 0
+          && await registerResearchQuestion(artistId, candidate.jobId, resolvedQuestion)) {
+          // Planning and checked-answer generation have separate bounded requests.
+          // A semantic match selects evidence; it does not approve a new answer.
+          await bindQuestionRequest({ artistId, requestHash: reuse.requestHash, token: reuse.token,
+            jobId: candidate.jobId, question: resolvedQuestion, reusable: true, answerIntent,
+            routing: { ...routing, reuseFallbackJobId: candidate.jobId } });
+          return Response.json({ research: {
+            jobId: candidate.jobId, resolvedQuestion, stage: "complete",
+            message: "Checking the sourced answer…", provider: current.provider,
+          } }, { status: 202, headers });
         }
       }
     }
@@ -98,7 +101,7 @@ export async function handleArtistQuestion(request: Request) {
             { signal },
           )
         : await callResearchApi(`/api/artist/${artistId}/research/questions`, {
-            body: routing,
+            body: { ...routing, preferDirectEvidence: true },
             signal,
           }),
     );
@@ -149,13 +152,16 @@ export async function handleArtistQuestion(request: Request) {
           answer:
             state.stage === "unresolved"
               ? state.outsideResearchReason === "quota"
-                ? "The saved sources I checked did not answer that. Outside research is at its limit, so I could not look further."
+                ? "The saved sources I checked did not answer that. Outside research is at its limit for now. You can still ask about saved sources."
                 : state.limitations.includes("provider_latest_refresh_required")
                   ? "I don't have enough saved information from that source, and I can't refresh it from this chat yet."
                   : state.limitations.includes("connected_account_required")
                     ? "I need a connected account for that source before I can check it."
                     : "I don't have enough information to answer that yet."
               : "Research could not finish. That does not mean the information doesn't exist.",
+          ...(state.outsideResearchReason === "quota" ? {
+            code: "research_quota", resetAt: state.resetAt, retryAfterSeconds: state.retryAfterSeconds, retryFromStart: true,
+          } : {}),
           sources: [],
           suggestions: [],
           research: {
@@ -176,8 +182,18 @@ export async function handleArtistQuestion(request: Request) {
         jobId: state.jobId,
         question: resolvedQuestion,
         references: state.references,
+        selection: state.selection,
         signal,
       });
+      if (outcome.state === "continuing" || (state.selection === "candidates"
+        && outcome.state === "ready" && outcome.result.sources.length === 0)) {
+        const continued = await continueCandidateResearch({ artistId, jobId: state.jobId, question: resolvedQuestion, signal });
+        return Response.json({ research: {
+          jobId: state.jobId, resolvedQuestion,
+          stage: "pending" in continued ? "complete" : continued.stage,
+          message: "Checking Lore…",
+        } }, { status: 202, headers });
+      }
       if (outcome.state === "drafting")
         return Response.json(
           {
@@ -217,8 +233,8 @@ export async function handleArtistQuestion(request: Request) {
         return Response.json(
           {
             error: outcome.retryable
-              ? "I could not verify an answer from those originals. You can retry shortly."
-              : "I could not verify an answer from those originals after several checks.",
+              ? "I couldn't finish checking this answer. Please try again."
+              : "I couldn't finish checking this answer after several attempts. Please try again later.",
             jobId: state.jobId,
             verification: {
               stage: outcome.stage,
@@ -227,6 +243,17 @@ export async function handleArtistQuestion(request: Request) {
           },
           { status: 503, headers },
         );
+      if (!outcome.result.sources.length) {
+        const continued = await continueQuestionResearch({ artistId, jobId: state.jobId, question: resolvedQuestion, signal });
+        if (continued && "pending" in continued) return Response.json({ research: {
+          jobId: state.jobId, resolvedQuestion, stage: "complete", message: "Checking the sourced answer…",
+        } }, { status: 202, headers });
+        if (continued) return Response.json({ research: {
+          jobId: continued.jobId, resolvedQuestion, stage: continued.stage,
+          message: continued.message, provider: continued.provider,
+          outsideResearchReason: continued.outsideResearchReason,
+        } }, { status: 202, headers });
+      }
       return Response.json(
         {
           ...outcome.result,
@@ -237,17 +264,21 @@ export async function handleArtistQuestion(request: Request) {
         },
         { headers },
       );
-    } catch {
+    } catch (error) {
+      const quota = questionQuotaResponse(error);
+      if (quota) return quota;
       return Response.json(
         {
           error:
-            "I could not verify an answer from those originals. You can retry the saved research.",
+            "I couldn't finish checking this answer. Please try again.",
           jobId: state.jobId,
         },
         { status: 503, headers },
       );
     }
   } catch (error) {
+    const quota = questionQuotaResponse(error);
+    if (quota) return quota;
     const status =
       typeof error === "object" &&
       error &&

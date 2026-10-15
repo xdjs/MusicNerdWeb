@@ -17,7 +17,7 @@ export async function reuseQuestionRequest(input: { artistId: string; artistName
     if (!['complete','unresolved','failed','cancelled'].includes(state.stage)) return { state: 'busy' as const, requestHash };
     if (binding.reusable && state.stage === 'complete') {
       const answer = await getOrDraftResearchAnswer({
-        ...input, jobId: binding.job_id, references: state.references,
+        ...input, jobId: binding.job_id, references: state.references, selection: state.selection,
         readOnlyQuestionHash: binding.question_hash,
       });
       if (answer.state === 'ready' && answer.result.sources.length > 0) return { ...answer, limitations: state.limitations, requestHash };
