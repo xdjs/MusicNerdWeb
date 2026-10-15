@@ -104,6 +104,7 @@ import ArtistProfile, { generateMetadata } from '@/app/artist/[id]/page';
 import { getServerAuthSession } from '@/server/auth';
 import { getArtistById, getAllLinks, getArtistLinks } from '@/server/utils/queries/artistQueries';
 import { musicPlatformData } from '@/server/utils/musicPlatform';
+import { getVaultSourcesByArtistId } from '@/server/utils/queries/dashboardQueries';
 
 const mockArtist = {
     id: 'artist-uuid',
@@ -149,7 +150,74 @@ async function renderArtistPage(
 describe('ArtistProfile page', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Visitors no longer consume the editor-only second read. Clear any
+        // unused one-shot responses instead of leaking them into the next case.
+        (getVaultSourcesByArtistId as jest.Mock).mockReset().mockResolvedValue([]);
         setupMocks();
+    });
+
+    describe('Private pending-source read boundary', () => {
+        const approved = { id: 'approved-source', url: 'https://example.com/approved', status: 'approved', type: 'article' };
+        const pending = { id: 'pending-source', url: 'https://example.com/pending', status: 'pending', type: 'article' };
+
+        afterEach(async () => {
+            const { getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { getUserById } = await import('@/server/utils/queries/userQueries');
+            (getVaultSourcesByArtistId as jest.Mock).mockReset().mockResolvedValue([]);
+            (getUserById as jest.Mock).mockReset().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false });
+        });
+
+        it.each([
+            ['visitor', null, null],
+            ['unrelated signed-in user', { user: { id: 'user-uuid' } }, { userId: 'another-user', status: 'approved' }],
+            ['pending claimant', { user: { id: 'user-uuid' } }, { userId: 'user-uuid', status: 'pending' }],
+        ])('renders for a %s even if the private pending reader never settles', async (_label, session, claim) => {
+            const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { getUserById } = await import('@/server/utils/queries/userQueries');
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            setupMocks({ session });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce(claim);
+            (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: false });
+            let releasePending;
+            const stalledPending = new Promise(resolve => { releasePending = resolve; });
+            (getVaultSourcesByArtistId as jest.Mock).mockImplementation((_id, status) =>
+                status === 'pending' ? stalledPending : Promise.resolve([approved]));
+
+            let timer;
+            const page = renderArtistPage();
+            try {
+                const result = await Promise.race([
+                    page.then(() => 'rendered'),
+                    new Promise(resolve => { timer = setTimeout(() => resolve('blocked by private read'), 100); }),
+                ]);
+                expect(result).toBe('rendered');
+                expect(screen.getByRole('heading', { name: 'Test Artist' })).toBeInTheDocument();
+                expect(getVaultSourcesByArtistId).toHaveBeenCalledTimes(1);
+                expect(getVaultSourcesByArtistId).toHaveBeenCalledWith('artist-uuid', 'approved');
+                expect(addSourceContributors).not.toHaveBeenCalled();
+            } finally {
+                clearTimeout(timer);
+                releasePending([]);
+                await page;
+            }
+        });
+
+        it.each(['owner', 'admin'])('preserves approved and pending review sources for the %s', async role => {
+            const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+            const { getUserById } = await import('@/server/utils/queries/userQueries');
+            const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+            setupMocks({ session: { user: { id: 'user-uuid' } } });
+            (getClaimByArtistId as jest.Mock).mockResolvedValueOnce(role === 'owner'
+                ? { userId: 'user-uuid', status: 'approved' } : null);
+            (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: role === 'admin' });
+            (getVaultSourcesByArtistId as jest.Mock).mockImplementation(async (_id, status) =>
+                status === 'pending' ? [pending] : [approved]);
+
+            await renderArtistPage();
+
+            expect(getVaultSourcesByArtistId).toHaveBeenCalledWith('artist-uuid', 'pending');
+            expect(addSourceContributors).toHaveBeenCalledWith('artist-uuid', [approved, pending]);
+        });
     });
 
     describe('Unauthenticated rendering', () => {
