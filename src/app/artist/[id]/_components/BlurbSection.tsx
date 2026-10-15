@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,16 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
   const [isPinned, setIsPinned] = useState(false);
   const [originalBio, setOriginalBio] = useState<string>("");
   const [historyRevision, setHistoryRevision] = useState(0);
+
+  const handlePinnedChange = useCallback((pinned: boolean, savedBio?: string) => {
+    setIsPinned(pinned);
+    // The Bios tab has its own history instance. Its refresh communicates the
+    // authoritative locked version even while the bio hook still has old text.
+    if (pinned && savedBio !== undefined) {
+      setEditText(savedBio);
+      setOriginalBio(savedBio);
+    }
+  }, []);
 
   const baselineInitialized = useRef(false);
   const editSessionOpen = isEditing || !!suspendedEditMode;
@@ -165,7 +175,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
           setEditText(selectedBio);
           setOriginalBio(selectedBio);
           refetch();
-        }} revision={historyRevision} showHistory={!hero} onPinnedChange={setIsPinned} />
+        }} revision={historyRevision} showHistory={!hero} onPinnedChange={handlePinnedChange} />
       </div>
     );
   }

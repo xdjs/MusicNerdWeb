@@ -226,7 +226,8 @@ offer an interview. The parameter has no effect in production.
 An open About edit retains its text and original Discard baseline when research refreshes the
 saved bio, including a refresh arriving with resume. Leaving edit mode deliberately rebases the
 next session to the latest saved bio. Explicit Save or selecting a pinned version establishes a new baseline; regeneration retains
-the original Discard baseline.
+the original Discard baseline. The separate Lore → Bios history communicates the authoritative
+pinned version to the hero editor when its history refreshes; an unpinned refresh leaves drafts intact.
 Lore source membership/classification refreshes update the review lists in place, retaining the
 URL input, source search/filter, upload state and other unrelated editor state.
 Removed source IDs are cleared from bulk selection; existing selections stay selected. Artist identity

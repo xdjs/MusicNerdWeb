@@ -20,7 +20,7 @@ interface BioVersion {
     createdAt: string;
 }
 
-export default function BioVersionHistory({ artistId, onChanged, revision = 0, showHistory = true, showLockNotice = true, onPinnedChange }: { artistId: string; onChanged?: (bioText: string) => void; revision?: number; showHistory?: boolean; showLockNotice?: boolean; onPinnedChange?: (pinned: boolean) => void }) {
+export default function BioVersionHistory({ artistId, onChanged, revision = 0, showHistory = true, showLockNotice = true, onPinnedChange }: { artistId: string; onChanged?: (bioText: string) => void; revision?: number; showHistory?: boolean; showLockNotice?: boolean; onPinnedChange?: (pinned: boolean, bioText?: string) => void }) {
     const { isEditing, refreshProfile, revision: profileRevision } = useContext(EditModeContext);
     const { toast } = useToast();
     const [versions, setVersions] = useState<BioVersion[]>([]);
@@ -40,7 +40,8 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
                         (a, b) => new Date((b as BioVersion).createdAt).getTime() - new Date((a as BioVersion).createdAt).getTime()
                     );
                     setVersions(sorted as BioVersion[]);
-                    onPinnedChange?.(sorted.some(v => v.isPinned));
+                    const pinned = sorted.find(v => v.isPinned);
+                    onPinnedChange?.(!!pinned, pinned?.bioText);
                 }
             })
             .finally(() => { if (active) { setLoading(false); setLoaded(true); } });
@@ -55,7 +56,7 @@ export default function BioVersionHistory({ artistId, onChanged, revision = 0, s
             setVersions(prev => prev.map(v => ({ ...v, isPinned: v.id === id })));
             const selected = versions.find(v => v.id === id);
             if (selected) onChanged?.(selected.bioText);
-            onPinnedChange?.(true);
+            onPinnedChange?.(true, selected?.bioText);
             refreshProfile?.();
             toast({ title: 'Bio pinned and locked', description: 'Unpin it before editing or regenerating.' });
         } else {
