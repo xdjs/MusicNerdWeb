@@ -44,8 +44,13 @@ environment. Local SQL/mocked tests are not evidence of a deployed exhausted-quo
 
 Exact matching is only the zero-model fast path. On its first occurrence, a paraphrase shares the
 existing admitted planning call with candidate selection: Web supplies at most five verified answers
-for this artist, their neutral public intent/routing and at most three 1,000-character passage
-excerpts apiece. The planner resolves the current public follow-up and decides whether an answer
+for this artist, their neutral public intent/routing and the complete selected original windows
+actually cited by those answers. Their stored citation basis must match each window's source, revision,
+coordinates, URL and text hash. Uncited research windows are omitted. The combined passage budget
+remains 30,000 characters (the former five candidates × six excerpts × 1,000 characters ceiling).
+A candidate that cannot fit is omitted rather than clipping its supporting sentence. This avoids
+discarding useful saved answers because navigation text consumed a fixed leading excerpt.
+The planner resolves the current public follow-up and decides whether an answer
 fully covers it, whether the originals answer a different angle, or whether new research is needed.
 No embeddings, vector database or additional classification call are introduced.
 
