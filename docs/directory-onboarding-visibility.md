@@ -50,3 +50,27 @@ Malformed, missing, future or expired completion times are ineligible.
 Saved profile review must show existing YouTube channel links as YouTube coverage.
 The missing-platform hint normalizes the display category only; removal still sends
 `youtubechannel` so the stored channel field is changed, not an unrelated handle.
+
+### Add-to-profile handoff (#1524)
+
+Search selection and the pasted-URL dialog open the saved artist immediately after
+creation and its directory-discovery job commit. Identity validation reads only the
+provider artist identity; release counts and top tracks are unnecessary to add it.
+The best-effort artist-added notification runs through Next's post-response `after`
+lifecycle, so notification reads or delivery cannot hold up the saved profile.
+The creation event and discovery job remain in the transaction, not in `after`.
+
+Search keeps a short adding/opening status visible outside its dropdown after blur,
+with a direct profile link once saved. The artist route has a loading boundary,
+so navigation acknowledges the destination while existing data loads. Loading does
+not restart research, invent completion, or expose private About/Lore. Existing
+identity conflicts, duplicate choices and cancelled-response guards still apply.
+
+Background hub discovery must distinguish user-chosen handles from provider-assigned
+Spotify, Deezer and YouTube channel IDs. On an affirmed own domain or a saved owned
+account page, those IDs do not need to resemble the artist name to survive the
+mixed-account filter. Merely linking a known public account from a third-party
+article does not grant this exception. Existing saved values, conflicting owners,
+multiple candidate accounts for one platform, rejected pages and deadlines still
+block adoption. This does not turn album, song or playlist URLs into artist links,
+or automatically repair older records whose artist destination was never found.
