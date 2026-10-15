@@ -562,6 +562,17 @@ export const artistInterviewAnswers = pgTable("artist_interview_answers", {
 	pgPolicy("mnweb_delete_artist_interview_answers", { as: "permissive", for: "delete", to: ["mnweb"], using: sql`true` }),
 ]);
 
+/** Private preparation, never interview testimony. Claim changes invalidate the saved plan. */
+export const artistOnboardingInterviewPlans = pgTable("artist_onboarding_interview_plans", {
+  artistId: uuid("artist_id").primaryKey().references(() => artists.id, { onDelete: "cascade" }),
+  claimId: uuid("claim_id").references(() => artistClaims.id, { onDelete: "cascade" }),
+  questions: jsonb().$type<{ key: string; question: string; sourceUrls: string[] }[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+}, table => [
+  check("artist_onboarding_interview_plans_questions", sql`jsonb_typeof(${table.questions}) = 'array' and jsonb_array_length(${table.questions}) between 1 and 3`),
+  pgPolicy("mnweb_onboarding_interview_plans", { as: "permissive", for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
+]).enableRLS();
+
 // Step confirmations: "the artist saw and confirmed it", not "data exists".
 // Written ONLY by explicit artist actions in the onboarding chat.
 export const artistOnboardingSteps = pgTable("artist_onboarding_steps", {
