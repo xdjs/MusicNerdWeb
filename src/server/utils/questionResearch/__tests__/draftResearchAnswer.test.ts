@@ -493,3 +493,16 @@ it('revalidates a short citation with bounded neighboring context rather than re
  const url = new URL(api.mock.calls[0][0], 'https://api.example');
  expect(Number(url.searchParams.get('maxChars'))).toBe(reference.end + 1200);
 });
+
+it("uses a detailed rejection to repair the draft instead of failing the entire answer on explanation length", async () => {
+  const reason = "An unsupported claim needs correction. ".repeat(20);
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason } } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'What?', [reference]);
+  expect(result.answer).toBe('They played drums. [1]');
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toBe(reason);
+  expect(model.mock.calls[1][0].anthropicEffort).toBe('low');
+});

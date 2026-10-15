@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { continueCandidateResearch } from '../continueCandidateResearch';
+jest.mock('../continueCandidateResearch',()=>({continueCandidateResearch:jest.fn()}));
 import { continueQuestionResearch } from '../continueQuestionResearch';
 jest.mock('../continueQuestionResearch',()=>({continueQuestionResearch:jest.fn()}));
 import { listReusableQuestionCandidates } from '../listReusableQuestionCandidates';
@@ -164,7 +166,7 @@ it("binds a follow-up's standalone question to its job and does not send chat hi
   expect(r.status).toBe(202);
   expect(jest.mocked(planArtistQuestion).mock.calls[0].filter((_, i) => i !== 2)).toEqual(["Artist", "Who created it?", conversation, []]);
   expect(callResearchApi).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ body: {
-    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored", retrieval: "relevance",
+    topic: "PPNE NYC creator", evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", preferDirectEvidence: true,
   } }));
   expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who created the PPNE NYC visualizer?");
   expect((await r.json()).research.resolvedQuestion).toBe("Who created the PPNE NYC visualizer?");
@@ -337,4 +339,21 @@ it('continues ordinary research after a deferred semantic answer has no cited fa
  expect(response.status).toBe(202);
  expect((await response.json()).research.jobId).toBe('33333333-3333-4333-8333-333333333333');
  expect(planArtistQuestion).not.toHaveBeenCalled();expect(reserveQuestionPlanning).not.toHaveBeenCalled();
+});
+
+it('advances insufficient direct candidates without sending their limitation as a final answer',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete',selection:'candidates'});
+ jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result:{answer:'Not enough information',sources:[],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]}});
+ jest.mocked(continueCandidateResearch).mockResolvedValue({...status,selection:'research'} as never);
+ const response=await handleArtistQuestion(request({jobId}));
+ expect(response.status).toBe(202);expect((await response.json()).answer).toBeUndefined();
+ expect(continueCandidateResearch).toHaveBeenCalledWith(expect.objectContaining({artistId,jobId}));
+ expect(continueQuestionResearch).not.toHaveBeenCalled();
+});
+it('recovers a pending transition after API success and a Web storage interruption',async()=>{
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete',selection:'research'});
+ jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'continuing'});
+ jest.mocked(continueCandidateResearch).mockResolvedValue({pending:true});
+ const response=await handleArtistQuestion(request({jobId}));
+ expect(response.status).toBe(202);expect(continueCandidateResearch).toHaveBeenCalledTimes(1);
 });

@@ -110,3 +110,28 @@ writer and checker context. The first original citation number is retained; rema
 keep their original numbers, so gaps are valid and persisted source mappings remain stable.
 Distinct windows or metadata are retained. Unknown or removed citation numbers fail the ordinary
 quote check. Both writer and independent checker still see the complete unchanged original context.
+
+## Direct saved-evidence answer attempt (#1525)
+
+Web opts into API candidate selection with `preferDirectEvidence: true` after planning the
+question. The API selects bounded saved originals and admits the existing durable job once;
+`selection: candidates` means available passages, not verified sufficiency. Web reopens current
+originals, drafts an answer, and independently checks its claims. Short passages request only
+the selected span plus up to 1,200 characters on each side (within the existing 12,000-character
+ceiling). Duplicate original windows are shared within the attempt.
+
+A verified zero-citation candidate result continues the same job through its service-only
+`POST /api/artist/:artistId/research/questions/:jobId/continue` endpoint. It is not sent as a final
+absence claim. The Web answer row retains its registration, attempt count and original expiry.
+A short token-guarded `candidate_continuation` marker fences concurrent result requests. The
+marker remains recoverable after an uncertain API/network outcome; repeated calls use the API's
+idempotent transition. Job selection also guards answer acquisition and commitment so an old
+candidate-status response cannot draft or overwrite a subsequent research answer. Operational
+model failures remain bounded errors rather than silently starting more research.
+
+The independent checker candidate uses Sonnet 5.5 with explicit low effort. Its internal
+explanation allows up to 4,000 characters within the existing output-token ceiling; a detailed
+rejection must reach the bounded repair step rather than becoming a schema error solely because
+it exceeds 500 characters. Factual decisions, exact quotation checks and current-source checks
+remain required. This is a preview experiment until paired Web/API and browser timing pass;
+isolated model timings exclude planning, database and network latency.

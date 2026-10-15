@@ -30,6 +30,7 @@ export const referenceSchema = z.object({
   truncated: z.boolean().nullable(),
 });
 export const researchStatusSchema = z.object({
+  selection: z.enum(["candidates", "research"]).optional(),
   status: z.literal("ok"),
   outsideResearchReason: z.literal("quota").optional(),
   jobId: z.string().uuid(),

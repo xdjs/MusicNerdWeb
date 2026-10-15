@@ -1,3 +1,4 @@
+import { continueCandidateResearch } from "./continueCandidateResearch";
 import { continueQuestionResearch } from "./continueQuestionResearch";
 import { listReusableQuestionCandidates } from "./listReusableQuestionCandidates";
 import { hasCompatibleReuseScope } from "@/lib/questionResearch/hasCompatibleReuseScope";
@@ -75,7 +76,7 @@ export async function handleArtistQuestion(request: Request) {
       if (current.stage === "complete") {
         const checked = await getOrDraftResearchAnswer({
           artistId, artistName:name, jobId:candidate.jobId, question:resolvedQuestion,
-          references:current.references, signal, readOnlyQuestionHash:candidate.questionHash,
+          references:current.references, selection:current.selection, signal, readOnlyQuestionHash:candidate.questionHash,
         });
         if (checked.state === "ready" && checked.result.sources.length > 0
           && await registerResearchQuestion(artistId, candidate.jobId, resolvedQuestion)) {
@@ -98,7 +99,7 @@ export async function handleArtistQuestion(request: Request) {
             { signal },
           )
         : await callResearchApi(`/api/artist/${artistId}/research/questions`, {
-            body: routing,
+            body: { ...routing, preferDirectEvidence: true },
             signal,
           }),
     );
@@ -176,8 +177,18 @@ export async function handleArtistQuestion(request: Request) {
         jobId: state.jobId,
         question: resolvedQuestion,
         references: state.references,
+        selection: state.selection,
         signal,
       });
+      if (outcome.state === "continuing" || (state.selection === "candidates"
+        && outcome.state === "ready" && outcome.result.sources.length === 0)) {
+        const continued = await continueCandidateResearch({ artistId, jobId: state.jobId, question: resolvedQuestion, signal });
+        return Response.json({ research: {
+          jobId: state.jobId, resolvedQuestion,
+          stage: "pending" in continued ? "complete" : continued.stage,
+          message: "Checking Lore…",
+        } }, { status: 202, headers });
+      }
       if (outcome.state === "drafting")
         return Response.json(
           {
