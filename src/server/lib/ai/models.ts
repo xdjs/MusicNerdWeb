@@ -9,4 +9,4 @@ export const MODEL_INTERVIEW_CHECKER = "anthropic/claude-opus-5.5";
 export const MODEL_ASK_CHECKER = "anthropic/claude-sonnet-5.5";
 
 /** Independent public Ask About writer; preserve separate interview configuration. */
-export const MODEL_ASK_DRAFT = "google/gemini-3.8-flash";
+export const MODEL_ASK_DRAFT = "anthropic/claude-sonnet-5.5";

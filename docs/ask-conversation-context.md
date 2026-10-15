@@ -137,3 +137,10 @@ support rather than writing style, requests a concise diagnostic, and accepts
 independently supported sentences after the first check. A local 12-case screen
 (10 earlier positive/negative fixtures plus two drafts from this failure) passed;
 this is targeted evidence, not production or end-to-end latency acceptance.
+
+A subsequent six-case frozen-source trial with the concise Sonnet writer completed
+the four supported questions in 2.61–5.30 seconds and withheld unsupported credit
+and spoken-only claims in 1.31–1.56 seconds. This excludes planner/network/UI time.
+It supersedes the earlier Gemini-writer selection for this candidate. Separate
+writer/checker calls now use the same Sonnet model, with low effort, no retries,
+and unchanged evidence validation. Model diversity is not claimed.
