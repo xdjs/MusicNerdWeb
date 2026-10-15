@@ -379,3 +379,15 @@ it('keeps outside-research reset metadata on an otherwise successful saved-sourc
  expect(response.status).toBe(200);expect(body).toMatchObject({code:'research_quota',resetAt,retryAfterSeconds:600});
  expect(body.answer).toMatch(/still ask about saved sources/);
 });
+
+it('preserves quota reset metadata when semantic fallback needs a new saved admission', async () => {
+ const resetAt = new Date(Date.now() + 600000).toISOString();
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'complete'});
+ jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result:{answer:'Not enough information.',sources:[],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]}});
+ jest.mocked(continueQuestionResearch).mockRejectedValue(Object.assign(new Error('private'),{status:429,code:'saved_evidence_quota',retryAfterSeconds:600,resetAt}));
+ const response = await handleArtistQuestion(request({jobId}));
+ expect(response.status).toBe(429);
+ expect(response.headers.get('Retry-After')).toBe('600');
+ expect(await response.json()).toMatchObject({code:'saved_evidence_quota',resetAt,retryAfterSeconds:600});
+ expect(reserveQuestionPlanning).not.toHaveBeenCalled();
+});

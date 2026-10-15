@@ -264,7 +264,9 @@ export async function handleArtistQuestion(request: Request) {
         },
         { headers },
       );
-    } catch {
+    } catch (error) {
+      const quota = questionQuotaResponse(error);
+      if (quota) return quota;
       return Response.json(
         {
           error:
