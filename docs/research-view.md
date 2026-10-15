@@ -234,4 +234,6 @@ still keys the editor; changing artists never carries drafts across profiles.
 
 The hero stays mounted per artist. Incoming saved photo/crop props are applied outside active
 or suspended edit sessions, so a discovered portrait cannot remount an unfinished About.
-Explicit photo saves still update the current image immediately.
+Explicit photo saves still update the current image immediately. Unchanged saved props never
+revert a successful local photo/crop save when leaving edit; a changed server photo tuple
+applies normally outside editing.

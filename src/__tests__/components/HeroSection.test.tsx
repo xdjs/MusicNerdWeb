@@ -125,3 +125,18 @@ it('retains an About draft through incoming portrait and crop changes until edit
   rerender(view('/later.jpg', true, false));
   expect(screen.getByAltText('Test')).toHaveAttribute('src', '/later.jpg');
 });
+
+it('keeps a successfully saved crop on Done before refreshed props arrive', async () => {
+  const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response);
+  const view = (isEditing: boolean, y = 0) => <EditModeContext.Provider value={{ isEditing, canEdit: true, toggle: jest.fn() }}><HeroSection artistId="a1" artistName="Test" imageUrl="/portrait.jpg" hasPortrait initialPosition={y} /></EditModeContext.Provider>;
+  const { rerender } = render(view(true));
+  fireEvent.click(screen.getByRole('button', { name: 'Reposition photo' }));
+  fireEvent.keyDown(screen.getByRole('slider', { name: 'Photo position' }), { key: 'End' });
+  fireEvent.click(screen.getByRole('button', { name: 'Save position' }));
+  await waitFor(() => expect(screen.queryByRole('slider')).not.toBeInTheDocument());
+  rerender(view(false));
+  expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 100%' });
+  rerender(view(false, 70));
+  expect(screen.getByAltText('Test')).toHaveStyle({ objectPosition: '50% 70%' });
+  fetchMock.mockRestore();
+});

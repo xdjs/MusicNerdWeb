@@ -43,10 +43,14 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
         }
     }, [isEditing, repositioning, suspendedEditMode]);
     // Background research must not remount About or replace an active photo draft.
-    // Explicit photo saves update local state above; saved props rebase after edit exit.
+    // Explicit photo saves update local state; only changed saved props rebase after edit exit.
     const editSessionOpen = isEditing || !!suspendedEditMode;
+    const appliedPhoto = useRef({ imageUrl, hasPortrait, initialPosition });
     useEffect(() => {
         if (editSessionOpen) return;
+        const applied = appliedPhoto.current;
+        if (applied.imageUrl === imageUrl && applied.hasPortrait === hasPortrait && applied.initialPosition === initialPosition) return;
+        appliedPhoto.current = { imageUrl, hasPortrait, initialPosition };
         setImg(imageUrl);
         setPortrait(hasPortrait);
         setPosition(initialPosition);
