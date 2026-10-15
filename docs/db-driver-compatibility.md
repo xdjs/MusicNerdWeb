@@ -42,8 +42,8 @@ types, raw rows, commit/rollback/savepoints, the actual owner/admin authorizatio
 guard and stranger rejection, error recovery, and failed-BEGIN checkout cleanup.
 It skips without `MUSICNERD_TEST_PG_PORT`; ordinary CI does not establish this
 integration result. Artist-page unit tests check owner/admin pending sources and
-attribution. Existing search and refresh tests remain separate from real browser
-navigation.
+attribution. Search and session-refresh component tests mock the router; they do
+not establish real browser navigation or authenticated production recovery.
 
 ## Rollout evidence still required
 
