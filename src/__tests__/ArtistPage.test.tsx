@@ -152,6 +152,27 @@ describe('ArtistProfile page', () => {
         setupMocks();
     });
 
+    it.each(['owner', 'admin'])('preserves both source statuses and attribution for the %s', async role => {
+        const { getClaimByArtistId, getVaultSourcesByArtistId } = await import('@/server/utils/queries/dashboardQueries');
+        const { getUserById } = await import('@/server/utils/queries/userQueries');
+        const { addSourceContributors } = await import('@/server/utils/source/addSourceContributors');
+        const approved = { id: 'approved-source', url: 'https://example.test/approved', status: 'approved', type: 'article' };
+        const pending = { id: 'pending-source', url: 'https://example.test/pending', status: 'pending', type: 'article' };
+        setupMocks({ session: { user: { id: 'user-uuid' } } });
+        (getClaimByArtistId as jest.Mock).mockResolvedValueOnce(role === 'owner'
+            ? { userId: 'user-uuid', status: 'approved' } : null);
+        (getUserById as jest.Mock).mockResolvedValue({ id: 'user-uuid', isAdmin: role === 'admin' });
+        (getVaultSourcesByArtistId as jest.Mock).mockImplementation(async (_id, status) => status === 'pending' ? [pending] : [approved]);
+        try {
+            await renderArtistPage();
+            expect(getVaultSourcesByArtistId).toHaveBeenCalledWith('artist-uuid', 'pending');
+            expect(addSourceContributors).toHaveBeenCalledWith('artist-uuid', [approved, pending]);
+        } finally {
+            (getVaultSourcesByArtistId as jest.Mock).mockReset().mockResolvedValue([]);
+            (getUserById as jest.Mock).mockReset().mockResolvedValue({ id: 'user-uuid', isAdmin: false, isWhiteListed: false });
+        }
+    });
+
     describe('Unauthenticated rendering', () => {
         it('hides claim status and the claim action when the lookup fails', async () => {
             const { getClaimByArtistId } = await import('@/server/utils/queries/dashboardQueries');

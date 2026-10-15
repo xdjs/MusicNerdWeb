@@ -1,23 +1,31 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema'
+import { Pool } from 'pg';
+import { createDatabase } from './createDatabase';
 import { SUPABASE_DB_CONNECTION } from '@/env';
 
 const connectionString = SUPABASE_DB_CONNECTION
 
 // Reuse the client across hot reloads in development to prevent connection pool exhaustion
-const globalForDb = globalThis as unknown as { pgClient: ReturnType<typeof postgres> | undefined };
+const globalForDb = globalThis as unknown as { musicNerdPgPool: Pool | undefined };
 
-const client = globalForDb.pgClient ?? postgres(connectionString, {
-    prepare: false,
+const client = globalForDb.musicNerdPgPool ?? new Pool({
+    connectionString,
+    // Shared transaction pooling cannot safely multiplex pipelined queries.
+    // node-postgres serializes each connection; Drizzle uses unnamed statements.
+    pipeline: false,
     // Each warm server instance shares the finite staging/production pool.
     max: 3,
-    idle_timeout: 20,
-    connect_timeout: 10,
+    idleTimeoutMillis: 20_000,
+    connectionTimeoutMillis: 10_000,
 });
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForDb.pgClient = client;
+// Idle connection failures are emitted outside a query promise. The pool removes
+// that connection; handle the event without logging credentials or query data.
+if (!globalForDb.musicNerdPgPool) {
+    client.on('error', () => console.error('[database] Idle connection closed unexpectedly'));
 }
 
-export const db = drizzle(client, { schema });
+if (process.env.NODE_ENV !== 'production') {
+    globalForDb.musicNerdPgPool = client;
+}
+
+export const db = createDatabase(client);
