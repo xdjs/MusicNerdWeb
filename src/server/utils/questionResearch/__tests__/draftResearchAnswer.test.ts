@@ -378,13 +378,13 @@ it("preserves the eight-character minimum for text evidence", async () => {
   expect(model).toHaveBeenCalledTimes(2);
 });
 
-it("keeps independently verified sentences when the bounded repair still has an unsupported extra", async () => {
+it("returns independently verified sentences without an unnecessary repair for an unsupported extra", async () => {
   const mixed = { sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null };
   model.mockReset();
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: mixed } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they do?", [reference]);
   expect(result.answer).toBe("They played drums. [1]");
-  expect(model).toHaveBeenCalledTimes(4);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 
 it("does not accept out-of-range partial-verification sentence numbers", async () => {

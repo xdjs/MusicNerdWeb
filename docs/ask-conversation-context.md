@@ -86,7 +86,7 @@ budgets remain enforced by code. Source discovery never approves Lore.
 
 Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
 
-After the single bounded answer repair, a rejected extra sentence must not erase independently verified useful facts. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
+A rejected extra sentence must not erase independently verified useful facts or force another model cycle. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive immediately after either check; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
 
 
 ## Preserve the selected evidence through drafting (#1492)
@@ -129,3 +129,11 @@ evidence-selection loop for readily available saved material. It must not classi
 ranked passages as sufficient, lose saved-question history, bypass quotas, or replace
 durable fallback research. Planner, registration, transport and UI timing must be
 included before claiming the live chat is fast.
+
+October 15 preview follow-up: the deployed candidate still failed on a latest question.
+A replay of its saved originals also reproduced false factual rejections and a
+redundant second writer/checker cycle. The revised checker focuses on factual
+support rather than writing style, requests a concise diagnostic, and accepts
+independently supported sentences after the first check. A local 12-case screen
+(10 earlier positive/negative fixtures plus two drafts from this failure) passed;
+this is targeted evidence, not production or end-to-end latency acceptance.
