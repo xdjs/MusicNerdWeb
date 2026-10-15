@@ -1,11 +1,15 @@
 /** @jest-environment node */
 import { PgDialect } from "drizzle-orm/pg-core";
+import type { PGlite as PGliteClient } from "@electric-sql/pglite";
 import type { SQL } from "drizzle-orm";
 import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash } from "node:crypto";
 import { db } from "@/server/db/drizzle";
 import { draftResearchAnswer } from "../draftResearchAnswer";
 import { getOrDraftResearchAnswer } from "../getOrDraftResearchAnswer";
+
+// Load WASM outside Jest's VM, as in the existing request-reuse integration suite.
+const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite') as typeof import('@electric-sql/pglite');
 
 jest.mock("@/server/db/drizzle", () => ({ db: { execute: jest.fn() } }));
 jest.mock("../draftResearchAnswer", () => ({ draftResearchAnswer: jest.fn() }));
@@ -137,7 +141,9 @@ it('selects the existing legacy registration and keeps its hash for lease and ve
     return [] as never;
   }) as never);
   expect((await getOrDraftResearchAnswer(input)).state).toBe('ready');
-  for (const query of queries.filter(q=>q.sql.trim().startsWith('update'))) {
+  const writes = queries.filter(q=>/update artist_question_answers/.test(q.sql));
+  expect(writes).toHaveLength(2);
+  for (const query of writes) {
     expect(query.params).toContain(legacy);
     expect(query.params).not.toContain(getResearchQuestionHash(input.question));
   }
@@ -208,4 +214,97 @@ it('persists stable citation 1 and 3 bases when a duplicate original 2 is omitte
     .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: 'verified', result: stored }] as never);
   expect(await getOrDraftResearchAnswer({ ...input, references: selected })).toEqual({ state: 'ready', result: checked });
   expect(draft).toHaveBeenCalledTimes(1);
+});
+
+it.each(['verified', 'drafting'])("resumes a marked candidate continuation before returning a %s answer or spending another attempt", async status => {
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{
+    artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question),
+    status, result: { ...saved, sources: [], basis: [] },
+    claim_until: new Date(0).toISOString(), attempts: 3,
+    failure_stage: 'candidate_continuation',
+  }] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: 'continuing' });
+  expect(draft).not.toHaveBeenCalled();
+  expect(execute).toHaveBeenCalledTimes(2);
+});
+
+async function withAnswerDatabase(
+  selection: 'candidates' | 'research' | undefined,
+  run: (store: PGliteClient) => Promise<void>,
+) {
+  const store = new PGlite();
+  try {
+    await store.exec(`
+      create table artist_research_jobs (
+        id uuid primary key, artist_id uuid not null, kind text not null,
+        status text not null, state jsonb not null
+      );
+      create table artist_question_answers (
+        job_id uuid not null, artist_id uuid not null, question_hash text not null,
+        status text not null, claim_token uuid not null, claim_until timestamptz not null,
+        attempts integer not null check (attempts between 0 and 3),
+        result jsonb, failure_stage text, expires_at timestamptz not null,
+        updated_at timestamptz not null default now(),
+        primary key (job_id,question_hash),
+        check ((status='verified' and jsonb_typeof(result)='object') or
+          (status<>'verified' and result is null))
+      );
+    `);
+    await store.query(`insert into artist_research_jobs values ($1,$2,'question_research','done',$3::jsonb)`,
+      [input.jobId, input.artistId, JSON.stringify({ stage: 'complete', ...(selection ? { selection } : {}) })]);
+    await store.query(`insert into artist_question_answers
+      (job_id,artist_id,question_hash,status,claim_token,claim_until,attempts,expires_at)
+      values ($1,$2,$3,'waiting','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',now(),1,now()+interval '24 hours')`,
+      [input.jobId, input.artistId, getResearchQuestionHash(input.question)]);
+    const dialect = new PgDialect();
+    execute.mockImplementation((async (query: Parameters<typeof db.execute>[0]) => {
+      const compiled = dialect.sqlToQuery(query as SQL);
+      return (await store.query(compiled.sql, compiled.params)).rows;
+    }) as never);
+    await run(store);
+  } finally {
+    await store.close();
+  }
+}
+
+it.each([undefined, 'candidates'] as const)("does not lease stale %s references after the same job completed research", async selection => {
+  await withAnswerDatabase('research', async store => {
+    expect(await getOrDraftResearchAnswer({ ...input, selection })).toEqual({ state: 'drafting' });
+    expect(draft).not.toHaveBeenCalled();
+    expect((await store.query('select status,attempts,result from artist_question_answers')).rows)
+      .toEqual([{ status: 'waiting', attempts: 1, result: null }]);
+  });
+});
+
+it.each(['pending', 'running'])("does not lease an answer while the research job is %s", async status => {
+  await withAnswerDatabase('research', async store => {
+    await store.query('update artist_research_jobs set status=$1', [status]);
+    expect(await getOrDraftResearchAnswer({ ...input, selection: 'research' })).toEqual({ state: 'drafting' });
+    expect(draft).not.toHaveBeenCalled();
+    expect((await store.query('select attempts from artist_question_answers')).rows).toEqual([{ attempts: 1 }]);
+  });
+});
+
+it.each(['pending', 'done'])("does not publish a candidate draft if continuation changed the job during the model call (research %s)", async status => {
+  await withAnswerDatabase('candidates', async store => {
+    draft.mockImplementationOnce(async () => {
+      await store.query('update artist_research_jobs set status=$1,state=$2::jsonb',
+        [status, JSON.stringify({ stage: status === 'done' ? 'complete' : 'checking_saved', selection: 'research' })]);
+      return result;
+    });
+    expect(await getOrDraftResearchAnswer({ ...input, selection: 'candidates' })).toEqual({ state: 'drafting' });
+    expect(draft).toHaveBeenCalledTimes(1);
+    expect((await store.query('select status,attempts,result from artist_question_answers')).rows)
+      .toEqual([{ status: 'drafting', attempts: 2, result: null }]);
+  });
+});
+
+it.each([undefined, 'candidates', 'research'] as const)("retains the registered expiry and attempt count while drafting in matching phase %s", async selection => {
+  await withAnswerDatabase(selection, async store => {
+    const before = (await store.query<{ expires_at: string; question_hash: string }>('select expires_at::text,question_hash from artist_question_answers')).rows[0];
+    expect(await getOrDraftResearchAnswer({ ...input, selection })).toEqual({ state: 'ready', result });
+    const after = (await store.query('select expires_at::text,question_hash,attempts,status from artist_question_answers')).rows[0];
+    expect(after).toEqual({ ...before, attempts: 2, status: 'verified' });
+    expect(draft).toHaveBeenCalledTimes(1);
+  });
 });

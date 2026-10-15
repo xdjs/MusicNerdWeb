@@ -49,6 +49,7 @@ type Row = {
 type Outcome =
   | { state: "ready"; result: Omit<z.infer<typeof saved>, "basis"> }
   | { state: "drafting" }
+  | { state: "continuing" }
   | { state: "failed"; stage: string; retryable: boolean }
   | { state: "unregistered" }
   | { state: "unavailable" };
@@ -65,6 +66,8 @@ export async function getOrDraftResearchAnswer(input: {
   jobId: string;
   question: string;
   references: ResearchReference[];
+  /** API selection phase for these exact references; absent on legacy jobs. */
+  selection?: "candidates" | "research";
   signal?: AbortSignal;
   /** Internal hash binding; read-only reuse must never acquire a drafting lease. */
   readOnlyQuestionHash?: string;
@@ -74,6 +77,16 @@ export async function getOrDraftResearchAnswer(input: {
   const legacyQuestionHash = input.readOnlyQuestionHash ?? hash(question);
   let questionHash = currentQuestionHash;
   const token = randomUUID();
+  // Lock the job before mutating its answer, matching the API continuation's
+  // job-first order. The phase is monotonic: old candidate references must not
+  // acquire or commit after this same job has moved on to research.
+  const eligibleJob = sql`
+    select id from artist_research_jobs
+    where id=${jobId}::uuid and artist_id=${artistId}::uuid
+      and kind='question_research' and status='done'
+      and state->>'stage'='complete'
+      and (state->>'selection') is not distinct from ${input.selection ?? null}::text
+    for update`;
   // Opportunistic physical cleanup; the expiry index keeps this bounded. Job
   // and artist deletion also cascade, including when no visitor returns.
   await db.execute(sql`delete from artist_question_answers where expires_at < now()`);
@@ -88,6 +101,10 @@ export async function getOrDraftResearchAnswer(input: {
     if (!row) return { state: "unregistered" };
     // Resume the registered policy in place; never reset attempts or create a new lease row.
     questionHash = row.question_hash;
+    // A continuation preserves the verified zero-source result until the API
+    // transition succeeds. Resume that transition instead of replaying it or
+    // spending another drafting attempt, including after a lease expires.
+    if (row.failure_stage === "candidate_continuation") return { state: "continuing" };
     if (row.status === "verified") {
       const parsed = saved.safeParse(row.result);
       if (!parsed.success) return { state: "unavailable" };
@@ -130,6 +147,7 @@ export async function getOrDraftResearchAnswer(input: {
         ? { state: "failed", stage: row.failure_stage ?? "draft", retryable: true }
         : { state: "drafting" };
     const claimed = await db.execute<{ claim_token: string }>(sql`
+      with eligible_job as materialized (${eligibleJob})
       update artist_question_answers
       set status='drafting',claim_token=${token}::uuid,
         claim_until=now()+interval '70 seconds',attempts=attempts+1,
@@ -138,6 +156,7 @@ export async function getOrDraftResearchAnswer(input: {
         and question_hash=${questionHash}
         and (status='waiting' or (status in ('drafting','failed') and claim_until<now()))
         and attempts<3 and expires_at>now()
+        and exists (select 1 from eligible_job)
       returning claim_token`);
     ownsLease = claimed.length === 1;
   }
@@ -161,12 +180,14 @@ export async function getOrDraftResearchAnswer(input: {
     if (result.sources.length !== result.basis.length)
       throw Object.assign(new Error("Cited reference unavailable"), { verificationStage: "store_result" });
     const committed = await db.execute<{ job_id: string }>(sql`
+      with eligible_job as materialized (${eligibleJob})
       update artist_question_answers
       set status='verified',result=${JSON.stringify(result)}::text::jsonb,
         failure_stage=null,updated_at=now()
       where job_id=${jobId}::uuid and artist_id=${artistId}::uuid
         and question_hash=${questionHash} and claim_token=${token}::uuid
         and status='drafting' and claim_until>now() and expires_at>now()
+        and exists (select 1 from eligible_job)
       returning job_id`);
     if (!committed.length) return { state: "drafting" };
     const publicResult = {
