@@ -139,7 +139,7 @@ export async function getOrDraftResearchAnswer(input: {
     }
     if (input.readOnlyQuestionHash) return (row.status === "waiting" && Date.now() - Date.parse(row.claim_until) < 90_000) || (row.status === "drafting" && Date.parse(row.claim_until) > Date.now())
       ? { state: "drafting" } : { state: "unavailable" };
-    if (row.attempts >= 3 && (row.status === "failed" ||
+    if (row.attempts >= 3 && (row.status === "waiting" || row.status === "failed" ||
       (row.status === "drafting" && Date.parse(row.claim_until) <= Date.now())))
       return { state: "failed", stage: row.failure_stage ?? "draft", retryable: false };
     if (row.status !== "waiting" && Date.parse(row.claim_until) > Date.now())

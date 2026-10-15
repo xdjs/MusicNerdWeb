@@ -308,3 +308,9 @@ it.each([undefined, 'candidates', 'research'] as const)("retains the registered 
     expect(draft).toHaveBeenCalledTimes(1);
   });
 });
+
+it('does not wait forever when continuation retained an exhausted answer budget', async () => {
+  execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ question_hash:getResearchQuestionHash(input.question), status:'waiting', attempts:3, claim_until:new Date(0).toISOString() }] as never);
+  expect(await getOrDraftResearchAnswer({...input,selection:'research'})).toEqual({state:'failed',stage:'draft',retryable:false});
+  expect(draft).not.toHaveBeenCalled();
+});
