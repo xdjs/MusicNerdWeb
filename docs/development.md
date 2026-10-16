@@ -53,6 +53,12 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   links, interview and related sections. Its server components query existing data; client
   islands handle dialogs and interaction. The unreleased Latest experiment and its planned
   read path are in [artist-latest.md](artist-latest.md); that implementation remains local.
+  Pending Lore sources are read only after the existing approved-owner/admin check allows
+  editing. Visitors, unrelated signed-in users and pending claimants do not wait for this
+  private review query. Approved sources remain part of the public page; editors still receive
+  both sets with contributor attribution. This removes one unnecessary blocking read from
+  [#1261](https://github.com/xdjs/MusicNerdWeb/issues/1261), and is independent of the
+  transaction-pool/driver repair shipped in #1523.
 - **Queries:** server actions in `src/app/actions/` and handlers in `src/app/api/` delegate
   business logic to `src/server/utils/queries/`. Shared model types are in
   `src/server/db/DbTypes.ts`; Drizzle schema/client are beside them.
