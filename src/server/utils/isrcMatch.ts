@@ -1,4 +1,5 @@
 import { getSpotifyHeaders } from "@/server/utils/queries/externalApiQueries";
+import { spotifyFetch } from '@/server/utils/spotify/spotifyFetch';
 import { foldName } from "@/server/utils/nameFold";
 
 /**
@@ -43,7 +44,7 @@ async function getJson(url: string, headers?: Record<string, string>): Promise<R
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-        const res = await fetch(url, { headers, signal: controller.signal });
+        const res = await (new URL(url).hostname === 'api.spotify.com' ? spotifyFetch : fetch)(url, { headers, signal: controller.signal });
         if (!res.ok) return null;
         return await res.json() as Record<string, unknown>;
     } catch {

@@ -88,3 +88,14 @@ it("includes child-activity jobs but ignores unrelated questions", async () => {
   );
   expect(await check()).toMatchObject({ state: "complete" });
 });
+it("keeps observing a pending Spotify match and includes its final link", async () => {
+  await client.exec(`update artist_research_jobs set status='done';
+    insert into artist_research_jobs values('${artist}','${event}','spotify_match','pending',0,'{"directoryActivityId":"${event}"}');`);
+  expect(await check()).toMatchObject({ state: "active" });
+  const before = await check();
+  await client.exec(`update artist_research_jobs set status='done' where kind='spotify_match'`);
+  db.query.artists.findFirst = jest.fn().mockResolvedValue({ id: artist, deezer: "123", spotify: "4ug6fLrAtZwptxMzS1ey1r" });
+  const after = await check();
+  expect(after).toMatchObject({ state: "complete" });
+  expect(after?.revision).not.toBe(before?.revision);
+});

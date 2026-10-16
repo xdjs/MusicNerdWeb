@@ -40,7 +40,7 @@ export async function getDirectoryDiscoveryStatus(
         )) as awaiting_handoff
       from artist_research_jobs j
       left join artist_activity_events activity on activity.id=j.activity_id
-      where j.artist_id=a.id and j.kind in ('source_search','lore_refresh','social_ingest','caption_extract','source_extract')
+      where j.artist_id=a.id and j.kind in ('source_search','lore_refresh','social_ingest','caption_extract','source_extract','spotify_match')
         and (j.activity_id=creation.id or activity.parent_activity_id=creation.id
           or j.state->>'directoryActivityId'=creation.id::text
           or j.state->>'creationActivityId'=creation.id::text)

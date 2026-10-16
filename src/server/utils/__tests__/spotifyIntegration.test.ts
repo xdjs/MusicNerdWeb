@@ -147,7 +147,7 @@ describe('Spotify API Integration', () => {
             // Verify correct API call was made
             expect(mockedAxios.get).toHaveBeenCalledWith(
                 'https://api.spotify.com/v1/artists/test-spotify-id',
-                { headers: mockHeaders.headers }
+                { headers: mockHeaders.headers, timeout: 5000 }
             );
         });
 
@@ -260,3 +260,6 @@ describe('Spotify API Integration', () => {
         });
     });
 });
+
+// Provider behavior is exercised separately from the durable-store guard tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

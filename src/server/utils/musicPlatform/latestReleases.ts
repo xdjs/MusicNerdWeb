@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { spotifyGet } from '@/server/utils/spotify/spotifyGet';
 import type { ProfileLink } from '@/lib/artist/artistProfileLinks';
 import { latestDateSortTime } from '@/lib/artist/artistLatest';
 import type { Artist } from '@/server/db/DbTypes';
@@ -110,7 +111,7 @@ const getCatalog = (platform: LatestRelease['platform'], id: string, fresh = fal
         signal.throwIfAborted();
         const response = platform === 'deezer'
             ? await axios.get(`https://api.deezer.com/artist/${id}/albums?limit=${CATALOG_LIMIT}`, config)
-            : await axios.get(
+            : await spotifyGet(
                 `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&limit=${CATALOG_LIMIT}&market=US`,
                 { ...headers, ...config },
             );
