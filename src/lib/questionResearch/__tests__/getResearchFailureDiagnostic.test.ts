@@ -12,3 +12,8 @@ it("bounds provider metadata and discards all unknown/private fields", () => {
     expect(getResearchFailureDiagnostic(error)).toEqual({ stage: "store_result", category: "operation_failed", status: null, finishReason: null });
   }
 });
+
+it("recognizes the evidence API revision-conflict response only at the original-read stage", () => {
+  expect(getResearchFailureDiagnostic({ status: 409, verificationStage: "fetch_original" }).category).toBe("original_mismatch");
+  expect(getResearchFailureDiagnostic({ status: 409, verificationStage: "draft" }).category).toBe("provider_error");
+});

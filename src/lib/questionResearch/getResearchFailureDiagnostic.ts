@@ -16,7 +16,8 @@ export function getResearchFailureDiagnostic(error: unknown, fallbackStage = "st
   const status = typeof rawStatus === "number" && Number.isInteger(rawStatus) && rawStatus >= 400 && rawStatus <= 599 ? rawStatus : null;
   const stage = typeof e.verificationStage === "string" && stages.has(e.verificationStage)
     ? e.verificationStage : stages.has(fallbackStage) ? fallbackStage : "store_result";
-  const category = typeof e.verificationCode === "string" && verificationCodes.has(e.verificationCode)
+  const category = stage === "fetch_original" && status === 409 ? "original_mismatch"
+    : typeof e.verificationCode === "string" && verificationCodes.has(e.verificationCode)
     ? e.verificationCode
     : error instanceof Error && errorNames.has(error.name) ? error.name
     : status !== null ? "provider_error" : "operation_failed";
