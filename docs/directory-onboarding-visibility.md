@@ -89,3 +89,33 @@ article does not grant this exception. Existing saved values, conflicting owners
 multiple candidate accounts for one platform, rejected pages and deadlines still
 block adoption. This does not turn album, song or playlist URLs into artist links,
 or automatically repair older records whose artist destination was never found.
+
+### Live directory discovery after add (#1524)
+
+Only a successful new-artist commit schedules an artist-scoped `source_search`
+wake through Next `after`. The awaited, time-bounded wake uses the existing API
+worker and lease; notification delivery runs independently. Wake failure cannot
+undo artist creation, create another job, or hide its usable profile. Production
+cron remains the durable recovery path. Vercel preview/custom staging deployments
+do not receive cron invocations, so preview downstream execution needs an explicit,
+authorized worker check; a pending queue is not evidence of completed discovery.
+
+For the first 24 hours, the adding account or an admin can read a minimal discovery
+status and fingerprint of the already-public Links/Support destinations. An open
+profile polls that read-only projection for at most ten minutes, pauses while
+hidden, aborts requests on exit, and refreshes when public links change, plus once on terminal completion to show
+new Latest material. Unchanged active polls do not refresh the page.
+Nothing in the page read or polling route starts research. The endpoint returns no
+sources, passages, actor details or job payloads. About and Lore retain their
+existing claim/approval boundaries.
+
+Completion waits for the directory source search and jobs in its creation lineage,
+including downstream preparation/social jobs. The API always queues caption
+extraction after normal social completion, even when it found no posts: the observer
+keeps that short done-parent/missing-child handoff active rather than stopping early.
+A failed enqueue still requires worker recovery; this reader does not repair it.
+A queued downstream job remains
+active; a failed job or changed claim is not called complete. The final link
+snapshot is read after terminal status, so writes at completion are still shown.
+The observer timeout stops watching, not the durable work. Deferred Spotify
+matching remains separate work in #1528 / MusicNerdAPI#45.

@@ -2,6 +2,8 @@
 import { jest } from "@jest/globals";
 
 const mockAfter = jest.fn();
+const mockWakeDirectoryDiscovery = jest.fn();
+jest.mock("@/server/utils/directoryDiscovery/wakeDirectoryDiscovery", () => ({ wakeDirectoryDiscovery: mockWakeDirectoryDiscovery }));
 jest.mock("next/server", () => ({ after: mockAfter }));
 const mockSpotifyGetArtist = jest.fn();
 const mockSpotifyGetArtistIdentity = jest.fn();
@@ -196,6 +198,7 @@ describe("addArtist identity resolution", () => {
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when a mapping owner has a different first-class platform ID", async () => {
@@ -220,6 +223,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the canonical artist when the platform ID is owned by a mapping", async () => {
@@ -240,6 +244,7 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict without writing when direct and mapped owners disagree", async () => {
@@ -263,6 +268,7 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("creates a separate homonymous artist only when forceCreate is set", async () => {
@@ -446,6 +452,7 @@ describe("addArtist identity resolution", () => {
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("offers the owner of a discovered reciprocal ID instead of creating a duplicate", async () => {
@@ -473,6 +480,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("identifies MusicBrainz as the source when its counterpart already exists", async () => {
@@ -503,6 +511,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("recognizes a reciprocal ID owner recorded only in the mapping table", async () => {
@@ -531,6 +540,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when submitted and reciprocal IDs have different owners", async () => {
@@ -552,6 +562,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the existing artist when both platform IDs have the same owner", async () => {
@@ -576,6 +587,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("does not let forceCreate bypass reciprocal platform ownership", async () => {
@@ -596,6 +608,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the race winner when a conflict-safe insert creates no row", async () => {
@@ -670,12 +683,24 @@ describe("addArtist identity resolution", () => {
             new Promise(resolve => setTimeout(() => resolve({ status: "timed_out" }), 50)),
         ]);
         expect(result).toMatchObject({ status: "success", artistId: "new-artist" });
-        expect(mockAfter).toHaveBeenCalledTimes(1);
+        expect(mockAfter).toHaveBeenCalledTimes(2);
+        expect(mockWakeDirectoryDiscovery).not.toHaveBeenCalled();
+        await mockAfter.mock.calls[0][0]();
+        expect(mockWakeDirectoryDiscovery).toHaveBeenCalledWith("new-artist");
         expect(mockGetUserById).not.toHaveBeenCalled();
         expect(mockSendDiscordMessage).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).toHaveBeenCalledWith(mockDb, "new-artist", "user-1");
         expect(mockSpotifyGetArtistIdentity).toHaveBeenCalledWith("spotify-123");
         expect(mockSpotifyGetArtist).not.toHaveBeenCalled();
+    });
+
+    it("does not schedule a wake when the directory transaction rolls back", async () => {
+        const { addArtist, mockDb } = await setup();
+        mockInsertReturning(mockDb, [artist({ id: "new-artist", spotify: "spotify-123" })]);
+        mockQueueDirectoryDiscovery.mockRejectedValue(new Error("queue commit failed"));
+        expect(await addArtist("spotify-123", "spotify", { forceCreate: true })).toMatchObject({status:"error"});
+        expect(mockAfter).not.toHaveBeenCalled();
+        expect(mockWakeDirectoryDiscovery).not.toHaveBeenCalled();
     });
 
     it("preserves the created-at timestamp in the artist-added notification", async () => {
@@ -691,8 +716,8 @@ describe("addArtist identity resolution", () => {
 
         await addArtist("spotify-123", "spotify", { forceCreate: true });
 
-        expect(mockAfter).toHaveBeenCalledTimes(1);
-        await mockAfter.mock.calls[0][0]();
+        expect(mockAfter).toHaveBeenCalledTimes(2);
+        await mockAfter.mock.calls[1][0]();
         expect(mockSendDiscordMessage).toHaveBeenCalledWith(
             `tester added new artist named: Jonathan Pape (Submitted spotifyId: spotify-123) ${createdAt}`,
         );

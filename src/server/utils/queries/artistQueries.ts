@@ -1,5 +1,6 @@
 import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { after } from "next/server";
+import { wakeDirectoryDiscovery } from "@/server/utils/directoryDiscovery/wakeDirectoryDiscovery";
 import { queueDirectoryDiscovery } from "./queueDirectoryDiscovery";
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
 import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
@@ -715,10 +716,20 @@ export async function addArtist(
             };
         });
 
-        if (result.status === "success" && session.user?.id) {
+        if (result.status === "success" && result.artistId && session.user?.id) {
             // Creation and its durable discovery job have already committed. A
             // slow notification lookup/webhook must not hold the profile handoff.
             const userId = session.user.id;
+            const committedArtistId = result.artistId;
+            try {
+                after(async () => {
+                    if (!await wakeDirectoryDiscovery(committedArtistId)) {
+                        console.warn("[directoryDiscovery] Wake did not finish; committed work remains queued.");
+                    }
+                });
+            } catch {
+                console.warn("[directoryDiscovery] Wake could not be scheduled; committed work remains queued.");
+            }
             try {
                 after(async () => {
                     try {
