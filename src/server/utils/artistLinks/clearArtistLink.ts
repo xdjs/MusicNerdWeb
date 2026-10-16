@@ -1,3 +1,4 @@
+import { cancelSpotifyMatchForIdentityEdit } from '../spotify/cancelSpotifyMatchForIdentityEdit';
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
 import { artists } from "@/server/db/schema";
@@ -40,6 +41,10 @@ async function clearArtistLinkWithExecutor(
 
   // Safe: assertWritable() above guarantees columnName is a known text column from the whitelist
   const oldValue = getArtistLinkValue(artist, columnName);
+
+  if ((columnName === 'spotify' || columnName === 'deezer')) {
+    await cancelSpotifyMatchForIdentityEdit(database, artistId);
+  }
 
   // See setArtistLink: link changes no longer null/regenerate the bio.
   await database.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);

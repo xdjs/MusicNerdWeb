@@ -8,7 +8,7 @@ it('keeps the creation event and fenced research job in one statement on the sup
   expect(sql).toContain('with initiating_event');
   expect(sql).toContain("'directory_add', 'directory_add'");
   expect(sql).toContain("'claimId', null, 'purpose', 'directory_preparation'");
-  expect(params).toEqual(['artist-id', 'user-id', 'artist-id']);
+  expect(params).toEqual(['artist-id', 'user-id', 'artist-id', 'artist-id']);
 });
 
 it('propagates queue failure so artist creation cannot commit without its research job', async () => {

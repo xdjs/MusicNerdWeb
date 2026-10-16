@@ -110,3 +110,6 @@ describe('spotifyArtistFromDeezer', () => {
         await expect((await subject())('1', 'Pete Rango')).resolves.toBeNull();
     });
 });
+
+// Provider behavior is exercised separately from the durable-store guard tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

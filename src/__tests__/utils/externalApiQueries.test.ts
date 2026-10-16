@@ -155,7 +155,7 @@ describe('externalApiQueries', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'https://api.spotify.com/v1/artists/test_artist_id',
-        mockHeaders
+        { ...mockHeaders, timeout: 5000 }
       );
 
       expect(result).toEqual({
@@ -546,7 +546,7 @@ describe('externalApiQueries', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'https://api.spotify.com/v1/artists/test_artist_id/albums?include_groups=album%2Csingle',
-        mockHeaders
+        { ...mockHeaders, timeout: 5000 }
       );
 
       expect(result).toBe(25);
@@ -606,7 +606,7 @@ describe('externalApiQueries', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'https://api.spotify.com/v1/artists/test_artist_id/top-tracks',
-        mockHeaders
+        { ...mockHeaders, timeout: 5000 }
       );
 
       expect(result).toBe('top_track_id');
@@ -670,3 +670,6 @@ describe('externalApiQueries', () => {
     });
   });
 });
+
+// Cooldown persistence has its own database and request-guard regression tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

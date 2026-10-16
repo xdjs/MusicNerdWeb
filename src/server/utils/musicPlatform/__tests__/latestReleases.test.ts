@@ -266,3 +266,6 @@ it('combines matching releases from both known artist catalogs and keeps distinc
     expect(result.find(release => release.title.includes('Deluxe'))?.listeningLinks).toHaveLength(1);
 });
 });
+
+// Provider behavior is exercised separately from the durable-store guard tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

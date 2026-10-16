@@ -1,5 +1,5 @@
 {
-  "id": "37fcc5d8-307c-469a-a206-25d58a50724c",
+  "id": "a68505d6-cfc3-476e-ac62-e117bff11610",
   "prevId": "74bbfb1d-adff-4762-ae78-9d8d5625c2b9",
   "version": "7",
   "dialect": "postgresql",
@@ -3021,13 +3021,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "failure_diagnostics": {
-          "name": "failure_diagnostics",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
         "expires_at": {
           "name": "expires_at",
           "type": "timestamp with time zone",
@@ -3155,10 +3148,6 @@
         "artist_question_answers_attempts": {
           "name": "artist_question_answers_attempts",
           "value": "\"artist_question_answers\".\"attempts\" between 0 and 3"
-        },
-        "artist_question_answers_diagnostics": {
-          "name": "artist_question_answers_diagnostics",
-          "value": "case when jsonb_typeof(\"artist_question_answers\".\"failure_diagnostics\") = 'array' then jsonb_array_length(\"artist_question_answers\".\"failure_diagnostics\") <= 3 and octet_length(\"artist_question_answers\".\"failure_diagnostics\"::text) <= 2048 else false end"
         },
         "artist_question_answers_result": {
           "name": "artist_question_answers_result",
@@ -4033,7 +4022,7 @@
       "checkConstraints": {
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
-          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research')"
+          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match')"
         },
         "artist_research_jobs_status_check": {
           "name": "artist_research_jobs_status_check",
@@ -6627,6 +6616,67 @@
           "to": [
             "mnweb"
           ],
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.provider_request_cooldowns": {
+      "name": "provider_request_cooldowns",
+      "schema": "",
+      "columns": {
+        "provider_key": {
+          "name": "provider_key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "blocked_until": {
+          "name": "blocked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "mnweb_select_provider_request_cooldowns": {
+          "name": "mnweb_select_provider_request_cooldowns",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true"
+        },
+        "mnweb_insert_provider_request_cooldowns": {
+          "name": "mnweb_insert_provider_request_cooldowns",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "mnweb"
+          ],
+          "withCheck": "true"
+        },
+        "mnweb_update_provider_request_cooldowns": {
+          "name": "mnweb_update_provider_request_cooldowns",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "mnweb"
+          ],
+          "using": "true",
           "withCheck": "true"
         }
       },

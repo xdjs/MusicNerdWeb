@@ -151,7 +151,7 @@ No error messages, causes, prompts, model outputs, source text or rejection pros
 field. Diagnostics are never selected into the public answer response. Existing server-only
 role grants and application authorization remain authoritative; no new endpoint or UI.
 
-Migration 0050 must precede dependent code on staging and production. Verify the new
+Migration 0051 must precede dependent code on staging and production. Verify the new
 non-null empty-array default and count/size constraint, existing RLS/grants as `mnweb`,
 and denial to public roles. The additive column does not change old code's inserts or
 updates. Historical failures cannot be reconstructed. A crashed attempt with no catch

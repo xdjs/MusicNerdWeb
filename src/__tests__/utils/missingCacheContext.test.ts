@@ -51,3 +51,6 @@ describe('getSpotifyHeaders — unstable_cache outside a request context', () =>
         await expect(getSpotifyHeaders()).rejects.toThrow('Redis cache connection refused');
     });
 });
+
+// Cooldown persistence has its own database and request-guard regression tests.
+jest.mock('@/server/utils/spotify/runSpotifyRequest', () => ({ runSpotifyRequest: <T>(request: () => Promise<T>) => request() }));

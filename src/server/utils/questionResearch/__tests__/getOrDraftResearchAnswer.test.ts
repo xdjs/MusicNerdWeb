@@ -251,7 +251,7 @@ async function withAnswerDatabase(
           (status<>'verified' and result is null))
       );
     `);
-    await store.exec(readFileSync("drizzle/0050_answer_failure_diagnostics.sql", "utf8"));
+    await store.exec(readFileSync("drizzle/0051_answer_failure_diagnostics.sql", "utf8"));
     await store.query(`insert into artist_research_jobs values ($1,$2,'question_research','done',$3::jsonb)`,
       [input.jobId, input.artistId, JSON.stringify({ stage: 'complete', ...(selection ? { selection } : {}) })]);
     await store.query(`insert into artist_question_answers
