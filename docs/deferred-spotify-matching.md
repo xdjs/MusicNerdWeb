@@ -21,3 +21,16 @@ The API job defers until the deadline without burning its failure-attempt budget
 Apply migration 0050 to staging, then pair the Web enqueue/cooldown preview with the API runner preview. Verify the real handoff plus controlled provider outcomes without hammering Spotify during a live limit. Apply the migration to production before promoting the paired implementations. Navigation PR #1526 and verified-hub guard API #44 are independently scoped; they do not complete deferred matching.
 
 The bounded new-profile observer includes the Spotify matching job, so finishing source discovery does not stop link updates before a pending match finishes. Its existing ten-minute observation window still applies; matches that finish later appear on the next page load.
+
+## Cached Web lookups after cooldown
+
+October 16 follow-up to #1524: artist, image and catalog-name caches store only
+successful provider reads. Temporary failures are translated to the existing
+caller-facing fallback outside the cache. Albums and top tracks cache separately,
+so one successful half remains usable while the failed half can recover on the
+next lookup. Legitimate successful empty catalogs/images remain cacheable.
+Versioned cache keys bypass empty results saved by the previous implementation;
+existing cache tags remain valid. No database migration or new research is needed.
+The single-artist `getSpotifyData` route also handles token-acquisition cooldowns:
+it returns HTTP 503 with Retry-After and no-store, rather than an uncaught 500.
+Other acquisition failures use the existing 502 shape and are not cacheable.

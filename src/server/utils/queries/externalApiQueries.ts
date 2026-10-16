@@ -6,7 +6,7 @@ import queryString from 'querystring';
 import { cachedOrDirect } from '@/server/lib/cachedOrDirect';
 
 
-type SpotifyHeaderType = {
+export type SpotifyHeaderType = {
     headers: { 
         Authorization: string;
         'x-token-expiry'?: string;
@@ -140,70 +140,7 @@ export type SpotifyArtist = {
     };
 }
 
-export const getSpotifyArtist = cachedOrDirect(async (artistId: string, headers: SpotifyHeaderType): Promise<SpotifyArtistApiResponse> => {
-    try {
-        console.debug("Fetching Spotify artist with ID:", artistId);
-        
-        if (!headers?.headers?.Authorization) {
-            console.error("Missing Spotify authorization header");
-            return { error: "Spotify authentication failed", data: null };
-        }
-
-        // Check if token is expired or about to expire
-        if (isTokenExpired(headers)) {
-            console.debug("Token expired or about to expire, fetching new token");
-            headers = await getSpotifyHeaders();
-        }
-
-        const { data } = await spotifyGet<SpotifyArtist>(
-            `https://api.spotify.com/v1/artists/${artistId}`,
-            headers
-        );
-        
-        // Validate the response has all required fields
-        if (!data) {
-            console.error("No data returned from Spotify API");
-            return { error: "No data returned from Spotify", data: null };
-        }
-
-        if (!data.name || !data.id) {
-            console.error("Invalid Spotify artist data - missing required fields:", data);
-            return { error: "Invalid artist data format from Spotify", data: null };
-        }
-        
-        // Ensure arrays are initialized even if empty
-        const safeData = {
-            ...data,
-            images: Array.isArray(data.images) ? data.images : [],
-            genres: Array.isArray(data.genres) ? data.genres : [],
-            followers: data.followers || { total: 0 }
-        };
-        
-        return { data: safeData, error: null };
-    } catch (e: any) {
-        console.error("Error fetching Spotify data for artist", {
-            artistId,
-            error: e?.response?.data || e,
-            status: e?.response?.status
-        });
-        
-        if (!e.response) {
-            return { error: "Network error while fetching artist data", data: null };
-        }
-        
-        if (e.response?.status === 404 || e.response?.data?.error?.message === "invalid id") {
-            return { error: "Invalid Spotify ID", data: null };
-        }
-        if (e.response?.status === 401) {
-            return { error: "Spotify authentication failed", data: null };
-        }
-        if (e.response?.status === 429) {
-            return { error: "Rate limit exceeded, please try again later", data: null };
-        }
-        
-        return { error: "Failed to fetch artist data from Spotify", data: null };
-    }
-}, ["spotify-artist"], { tags: ["spotify-artist"], revalidate: 60 * 60 * 24 });
+export { getSpotifyArtist } from '@/server/utils/spotify/getSpotifyArtist';
 
 export const getSpotifyArtists = async (artistIds: string[], headers: SpotifyHeaderType) => {
     // Spotify allows max 50 IDs per request
@@ -222,19 +159,7 @@ export const getSpotifyArtists = async (artistIds: string[], headers: SpotifyHea
     return allArtists;
   };
 
-export const getSpotifyImage = cachedOrDirect(async (artistSpotifyId: string | null, artistId: string="", spotifyHeaders: SpotifyHeaderType): Promise<ArtistSpotifyImage> => {
-    if(!artistSpotifyId) return { artistImage: "", artistId };
-    try {
-        const artistData = await spotifyGet(
-            `https://api.spotify.com/v1/artists/${artistSpotifyId}`,
-            { ...spotifyHeaders, timeout: 2000 }
-        );
-        return { artistImage: artistData.data.images[0].url, artistId };
-    } catch (error) {
-        console.error(`Error fetching image for artist ${artistSpotifyId}`);
-        return { artistImage: "", artistId };
-    }
-}, ["spotify-image"], { tags: ["spotify-image"], revalidate: 60 * 60 * 24 });
+export { getSpotifyImage } from '@/server/utils/spotify/getSpotifyImage';
 
 export const getArtistWiki = cachedOrDirect(async (wikiId: string) => {
     // Decode any percent-encoded characters (e.g. Yun%C3%A8_Pinku → Yunè_Pinku)
@@ -391,26 +316,4 @@ export async function getSpotifyCatalogDetail(
     }
 }
 
-export const getSpotifyCatalogNames = cachedOrDirect(async (
-    id: string | null,
-    headers: SpotifyHeaderType
-): Promise<{ releases: string[]; topTracks: string[] }> => {
-    if (!id) return { releases: [], topTracks: [] };
-    try {
-        const [albumsRes, tracksRes] = await Promise.allSettled([
-            spotifyGet(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album%2Csingle&limit=20&market=US`, headers),
-            spotifyGet(`https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`, headers),
-        ]);
-        const releases = albumsRes.status === "fulfilled"
-            ? Array.from(new Set(((albumsRes.value.data.items ?? []) as Array<{ name?: string }>).map(a => a.name).filter((n): n is string => !!n))).slice(0, 15)
-            : [];
-        const topTracks = tracksRes.status === "fulfilled"
-            ? ((tracksRes.value.data.tracks ?? []) as Array<{ name?: string }>).map(t => t.name).filter((n): n is string => !!n).slice(0, 8)
-            : [];
-        return { releases, topTracks };
-    } catch (e) {
-        console.error(`Error fetching Spotify catalog names for artist`, e);
-        return { releases: [], topTracks: [] };
-    }
-}, ["spotify-catalog-names"], { tags: ["spotify-catalog-names"], revalidate: 60 * 60 * 24 });
-
+export { getSpotifyCatalogNames } from '@/server/utils/spotify/getSpotifyCatalogNames';
