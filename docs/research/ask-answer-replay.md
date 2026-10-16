@@ -135,3 +135,24 @@ rejection must reach the bounded repair step rather than becoming a schema error
 it exceeds 500 characters. Factual decisions, exact quotation checks and current-source checks
 remain required. This is a preview experiment until paired Web/API and browser timing pass;
 isolated model timings exclude planning, database and network latency.
+
+## Safe failed-attempt history (#1510)
+
+The existing answer row retains `failure_diagnostics` separately from its checked
+result. A failed lease owner atomically appends its database attempt number, database
+timestamp, allowlisted stage/category, optional HTTP status (400–599), and allowlisted
+finish reason. At most three entries and 2048 serialized bytes are retained. Successful
+retry and candidate continuation preserve prior diagnostics; row expiry (24 hours) and
+cascading deletion remain unchanged. This is bounded operational evidence, not a log archive.
+
+Categories distinguish original mismatch, quote/claim rejection, validation/structured-output
+errors, abort/timeout, and HTTP provider failures. Unknown errors become `operation_failed`.
+No error messages, causes, prompts, model outputs, source text or rejection prose enter this
+field. Diagnostics are never selected into the public answer response. Existing server-only
+role grants and application authorization remain authoritative; no new endpoint or UI.
+
+Migration 0051 must precede dependent code on staging and production. Verify the new
+non-null empty-array default and count/size constraint, existing RLS/grants as `mnweb`,
+and denial to public roles. The additive column does not change old code's inserts or
+updates. Historical failures cannot be reconstructed. A crashed attempt with no catch
+handler still has only the existing lease/attempt evidence; no new retries are introduced.

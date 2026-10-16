@@ -1,3 +1,4 @@
+import { getResearchFailureDiagnostic } from "@/lib/questionResearch/getResearchFailureDiagnostic";
 import { deduplicateAnswerOriginals } from "@/lib/questionResearch/deduplicateAnswerOriginals";
 import { Output } from "ai";
 import { MODEL_ASK_CHECKER, MODEL_ASK_DRAFT } from "@/server/lib/ai/models";
@@ -66,9 +67,9 @@ export async function draftResearchAnswer(
           ref.end - ref.start !== ref.text.length ||
           p.text.slice(ref.start - p.start, ref.end - p.start) !== ref.text
         )
-          throw new Error(
+          throw Object.assign(new Error(
             "Original evidence changed or exceeds reading budget",
-          );
+          ), { verificationCode: "original_mismatch" });
         return {
           n: i + 1,
           ...p,
@@ -208,45 +209,7 @@ Return supportedSentenceNumbers containing every 1-based sentence index fully su
       suggestions: [],
     };
   } catch (error) {
-    const status =
-      typeof error === "object" &&
-      error &&
-      "status" in error &&
-      typeof error.status === "number" &&
-      Number.isInteger(error.status) &&
-      error.status >= 400 &&
-      error.status <= 599
-        ? error.status
-        : null;
-    const category =
-      typeof error === "object" &&
-      error &&
-      "verificationCode" in error &&
-      typeof error.verificationCode === "string" &&
-      ["original_mismatch", "quote_rejected", "claim_rejected"].includes(error.verificationCode)
-        ? error.verificationCode
-        : error instanceof Error &&
-            [
-              "AbortError",
-              "TimeoutError",
-              "ZodError",
-              "AI_NoObjectGeneratedError",
-              "TypeError",
-              "SyntaxError",
-            ].includes(error.name)
-          ? error.name
-          : "operation_failed";
-    const rawFinishReason = error && typeof error === "object" && "finishReason" in error
-      ? error.finishReason : null;
-    const finishReason = typeof rawFinishReason === "string" &&
-      ["stop", "length", "content-filter", "tool-calls", "error", "other", "unknown"].includes(rawFinishReason)
-      ? rawFinishReason : null;
-    console.warn("[questionResearch] answer verification failed", {
-      stage,
-      category,
-      status,
-      finishReason,
-    });
+    console.warn("[questionResearch] answer verification failed", getResearchFailureDiagnostic(error, stage));
     if (error && typeof error === "object")
       Object.assign(error, { verificationStage: stage });
     throw error;
