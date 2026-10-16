@@ -7,6 +7,7 @@ import Providers from "./_components/Providers";
 import ThemeScript from "./_components/ThemeScript";
 import { Analytics } from "@vercel/analytics/next";
 import { socialPreviewImage } from "@/lib/socialPreviewImage";
+import { socialPreviewTitle } from "@/lib/socialPreviewTitle";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -19,14 +20,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://musicnerd.net",
-    title: "Music Nerd",
+    title: socialPreviewTitle,
     description: "A crowd-sourced directory of music artists",
     images: [socialPreviewImage],
   },
   twitter: {
     card: "summary_large_image",
     site: "@musicnerdnet",
-    title: "Music Nerd",
+    title: socialPreviewTitle,
     description: "A crowd-sourced directory of music artists",
     images: [socialPreviewImage.url],
   },

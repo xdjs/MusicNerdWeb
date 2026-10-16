@@ -12,6 +12,7 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ## 2026-10-16 · [default social preview](https://github.com/xdjs/MusicNerdWeb/issues/1503)
 
+- Use “Be Curious. Stay nerdy” as the default social preview title above the URL; keep the approved thumbnail. — Pete; [contract](../social-preview.md)
 - Use the pink record sleeve on black with white sentence-case “The music is only half the story.” as the musicnerd.net thumbnail for now. — Pete; [contract](../social-preview.md)
 
 ## 2026-09-23 · [standup transcript](https://github.com/xdjs/MusicNerdWeb/pull/1342)
