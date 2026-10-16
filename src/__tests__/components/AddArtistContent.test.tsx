@@ -57,7 +57,7 @@ describe('AddArtistContent duplicate choice', () => {
         mockAddArtist.mockResolvedValueOnce(possibleDuplicate);
         render(<AddArtistContent initialArtist={initialArtist} />);
         fireEvent.click(screen.getByRole('button', { name: 'Add Artist' }));
-        return screen.findByRole('link', { name: /Add link to existing artist: Same Name/ });
+        return screen.findByRole('link', { name: /Use existing profile: Same Name/ });
     }
 
     it('links the submitted profile to a selected existing artist', async () => {
@@ -68,7 +68,7 @@ describe('AddArtistContent duplicate choice', () => {
             'href',
             `/artist/candidate-id?addLink=${encodeURIComponent(initialArtist.profileUrl)}`,
         );
-        expect(screen.getByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
     });
 
     it('disambiguates duplicate accessible names by position without exposing UUIDs', async () => {
@@ -83,10 +83,10 @@ describe('AddArtistContent duplicate choice', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add Artist' }));
 
         const first = await screen.findByRole('link', {
-            name: 'Add link to existing artist: Same Name (candidate 1 of 2)',
+            name: 'Use existing profile: Same Name (candidate 1 of 2)',
         });
         const second = screen.getByRole('link', {
-            name: 'Add link to existing artist: Same Name (candidate 2 of 2)',
+            name: 'Use existing profile: Same Name (candidate 2 of 2)',
         });
 
         expect(first).not.toHaveAccessibleName(/candidate-id/);
@@ -103,8 +103,8 @@ describe('AddArtistContent duplicate choice', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add Artist' }));
 
         expect(await screen.findByText('Wikidata links these profiles to the same artist.')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Add link to existing artist: Same Name/ })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /Use existing profile: Same Name/ })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
     });
 
     it('force-creates only after the user confirms this is a separate artist', async () => {
@@ -115,7 +115,7 @@ describe('AddArtistContent duplicate choice', () => {
             artistName: 'Same Name',
         });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Create separate artist' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add different artist' }));
 
         await waitFor(() => {
             expect(mockAddArtist).toHaveBeenNthCalledWith(
@@ -152,7 +152,7 @@ describe('AddArtistContent duplicate choice', () => {
         await submitWithDuplicate();
         let resolveCreate!: (value: unknown) => void;
         mockAddArtist.mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
-        const createButton = screen.getByRole('button', { name: 'Create separate artist' });
+        const createButton = screen.getByRole('button', { name: 'Add different artist' });
 
         act(() => {
             createButton.click();
@@ -212,7 +212,7 @@ describe('AddArtistContent duplicate choice', () => {
         let resolveCreate!: (value: unknown) => void;
         mockAddArtist.mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
 
-        fireEvent.click(screen.getByRole('button', { name: 'Create separate artist' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add different artist' }));
 
         expect(await screen.findByRole('status')).toHaveTextContent('Creating separate artist');
         expect(candidateLink).not.toBeInTheDocument();
@@ -261,7 +261,7 @@ describe('AddArtistContent duplicate choice', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add Artist' }));
 
         expect(await screen.findByText('This Spotify profile already belongs to another artist.')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
         expect(mockPush).not.toHaveBeenCalled();
     });
 });

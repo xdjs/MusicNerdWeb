@@ -95,6 +95,53 @@ describe('searchArtists API route', () => {
     expect(body.results[2].name).toBe('Beta');
   });
 
+  it.each([null, '279207961'])('preserves same-name Deezer choices when the saved Deezer ID is %s', async (savedDeezerId) => {
+    const { POST, mockSearchDB, mockSearchExternal, mockGetImages } = await setup();
+    mockSearchDB.mockResolvedValue([
+      { id: 'saved-jamie', name: 'Jamie Duffy', spotify: '2yvguoW65iZdUhca8yIfIo', deezer: savedDeezerId },
+    ]);
+    mockSearchExternal.mockResolvedValue(['279207961', '8699816'].map(platformId => ({
+      platform: 'deezer', platformId, name: 'Jamie Duffy',
+      profileUrl: `https://www.deezer.com/artist/${platformId}`, imageUrl: null,
+    })));
+    mockGetImages.mockResolvedValue(new Map());
+
+    const response = await POST(createTestRequest('http://localhost/api/searchArtists', {
+      method: 'POST', body: JSON.stringify({ query: 'Jamie Duffy' }),
+    }));
+    const { results } = await response.json();
+
+    expect(results.filter(result => !result.isExternalOnly).map(result => result.id)).toEqual(['saved-jamie']);
+    expect(results.filter(result => result.isExternalOnly).map(result => result.platformId))
+      .toEqual(savedDeezerId ? ['8699816'] : ['279207961', '8699816']);
+    expect(results.find(result => result.platformId === '8699816')).toMatchObject({
+      id: null, platform: 'deezer', name: 'Jamie Duffy',
+      profileUrl: 'https://www.deezer.com/artist/8699816', isExternalOnly: true,
+    });
+  });
+
+  it('deduplicates by the exact provider identity even when the name differs, without crossing providers', async () => {
+    const { POST, mockSearchDB, mockSearchExternal, mockGetImages } = await setup();
+    mockSearchDB.mockResolvedValue([
+      { id: 'saved', name: 'Original name', spotify: 'spotify-id', deezer: 'deezer-id' },
+    ]);
+    mockSearchExternal.mockResolvedValue([
+      { platform: 'spotify', platformId: 'spotify-id', name: 'Renamed artist' },
+      { platform: 'deezer', platformId: 'deezer-id', name: 'Renamed artist' },
+      { platform: 'spotify', platformId: 'deezer-id', name: 'Other artist' },
+    ]);
+    mockGetImages.mockResolvedValue(new Map());
+
+    const response = await POST(createTestRequest('http://localhost/api/searchArtists', {
+      method: 'POST', body: JSON.stringify({ query: 'artist' }),
+    }));
+    const { results } = await response.json();
+
+    expect(results.filter(result => result.isExternalOnly)).toEqual([
+      expect.objectContaining({ platform: 'spotify', platformId: 'deezer-id', name: 'Other artist' }),
+    ]);
+  });
+
   it("uses the artist's own uploaded image instead of the platform one", async () => {
     const { POST, mockSearchDB, mockSearchExternal, mockGetImages } = await setup();
 

@@ -1,3 +1,6 @@
+import { customImageUrl } from "@/lib/artist/customImageUrl";
+import { after } from "next/server";
+import { wakeDirectoryDiscovery } from "@/server/utils/directoryDiscovery/wakeDirectoryDiscovery";
 import { queueDirectoryDiscovery } from "./queueDirectoryDiscovery";
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
 import { submitArtistDestination } from '@/server/utils/artistLinkReview/submitArtistDestination';
@@ -54,6 +57,7 @@ export type ArtistLink = UrlMap & {
 };
 
 export type AddArtistCandidate = {
+    imageUrl?: string;
     id: string;
     name: string | null;
     spotify: string | null;
@@ -345,8 +349,10 @@ type ArtistPlatformIdentity = {
     platformId: string;
 };
 
-function toAddArtistCandidate(artist: Pick<Artist, "id" | "name" | "spotify" | "deezer">): AddArtistCandidate {
+function toAddArtistCandidate(artist: Pick<Artist, "id" | "name" | "spotify" | "deezer"> & { customImage?: string | null }): AddArtistCandidate {
+    const imageUrl = customImageUrl(artist.customImage);
     return {
+        ...(imageUrl ? { imageUrl } : {}),
         id: artist.id,
         name: artist.name,
         spotify: artist.spotify,
@@ -363,7 +369,7 @@ async function resolvePlatformIdOwner(
     const [directOwner, mapping] = await Promise.all([
         database.query.artists.findFirst({
             where: eq(directColumn, platformId),
-            columns: { id: true, name: true, spotify: true, deezer: true },
+            columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
         }),
         database.query.artistIdMappings.findFirst({
             where: and(
@@ -386,7 +392,7 @@ async function resolvePlatformIdOwner(
 
     const mappedOwner = await database.query.artists.findFirst({
         where: eq(artists.id, mapping.artistId),
-        columns: { id: true, name: true, spotify: true, deezer: true },
+        columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
     });
     const mappedCandidate = mappedOwner
         ? toAddArtistCandidate(mappedOwner)
@@ -548,7 +554,7 @@ export async function addArtist(
         // Validate via platform provider
         const provider = platform === 'deezer' ? deezerProvider : spotifyProvider;
         console.debug(`[Server] Validating ${platform} artist...`);
-        const platformArtist = await provider.getArtist(platformId);
+        const platformArtist = await provider.getArtistIdentity(platformId);
         const canonicalPlatformId = platformArtist?.platformId?.trim();
 
         if (!platformArtist?.name || !canonicalPlatformId) {
@@ -612,7 +618,9 @@ export async function addArtist(
                 forceCreate: options?.forceCreate === true,
             });
             if (ownershipResponse) {
-                return ownershipResponse;
+                return ownershipResponse.status === "possible_duplicate"
+                    ? { ...ownershipResponse, artistName: platformArtist.name }
+                    : ownershipResponse;
             }
 
             if (!options?.forceCreate) {
@@ -620,12 +628,13 @@ export async function addArtist(
                     where: eq(artists.lcname, normalisedName),
                     orderBy: [asc(artists.createdAt), asc(artists.id)],
                     limit: ADD_ARTIST_CANDIDATE_LIMIT,
-                    columns: { id: true, name: true, spotify: true, deezer: true },
+                    columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
                 });
                 if (possibleDuplicates.length > 0) {
                     return {
                         status: "possible_duplicate",
                         candidates: possibleDuplicates.map(toAddArtistCandidate),
+                        artistName: platformArtist.name,
                         platform: submittedIdentity.platform,
                         platformId: submittedIdentity.platformId,
                         message: "We found an artist with the same name. Choose the existing artist or confirm this is a different artist.",
@@ -662,7 +671,9 @@ export async function addArtist(
                     forceCreate: options?.forceCreate === true,
                 });
                 if (raceResponse) {
-                    return raceResponse;
+                    return raceResponse.status === "possible_duplicate"
+                        ? { ...raceResponse, artistName: platformArtist.name }
+                        : raceResponse;
                 }
                 return {
                     status: "error",
@@ -705,16 +716,35 @@ export async function addArtist(
             };
         });
 
-        if (result.status === "success" && session.user?.id) {
+        if (result.status === "success" && result.artistId && session.user?.id) {
+            // Creation and its durable discovery job have already committed. A
+            // slow notification lookup/webhook must not hold the profile handoff.
+            const userId = session.user.id;
+            const committedArtistId = result.artistId;
             try {
-                const user = await getUserById(session.user.id);
-                if (user) {
-                    await sendDiscordMessage(
-                        `${getUserDisplayName(user)} added new artist named: ${result.artistName ?? ""} (Submitted ${platform}Id: ${canonicalPlatformId}) ${notificationCreatedAt ?? ""}`
-                    );
-                }
+                after(async () => {
+                    if (!await wakeDirectoryDiscovery(committedArtistId)) {
+                        console.warn("[directoryDiscovery] Wake did not finish; committed work remains queued.");
+                    }
+                });
+            } catch {
+                console.warn("[directoryDiscovery] Wake could not be scheduled; committed work remains queued.");
+            }
+            try {
+                after(async () => {
+                    try {
+                        const user = await getUserById(userId);
+                        if (user) {
+                            await sendDiscordMessage(
+                                `${getUserDisplayName(user)} added new artist named: ${result.artistName ?? ""} (Submitted ${platform}Id: ${canonicalPlatformId}) ${notificationCreatedAt ?? ""}`
+                            );
+                        }
+                    } catch (notificationError) {
+                        console.error("[Server] Failed to send artist-added notification:", notificationError);
+                    }
+                });
             } catch (notificationError) {
-                console.error("[Server] Failed to send artist-added notification:", notificationError);
+                console.error("[Server] Failed to schedule artist-added notification:", notificationError);
             }
         }
 

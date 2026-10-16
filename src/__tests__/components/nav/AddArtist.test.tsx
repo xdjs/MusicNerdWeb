@@ -3,6 +3,9 @@ import React from 'react';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockAddArtist = jest.fn();
+const mockPush = jest.fn();
+let mockPathname = '/';
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => mockPathname }));
 
 let mockSessionData: any = null;
 let mockSessionStatus = 'unauthenticated';
@@ -122,6 +125,7 @@ const VALID_DEEZER_ID = '123456';
 describe('AddArtist', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockPathname = '/';
         mockSessionData = null;
         mockSessionStatus = 'unauthenticated';
         capturedSubmitFn = null;
@@ -201,7 +205,7 @@ describe('AddArtist', () => {
                 fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
                 // Trigger submit by calling the captured handleSubmit fn directly
                 await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
-                await capturedSubmitFn!({ artistUrl: url });
+                await act(async () => { await capturedSubmitFn!({ artistUrl: url }); });
             }
 
             it('calls addArtist with the extracted Spotify ID on valid Spotify URL', async () => {
@@ -216,20 +220,29 @@ describe('AddArtist', () => {
                 expect(mockAddArtist).toHaveBeenCalledWith(VALID_DEEZER_ID, 'deezer');
             });
 
-            it('shows success links after artist is added', async () => {
+            it('opens the saved profile automatically and retains a direct link', async () => {
                 mockAddArtist.mockResolvedValue({ status: 'success', artistId: 'new-id', artistName: 'Radiohead', message: 'Added!' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
-                    expect(screen.getByText('Add links for Radiohead')).toBeInTheDocument();
+                    expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/new-id');
+                    expect(screen.getByRole('status', { name: 'Opening artist profile' })).toHaveTextContent('Opening Radiohead');
                 });
+            });
+
+            it('closes the dialog when the existing artist is already the current profile', async () => {
+                mockPathname = '/artist/existing-id';
+                mockAddArtist.mockResolvedValue({ status: 'exists', artistId: 'existing-id', artistName: 'Radiohead' });
+                await openModalAndSubmit(VALID_SPOTIFY_URL);
+                expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
+                expect(mockPush).not.toHaveBeenCalled();
             });
 
             it('shows success message in green', async () => {
                 mockAddArtist.mockResolvedValue({ status: 'success', artistId: 'new-id', artistName: 'Radiohead', message: 'Artist added!' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Artist added!')).toHaveClass('text-green-400');
+                    expect(screen.getByRole('status', { name: 'Opening artist profile' })).toHaveTextContent('Opening Radiohead');
                 });
             });
 
@@ -254,7 +267,8 @@ describe('AddArtist', () => {
                 mockAddArtist.mockResolvedValue({ status: 'exists', artistId: 'existing-id', artistName: 'Existing Artist', message: 'Already in DB' });
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
                 await waitFor(() => {
-                    expect(screen.getByText('Check out Existing Artist')).toBeInTheDocument();
+                    expect(screen.getByText('Open Existing Artist profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/existing-id');
                 });
             });
 
@@ -274,16 +288,16 @@ describe('AddArtist', () => {
 
                 await openModalAndSubmit(`${VALID_SPOTIFY_URL}?si=tracking-token#popular`);
 
-                const candidateLink = await screen.findByRole('link', { name: /Add link to existing artist: Radiohead/ });
+                const candidateLink = await screen.findByRole('link', { name: /Use existing profile: Radiohead/ });
                 expect(screen.getByText('Radiohead')).toBeInTheDocument();
                 expect(candidateLink).toHaveAttribute(
                     'href',
                     `/artist/candidate-id?addLink=${encodeURIComponent(VALID_SPOTIFY_URL)}`,
                 );
-                expect(screen.getByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
             });
 
-            it('clears a duplicate choice when the submitted URL changes', async () => {
+            it('returns from duplicate review to URL entry without creating an artist', async () => {
                 mockAddArtist.mockResolvedValue({
                     status: 'possible_duplicate',
                     platform: 'spotify',
@@ -297,13 +311,13 @@ describe('AddArtist', () => {
                 });
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                expect(await screen.findByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+                expect(await screen.findByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
 
-                fireEvent.change(screen.getByPlaceholderText('Paste a Spotify or Deezer artist URL'), {
-                    target: { value: VALID_DEEZER_URL },
-                });
+                fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+                expect(screen.getByPlaceholderText('Paste a Spotify or Deezer artist URL')).toBeInTheDocument();
+                expect(mockAddArtist).toHaveBeenCalledTimes(1);
 
-                expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Add Artist' })).toBeEnabled();
             });
 
@@ -382,7 +396,7 @@ describe('AddArtist', () => {
                     });
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                fireEvent.click(await screen.findByRole('button', { name: 'Create separate artist' }));
+                fireEvent.click(await screen.findByRole('button', { name: 'Add different artist' }));
 
                 await waitFor(() => {
                     expect(mockAddArtist).toHaveBeenNthCalledWith(
@@ -391,7 +405,8 @@ describe('AddArtist', () => {
                         'spotify',
                         { forceCreate: true },
                     );
-                    expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
+                    expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                    expect(mockPush).toHaveBeenCalledWith('/artist/separate-id');
                 });
             });
 
@@ -412,8 +427,8 @@ describe('AddArtist', () => {
                     .mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                const candidateLink = await screen.findByRole('link', { name: /Add link to existing artist: Radiohead/ });
-                fireEvent.click(screen.getByRole('button', { name: 'Create separate artist' }));
+                const candidateLink = await screen.findByRole('link', { name: /Use existing profile: Radiohead/ });
+                fireEvent.click(screen.getByRole('button', { name: 'Add different artist' }));
 
                 expect(await screen.findByRole('status')).toHaveTextContent('Creating separate artist');
                 expect(candidateLink).not.toBeInTheDocument();
@@ -432,7 +447,8 @@ describe('AddArtist', () => {
                     });
                 });
 
-                expect(screen.getByText('Check out Radiohead')).toBeInTheDocument();
+                expect(screen.getByText('Open Radiohead profile')).toBeInTheDocument();
+                expect(mockPush).toHaveBeenCalledWith('/artist/separate-id');
             });
 
             it('shows identity conflicts as blocking errors', async () => {
@@ -444,7 +460,7 @@ describe('AddArtist', () => {
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
 
                 expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-400');
-                expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
             });
 
             it('does not call addArtist when URL fails regex extraction', async () => {
