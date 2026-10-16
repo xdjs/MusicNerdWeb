@@ -1,3 +1,18 @@
+## Directory add and live links — October 16
+
+[#1524](https://github.com/xdjs/MusicNerdWeb/issues/1524) remains open; its first
+Web deliverable is [draft #1526](https://github.com/xdjs/MusicNerdWeb/pull/1526).
+The add/search handoff and duplicate comparison have real regular-account staging
+verification. A newly saved artist previously queued discovery without waking it;
+Vercel's non-production API environment receives no cron, and ordinary adders had
+no live-link observer. The draft now adds a bounded post-commit worker wake and
+an adder/admin-only, read-only observer of public destinations. Local tests and
+staging mnweb reads are recorded on the PR; live worker/observer verification must
+still be recorded before calling the first deliverable complete. No production
+release or scheduler change is implied. Deferred Spotify matching remains separate
+in Web #1528 / MusicNerdAPI #45. See the
+[contract](docs/directory-onboarding-visibility.md#live-directory-discovery-after-add-1524).
+
 ## Optional support links after research — October 5
 
 Pete simplified [#1305](https://github.com/xdjs/MusicNerdWeb/issues/1305): on the

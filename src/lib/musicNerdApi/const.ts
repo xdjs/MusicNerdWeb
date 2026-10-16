@@ -9,6 +9,6 @@ export const IS_PROD = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
  * that target to verify a paired API PR; production never uses the override.
  */
 export const MUSICNERD_API_URL = IS_PROD
-    ? "https://musicnerd-api.vercel.app"
+    ? "https://api.musicnerd.net"
     : (process.env.NEXT_PUBLIC_MUSICNERD_API_PREVIEW_URL?.trim().replace(/\/+$/, "")
         || "https://musicnerd-api-staging.vercel.app");

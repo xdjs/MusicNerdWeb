@@ -1,5 +1,6 @@
 import { fetchResearchResponse } from "./fetchResearchResponse";
 import type { PublicChatTurn } from "./publicChatTypes";
+import { getQuestionQuota, type QuestionQuota } from './getQuestionQuota';
 export type ResearchProgress = {
   jobId: string;
   stage: string;
@@ -11,6 +12,7 @@ export type QuestionAnswer = {
   answer?: string;
   error?: string;
   retryFromStart?: boolean;
+  quota?: QuestionQuota;
   sources?: unknown[];
   suggestions?: unknown[];
   mentions?: unknown[];
@@ -51,6 +53,8 @@ export async function runArtistResearch(input: {
       signal,
     }, input.onCooldown);
     const data = await r.json();
+    const quota = getQuestionQuota(data, r.headers);
+    if (quota) return { data: { ...data, quota }, status: r.status };
     if (typeof data.research?.resolvedQuestion === "string" && data.research.resolvedQuestion.length <= 500)
       resolvedQuestion = data.research.resolvedQuestion;
     if (!r.ok) {
@@ -79,9 +83,17 @@ export async function runArtistResearch(input: {
   };
   const first = await post(input.jobId);
   if (first.status !== 202) return first.data;
-  const jobId = first.data.research?.jobId;
+  let jobId = first.data.research?.jobId;
   if (typeof jobId !== "string") throw new Error("Research job unavailable");
   input.onProgress(first.data.research);
+  // A complete acknowledgement is not an answer, but its result endpoint performs
+  // current eligibility checks itself. Avoid an extra full-corpus status read.
+  if (first.data.research.stage === "complete" && !input.jobId) {
+    const answer = await post(jobId);
+    if (answer.status !== 202) return answer.data;
+    if (typeof answer.data.research?.jobId === "string") jobId = answer.data.research.jobId;
+    input.onProgress(answer.data.research);
+  }
   for (;;) {
     signal.throwIfAborted();
     const r = await fetchResearchResponse(
@@ -90,6 +102,8 @@ export async function runArtistResearch(input: {
       input.onCooldown,
     );
     const progress = await r.json();
+    const quota = getQuestionQuota(progress, r.headers);
+    if (quota) return { ...progress, quota };
     if (!r.ok)
       throw new Error(progress.error ?? "Research could not be checked.");
     input.onProgress({ ...progress, ...(resolvedQuestion ? { resolvedQuestion } : {}) });
@@ -98,6 +112,7 @@ export async function runArtistResearch(input: {
     ) {
       const answer = await post(jobId);
       if (answer.status !== 202) return answer.data;
+      if (typeof answer.data.research?.jobId === "string") jobId = answer.data.research.jobId;
       input.onProgress(answer.data.research);
     }
     await new Promise<void>((resolve, reject) => {

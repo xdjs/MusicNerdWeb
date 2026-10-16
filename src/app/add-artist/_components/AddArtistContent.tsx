@@ -203,12 +203,14 @@ export default function AddArtistContent({ initialArtist }: { initialArtist: Mus
                 {duplicateChoice && (
                     <DuplicateArtistChoice
                         candidates={duplicateChoice.candidates}
+                        selectedArtist={{ name: initialArtist.name, imageUrl: initialArtist.imageUrl }}
                         platform={duplicateChoice.platform}
                         platformId={duplicateChoice.platformId}
                         message={duplicateChoice.message}
                         isCreatingSeparate={isCreatingSeparate}
                         canCreateSeparate={duplicateChoice.canCreateSeparate}
                         onCreateSeparate={handleCreateSeparate}
+                        onCancel={() => setDuplicateChoice(null)}
                     />
                 )}
             </div>

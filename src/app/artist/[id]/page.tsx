@@ -1,3 +1,5 @@
+import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
+import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
 import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHiddenLinkSourceIds";
@@ -137,14 +139,11 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     if (!artist) {
         return notFound();
     }
-    // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
-    // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformImage, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistLinks] = await Promise.all([
+    const [platformImage, urlMapList, existingClaim, approvedSources, artistLinks] = await Promise.all([
         musicPlatformData.getArtistPortrait(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
-        getVaultSourcesByArtistId(id, "pending"),
         getArtistLinks(artist),
     ]);
 
@@ -164,6 +163,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const canEdit = isClaimedByUser || isAdmin;
     const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources);
 
+    // Private review data must not delay visitors who cannot use it (#1261).
+    const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
     // Resolve contributor display names only for authorized reviewers, never visitors.
     const editorSources = canEdit
         ? await addSourceContributors(id, [...approvedSources, ...pendingSourcesRaw])
@@ -177,6 +178,10 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     // nothing to show. The gate below renders neither the takeover nor the banner
     // in that case — never fall back to a default/guessed state here.
     const onboardingState = isClaimedByUser ? await fetchOnboardingState(id) : null;
+
+    const createdAt = artist.createdAt ? Date.parse(artist.createdAt) : NaN;
+    const observeDirectory = !!session && (isAdmin || artist.addedBy === session.user.id)
+        && !existingClaim && createdAt <= Date.now() && Date.now() - createdAt < 24 * 60 * 60_000;
 
     const imageUrl = customImageUrl(artist.customImage) || platformImage || "/default_pfp_pink.png";
 
@@ -206,6 +211,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
         <>
             <EditModeProvider canEdit={canEdit}>
             <AutoRefresh showLoading={false} />
+            {observeDirectory && <DirectoryDiscoveryObserver key={artist.id} artistId={artist.id}
+                initialRevision={publicLinkRevision(artist, artistLinks, approvedSources, blockedMusicSourceIds)} />}
             <div className="artist-profile w-full max-w-[800px] mx-auto px-4 pt-2 pb-24 space-y-5 sm:pt-5 sm:space-y-6">
 
                 {/* Gated on onboarding being COMPLETE, which is the only state in

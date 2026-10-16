@@ -44,8 +44,16 @@ environment. Local SQL/mocked tests are not evidence of a deployed exhausted-quo
 
 Exact matching is only the zero-model fast path. On its first occurrence, a paraphrase shares the
 existing admitted planning call with candidate selection: Web supplies at most five verified answers
-for this artist, their neutral public intent/routing and at most three 1,000-character passage
-excerpts apiece. The planner resolves the current public follow-up and decides whether an answer
+for this artist, their neutral public intent/routing and the complete selected original windows
+actually cited by those answers. Their stored citation basis must match each window's source, revision,
+coordinates, URL and text hash. Uncited research windows are omitted. The combined passage budget
+remains 30,000 characters (the former five candidates × six excerpts × 1,000 characters ceiling).
+A candidate that cannot fit is omitted rather than clipping its supporting sentence. This avoids
+discarding useful saved answers because navigation text consumed a fixed leading excerpt.
+Byte-identical passages with the same URL and evidence kind appear once in a shared originals table;
+each candidate retains its explicit passage IDs. Unequal windows are never merged or clipped.
+This reduces duplicate planner context without changing which evidence supports a candidate.
+The planner resolves the current public follow-up and decides whether an answer
 fully covers it, whether the originals answer a different angle, or whether new research is needed.
 No embeddings, vector database or additional classification call are introduced.
 
@@ -63,12 +71,67 @@ resolved conversation. Only the intent, existing neutral routing fields and dige
 Raw history, asker identity and private interview answers are never retained or searched here.
 The index has the planning lane's 10-per-artist / 200-global active-key ceilings. Existing aliases
 are checked before that ceiling. Failed unfinished admissions release their lease, without refunding
-planning usage; abandoned unbound leases expire after 90 seconds. A completed job whose answer was
-never drafted returns to admitted planning rather than becoming permanently busy.
+planning usage; abandoned unbound leases expire after 90 seconds. A completed job whose answer was never drafted retains its acknowledgement for 90 seconds; after that grace period it can return to admitted planning rather than becoming permanently busy.
 
-A zero-citation check falls through to normal research with the already-computed routing; it does
-not establish that information is absent. Operational check failures remain errors rather than
-triggering blind new collection. The whole Web request shares a 55-second abort deadline beneath
-the route's 60-second limit. An already active answer lease returns the existing busy response and
-can be explicitly retried; it never causes an unbounded second draft. The existing maximum of
-three registered question variants per research job remains in force.
+### Separate planning and answer budgets (#1525)
+
+A semantic candidate is revalidated and the new question is registered before Web returns HTTP 202
+with its saved job ID. Planning does not start a new answer draft inside the same request. The browser
+immediately calls the existing result endpoint for a complete acknowledgement, avoiding an extra
+status read; that endpoint independently rechecks current source eligibility before drafting. Each
+request retains its 55-second deadline beneath the route's 60-second limit, and drafting/checking
+retains its own 45-second budget. This removes planning time from the answer budget without increasing
+model calls, retries, research quotas, or lease/variant limits. The planner retains its existing
+20-second generation deadline. Safe server diagnostics record phase, elapsed time, candidate count,
+unique evidence/prompt character counts, deadline/caller cancellation, and allowlisted error category
+or HTTP status. They never log question, conversation, source, answer or raw provider error content. Progress and the resumable job reach the
+browser before expensive answer work. No opening-chat behavior changes.
+
+A zero-citation semantic check continues ordinary research using the already-admitted server routing
+stored in the request index; it is not evidence of absence. A server-only origin-job marker lets the
+result endpoint claim one short continuation lease and lets concurrent requests join the same job.
+The marker is never sent to the planner or research API. The ordinary API still enforces its provider
+budget, current source scope and idempotency, and any new job must register the exact question before
+acknowledgement. Returning the same job stops continuation instead of creating a loop. Operational
+check failures remain errors with their saved job ID, rather than triggering blind new collection.
+The browser follows the server-issued continuation job while retaining the same resolved question.
+An active answer lease keeps its existing HTTP 202 behavior and never causes an unbounded second
+draft. The maximum of three registered question variants per research job remains in force.
+
+## Repeated original windows during answer verification (#1525)
+
+Within one answer attempt, identical authenticated evidence-read URLs share a single in-flight
+request. Every selected research slice is still checked against the current returned original,
+including revision, URL, date and exact text/offsets. A second invalid slice cannot pass because
+another slice used the same response. There is no cross-request cache or change to source eligibility.
+
+After validation, byte-identical expanded originals with identical metadata appear once in the
+writer and checker context. The first original citation number is retained; remaining references
+keep their original numbers, so gaps are valid and persisted source mappings remain stable.
+Distinct windows or metadata are retained. Unknown or removed citation numbers fail the ordinary
+quote check. Both writer and independent checker still see the complete unchanged original context.
+
+## Direct saved-evidence answer attempt (#1525)
+
+Web opts into API candidate selection with `preferDirectEvidence: true` after planning the
+question. The API selects bounded saved originals and admits the existing durable job once;
+`selection: candidates` means available passages, not verified sufficiency. Web reopens current
+originals, drafts an answer, and independently checks its claims. Short passages request only
+the selected span plus up to 1,200 characters on each side (within the existing 12,000-character
+ceiling). Duplicate original windows are shared within the attempt.
+
+A verified zero-citation candidate result continues the same job through its service-only
+`POST /api/artist/:artistId/research/questions/:jobId/continue` endpoint. It is not sent as a final
+absence claim. The Web answer row retains its registration, attempt count and original expiry.
+A short token-guarded `candidate_continuation` marker fences concurrent result requests. The
+marker remains recoverable after an uncertain API/network outcome; repeated calls use the API's
+idempotent transition. Job selection also guards answer acquisition and commitment so an old
+candidate-status response cannot draft or overwrite a subsequent research answer. Operational
+model failures remain bounded errors rather than silently starting more research.
+
+The independent checker candidate uses Sonnet 5.5 with explicit low effort. Its internal
+explanation allows up to 4,000 characters within the existing output-token ceiling; a detailed
+rejection must reach the bounded repair step rather than becoming a schema error solely because
+it exceeds 500 characters. Factual decisions, exact quotation checks and current-source checks
+remain required. This is a preview experiment until paired Web/API and browser timing pass;
+isolated model timings exclude planning, database and network latency.

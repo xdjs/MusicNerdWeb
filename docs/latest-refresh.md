@@ -89,3 +89,19 @@ individual preview build after confirming the API uses staging data. With no
 override, previews and local development use the shared staging API. Production
 always uses the production API and ignores this override. This lets us verify
 the actual queue → API worker → saved status flow before merging either side.
+
+## Navigation during a refresh — October 15 (#1531)
+
+Worker progress updates the local status control without invalidating the entire
+profile and App Router cache on every pending slice. A job transitioning to a
+terminal result refreshes the profile once, including partial failures so saved
+successful updates appear. Opening an already-completed status does not refresh
+again. Leaving the control aborts its active request and stops polling; a late
+worker response cannot start another status read or refresh the next profile.
+Returning reads the persisted job, resuming only if it is still pending. The API
+worker/cron remains responsible for durable progress when the visitor leaves.
+
+This reduces redundant profile reads and covers the client lifecycle. It does
+not establish that router cache invalidation caused the original production
+incident, which predates the transaction-pooling transport change in #1523.
+The production editor refresh/navigation scenario still requires verification.

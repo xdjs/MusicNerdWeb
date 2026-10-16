@@ -50,3 +50,72 @@ Malformed, missing, future or expired completion times are ineligible.
 Saved profile review must show existing YouTube channel links as YouTube coverage.
 The missing-platform hint normalizes the display category only; removal still sends
 `youtubechannel` so the stored channel field is changed, not an unrelated handle.
+
+### Add-to-profile handoff (#1524)
+
+Search selection and the pasted-URL dialog open the saved artist immediately after
+creation and its directory-discovery job commit. Identity validation reads only the
+provider artist identity; release counts and top tracks are unnecessary to add it.
+The best-effort artist-added notification runs through Next's post-response `after`
+lifecycle, so notification reads or delivery cannot hold up the saved profile.
+The creation event and discovery job remain in the transaction, not in `after`.
+
+Search keeps a short adding/opening status visible outside its dropdown after blur,
+with a direct profile link once saved. The artist route has a loading boundary,
+so navigation acknowledges the destination while existing data loads. Loading does
+not restart research, invent completion, or expose private About/Lore. Existing
+identity conflicts, duplicate choices and cancelled-response guards still apply.
+
+Search suppresses an external catalog result only when its platform and artist ID
+match a saved result. A matching name alone does not establish identity: distinct
+same-name artists and unresolved cross-platform matches remain selectable, with
+their original provider link. Selecting one still uses the existing duplicate
+review and explicit create-separate safeguards; search does not merge identities.
+
+Duplicate review compares the selected catalog profile with saved Music Nerd profiles
+in the existing themed dialog. It shows each name, an already available image, and
+canonical provider links; it does not fetch extra catalog material or infer that
+matching names or different provider IDs prove identity. “Use existing profile”
+opens that profile's link-review flow, rather than silently saving the new link.
+“Add different artist” retains the explicit force-create check and is unavailable
+for verified reciprocal matches. Back/Escape may dismiss comparison before a
+mutation starts; navigation and dismissal remain blocked during creation.
+
+Background hub discovery must distinguish user-chosen handles from provider-assigned
+Spotify, Deezer and YouTube channel IDs. On an affirmed own domain or a saved owned
+account page, those IDs do not need to resemble the artist name to survive the
+mixed-account filter. Merely linking a known public account from a third-party
+article does not grant this exception. Existing saved values, conflicting owners,
+multiple candidate accounts for one platform, rejected pages and deadlines still
+block adoption. This does not turn album, song or playlist URLs into artist links,
+or automatically repair older records whose artist destination was never found.
+
+### Live directory discovery after add (#1524)
+
+Only a successful new-artist commit schedules an artist-scoped `source_search`
+wake through Next `after`. The awaited, time-bounded wake uses the existing API
+worker and lease; notification delivery runs independently. Wake failure cannot
+undo artist creation, create another job, or hide its usable profile. Production
+cron remains the durable recovery path. Vercel preview/custom staging deployments
+do not receive cron invocations, so preview downstream execution needs an explicit,
+authorized worker check; a pending queue is not evidence of completed discovery.
+
+For the first 24 hours, the adding account or an admin can read a minimal discovery
+status and fingerprint of the already-public Links/Support destinations. An open
+profile polls that read-only projection for at most ten minutes, pauses while
+hidden, aborts requests on exit, and refreshes when public links change, plus once on terminal completion to show
+new Latest material. Unchanged active polls do not refresh the page.
+Nothing in the page read or polling route starts research. The endpoint returns no
+sources, passages, actor details or job payloads. About and Lore retain their
+existing claim/approval boundaries.
+
+Completion waits for the directory source search and jobs in its creation lineage,
+including downstream preparation/social jobs. The API always queues caption
+extraction after normal social completion, even when it found no posts: the observer
+keeps that short done-parent/missing-child handoff active rather than stopping early.
+A failed enqueue still requires worker recovery; this reader does not repair it.
+A queued downstream job remains
+active; a failed job or changed claim is not called complete. The final link
+snapshot is read after terminal status, so writes at completion are still shown.
+The observer timeout stops watching, not the durable work. Deferred Spotify
+matching remains separate work in #1528 / MusicNerdAPI#45.

@@ -57,8 +57,13 @@ export async function callResearchApi(
   }
   if (!response.ok) {
     let code: unknown;
+    let retryAfterSeconds: unknown;
+    let resetAt: unknown;
     try {
-      code = JSON.parse(Buffer.concat(chunks).toString("utf8")).code;
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      code = body.code;
+      retryAfterSeconds = body.retryAfterSeconds;
+      resetAt = body.resetAt;
     } catch {
       /* Safe fallback below. */
     }
@@ -75,7 +80,12 @@ export async function callResearchApi(
           ? "The source changed. Reload the research before continuing."
           : "Research is temporarily unavailable.",
     );
-    Object.assign(error, { status: response.status, code });
+    Object.assign(error, { status: response.status, code,
+      ...(code && typeof retryAfterSeconds === "number" && Number.isInteger(retryAfterSeconds)
+        && retryAfterSeconds > 0 && retryAfterSeconds <= 86400 ? { retryAfterSeconds } : {}),
+      ...(code && typeof resetAt === "string" && Number.isFinite(Date.parse(resetAt))
+        ? { resetAt: new Date(resetAt).toISOString() } : {}),
+    });
     throw error;
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));

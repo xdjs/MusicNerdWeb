@@ -10,8 +10,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,6 +42,8 @@ const formSchema = z.object({
 })
 
 export default function AddArtist() {
+    const router = useRouter();
+    const pathname = usePathname();
     const { data: session, status: sessionStatus } = useSession();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -58,10 +61,22 @@ export default function AddArtist() {
         },
     })
 
+    useEffect(() => {
+        setIsModalOpen(false);
+        setAddedArtist(null);
+        setAddArtistStatus(null);
+        requestGenerationRef.current += 1;
+    }, [pathname]);
+
     function applyResponse(resp: AddArtistResp) {
         setAddArtistStatus(resp);
         if (resp.status === "success" || resp.status === "exists") {
+            if (resp.artistId && pathname === `/artist/${resp.artistId}`) {
+                closeModal(false);
+                return;
+            }
             setAddedArtist({ artistId: resp.artistId, artistName: resp.artistName });
+            if (resp.artistId) router.push(`/artist/${resp.artistId}`);
         } else {
             setAddedArtist(null);
         }
@@ -187,6 +202,25 @@ export default function AddArtist() {
                                 Please wait while the artist is created. This action cannot be cancelled.
                             </p>
                         </div>
+                    ) : addArtistStatus?.status === "possible_duplicate" ? (
+                        <>
+                            <DialogHeader className="pr-7 text-left">
+                                <DialogTitle className="text-xl">Same artist?</DialogTitle>
+                                <DialogDescription className="sr-only">Compare the selected artist with existing Music Nerd profiles.</DialogDescription>
+                            </DialogHeader>
+                            <DuplicateArtistChoice
+                                candidates={addArtistStatus.candidates}
+                                selectedArtist={{ name: addArtistStatus.artistName }}
+                                platform={addArtistStatus.platform}
+                                platformId={addArtistStatus.platformId}
+                                message={addArtistStatus.message}
+                                isCreatingSeparate={isCreatingSeparate}
+                                canCreateSeparate={addArtistStatus.canCreateSeparate}
+                                onCreateSeparate={handleCreateSeparate}
+                                onChooseExisting={() => closeModal(false)}
+                                onCancel={clearCurrentResponse}
+                            />
+                        </>
                     ) : (
                         <>
                             <DialogHeader className="space-y-2 pr-7 text-left">
@@ -228,7 +262,7 @@ export default function AddArtist() {
                                     <div>
                                         <Button
                                             type="submit"
-                                            disabled={isLoading || isCreatingSeparate || addArtistStatus?.status === "possible_duplicate"}
+                                            disabled={isLoading || isCreatingSeparate}
                                             variant="pink"
                                             className="w-full"
                                         >
@@ -237,7 +271,7 @@ export default function AddArtist() {
                                                 : <span>Add Artist</span>
                                             }
                                         </Button>
-                                        {addArtistStatus && addArtistStatus.status !== "possible_duplicate" &&
+                                        {addArtistStatus && !addedArtist &&
                                             <p
                                                 aria-live="polite"
                                                 className={cn(
@@ -249,30 +283,13 @@ export default function AddArtist() {
                                                 {addArtistStatus.message}
                                             </p>
                                         }
-                                        {addArtistStatus?.status === "possible_duplicate" && (
-                                            <DuplicateArtistChoice
-                                                glass
-                                                candidates={addArtistStatus.candidates}
-                                                platform={addArtistStatus.platform}
-                                                platformId={addArtistStatus.platformId}
-                                                message={addArtistStatus.message}
-                                                isCreatingSeparate={isCreatingSeparate}
-                                                canCreateSeparate={addArtistStatus.canCreateSeparate}
-                                                onCreateSeparate={handleCreateSeparate}
-                                                onChooseExisting={() => closeModal(false)}
-                                            />
-                                        )}
                                         <div className="mt-3 flex flex-col gap-2 text-foreground overflow-auto">
                                             {addedArtist &&
                                                 <>
-                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white" key="check-out">
+                                                    <p role="status" aria-label="Opening artist profile" className="text-sm">Opening {addedArtist.artistName || "artist profile"}…</p>
+                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white">
                                                         <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}`}>
-                                                            Check out {addedArtist.artistName}
-                                                        </Link>
-                                                    </Button>
-                                                    <Button asChild variant="glass" className="border-white/15 bg-white/5 text-foreground hover:bg-white/10 hover:text-white" key="add-data">
-                                                        <Link onClick={() => closeModal(false)} href={`/artist/${addedArtist.artistId}?opADM=1`}>
-                                                            Add links for {addedArtist.artistName}
+                                                            Open {addedArtist.artistName} profile
                                                         </Link>
                                                     </Button>
                                                 </>

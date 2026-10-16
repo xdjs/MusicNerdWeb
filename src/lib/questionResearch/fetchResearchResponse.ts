@@ -1,4 +1,6 @@
-/** Wait only for explicit short throttles; repeat the exact request without resetting work. */
+import { getQuestionQuota } from './getQuestionQuota';
+
+/** Wait only for transient short throttles. Budget quotas always require a new user action. */
 export async function fetchResearchResponse(
   url: string,
   init: RequestInit & { signal: AbortSignal },
@@ -9,6 +11,11 @@ export async function fetchResearchResponse(
     const response = await fetch(url, init);
     const retryAfter = response.headers?.get("Retry-After");
     if (response.status !== 429 || !retryAfter || retries >= 3) return response;
+    if (response.headers?.get('X-MusicNerd-Quota') === 'true') return response;
+    // Preserve the original body for the caller. The code also identifies a
+    // quota when an intermediary strips the dedicated header.
+    const data = await response.clone?.().json().catch(() => undefined);
+    if (getQuestionQuota(data)) return response;
     const numeric = Number(retryAfter);
     const waitMs = Number.isFinite(numeric)
       ? numeric * 1000

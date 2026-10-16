@@ -82,11 +82,6 @@ function analyzeCoverage() {
         filePath.includes('src\\lib\\queries.ts') ||
         filePath.includes('src/lib/utils.ts') ||
         filePath.includes('src\\lib\\utils.ts') ||
-        // Simple API route wrappers (thin layers over business logic)
-        filePath.includes('src/app/api/findArtistByIG/route.ts') ||
-        filePath.includes('src\\app\\api\\findArtistByIG\\route.ts') ||
-        filePath.includes('src/app/api/findTwitterHandle/route.ts') ||
-        filePath.includes('src\\app\\api\\findTwitterHandle\\route.ts') ||
         // UGC stats components (simple wrappers)
         filePath.includes('src/app/ugcstats/Wrapper.tsx') ||
         filePath.includes('src\\app\\ugcstats\\Wrapper.tsx') ||

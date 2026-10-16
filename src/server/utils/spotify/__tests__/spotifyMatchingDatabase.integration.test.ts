@@ -10,7 +10,7 @@ beforeAll(async () => {
  await client.exec(`create role mnweb; create role anon; create role authenticated;
  create table artist_research_jobs(artist_id uuid,kind text constraint artist_research_jobs_kind_check check(kind='source_search'),status text,claimed_at timestamptz,last_error text,updated_at timestamptz,state jsonb);
  grant select,insert,update on artist_research_jobs to mnweb;`);
- await client.exec(readFileSync('drizzle/0049_deferred_spotify_matching.sql','utf8'));
+ await client.exec(readFileSync('drizzle/0050_deferred_spotify_matching.sql','utf8'));
 });
 afterAll(() => client.close());
 it('gives only the server role access and keeps the later shared provider deadline', async () => {

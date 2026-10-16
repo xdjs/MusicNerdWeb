@@ -10,7 +10,7 @@ The API's existing research runner owns matching; opening a page does not queue 
 
 ## Shared Spotify cooldown
 
-Migration 0049 adds the job kind and a server-only `provider_request_cooldowns` table. The key is `spotify:` followed by SHA-256 of the Spotify client ID. Web and API using the same credential therefore share a deadline across server restarts and concurrent instances. Neither the credential nor bearer token is stored. Sharing is within the same database; environments sharing a provider credential need the current observed deadline seeded in each database when this protection is first enabled.
+Migration 0050 adds the job kind and a server-only `provider_request_cooldowns` table. The key is `spotify:` followed by SHA-256 of the Spotify client ID. Web and API using the same credential therefore share a deadline across server restarts and concurrent instances. Neither the credential nor bearer token is stored. Sharing is within the same database; environments sharing a provider credential need the current observed deadline seeded in each database when this protection is first enabled.
 
 Every uncached authenticated Spotify request checks this deadline first. A 429 records the provider's `Retry-After`, accepting seconds or an HTTP date. Missing or invalid values use a 60-second delay. Concurrent writes retain the later deadline. Provider-specified delays are never shortened. A shared-store failure stops the request instead of ignoring an unknown cooldown. Public Spotify oEmbed is separate from the authenticated catalog API.
 
@@ -18,4 +18,6 @@ The API job defers until the deadline without burning its failure-attempt budget
 
 ## Release order
 
-Apply migration 0049 to staging, then pair the Web enqueue/cooldown preview with the API runner preview. Verify the real handoff plus controlled provider outcomes without hammering Spotify during a live limit. Apply the migration to production before promoting the paired implementations. Navigation PR #1526 and verified-hub guard API #44 are independently scoped; they do not complete deferred matching.
+Apply migration 0050 to staging, then pair the Web enqueue/cooldown preview with the API runner preview. Verify the real handoff plus controlled provider outcomes without hammering Spotify during a live limit. Apply the migration to production before promoting the paired implementations. Navigation PR #1526 and verified-hub guard API #44 are independently scoped; they do not complete deferred matching.
+
+The bounded new-profile observer includes the Spotify matching job, so finishing source discovery does not stop link updates before a pending match finishes. Its existing ten-minute observation window still applies; matches that finish later appear on the next page load.

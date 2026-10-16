@@ -1,5 +1,5 @@
 {
-  "id": "db52108e-71f1-4904-9d4d-7300b1b380f8",
+  "id": "74bbfb1d-adff-4762-ae78-9d8d5625c2b9",
   "prevId": "aae5cd72-4596-4352-a500-40fc0d8e93a9",
   "version": "7",
   "dialect": "postgresql",
@@ -4022,7 +4022,7 @@
       "checkConstraints": {
         "artist_research_jobs_kind_check": {
           "name": "artist_research_jobs_kind_check",
-          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match')"
+          "value": "\"artist_research_jobs\".\"kind\" in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research')"
         },
         "artist_research_jobs_status_check": {
           "name": "artist_research_jobs_status_check",
@@ -6622,37 +6622,68 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.provider_request_cooldowns": {
-      "name": "provider_request_cooldowns",
+    "public.question_planning_admissions": {
+      "name": "question_planning_admissions",
       "schema": "",
       "columns": {
-        "provider_key": {
-          "name": "provider_key",
+        "visitor_key": {
+          "name": "visitor_key",
           "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "blocked_until": {
-          "name": "blocked_until",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
-        "updated_at": {
-          "name": "updated_at",
+        "admitted_at": {
+          "name": "admitted_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "question_planning_admissions_visitor_time": {
+          "name": "question_planning_admissions_visitor_time",
+          "columns": [
+            {
+              "expression": "visitor_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "admitted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "question_planning_admissions_time": {
+          "name": "question_planning_admissions_time",
+          "columns": [
+            {
+              "expression": "admitted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "mnweb_select_provider_request_cooldowns": {
-          "name": "mnweb_select_provider_request_cooldowns",
+        "mnweb_select_question_planning_admissions": {
+          "name": "mnweb_select_question_planning_admissions",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
@@ -6660,8 +6691,8 @@
           ],
           "using": "true"
         },
-        "mnweb_insert_provider_request_cooldowns": {
-          "name": "mnweb_insert_provider_request_cooldowns",
+        "mnweb_insert_question_planning_admissions": {
+          "name": "mnweb_insert_question_planning_admissions",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
@@ -6669,19 +6700,23 @@
           ],
           "withCheck": "true"
         },
-        "mnweb_update_provider_request_cooldowns": {
-          "name": "mnweb_update_provider_request_cooldowns",
+        "mnweb_delete_question_planning_admissions": {
+          "name": "mnweb_delete_question_planning_admissions",
           "as": "PERMISSIVE",
-          "for": "UPDATE",
+          "for": "DELETE",
           "to": [
             "mnweb"
           ],
-          "using": "true",
-          "withCheck": "true"
+          "using": "true"
         }
       },
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraints": {
+        "question_planning_admissions_key": {
+          "name": "question_planning_admissions_key",
+          "value": "\"question_planning_admissions\".\"visitor_key\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": true
     },
     "public.ugcresearch": {
       "name": "ugcresearch",

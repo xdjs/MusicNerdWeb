@@ -2,8 +2,9 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const mockRefresh = jest.fn();
+const mockRouter = { refresh: mockRefresh };
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: mockRefresh }),
+  useRouter: () => mockRouter,
 }));
 jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({
   musicNerdApiUrl: (path) => `https://api.example.test${path}`,
@@ -95,4 +96,44 @@ it("advances a running check on MusicNerdAPI, then reads its status here", async
     })),
   );
   expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/latest-refresh/advance"))).toBe(false);
+});
+
+it("does not invalidate profile navigation while a worker slice is still pending", async () => {
+  const running = { id: "job", status: "running", retryAt: new Date().toISOString(), sources: {} };
+  fetch.mockResolvedValue(response(running));
+  const { unmount } = renderEditor();
+  await waitFor(() => expect(fetch.mock.calls.filter(([url]) => String(url).endsWith("/latest-refresh"))).toHaveLength(2));
+  expect(mockRefresh).not.toHaveBeenCalled();
+  unmount();
+});
+
+it("refreshes the profile once on completion, then stops advancing", async () => {
+  const pending = { id: "job", status: "pending", retryAt: new Date().toISOString(), sources: {} };
+  const done = { ...pending, status: "done" };
+  fetch.mockResolvedValueOnce(response(pending))
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce(response(done));
+  renderEditor();
+  await screen.findByText("Latest checked.");
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(3);
+});
+
+it("keeps a late worker response from refreshing the next artist, and restores saved status on return", async () => {
+  let finishAdvance;
+  const pending = { id: "job", status: "running", retryAt: new Date().toISOString(), sources: {} };
+  const done = { ...pending, status: "done" };
+  fetch.mockResolvedValueOnce(response(pending))
+    .mockImplementationOnce(() => new Promise(resolve => { finishAdvance = resolve; }));
+  const first = renderEditor();
+  await waitFor(() => expect(finishAdvance).toBeDefined());
+  const signal = fetch.mock.calls[1][1].signal;
+  first.unmount();
+  expect(signal.aborted).toBe(true);
+  fetch.mockResolvedValue(response(done));
+  finishAdvance({ ok: true });
+  renderEditor();
+  await screen.findByText("Latest checked.");
+  expect(mockRefresh).not.toHaveBeenCalled();
+  expect(fetch.mock.calls.filter(([url]) => String(url).endsWith("/latest-refresh"))).toHaveLength(2);
 });

@@ -254,11 +254,13 @@ it('rejects changed catalog activity date before drafting',async()=>{
 it("bounds structured drafting and checking without hidden thinking or provider retries", async () => {
   await draftResearchAnswer("artist", "Artist", "What did they play?", [reference]);
   expect(model).toHaveBeenCalledTimes(2);
-  expect(model.mock.calls[0][0]).toMatchObject({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 });
+  expect(model.mock.calls[0][0]).toMatchObject({ model: "anthropic/claude-sonnet-5.5", anthropicEffort: "low", maxRetries: 0 });
   expect(model.mock.calls[0][0]).not.toHaveProperty("thinkingBudget");
-  expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-opus-5.5', maxRetries: 0, maxOutputTokens: 1500 });
+  expect(model.mock.calls[1][0]).toMatchObject({ model: 'anthropic/claude-sonnet-5.5', maxRetries: 0, maxOutputTokens: 1500 });
   expect(model.mock.calls[1][0]).not.toHaveProperty('thinkingBudget');
   expect(model.mock.calls[1][0]).not.toHaveProperty('temperature');
+  expect(model.mock.calls[0][0]).not.toHaveProperty('temperature');
+  expect(model.mock.calls[0][0]).not.toHaveProperty('thinkingLevel');
 });
 it.each(["length", "stop", "PRIVATE PAYLOAD"])("logs only allowlisted finish reasons: %s", async finishReason => {
   const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -378,13 +380,13 @@ it("preserves the eight-character minimum for text evidence", async () => {
   expect(model).toHaveBeenCalledTimes(2);
 });
 
-it("keeps independently verified sentences when the bounded repair still has an unsupported extra", async () => {
+it("returns independently verified sentences without an unnecessary repair for an unsupported extra", async () => {
   const mixed = { sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null };
   model.mockReset();
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: mixed } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they do?", [reference]);
   expect(result.answer).toBe("They played drums. [1]");
-  expect(model).toHaveBeenCalledTimes(4);
+  expect(model).toHaveBeenCalledTimes(2);
 });
 
 it("does not accept out-of-range partial-verification sentence numbers", async () => {
@@ -456,4 +458,53 @@ it("rejects a whitespace-only factual sentence rather than returning a citation 
   model.mockResolvedValueOnce({ output: { sentences: [{ text: "   ", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null } } as never);
   await expect(draftResearchAnswer("artist", "Artist", "What?", [reference])).rejects.toThrow();
   expect(model).toHaveBeenCalledTimes(1);
+});
+
+it('shares identical expanded original reads and keeps original citation numbers after deduplication', async () => {
+ const duplicate = { ...reference, start: 2, text: reference.text.slice(2) };
+ const third = { ...reference, sourceId: 'vault:33333333-3333-4333-8333-333333333333', url: 'https://artist.example/other' };
+ api.mockImplementation(async path => ({ status: 'ok', passage: path.includes('33333333') ? third : reference, totalChars: reference.text.length, nextStart: null }));
+ model.mockReset();
+ model.mockResolvedValueOnce({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 1, quote: 'I played drums.' }, { n: 3, quote: 'I played drums.' }] }], unanswered: null } } as never)
+  .mockResolvedValueOnce({ output: { supported: true, reason: 'Supported.' } } as never);
+ const result = await draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, duplicate, third]);
+ expect(api).toHaveBeenCalledTimes(2);
+ const prompt = JSON.parse(model.mock.calls[0][0].prompt);
+ expect(prompt.originals.map((p: {n:number}) => p.n)).toEqual([1,3]);
+ expect(prompt.originals.map((p: {text:string}) => p.text)).toEqual([reference.text, reference.text]);
+ expect(JSON.parse(model.mock.calls[1][0].prompt).input.originals).toEqual(prompt.originals);
+ expect(result.answer).toBe('They played drums. [1, 3]');
+ expect(result.sources.map(s => [s.n, s.sourceId])).toEqual([[1,reference.sourceId],[3,third.sourceId]]);
+});
+it('validates every selected slice even when the evidence read is shared', async () => {
+ const invalid = { ...reference, start: 2, text: 'X' + reference.text.slice(3) };
+ await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, invalid])).rejects.toThrow(/changed/);
+ expect(api).toHaveBeenCalledTimes(1);
+ expect(model).not.toHaveBeenCalled();
+});
+it('rejects a quote using a removed duplicate citation number before the independent checker', async () => {
+ model.mockReset();
+ model.mockResolvedValue({ output: { sentences: [{ text: 'They played drums.', evidence: [{ n: 2, quote: 'I played drums.' }] }], unanswered: null } } as never);
+ await expect(draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference, reference])).rejects.toThrow(/evidence/);
+ expect(api).toHaveBeenCalledTimes(1);
+ expect(model.mock.calls.every(([options]) => options.instructions?.startsWith('Answer the listener'))).toBe(true);
+});
+
+it('revalidates a short citation with bounded neighboring context rather than reopening twelve thousand characters', async () => {
+ await draftResearchAnswer('artist', 'Artist', 'What did they play?', [reference]);
+ const url = new URL(api.mock.calls[0][0], 'https://api.example');
+ expect(Number(url.searchParams.get('maxChars'))).toBe(reference.end + 1200);
+});
+
+it("uses a detailed rejection to repair the draft instead of failing the entire answer on explanation length", async () => {
+  const reason = "An unsupported claim needs correction. ".repeat(20);
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason } } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer('artist', 'Artist', 'What?', [reference]);
+  expect(result.answer).toBe('They played drums. [1]');
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toBe(reason);
+  expect(model.mock.calls[1][0].anthropicEffort).toBe('low');
 });

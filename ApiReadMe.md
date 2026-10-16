@@ -29,13 +29,7 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
  - CORS: Enabled
  - Error: Returns 400 if no queries provided, 408 for timeout, 500 for server errors
 
-**findArtistBySpotifyID**
-
- - Type: POST
- - Body: `{spotifyID: "yourSpotifyId"}`
- - Response: `{result: Artist}` (object ref in schema folder)
- - Auth: N/A
- - Error: Returns 400 if spotifyID is missing, 405 for non-POST requests
+The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHandle` are served by MusicNerdAPI at `api.musicnerd.net` ([docs](https://musicnerd-docs.vercel.app/api-reference/lookups/find-artist-by-spotify-id)).
 
 **findArtistByDeezerID**
 
@@ -44,22 +38,6 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
  - Response: `{result: Artist}` for an existing local artist
  - Auth: N/A
  - Error: 400 for an invalid parameter; lookup errors use the query service's status
-
-**findArtistByIG**
-
- - Type: POST
- - Body: `{ig: "instagramHandle"}`
- - Response: `{result: Artist}` (object ref in schema folder)
- - Auth: N/A
- - Error: Returns 400 if instagram handle is missing, 405 for non-POST requests
-
-**findTwitterHandle**
-
- - Type: POST
- - Body: `{name: "artistName"} | {ethAddress: "yourEthAddress"}` (can be .eth or wallet address)
- - Response: `{result: "artistTwitterHandle"}`
- - Auth: N/A
- - Error: Returns 400 if both name and ethAddress are missing, 405 for non-POST requests
 
 ### Artist Data & Content
 

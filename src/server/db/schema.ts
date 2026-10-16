@@ -1244,6 +1244,19 @@ export const artistQuestionRequests = pgTable("artist_question_requests", {
   pgPolicy("mnweb_delete_artist_question_requests", { for: "delete", to: ["mnweb"], using: sql`true` }),
 ]).enableRLS();
 
+/** Ephemeral visitor admissions, never artist activity or raw visitor identity. */
+export const questionPlanningAdmissions = pgTable("question_planning_admissions", {
+  visitorKey: text("visitor_key").notNull(),
+  admittedAt: timestamp("admitted_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, table => [
+  check("question_planning_admissions_key", sql`${table.visitorKey} ~ '^[a-f0-9]{64}$'`),
+  index("question_planning_admissions_visitor_time").on(table.visitorKey, table.admittedAt),
+  index("question_planning_admissions_time").on(table.admittedAt),
+  pgPolicy("mnweb_select_question_planning_admissions", { for: "select", to: ["mnweb"], using: sql`true` }),
+  pgPolicy("mnweb_insert_question_planning_admissions", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
+  pgPolicy("mnweb_delete_question_planning_admissions", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
 /** Exact, private identity assessment; pending curation never becomes approval. */
 export const artistSourceAssessments = pgTable('artist_source_assessments', {
     sourceId: uuid('source_id').primaryKey().references(() => artistVaultSources.id, { onDelete: 'cascade' }),

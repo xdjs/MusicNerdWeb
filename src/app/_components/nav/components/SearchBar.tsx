@@ -1,18 +1,20 @@
 "use client"
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
 import { useSearchParams } from 'next/navigation'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Artist } from '@/server/db/DbTypes';
 import styles from '../../HomePageSplash.module.css';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from "next-auth/react";
 import { addArtist } from "@/app/actions/addArtist";
 import { isDevMode } from "@/lib/dev-mode";
-import DuplicateArtistChoice, { type DuplicateArtistCandidate } from "@/app/_components/DuplicateArtistChoice";
+import DuplicateArtistChoice, { type DuplicateArtistCandidate, type SelectedArtistContext } from "@/app/_components/DuplicateArtistChoice";
 import type { MusicPlatform } from "@/server/utils/musicPlatform";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
@@ -47,6 +49,8 @@ const PENDING_ADD_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 type PossibleDuplicateResponse = {
     status: 'possible_duplicate';
+    artistName?: string;
+    selectedArtist?: SelectedArtistContext;
     candidates: DuplicateArtistCandidate[];
     platform: MusicPlatform;
     platformId: string;
@@ -56,6 +60,8 @@ type PossibleDuplicateResponse = {
 
 function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProps) {
     const router = useRouter();
+    const pathname = usePathname();
+    const [openingArtist, setOpeningArtist] = useState<{ id: string; name: string } | null>(null);
     const { toast } = useToast();
     const [query, setQuery] = useState('');
     const [showResults, setShowResults] = useState(false);
@@ -78,6 +84,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
     const handleAddArtist = useCallback(async (
         platformId: string,
         platform: string = 'deezer',
+        selectedArtist?: SelectedArtistContext,
     ) => {
         if (addRequestInFlightRef.current) return;
 
@@ -90,12 +97,13 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
             if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
+                setOpeningArtist({ id: addResult.artistId, name: addResult.artistName || "artist profile" });
                 setDuplicateChoice(null);
                 setShowResults(false);
                 setQuery('');
                 router.push(`/artist/${addResult.artistId}`);
             } else if (addResult.status === "possible_duplicate") {
-                setDuplicateChoice(addResult);
+                setDuplicateChoice({ ...addResult, selectedArtist });
                 setShowResults(false);
             } else {
                 toast({
@@ -140,11 +148,12 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
             if ((addResult.status === "success" || addResult.status === "exists") && addResult.artistId) {
+                setOpeningArtist({ id: addResult.artistId, name: addResult.artistName || "artist profile" });
                 setDuplicateChoice(null);
                 setQuery('');
                 router.push(`/artist/${addResult.artistId}`);
             } else if (addResult.status === "possible_duplicate") {
-                setDuplicateChoice(addResult);
+                setDuplicateChoice({ ...addResult, selectedArtist: response.selectedArtist });
             } else {
                 if (addResult.status === "conflict") {
                     setDuplicateChoice(null);
@@ -169,6 +178,10 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             setIsCreatingSeparate(false);
         }
     }, [duplicateChoice, router, toast]);
+
+    useEffect(() => {
+        setOpeningArtist(null);
+    }, [pathname]);
 
     // After login + page reload, complete the pending add-artist flow
     useEffect(() => {
@@ -232,6 +245,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         if (isCreatingSeparate) return;
 
         const value = e.target.value;
+        setOpeningArtist(null);
         invalidateAddRequest();
         setQuery(value);
         setDuplicateChoice(null);
@@ -290,6 +304,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             await handleAddArtist(
                 result.platformId,
                 result.platform || 'deezer',
+                { name: result.name, imageUrl: result.imageUrl },
             );
             return;
         }
@@ -328,25 +343,62 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
 
-            {duplicateChoice && (
-                <div className="absolute z-50 mt-2 max-h-[min(28rem,calc(100vh-6rem))] w-full overflow-y-auto rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800">
-                    <DuplicateArtistChoice
-                        candidates={duplicateChoice.candidates}
+            {(addingPlatformId !== null || openingArtist) && (
+                <div role="status" className="mt-2 text-sm text-foreground">
+                    {openingArtist ? (
+                        <>
+                            Opening {openingArtist.name}…{" "}
+                            <Link href={`/artist/${openingArtist.id}`} className="underline underline-offset-4">
+                                Open profile
+                            </Link>
+                        </>
+                    ) : "Adding artist…"}
+                </div>
+            )}
+
+            <Dialog open={Boolean(duplicateChoice)} onOpenChange={(open) => {
+                if (!open && !isCreatingSeparate) {
+                    invalidateAddRequest();
+                    setDuplicateChoice(null);
+                    setShowResults(true);
+                }
+            }}>
+                <DialogContent
+                    className="mn-themed-dialog max-w-lg p-5 sm:p-6"
+                    aria-busy={isCreatingSeparate}
+                    onEscapeKeyDown={(event) => { if (isCreatingSeparate) event.preventDefault(); }}
+                    onPointerDownOutside={(event) => { if (isCreatingSeparate) event.preventDefault(); }}
+                >
+                    <DialogHeader className="pr-6 text-left">
+                        <DialogTitle className="text-xl">Same artist?</DialogTitle>
+                        <DialogDescription className="sr-only">Compare the selected artist with existing Music Nerd profiles.</DialogDescription>
+                    </DialogHeader>
+                    {duplicateChoice && <DuplicateArtistChoice
+                        candidates={duplicateChoice.candidates.map((candidate) => ({
+                            ...candidate,
+                            imageUrl: candidate.imageUrl || results.find((result) => result.id === candidate.id)?.imageUrl,
+                        }))}
+                        selectedArtist={duplicateChoice.selectedArtist || { name: duplicateChoice.artistName }}
                         platform={duplicateChoice.platform}
                         platformId={duplicateChoice.platformId}
                         message={duplicateChoice.message}
                         isCreatingSeparate={isCreatingSeparate}
                         canCreateSeparate={duplicateChoice.canCreateSeparate}
                         onCreateSeparate={handleCreateSeparate}
+                        onCancel={() => {
+                            invalidateAddRequest();
+                            setDuplicateChoice(null);
+                            setShowResults(true);
+                        }}
                         onChooseExisting={() => {
                             invalidateAddRequest();
                             setDuplicateChoice(null);
                             setShowResults(false);
                             setQuery('');
                         }}
-                    />
-                </div>
-            )}
+                    />}
+                </DialogContent>
+            </Dialog>
 
             {!duplicateChoice && showResults && results.length > 0 && (
                 <div

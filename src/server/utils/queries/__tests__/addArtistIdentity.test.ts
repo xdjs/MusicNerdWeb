@@ -1,7 +1,13 @@
 // @ts-nocheck
 import { jest } from "@jest/globals";
 
+const mockAfter = jest.fn();
+const mockWakeDirectoryDiscovery = jest.fn();
+jest.mock("@/server/utils/directoryDiscovery/wakeDirectoryDiscovery", () => ({ wakeDirectoryDiscovery: mockWakeDirectoryDiscovery }));
+jest.mock("next/server", () => ({ after: mockAfter }));
 const mockSpotifyGetArtist = jest.fn();
+const mockSpotifyGetArtistIdentity = jest.fn();
+const mockDeezerGetArtistIdentity = jest.fn();
 const mockDeezerGetArtist = jest.fn();
 const mockFindReciprocalArtistIdentity = jest.fn();
 const mockAcquirePlatformIdentityLock = jest.fn();
@@ -13,9 +19,11 @@ jest.mock("@/server/auth", () => ({ getServerAuthSession: jest.fn() }));
 jest.mock("@/server/utils/musicPlatform", () => ({
     spotifyProvider: {
         getArtist: mockSpotifyGetArtist,
+        getArtistIdentity: mockSpotifyGetArtistIdentity,
     },
     deezerProvider: {
         getArtist: mockDeezerGetArtist,
+        getArtistIdentity: mockDeezerGetArtistIdentity,
     },
     findReciprocalArtistIdentity: mockFindReciprocalArtistIdentity,
 }));
@@ -109,12 +117,12 @@ describe("addArtist identity resolution", () => {
         mockGetUserById.mockResolvedValue(null);
         mockGetUserDisplayName.mockReturnValue("tester");
         mockSendDiscordMessage.mockResolvedValue(undefined);
-        mockSpotifyGetArtist.mockResolvedValue({
+        mockSpotifyGetArtistIdentity.mockResolvedValue({
             platform: "spotify",
             platformId: "spotify-123",
             name: "Jonathan Pape",
         });
-        mockDeezerGetArtist.mockResolvedValue({
+        mockDeezerGetArtistIdentity.mockResolvedValue({
             platform: "deezer",
             platformId: "815939",
             name: "Jonathan Pape",
@@ -148,6 +156,25 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.transaction).not.toHaveBeenCalled();
     });
 
+    it("returns the validated selected name and saved candidate image without another provider lookup", async () => {
+        const { addArtist, mockDb } = await setup();
+        mockDb.query.artists.findMany.mockResolvedValue([
+            artist({ customImage: "  https://example.com/saved.jpg  " }),
+        ]);
+        const result = await addArtist("spotify-123", "spotify");
+        expect(result).toEqual(expect.objectContaining({
+            status: "possible_duplicate",
+            artistName: "Jonathan Pape",
+            candidates: [expect.objectContaining({ imageUrl: "https://example.com/saved.jpg" })],
+        }));
+        expect(mockDb.query.artists.findMany).toHaveBeenCalledWith(expect.objectContaining({
+            columns: expect.objectContaining({ customImage: true }),
+        }));
+        expect(mockSpotifyGetArtistIdentity).toHaveBeenCalledTimes(1);
+        expect(mockSpotifyGetArtist).not.toHaveBeenCalled();
+        expect(mockDb.insert).not.toHaveBeenCalled();
+    });
+
     it("offers a Deezer-only exact-name record before creating a Spotify duplicate", async () => {
         const { addArtist, mockDb } = await setup();
         const deezerOnly = artist({ id: "deezer-owner", deezer: "815939" });
@@ -158,6 +185,7 @@ describe("addArtist identity resolution", () => {
         expect(result).toEqual({
             status: "possible_duplicate",
             candidates: [deezerOnly],
+            artistName: "Jonathan Pape",
             platform: "spotify",
             platformId: "spotify-123",
             message: expect.stringContaining("same name"),
@@ -170,6 +198,7 @@ describe("addArtist identity resolution", () => {
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when a mapping owner has a different first-class platform ID", async () => {
@@ -194,6 +223,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the canonical artist when the platform ID is owned by a mapping", async () => {
@@ -214,6 +244,7 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict without writing when direct and mapped owners disagree", async () => {
@@ -237,6 +268,7 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.query.artists.findMany).not.toHaveBeenCalled();
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("creates a separate homonymous artist only when forceCreate is set", async () => {
@@ -318,7 +350,7 @@ describe("addArtist identity resolution", () => {
 
     it("records MusicBrainz provenance for a resolved Deezer-to-Spotify pair", async () => {
         const { addArtist, mockDb } = await setup();
-        mockDeezerGetArtist.mockResolvedValue({
+        mockDeezerGetArtistIdentity.mockResolvedValue({
             platform: "deezer",
             platformId: "139294362",
             name: "NOMELON NOLEMON",
@@ -370,7 +402,7 @@ describe("addArtist identity resolution", () => {
 
     it("uses the provider's canonical Deezer ID for resolution, locking, and insertion", async () => {
         const { addArtist, mockDb } = await setup();
-        mockDeezerGetArtist.mockResolvedValue({
+        mockDeezerGetArtistIdentity.mockResolvedValue({
             platform: "deezer",
             platformId: "6251",
             name: "Jonathan Pape",
@@ -400,7 +432,7 @@ describe("addArtist identity resolution", () => {
     it("finds a canonical Deezer owner when the submitted URL uses a zero-padded alias", async () => {
         const { addArtist, mockDb } = await setup();
         const existing = artist({ id: "deezer-owner", deezer: "6251" });
-        mockDeezerGetArtist.mockResolvedValue({
+        mockDeezerGetArtistIdentity.mockResolvedValue({
             platform: "deezer",
             platformId: "6251",
             name: "Jonathan Pape",
@@ -420,6 +452,7 @@ describe("addArtist identity resolution", () => {
         );
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("offers the owner of a discovered reciprocal ID instead of creating a duplicate", async () => {
@@ -447,6 +480,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("identifies MusicBrainz as the source when its counterpart already exists", async () => {
@@ -455,7 +489,7 @@ describe("addArtist identity resolution", () => {
             id: "spotify-owner",
             spotify: "3PRXdiVu8lUkeCKw4ZUX4B",
         });
-        mockDeezerGetArtist.mockResolvedValue({
+        mockDeezerGetArtistIdentity.mockResolvedValue({
             platform: "deezer",
             platformId: "139294362",
             name: "NOMELON NOLEMON",
@@ -477,6 +511,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("recognizes a reciprocal ID owner recorded only in the mapping table", async () => {
@@ -505,6 +540,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns a conflict when submitted and reciprocal IDs have different owners", async () => {
@@ -526,6 +562,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the existing artist when both platform IDs have the same owner", async () => {
@@ -550,6 +587,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("does not let forceCreate bypass reciprocal platform ownership", async () => {
@@ -570,6 +608,7 @@ describe("addArtist identity resolution", () => {
         }));
         expect(mockDb.insert).not.toHaveBeenCalled();
         expect(mockQueueDirectoryDiscovery).not.toHaveBeenCalled();
+        expect(mockAfter).not.toHaveBeenCalled();
     });
 
     it("returns the race winner when a conflict-safe insert creates no row", async () => {
@@ -635,6 +674,35 @@ describe("addArtist identity resolution", () => {
         }));
     });
 
+    it("returns the committed artist before best-effort notification reads or delivery", async () => {
+        const { addArtist, mockDb, mockGetUserById, mockSendDiscordMessage } = await setup();
+        mockInsertReturning(mockDb, [artist({ id: "new-artist", spotify: "spotify-123" })]);
+        mockGetUserById.mockReturnValue(new Promise(() => {}));
+        const result = await Promise.race([
+            addArtist("spotify-123", "spotify", { forceCreate: true }),
+            new Promise(resolve => setTimeout(() => resolve({ status: "timed_out" }), 50)),
+        ]);
+        expect(result).toMatchObject({ status: "success", artistId: "new-artist" });
+        expect(mockAfter).toHaveBeenCalledTimes(2);
+        expect(mockWakeDirectoryDiscovery).not.toHaveBeenCalled();
+        await mockAfter.mock.calls[0][0]();
+        expect(mockWakeDirectoryDiscovery).toHaveBeenCalledWith("new-artist");
+        expect(mockGetUserById).not.toHaveBeenCalled();
+        expect(mockSendDiscordMessage).not.toHaveBeenCalled();
+        expect(mockQueueDirectoryDiscovery).toHaveBeenCalledWith(mockDb, "new-artist", "user-1");
+        expect(mockSpotifyGetArtistIdentity).toHaveBeenCalledWith("spotify-123");
+        expect(mockSpotifyGetArtist).not.toHaveBeenCalled();
+    });
+
+    it("does not schedule a wake when the directory transaction rolls back", async () => {
+        const { addArtist, mockDb } = await setup();
+        mockInsertReturning(mockDb, [artist({ id: "new-artist", spotify: "spotify-123" })]);
+        mockQueueDirectoryDiscovery.mockRejectedValue(new Error("queue commit failed"));
+        expect(await addArtist("spotify-123", "spotify", { forceCreate: true })).toMatchObject({status:"error"});
+        expect(mockAfter).not.toHaveBeenCalled();
+        expect(mockWakeDirectoryDiscovery).not.toHaveBeenCalled();
+    });
+
     it("preserves the created-at timestamp in the artist-added notification", async () => {
         const { addArtist, mockDb, mockGetUserById, mockSendDiscordMessage } = await setup();
         const createdAt = "2026-08-19T20:00:00.000Z";
@@ -648,6 +716,8 @@ describe("addArtist identity resolution", () => {
 
         await addArtist("spotify-123", "spotify", { forceCreate: true });
 
+        expect(mockAfter).toHaveBeenCalledTimes(2);
+        await mockAfter.mock.calls[1][0]();
         expect(mockSendDiscordMessage).toHaveBeenCalledWith(
             `tester added new artist named: Jonathan Pape (Submitted spotifyId: spotify-123) ${createdAt}`,
         );

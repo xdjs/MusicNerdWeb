@@ -16,7 +16,7 @@ const load = (vercelEnv?: string, previewUrl?: string) => {
 
 describe("musicNerdApiUrl", () => {
     it("uses MusicNerdAPI production on a production deployment", () => {
-        expect(load("production")("/api/research/advance")).toBe("https://musicnerd-api.vercel.app/api/research/advance");
+        expect(load("production")("/api/research/advance")).toBe("https://api.musicnerd.net/api/research/advance");
     });
 
     it("uses the staging MusicNerdAPI everywhere else: previews, staging and local", () => {
@@ -31,5 +31,5 @@ it("pairs an isolated Web preview with its API preview", () => {
 });
 it("ignores the preview override in production", () => {
     expect(load("production", "https://api-fix.example")("/api/health"))
-        .toBe("https://musicnerd-api.vercel.app/api/health");
+        .toBe("https://api.musicnerd.net/api/health");
 });

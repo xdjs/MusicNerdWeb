@@ -1,3 +1,6 @@
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+--> statement-breakpoint
 CREATE TABLE "provider_request_cooldowns" (
 	"provider_key" text PRIMARY KEY NOT NULL,
 	"blocked_until" timestamp with time zone NOT NULL,
@@ -14,3 +17,4 @@ CREATE POLICY "mnweb_update_provider_request_cooldowns" ON "provider_request_coo
 REVOKE ALL ON TABLE public.provider_request_cooldowns FROM PUBLIC, anon, authenticated;
 --> statement-breakpoint
 GRANT SELECT, INSERT, UPDATE ON TABLE public.provider_request_cooldowns TO mnweb;
+COMMIT;

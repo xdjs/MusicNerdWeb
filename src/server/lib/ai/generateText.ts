@@ -15,6 +15,8 @@ export type GenerateTextOptions<OUTPUT extends OutputInterface = TextOutput> = {
     thinkingBudget?: number;
     /** Gemini 3+ reasoning level, selected explicitly by the caller. */
     thinkingLevel?: "low";
+    /** Explicit effort for Anthropic verification calls; omitted keeps provider default. */
+    anthropicEffort?: "low";
     /** `Output.object({ schema })` or `Output.array({ element })` for the sites that parse JSON today. */
     output?: OUTPUT;
     /** Google Search grounding, executed by the provider; the result's `sources` say what it used. */
@@ -26,7 +28,7 @@ export type GenerateTextOptions<OUTPUT extends OutputInterface = TextOutput> = {
 
 /** Shared entry point for single model calls; tool agents use researchInterviewAngles. Routes through Vercel AI Gateway (docs/llm.md). */
 export function generateText<OUTPUT extends OutputInterface = TextOutput>(options: GenerateTextOptions<OUTPUT>) {
-    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, thinkingLevel, output, googleSearch, abortSignal, maxOutputTokens, maxRetries } = options;
+    const { model = MODEL_FLASH, instructions, prompt, temperature, thinkingBudget, thinkingLevel, anthropicEffort, output, googleSearch, abortSignal, maxOutputTokens, maxRetries } = options;
     return sdkGenerateText({
         model,
         instructions,
@@ -37,6 +39,11 @@ export function generateText<OUTPUT extends OutputInterface = TextOutput>(option
         maxOutputTokens,
         maxRetries,
         ...(googleSearch ? { tools: { google_search: google.tools.googleSearch({}) } } : {}),
-        ...(thinkingBudget !== undefined || thinkingLevel !== undefined ? { providerOptions: { google: { thinkingConfig: { thinkingBudget, thinkingLevel } } } } : {}),
+        ...(thinkingBudget !== undefined || thinkingLevel !== undefined || anthropicEffort !== undefined ? {
+            providerOptions: {
+                ...(thinkingBudget !== undefined || thinkingLevel !== undefined ? { google: { thinkingConfig: { thinkingBudget, thinkingLevel } } } : {}),
+                ...(anthropicEffort !== undefined ? { anthropic: { effort: anthropicEffort } } : {}),
+            },
+        } : {}),
     });
 }
