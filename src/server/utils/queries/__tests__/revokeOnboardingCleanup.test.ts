@@ -54,9 +54,14 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // alongside post-claim social ingestion — see socialIngest.ts.)
         expect(deletedTables).toEqual([
             schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
-            schema.artistSocialPosts, schema.artistSocialProfiles,
+            schema.artistSocialPosts, schema.artistSocialRefreshes, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);
+        const refreshDelete = tx.delete.mock.results[deletedTables.indexOf(schema.artistSocialRefreshes)].value;
+        const { PgDialect: RefreshDialect } = require('drizzle-orm/pg-core');
+        const refreshScope = new RefreshDialect().sqlToQuery(refreshDelete.where.mock.calls[0][0]);
+        expect(refreshScope.params).toEqual(['artist-1']);
+        expect(refreshScope.sql).toContain('artist_social_refreshes');
         // A doc was deleted → the (doc-derived or hand-edited) bio is the revoked owner's content
         expect(updatedTables).toEqual([schema.artistBioVersions, schema.artists]);
         expect(setCalls).toContainEqual({ table: schema.artistBioVersions, values: { isPinned: false } });
@@ -81,7 +86,7 @@ describe('revokeApprovedClaim wipes onboarding content in the same transaction',
         // Still delete claims, vault, and social data, but no onboarding content to clear
         expect(deletedTables).toEqual([
             schema.artistClaims, schema.artistResearchJobs, schema.artistSocialCredits, schema.artistDocCorrections, schema.artistVaultSources,
-            schema.artistSocialPosts, schema.artistSocialProfiles,
+            schema.artistSocialPosts, schema.artistSocialRefreshes, schema.artistSocialProfiles,
             schema.artistInterviewAnswers, schema.artistOnboardingSteps, schema.artistDocs,
         ]);
         // No artists table update
