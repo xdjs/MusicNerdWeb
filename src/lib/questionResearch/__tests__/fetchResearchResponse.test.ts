@@ -38,3 +38,22 @@ it('accepts an HTTP-date Retry-After without retrying early', async () => {
  await jest.advanceTimersByTimeAsync(4999);expect(fetch).toHaveBeenCalledTimes(1);
  await jest.advanceTimersByTimeAsync(1);expect(await result).toBe(response);
 });
+it('never automatically retries an explicit quota even with a short Retry-After', async () => {
+ const response = reply(429, '1');
+ response.headers.set('X-MusicNerd-Quota', 'true');
+ global.fetch = jest.fn().mockResolvedValue(response);
+ const onCooldown = jest.fn();
+ const result = fetchResearchResponse('/start', { signal: new AbortController().signal }, onCooldown);
+ await jest.advanceTimersByTimeAsync(10000);
+ expect(await result).toBe(response);
+ expect(fetch).toHaveBeenCalledTimes(1);
+ expect(onCooldown).not.toHaveBeenCalled();
+});
+it('recognizes a quota body if an intermediary drops its explicit header', async () => {
+ const response = { ...reply(429, '1'), clone: () => ({ json: async () => ({ code: 'saved_evidence_quota' }) }) } as Response;
+ global.fetch = jest.fn().mockResolvedValue(response);
+ const result = fetchResearchResponse('/start', { signal: new AbortController().signal });
+ await jest.advanceTimersByTimeAsync(10000);
+ expect(await result).toBe(response);
+ expect(fetch).toHaveBeenCalledTimes(1);
+});

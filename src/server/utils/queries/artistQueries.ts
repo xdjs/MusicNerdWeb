@@ -14,7 +14,7 @@ import type {
     MusicPlatform,
     ReciprocalArtistIdentity,
 } from "@/server/utils/musicPlatform";
-import { eq, sql, inArray, and, arrayContains, asc } from "drizzle-orm";
+import { eq, sql, inArray, and, asc } from "drizzle-orm";
 import { artists, artistIdMappings, ugcresearch } from "@/server/db/schema";
 import { Artist, UrlMap } from "@/server/db/DbTypes";
 import { isObjKey, extractArtistId } from "@/server/utils/services";
@@ -135,63 +135,6 @@ export async function getArtistByProperty(column: PgColumn<any>, value: string):
             message: "Something went wrong on our end",
             data: null,
             status: 404,
-        };
-    }
-}
-
-export async function getArtistByWalletOrEns(value: string) {
-    const walletRegex = /^0x[a-fA-F0-9]{40}$/;
-    if (walletRegex.test(value)) {
-        const result = await getArtistbyWallet(value);
-        if (result.isError) return await getArtistByProperty(artists.ens, value);
-        return result;
-    }
-    return await getArtistByProperty(artists.ens, value);
-}
-
-export async function getArtistbyWallet(wallet: string) {
-    try {
-        const result = await db
-            .select()
-            .from(artists)
-            .where(arrayContains(artists.wallets, [wallet]))
-            .limit(1);
-        if (!result[0])
-            return {
-                isError: true,
-                message: "The artist you're searching for is not found",
-                data: null,
-                status: 404,
-            };
-        return { isError: false, message: "", data: result[0], status: 200 };
-    } catch (e) {
-        console.error(`Error fetching artist by wallet`, e);
-        return {
-            isError: true,
-            message: "Something went wrong on our end",
-            data: null,
-            status: 500,
-        };
-    }
-}
-
-export async function getArtistByNameApiResp(name: string) {
-    try {
-        const result = await searchForArtistByName(name);
-        if (!result)
-            return {
-                isError: true,
-                message: "The artist you're searching for is not found",
-                data: null,
-                status: 404,
-            };
-        return { isError: false, message: "", data: result[0], status: 200 };
-    } catch (e) {
-        return {
-            isError: true,
-            message: "Something went wrong on our end",
-            data: null,
-            status: 500,
         };
     }
 }

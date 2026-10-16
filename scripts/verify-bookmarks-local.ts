@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
+import type { Pool } from 'pg';
 
 async function main() {
     const url = new URL(process.env.BOOKMARK_TEST_ADMIN_URL ?? '');
@@ -14,7 +15,7 @@ async function main() {
     assert.equal(process.env.NODE_ENV, 'test');
     const admin = postgres(url.toString(), { max: 1, prepare: false });
     let database: ReturnType<typeof postgres> | undefined;
-    let app: ReturnType<typeof postgres> | undefined;
+    let app: Pool | undefined;
     let created = false;
     try {
         const [cluster] = await admin`select current_setting('data_directory') as path`;
