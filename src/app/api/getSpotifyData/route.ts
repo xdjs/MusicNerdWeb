@@ -1,4 +1,4 @@
-import { getArtistById } from "@/server/utils/queries/artistQueries";
+import { SpotifyCooldownError } from "@/server/utils/spotify/SpotifyCooldownError";
 import { getSpotifyHeaders, getSpotifyArtist, getSpotifyArtists } from "@/server/utils/queries/externalApiQueries";
 import { NextResponse } from "next/server";
 
@@ -44,11 +44,21 @@ export async function GET(req: Request) {
     // Handle single query (existing behavior)
     if (!spotifyId) return NextResponse.json({ error: "spotifyId or spotifyIds is required" }, { status: 400, headers: CORS_HEADERS });
   
-    const headers = await getSpotifyHeaders();
-    const { data, error } = await getSpotifyArtist(spotifyId, headers);
-    if (error) return NextResponse.json({ error }, { status: 502, headers: CORS_HEADERS });
-  
-    return NextResponse.json({ data }, { headers: CORS_HEADERS });
+    try {
+        const headers = await getSpotifyHeaders();
+        const { data, error } = await getSpotifyArtist(spotifyId, headers);
+        if (error) return NextResponse.json({ error }, { status: 502, headers: { ...CORS_HEADERS, "Cache-Control": "no-store" } });
+        return NextResponse.json({ data }, { headers: CORS_HEADERS });
+    } catch (error) {
+        if (error instanceof SpotifyCooldownError) {
+            return NextResponse.json({ error: "Spotify is temporarily rate limited. Please try again later." }, {
+                status: 503,
+                headers: { ...CORS_HEADERS, "Cache-Control": "no-store", "Retry-After": String(Math.max(1, Math.ceil((error.retryAtMs - Date.now()) / 1000))) },
+            });
+        }
+        return NextResponse.json({ error: "Failed to fetch artist data" }, { status: 502, headers: { ...CORS_HEADERS, "Cache-Control": "no-store" } });
+    }
+
 }
 
 export async function POST(req: Request) {

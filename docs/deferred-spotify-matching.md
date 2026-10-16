@@ -31,3 +31,6 @@ so one successful half remains usable while the failed half can recover on the
 next lookup. Legitimate successful empty catalogs/images remain cacheable.
 Versioned cache keys bypass empty results saved by the previous implementation;
 existing cache tags remain valid. No database migration or new research is needed.
+The single-artist `getSpotifyData` route also handles token-acquisition cooldowns:
+it returns HTTP 503 with Retry-After and no-store, rather than an uncaught 500.
+Other acquisition failures use the existing 502 shape and are not cacheable.
