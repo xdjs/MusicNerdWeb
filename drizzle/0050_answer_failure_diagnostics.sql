@@ -1,0 +1,2 @@
+ALTER TABLE "artist_question_answers" ADD COLUMN "failure_diagnostics" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "artist_question_answers" ADD CONSTRAINT "artist_question_answers_diagnostics" CHECK (case when jsonb_typeof("artist_question_answers"."failure_diagnostics") = 'array' then jsonb_array_length("artist_question_answers"."failure_diagnostics") <= 3 and octet_length("artist_question_answers"."failure_diagnostics"::text) <= 2048 else false end);

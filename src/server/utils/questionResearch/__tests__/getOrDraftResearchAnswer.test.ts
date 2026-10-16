@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { readFileSync } from "node:fs";
 import { PgDialect } from "drizzle-orm/pg-core";
 import type { PGlite as PGliteClient } from "@electric-sql/pglite";
 import type { SQL } from "drizzle-orm";
@@ -250,6 +251,7 @@ async function withAnswerDatabase(
           (status<>'verified' and result is null))
       );
     `);
+    await store.exec(readFileSync("drizzle/0050_answer_failure_diagnostics.sql", "utf8"));
     await store.query(`insert into artist_research_jobs values ($1,$2,'question_research','done',$3::jsonb)`,
       [input.jobId, input.artistId, JSON.stringify({ stage: 'complete', ...(selection ? { selection } : {}) })]);
     await store.query(`insert into artist_question_answers
@@ -313,4 +315,67 @@ it('does not wait forever when continuation retained an exhausted answer budget'
   execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ question_hash:getResearchQuestionHash(input.question), status:'waiting', attempts:3, claim_until:new Date(0).toISOString() }] as never);
   expect(await getOrDraftResearchAnswer({...input,selection:'research'})).toEqual({state:'failed',stage:'draft',retryable:false});
   expect(draft).not.toHaveBeenCalled();
+});
+
+it("retains sanitized failure history after successful retry without exposing it", async () => {
+  await withAnswerDatabase("research", async store => {
+    draft.mockRejectedValueOnce(Object.assign(new Error("PRIVATE"), { verificationStage: "claim_check", verificationCode: "claim_rejected", body: "PRIVATE" }));
+    expect(await getOrDraftResearchAnswer({ ...input, selection: "research" })).toEqual({ state: "failed", stage: "claim_check", retryable: true });
+    const first = (await store.query<{ failure_diagnostics: unknown[] }>("select failure_diagnostics from artist_question_answers")).rows[0].failure_diagnostics;
+    expect(first).toEqual([{ stage: "claim_check", category: "claim_rejected", status: null, finishReason: null, attempt: 2, at: expect.any(String) }]);
+    expect(JSON.stringify(first)).not.toContain("PRIVATE");
+    await store.exec("update artist_question_answers set claim_until=now()-interval '1 second'");
+    expect(await getOrDraftResearchAnswer({ ...input, selection: "research" })).toEqual({ state: "ready", result });
+    expect((await store.query("select attempts,failure_stage,failure_diagnostics from artist_question_answers")).rows).toEqual([{ attempts: 3, failure_stage: null, failure_diagnostics: first }]);
+  });
+});
+it("records at most three failures and never spends a fourth attempt", async () => {
+  await withAnswerDatabase("research", async store => {
+    await store.exec("update artist_question_answers set attempts=0");
+    draft.mockRejectedValue(Object.assign(new Error("PRIVATE"), { name: "TimeoutError", verificationStage: "draft" }));
+    for (let i = 1; i <= 3; i++) {
+      await getOrDraftResearchAnswer({ ...input, selection: "research" });
+      await store.exec("update artist_question_answers set claim_until=now()-interval '1 second'");
+    }
+    expect(await getOrDraftResearchAnswer({ ...input, selection: "research" })).toEqual({ state: "failed", stage: "draft", retryable: false });
+    const history = (await store.query<{ failure_diagnostics: { attempt: number; category: string }[] }>("select failure_diagnostics from artist_question_answers")).rows[0].failure_diagnostics;
+    expect(history.map(d => [d.attempt,d.category])).toEqual([[1,"TimeoutError"],[2,"TimeoutError"],[3,"TimeoutError"]]);
+    expect(draft).toHaveBeenCalledTimes(3);
+    await expect(store.query("update artist_question_answers set failure_diagnostics=$1::jsonb", [JSON.stringify([{}, {}, {}, {}])])).rejects.toThrow();
+    await expect(store.query("update artist_question_answers set failure_diagnostics=$1::jsonb", [JSON.stringify([{ message: "x".repeat(2048) }])])).rejects.toThrow();
+    await expect(store.exec("update artist_question_answers set failure_diagnostics='{}'::jsonb")).rejects.toThrow();
+  });
+});
+it("does not append diagnostics from a displaced lease owner", async () => {
+  await withAnswerDatabase("research", async store => {
+    draft.mockImplementationOnce(async () => {
+      await store.exec("update artist_question_answers set claim_token='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'");
+      throw Object.assign(new Error("PRIVATE"), { verificationCode: "claim_rejected" });
+    });
+    await getOrDraftResearchAnswer({ ...input, selection: "research" });
+    expect((await store.query("select failure_diagnostics from artist_question_answers")).rows).toEqual([{ failure_diagnostics: [] }]);
+  });
+});
+
+it("writes and retains diagnostics as the app role while public roles cannot read them", async () => {
+  await withAnswerDatabase("research", async store => {
+    await store.exec(`
+      create role mnweb; create role anon; create role authenticated;
+      alter table artist_question_answers enable row level security;
+      create policy app_access on artist_question_answers to mnweb using (true) with check (true);
+      grant select,insert,update,delete on artist_question_answers to mnweb;
+      grant select,update on artist_research_jobs to mnweb;
+      set role mnweb;
+    `);
+    draft.mockRejectedValueOnce(Object.assign(new Error("PRIVATE"), { name: "ZodError", verificationStage: "claim_check" }));
+    await getOrDraftResearchAnswer({ ...input, selection: "research" });
+    expect((await store.query<{ failure_diagnostics: { category: string }[] }>("select failure_diagnostics from artist_question_answers")).rows[0].failure_diagnostics[0].category).toBe("ZodError");
+    await store.exec("update artist_question_answers set claim_until=now()-interval '1 second'");
+    expect(await getOrDraftResearchAnswer({ ...input, selection: "research" })).toEqual({ state: "ready", result });
+    for (const role of ["anon", "authenticated"]) {
+      await store.exec(`reset role; set role ${role}`);
+      await expect(store.query("select failure_diagnostics from artist_question_answers")).rejects.toThrow(/permission denied/);
+    }
+    await store.exec("reset role");
+  });
 });

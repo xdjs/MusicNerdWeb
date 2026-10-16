@@ -1,3 +1,4 @@
+import { getResearchFailureDiagnostic } from "@/lib/questionResearch/getResearchFailureDiagnostic";
 import { MAX_RESEARCH_REFERENCES } from "@/lib/questionResearch/limits";
 import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
 import { createHash, randomUUID } from "node:crypto";
@@ -54,10 +55,6 @@ type Outcome =
   | { state: "unregistered" }
   | { state: "unavailable" };
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
-const allowedStages = new Set([
-  "read_original", "fetch_original", "validate_original", "draft",
-  "quote_check", "claim_check", "store_result",
-]);
 
 /** One checked answer per exact job/question, with a bounded cross-instance drafting lease. */
 export async function getOrDraftResearchAnswer(input: {
@@ -198,16 +195,14 @@ export async function getOrDraftResearchAnswer(input: {
     };
     return { state: "ready", result: publicResult };
   } catch (error) {
-    const reason = error && typeof error === "object" && "verificationCode" in error
-      && ["quote_rejected", "claim_rejected", "original_mismatch"].includes(String(error.verificationCode))
-      ? String(error.verificationCode) : "operation_failed";
-    console.warn("[questionResearch] answer attempt failed", { jobId: input.jobId, reason });
-    const raw = error && typeof error === "object" && "verificationStage" in error
-      ? error.verificationStage : null;
-    const stage = typeof raw === "string" && allowedStages.has(raw) ? raw : "store_result";
+    const diagnostic = getResearchFailureDiagnostic(error);
+    const { stage } = diagnostic;
+    console.warn("[questionResearch] answer attempt failed", { jobId: input.jobId, ...diagnostic });
     await db.execute(sql`
       update artist_question_answers
       set status='failed',result=null,failure_stage=${stage},
+        failure_diagnostics=failure_diagnostics || jsonb_build_array(
+          ${JSON.stringify(diagnostic)}::text::jsonb || jsonb_build_object('attempt',attempts,'at',now())),
         claim_until=now()+interval '30 seconds',updated_at=now()
       where job_id=${jobId}::uuid and artist_id=${artistId}::uuid
         and question_hash=${questionHash} and claim_token=${token}::uuid
