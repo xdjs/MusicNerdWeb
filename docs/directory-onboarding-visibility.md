@@ -66,6 +66,12 @@ so navigation acknowledges the destination while existing data loads. Loading do
 not restart research, invent completion, or expose private About/Lore. Existing
 identity conflicts, duplicate choices and cancelled-response guards still apply.
 
+Search suppresses an external catalog result only when its platform and artist ID
+match a saved result. A matching name alone does not establish identity: distinct
+same-name artists and unresolved cross-platform matches remain selectable, with
+their original provider link. Selecting one still uses the existing duplicate
+review and explicit create-separate safeguards; search does not merge identities.
+
 Background hub discovery must distinguish user-chosen handles from provider-assigned
 Spotify, Deezer and YouTube channel IDs. On an affirmed own domain or a saved owned
 account page, those IDs do not need to resemble the artist name to survive the
