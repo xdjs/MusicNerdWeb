@@ -1,3 +1,4 @@
+import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { after } from "next/server";
 import { queueDirectoryDiscovery } from "./queueDirectoryDiscovery";
 import { parseMusicDestination } from '@/lib/musicLinks/parseMusicDestination';
@@ -55,6 +56,7 @@ export type ArtistLink = UrlMap & {
 };
 
 export type AddArtistCandidate = {
+    imageUrl?: string;
     id: string;
     name: string | null;
     spotify: string | null;
@@ -346,8 +348,10 @@ type ArtistPlatformIdentity = {
     platformId: string;
 };
 
-function toAddArtistCandidate(artist: Pick<Artist, "id" | "name" | "spotify" | "deezer">): AddArtistCandidate {
+function toAddArtistCandidate(artist: Pick<Artist, "id" | "name" | "spotify" | "deezer"> & { customImage?: string | null }): AddArtistCandidate {
+    const imageUrl = customImageUrl(artist.customImage);
     return {
+        ...(imageUrl ? { imageUrl } : {}),
         id: artist.id,
         name: artist.name,
         spotify: artist.spotify,
@@ -364,7 +368,7 @@ async function resolvePlatformIdOwner(
     const [directOwner, mapping] = await Promise.all([
         database.query.artists.findFirst({
             where: eq(directColumn, platformId),
-            columns: { id: true, name: true, spotify: true, deezer: true },
+            columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
         }),
         database.query.artistIdMappings.findFirst({
             where: and(
@@ -387,7 +391,7 @@ async function resolvePlatformIdOwner(
 
     const mappedOwner = await database.query.artists.findFirst({
         where: eq(artists.id, mapping.artistId),
-        columns: { id: true, name: true, spotify: true, deezer: true },
+        columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
     });
     const mappedCandidate = mappedOwner
         ? toAddArtistCandidate(mappedOwner)
@@ -613,7 +617,9 @@ export async function addArtist(
                 forceCreate: options?.forceCreate === true,
             });
             if (ownershipResponse) {
-                return ownershipResponse;
+                return ownershipResponse.status === "possible_duplicate"
+                    ? { ...ownershipResponse, artistName: platformArtist.name }
+                    : ownershipResponse;
             }
 
             if (!options?.forceCreate) {
@@ -621,12 +627,13 @@ export async function addArtist(
                     where: eq(artists.lcname, normalisedName),
                     orderBy: [asc(artists.createdAt), asc(artists.id)],
                     limit: ADD_ARTIST_CANDIDATE_LIMIT,
-                    columns: { id: true, name: true, spotify: true, deezer: true },
+                    columns: { id: true, name: true, spotify: true, deezer: true, customImage: true },
                 });
                 if (possibleDuplicates.length > 0) {
                     return {
                         status: "possible_duplicate",
                         candidates: possibleDuplicates.map(toAddArtistCandidate),
+                        artistName: platformArtist.name,
                         platform: submittedIdentity.platform,
                         platformId: submittedIdentity.platformId,
                         message: "We found an artist with the same name. Choose the existing artist or confirm this is a different artist.",
@@ -663,7 +670,9 @@ export async function addArtist(
                     forceCreate: options?.forceCreate === true,
                 });
                 if (raceResponse) {
-                    return raceResponse;
+                    return raceResponse.status === "possible_duplicate"
+                        ? { ...raceResponse, artistName: platformArtist.name }
+                        : raceResponse;
                 }
                 return {
                     status: "error",

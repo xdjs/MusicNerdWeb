@@ -36,7 +36,7 @@ jest.mock('use-debounce', () => ({
     useDebounce: (val: string) => [val],
 }));
 
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 
 import SearchBar from '@/app/_components/nav/components/SearchBar';
@@ -259,12 +259,31 @@ describe('SearchBar Add Artist Flow', () => {
         await renderAndSearch([trackedExternalResult]);
         fireEvent.click(screen.getByText('New Artist'));
 
-        const link = await screen.findByRole('link', { name: /Add link to existing artist: New Artist/ });
+        const link = await screen.findByRole('link', { name: /Use existing profile: New Artist/ });
         expect(link).toHaveAttribute(
             'href',
             `/artist/existing-id?addLink=${encodeURIComponent('https://www.deezer.com/artist/123')}`,
         );
-        expect(screen.getByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
+        expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('carries both search images into comparison and returns to results without another add', async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: '1' } } });
+        mockAddArtist.mockResolvedValue({
+            status: 'possible_duplicate', platform: 'deezer', platformId: '123',
+            candidates: [{ id: dbResult.id, name: dbResult.name, spotify: '2yvguoW65iZdUhca8yIfIo', deezer: null }],
+        });
+        await renderAndSearch([{ ...externalResult, platformId: '123' }, dbResult]);
+        fireEvent.click(screen.getByText('New Artist'));
+        const selected = await screen.findByRole('group', { name: 'You selected' });
+        expect(within(selected).getByRole('img')).toHaveAttribute('src', externalResult.imageUrl);
+        const existing = screen.getByRole('group', { name: 'Already on Music Nerd' });
+        expect(within(existing).getByRole('img')).toHaveAttribute('src', dbResult.imageUrl);
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByText('New Artist')).toBeInTheDocument();
+        expect(mockAddArtist).toHaveBeenCalledTimes(1);
         expect(mockPush).not.toHaveBeenCalled();
     });
 
@@ -290,7 +309,7 @@ describe('SearchBar Add Artist Flow', () => {
 
         await renderAndSearch([externalResult]);
         fireEvent.click(screen.getByText('New Artist'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Create separate artist' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Add different artist' }));
 
         await waitFor(() => {
             expect(mockAddArtist).toHaveBeenNthCalledWith(
@@ -322,8 +341,8 @@ describe('SearchBar Add Artist Flow', () => {
 
         await renderAndSearch([{ ...externalResult, platformId: '123' }]);
         fireEvent.click(screen.getByText('New Artist'));
-        const candidateLink = await screen.findByRole('link', { name: /Add link to existing artist: New Artist/ });
-        fireEvent.click(screen.getByRole('button', { name: 'Create separate artist' }));
+        const candidateLink = await screen.findByRole('link', { name: /Use existing profile: New Artist/ });
+        fireEvent.click(screen.getByRole('button', { name: 'Add different artist' }));
 
         expect(await screen.findByRole('status')).toHaveTextContent('Creating separate artist');
         expect(candidateLink).not.toBeInTheDocument();
@@ -355,7 +374,7 @@ describe('SearchBar Add Artist Flow', () => {
                 description: 'This platform profile is already owned by another artist.',
             }));
         });
-        expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
     });
 
     it('shows error toast when addArtist fails and keeps dropdown open', async () => {
@@ -466,7 +485,7 @@ describe('SearchBar Add Artist Flow', () => {
         });
 
         expect(mockPush).not.toHaveBeenCalledWith('/artist/stale-id');
-        expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
     });
 
     it('closes dropdown only on success, not during add', async () => {

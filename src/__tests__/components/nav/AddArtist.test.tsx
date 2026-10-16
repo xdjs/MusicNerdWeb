@@ -288,16 +288,16 @@ describe('AddArtist', () => {
 
                 await openModalAndSubmit(`${VALID_SPOTIFY_URL}?si=tracking-token#popular`);
 
-                const candidateLink = await screen.findByRole('link', { name: /Add link to existing artist: Radiohead/ });
+                const candidateLink = await screen.findByRole('link', { name: /Use existing profile: Radiohead/ });
                 expect(screen.getByText('Radiohead')).toBeInTheDocument();
                 expect(candidateLink).toHaveAttribute(
                     'href',
                     `/artist/candidate-id?addLink=${encodeURIComponent(VALID_SPOTIFY_URL)}`,
                 );
-                expect(screen.getByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+                expect(screen.getByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
             });
 
-            it('clears a duplicate choice when the submitted URL changes', async () => {
+            it('returns from duplicate review to URL entry without creating an artist', async () => {
                 mockAddArtist.mockResolvedValue({
                     status: 'possible_duplicate',
                     platform: 'spotify',
@@ -311,13 +311,13 @@ describe('AddArtist', () => {
                 });
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                expect(await screen.findByRole('button', { name: 'Create separate artist' })).toBeInTheDocument();
+                expect(await screen.findByRole('button', { name: 'Add different artist' })).toBeInTheDocument();
 
-                fireEvent.change(screen.getByPlaceholderText('Paste a Spotify or Deezer artist URL'), {
-                    target: { value: VALID_DEEZER_URL },
-                });
+                fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+                expect(screen.getByPlaceholderText('Paste a Spotify or Deezer artist URL')).toBeInTheDocument();
+                expect(mockAddArtist).toHaveBeenCalledTimes(1);
 
-                expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Add Artist' })).toBeEnabled();
             });
 
@@ -396,7 +396,7 @@ describe('AddArtist', () => {
                     });
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                fireEvent.click(await screen.findByRole('button', { name: 'Create separate artist' }));
+                fireEvent.click(await screen.findByRole('button', { name: 'Add different artist' }));
 
                 await waitFor(() => {
                     expect(mockAddArtist).toHaveBeenNthCalledWith(
@@ -427,8 +427,8 @@ describe('AddArtist', () => {
                     .mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
 
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
-                const candidateLink = await screen.findByRole('link', { name: /Add link to existing artist: Radiohead/ });
-                fireEvent.click(screen.getByRole('button', { name: 'Create separate artist' }));
+                const candidateLink = await screen.findByRole('link', { name: /Use existing profile: Radiohead/ });
+                fireEvent.click(screen.getByRole('button', { name: 'Add different artist' }));
 
                 expect(await screen.findByRole('status')).toHaveTextContent('Creating separate artist');
                 expect(candidateLink).not.toBeInTheDocument();
@@ -460,7 +460,7 @@ describe('AddArtist', () => {
                 await openModalAndSubmit(VALID_SPOTIFY_URL);
 
                 expect(await screen.findByText('That Spotify profile belongs to another artist.')).toHaveClass('text-red-400');
-                expect(screen.queryByRole('button', { name: 'Create separate artist' })).not.toBeInTheDocument();
+                expect(screen.queryByRole('button', { name: 'Add different artist' })).not.toBeInTheDocument();
             });
 
             it('does not call addArtist when URL fails regex extraction', async () => {

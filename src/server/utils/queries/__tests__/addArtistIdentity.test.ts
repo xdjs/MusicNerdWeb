@@ -154,6 +154,25 @@ describe("addArtist identity resolution", () => {
         expect(mockDb.transaction).not.toHaveBeenCalled();
     });
 
+    it("returns the validated selected name and saved candidate image without another provider lookup", async () => {
+        const { addArtist, mockDb } = await setup();
+        mockDb.query.artists.findMany.mockResolvedValue([
+            artist({ customImage: "  https://example.com/saved.jpg  " }),
+        ]);
+        const result = await addArtist("spotify-123", "spotify");
+        expect(result).toEqual(expect.objectContaining({
+            status: "possible_duplicate",
+            artistName: "Jonathan Pape",
+            candidates: [expect.objectContaining({ imageUrl: "https://example.com/saved.jpg" })],
+        }));
+        expect(mockDb.query.artists.findMany).toHaveBeenCalledWith(expect.objectContaining({
+            columns: expect.objectContaining({ customImage: true }),
+        }));
+        expect(mockSpotifyGetArtistIdentity).toHaveBeenCalledTimes(1);
+        expect(mockSpotifyGetArtist).not.toHaveBeenCalled();
+        expect(mockDb.insert).not.toHaveBeenCalled();
+    });
+
     it("offers a Deezer-only exact-name record before creating a Spotify duplicate", async () => {
         const { addArtist, mockDb } = await setup();
         const deezerOnly = artist({ id: "deezer-owner", deezer: "815939" });
@@ -164,6 +183,7 @@ describe("addArtist identity resolution", () => {
         expect(result).toEqual({
             status: "possible_duplicate",
             candidates: [deezerOnly],
+            artistName: "Jonathan Pape",
             platform: "spotify",
             platformId: "spotify-123",
             message: expect.stringContaining("same name"),

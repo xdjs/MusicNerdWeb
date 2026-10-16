@@ -72,6 +72,15 @@ same-name artists and unresolved cross-platform matches remain selectable, with
 their original provider link. Selecting one still uses the existing duplicate
 review and explicit create-separate safeguards; search does not merge identities.
 
+Duplicate review compares the selected catalog profile with saved Music Nerd profiles
+in the existing themed dialog. It shows each name, an already available image, and
+canonical provider links; it does not fetch extra catalog material or infer that
+matching names or different provider IDs prove identity. “Use existing profile”
+opens that profile's link-review flow, rather than silently saving the new link.
+“Add different artist” retains the explicit force-create check and is unavailable
+for verified reciprocal matches. Back/Escape may dismiss comparison before a
+mutation starts; navigation and dismissal remain blocked during creation.
+
 Background hub discovery must distinguish user-chosen handles from provider-assigned
 Spotify, Deezer and YouTube channel IDs. On an affirmed own domain or a saved owned
 account page, those IDs do not need to resemble the artist name to survive the

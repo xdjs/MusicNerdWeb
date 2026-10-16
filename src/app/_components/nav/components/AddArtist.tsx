@@ -202,6 +202,25 @@ export default function AddArtist() {
                                 Please wait while the artist is created. This action cannot be cancelled.
                             </p>
                         </div>
+                    ) : addArtistStatus?.status === "possible_duplicate" ? (
+                        <>
+                            <DialogHeader className="pr-7 text-left">
+                                <DialogTitle className="text-xl">Same artist?</DialogTitle>
+                                <DialogDescription className="sr-only">Compare the selected artist with existing Music Nerd profiles.</DialogDescription>
+                            </DialogHeader>
+                            <DuplicateArtistChoice
+                                candidates={addArtistStatus.candidates}
+                                selectedArtist={{ name: addArtistStatus.artistName }}
+                                platform={addArtistStatus.platform}
+                                platformId={addArtistStatus.platformId}
+                                message={addArtistStatus.message}
+                                isCreatingSeparate={isCreatingSeparate}
+                                canCreateSeparate={addArtistStatus.canCreateSeparate}
+                                onCreateSeparate={handleCreateSeparate}
+                                onChooseExisting={() => closeModal(false)}
+                                onCancel={clearCurrentResponse}
+                            />
+                        </>
                     ) : (
                         <>
                             <DialogHeader className="space-y-2 pr-7 text-left">
@@ -243,7 +262,7 @@ export default function AddArtist() {
                                     <div>
                                         <Button
                                             type="submit"
-                                            disabled={isLoading || isCreatingSeparate || addArtistStatus?.status === "possible_duplicate"}
+                                            disabled={isLoading || isCreatingSeparate}
                                             variant="pink"
                                             className="w-full"
                                         >
@@ -252,7 +271,7 @@ export default function AddArtist() {
                                                 : <span>Add Artist</span>
                                             }
                                         </Button>
-                                        {addArtistStatus && !addedArtist && addArtistStatus.status !== "possible_duplicate" &&
+                                        {addArtistStatus && !addedArtist &&
                                             <p
                                                 aria-live="polite"
                                                 className={cn(
@@ -264,19 +283,6 @@ export default function AddArtist() {
                                                 {addArtistStatus.message}
                                             </p>
                                         }
-                                        {addArtistStatus?.status === "possible_duplicate" && (
-                                            <DuplicateArtistChoice
-                                                glass
-                                                candidates={addArtistStatus.candidates}
-                                                platform={addArtistStatus.platform}
-                                                platformId={addArtistStatus.platformId}
-                                                message={addArtistStatus.message}
-                                                isCreatingSeparate={isCreatingSeparate}
-                                                canCreateSeparate={addArtistStatus.canCreateSeparate}
-                                                onCreateSeparate={handleCreateSeparate}
-                                                onChooseExisting={() => closeModal(false)}
-                                            />
-                                        )}
                                         <div className="mt-3 flex flex-col gap-2 text-foreground overflow-auto">
                                             {addedArtist &&
                                                 <>
