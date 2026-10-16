@@ -139,14 +139,11 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     if (!artist) {
         return notFound();
     }
-    // Pending sources are fetched in parallel (indexed lookup) to avoid a serial
-    // round-trip for editors; they are only exposed to the client when canEdit.
-    const [platformImage, urlMapList, existingClaim, approvedSources, pendingSourcesRaw, artistLinks] = await Promise.all([
+    const [platformImage, urlMapList, existingClaim, approvedSources, artistLinks] = await Promise.all([
         musicPlatformData.getArtistPortrait(artist),
         getAllLinks(),
         getClaimByArtistId(id),
         getVaultSourcesByArtistId(id, "approved"),
-        getVaultSourcesByArtistId(id, "pending"),
         getArtistLinks(artist),
     ]);
 
@@ -166,6 +163,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const canEdit = isClaimedByUser || isAdmin;
     const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources);
 
+    // Private review data must not delay visitors who cannot use it (#1261).
+    const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
     // Resolve contributor display names only for authorized reviewers, never visitors.
     const editorSources = canEdit
         ? await addSourceContributors(id, [...approvedSources, ...pendingSourcesRaw])

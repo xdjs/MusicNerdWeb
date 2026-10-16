@@ -66,6 +66,7 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
           body: JSON.stringify({ artistId, kinds: ["latest_refresh"] }),
           signal: controller.signal,
         });
+        if (!active) return;
         if (!response.ok)
           throw Error("Update paused. Reload to check its progress.");
         const status = await fetch(endpoint, {
@@ -78,7 +79,11 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
         if (active) {
           setRefresh(data.refresh);
           setError("");
-          router.refresh();
+          // Polling status is local UI state. Invalidate the full profile only
+          // once the job finishes, not on every unchanged worker slice.
+          if (data.refresh && !["pending", "running"].includes(data.refresh.status)) {
+            router.refresh();
+          }
         }
       } catch (e) {
         if (active)
