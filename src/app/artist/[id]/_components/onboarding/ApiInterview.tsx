@@ -183,21 +183,15 @@ export default function ApiInterview({
   };
   return (
     <Dialog open={open && (!!state || !!error)} onOpenChange={(next) => { if (!next) close(); }}>
-      <div className="glass flex items-start gap-3 rounded-xl p-4">
-        <MessageCircleQuestion size={18} className="mt-0.5 shrink-0 text-pastypink" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[#111] dark:text-white">
-            {session?.state === "active" || offered ? "Your interview is waiting for you" : "Want to be interviewed by Music Nerd?"}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Three questions, in your own words. Pick up whenever you’re ready.
-          </p>
-          <DialogTrigger asChild><button type="button" className={`${button} mt-2`} disabled={loading || busy}
-            onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
-            {loading ? "Loading your interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
-          </button></DialogTrigger>
-        </div>
-      </div>
+      <DialogTrigger asChild>
+        <button type="button"
+          className="button-glass inline-flex min-h-11 items-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+          disabled={loading || busy}
+          onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
+          <MessageCircleQuestion size={18} aria-hidden="true" />
+          {loading ? "Loading interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
+        </button>
+      </DialogTrigger>
         <DialogContent aria-busy={busy}
           onEscapeKeyDown={(event) => { if (pending.current) event.preventDefault(); }}
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}

@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
@@ -26,9 +26,10 @@ import VaultSection from "./VaultSection";
  *  onboarding runs, research paints it in place: Links, Lore and About show a
  *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
-    artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
+    interviewAction, artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
     blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
 }: {
+    interviewAction?: ReactNode;
     artist: Artist;
     imageUrl: string;
     platformImage: string | null;
@@ -74,6 +75,7 @@ export default function ArtistProfileContent({
                         />}
                         {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
+                    {interviewAction}
                 </HeroSection>
 
                 <ProfileSectionNav key={`sections:${artist.id}`} />
