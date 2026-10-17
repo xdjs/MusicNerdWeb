@@ -16,6 +16,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
   const [sourceUrl, setSourceUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [duplicate, setDuplicate] = useState(false);
   const [error, setError] = useState('');
   const [resume, setResume] = useState(false);
   const [expectedBio, setExpectedBio] = useState(bio);
@@ -61,7 +62,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
       const response = await fetch(`/api/artist/${artistId}/bio-corrections`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, details, sourceUrl, expectedBio }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? 'Could not send your suggestion');
-      setSent(true); setResume(false);
+      setDuplicate(result.duplicate === true); setSent(true); setResume(false);
       try { sessionStorage.removeItem(draftKey); } catch { /* Storage can be unavailable. */ }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not send your suggestion. Please try again.'); }
     finally { submitting.current = false; setBusy(false); }
@@ -82,8 +83,8 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
   }}>
     <DialogTrigger asChild><button type="button" disabled={!ready} className={`min-h-11 text-sm underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${portrait ? 'text-white/80 hover:text-white' : 'text-gray-700 dark:text-gray-200'}`}>Suggest a correction</button></DialogTrigger>
     <DialogContent className="mn-themed-dialog max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto p-5 sm:p-6">
-      <DialogHeader className="space-y-1.5 pr-7 text-left"><DialogTitle className="text-xl font-semibold leading-snug tracking-tight">{sent ? 'Report received' : 'Suggest a correction'}</DialogTitle><DialogDescription className="text-sm leading-relaxed text-muted-foreground">{sent ? 'Our team will review your suggestion before making any changes.' : <>Help improve {artistName}&apos;s About. A person will review your suggestion before any changes are made.</>}</DialogDescription></DialogHeader>
-      {sent ? <div className="space-y-4"><p role="status">Your report was received and is in our review queue.</p><Button onClick={() => setOpen(false)}>Done</Button></div> : <form onSubmit={submit} className="space-y-4">
+      <DialogHeader className="space-y-1.5 pr-7 text-left"><DialogTitle className="text-xl font-semibold leading-snug tracking-tight">{sent ? (duplicate ? 'Report already received' : 'Report received') : 'Suggest a correction'}</DialogTitle><DialogDescription className="text-sm leading-relaxed text-muted-foreground">{sent ? 'Our team will review your suggestion before making any changes.' : <>Help improve {artistName}&apos;s About. A person will review your suggestion before any changes are made.</>}</DialogDescription></DialogHeader>
+      {sent ? <div className="space-y-4"><p role="status">{duplicate ? 'This exact report is already in our review queue. No duplicate was added.' : 'Your report was received and is in our review queue.'}</p><Button onClick={() => setOpen(false)}>Done</Button></div> : <form onSubmit={submit} className="space-y-4">
         {resume && <p role="status" className="text-sm leading-relaxed">You’re signed in. Complete your report and select Submit report below. It has not been submitted yet.</p>}
         <label className="block space-y-2 text-sm font-medium"><span>What needs fixing?</span><MusicNerdSelect label="What needs fixing?" value={reason} onValueChange={setReason} options={[{value:'incorrect',label:'Incorrect information'},{value:'wrong_artist',label:'This is about a different artist'},{value:'outdated',label:'Outdated information'},{value:'other',label:'Something else'}]} /></label>
         <label className="block space-y-2 text-sm font-medium"><span>Details <span className="text-muted-foreground">(optional)</span></span><textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={2000} rows={5} className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink/60" placeholder="What should we check?"/></label>

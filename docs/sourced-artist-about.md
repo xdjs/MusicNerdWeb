@@ -135,3 +135,10 @@ visitors. After both Privy and the application session are authenticated, the re
 opens. Submit report persists the report; only a successful response displays Report received,
 with a message that the team will review it and a Done button. Login alone never submits.
 The continuation survives the application-session reload. Failures keep the form and text.
+
+### October 17 — exact report deduplication
+
+Pending reports are duplicates only when submitter, artist, About snapshot, reason, details
+and normalized source URL all match. Distinct corrections remain separate review items; the
+existing daily limit and per-user transaction lock still apply. Exact repeats show Report
+already received and explain that no duplicate was added. Refs #1566.

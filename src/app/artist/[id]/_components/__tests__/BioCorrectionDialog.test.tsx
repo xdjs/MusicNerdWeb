@@ -80,3 +80,11 @@ it('waits for the application session before opening the report form',()=>{
  expect(screen.getByRole('dialog')).toBeVisible();
  expect(fetch).not.toHaveBeenCalled();
 });
+it('clearly distinguishes an exact duplicate from a newly saved report',async()=>{
+ jest.mocked(fetch).mockResolvedValue({ok:true,json:async()=>({success:true,duplicate:true})} as Response);
+ render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
+ fireEvent.click(screen.getByRole('button',{name:'Suggest a correction'}));
+ fireEvent.click(screen.getByRole('button',{name:'Submit report'}));
+ expect(await screen.findByRole('heading',{name:'Report already received'})).toBeVisible();
+ expect(screen.getByRole('status')).toHaveTextContent('No duplicate was added');
+});
