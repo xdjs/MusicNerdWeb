@@ -197,14 +197,21 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
                   : status === "pending"
                     ? Loader2
                     : RefreshCw;
-            const label =
+            const detailLabel = source === "instagram" && result?.detail ? {
+              posts_imported: "Posts checked",
+              older_posts_found: "Older posts recovered",
+              no_new_posts: "No new posts",
+              instagram_unavailable: "Couldn’t read posts — saved posts kept",
+              verifying_empty_window: "Verifying empty date range…",
+            }[result.detail] : undefined;
+            const label = detailLabel ?? (
               status === "checked"
                 ? "Checked"
                 : status === "failed"
                   ? "Couldn’t check"
                   : status === "pending"
                     ? "Checking…"
-                    : "Not connected";
+                    : "Not connected");
             return (
               <li
                 key={source}
