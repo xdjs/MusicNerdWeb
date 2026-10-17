@@ -3,7 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Link2, BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight, MessageSquareText } from "lucide-react";
+import { BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
+import LoreReviewQueue from "./LoreReviewQueue";
 import menuStyles from '@/components/ui/MusicNerdSelect.module.css';
 import styles from "@/components/community/Community.module.css";
 import surface from "@/app/profile/ProfileConcept.module.css";
@@ -15,14 +16,15 @@ interface AdminTabsProps {
   initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
   correctionsCount?: number; correctionsContent?: ReactNode;
   activityContent?: ReactNode;
+  initialReviewType?: "all" | "links" | "sources" | "corrections";
 }
 
-export default function AdminTabs({ugcContent,loreContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,correctionsContent,initialSection='ugc'}: AdminTabsProps) {
-  const [value,setValue] = useState<string>(initialSection);
+export default function AdminTabs({ugcContent,loreContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,correctionsContent,initialSection='lore',initialReviewType}: AdminTabsProps) {
+  const [value,setValue] = useState<string>(initialSection === 'ugc' || initialSection === 'corrections' ? 'lore' : initialSection);
+  const [reviewType,setReviewType] = useState<string>(initialReviewType ?? (initialSection === 'ugc' ? 'links' : initialSection === 'corrections' ? 'corrections' : 'all'));
+  const openReview = (type: string) => { setReviewType(type); setValue('lore'); };
   const sections = [
-    {value:'ugc',label:'Link submissions',title:'Review submitted links',description:'Check the source and artist before approving a community contribution.',icon:Link2,count:ugcCount,content:ugcContent},
-    {value:'lore',label:'Lore review',title:'Review Lore sources',description:'Check pending sources across artists before adding them to public Lore.',icon:BookOpen,count:loreCount,content:loreContent},
-    {value:'corrections',label:'About corrections',title:'Review About corrections',description:'Check reported information before making a change to the artist’s bio.',icon:MessageSquareText,count:correctionsCount,content:correctionsContent},
+    {value:'lore',label:'Lore review',title:'Lore review',description:'Review submitted links, Lore sources and About corrections.',icon:BookOpen,count:ugcCount+loreCount+correctionsCount,content:<LoreReviewQueue value={reviewType} onValueChange={setReviewType} linksCount={ugcCount} sourcesCount={loreCount} correctionsCount={correctionsCount} linksContent={ugcContent} sourcesContent={loreContent} correctionsContent={correctionsContent}/>},
     {value:'activity',label:'Activity',title:'Who started this work',description:'Research requests and content changes, attributed to the account that initiated them.',icon:Activity,content:activityContent},
     {value:'claims',label:'Artist claims',title:'Connect artists with their pages',description:'Review ownership requests and manage existing artist claims.',icon:BadgeCheck,count:claimsCount,content:claimsContent},
     {value:'artist-data',label:'Artist data',title:'A fuller picture of the catalog',description:'See platform coverage, profile completeness, and enrichment readiness.',icon:Database,content:artistDataContent},
@@ -33,8 +35,8 @@ export default function AdminTabs({ugcContent,loreContent,usersContent,claimsCon
   const currentSection = sections.find(section => section.value === value)!;
   return <Tabs value={value} onValueChange={setValue} className={styles.page}>
     <div className={styles.reviewOverview}>
-      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('ugc')} aria-label={`Review ${ugcCount} pending links`}><div><strong>{ugcCount.toLocaleString()}</strong><span>Links awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
-      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('lore')} aria-label={`Review ${loreCount} pending Lore sources`}><div><strong>{loreCount.toLocaleString()}</strong><span>Lore sources awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
+      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>openReview('links')} aria-label={`Review ${ugcCount} pending links`}><div><strong>{ugcCount.toLocaleString()}</strong><span>Links awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
+      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>openReview('sources')} aria-label={`Review ${loreCount} pending Lore sources`}><div><strong>{loreCount.toLocaleString()}</strong><span>Lore sources awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
       <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('claims')} aria-label={`Review ${claimsCount} pending claims`}><div><strong>{claimsCount.toLocaleString()}</strong><span>Artist claims awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
     </div>
     <div className={styles.workspace}>

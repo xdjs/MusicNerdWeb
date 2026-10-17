@@ -43,7 +43,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
   const busy = busyId !== null || bulkBusy;
   const first = (data.page - 1) * data.pageSize + 1;
   const last = Math.min(data.page * data.pageSize, data.total);
-  const pageHref = (page: number) => `/admin?section=lore&lorePage=${page}&loreQuery=${encodeURIComponent(data.query)}&loreOrigin=${data.origin ?? ''}&loreClaim=${data.claim ?? ''}`;
+  const pageHref = (page: number) => `/admin?section=lore&reviewType=sources&lorePage=${page}&loreQuery=${encodeURIComponent(data.query)}&loreOrigin=${data.origin ?? ''}&loreClaim=${data.claim ?? ''}`;
 
   async function review(id: string, artistName: string, status: "approved" | "rejected") {
     if (inFlight.current) return;
@@ -101,6 +101,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
     <Link href="/admin/contributions?origin=user&status=pending" className="inline-flex min-h-11 items-center text-sm underline">User submissions and contribution counts</Link>
     <form action="/admin" method="get" className={styles.filterBar} key={`${data.query}:${data.origin}:${data.claim}`}>
       <input type="hidden" name="section" value="lore" />
+      <input type="hidden" name="reviewType" value="sources" />
       <input type="search" name="loreQuery" aria-label="Search pending Lore" placeholder="Search artist, source, or contributor" defaultValue={data.query} maxLength={100} />
       <label className="flex min-w-0 flex-col gap-1 text-sm">Origin
         <MusicNerdSelect label="Origin" name="loreOrigin" defaultValue={data.origin ?? ''} options={[{value:'',label:'All origins'},{value:'submission',label:'User submissions'},{value:'research',label:'Automated research'},{value:'upload',label:'Uploads'},{value:'unknown',label:'Unknown origin'}]} />
@@ -109,7 +110,7 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
         <MusicNerdSelect label="Profile" name="loreClaim" defaultValue={data.claim ?? ''} options={[{value:'',label:'All profiles'},{value:'claimed',label:'Claimed'},{value:'unclaimed',label:'Unclaimed'}]} />
       </label>
       <Button type="submit" variant="outline" className="min-h-11 rounded-xl">Search</Button>
-      {(data.query || data.origin || data.claim) && <Link href="/admin?section=lore" className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">Clear</Link>}
+      {(data.query || data.origin || data.claim) && <Link href="/admin?section=lore&reviewType=sources" className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">Clear</Link>}
     </form>
     <p className={styles.filterSummary}>{data.total === 0 ? "No pending Lore sources" : `Showing ${first}–${last} of ${data.total.toLocaleString()} pending Lore sources`}</p>
     {visible.length > 0 && <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border p-3">

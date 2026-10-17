@@ -13,7 +13,10 @@ it("keeps the overall Lore review count visible when a search has no matches", (
 
 it('keeps review navigation in the sidebar instead of duplicate header buttons', () => {
  render(<AdminDashboard pendingUGCData={[]} pendingLore={{pendingTotal:0,rows:[],total:0,page:1,pageSize:25} as never} allUsers={[]} mcpKeys={[]} allClaims={[]} correctionsCount={1} correctionsContent={<p>Correction report</p>} initialSection="corrections"/>);
- expect(screen.getByRole('tab',{name:'About corrections 1'})).toBeVisible();
+ expect(screen.getByRole('tab',{name:'Lore review 1'})).toBeVisible();
+ expect(screen.getByRole('combobox',{name:'Review type'})).toHaveTextContent('About corrections (1)');
+ expect(screen.getByText('Correction report')).toBeVisible();
+ expect(screen.queryByRole('tab',{name:/About corrections/})).not.toBeInTheDocument();
  expect(screen.queryByRole('link',{name:'Review user submissions'})).not.toBeInTheDocument();
  expect(screen.queryByRole('link',{name:'Review About corrections'})).not.toBeInTheDocument();
 });

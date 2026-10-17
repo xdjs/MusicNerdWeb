@@ -100,3 +100,7 @@ are removed; existing contribution-review routes remain accessible by direct lin
 Correction reporting is for visitors who cannot edit the current profile. Admins and authorized artist editors use the existing editing controls; the report affordance is hidden using the existing per-profile `canEdit` permission. Whitelist status alone does not suppress visitor feedback.
 
 Admin filters and the correction reason menu share `MusicNerdSelect`, using the rounded, theme-aware menu treatment from interviewer draft #1562 (tracked in #1564). Form filter values, empty “All” choices, sorting and keyboard selection remain unchanged. The interviewer branch is not modified.
+
+### October 17 consolidated review navigation — supersedes separate tabs
+
+Pete chose **Lore review** as the single admin destination for submitted links, Lore sources and About corrections. A **Review type** filter offers All, Links, Lore sources and About corrections, each with its pending count. All groups the existing review panels by type; each retains its own review actions and filters. The sidebar count is the sum of all three pending queues. Artist claims remains separate. Legacy link/correction entry points select the corresponding filter within Lore review. This replaces the separate Link submissions and About corrections sidebar entries.
