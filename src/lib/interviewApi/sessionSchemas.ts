@@ -15,6 +15,8 @@ export const sessionQuestionSchema = z.object({
 });
 export const interviewPreparationSchema = z.object({
   jobId: z.string().uuid().nullable().optional(),
+  readyCount: z.number().int().min(0).max(3).optional(),
+  totalCount: z.number().int().min(0).max(3).optional(),
   status: z.enum(["idle", "pending", "running", "ready", "failed", "stale"]),
   errorCode: z.enum(["preparation_failed", "model_output_invalid", "timeout_or_cancelled", "external_outcome_unknown"]).nullable().optional(),
 });

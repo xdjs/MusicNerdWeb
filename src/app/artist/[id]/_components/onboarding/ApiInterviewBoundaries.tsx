@@ -126,7 +126,7 @@ export default function ApiInterviewBoundaries({
   const button =
     "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
   return (
-    <div className="border-t border-black/10 pt-3 dark:border-white/15">
+    <div>
       <button
         type="button"
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
@@ -138,7 +138,7 @@ export default function ApiInterviewBoundaries({
         <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180" : ""} />
       </button>
       {open && (
-        <div className="mt-3 space-y-3">
+        <div className="mt-4 space-y-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Tell the interviewer what to leave out or how to approach a topic.
             Your exact words stay active for the scope you choose.

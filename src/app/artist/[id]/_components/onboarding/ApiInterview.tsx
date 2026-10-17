@@ -269,13 +269,13 @@ export default function ApiInterview({
         <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
           <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
           <div>
-            <p>{queued || preparing ? "Preparing your question…" : opening ? "Opening your question…" : "Saving your interview…"}</p>
+            <p>{queued || preparing ? "Preparing your questions…" : opening ? "Opening your question…" : "Saving your interview…"}</p>
             {(queued || preparing) && <p className="mt-1 text-xs text-muted-foreground">You can close this window. We’ll keep preparing it in the background.</p>}
           </div>
         </div>
       )}
       {preparationStatus === "failed" && !busy && (
-        <p role="alert" className="my-4 text-sm text-muted-foreground">We couldn’t prepare that question. Your saved responses are safe.</p>
+        <p role="alert" className="my-4 text-sm text-muted-foreground">We couldn’t finish preparing your interview. Your saved responses are safe.</p>
       )}
       {!loading && !busy && !queued && state && (
         <div className="space-y-3">
@@ -306,7 +306,9 @@ export default function ApiInterview({
               <p className="text-sm">
                 {session.questions.length >= 3
                   ? "That’s three questions. Thanks for sharing your story."
-                  : session.questions.length === 0
+                  : preparationStatus === "ready" && state.preparation?.readyCount
+                    ? `${state.preparation.readyCount} ${state.preparation.readyCount === 1 ? "question" : "questions"} ready. Answer at your own pace.`
+                    : session.questions.length === 0
                     ? "Your interview is open."
                     : "Your response is saved."}
               </p>
@@ -348,8 +350,7 @@ export default function ApiInterview({
 
             </div>
           )}
-          <details className="border-t border-black/10 pt-3 dark:border-white/15">
-            <summary className="button-glass inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium dark:border-white/20 dark:bg-white/5">Preferences & responses <ChevronDown size={16} aria-hidden="true" /></summary>
+          <div className="mt-6 space-y-5">
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
@@ -359,11 +360,12 @@ export default function ApiInterview({
             />
           )}
           {!!session?.questions.some((q) => q.state !== "offered") && (
-            <details className="border-t border-black/10 pt-3 dark:border-white/15">
-              <summary className="min-h-11 cursor-pointer py-2 text-sm">
+            <details className="group">
+              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink [&::-webkit-details-marker]:hidden">
                 This session’s responses
+                <ChevronDown size={16} aria-hidden="true" className="group-open:rotate-180" />
               </summary>
-              <ol className="space-y-4">
+              <ol className="mt-4 space-y-4">
                 {session.questions
                   .filter((q) => q.state !== "offered")
                   .map((q) => (
@@ -377,7 +379,7 @@ export default function ApiInterview({
               </ol>
             </details>
           )}
-          </details>
+          </div>
         </div>
       )}
           <div className="mt-4">

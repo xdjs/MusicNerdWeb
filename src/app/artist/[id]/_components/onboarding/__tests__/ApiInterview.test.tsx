@@ -233,7 +233,7 @@ it("keeps topic preferences available in a new sitting before any question exist
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Interview" }));
   await screen.findByRole("button", { name: "Prepare next question" });
-  fireEvent.click(screen.getByText("Preferences & responses"));
+  expect(screen.queryByText("Preferences & responses")).not.toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: "Topic preferences" }),
   ).toBeEnabled();
@@ -359,4 +359,15 @@ it("does not pile up status requests when a preparation read is slow", async () 
     expect(fetch).toHaveBeenCalledTimes(2);
     unmount();
   } finally { jest.useRealTimers(); }
+});
+
+it("shows how many questions are prepared before starting the session", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply({
+    ...active,
+    session: { ...active.session, questions: [] },
+    preparation: { status: "ready", readyCount: 3, totalCount: 3 },
+  }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
+  expect(await screen.findByText("3 questions ready. Answer at your own pace.")).toBeVisible();
 });

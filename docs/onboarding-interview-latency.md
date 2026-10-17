@@ -42,3 +42,17 @@ Dependencies: Web migration `0053_interview_preparation` expands the existing jo
 MusicNerdAPI PR #56 supplies the worker and session preparation contract; MusicNerdDocs PR #23
 records the API contract. These changes require paired preview verification before release.
 The ten-second preparation target is not yet established by end-to-end measurements.
+
+## Prepared session revision — 2026-10-17 (in progress)
+
+Pete rejected the one-question preparation flow after a saved answer was followed by a
+failed generation. Before Start is available, prepare the remaining questions for the
+three-question session as a durable bank. Saving an answer must preserve eligible bank
+questions; it must not unconditionally discard them and start paid generation again.
+Before offering a stored question, verify current claim, sources, topic instructions,
+and whether the latest answer already covers it. Follow-up preparation must not block
+ready, eligible questions. Validate the full answer → next → finish flow on staging.
+
+Remove the nested Preferences & responses wrapper. Topic preferences and This session’s
+responses are direct, matching expandable controls, separated by whitespace rather than
+dividers touching their edges. Verify the rendered layout on desktop and phone.
