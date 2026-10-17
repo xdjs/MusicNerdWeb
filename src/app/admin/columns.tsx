@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table";
-import { UgcResearch, User } from "@/server/db/DbTypes";
+import { User } from "@/server/db/DbTypes";
 import { ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,47 +37,6 @@ const formatDate = (value: string | Date | null | undefined): string => {
 
   return `${datePart} ${timePart}`;
 };
-
-export const ugcColumns: ColumnDef<UgcResearch & { wallet?: string | null; username?: string | null }>[] = [
-  {
-    id: "select",
-    header: () => <span className="sr-only">Selection</span>,
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: "Artist",
-    cell: ({ row }) => <span className="font-semibold">{row.original.artistId ? <a href={`/artist/${row.original.artistId}`} className="underline underline-offset-4" title={row.original.artistId}>{row.original.name || "Unknown artist"}</a> : row.original.name || "Unknown artist"}</span>,
-  },
-  {
-    accessorKey: "ugcUrl",
-    header: "Suggested link",
-    cell: ({ row }) => <div className="min-w-40 max-w-60"><p className="text-xs text-muted-foreground mb-1">{row.original.siteName}</p><a href={row.original.ugcUrl ?? undefined} target="_blank" rel="noopener noreferrer" className="block truncate underline underline-offset-4" title={row.original.ugcUrl ?? undefined}>{row.original.siteUsername || row.original.ugcUrl || "No link supplied"}</a></div>,
-  },
-  {
-    accessorKey: "username",
-    header: "Shared by",
-    cell: ({ row }) => <span title={row.original.wallet ?? undefined}>{row.original.username || (row.original.wallet ? `${row.original.wallet.slice(0, 6)}…${row.original.wallet.slice(-4)}` : "Contributor")}</span>,
-  },
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => <Button variant="ghost" className="px-0 hover:bg-transparent" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>Submitted <ArrowUpDown className="ml-2 h-3 w-3" /></Button>,
-    cell: ({ getValue }) => formatDate(getValue() as string | Date | null | undefined),
-  },
-  {
-    accessorKey: "id",
-    header: "Details",
-    cell: ({ row }) => <details><summary className="cursor-pointer text-xs">IDs</summary><dl className="mt-2 text-xs"><dt>Submission</dt><dd className="select-all">{row.original.id}</dd><dt className="mt-2">Artist</dt><dd className="select-all">{row.original.artistId}</dd></dl></details>,
-  },
-];
 
 export const whitelistedColumns: ColumnDef<User>[] = [
   {

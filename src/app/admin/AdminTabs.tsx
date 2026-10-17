@@ -3,23 +3,27 @@
 import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Link2, BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
+import { BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import menuStyles from '@/components/ui/MusicNerdSelect.module.css';
 import styles from "@/components/community/Community.module.css";
 import surface from "@/app/profile/ProfileConcept.module.css";
 
 interface AdminTabsProps {
-  ugcContent: ReactNode; loreContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
+  reviewContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
   mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
   ugcCount: number; loreCount: number; claimsCount: number;
-  initialSection?: "ugc" | "lore" | "activity" | "users";
+  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
+  correctionsCount?: number;
   activityContent?: ReactNode;
 }
 
-export default function AdminTabs({ugcContent,loreContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,initialSection='ugc'}: AdminTabsProps) {
-  const [value,setValue] = useState<string>(initialSection);
+export default function AdminTabs({reviewContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,initialSection='lore'}: AdminTabsProps) {
+  const [value,setValue] = useState<string>(initialSection === 'ugc' || initialSection === 'corrections' ? 'lore' : initialSection);
+  const router = useRouter();
+  const openReview = (type: string) => { setValue('lore'); router.push(`/admin?section=lore&reviewType=${type}`); };
   const sections = [
-    {value:'ugc',label:'Link submissions',title:'Review submitted links',description:'Check the source and artist before approving a community contribution.',icon:Link2,count:ugcCount,content:ugcContent},
-    {value:'lore',label:'Lore review',title:'Review Lore sources',description:'Check pending sources across artists before adding them to public Lore.',icon:BookOpen,count:loreCount,content:loreContent},
+    {value:'lore',label:'Lore review',title:'Lore review',description:'Review submitted links, Lore sources and About corrections.',icon:BookOpen,count:ugcCount+loreCount+correctionsCount,content:reviewContent},
     {value:'activity',label:'Activity',title:'Who started this work',description:'Research requests and content changes, attributed to the account that initiated them.',icon:Activity,content:activityContent},
     {value:'claims',label:'Artist claims',title:'Connect artists with their pages',description:'Review ownership requests and manage existing artist claims.',icon:BadgeCheck,count:claimsCount,content:claimsContent},
     {value:'artist-data',label:'Artist data',title:'A fuller picture of the catalog',description:'See platform coverage, profile completeness, and enrichment readiness.',icon:Database,content:artistDataContent},
@@ -30,8 +34,8 @@ export default function AdminTabs({ugcContent,loreContent,usersContent,claimsCon
   const currentSection = sections.find(section => section.value === value)!;
   return <Tabs value={value} onValueChange={setValue} className={styles.page}>
     <div className={styles.reviewOverview}>
-      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('ugc')} aria-label={`Review ${ugcCount} pending links`}><div><strong>{ugcCount.toLocaleString()}</strong><span>Links awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
-      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('lore')} aria-label={`Review ${loreCount} pending Lore sources`}><div><strong>{loreCount.toLocaleString()}</strong><span>Lore sources awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
+      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>openReview('links')} aria-label={`Review ${ugcCount} pending links`}><div><strong>{ugcCount.toLocaleString()}</strong><span>Links awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
+      <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>openReview('sources')} aria-label={`Review ${loreCount} pending Lore sources`}><div><strong>{loreCount.toLocaleString()}</strong><span>Lore sources awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
       <button type="button" className={`${surface.surface} ${styles.reviewCard}`} onClick={()=>setValue('claims')} aria-label={`Review ${claimsCount} pending claims`}><div><strong>{claimsCount.toLocaleString()}</strong><span>Artist claims awaiting review</span></div><ArrowUpRight aria-hidden="true" size={22}/></button>
     </div>
     <div className={styles.workspace}>
@@ -40,8 +44,8 @@ export default function AdminTabs({ugcContent,loreContent,usersContent,claimsCon
           <SelectTrigger aria-label="Admin section" className={styles.sectionTrigger}>
             <span className={styles.sectionOption}><currentSection.icon size={18} aria-hidden="true"/><span>{currentSection.label}</span>{currentSection.count !== undefined && <span className={styles.badge}>{currentSection.count}</span>}</span>
           </SelectTrigger>
-          <SelectContent className={styles.sectionMenu}>
-            {sections.map(section => <SelectItem key={section.value} value={section.value} textValue={section.label} className={styles.sectionItem}>
+          <SelectContent className={`${styles.sectionMenu} ${menuStyles.menu}`}>
+            {sections.map(section => <SelectItem key={section.value} value={section.value} textValue={section.label} className={`${styles.sectionItem} ${menuStyles.option}`}>
               <span className={styles.sectionOption}><section.icon size={18} aria-hidden="true"/><span>{section.label}</span>{section.count !== undefined && <span className={styles.badge}>{section.count}</span>}</span>
             </SelectItem>)}
           </SelectContent>

@@ -1,5 +1,6 @@
 "use client";
 
+import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import styles from "@/components/community/Community.module.css";
@@ -579,7 +580,7 @@ export default function AgentWorkSection({dataUrl="/api/admin/agent-work"}:{data
       {detailsError && <p role="alert" className="text-sm text-red-600">{detailsError}<button className="ml-2 underline" onClick={()=>fetchDetails(auditPage)}>Retry details</button></p>}
       {details && (
         <>
-          <div className={styles.filterBar}><label>Show details<select aria-label="Agent detail view" value={detailView} onChange={event=>setDetailView(event.target.value)}><option value="runs">Run history</option><option value="agents">By agent</option><option value="audit">Audit log</option><option value="exclusions">Exclusions</option></select></label></div>
+          <div className={styles.filterBar}><label>Show details<AdminSelect label="Agent detail view" value={detailView} onValueChange={value=>setDetailView(value)} options={[{value: 'runs', label: 'Run history'}, {value: 'agents', label: 'By agent'}, {value: 'audit', label: 'Audit log'}, {value: 'exclusions', label: 'Exclusions'}]} /></label></div>
           {detailView==="runs" && <RunHistorySection runHistory={details.runHistory} />}
           {detailView==="agents" && <AgentBreakdownSection agents={details.agentBreakdown.agents} />}
           {detailView==="audit" && <div className={paginatingAudit ? "opacity-50 pointer-events-none" : ""}>

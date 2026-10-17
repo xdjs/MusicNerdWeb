@@ -1,5 +1,6 @@
 "use client";
 
+import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,7 +147,7 @@ export default function McpKeysSection({ initialKeys }: { initialKeys: McpKey[] 
         <Button onClick={() => { setError(""); setIsCreateOpen(true); }}>Create Key</Button>
       </div>
 
-      <div className={styles.filterBar}><input type="search" aria-label="Search API keys" placeholder="Search key label or prefix" value={query} onChange={event=>setQuery(event.target.value)}/><label>Status<select aria-label="Key status" value={status} onChange={event=>setStatus(event.target.value)}><option value="all">All keys</option><option value="active">Active</option><option value="revoked">Revoked</option></select></label></div>
+      <div className={styles.filterBar}><input type="search" aria-label="Search API keys" placeholder="Search key label or prefix" value={query} onChange={event=>setQuery(event.target.value)}/><label>Status<AdminSelect label="Key status" value={status} onValueChange={value=>setStatus(value)} options={[{value: 'all', label: 'All keys'}, {value: 'active', label: 'Active'}, {value: 'revoked', label: 'Revoked'}]} /></label></div>
       <div className={styles.filterSummary}><span>{filteredKeys.length} of {keys.length} keys</span>{(query || status!=="all") && <button type="button" onClick={()=>{setQuery("");setStatus("all");}}>Clear filters</button>}</div>
       {error && <p className="text-red-500 text-sm">{error}</p>}
 

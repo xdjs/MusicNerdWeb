@@ -1,3 +1,18 @@
+## Sourced About and corrections — October 17
+
+[#1558](https://github.com/xdjs/MusicNerdWeb/issues/1558) is implemented in draft
+[Web #1563](https://github.com/xdjs/MusicNerdWeb/pull/1563) and
+[API #55](https://github.com/xdjs/MusicNerdAPI/pull/55), not merged or in production.
+Pete selected Suggest a correction beside Read more, then asked to reveal source
+attribution only inside Read more. See the [contract](docs/sourced-artist-about.md).
+Migrations 0053–0054 are applied and role-verified on staging; production migration
+is still required before either release. Real pending preparation jobs completed
+for Svaneborg Kardyb and Daniel Herskedal; a citation ancestry gap found during QA
+was fixed in API #55. Regular-member submission/deduplication and admin-queue denial
+passed on preview; final layout evidence and administrator review are tracked in
+PR comments. Preserve private Lore and existing artist edits; no production backfill
+or release is authorized by this handoff.
+
 ## Public docs hostname — October 16
 
 [#1534](https://github.com/xdjs/MusicNerdWeb/issues/1534) now has working HTTPS
