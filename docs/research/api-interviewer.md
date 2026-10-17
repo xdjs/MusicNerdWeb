@@ -76,3 +76,18 @@ smaller outer gutters while the body retains its own scroll area, with control s
 and space above the fixed footer. Browser checks must establish actual clipping behavior; Jest
 checks do not prove layout. Session restore network latency is separate from explicit generation
 latency; no model-speed claim is made by these UI changes.
+
+### Known-answer follow-up check
+
+The existing draft checker now separately assesses `addsNewInformation`. A question can be
+factually supported and never previously asked, yet request a fact already supplied by the
+artist (a genre, instrument or recording location). Such drafts fail the existing bounded
+repair loop; they cannot be preserved while only their supporting angle is repaired. Planning
+and drafting first identify an unresolved detail and prefer concrete experiences/examples.
+This adds no model stage or retrieval call and does not claim to eliminate generation latency.
+
+Run `scripts/eval/interview-information-gain.ts` with staging AI Gateway configuration to
+exercise the actual checker prompt against six synthetic fixtures (one reported failure,
+three known-fact asks total, three unresolved follow-ups). The script writes only a local
+report, never artist answers. This is a narrow editorial regression, not full interview
+quality acceptance; end-to-end generated questions still need artist review.
