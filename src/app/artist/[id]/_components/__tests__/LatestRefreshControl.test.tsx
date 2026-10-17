@@ -9,6 +9,8 @@ jest.mock("next/navigation", () => ({
 jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({
   musicNerdApiUrl: (path) => `https://api.example.test${path}`,
 }));
+const mockTrackEvent = jest.fn();
+jest.mock("@/lib/analytics/trackEvent", () => ({ trackEvent: (...a) => mockTrackEvent(...a) }));
 import LatestRefreshControl from "../LatestRefreshControl";
 import { EditModeContext } from "@/app/_components/EditModeContext";
 const renderEditor = () => render(<EditModeContext.Provider value={{ canEdit: true, isEditing: true, toggle: jest.fn() }}><LatestRefreshControl artistId="artist" /></EditModeContext.Provider>);
@@ -136,4 +138,16 @@ it("keeps a late worker response from refreshing the next artist, and restores s
   await screen.findByText("Latest checked.");
   expect(mockRefresh).not.toHaveBeenCalled();
   expect(fetch.mock.calls.filter(([url]) => String(url).endsWith("/latest-refresh"))).toHaveLength(2);
+});
+
+it.each([
+  [{ ok: true, json: async () => ({ refresh: null }) }, "started"],
+  [{ ok: false, json: async () => ({ error: "Try again in 10 minutes." }) }, "error"],
+])("tracks each Check for updates click and whether it started", async (reply, outcome) => {
+  renderEditor();
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  fetch.mockResolvedValueOnce(reply);
+  fireEvent.click(screen.getByRole("button", { name: "Update Latest" }));
+  await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith("check_for_updates", { outcome }));
+  expect(mockTrackEvent).toHaveBeenCalledTimes(1);
 });

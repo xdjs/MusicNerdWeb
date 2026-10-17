@@ -6,6 +6,8 @@ const mockAddArtist = jest.fn();
 const mockPush = jest.fn();
 let mockPathname = '/';
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => mockPathname }));
+const mockTrackEvent = jest.fn();
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 
 let mockSessionData: any = null;
 let mockSessionStatus = 'unauthenticated';
@@ -141,6 +143,41 @@ describe('AddArtist', () => {
         it('labels the global control as adding a new artist', () => {
             render(<AddArtist />);
             expect(screen.getByRole('button', { name: 'Add new artist' })).toHaveAttribute('title', 'Add new artist');
+        });
+    });
+
+    describe('Analytics', () => {
+        it('tracks a + click as the start of an add, signed in or not', () => {
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            expect(mockTrackEvent).toHaveBeenCalledWith('add_artist', { surface: 'nav', step: 'start' });
+        });
+
+        it.each([
+            [{ status: 'success', artistId: 'new-id', artistName: 'Radiohead' }, 'added'],
+            [{ status: 'exists', artistId: 'old-id', artistName: 'Radiohead' }, 'exists'],
+            [{ status: 'error', message: 'Spotify error' }, 'error'],
+        ])('tracks how the add resolved (%o)', async (resp, step) => {
+            mockSessionData = { user: { id: 'user-uuid' } };
+            mockSessionStatus = 'authenticated';
+            mockAddArtist.mockResolvedValue(resp);
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
+            await act(async () => { await capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
+            expect(mockTrackEvent).toHaveBeenLastCalledWith('add_artist', { surface: 'nav', step });
+        });
+
+        it('tracks a thrown add as an error', async () => {
+            mockSessionData = { user: { id: 'user-uuid' } };
+            mockSessionStatus = 'authenticated';
+            mockAddArtist.mockRejectedValue(new Error('network'));
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
+            await act(async () => { await capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
+            expect(mockTrackEvent).toHaveBeenLastCalledWith('add_artist', { surface: 'nav', step: 'error' });
         });
     });
 

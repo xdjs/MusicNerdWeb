@@ -18,6 +18,7 @@ import DuplicateArtistChoice, { type DuplicateArtistCandidate, type SelectedArti
 import type { MusicPlatform } from "@/server/utils/musicPlatform";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
+import { trackAddArtistResult } from "@/lib/analytics/trackAddArtistResult";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -93,6 +94,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
         try {
             setAddingPlatformId(platformId);
             const addResult = await addArtist(platformId, platform as 'deezer' | 'spotify');
+            trackAddArtistResult('search', addResult);
 
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
@@ -114,6 +116,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             }
         } catch (error) {
             console.error("[SearchBar] Error adding artist:", error);
+            trackEvent('add_artist', { surface: 'search', step: 'error' });
             if (addRequestGenerationRef.current === requestGeneration) {
                 toast({
                     variant: "destructive",
@@ -144,6 +147,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
                 response.platform,
                 { forceCreate: true },
             );
+            trackAddArtistResult('search', addResult);
 
             if (addRequestGenerationRef.current !== requestGeneration) return;
 
@@ -166,6 +170,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
             }
         } catch (error) {
             console.error("[SearchBar] Error creating separate artist:", error);
+            trackEvent('add_artist', { surface: 'search', step: 'error' });
             if (addRequestGenerationRef.current === requestGeneration) {
                 toast({
                     variant: "destructive",
@@ -288,6 +293,7 @@ function SearchBarInner({ isTopSide = false, appearance = "nav" }: SearchBarProp
 
         if (result.isExternalOnly) {
             if (!result.platformId) return;
+            trackEvent('add_artist', { surface: 'search', step: 'start' });
 
             if (!session && !isDevMode) {
                 try {

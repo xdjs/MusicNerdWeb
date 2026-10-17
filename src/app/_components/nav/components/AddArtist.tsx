@@ -33,6 +33,8 @@ import { useSession } from "next-auth/react";
 import DuplicateArtistChoice from "@/app/_components/DuplicateArtistChoice";
 import { parseSupportedArtistUrl } from "@/lib/artist/artistProfileUrl";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
+import { trackEvent } from "@/lib/analytics/trackEvent";
+import { trackAddArtistResult } from "@/lib/analytics/trackAddArtistResult";
 
 const formSchema = z.object({
     artistUrl: z.string().refine(
@@ -69,6 +71,7 @@ export default function AddArtist() {
     }, [pathname]);
 
     function applyResponse(resp: AddArtistResp) {
+        trackAddArtistResult("nav", resp);
         setAddArtistStatus(resp);
         if (resp.status === "success" || resp.status === "exists") {
             if (resp.artistId && pathname === `/artist/${resp.artistId}`) {
@@ -98,6 +101,7 @@ export default function AddArtist() {
             }
         } catch (error) {
             console.error("[AddArtist] Error adding artist:", error);
+            trackEvent("add_artist", { surface: "nav", step: "error" });
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse({ status: "error", message: "Failed to add artist. Please try again." });
             }
@@ -128,6 +132,7 @@ export default function AddArtist() {
             }
         } catch (error) {
             console.error("[AddArtist] Error creating separate artist:", error);
+            trackEvent("add_artist", { surface: "nav", step: "error" });
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse({ status: "error", message: "Failed to create the artist. Please try again." });
             }
@@ -157,6 +162,7 @@ export default function AddArtist() {
 
     function handleAddArtistClick() {
         if (sessionStatus === "loading") return;
+        trackEvent("add_artist", { surface: "nav", step: "start" });
 
         if (session) {
             setIsModalOpen(true);

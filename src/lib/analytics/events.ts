@@ -1,5 +1,5 @@
 /**
- * The custom events Music Nerd sends to Vercel Web Analytics, as approved on #1258.
+ * The custom events Music Nerd sends to Vercel Web Analytics (#1258; add_artist and check_for_updates from #1535).
  * Two properties per event (Pro plan); the page URL travels with every event for free.
  * Change this file, docs/analytics.md and the fire point together.
  */
@@ -16,6 +16,8 @@ export type AnalyticsEvents = {
         target: string | null;
     };
     login: { trigger: LoginTrigger; new: boolean };
+    add_artist: { surface: 'nav' | 'search'; step: 'start' | 'added' | 'exists' | 'error' };
+    check_for_updates: { outcome: 'started' | 'error' };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEvents;

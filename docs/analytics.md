@@ -53,8 +53,9 @@ Add it then, with a test, and update this section.
 
 ## Custom events
 
-Nine events, approved on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) on
-2026-09-15. Names and properties are typed in `src/lib/analytics/events.ts`; adding an event or
+Eleven events: nine approved on [#1258](https://github.com/xdjs/MusicNerdWeb/issues/1258) on
+2026-09-15, and `add_artist` and `check_for_updates`, asked for by Pete at the 2026-10-15 stand-up
+([#1535](https://github.com/xdjs/MusicNerdWeb/issues/1535)). Names and properties are typed in `src/lib/analytics/events.ts`; adding an event or
 a property means changing that file, this table, and the fire point together. Values are short
 lower-case tokens; free text appears only where the table says so.
 
@@ -69,6 +70,8 @@ lower-case tokens; free text appears only where the table says so.
 | `interview_answer` | An artist saves or skips an interview question (`actions/interviewActions.ts`) | `question` = the question key; `skipped` = true when saved without an answer | server | Are claimed artists producing "In their words" |
 | `profile_edit` | A claimed artist changes their profile | `action` = `link_add` · `link_remove` · `reorder` · `photo` · `vault_upload` · `dismiss`; `target` = platform for link actions, else `null` | server | Do artists maintain their profile after claiming |
 | `login` | A NextAuth session is created after Privy login and the page reloads (`PrivyLogin.tsx`) | `trigger` = which surface asked for login (`nav`, `search_add`, `add_link`, `claim`, `add_artist`, `dashboard`, `please_login`); `new` = Privy's `isNewUser` | client | What converts a visitor into an account; new vs returning |
+| `add_artist` | The nav **+** is clicked, signed in or not (`nav/AddArtist.tsx`), or a search result's "Add to MusicNerd" is chosen, before any login (`nav/SearchBar.tsx`) → `start`; that add resolves → `added` · `exists` · `error` (a possible duplicate sends nothing until the visitor chooses) | `surface` = `nav` · `search`; `step` = `start` · `added` · `exists` · `error` | client | Do people add artists from search or the **+**, and how many who start an add finish it (`start` minus resolved = abandoned)? |
+| `check_for_updates` | An editor clicks **Update Latest** ("Check for updates") in edit mode (`LatestRefreshControl.tsx`) | `outcome` = `started` (the normal case; a click while a check is running returns that check) · `error` (rare: the session ended, edit rights changed, or the request failed; during the cooldown the button is disabled, so it never sends `error`) | client | How often artists check their sources for new updates |
 
 Fire points for `profile_edit`: `api/directEditLink` (`set` → `link_add`, `clear` → `link_remove`),
 `api/removeArtistData` (`link_remove`), `api/artist/link-order` (`reorder`),
