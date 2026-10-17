@@ -14,7 +14,7 @@ is confirmed. The approved design is linked from the issue.
 > chat stream.** The build confirms each step in `artist_onboarding_steps` as it finishes, and the
 > server finishes the build even if the browser leaves. The page reads that state through
 > MusicNerdAPI's public `GET /api/onboarding/{artistId}/state`
-> ([docs](https://musicnerd-docs.vercel.app/api-reference/onboarding/state)), not the database.
+> ([docs](https://docs.musicnerd.net/api-reference/onboarding/state)), not the database.
 
 > **Decision 2026-10-08 ([R&D sync](https://github.com/xdjs/MusicNerdWeb/issues/1464); Pete,
 > Sweetman): no "Your page is ready" card.** Its **See what we found** only scrolled to a

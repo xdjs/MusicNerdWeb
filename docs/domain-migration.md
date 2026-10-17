@@ -68,3 +68,16 @@ the snapshot. Keep the old domain registration and mail records in place.
 - [Release gates](releases.md)
 - [Vercel redirects](https://vercel.com/docs/domains/working-with-domains/deploying-and-redirecting)
 - [External DNS and wildcard HTTPS](https://vercel.com/docs/domains/working-with-domains/add-a-domain#use-wildcard-domains-with-an-external-dns-provider)
+
+## Documentation hostname (#1534)
+
+The public docs entry point is `https://docs.musicnerd.net`, served by the
+MusicNerdDocs Vercel project (`docs` in the Music Nerd team). Add its recommended
+CNAME at Squarespace and verify HTTPS before releasing links to it. Keep
+`musicnerd-docs.vercel.app` serving the same docs so existing deep links work.
+
+Web's footer, About page, API connection screens and current developer guides
+link to the new host, preserving paths. MusicNerdAPI's landing page and
+MusicNerdDocs' production canonical URLs change in companion PRs. No application
+route, database, research job or external API behavior changes. Historical
+transcripts keep the URLs recorded at the time.
