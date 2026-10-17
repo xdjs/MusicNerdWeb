@@ -1,4 +1,5 @@
 'use client';
+import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
 import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -30,7 +31,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     <DialogContent className="max-h-[90dvh] overflow-y-auto">
       <DialogHeader><DialogTitle>Suggest a correction</DialogTitle><DialogDescription>Help improve {artistName}&apos;s About. A person will review your suggestion before any changes are made.</DialogDescription></DialogHeader>
       {sent ? <div className="space-y-4"><p role="status">Thanks — your suggestion is in the review queue.</p><Button onClick={() => setOpen(false)}>Done</Button></div> : <form onSubmit={submit} className="space-y-4">
-        <label className="block space-y-2"><span>What needs fixing?</span><select value={reason} onChange={e => setReason(e.target.value)} className="min-h-11 w-full rounded-md border bg-background p-2"><option value="incorrect">Incorrect information</option><option value="wrong_artist">This is about a different artist</option><option value="outdated">Outdated information</option><option value="other">Something else</option></select></label>
+        <label className="block space-y-2"><span>What needs fixing?</span><MusicNerdSelect label="What needs fixing?" value={reason} onValueChange={setReason} options={[{value:'incorrect',label:'Incorrect information'},{value:'wrong_artist',label:'This is about a different artist'},{value:'outdated',label:'Outdated information'},{value:'other',label:'Something else'}]} /></label>
         <label className="block space-y-2"><span>Details <span className="text-muted-foreground">(optional)</span></span><textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={2000} rows={3} className="w-full rounded-md border bg-background p-2" placeholder="What should we check?"/></label>
         <label className="block space-y-2"><span>Source link <span className="text-muted-foreground">(optional)</span></span><input type="url" value={sourceUrl} onChange={e => setSourceUrl(e.target.value)} maxLength={2048} className="min-h-11 w-full rounded-md border bg-background p-2" placeholder="https://"/></label>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

@@ -94,3 +94,9 @@ dashboard. About corrections belongs alongside Link submissions and Lore review,
 with reports in the main panel. `/admin?section=corrections` opens that panel; the
 earlier `/admin/bio-corrections` address redirects there. Both header shortcuts
 are removed; existing contribution-review routes remain accessible by direct link.
+
+### October 17 review refinements
+
+Correction reporting is for visitors who cannot edit the current profile. Admins and authorized artist editors use the existing editing controls; the report affordance is hidden using the existing per-profile `canEdit` permission. Whitelist status alone does not suppress visitor feedback.
+
+Admin filters and the correction reason menu share `MusicNerdSelect`, using the rounded, theme-aware menu treatment from interviewer draft #1562 (tracked in #1564). Form filter values, empty “All” choices, sorting and keyboard selection remain unchanged. The interviewer branch is not modified.

@@ -1,5 +1,6 @@
 "use client"
 
+import AdminSelect from "@/components/ui/MusicNerdSelect";
 import {
     ColumnDef,
     SortingState,
@@ -97,7 +98,7 @@ export default function UGCDataTable<TData extends Submission, TValue>({
         <div className={`${styles.ugcReview} space-y-4`}>
             <div className={styles.filterBar}>
               <input type="search" aria-label="Search link submissions" placeholder="Search artist, contributor or URL" value={query} onChange={event=>{setQuery(event.target.value);setRowSelection({});}} />
-              <label>Platform<select aria-label="Platform" value={platform} onChange={event=>{setPlatform(event.target.value);setRowSelection({});}}><option value="">All platforms</option>{platforms.map(name=><option key={name}>{name}</option>)}</select></label>
+              <label>Platform<AdminSelect label="Platform" value={platform} onValueChange={value=>{setPlatform(value);setRowSelection({});}} options={[{value: '', label: 'All platforms'}, ...platforms.map(name => ({value: name, label: name}))]} /></label>
             </div>
             <div className={styles.filterSummary}><span>{filteredData.length} of {pendingData.length} pending submissions</span>{(query || platform) && <button type="button" onClick={()=>{setQuery("");setPlatform("");setRowSelection({});}}>Clear filters</button>}</div>
             <div className="flex flex-wrap items-center gap-3">
@@ -110,11 +111,7 @@ export default function UGCDataTable<TData extends Submission, TValue>({
             <Button variant="outline" onClick={() => void approve(selectedIds)} disabled={uploadStatus.isLoading || !selectedIds.length} className="w-fit rounded-full">
                 {`Approve selected${selectedIds.length ? ` (${selectedIds.length})` : ""}`}
             </Button>
-            <select aria-label="Submission order" className="rounded-full border border-border bg-transparent px-3 py-2 text-xs text-foreground"
-                value={sorting[0]?.id === "createdAt" ? (sorting[0].desc ? "newest" : "oldest") : "default"}
-                onChange={event => setSorting(event.target.value === "default" ? [] : [{id: "createdAt", desc: event.target.value === "newest"}])}>
-                <option value="default">Submission order</option><option value="oldest">Oldest first</option><option value="newest">Newest first</option>
-            </select>
+            <AdminSelect label="Submission order" value={sorting[0]?.id === "createdAt" ? (sorting[0].desc ? "newest" : "oldest") : "default"} onValueChange={value => setSorting(value === "default" ? [] : [{id: "createdAt", desc: value === "newest"}])} options={[{value: 'default', label: 'Submission order'}, {value: 'oldest', label: 'Oldest first'}, {value: 'newest', label: 'Newest first'}]} />
             </div>
             {uploadStatus.message && <p role={uploadStatus.status === "error" ? "alert" : "status"} className={uploadStatus.status === "error" ? "text-sm text-red-600 dark:text-red-400" : "text-sm text-muted-foreground"}>{uploadStatus.message}{uploadStatus.status === "error" && <button type="button" className="ml-2 underline underline-offset-4" onClick={() => router.refresh()}>Refresh queue</button>}</p>}
             <div className="rounded-md border bg-card">

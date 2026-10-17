@@ -8,7 +8,8 @@ it('opens from quiet action and submits the exact displayed bio', async () => {
  jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
  render(<BioCorrectionDialog artistId="artist" artistName="Dutchyyy" bio="A published bio" portrait/>);
  fireEvent.click(screen.getByRole('button', { name: 'Suggest a correction' }));
- fireEvent.change(screen.getByLabelText('What needs fixing?'), { target: { value: 'wrong_artist' } });
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'What needs fixing?'}), {key:'ArrowDown'});
+ fireEvent.click(screen.getByRole('option',{name:'This is about a different artist'}));
  fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }));
  await screen.findByRole('status');
  expect(fetch).toHaveBeenCalledWith('/api/artist/artist/bio-corrections', expect.objectContaining({ body: JSON.stringify({ reason: 'wrong_artist', details: '', sourceUrl: '', expectedBio: 'A published bio' }) }));

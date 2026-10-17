@@ -1,4 +1,5 @@
 "use client";
+import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -102,15 +103,10 @@ function LoreQueue({ data, onReview = updateSourceStatus, onApproveSelected = ap
       <input type="hidden" name="section" value="lore" />
       <input type="search" name="loreQuery" aria-label="Search pending Lore" placeholder="Search artist, source, or contributor" defaultValue={data.query} maxLength={100} />
       <label className="flex min-w-0 flex-col gap-1 text-sm">Origin
-        <select name="loreOrigin" defaultValue={data.origin ?? ''}>
-          <option value="">All origins</option><option value="submission">User submissions</option>
-          <option value="research">Automated research</option><option value="upload">Uploads</option><option value="unknown">Unknown origin</option>
-        </select>
+        <MusicNerdSelect label="Origin" name="loreOrigin" defaultValue={data.origin ?? ''} options={[{value:'',label:'All origins'},{value:'submission',label:'User submissions'},{value:'research',label:'Automated research'},{value:'upload',label:'Uploads'},{value:'unknown',label:'Unknown origin'}]} />
       </label>
       <label className="flex min-w-0 flex-col gap-1 text-sm">Profile
-        <select name="loreClaim" defaultValue={data.claim ?? ''}>
-          <option value="">All profiles</option><option value="claimed">Claimed</option><option value="unclaimed">Unclaimed</option>
-        </select>
+        <MusicNerdSelect label="Profile" name="loreClaim" defaultValue={data.claim ?? ''} options={[{value:'',label:'All profiles'},{value:'claimed',label:'Claimed'},{value:'unclaimed',label:'Unclaimed'}]} />
       </label>
       <Button type="submit" variant="outline" className="min-h-11 rounded-xl">Search</Button>
       {(data.query || data.origin || data.claim) && <Link href="/admin?section=lore" className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">Clear</Link>}

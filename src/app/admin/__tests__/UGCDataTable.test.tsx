@@ -75,8 +75,13 @@ it('combines queue filters and clears selection when the visible set changes',()
  expect(screen.queryByRole('link',{name:'First artist'})).not.toBeInTheDocument();
  expect(screen.getByRole('link',{name:'Second artist'})).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Approve selected'})).toBeDisabled();
- fireEvent.change(screen.getByRole('combobox',{name:'Platform'}),{target:{value:'Website'}});
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Platform'}),{key:"ArrowDown"});
+ fireEvent.click(screen.getByRole("option",{name:"Website"}));
  expect(screen.getByText('No submissions match these filters.')).toBeVisible();
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Platform'}),{key:'ArrowDown'});
+ fireEvent.click(screen.getByRole('option',{name:'All platforms'}));
+ expect(screen.getByRole('link',{name:'Second artist'})).toBeVisible();
+ expect(screen.queryByRole('link',{name:'First artist'})).not.toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'Clear filters'}));
  expect(screen.getAllByRole('link',{name:/artist/})).toHaveLength(2);
 });

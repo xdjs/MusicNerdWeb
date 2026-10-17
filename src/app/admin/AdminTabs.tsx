@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Link2, BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight, MessageSquareText } from "lucide-react";
+import menuStyles from '@/components/ui/MusicNerdSelect.module.css';
 import styles from "@/components/community/Community.module.css";
 import surface from "@/app/profile/ProfileConcept.module.css";
 
@@ -42,8 +43,8 @@ export default function AdminTabs({ugcContent,loreContent,usersContent,claimsCon
           <SelectTrigger aria-label="Admin section" className={styles.sectionTrigger}>
             <span className={styles.sectionOption}><currentSection.icon size={18} aria-hidden="true"/><span>{currentSection.label}</span>{currentSection.count !== undefined && <span className={styles.badge}>{currentSection.count}</span>}</span>
           </SelectTrigger>
-          <SelectContent className={styles.sectionMenu}>
-            {sections.map(section => <SelectItem key={section.value} value={section.value} textValue={section.label} className={styles.sectionItem}>
+          <SelectContent className={`${styles.sectionMenu} ${menuStyles.menu}`}>
+            {sections.map(section => <SelectItem key={section.value} value={section.value} textValue={section.label} className={`${styles.sectionItem} ${menuStyles.option}`}>
               <span className={styles.sectionOption}><section.icon size={18} aria-hidden="true"/><span>{section.label}</span>{section.count !== undefined && <span className={styles.badge}>{section.count}</span>}</span>
             </SelectItem>)}
           </SelectContent>

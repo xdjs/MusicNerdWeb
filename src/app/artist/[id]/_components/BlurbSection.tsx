@@ -204,7 +204,7 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
         className={`mt-1 min-h-11 text-sm font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${portrait ? "text-white hover:text-pastypink" : "text-gray-950 dark:text-white"}`}>
         {expanded ? "Show less" : "Read more"}
       </button>}
-      <BioCorrectionDialog key={`${artistId}:${aiBlurb}`} artistId={artistId} artistName={artistName} bio={aiBlurb} portrait={portrait}/>
+      {!canEdit && <BioCorrectionDialog key={`${artistId}:${aiBlurb}`} artistId={artistId} artistName={artistName} bio={aiBlurb} portrait={portrait}/>}
       </div>
     </div>;
   }

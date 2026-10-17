@@ -12,7 +12,6 @@ const data: Awaited<ReturnType<typeof getAdminContributions>> = {
 };
 it('shows full totals, preserves account in filters/pages and identifies research requester', () => {
  render(<ContributionReview data={data} />);
- expect(screen.getByRole('option', {name:'User submissions (40 total)'})).toBeInTheDocument();
  expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('55');
  expect(screen.getByLabelText('Contribution summary')).toHaveTextContent('37 awaiting review');
  expect(screen.getByText('Research requested by Demo user')).toBeInTheDocument();
@@ -20,6 +19,8 @@ it('shows full totals, preserves account in filters/pages and identifies researc
  expect(screen.getByRole('link', {name:'Next'}).getAttribute('href')).toContain('userId=account');
  expect(screen.getByRole('link', {name:'Next'}).getAttribute('href')).toContain('origin=research');
  expect(screen.getByRole('link', {name:'Review pending user submissions'}).getAttribute('href')).toContain('origin=user');
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Origin'}),{key:'ArrowDown'});
+ expect(screen.getByRole('option', {name:'User submissions (40 total)'})).toBeInTheDocument();
 });
 it('reviews a single Lore source with pending-state protection and refreshes the counts', async () => {
  const onReviewLore = jest.fn().mockResolvedValue({success:true});
