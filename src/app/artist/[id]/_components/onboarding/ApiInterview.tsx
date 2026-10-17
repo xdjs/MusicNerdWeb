@@ -213,7 +213,7 @@ export default function ApiInterview({
               Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss.
             </DialogDescription>
           </DialogHeader>
-          <div className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
+          <div role="region" aria-label="Interview responses and controls" className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -339,10 +339,10 @@ export default function ApiInterview({
           )}
         </div>
       )}
-          </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-black/10 pt-3 dark:border-white/15">
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/10 pt-3 dark:border-white/15">
             <button type="button" disabled={busy} onClick={close} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Save for later</button>
             <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>
+          </div>
           </div>
         </DialogContent>
     </Dialog>

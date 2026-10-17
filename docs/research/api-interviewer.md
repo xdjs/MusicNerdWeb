@@ -72,8 +72,9 @@ interview**. Neither reopening nor saved-state GET invokes question generation.
 
 Successful Finish closes the popup and confirms retained responses; a failed Finish leaves the
 session and draft open. The history heading is **This session’s responses**. Short viewports use
-smaller outer gutters while the body retains its own scroll area, with control scroll margins
-and space above the fixed footer. Browser checks must establish actual clipping behavior; Jest
+smaller outer gutters while the header stays visible. All content and secondary controls share
+one scroll area; a divider separates Save for later and Reload, without a fixed footer cutting
+across other actions. Bottom padding and focus scroll margins keep the final controls reachable. Browser checks must establish actual clipping behavior; Jest
 checks do not prove layout. Session restore network latency is separate from explicit generation
 latency; no model-speed claim is made by these UI changes.
 

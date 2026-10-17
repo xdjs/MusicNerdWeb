@@ -316,3 +316,14 @@ it("keeps the session and draft open when Finish fails", async () => {
   expect(screen.getByLabelText("Your answer")).toHaveValue("Keep my draft");
   expect(mockToast).not.toHaveBeenCalled();
 });
+
+it("keeps every interview action in one scroll region below the header", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  const body = screen.getByRole("region", { name: "Interview responses and controls" });
+  for (const name of ["Save answer", "Skip question", "Finish interview", "Topic preferences", "Save for later", "Reload saved interview"]) {
+    expect(body).toContainElement(screen.getByRole("button", { name }));
+  }
+  expect(body).not.toContainElement(screen.getByRole("heading", { name: "A few questions" }));
+});

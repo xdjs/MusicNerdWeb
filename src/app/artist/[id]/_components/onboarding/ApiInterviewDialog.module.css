@@ -25,7 +25,7 @@
 :global(.dark) .body { scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
 :global(.dark) .body::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.2); }
 
-/* Keep the last control above the footer when focused or scrolled into view. */
+/* Every action shares this scroll area; keep focused controls clear of its edges. */
 .body :is(button, textarea, input, summary) { scroll-margin-block: 1rem 2rem; }
 
 /* A short phone viewport needs space for the answer, not oversized chrome. */
