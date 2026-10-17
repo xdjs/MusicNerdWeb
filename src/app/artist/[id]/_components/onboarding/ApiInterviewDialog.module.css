@@ -1,0 +1,22 @@
+/* Keep scrolling inside the body; the shared dialog rule scrolls the surface. */
+.dialog:global(.mn-themed-dialog)[role="dialog"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 36rem;
+  overflow: hidden;
+}
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(80 65 85 / 0.25) transparent;
+}
+
+.body::-webkit-scrollbar { width: 5px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb { background: rgb(80 65 85 / 0.25); border-radius: 9999px; }
+:global(.dark) .body { scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
+:global(.dark) .body::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.2); }

@@ -1,0 +1,16 @@
+/* The legacy checkbox [data-state="checked"] rule also matches Radix options.
+   Override it only inside this interview menu, leaving other controls alone. */
+.menu .option[data-state="checked"],
+.menu .option[data-highlighted] {
+  background-color: rgb(239 149 255 / 0.12) !important;
+  border-color: transparent !important;
+  color: inherit;
+}
+
+.menu .option svg {
+  color: #a42484;
+}
+
+:global(.dark) .menu .option svg {
+  color: #ef95ff;
+}

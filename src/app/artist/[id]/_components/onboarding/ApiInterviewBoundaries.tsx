@@ -1,6 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import scopeStyles from "./ApiInterviewScope.module.css";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
 const boundaryPageSchema = z.object({
   status: z.literal("ok"),
@@ -121,21 +124,22 @@ export default function ApiInterviewBoundaries({
     }
   };
   const button =
-    "min-h-11 rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20";
+    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
   return (
     <div className="border-t border-black/10 pt-3 dark:border-white/15">
       <button
         type="button"
-        className={button}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
         disabled={busy || pending}
         aria-expanded={open}
         onClick={() => void toggle()}
       >
         Topic preferences
+        <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180" : ""} />
       </button>
       {open && (
         <div className="mt-3 space-y-3">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Tell the interviewer what to leave out or how to approach a topic.
             Your exact words stay active for the scope you choose.
           </p>
@@ -170,7 +174,7 @@ export default function ApiInterviewBoundaries({
               <p className="whitespace-pre-wrap break-words text-sm">
                 {entry.wording}
               </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {entry.scope === "sitting"
                   ? "This sitting only"
                   : "Until you remove it"}
@@ -203,30 +207,33 @@ export default function ApiInterviewBoundaries({
               <textarea
                 id={`topic-${questionKey}`}
                 rows={3}
+                placeholder={'For example: “Keep the focus on my music, not my personal life.” Or “Ask me about how I made my latest release.”'}
                 value={wording}
                 maxLength={4000}
                 disabled={busy || pending}
                 onChange={(e) => setWording(e.target.value)}
-                className="w-full rounded-lg border border-black/20 bg-transparent p-3 text-sm dark:border-white/25"
+                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground placeholder:italic placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink/60 disabled:opacity-50"
               />
               <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
                 Keep this instruction
               </label>
-              <select
-                id={`scope-${questionKey}`}
+              <Select
                 value={scope}
                 disabled={busy || pending}
-                onChange={(e) =>
-                  setScope(e.target.value as "sitting" | "until_retracted")
-                }
-                className="min-h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm dark:border-white/25 dark:bg-neutral-900"
+                onValueChange={(value) => setScope(value as "sitting" | "until_retracted")}
               >
-                <option value="sitting">For this sitting</option>
-                <option value="until_retracted">Until I remove it</option>
-              </select>
+                <SelectTrigger id={`scope-${questionKey}`}
+                  className="min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-inset focus:ring-pastypink focus:ring-offset-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className={`${scopeStyles.menu} z-[60] rounded-xl border-black/10 bg-[#faf7fc] text-[#111] shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-[#231f27] dark:text-white`}>
+                  <SelectItem value="sitting" className={`${scopeStyles.option} min-h-11 rounded-lg`}>For this sitting</SelectItem>
+                  <SelectItem value="until_retracted" className={`${scopeStyles.option} min-h-11 rounded-lg`}>Until I remove it</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 type="button"
-                className={button}
+                className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
                 disabled={
                   busy || pending || !wording.trim() || entries === null
                 }
@@ -236,7 +243,7 @@ export default function ApiInterviewBoundaries({
               </button>
             </>
           ) : (
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Existing instructions still apply. You can add a new instruction
               once a question is available.
             </p>
