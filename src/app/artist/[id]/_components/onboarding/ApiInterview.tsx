@@ -228,7 +228,7 @@ export default function ApiInterview({
         </p>
       )}
       {busy && (
-        <p role="status" className="mt-3 text-sm">
+        <p role="status" className="mt-3 mb-4 text-sm">
           {preparing
             ? "Preparing a question from your sources and previous answers…"
             : "Saving your interview…"}
