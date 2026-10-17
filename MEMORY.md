@@ -1,3 +1,15 @@
+## Public docs hostname — October 16
+
+[#1534](https://github.com/xdjs/MusicNerdWeb/issues/1534) now has working HTTPS
+at `https://docs.musicnerd.net`, serving the existing MusicNerdDocs production
+deployment. Squarespace remains authoritative; the new CNAME is the only DNS
+change. The old Vercel hostname still serves matching pages and machine-readable
+docs. Link/canonical updates are draft PRs
+[Web #1552](https://github.com/xdjs/MusicNerdWeb/pull/1552),
+[API #53](https://github.com/xdjs/MusicNerdAPI/pull/53) and
+[Docs #21](https://github.com/xdjs/MusicNerdDocs/pull/21); these code changes are
+not merged or released. Check the issue for verification and Sweetman's sign-off.
+
 ## Directory add and live links — October 16
 
 [#1524](https://github.com/xdjs/MusicNerdWeb/issues/1524) remains open; its first
