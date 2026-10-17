@@ -269,8 +269,8 @@ export default function ApiInterview({
         <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
           <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
           <div>
-            <p>{queued || preparing ? "Preparing your questions…" : opening ? "Opening your question…" : "Saving your interview…"}</p>
-            {(queued || preparing) && <p className="mt-1 text-xs text-muted-foreground">You can close this window. We’ll keep preparing it in the background.</p>}
+            <p>{queued || preparing ? (state?.preparation?.phase === "checking" ? "Checking your next question…" : "Preparing your questions…") : opening ? "Opening your question…" : "Saving your interview…"}</p>
+            {(queued || preparing) && state?.preparation?.phase !== "checking" && <p className="mt-1 text-xs text-muted-foreground">You can close this window. We’ll keep preparing it in the background.</p>}
           </div>
         </div>
       )}

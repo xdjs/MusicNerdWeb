@@ -15,6 +15,7 @@ export const sessionQuestionSchema = z.object({
 });
 export const interviewPreparationSchema = z.object({
   jobId: z.string().uuid().nullable().optional(),
+  phase: z.enum(["preparing", "checking"]).optional(),
   readyCount: z.number().int().min(0).max(3).optional(),
   totalCount: z.number().int().min(0).max(3).optional(),
   status: z.enum(["idle", "pending", "running", "ready", "failed", "stale"]),
