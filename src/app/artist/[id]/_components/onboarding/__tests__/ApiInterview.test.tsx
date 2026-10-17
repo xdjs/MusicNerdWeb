@@ -371,3 +371,28 @@ it("shows how many questions are prepared before starting the session", async ()
   fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
   expect(await screen.findByText("3 questions ready. Answer at your own pace.")).toBeVisible();
 });
+
+it("uses the prepared next question after saving instead of requesting generation", async () => {
+  const saved = {
+    ...active,
+    session: { ...active.session, questions: [{ ...question, state: "answered", answer: "My own words" }] },
+    preparation: { status: "ready", readyCount: 2, totalCount: 3 },
+  };
+  jest.mocked(fetch)
+    .mockResolvedValueOnce(reply(active) as Response)
+    .mockResolvedValueOnce(reply(saved) as Response)
+    .mockResolvedValueOnce(reply({
+      ...active,
+      session: { ...active.session, questions: [...saved.session.questions, {
+        ...question, id: "44444444-4444-4444-8444-444444444444", ordinal: 2,
+        question: "How did you decide on that recording space?",
+      }] },
+    }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "My own words" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Next question" }));
+  expect(await screen.findByText("How did you decide on that recording space?")).toBeVisible();
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[2][1]?.body as string)).toEqual({ action: "continue", sessionId: session });
+});
