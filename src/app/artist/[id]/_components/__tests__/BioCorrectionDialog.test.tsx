@@ -55,3 +55,16 @@ it('reopens after an in-place login without automatically sending', async () => 
  expect(screen.getByRole('textbox',{name:'Details (optional)'})).toHaveValue('Keep this draft');
  expect(fetch).not.toHaveBeenCalled();
 });
+it('keeps the restored draft through the subsequent NextAuth page reload', async () => {
+ sessionStorage.setItem('mn:bio-correction:artist',JSON.stringify({reason:'other',details:'Survive both login stages',sourceUrl:'https://example.test',bio:'Original About'}));
+ const first=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Original About"/>);
+ expect(await screen.findByRole('dialog')).toBeVisible();
+ expect(sessionStorage.getItem('mn:bio-correction:artist')).not.toBeNull();
+ first.unmount();
+ render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Original About"/>);
+ expect(await screen.findByRole('dialog')).toBeVisible();
+ expect(screen.getByRole('textbox',{name:'Details (optional)'})).toHaveValue('Survive both login stages');
+ expect(fetch).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Close'}));
+ expect(sessionStorage.getItem('mn:bio-correction:artist')).toBeNull();
+});

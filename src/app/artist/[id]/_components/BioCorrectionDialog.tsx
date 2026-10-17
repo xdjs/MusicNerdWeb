@@ -34,9 +34,16 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     if (ready && authenticated && awaitingLogin.current) {
       awaitingLogin.current = false;
       setResume(true); setOpen(true);
-      try { sessionStorage.removeItem(draftKey); } catch { /* Storage can be unavailable. */ }
     }
   }, [authenticated, ready, draftKey]);
+  // Privy authentication is followed by a separate NextAuth reload. Keep the
+  // draft until a confirmed send or deliberate dismissal, including edits made
+  // between those two stages.
+  useEffect(() => {
+    if (!resume || !open || sent) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ reason, details, sourceUrl, bio: expectedBio })); }
+    catch { /* The in-memory draft remains available. */ }
+  }, [resume, open, sent, draftKey, reason, details, sourceUrl, expectedBio]);
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting.current) return;
@@ -56,7 +63,14 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not send your suggestion. Please try again.'); }
     finally { submitting.current = false; setBusy(false); }
   }
-  return <Dialog open={open} onOpenChange={setOpen}>
+  return <Dialog open={open} onOpenChange={next => {
+    if (submitting.current) return;
+    setOpen(next);
+    if (!next) {
+      awaitingLogin.current = false; setResume(false);
+      try { sessionStorage.removeItem(draftKey); } catch { /* Storage can be unavailable. */ }
+    }
+  }}>
     <DialogTrigger asChild><button type="button" className={`min-h-11 text-sm underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${portrait ? 'text-white/80 hover:text-white' : 'text-gray-700 dark:text-gray-200'}`}>Suggest a correction</button></DialogTrigger>
     <DialogContent className="mn-themed-dialog max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto p-5 sm:p-6">
       <DialogHeader className="space-y-1.5 pr-7 text-left"><DialogTitle className="text-xl font-semibold leading-snug tracking-tight">Suggest a correction</DialogTitle><DialogDescription className="text-sm leading-relaxed text-muted-foreground">Help improve {artistName}&apos;s About. A person will review your suggestion before any changes are made.</DialogDescription></DialogHeader>
