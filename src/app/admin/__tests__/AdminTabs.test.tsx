@@ -1,9 +1,9 @@
 import {render, screen, fireEvent} from '@testing-library/react';
 import AdminTabs from '../AdminTabs';
 
-it('keeps all eight tools reachable and opens the matching review queue from its summary', () => {
-  render(<AdminTabs ugcCount={3} loreCount={4} claimsCount={2} ugcContent={<p>Submitted links table</p>} loreContent={<p>Pending Lore sources</p>} claimsContent={<p>Ownership requests</p>} usersContent={<p>User controls</p>} artistDataContent={<p>Coverage data</p>} mcpKeysContent={<p>Key controls</p>} agentWorkContent={<p>Worker controls</p>}/>);
-  expect(screen.getAllByRole('tab')).toHaveLength(8);
+it('keeps all nine tools reachable and opens the matching review queue from its summary', () => {
+  render(<AdminTabs correctionsCount={1} correctionsContent={<p>Svaneborg correction report</p>} ugcCount={3} loreCount={4} claimsCount={2} ugcContent={<p>Submitted links table</p>} loreContent={<p>Pending Lore sources</p>} claimsContent={<p>Ownership requests</p>} usersContent={<p>User controls</p>} artistDataContent={<p>Coverage data</p>} mcpKeysContent={<p>Key controls</p>} agentWorkContent={<p>Worker controls</p>}/>);
+  expect(screen.getAllByRole('tab')).toHaveLength(9);
   expect(screen.getByText('Submitted links table')).toBeVisible();
   fireEvent.click(screen.getByRole('button',{name:'Review 4 pending Lore sources'}));
   expect(screen.getByText('Pending Lore sources')).toBeVisible();
@@ -16,4 +16,14 @@ it('keeps all eight tools reachable and opens the matching review queue from its
     fireEvent.mouseDown(screen.getByRole('tab',{name}),{button:0,ctrlKey:false});
     expect(screen.getByText(content)).toBeVisible();
   }
+});
+
+it('opens corrections directly and updates its pending badge after review', () => {
+ const props = {ugcCount:0,loreCount:0,claimsCount:0,ugcContent:null,loreContent:null,claimsContent:null,usersContent:null,artistDataContent:null,mcpKeysContent:null,agentWorkContent:null,initialSection:'corrections' as const};
+ const {rerender}=render(<AdminTabs {...props} correctionsCount={1} correctionsContent={<p>Test correction</p>}/>);
+ expect(screen.getByRole('tab',{name:'About corrections 1'})).toHaveAttribute('data-state','active');
+ expect(screen.getByText('Test correction')).toBeVisible();
+ rerender(<AdminTabs {...props} correctionsCount={0} correctionsContent={<p>No pending suggestions.</p>}/>);
+ expect(screen.getByRole('tab',{name:'About corrections 0'})).toHaveAttribute('data-state','active');
+ expect(screen.getByText('No pending suggestions.')).toBeVisible();
 });

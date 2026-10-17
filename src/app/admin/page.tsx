@@ -1,3 +1,5 @@
+import { getPendingBioCorrections } from '@/server/utils/bio/getPendingBioCorrections';
+import BioCorrectionsSection from './BioCorrectionsSection';
 import { getArtistActivity } from '@/server/utils/activity/getArtistActivity';
 import ArtistActivitySection from './ArtistActivitySection';
 import { getServerAuthSession } from "@/server/auth";
@@ -28,13 +30,14 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Ad
   const params = await searchParams;
   const lorePage = Number(firstParam(params.lorePage));
   const loreQuery = firstParam(params.loreQuery);
-  const [pendingUGCData, pendingLore, allUsers, mcpKeys, rawClaims, activity] = await Promise.all([
+  const [pendingUGCData, pendingLore, allUsers, mcpKeys, rawClaims, activity, corrections] = await Promise.all([
     getPendingUGC(),
     getPendingLoreSources({ page: lorePage, query: loreQuery, origin: firstParam(params.loreOrigin), claim: firstParam(params.loreClaim) }),
     getAllUsers(),
     getAllMcpKeys(),
     getAllClaims(),
     getArtistActivity({ page: Number(firstParam(params.activityPage)), query: firstParam(params.activityQuery), action: firstParam(params.activityAction), eventId: firstParam(params.activityId) }),
+    getPendingBioCorrections(),
   ]);
 
   const allClaims: ClaimRow[] = rawClaims.map((claim) => ({
@@ -49,5 +52,5 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Ad
     createdAt: claim.createdAt,
   }));
 
-  return <AdminDashboard key={firstParam(params.section)} activityContent={<ArtistActivitySection data={activity} />} pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={firstParam(params.section) === "users" ? "users" : firstParam(params.section) === "activity" ? "activity" : firstParam(params.section) === "lore" ? "lore" : "ugc"} />;
+  return <AdminDashboard correctionsCount={corrections.total} correctionsContent={<BioCorrectionsSection data={corrections} />} key={firstParam(params.section)} activityContent={<ArtistActivitySection data={activity} />} pendingUGCData={pendingUGCData} pendingLore={pendingLore} allUsers={allUsers} mcpKeys={mcpKeys} allClaims={allClaims} initialSection={firstParam(params.section) === "corrections" ? "corrections" : firstParam(params.section) === "users" ? "users" : firstParam(params.section) === "activity" ? "activity" : firstParam(params.section) === "lore" ? "lore" : "ugc"} />;
 }

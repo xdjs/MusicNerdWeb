@@ -26,21 +26,22 @@ type Props = {
   mcpKeys: Awaited<ReturnType<typeof getAllMcpKeys>>;
   allClaims: ClaimRow[];
   onApproveLinks?: typeof approveUgcAdminAction;
-  initialSection?: "ugc" | "lore" | "activity" | "users";
+  initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
+  correctionsCount?: number; correctionsContent?: React.ReactNode;
   activityContent?: React.ReactNode;
   artistDataUrl?: string; agentWorkUrl?: string;
 };
 
-export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpKeys,allClaims,onApproveLinks,initialSection,activityContent,artistDataUrl,agentWorkUrl}: Props) {
+export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpKeys,allClaims,onApproveLinks,initialSection,activityContent,correctionsCount,correctionsContent,artistDataUrl,agentWorkUrl}: Props) {
   const pendingClaimsCount = allClaims.filter(c => c.status === "pending").length;
 
   return (
     <section className={`${surface.concept} ${styles.page} mx-auto w-full min-w-0 max-w-6xl px-5 sm:px-10 pb-16 text-foreground`}>
       <header className={styles.header}><div><h1>Admin dashboard</h1><p className={styles.description}>Review community contributions and keep artist profiles up to date.</p></div><Link href="/profile" className={styles.pill}>Your profile <ArrowUpRight size={15}/></Link></header>
 
-      <Link href="/admin/contributions?origin=user&status=pending" className="mb-5 inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium">Review user submissions</Link>
-      <Link href="/admin/bio-corrections" className="mb-5 ml-3 inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium">Review About corrections</Link>
       <AdminTabs
+        correctionsCount={correctionsCount}
+        correctionsContent={correctionsContent}
         ugcCount={pendingUGCData.length}
         loreCount={pendingLore.pendingTotal}
         claimsCount={pendingClaimsCount}
