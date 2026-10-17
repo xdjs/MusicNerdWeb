@@ -1,5 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { MessageCircleQuestion } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   interviewSessionStateSchema,
@@ -25,6 +27,8 @@ export default function ApiInterview({
     scope: string;
     state: InterviewSessionState;
   } | null>(null);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
@@ -71,6 +75,8 @@ export default function ApiInterview({
     pending.current = false;
     startId.current = null;
     setStored(null);
+    setOpen(false);
+    setDraft(null);
     setError(null);
     setBusy(false);
     setPreparing(false);
@@ -144,27 +150,39 @@ export default function ApiInterview({
     legacy[0] ?? session?.questions.find((q) => q.state === "offered");
   const origin = offered ?? session?.questions.at(-1);
   const button =
-    "min-h-11 rounded-lg border border-black/15 px-4 py-2 text-sm disabled:opacity-50 dark:border-white/20";
+    "min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
+  const start = () => {
+    startId.current ??= crypto.randomUUID();
+    void mutate({ action: "start", requestId: startId.current });
+  };
   return (
-    <section
-      aria-label={`Interview with ${artistName}`}
-      className="rounded-2xl border border-black/10 bg-white p-4 text-neutral-900 dark:border-white/15 dark:bg-neutral-950 dark:text-white sm:p-5"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Your music, in your words</h2>
-        <button
-          type="button"
-          className={button}
-          disabled={busy || loading}
-          onClick={() => void reload()}
-        >
-          Reload saved interview
-        </button>
+    <>
+      <div className="glass flex items-start gap-3 rounded-xl p-4">
+        <MessageCircleQuestion size={18} className="mt-0.5 shrink-0 text-pastypink" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[#111] dark:text-white">
+            {session?.state === "active" || offered ? "Your interview is waiting for you" : "Want to be interviewed by Music Nerd?"}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Three questions, in your own words. Pick up whenever you’re ready.
+          </p>
+          <button type="button" className={`${button} mt-2`} disabled={loading || busy}
+            onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
+            {loading ? "Loading your interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
+          </button>
+        </div>
       </div>
-      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-        Questions from your sources and what you’ve shared. Answer at your pace;
-        saved answers and questions stay here when you return.
-      </p>
+      <Dialog open={open && (!!state || !!error)} onOpenChange={(next) => { if (!pending.current) setOpen(next); }}>
+        <DialogContent aria-busy={busy}
+          onEscapeKeyDown={(event) => { if (pending.current) event.preventDefault(); }}
+          onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
+          className="mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6">
+          <DialogHeader className="space-y-2 pr-7 text-left">
+            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">A few questions</DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
+              Your interview with Music Nerd for {artistName}. Answer at your pace; skip any question.
+            </DialogDescription>
+          </DialogHeader>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -191,6 +209,8 @@ export default function ApiInterview({
             <ApiInterviewQuestion
               key={`${scope}:${offered.id}`}
               question={offered}
+              answer={draft?.key === `${scope}:${offered.id}` ? draft.text : ""}
+              onAnswerChange={(text) => setDraft({ key: `${scope}:${offered.id}`, text })}
               busy={busy}
               call={(body) => call(body, life.current?.signal)}
               onAnswer={(answer) =>
@@ -229,10 +249,7 @@ export default function ApiInterview({
               type="button"
               className={button}
               disabled={busy}
-              onClick={() => {
-                startId.current ??= crypto.randomUUID();
-                void mutate({ action: "start", requestId: startId.current });
-              }}
+              onClick={start}
             >
               Start interview
             </button>
@@ -241,7 +258,7 @@ export default function ApiInterview({
             <div>
               <button
                 type="button"
-                className={button}
+                className="min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
                 disabled={busy}
                 onClick={() =>
                   void mutate({ action: "finish", sessionId: session.id })
@@ -276,7 +293,7 @@ export default function ApiInterview({
                   .map((q) => (
                     <li key={q.id}>
                       <p className="text-sm font-medium">{q.question}</p>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-sm text-neutral-600 dark:text-neutral-300">
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-500 dark:text-gray-400">
                         {q.answer ?? "Skipped"}
                       </p>
                     </li>
@@ -286,6 +303,12 @@ export default function ApiInterview({
           )}
         </div>
       )}
-    </section>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-3 dark:border-white/15">
+            <button type="button" disabled={busy} onClick={() => setOpen(false)} className="min-h-11 rounded-lg px-3 text-sm text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Save for later</button>
+            <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-lg px-3 text-xs text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Reload saved interview</button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

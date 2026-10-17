@@ -51,11 +51,11 @@ export default function ApiInterviewEvidence({
     }
   };
   return (
-    <div className="rounded-lg border border-black/10 px-3 dark:border-white/15">
+    <div className="rounded-lg bg-black/[0.02] px-3 dark:bg-white/5">
       <button
         type="button"
         aria-expanded={open}
-        className="min-h-11 text-left text-sm underline underline-offset-4"
+        className="min-h-11 text-left text-xs text-gray-500 dark:text-gray-400 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink"
         onClick={() => void read()}
       >
         {reference.kind === "answer"
@@ -71,7 +71,7 @@ export default function ApiInterviewEvidence({
           {error && <p role="alert">{error}</p>}
           {passage && (
             <>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {passage.kind === "social_caption"
                   ? "Post caption"
                   : passage.kind === "reel_transcript"

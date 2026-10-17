@@ -121,7 +121,7 @@ export default function ApiInterviewBoundaries({
     }
   };
   const button =
-    "min-h-11 rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20";
+    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
   return (
     <div className="border-t border-black/10 pt-3 dark:border-white/15">
       <button
@@ -135,7 +135,7 @@ export default function ApiInterviewBoundaries({
       </button>
       {open && (
         <div className="mt-3 space-y-3">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Tell the interviewer what to leave out or how to approach a topic.
             Your exact words stay active for the scope you choose.
           </p>
@@ -170,7 +170,7 @@ export default function ApiInterviewBoundaries({
               <p className="whitespace-pre-wrap break-words text-sm">
                 {entry.wording}
               </p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {entry.scope === "sitting"
                   ? "This sitting only"
                   : "Until you remove it"}
@@ -207,7 +207,7 @@ export default function ApiInterviewBoundaries({
                 maxLength={4000}
                 disabled={busy || pending}
                 onChange={(e) => setWording(e.target.value)}
-                className="w-full rounded-lg border border-black/20 bg-transparent p-3 text-sm dark:border-white/25"
+                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
               />
               <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
                 Keep this instruction
@@ -219,14 +219,14 @@ export default function ApiInterviewBoundaries({
                 onChange={(e) =>
                   setScope(e.target.value as "sitting" | "until_retracted")
                 }
-                className="min-h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm dark:border-white/25 dark:bg-neutral-900"
+                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink"
               >
                 <option value="sitting">For this sitting</option>
                 <option value="until_retracted">Until I remove it</option>
               </select>
               <button
                 type="button"
-                className={button}
+                className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
                 disabled={
                   busy || pending || !wording.trim() || entries === null
                 }
@@ -236,7 +236,7 @@ export default function ApiInterviewBoundaries({
               </button>
             </>
           ) : (
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Existing instructions still apply. You can add a new instruction
               once a question is available.
             </p>

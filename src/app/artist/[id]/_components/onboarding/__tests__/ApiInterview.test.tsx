@@ -65,6 +65,8 @@ it("reads only on mount and generates solely after explicit Start", async () => 
 it("resumes the exact existing question without generating or writing on mount", async () => {
   jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
   render(<ApiInterview artistId={artist} artistName="Artist" />);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   await screen.findByText(question.question);
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(jest.mocked(fetch).mock.calls[0][1]?.method).toBe("GET");
@@ -85,6 +87,7 @@ it("saves exact words and waits for Continue before preparing the next question"
       }) as Response,
     );
   render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   const input = await screen.findByLabelText("Your answer");
   fireEvent.change(input, { target: { value: "  Exact words. 🥁  " } });
   fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
@@ -107,6 +110,7 @@ it("retains unsaved words after a failed save and never treats a skip as a bound
       reply({ error: "The interview changed." }, 409) as Response,
     );
   render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   fireEvent.change(await screen.findByLabelText("Your answer"), {
     target: { value: "Keep these words." },
   });
@@ -136,6 +140,7 @@ it("hides the previous artist immediately during navigation and aborts the old r
   const { rerender } = render(
     <ApiInterview artistId={artist} artistName="Artist" />,
   );
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   await screen.findByText(question.question);
   const signal = jest.mocked(fetch).mock.calls[0][1]?.signal;
   rerender(<ApiInterview artistId={qid} artistName="Another artist" />);
@@ -204,6 +209,7 @@ it("does not claim an answer is saved when the first question has not been offer
     }) as Response,
   );
   render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   await screen.findByRole("button", { name: "Continue interview" });
   expect(screen.queryByText(/Your answer is saved/)).not.toBeInTheDocument();
 });
@@ -217,8 +223,32 @@ it("keeps topic preferences available in a new sitting before any question exist
       }) as Response,
     );
   render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   await screen.findByRole("button", { name: "Continue interview" });
   expect(
     screen.getByRole("button", { name: "Topic preferences" }),
   ).toBeEnabled();
+});
+
+it("keeps the same offered question and draft when closing and reopening without writes", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "My unfinished words" } });
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Resume interview" }));
+  expect(screen.getByLabelText("Your answer")).toHaveValue("My unfinished words");
+  expect(screen.getByText(question.question)).toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+it("does not close during a save", async () => {
+  jest.mocked(fetch).mockResolvedValueOnce(reply(active) as Response).mockImplementationOnce(() => new Promise(() => {}));
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Still saving" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByLabelText("Your answer")).toHaveValue("Still saving");
 });
