@@ -179,6 +179,58 @@ describe('AddArtist', () => {
             await act(async () => { await capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
             expect(mockTrackEvent).toHaveBeenLastCalledWith('add_artist', { surface: 'nav', step: 'error' });
         });
+
+        const results = () => mockTrackEvent.mock.calls.filter(([, props]) => props.step !== 'start');
+
+        it('tracks the result once even when the dialog closes before the add resolves', async () => {
+            mockSessionData = { user: { id: 'user-uuid' } };
+            mockSessionStatus = 'authenticated';
+            let resolveAdd!: (value: unknown) => void;
+            mockAddArtist.mockReturnValue(new Promise(resolve => { resolveAdd = resolve; }));
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
+            let submitPromise!: Promise<void>;
+            act(() => { submitPromise = capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
+            act(() => capturedDialogOnOpenChange!(false));
+            resolveAdd({ status: 'success', artistId: 'new-id', artistName: 'Radiohead' });
+            await act(async () => { await submitPromise; });
+            expect(results()).toEqual([['add_artist', { surface: 'nav', step: 'added' }]]);
+        });
+
+        it('tracks a rejected add as exactly one error', async () => {
+            mockSessionData = { user: { id: 'user-uuid' } };
+            mockSessionStatus = 'authenticated';
+            mockAddArtist.mockRejectedValue(new Error('network'));
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
+            await act(async () => { await capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
+            expect(results()).toEqual([['add_artist', { surface: 'nav', step: 'error' }]]);
+        });
+
+        it('tracks a rejected create-separate request as exactly one error', async () => {
+            mockSessionData = { user: { id: 'user-uuid' } };
+            mockSessionStatus = 'authenticated';
+            mockAddArtist
+                .mockResolvedValueOnce({
+                    status: 'possible_duplicate',
+                    platform: 'spotify',
+                    platformId: VALID_SPOTIFY_ID,
+                    candidates: [{ id: 'candidate-id', name: 'Radiohead', spotify: null, deezer: '12345' }],
+                })
+                .mockRejectedValueOnce(new Error('network'));
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            render(<AddArtist />);
+            fireEvent.click(screen.getByRole('button', { name: 'Add new artist' }));
+            await waitFor(() => expect(capturedSubmitFn).not.toBeNull());
+            await act(async () => { await capturedSubmitFn!({ artistUrl: VALID_SPOTIFY_URL }); });
+            await act(async () => { fireEvent.click(await screen.findByRole('button', { name: 'Add different artist' })); });
+            await waitFor(() => expect(mockAddArtist).toHaveBeenCalledTimes(2));
+            await waitFor(() => expect(results()).toEqual([['add_artist', { surface: 'nav', step: 'error' }]]));
+            expect(results()).toHaveLength(1);
+        });
     });
 
     describe('Unauthenticated behavior', () => {
