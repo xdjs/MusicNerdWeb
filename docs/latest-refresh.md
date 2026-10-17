@@ -128,3 +128,7 @@ posts checked, older posts recovered, no new posts, verifying an empty date rang
 or unreadable posts with saved posts retained. Raw errors, run identifiers and
 original cutoff diagnostics stay private in the job. No new endpoint, migration,
 Lore rebuild, or public-page scrape is introduced.
+
+### Instagram ownership during broader research (October 16, 2026)
+
+A pending or running social-ingest job blocks a second Instagram scrape only while its Instagram phase is unfinished. Once its persisted `instagramFinished` field is the JSON boolean `true`, Update Latest may check Instagram while that job continues X, TikTok, or caption work. Missing, false, and malformed completion flags remain protected. The existing job and saved provider runs are retained.

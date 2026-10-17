@@ -22,11 +22,13 @@ export async function saveLatestRefresh(
       (source) => String(artist?.[source] ?? "") === (state[source] ?? ""),
     );
     if (!unchanged) return null;
-    // Existing research already owns Instagram. Do not launch a competing paid check.
+    // Only unfinished Instagram work owns this source; X/TikTok may still be pending.
+    // Do not launch a competing paid Instagram check.
     // Checked under the same lock as the insert, so a scrape queued during the checks still counts.
     const busy =
       await tx.execute(sql`select id from artist_research_jobs where artist_id=${artistId}::uuid
-   and kind='social_ingest' and status in ('pending','running') limit 1`);
+   and kind='social_ingest' and status in ('pending','running')
+   and (state->'instagramFinished') is distinct from 'true'::jsonb limit 1`);
     if (busy.length && state.instagram)
       state.sources.instagram = { status: "failed" };
     const status = Object.values(state.sources).some(
