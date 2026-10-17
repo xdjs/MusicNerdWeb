@@ -1,4 +1,4 @@
-import {render,screen,fireEvent,within} from '@testing-library/react';
+import {render,screen,fireEvent,waitFor} from '@testing-library/react';
 import LoreReviewQueue from '../LoreReviewQueue';
 import type {ReviewItem} from '@/lib/contributions/adminReviewTypes';
 const push=jest.fn();
@@ -9,21 +9,32 @@ jest.mock('@/app/actions/dashboardActions',()=>({updateSourceStatus:jest.fn()}))
 const base:ReviewItem={id:'one',type:'links',artistId:'artist',artistName:'Artist One',title:'Bandcamp',url:'https://example.test',createdAt:'2026-10-17T00:00:00Z',origin:'user',actorName:'Contributor',actorId:'user',activityId:null,trigger:null,bioSnapshot:null,details:null,reason:null};
 const data={items:[base,{...base,id:'two',type:'sources' as const,artistName:'Artist Two',title:'Interview'},{...base,id:'three',type:'corrections' as const,artistName:'Artist Three',title:'incorrect',details:'Wrong instrument',bioSnapshot:'Original About'}],counts:{links:1,sources:1,corrections:1},pendingCounts:{links:1,sources:1,corrections:1},total:3,page:1,pageSize:25,type:'all' as const,query:''};
 beforeEach(()=>{push.mockClear();refresh.mockClear();});
-it('renders one mixed list and opens only the selected item in its details dialog',()=>{
+it('shows review details and actions inline without opening a dialog',()=>{
  render(<LoreReviewQueue data={data}/>);
  expect(screen.getAllByRole('list')).toHaveLength(1);
- expect(within(screen.getByRole('list',{name:'Pending reviews'})).getAllByRole('listitem')).toHaveLength(3);
+ expect(screen.getByText('Original About')).toBeVisible();
+ expect(screen.getByText('Wrong instrument')).toBeVisible();
+ expect(screen.getByText('Bandcamp')).toBeVisible();
+ expect(screen.getByText('Interview')).toBeVisible();
+ expect(screen.getAllByRole('button',{name:'Approve'})).toHaveLength(2);
+ expect(screen.getByRole('button',{name:'Mark resolved'})).toBeVisible();
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
- fireEvent.click(screen.getByRole('button',{name:'Review About correction for Artist Three: incorrect'}));
- const dialog=screen.getByRole('dialog');
- expect(within(dialog).getByText('Original About')).toBeVisible();
- expect(within(dialog).getByText('Wrong instrument')).toBeVisible();
- expect(within(dialog).queryByText('Bandcamp')).not.toBeInTheDocument();
- expect(within(dialog).queryByText('Interview')).not.toBeInTheDocument();
- fireEvent.click(within(dialog).getByRole('button',{name:'Close'}));
- fireEvent.click(screen.getByRole('button',{name:'Review Link for Artist One: Bandcamp'}));
- expect(within(screen.getByRole('dialog')).getByText('Bandcamp')).toBeVisible();
- expect(within(screen.getByRole('dialog')).queryByText('Original About')).not.toBeInTheDocument();
+});
+it('bulk approval excludes corrections and retains failed rows for retry',async()=>{
+ const {approveUgcAdminAction}=jest.requireMock('@/app/actions/serverActions');
+ const {updateSourceStatus}=jest.requireMock('@/app/actions/dashboardActions');
+ approveUgcAdminAction.mockResolvedValue({success:true});
+ updateSourceStatus.mockResolvedValue({status:'error',message:'Source failed'});
+ render(<LoreReviewQueue data={data}/>);
+ fireEvent.click(screen.getByRole('checkbox',{name:'Select this page'}));
+ expect(screen.getByText('3 selected')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Approve selected (2)'}));
+ await waitFor(()=>expect(screen.getByText('Source failed')).toBeVisible());
+ expect(approveUgcAdminAction).toHaveBeenCalledWith(['one']);
+ expect(updateSourceStatus).toHaveBeenCalledWith('two','approved','pending');
+ expect(screen.queryByText('Bandcamp')).not.toBeInTheDocument();
+ expect(screen.getByText('2 selected')).toBeVisible();
+ expect(screen.getByText('Original About')).toBeVisible();
 });
 it('resets pagination on search and type changes',()=>{
  render(<LoreReviewQueue data={{...data,page:2,total:60,query:'old'}}/>);

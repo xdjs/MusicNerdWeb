@@ -110,3 +110,12 @@ Pete chose **Lore review** as the single admin destination for submitted links, 
 ### October 17 unified list — supersedes stacked review panels
 
 Pete rejected stacking the previous queue screens under All. Lore review now uses one paginated, newest-first list across links, sources and corrections, with one search field and one type filter. Every row shows artist, type, a short preview and date; selecting it opens a consistent detail dialog with the existing type-specific actions. Pagination/search apply across the union, not independently to three sections. Private correction text remains admin-only. No new approval rules or database writes are introduced by viewing the list.
+
+### October 17 — inline review and selection
+
+Pete rejected the dialog-first review workflow. The unified list now shows original URLs,
+contributors, dates, report text and reported About inline, with per-row actions and checkboxes.
+Select this page selects up to 25 visible items; selecting individual rows chooses any subset.
+Bulk approval targets links and sources only, rejection targets sources, and resolve/dismiss
+targets correction reports. Failed items stay visible and selected with an error for retry.
+Full About text expands inline. Normal review does not require opening a dialog.
