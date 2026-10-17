@@ -188,11 +188,16 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
   if (hero) {
     if (!aiBlurb) return null;
     const text = aiBlurb.replace(/\[\d+(?:\s*,\s*\d+)*\]/g, "");
-    const canExpand = text.length > 220;
+    const hasExcerpt = text.length > 220;
+    const attribution = publicAbout && sanitizeBioText(aiBlurb) === sanitizeBioText(publicAbout.bio) ? publicAbout : null;
+    const canExpand = hasExcerpt || !!attribution;
     const excerpt = text.slice(0, 220).replace(/\s+\S*$/, "") + "…";
     return <div>
-      <p id={`artist-bio-${artistId}`} className={`whitespace-pre-line text-sm leading-relaxed sm:text-base ${portrait ? "text-white" : "text-gray-700 dark:text-gray-200"}`}
-        dangerouslySetInnerHTML={{ __html: renderBioMarkdown(canExpand && !expanded ? excerpt : text) }} />
+      <div id={`artist-bio-${artistId}`}>
+      <p className={`whitespace-pre-line text-sm leading-relaxed sm:text-base ${portrait ? "text-white" : "text-gray-700 dark:text-gray-200"}`}
+        dangerouslySetInnerHTML={{ __html: renderBioMarkdown(hasExcerpt && !expanded ? excerpt : text) }} />
+      {expanded && attribution && <AboutAttribution about={attribution} portrait={portrait}/>}
+      </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-5">
       {canExpand && <button type="button" aria-expanded={expanded} aria-controls={`artist-bio-${artistId}`}
         onClick={() => setExpanded(value => !value)}
@@ -201,7 +206,6 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
       </button>}
       <BioCorrectionDialog key={`${artistId}:${aiBlurb}`} artistId={artistId} artistName={artistName} bio={aiBlurb} portrait={portrait}/>
       </div>
-      {publicAbout && sanitizeBioText(aiBlurb) === sanitizeBioText(publicAbout.bio) && <AboutAttribution about={publicAbout} portrait={portrait}/>}
     </div>;
   }
 

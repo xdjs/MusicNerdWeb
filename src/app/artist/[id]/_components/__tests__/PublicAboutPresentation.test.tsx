@@ -10,15 +10,23 @@ beforeEach(() => {
  jest.mocked(useArtistBio).mockReturnValue({ bio: about.bio, loading: false, error: null, refetch: jest.fn() });
  jest.mocked(usePrivy).mockReturnValue({ authenticated: true, ready: true } as never);
 });
-it('attributes a short official bio and keeps correction available without Read more', () => {
- render(<BlurbSection artistId="artist" artistName="Artist" initialBio={about.bio} publicAbout={about} hero portrait/>);
+it('reveals short-bio sources through Read more without a second dropdown', () => {
+ const { container } = render(<BlurbSection artistId="artist" artistName="Artist" initialBio={about.bio} publicAbout={about} hero portrait/>);
+ expect(screen.getByText(about.bio)).toBeInTheDocument();
+ expect(screen.queryByText('From the artist’s bio')).not.toBeInTheDocument();
+ expect(screen.queryByRole('link', { name: 'Artist biography' })).not.toBeInTheDocument();
+ expect(screen.getByRole('button', { name: 'Suggest a correction' })).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button', { name: 'Read more' }));
  expect(screen.getByText('From the artist’s bio')).toBeInTheDocument();
  expect(screen.getByRole('link', { name: 'Artist biography' })).toHaveAttribute('href', 'https://artist.example/bio');
- expect(screen.getByRole('button', { name: 'Suggest a correction' })).toBeInTheDocument();
- expect(screen.queryByRole('button', { name: 'Read more' })).not.toBeInTheDocument();
+ expect(container.querySelector('details')).toBeNull();
+ expect(screen.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+ fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+ expect(screen.queryByRole('link', { name: 'Artist biography' })).not.toBeInTheDocument();
 });
 it('retains attribution when display sanitization removes legacy markdown links', () => {
  render(<BlurbSection artistId="artist" artistName="Artist" initialBio={about.bio} publicAbout={{ ...about, bio: `${about.bio} ([Source](https://artist.example/bio))` }} hero/>);
+ fireEvent.click(screen.getByRole('button', { name: 'Read more' }));
  expect(screen.getByText('From the artist’s bio')).toBeInTheDocument();
 });
 it('does not attribute an artist edit to the previous source preparation', () => {
@@ -41,4 +49,15 @@ it('withdraws the About actions and citations when eligible bio is empty', () =>
  render(<BlurbSection artistId="artist" artistName="Artist" initialBio="" publicAbout={null} hero/>);
  expect(screen.queryByRole('button', { name: 'Suggest a correction' })).not.toBeInTheDocument();
  expect(screen.queryByText('Sources')).not.toBeInTheDocument();
+});
+
+it('expands a long researched bio and its sources together', () => {
+ const bio = 'A musician making records in Richmond. '.repeat(10);
+ jest.mocked(useArtistBio).mockReturnValue({ bio, loading: false, error: null, refetch: jest.fn() });
+ render(<BlurbSection artistId="artist" artistName="Artist" initialBio={bio} publicAbout={{ ...about, bio, kind: 'researched' }} hero/>);
+ expect(screen.queryByText('Researched from public sources')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button', { name: 'Read more' }));
+ expect(screen.getByText('Researched from public sources')).toBeInTheDocument();
+ expect(screen.getByRole('link', { name: 'Artist biography' })).toBeInTheDocument();
+ expect(screen.getByRole('button', { name: 'Suggest a correction' })).toBeInTheDocument();
 });

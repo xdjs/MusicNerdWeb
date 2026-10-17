@@ -33,6 +33,12 @@ preparation document, raw source text or source-review payload. The public profi
 bio endpoint and metadata must agree. Existing other public evidence interfaces
 must not accidentally gain access to private Lore through this change.
 
+On preview review, Pete asked for a quieter collapsed hero: attribution is now
+inside the existing Read more expansion. Expanding reveals the source heading and
+links directly, without a second Sources dropdown. A short sourced bio also has
+Read more so its attribution remains available; its text is not truncated.
+Suggest a correction stays beside Read more/Show less in both states.
+
 ## Suggest a correction
 
 Show a quiet text action beside Read more/Show less, including a standalone action
