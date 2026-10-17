@@ -172,6 +172,7 @@ it("starts explicitly and queues preparation without running a model in the requ
     expect.anything(), `session/${sessionId}/prepare`,
     expect.objectContaining({ body: { action: "prepare" } }),
   );
+  expect(callInterviewApi).toHaveBeenCalledTimes(2);
 });
 it("returns an already-offered question on Continue instead of regenerating it", async () => {
   jest.mocked(callInterviewApi).mockImplementation(async (_config, path) => path.endsWith("/prepare") ? {status: "ok", preparation: {status: "idle"}} : {

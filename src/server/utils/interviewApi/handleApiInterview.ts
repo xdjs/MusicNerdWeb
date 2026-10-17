@@ -121,7 +121,7 @@ export async function handleApiInterview(request: Request, artistId: string) {
               signal,
             }),
           )
-        : await restore();
+        : interviewSessionStateSchema.parse(await callInterviewApi(config, "session", { signal }));
     const session = state.session;
     if (
       !session ||
@@ -140,11 +140,12 @@ export async function handleApiInterview(request: Request, artistId: string) {
         { error: "This session is complete. Finish when you’re ready." },
         409,
       );
-    await callInterviewApi(config, `session/${session.id}/prepare`, {
+    const prepared = await callInterviewApi(config, `session/${session.id}/prepare`, {
       body: { action: input.action === "continue" ? "consume" : "prepare" },
       signal,
     });
-    return reply(await restore());
+    if (input.action === "continue") return reply(await restore());
+    return reply({ ...state, preparation: interviewPreparationSchema.parse((prepared as {preparation: unknown}).preparation) });
   } catch (error) {
     const contextTooLarge =
       error instanceof Error &&
