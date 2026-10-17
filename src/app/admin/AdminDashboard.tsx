@@ -39,6 +39,7 @@ export default function AdminDashboard({pendingUGCData,pendingLore,allUsers,mcpK
       <header className={styles.header}><div><h1>Admin dashboard</h1><p className={styles.description}>Review community contributions and keep artist profiles up to date.</p></div><Link href="/profile" className={styles.pill}>Your profile <ArrowUpRight size={15}/></Link></header>
 
       <Link href="/admin/contributions?origin=user&status=pending" className="mb-5 inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium">Review user submissions</Link>
+      <Link href="/admin/bio-corrections" className="mb-5 ml-3 inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium">Review About corrections</Link>
       <AdminTabs
         ugcCount={pendingUGCData.length}
         loreCount={pendingLore.pendingTotal}

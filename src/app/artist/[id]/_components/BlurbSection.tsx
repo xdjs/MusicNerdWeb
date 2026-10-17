@@ -5,7 +5,11 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useArtistBio } from "@/hooks/useArtistBio";
+import { sanitizeBioText } from "@/lib/bio/bioText";
 import { renderBioMarkdown } from "@/lib/bio/renderBioMarkdown";
+import BioCorrectionDialog from "./BioCorrectionDialog";
+import AboutAttribution from "./AboutAttribution";
+import type { PublicArtistAbout } from "@/lib/bio/types";
 import BioVersionHistory from "./BioVersionHistory";
 
 interface BlurbSectionProps {
@@ -14,9 +18,10 @@ interface BlurbSectionProps {
   initialBio?: string | null;
   hero?: boolean;
   portrait?: boolean;
+  publicAbout?: PublicArtistAbout | null;
 }
 
-export default function BlurbSection({ artistName, artistId, initialBio, hero = false, portrait = false }: BlurbSectionProps) {
+export default function BlurbSection({ artistName, artistId, initialBio, hero = false, portrait = false, publicAbout }: BlurbSectionProps) {
   const { isEditing, canEdit, refreshProfile, suspendedEditMode } = useContext(EditModeContext);
   const { toast } = useToast();
   const { bio: aiBlurb, loading: loadingAi, refetch } = useArtistBio(artistId, initialBio);
@@ -188,11 +193,15 @@ export default function BlurbSection({ artistName, artistId, initialBio, hero = 
     return <div>
       <p id={`artist-bio-${artistId}`} className={`whitespace-pre-line text-sm leading-relaxed sm:text-base ${portrait ? "text-white" : "text-gray-700 dark:text-gray-200"}`}
         dangerouslySetInnerHTML={{ __html: renderBioMarkdown(canExpand && !expanded ? excerpt : text) }} />
+      <div className="mt-1 flex flex-wrap items-center gap-x-5">
       {canExpand && <button type="button" aria-expanded={expanded} aria-controls={`artist-bio-${artistId}`}
         onClick={() => setExpanded(value => !value)}
         className={`mt-1 min-h-11 text-sm font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-pastypink ${portrait ? "text-white hover:text-pastypink" : "text-gray-950 dark:text-white"}`}>
         {expanded ? "Show less" : "Read more"}
       </button>}
+      <BioCorrectionDialog key={`${artistId}:${aiBlurb}`} artistId={artistId} artistName={artistName} bio={aiBlurb} portrait={portrait}/>
+      </div>
+      {publicAbout && sanitizeBioText(aiBlurb) === sanitizeBioText(publicAbout.bio) && <AboutAttribution about={publicAbout} portrait={portrait}/>}
     </div>;
   }
 
