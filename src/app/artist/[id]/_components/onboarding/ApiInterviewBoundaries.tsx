@@ -203,11 +203,12 @@ export default function ApiInterviewBoundaries({
               <textarea
                 id={`topic-${questionKey}`}
                 rows={3}
+                placeholder={'For example: “Keep the focus on my music, not my personal life.” Or “Ask me about how I made my latest release.”'}
                 value={wording}
                 maxLength={4000}
                 disabled={busy || pending}
                 onChange={(e) => setWording(e.target.value)}
-                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
+                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground placeholder:italic placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
               />
               <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
                 Keep this instruction
