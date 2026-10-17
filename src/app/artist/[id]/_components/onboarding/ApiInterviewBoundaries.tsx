@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { z } from "zod";
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
 const boundaryPageSchema = z.object({
@@ -126,12 +127,13 @@ export default function ApiInterviewBoundaries({
     <div className="border-t border-black/10 pt-3 dark:border-white/15">
       <button
         type="button"
-        className={button}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
         disabled={busy || pending}
         aria-expanded={open}
         onClick={() => void toggle()}
       >
         Topic preferences
+        <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180" : ""} />
       </button>
       {open && (
         <div className="mt-3 space-y-3">
