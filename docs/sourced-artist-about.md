@@ -119,3 +119,11 @@ Select this page selects up to 25 visible items; selecting individual rows choos
 Bulk approval targets links and sources only, rejection targets sources, and resolve/dismiss
 targets correction reports. Failed items stay visible and selected with an error for retry.
 Full About text expands inline. Normal review does not require opening a dialog.
+
+### October 17 — authentication handoff and visual alignment
+
+Correction drafts persist in session storage across sign-in, scoped to the artist and retaining
+the original About snapshot for stale-content validation. After authentication the form reopens
+with an explicit unsent status and Send suggestion action. Only successful persistence shows
+confirmation. Refs #1565. Correction controls match the interviewer; shared Radix dialogs use
+the existing Music Nerd surface in both themes, preserving their individual layout constraints.
