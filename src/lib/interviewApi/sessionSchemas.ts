@@ -13,6 +13,11 @@ export const sessionQuestionSchema = z.object({
   ordinal: z.number().int().min(1).max(3).nullable(),
   references: z.array(interviewReferenceSchema).max(3),
 });
+export const interviewPreparationSchema = z.object({
+  jobId: z.string().uuid().nullable().optional(),
+  status: z.enum(["idle", "pending", "running", "ready", "failed", "stale"]),
+  errorCode: z.enum(["preparation_failed", "model_output_invalid", "timeout_or_cancelled", "external_outcome_unknown"]).nullable().optional(),
+});
 export const interviewSessionStateSchema = z.object({
   status: z.literal("ok"),
   session: z
@@ -26,6 +31,7 @@ export const interviewSessionStateSchema = z.object({
     })
     .nullable(),
   legacyOffers: z.array(sessionQuestionSchema).max(3),
+  preparation: interviewPreparationSchema.optional(),
 });
 export type SessionQuestion = z.infer<typeof sessionQuestionSchema>;
 export type InterviewSessionState = z.infer<typeof interviewSessionStateSchema>;

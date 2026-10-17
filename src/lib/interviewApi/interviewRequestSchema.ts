@@ -4,6 +4,7 @@ const uuid = z.string().uuid(),
 export const interviewRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start"), requestId: uuid }).strict(),
   z.object({ action: z.literal("continue"), sessionId: uuid }).strict(),
+  z.object({ action: z.literal("prepare"), sessionId: uuid }).strict(),
   z
     .object({
       action: z.literal("answer"),

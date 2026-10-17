@@ -22,3 +22,10 @@ describe("useResearchPump", () => {
         unmount();
     });
 });
+
+it("limits interview preparation to its opted-in jobs", () => {
+  global.fetch = jest.fn().mockResolvedValue({ok: true, json: async () => ({ran: false})});
+  const {unmount} = renderHook(() => useResearchPump("artist-1", true, undefined, "interview_prepare"));
+  expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({body: JSON.stringify({artistId: "artist-1", kinds: ["interview_prepare"]})}));
+  unmount();
+});

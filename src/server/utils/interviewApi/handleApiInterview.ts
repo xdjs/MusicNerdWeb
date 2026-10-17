@@ -2,13 +2,12 @@ import { z } from "zod";
 import { MUSICNERD_API_INTERVIEWER_ENABLED } from "@/env";
 import { MUSICNERD_API_URL } from "@/lib/musicNerdApi/const";
 import { interviewRequestSchema } from "@/lib/interviewApi/interviewRequestSchema";
-import { interviewSessionStateSchema } from "@/lib/interviewApi/sessionSchemas";
+import { interviewSessionStateSchema, interviewPreparationSchema } from "@/lib/interviewApi/sessionSchemas";
 import { readInterviewWebBody } from "./readInterviewWebBody";
 import { callInterviewApi } from "./callInterviewApi";
 import { fetchMandatoryInterviewMemory } from "./fetchMandatoryInterviewMemory";
 import { fetchArtistKnowledge } from "./fetchArtistKnowledge";
-import { generateApiInterviewQuestion } from "./generateApiInterviewQuestion";
-/** Web owns the journalist; every private memory/source/session operation goes through MusicNerdAPI. */
+/** Web restores sessions and queues/consumes durable API preparation; no model calls in the request. */
 export async function handleApiInterview(request: Request, artistId: string) {
   const headers = { "Cache-Control": "private, no-store" };
   const reply = (body: unknown, status = 200) =>
@@ -30,10 +29,13 @@ export async function handleApiInterview(request: Request, artistId: string) {
     getAccessToken: async () => authorization.slice(7),
   };
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(105000)]);
-  const restore = async () =>
-    interviewSessionStateSchema.parse(
-      await callInterviewApi(config, "session", { signal }),
-    );
+  const restore = async () => {
+    const state = interviewSessionStateSchema.parse(await callInterviewApi(config, "session", { signal }));
+    if (state.session?.state !== "active") return state;
+    const result = await callInterviewApi(config, `session/${state.session.id}/prepare`, { signal });
+    const preparation = interviewPreparationSchema.parse((result as { preparation: unknown }).preparation);
+    return { ...state, preparation };
+  };
   try {
     if (new URL(request.url).search)
       return reply({ error: "Unexpected interview query." }, 400);
@@ -135,21 +137,11 @@ export async function handleApiInterview(request: Request, artistId: string) {
       return reply(state);
     if (session.questions.length >= 3)
       return reply(
-        { error: "This sitting is complete. Finish to save it." },
+        { error: "This session is complete. Finish when you’re ready." },
         409,
       );
-    const prepared = await generateApiInterviewQuestion(
-      config,
-      session.sitting,
-      signal,
-    );
-    await callInterviewApi(config, `session/${session.id}/offer`, {
-      body: {
-        ordinal: session.questions.length + 1,
-        question: prepared.question,
-        references: prepared.references,
-        memorySnapshotId: prepared.memorySnapshotId,
-      },
+    await callInterviewApi(config, `session/${session.id}/prepare`, {
+      body: { action: input.action === "continue" ? "consume" : "prepare" },
       signal,
     });
     return reply(await restore());
