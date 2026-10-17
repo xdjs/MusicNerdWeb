@@ -127,3 +127,11 @@ the original About snapshot for stale-content validation. After authentication t
 with an explicit unsent status and Send suggestion action. Only successful persistence shows
 confirmation. Refs #1565. Correction controls match the interviewer; shared Radix dialogs use
 the existing Music Nerd surface in both themes, preserving their individual layout constraints.
+
+### October 17 — sign in before reporting
+
+Pete approved a simpler entry flow: Suggest a correction opens login first for signed-out
+visitors. After both Privy and the application session are authenticated, the report form
+opens. Submit report persists the report; only a successful response displays Report received,
+with a message that the team will review it and a Done button. Login alone never submits.
+The continuation survives the application-session reload. Failures keep the form and text.
