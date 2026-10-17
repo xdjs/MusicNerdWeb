@@ -69,3 +69,7 @@ it("preserves a safe stale-state error without exposing provider details", async
     status: 409,
   });
 });
+it.each([undefined, { action: "prepare" }, { action: "consume" }])("allows the scoped preparation endpoint with %j", async (body) => {
+  await callInterviewApi(config, `session/${id}/prepare`, { body });
+  expect(fetch).toHaveBeenCalledWith(new URL(`https://api.example/api/artist/${id}/interview/session/${id}/prepare`), expect.objectContaining({ method: body ? "POST" : "GET" }));
+});
