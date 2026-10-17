@@ -27,7 +27,8 @@ export default function ApiInterview({
     pending = useRef(false),
     startId = useRef<string | null>(null),
     revision = useRef(0),
-    readId = useRef(0);
+    readId = useRef(0),
+    refreshing = useRef(false);
   const [stored, setStored] = useState<{
     scope: string;
     state: InterviewSessionState;
@@ -82,12 +83,15 @@ export default function ApiInterview({
   );
   const refreshPreparation = useCallback(async () => {
     const controller = life.current;
-    if (!controller || controller.signal.aborted) return;
+    if (!controller || controller.signal.aborted || refreshing.current) return;
+    refreshing.current = true;
     try {
       await restore(controller.signal);
       if (!controller.signal.aborted) setError((previous) => previous?.startsWith("We couldn’t check preparation") ? null : previous);
     } catch {
       if (!controller.signal.aborted) setError("We couldn’t check preparation. Your saved interview is safe; reconnect or reload to check again.");
+    } finally {
+      refreshing.current = false;
     }
   }, [restore]);
   useResearchPump(artistId, queued, refreshPreparation, "interview_prepare");

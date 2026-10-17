@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import ApiInterview from "../ApiInterview";
 const token = jest.fn(async () => "token");
 const mockToast = jest.fn();
@@ -347,4 +347,16 @@ it("opens a ready question by consuming it, with no new preparation", async () =
   expect(JSON.parse(jest.mocked(fetch).mock.calls[1][1]?.body as string)).toEqual({action: "continue", sessionId: session});
   expect(screen.queryByRole("button", {name: "Reload saved interview"})).not.toBeInTheDocument();
   expect(screen.queryByRole("button", {name: "Finish interview"})).not.toBeInTheDocument();
+});
+
+it("does not pile up status requests when a preparation read is slow", async () => {
+  jest.useFakeTimers();
+  try {
+    jest.mocked(fetch).mockResolvedValueOnce(reply({...active, session: {...active.session, questions: []}, preparation: {status: "running"}}) as Response).mockImplementation(() => new Promise(() => {}));
+    const {unmount} = render(<ApiInterview artistId={artist} artistName="Artist" />);
+    await screen.findByRole("button", {name: "Preparing interview…"});
+    await act(async () => { jest.advanceTimersByTime(9000); });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    unmount();
+  } finally { jest.useRealTimers(); }
 });
