@@ -69,8 +69,12 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
   }
   return <Dialog open={open} onOpenChange={next => {
     if (submitting.current) return;
+    if (next && sent) {
+      setSent(false); setDuplicate(false); setReason('incorrect');
+      setDetails(''); setSourceUrl(''); setError(''); setExpectedBio(bio);
+    }
     if (next && !signedIn) {
-      try { sessionStorage.setItem(draftKey, JSON.stringify({ reason, details, sourceUrl, bio: expectedBio })); } catch { /* In-memory intent is retained. */ }
+      try { sessionStorage.setItem(draftKey, JSON.stringify(sent ? { reason: 'incorrect', details: '', sourceUrl: '', bio } : { reason, details, sourceUrl, bio: expectedBio })); } catch { /* In-memory intent is retained. */ }
       awaitingLogin.current = true;
       if (!authenticated) login();
       return;

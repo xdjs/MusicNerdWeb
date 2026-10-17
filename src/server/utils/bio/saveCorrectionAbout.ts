@@ -29,7 +29,7 @@ export async function saveCorrectionAbout(reportId: string, userId: string, bio:
     } else {
       // Keep identity/source gates and the private pre-claim preparation untouched.
       await tx.execute(sql`update artist_directory_preparations
-        set public_about=public_about || jsonb_build_object('bio',${bio}::text,'kind','researched'), updated_at=now()
+        set public_about=public_about || jsonb_build_object('bio',${bio}::text,'kind','researched','editedByAdmin',true), updated_at=now()
         where artist_id=${artist.id}::uuid`);
     }
     await recordArtistActivity(artist.id, 'about_edited', { userId, trigger: 'about_correction' }, tx);

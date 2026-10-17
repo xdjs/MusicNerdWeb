@@ -88,3 +88,21 @@ it('clearly distinguishes an exact duplicate from a newly saved report',async()=
  expect(await screen.findByRole('heading',{name:'Report already received'})).toBeVisible();
  expect(screen.getByRole('status')).toHaveTextContent('No duplicate was added');
 });
+
+it.each([false,true])('starts a fresh report after confirmation (duplicate=%s)', async duplicate => {
+ jest.mocked(fetch).mockResolvedValue({ok:true,json:async()=>({success:true,duplicate})} as Response);
+ const {rerender}=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="First About"/>);
+ fireEvent.click(screen.getByRole('button',{name:'Suggest a correction'}));
+ fireEvent.change(screen.getByRole('textbox',{name:'Details (optional)'}),{target:{value:'First correction'}});
+ fireEvent.click(screen.getByRole('button',{name:'Submit report'}));
+ await screen.findByRole('heading',{name:duplicate?'Report already received':'Report received'});
+ fireEvent.click(screen.getByRole('button',{name:'Done'}));
+ rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Updated About"/>);
+ fireEvent.click(screen.getByRole('button',{name:'Suggest a correction'}));
+ expect(screen.getByRole('textbox',{name:'Details (optional)'})).toHaveValue('');
+ expect(fetch).toHaveBeenCalledTimes(1);
+ fireEvent.change(screen.getByRole('textbox',{name:'Details (optional)'}),{target:{value:'Second correction'}});
+ fireEvent.click(screen.getByRole('button',{name:'Submit report'}));
+ await waitFor(()=>expect(fetch).toHaveBeenCalledTimes(2));
+ expect(JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string)).toMatchObject({details:'Second correction',expectedBio:'Updated About'});
+});
