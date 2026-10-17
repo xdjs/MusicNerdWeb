@@ -1,35 +1,44 @@
-import {useState} from 'react';
-import {render, screen, fireEvent, within} from '@testing-library/react';
+import {render,screen,fireEvent,within} from '@testing-library/react';
 import LoreReviewQueue from '../LoreReviewQueue';
-
-it('keeps each contribution type’s own review action and filters only the matching panel', () => {
-  const approveLink = jest.fn();
-  const rejectSource = jest.fn();
-  const resolveCorrection = jest.fn();
-  function ReviewHarness() {
-    const [value, setValue] = useState('all');
-    return <LoreReviewQueue value={value} onValueChange={setValue}
-      linksCount={2} sourcesCount={3} correctionsCount={1}
-      linksContent={<button onClick={approveLink}>Approve link</button>}
-      sourcesContent={<button onClick={rejectSource}>Reject source</button>}
-      correctionsContent={<button onClick={resolveCorrection}>Resolve correction</button>}/>;
-  }
-  render(<ReviewHarness/>);
-  fireEvent.click(within(screen.getByRole('region', {name: 'Links review'})).getByRole('button', {name: 'Approve link'}));
-  fireEvent.click(within(screen.getByRole('region', {name: 'Lore sources review'})).getByRole('button', {name: 'Reject source'}));
-  fireEvent.click(within(screen.getByRole('region', {name: 'About corrections review'})).getByRole('button', {name: 'Resolve correction'}));
-  expect(approveLink).toHaveBeenCalledTimes(1);
-  expect(rejectSource).toHaveBeenCalledTimes(1);
-  expect(resolveCorrection).toHaveBeenCalledTimes(1);
-
-  for (const [option, region] of [['Links (2)', 'Links review'], ['Lore sources (3)', 'Lore sources review'], ['About corrections (1)', 'About corrections review']]) {
-    fireEvent.keyDown(screen.getByRole('combobox', {name: 'Review type'}), {key: 'ArrowDown'});
-    fireEvent.click(screen.getByRole('option', {name: option}));
-    expect(screen.getAllByRole('region')).toHaveLength(1);
-    expect(screen.getByRole('region', {name: region})).toBeVisible();
-  }
-  // Changing the queue view never performs a review action itself.
-  expect(approveLink).toHaveBeenCalledTimes(1);
-  expect(rejectSource).toHaveBeenCalledTimes(1);
-  expect(resolveCorrection).toHaveBeenCalledTimes(1);
+import type {ReviewItem} from '@/lib/contributions/adminReviewTypes';
+const push=jest.fn();
+const refresh=jest.fn();
+jest.mock('next/navigation',()=>({useRouter:()=>({push,refresh})}));
+jest.mock('@/app/actions/serverActions',()=>({approveUgcAdminAction:jest.fn()}));
+jest.mock('@/app/actions/dashboardActions',()=>({updateSourceStatus:jest.fn()}));
+const base:ReviewItem={id:'one',type:'links',artistId:'artist',artistName:'Artist One',title:'Bandcamp',url:'https://example.test',createdAt:'2026-10-17T00:00:00Z',origin:'user',actorName:'Contributor',actorId:'user',activityId:null,trigger:null,bioSnapshot:null,details:null,reason:null};
+const data={items:[base,{...base,id:'two',type:'sources' as const,artistName:'Artist Two',title:'Interview'},{...base,id:'three',type:'corrections' as const,artistName:'Artist Three',title:'incorrect',details:'Wrong instrument',bioSnapshot:'Original About'}],counts:{links:1,sources:1,corrections:1},pendingCounts:{links:1,sources:1,corrections:1},total:3,page:1,pageSize:25,type:'all' as const,query:''};
+beforeEach(()=>{push.mockClear();refresh.mockClear();});
+it('renders one mixed list and opens only the selected item in its details dialog',()=>{
+ render(<LoreReviewQueue data={data}/>);
+ expect(screen.getAllByRole('list')).toHaveLength(1);
+ expect(within(screen.getByRole('list',{name:'Pending reviews'})).getAllByRole('listitem')).toHaveLength(3);
+ expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Review About correction for Artist Three: incorrect'}));
+ const dialog=screen.getByRole('dialog');
+ expect(within(dialog).getByText('Original About')).toBeVisible();
+ expect(within(dialog).getByText('Wrong instrument')).toBeVisible();
+ expect(within(dialog).queryByText('Bandcamp')).not.toBeInTheDocument();
+ expect(within(dialog).queryByText('Interview')).not.toBeInTheDocument();
+ fireEvent.click(within(dialog).getByRole('button',{name:'Close'}));
+ fireEvent.click(screen.getByRole('button',{name:'Review Link for Artist One: Bandcamp'}));
+ expect(within(screen.getByRole('dialog')).getByText('Bandcamp')).toBeVisible();
+ expect(within(screen.getByRole('dialog')).queryByText('Original About')).not.toBeInTheDocument();
+});
+it('resets pagination on search and type changes',()=>{
+ render(<LoreReviewQueue data={{...data,page:2,total:60,query:'old'}}/>);
+ fireEvent.change(screen.getByRole('searchbox',{name:'Search'}),{target:{value:'  new artist  '}});
+ fireEvent.click(screen.getByRole('button',{name:'Search reviews'}));
+ expect(push).toHaveBeenLastCalledWith('/admin?section=lore&reviewType=all&reviewPage=1&reviewQuery=new+artist',{scroll:false});
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Review type'}),{key:'ArrowDown'});
+ fireEvent.click(screen.getByRole('option',{name:'About corrections (1)'}));
+ expect(push).toHaveBeenLastCalledWith('/admin?section=lore&reviewType=corrections&reviewPage=1&reviewQuery=new+artist',{scroll:false});
+});
+it('preserves the applied type and query during pagination rather than an unsubmitted search',()=>{
+ render(<LoreReviewQueue data={{...data,type:'sources',query:'applied query',page:2,total:60}}/>);
+ fireEvent.change(screen.getByRole('searchbox',{name:'Search'}),{target:{value:'unsaved query'}});
+ fireEvent.click(screen.getByRole('button',{name:'Next'}));
+ expect(push).toHaveBeenLastCalledWith('/admin?section=lore&reviewType=sources&reviewPage=3&reviewQuery=applied+query',{scroll:false});
+ fireEvent.click(screen.getByRole('button',{name:'Previous'}));
+ expect(push).toHaveBeenLastCalledWith('/admin?section=lore&reviewType=sources&reviewPage=1&reviewQuery=applied+query',{scroll:false});
 });

@@ -105,4 +105,8 @@ Admin filters and the correction reason menu share `MusicNerdSelect`, using the 
 
 ### October 17 consolidated review navigation — supersedes separate tabs
 
-Pete chose **Lore review** as the single admin destination for submitted links, Lore sources and About corrections. A **Review type** filter offers All, Links, Lore sources and About corrections, each with its pending count. All groups the existing review panels by type; each retains its own review actions and filters. The sidebar count is the sum of all three pending queues. Artist claims remains separate. Legacy link/correction entry points select the corresponding filter within Lore review. This replaces the separate Link submissions and About corrections sidebar entries.
+Pete chose **Lore review** as the single admin destination for submitted links, Lore sources and About corrections. A **Review type** filter offers All, Links, Lore sources and About corrections, each with its pending count. This initially grouped the existing panels; the unified-list decision below supersedes that presentation. The sidebar count is the sum of all three pending queues. Artist claims remains separate. Legacy link/correction entry points select the corresponding filter within Lore review. This replaces the separate Link submissions and About corrections sidebar entries.
+
+### October 17 unified list — supersedes stacked review panels
+
+Pete rejected stacking the previous queue screens under All. Lore review now uses one paginated, newest-first list across links, sources and corrections, with one search field and one type filter. Every row shows artist, type, a short preview and date; selecting it opens a consistent detail dialog with the existing type-specific actions. Pagination/search apply across the union, not independently to three sections. Private correction text remains admin-only. No new approval rules or database writes are introduced by viewing the list.

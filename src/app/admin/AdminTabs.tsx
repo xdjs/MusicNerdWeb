@@ -4,27 +4,26 @@ import { useState, type ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { BookOpen, BadgeCheck, Users, KeyRound, Activity, Database, ArrowUpRight } from "lucide-react";
-import LoreReviewQueue from "./LoreReviewQueue";
+import { useRouter } from 'next/navigation';
 import menuStyles from '@/components/ui/MusicNerdSelect.module.css';
 import styles from "@/components/community/Community.module.css";
 import surface from "@/app/profile/ProfileConcept.module.css";
 
 interface AdminTabsProps {
-  ugcContent: ReactNode; loreContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
+  reviewContent: ReactNode; usersContent: ReactNode; claimsContent: ReactNode;
   mcpKeysContent: ReactNode; agentWorkContent: ReactNode; artistDataContent: ReactNode;
   ugcCount: number; loreCount: number; claimsCount: number;
   initialSection?: "ugc" | "lore" | "activity" | "users" | "corrections";
-  correctionsCount?: number; correctionsContent?: ReactNode;
+  correctionsCount?: number;
   activityContent?: ReactNode;
-  initialReviewType?: "all" | "links" | "sources" | "corrections";
 }
 
-export default function AdminTabs({ugcContent,loreContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,correctionsContent,initialSection='lore',initialReviewType}: AdminTabsProps) {
+export default function AdminTabs({reviewContent,usersContent,claimsContent,mcpKeysContent,agentWorkContent,artistDataContent,ugcCount,loreCount,claimsCount,activityContent,correctionsCount=0,initialSection='lore'}: AdminTabsProps) {
   const [value,setValue] = useState<string>(initialSection === 'ugc' || initialSection === 'corrections' ? 'lore' : initialSection);
-  const [reviewType,setReviewType] = useState<string>(initialReviewType ?? (initialSection === 'ugc' ? 'links' : initialSection === 'corrections' ? 'corrections' : 'all'));
-  const openReview = (type: string) => { setReviewType(type); setValue('lore'); };
+  const router = useRouter();
+  const openReview = (type: string) => { setValue('lore'); router.push(`/admin?section=lore&reviewType=${type}`); };
   const sections = [
-    {value:'lore',label:'Lore review',title:'Lore review',description:'Review submitted links, Lore sources and About corrections.',icon:BookOpen,count:ugcCount+loreCount+correctionsCount,content:<LoreReviewQueue value={reviewType} onValueChange={setReviewType} linksCount={ugcCount} sourcesCount={loreCount} correctionsCount={correctionsCount} linksContent={ugcContent} sourcesContent={loreContent} correctionsContent={correctionsContent}/>},
+    {value:'lore',label:'Lore review',title:'Lore review',description:'Review submitted links, Lore sources and About corrections.',icon:BookOpen,count:ugcCount+loreCount+correctionsCount,content:reviewContent},
     {value:'activity',label:'Activity',title:'Who started this work',description:'Research requests and content changes, attributed to the account that initiated them.',icon:Activity,content:activityContent},
     {value:'claims',label:'Artist claims',title:'Connect artists with their pages',description:'Review ownership requests and manage existing artist claims.',icon:BadgeCheck,count:claimsCount,content:claimsContent},
     {value:'artist-data',label:'Artist data',title:'A fuller picture of the catalog',description:'See platform coverage, profile completeness, and enrichment readiness.',icon:Database,content:artistDataContent},
