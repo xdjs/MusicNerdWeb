@@ -192,6 +192,9 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const profile = (
         <ArtistProfileContent
             publicAbout={directoryAbout}
+            interviewAction={!interviewPreview && !tourPreview && isClaimedByUser && onboardingState?.complete && MUSICNERD_API_INTERVIEWER_ENABLED
+                ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
+                : null}
             artist={canEdit ? artist : publicProfile.artist}
             claimStatusKnown={existingClaim !== undefined}
             imageUrl={imageUrl}
@@ -239,8 +242,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                     same way the tour is — onboarding finished, and their own
                     page — and it decides for itself whether there is anything
                     worth asking about. */}
-                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && (
-                    MUSICNERD_API_INTERVIEWER_ENABLED ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} /> : <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
+                {interviewPreview ? <InterviewPreview key={artist.id} artistId={artist.id} artistName={artist.name ?? "your"} /> : !tourPreview && isClaimedByUser && onboardingState?.complete && !MUSICNERD_API_INTERVIEWER_ENABLED && (
+                    <InterviewOffer key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 )}
 
                 {/* The artist page. While a fresh claim's onboarding runs, research

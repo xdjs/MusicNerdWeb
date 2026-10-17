@@ -160,3 +160,11 @@ it('does not route a saved Spotify single to the platform grid or Listen', () =>
   expect(screen.getByTestId('links-grid')).toHaveAttribute('data-icons','');
   expect(screen.getByTestId('hero').getAttribute('data-listen')).not.toContain(url);
 });
+
+it("keeps the interview entry inside the hero actions instead of inserting a section above the hero", () => {
+    const { container, rerender } = render(<ArtistProfileContent {...base} />);
+    const hero = screen.getByTestId("hero");
+    rerender(<ArtistProfileContent {...base} interviewAction={<button>Resume interview</button>} />);
+    expect(within(hero).getByRole("button", { name: "Resume interview" })).toBeVisible();
+    expect(container.firstElementChild).toBe(hero);
+});
