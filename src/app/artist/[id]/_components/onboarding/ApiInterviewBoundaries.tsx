@@ -124,12 +124,12 @@ export default function ApiInterviewBoundaries({
     }
   };
   const button =
-    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
+    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
   return (
     <div className="border-t border-black/10 pt-3 dark:border-white/15">
       <button
         type="button"
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
         disabled={busy || pending}
         aria-expanded={open}
         onClick={() => void toggle()}
@@ -212,7 +212,7 @@ export default function ApiInterviewBoundaries({
                 maxLength={4000}
                 disabled={busy || pending}
                 onChange={(e) => setWording(e.target.value)}
-                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground placeholder:italic placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
+                className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground placeholder:italic placeholder:text-gray-500 dark:placeholder:text-gray-400 dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink/60 disabled:opacity-50"
               />
               <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
                 Keep this instruction
@@ -223,7 +223,7 @@ export default function ApiInterviewBoundaries({
                 onValueChange={(value) => setScope(value as "sitting" | "until_retracted")}
               >
                 <SelectTrigger id={`scope-${questionKey}`}
-                  className="min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-pastypink focus:ring-offset-0">
+                  className="min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-inset focus:ring-pastypink focus:ring-offset-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={`${scopeStyles.menu} z-[60] rounded-xl border-black/10 bg-[#faf7fc] text-[#111] shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-[#231f27] dark:text-white`}>
@@ -233,7 +233,7 @@ export default function ApiInterviewBoundaries({
               </Select>
               <button
                 type="button"
-                className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+                className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
                 disabled={
                   busy || pending || !wording.trim() || entries === null
                 }

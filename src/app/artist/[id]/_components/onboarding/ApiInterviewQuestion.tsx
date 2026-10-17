@@ -19,7 +19,7 @@ export default function ApiInterviewQuestion({
   call: (body: InterviewRequest) => Promise<unknown>;
 }) {
   const button =
-    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
+    "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground dark:text-white/60">{question.ordinal} of 3</p>
@@ -40,7 +40,7 @@ export default function ApiInterviewQuestion({
         maxLength={8000}
         rows={4}
         disabled={busy}
-        className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink/60 disabled:opacity-50"
+        className="w-full resize-y rounded-xl border border-input bg-black/[0.02] p-3 text-base sm:text-sm leading-relaxed text-foreground dark:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink/60 disabled:opacity-50"
       />
       <p className="text-xs text-gray-500 dark:text-gray-400">
         {answer.length.toLocaleString()} / 8,000 characters
@@ -48,7 +48,7 @@ export default function ApiInterviewQuestion({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+          className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
           disabled={busy || !answer.trim()}
           onClick={() => void onAnswer(answer)}
         >
