@@ -8,7 +8,11 @@
 }
 
 .body {
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  scroll-padding-block: 1rem 2rem;
+  overflow-wrap: anywhere;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -20,3 +24,14 @@
 .body::-webkit-scrollbar-thumb { background: rgb(80 65 85 / 0.25); border-radius: 9999px; }
 :global(.dark) .body { scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
 :global(.dark) .body::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.2); }
+
+/* Keep the last control above the footer when focused or scrolled into view. */
+.body :is(button, textarea, input, summary) { scroll-margin-block: 1rem 2rem; }
+
+/* A short phone viewport needs space for the answer, not oversized chrome. */
+@media (max-height: 540px) {
+  .dialog:global(.mn-themed-dialog)[role="dialog"] {
+    max-height: calc(100dvh - 1rem);
+    padding: 1rem;
+  }
+}

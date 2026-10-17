@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ApiInterview from "../ApiInterview";
 const token = jest.fn(async () => "token");
+const mockToast = jest.fn();
+jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.mock("@privy-io/react-auth", () => ({
   usePrivy: () => ({
     ready: true,
@@ -57,6 +59,8 @@ it("reads only on mount and generates solely after explicit Start", async () => 
   fireEvent.click(
     await screen.findByRole("button", { name: "Start interview" }),
   );
+  expect(fetch).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
   await screen.findByText(question.question);
   expect(jest.mocked(fetch).mock.calls[0][1]?.method).toBe("GET");
   expect(
@@ -187,11 +191,13 @@ it("starts a new sitting with a new request id after finishing without a reload"
   fireEvent.click(
     await screen.findByRole("button", { name: "Start interview" }),
   );
+  fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
   await screen.findByText(question.question);
   fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Start interview" }),
   );
+  fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
   await screen.findByText(question.question);
   const starts = jest
     .mocked(fetch)
@@ -277,4 +283,36 @@ it("keeps the popup and draft open when browser persistence fails", async () => 
   expect(screen.getByLabelText("Your answer")).toHaveValue("Do not lose this");
   expect(screen.getByRole("alert")).toHaveTextContent("could not be saved");
   write.mockRestore();
+});
+
+it("does not present a legacy saved question as an active session or generate on opening", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply({ ...empty, legacyOffers: [question] }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Review saved question" }));
+  expect(screen.getByText(question.question)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Resume interview" })).not.toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+it("closes only after Finish succeeds and confirms the saved responses", async () => {
+  const answered = { ...active, session: { ...active.session, questions: [{ ...question, state: "answered", answer: "My exact answer" }] } };
+  jest.mocked(fetch).mockResolvedValueOnce(reply(answered) as Response).mockResolvedValueOnce(reply({ ...answered, session: { ...answered.session, state: "finished", closedAt: "2026-10-17" } }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  expect(screen.getByText("This session’s responses")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Interview finished", description: "Your saved responses are kept in your profile." }));
+  expect(screen.getByRole("button", { name: "Start interview" })).toBeEnabled();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+it("keeps the session and draft open when Finish fails", async () => {
+  jest.mocked(fetch).mockResolvedValueOnce(reply(active) as Response).mockResolvedValueOnce(reply({ error: "Please retry." }, 503) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Keep my draft" } });
+  fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByLabelText("Your answer")).toHaveValue("Keep my draft");
+  expect(mockToast).not.toHaveBeenCalled();
 });

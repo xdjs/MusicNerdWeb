@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MessageCircleQuestion } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   interviewSessionStateSchema,
@@ -19,6 +20,7 @@ export default function ApiInterview({
   artistName: string;
 }) {
   const { ready, authenticated, user, getAccessToken } = usePrivy();
+  const { toast } = useToast();
   const scope = `${artistId}:${user?.id ?? ""}`;
   const life = useRef<AbortController | null>(null),
     pending = useRef(false),
@@ -110,7 +112,16 @@ export default function ApiInterview({
       );
       if (controller.signal.aborted) return false;
       setStored({ scope, state: result });
-      if (action.action === "finish") startId.current = null;
+      if (action.action === "finish") {
+        startId.current = null;
+        setOpen(false);
+        toast({
+          title: "Interview finished",
+          description: result.session?.questions.some((question) => question.state === "answered")
+            ? "Your saved responses are kept in your profile."
+            : "You can start another interview when you’re ready.",
+        });
+      }
       return true;
     } catch (e) {
       if (!controller.signal.aborted) {
@@ -187,9 +198,9 @@ export default function ApiInterview({
         <button type="button"
           className="button-glass inline-flex min-h-11 items-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
           disabled={loading || busy}
-          onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
+          onClick={() => setOpen(true)}>
           <MessageCircleQuestion size={18} aria-hidden="true" />
-          {loading ? "Loading interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
+          {loading ? "Loading interview…" : session?.state === "active" ? "Resume interview" : offered ? "Review saved question" : "Start interview"}
         </button>
       </DialogTrigger>
         <DialogContent aria-busy={busy}
@@ -202,7 +213,7 @@ export default function ApiInterview({
               Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss.
             </DialogDescription>
           </DialogHeader>
-          <div className={`${dialogStyles.body} pt-3 pb-6 pr-1`}>
+          <div className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -310,7 +321,7 @@ export default function ApiInterview({
           {!!session?.questions.some((q) => q.state !== "offered") && (
             <details className="border-t border-black/10 pt-3 dark:border-white/15">
               <summary className="min-h-11 cursor-pointer py-2 text-sm">
-                Saved in this sitting
+                This session’s responses
               </summary>
               <ol className="space-y-4">
                 {session.questions
