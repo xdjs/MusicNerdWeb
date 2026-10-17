@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
 const boundaryPageSchema = z.object({
   status: z.literal("ok"),
@@ -215,18 +216,20 @@ export default function ApiInterviewBoundaries({
               <label className="block text-sm" htmlFor={`scope-${questionKey}`}>
                 Keep this instruction
               </label>
-              <select
-                id={`scope-${questionKey}`}
+              <Select
                 value={scope}
                 disabled={busy || pending}
-                onChange={(e) =>
-                  setScope(e.target.value as "sitting" | "until_retracted")
-                }
-                className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink"
+                onValueChange={(value) => setScope(value as "sitting" | "until_retracted")}
               >
-                <option value="sitting">For this sitting</option>
-                <option value="until_retracted">Until I remove it</option>
-              </select>
+                <SelectTrigger id={`scope-${questionKey}`}
+                  className="min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-pastypink focus:ring-offset-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[60] rounded-xl border-black/10 bg-[#faf7fc] text-[#111] shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-[#231f27] dark:text-white">
+                  <SelectItem value="sitting" className="min-h-11 rounded-lg focus:bg-pastypink/20 focus:text-[#111] data-[state=checked]:bg-pastypink/15 dark:focus:text-white">For this sitting</SelectItem>
+                  <SelectItem value="until_retracted" className="min-h-11 rounded-lg focus:bg-pastypink/20 focus:text-[#111] data-[state=checked]:bg-pastypink/15 dark:focus:text-white">Until I remove it</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 type="button"
                 className="min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
