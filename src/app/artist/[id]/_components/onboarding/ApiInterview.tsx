@@ -38,6 +38,7 @@ export default function ApiInterview({
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [opening, setOpening] = useState(false);
   const state = stored?.scope === scope ? stored.state : null;
   const preparationStatus = state?.preparation?.status;
   const queued = preparationStatus === "pending" || preparationStatus === "running";
@@ -106,6 +107,7 @@ export default function ApiInterview({
     setError(null);
     setBusy(false);
     setPreparing(false);
+    setOpening(false);
     setLoading(true);
     if (ready && authenticated)
       void restore(controller.signal)
@@ -131,6 +133,7 @@ export default function ApiInterview({
     setBusy(true);
     setError(null);
     setPreparing(action.action === "start" || action.action === "prepare");
+    setOpening(action.action === "continue");
     try {
       const result = interviewSessionStateSchema.parse(
         await call(action, controller.signal),
@@ -161,6 +164,7 @@ export default function ApiInterview({
         pending.current = false;
         setBusy(false);
         setPreparing(false);
+        setOpening(false);
       }
     }
   };
@@ -261,7 +265,7 @@ export default function ApiInterview({
         <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
           <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
           <div>
-            <p>{queued || preparing ? "Preparing your question…" : "Saving your interview…"}</p>
+            <p>{queued || preparing ? "Preparing your question…" : opening ? "Opening your question…" : "Saving your interview…"}</p>
             {(queued || preparing) && <p className="mt-1 text-xs text-muted-foreground">You can close this window. We’ll keep preparing it in the background.</p>}
           </div>
         </div>
