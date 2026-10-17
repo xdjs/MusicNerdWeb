@@ -31,7 +31,7 @@ export async function handleApiInterview(request: Request, artistId: string) {
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(105000)]);
   const restore = async () => {
     const state = interviewSessionStateSchema.parse(await callInterviewApi(config, "session", { signal }));
-    if (state.session?.state !== "active") return state;
+    if (state.session?.state !== "active" || state.legacyOffers.length || state.session.questions.some((question) => question.state === "offered")) return state;
     const result = await callInterviewApi(config, `session/${state.session.id}/prepare`, { signal });
     const preparation = interviewPreparationSchema.parse((result as { preparation: unknown }).preparation);
     return { ...state, preparation };

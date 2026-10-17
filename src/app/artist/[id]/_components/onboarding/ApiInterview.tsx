@@ -80,12 +80,19 @@ export default function ApiInterview({
     [call, scope],
   );
   const refreshPreparation = useCallback(async () => {
-    if (life.current && !life.current.signal.aborted) await restore(life.current.signal);
+    const controller = life.current;
+    if (!controller || controller.signal.aborted) return;
+    try {
+      await restore(controller.signal);
+      if (!controller.signal.aborted) setError((previous) => previous?.startsWith("We couldn’t check preparation") ? null : previous);
+    } catch {
+      if (!controller.signal.aborted) setError("We couldn’t check preparation. Your saved interview is safe; reconnect or reload to check again.");
+    }
   }, [restore]);
   useResearchPump(artistId, queued, refreshPreparation, "interview_prepare");
   useEffect(() => {
     if (!queued) return;
-    const interval = setInterval(() => { void refreshPreparation().catch(() => undefined); }, 3000);
+    const interval = setInterval(() => { void refreshPreparation(); }, 3000);
     return () => clearInterval(interval);
   }, [queued, refreshPreparation]);
   useEffect(() => {
@@ -259,6 +266,9 @@ export default function ApiInterview({
           </div>
         </div>
       )}
+      {preparationStatus === "failed" && !busy && (
+        <p role="alert" className="my-4 text-sm text-muted-foreground">We couldn’t prepare that question. Your saved responses are safe.</p>
+      )}
       {!loading && !busy && !queued && state && (
         <div className="space-y-3">
           {offered ? (
@@ -301,7 +311,7 @@ export default function ApiInterview({
                     void mutate({ action: preparationStatus === "ready" ? "continue" : "prepare", sessionId: session.id })
                   }
                 >
-                  {preparationStatus === "ready" ? "Next question" : preparationStatus === "failed" || preparationStatus === "stale" ? "Try again" : "Prepare next question"}
+                  {preparationStatus === "ready" ? (session.questions.length ? "Next question" : "Start interview") : preparationStatus === "failed" || preparationStatus === "stale" ? "Try again" : "Prepare next question"}
                 </button>
               )}
             </>
@@ -327,7 +337,7 @@ export default function ApiInterview({
               >
                 Finish interview
               </button>
-              
+
             </div>
           )}
           <details className="border-t border-black/10 pt-3 dark:border-white/15">
