@@ -54,8 +54,9 @@ must not create repeated pending reports; bound submission frequency. Do not fet
 submitted URLs or interpret report text as model instructions. Reports never write
 artist bios, approve sources or influence generation automatically.
 
-Admins review reports in the existing admin workspace’s **About corrections**
-sidebar tab, with a pending count (and the same section in the mobile picker), visit the artist's existing
+Admins review reports under **Lore review → About corrections**, alongside the
+Links and Lore sources filters. The sidebar shows the combined pending count;
+the review-type filter shows each queue’s count. Admins visit the artist's existing
 editor to make a correction, and mark reports resolved or dismissed. Review is
 admin-authorized server-side; public users cannot list reports or change their
 status. Preserve the original report and reviewer attribution. Do not say a bio
@@ -90,10 +91,11 @@ preparation job. Profile reads never generate or refresh it. Production migratio
 main merges and promotion are separate gates.
 
 October 17 admin review feedback: Pete rejected duplicate review links above the
-dashboard. About corrections belongs alongside Link submissions and Lore review,
-with reports in the main panel. `/admin?section=corrections` opens that panel; the
-earlier `/admin/bio-corrections` address redirects there. Both header shortcuts
-are removed; existing contribution-review routes remain accessible by direct link.
+dashboard, then consolidated the three content queues under Lore review (see the
+decision below). `/admin?section=lore&reviewType=corrections` opens correction
+reports; `/admin/bio-corrections` redirects there, and the legacy
+`section=corrections` query still selects that filter. Both header shortcuts are
+removed; existing contribution-review routes remain accessible by direct link.
 
 ### October 17 review refinements
 
