@@ -53,3 +53,18 @@ it('preserves the applied type and query during pagination rather than an unsubm
  fireEvent.click(screen.getByRole('button',{name:'Previous'}));
  expect(push).toHaveBeenLastCalledWith('/admin?section=lore&reviewType=sources&reviewPage=1&reviewQuery=applied+query',{scroll:false});
 });
+it('edits in the queue, disables conflicting bulk actions and announces a successful save',async()=>{
+ global.fetch=jest.fn().mockResolvedValueOnce({ok:true,json:async()=>({bio:'Current About',revision:'rev'})}).mockResolvedValueOnce({ok:true,json:async()=>({success:true})});
+ render(<LoreReviewQueue data={data}/>);
+ fireEvent.click(screen.getByRole('checkbox',{name:'Select this page'}));
+ fireEvent.click(screen.getByRole('button',{name:'Edit About'}));
+ const editor=await screen.findByRole('textbox',{name:'Current About'});
+ expect(screen.getByText('Wrong instrument')).toBeVisible();
+ expect(screen.getByRole('button',{name:'Resolve reports (1)'})).toBeDisabled();
+ fireEvent.change(editor,{target:{value:'Corrected About'}});
+ fireEvent.click(screen.getByRole('button',{name:'Save and resolve'}));
+ expect(await screen.findByText('About updated and report resolved.')).toBeVisible();
+ expect(screen.queryByText('Wrong instrument')).not.toBeInTheDocument();
+ expect(screen.getByText('2 selected')).toBeVisible();
+ expect(refresh).toHaveBeenCalled();
+});

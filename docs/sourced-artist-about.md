@@ -142,3 +142,17 @@ Pending reports are duplicates only when submitter, artist, About snapshot, reas
 and normalized source URL all match. Distinct corrections remain separate review items; the
 existing daily limit and per-user transaction lock still apply. Exact repeats show Report
 already received and explain that no duplicate was added. Refs #1566.
+
+### October 17 — edit and resolve in Lore review
+
+Correction cards offer an inline About editor, with the original report and supplied source
+remaining visible. It loads the current public About, rather than using the report's old
+snapshot. Save and resolve commits the text, before/after history, admin activity and report
+resolution together. Cancel writes nothing; failures retain the draft. A revision check rejects
+changes to the About, claim or preparation since the editor opened, and pinned bios remain
+protected. Only admins can read or save this editing context.
+
+Eligible directory About is edited in its existing public projection, preserving the private
+preparation, source manifest and identity gates. Edited official excerpts become researched
+text; the existing citations remain attached. A report URL is not automatically accepted as a
+citation. Claimed About edits use the artist bio. No generation or external request is started.
