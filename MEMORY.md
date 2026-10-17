@@ -1,17 +1,19 @@
 ## Sourced About and corrections — October 17
 
-[#1558](https://github.com/xdjs/MusicNerdWeb/issues/1558) is implemented in draft
-[Web #1563](https://github.com/xdjs/MusicNerdWeb/pull/1563) and
-[API #55](https://github.com/xdjs/MusicNerdAPI/pull/55), not merged or in production.
-Pete selected Suggest a correction beside Read more, then asked to reveal source
-attribution only inside Read more. See the [contract](docs/sourced-artist-about.md).
-Migrations 0053–0054 are applied and role-verified on staging; production migration
-is still required before either release. Real pending preparation jobs completed
-for Svaneborg Kardyb and Daniel Herskedal; a citation ancestry gap found during QA
-was fixed in API #55. Regular-member submission/deduplication and admin-queue denial
-passed on preview; final layout evidence and administrator review are tracked in
-PR comments. Preserve private Lore and existing artist edits; no production backfill
-or release is authorized by this handoff.
+[#1558](https://github.com/xdjs/MusicNerdWeb/issues/1558) remains open.
+Web #1563 merged as `a4525925`; staging passed, its production job was cancelled.
+Release is held for account-merge correction references (#1568), preservation of
+admin edits during API preparation (#1569), and reopening the report form (#1570).
+Fixes are on `codex/about-audit-fixes` and draft API #55 (`4050ea3`); inspect their
+current PR evidence before marking ready. They are not released.
+
+Admin directory saves now mark `public_about.editedByAdmin`; the paired API worker
+preserves the entire corrected preparation while normal read-time eligibility
+still withdraws changed or rejected evidence. Account linking transfers both report
+submitters and reviewers atomically. Report confirmations reset for a new report.
+See [the contract](docs/sourced-artist-about.md) and the three owning issues.
+Migrations 0053–0054 were applied/role-verified on staging only; verify production
+migration prerequisites before either release. No production backfill is authorized.
 
 ## Public docs hostname — October 16
 

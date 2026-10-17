@@ -156,3 +156,10 @@ Eligible directory About is edited in its existing public projection, preserving
 preparation, source manifest and identity gates. Edited official excerpts become researched
 text; the existing citations remain attached. A report URL is not automatically accepted as a
 citation. Claimed About edits use the artist bio. No generation or external request is started.
+
+## Release audit corrections (2026-10-17)
+Account linking transfers both correction authors and reviewers inside the existing merge transaction before deleting the placeholder account (#1568). Reports and review status remain intact; failure rolls the merge back.
+
+Admin directory edits mark the public envelope `editedByAdmin: true`. Preparation must preserve that entire preparation on subsequent or overlapping runs (#1569); existing read-time identity/source eligibility checks still withdraw invalid evidence. Automatic regeneration cannot undo a human correction. There is no new automatic reset.
+
+After confirmation is closed, a new report opens a clean form with the latest displayed About; an unfinished report retains its original snapshot for stale-edit protection (#1570).

@@ -1,3 +1,4 @@
+import { transferBioCorrections } from '@/server/utils/bio/transferBioCorrections';
 import { getUserDisplayName as publicUserName } from '@/lib/user/getUserDisplayName';
 import { needsUserName } from '@/lib/user/needsUserName';
 import { setUserName } from '@/server/utils/user/setUserName';
@@ -474,6 +475,7 @@ export async function mergeAccounts(
             `);
 
             await transferUserBookmarks(tx, currentUserId, legacyUserId);
+            await transferBioCorrections(tx, currentUserId, legacyUserId);
 
             // Delete the current (placeholder) user; bookmarks are already transferred.
             await tx
