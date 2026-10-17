@@ -84,6 +84,7 @@ const check = {
   faithfulToLatestAnswer: true,
   respectsBoundaries: true,
   novelAgainstHistory: true,
+  addsNewInformation: true,
   oneClearAsk: true,
   reason: "Supported, new decision.",
   premiseAudit: {
@@ -949,4 +950,17 @@ it("logs the useful check stage and rejection category without the rejected ques
 it("does not emit a failure diagnostic for a successful generation", async () => {
   await generateApiInterviewQuestion(config, 1);
   expect(failureLog).not.toHaveBeenCalled();
+});
+
+it("does not offer a supported but already-answered question after both attempts", async () => {
+  jest.mocked(generateText).mockReset();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    jest.mocked(generateText).mockResolvedValueOnce({
+      output: { question: "Was that sound intentional?", angle: draftAngle }, usage: {},
+    } as never).mockResolvedValueOnce({
+      output: { ...check, addsNewInformation: false, reason: "The answer already says it was not intentional." }, usage: {},
+    } as never);
+  }
+  await expect(generateApiInterviewQuestion(config, 1)).rejects.toThrow(/check/);
+  expect(generateText).toHaveBeenCalledTimes(4);
 });

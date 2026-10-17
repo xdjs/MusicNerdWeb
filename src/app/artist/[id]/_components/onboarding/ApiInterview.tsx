@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MessageCircleQuestion } from "lucide-react";
+import { MessageCircleQuestion, LoaderCircle, ChevronDown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   interviewSessionStateSchema,
@@ -11,6 +12,7 @@ import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema
 import ApiInterviewQuestion from "./ApiInterviewQuestion";
 import ApiInterviewBoundaries from "./ApiInterviewBoundaries";
 import dialogStyles from "./ApiInterviewDialog.module.css";
+import { useResearchPump } from "./useResearchPump";
 /** Explicit interview actions backed by API sessions; mounting only restores saved state. */
 export default function ApiInterview({
   artistId,
@@ -19,10 +21,13 @@ export default function ApiInterview({
   artistName: string;
 }) {
   const { ready, authenticated, user, getAccessToken } = usePrivy();
+  const { toast } = useToast();
   const scope = `${artistId}:${user?.id ?? ""}`;
   const life = useRef<AbortController | null>(null),
     pending = useRef(false),
-    startId = useRef<string | null>(null);
+    startId = useRef<string | null>(null),
+    revision = useRef(0),
+    readId = useRef(0);
   const [stored, setStored] = useState<{
     scope: string;
     state: InterviewSessionState;
@@ -34,6 +39,9 @@ export default function ApiInterview({
     [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const state = stored?.scope === scope ? stored.state : null;
+  const preparationStatus = state?.preparation?.status;
+  const queued = preparationStatus === "pending" || preparationStatus === "running";
+
   const call = useCallback(
     async (body?: InterviewRequest, signal?: AbortSignal) => {
       const token = await getAccessToken();
@@ -62,13 +70,31 @@ export default function ApiInterview({
   );
   const restore = useCallback(
     async (signal: AbortSignal) => {
+      const observedRevision = revision.current;
+      const id = ++readId.current;
       const result = interviewSessionStateSchema.parse(
         await call(undefined, signal),
       );
-      if (!signal.aborted) setStored({ scope, state: result });
+      if (!signal.aborted && observedRevision === revision.current && id === readId.current) setStored({ scope, state: result });
     },
     [call, scope],
   );
+  const refreshPreparation = useCallback(async () => {
+    const controller = life.current;
+    if (!controller || controller.signal.aborted) return;
+    try {
+      await restore(controller.signal);
+      if (!controller.signal.aborted) setError((previous) => previous?.startsWith("We couldn’t check preparation") ? null : previous);
+    } catch {
+      if (!controller.signal.aborted) setError("We couldn’t check preparation. Your saved interview is safe; reconnect or reload to check again.");
+    }
+  }, [restore]);
+  useResearchPump(artistId, queued, refreshPreparation, "interview_prepare");
+  useEffect(() => {
+    if (!queued) return;
+    const interval = setInterval(() => { void refreshPreparation(); }, 3000);
+    return () => clearInterval(interval);
+  }, [queued, refreshPreparation]);
   useEffect(() => {
     const controller = new AbortController();
     life.current = controller;
@@ -101,16 +127,27 @@ export default function ApiInterview({
     if (!controller || controller.signal.aborted || pending.current)
       return false;
     pending.current = true;
+    revision.current++;
     setBusy(true);
     setError(null);
-    setPreparing(action.action === "start" || action.action === "continue");
+    setPreparing(action.action === "start" || action.action === "prepare");
     try {
       const result = interviewSessionStateSchema.parse(
         await call(action, controller.signal),
       );
       if (controller.signal.aborted) return false;
+      revision.current++;
       setStored({ scope, state: result });
-      if (action.action === "finish") startId.current = null;
+      if (action.action === "finish") {
+        startId.current = null;
+        setOpen(false);
+        toast({
+          title: "Interview finished",
+          description: result.session?.questions.some((question) => question.state === "answered")
+            ? "Your saved responses are kept in your profile."
+            : "You can start another interview when you’re ready.",
+        });
+      }
       return true;
     } catch (e) {
       if (!controller.signal.aborted) {
@@ -187,12 +224,16 @@ export default function ApiInterview({
         <button type="button"
           className="button-glass inline-flex min-h-11 items-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
           disabled={loading || busy}
-          onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
+          onClick={() => {
+            setOpen(true);
+            if (!offered && preparationStatus === "ready" && session)
+              void mutate({ action: "continue", sessionId: session.id });
+          }}>
           <MessageCircleQuestion size={18} aria-hidden="true" />
-          {loading ? "Loading interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
+          {loading ? "Loading interview…" : offered ? (legacy.length ? "Review saved question" : "Resume interview") : queued ? "Preparing interview…" : preparationStatus === "ready" ? "Start interview" : "Interview"}
         </button>
       </DialogTrigger>
-        <DialogContent aria-busy={busy}
+        <DialogContent aria-busy={busy || queued}
           onEscapeKeyDown={(event) => { if (pending.current) event.preventDefault(); }}
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
           className={`${dialogStyles.dialog} mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6`}>
@@ -202,7 +243,7 @@ export default function ApiInterview({
               Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss.
             </DialogDescription>
           </DialogHeader>
-          <div className={`${dialogStyles.body} pt-3 pb-6 pr-1`}>
+          <div role="region" aria-label="Interview responses and controls" className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -216,14 +257,19 @@ export default function ApiInterview({
           {error}
         </p>
       )}
-      {busy && (
-        <p role="status" className="mt-3 text-sm">
-          {preparing
-            ? "Preparing a question from your sources and previous answers…"
-            : "Saving your interview…"}
-        </p>
+      {(busy || queued) && (
+        <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
+          <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
+          <div>
+            <p>{queued || preparing ? "Preparing your question…" : "Saving your interview…"}</p>
+            {(queued || preparing) && <p className="mt-1 text-xs text-muted-foreground">You can close this window. We’ll keep preparing it in the background.</p>}
+          </div>
+        </div>
       )}
-      {!loading && state && (
+      {preparationStatus === "failed" && !busy && (
+        <p role="alert" className="my-4 text-sm text-muted-foreground">We couldn’t prepare that question. Your saved responses are safe.</p>
+      )}
+      {!loading && !busy && !queued && state && (
         <div className="space-y-3">
           {offered ? (
             <ApiInterviewQuestion
@@ -251,10 +297,10 @@ export default function ApiInterview({
             <>
               <p className="text-sm">
                 {session.questions.length >= 3
-                  ? "That’s three questions for this sitting."
+                  ? "That’s three questions. Thanks for sharing your story."
                   : session.questions.length === 0
-                    ? "Your sitting is open. Continue to prepare the first question."
-                    : "Your response is saved. Continue when you’re ready."}
+                    ? "Your interview is open."
+                    : "Your response is saved."}
               </p>
               {session.questions.length < 3 && (
                 <button
@@ -262,10 +308,10 @@ export default function ApiInterview({
                   className={button}
                   disabled={busy}
                   onClick={() =>
-                    void mutate({ action: "continue", sessionId: session.id })
+                    void mutate({ action: preparationStatus === "ready" ? "continue" : "prepare", sessionId: session.id })
                   }
                 >
-                  Continue interview
+                  {preparationStatus === "ready" ? (session.questions.length ? "Next question" : "Start interview") : preparationStatus === "failed" || preparationStatus === "stale" ? "Try again" : "Prepare next question"}
                 </button>
               )}
             </>
@@ -276,10 +322,10 @@ export default function ApiInterview({
               disabled={busy}
               onClick={start}
             >
-              Start interview
+              Prepare interview
             </button>
           )}
-          {session?.state === "active" && (
+          {session?.state === "active" && !offered && (
             <div>
               <button
                 type="button"
@@ -291,14 +337,11 @@ export default function ApiInterview({
               >
                 Finish interview
               </button>
-              {offered && (
-                <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
-                  Finishing skips the unanswered question. You can also leave
-                  and return to it later.
-                </p>
-              )}
+
             </div>
           )}
+          <details className="border-t border-black/10 pt-3 dark:border-white/15">
+            <summary className="button-glass inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium dark:border-white/20 dark:bg-white/5">Preferences & responses <ChevronDown size={16} aria-hidden="true" /></summary>
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
@@ -310,7 +353,7 @@ export default function ApiInterview({
           {!!session?.questions.some((q) => q.state !== "offered") && (
             <details className="border-t border-black/10 pt-3 dark:border-white/15">
               <summary className="min-h-11 cursor-pointer py-2 text-sm">
-                Saved in this sitting
+                This session’s responses
               </summary>
               <ol className="space-y-4">
                 {session.questions
@@ -326,12 +369,12 @@ export default function ApiInterview({
               </ol>
             </details>
           )}
+          </details>
         </div>
       )}
+          <div className="mt-4">
+            {error && <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>}
           </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-black/10 pt-3 dark:border-white/15">
-            <button type="button" disabled={busy} onClick={close} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Save for later</button>
-            <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>
           </div>
         </DialogContent>
     </Dialog>

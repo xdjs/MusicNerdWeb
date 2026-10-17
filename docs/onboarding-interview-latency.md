@@ -18,3 +18,27 @@ Apply the new private-plan migration before deploying the API reader. RLS and se
 - A 15-second preparation ceiling cancels draft/verification work. Ordinary answer persistence and draft publication are outside this budget.
 - Scoped authorization, concurrent first-writer behavior, failed history read and persisted artist words tested independently.
 - Record actual first-question and Skip timings on the exact API preview. Test the real Web entry point before release; unit timing bounds are not provider latency measurements.
+
+## Durable preparation revision — 2026-10-17 (unreleased)
+
+The interview keeps access to the artist's saved knowledge and original-source tools, alongside
+exact answers, question history and topic instructions. Preparation must not be limited to the
+latest answer. Latency is measured across retrieval, drafting, checking and any repair; hiding
+slow generation behind a background job is not evidence that generation is fast.
+
+Web queues preparation explicitly through the API session `prepare` endpoint. Opening the
+artist page or interview reads saved state only. A ready candidate is consumed explicitly and
+becomes an offer only after the API revalidates its memory. Saving an answer in an opted-in
+session queues preparation for the next question. Changed answers or topic instructions must
+invalidate stale candidates. The existing research worker advances preparation jobs, with
+cron recovery when the browser is closed. Web's pump is restricted to `interview_prepare` jobs.
+
+The popup shows Save answer and Skip question while answering, preparation progress while
+waiting, and a Next question action only for a ready candidate. Preferences and responses are
+collapsed; Reload appears for recovery. Closing preserves the scoped browser draft. Finish
+persists the session closure before dismissing the popup.
+
+Dependencies: Web migration `0053_interview_preparation` expands the existing job-kind check;
+MusicNerdAPI PR #56 supplies the worker and session preparation contract; MusicNerdDocs PR #23
+records the API contract. These changes require paired preview verification before release.
+The ten-second preparation target is not yet established by end-to-end measurements.

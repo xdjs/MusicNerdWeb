@@ -28,7 +28,7 @@ const TICK_MS = 20_000;
 /** Consecutive "nothing to do" replies before this stops asking. */
 const IDLE_TICKS_BEFORE_STOP = 5;
 
-export function useResearchPump(artistId: string | undefined, enabled: boolean | number = true, onProgress?: () => Promise<void>) {
+export function useResearchPump(artistId: string | undefined, enabled: boolean | number = true, onProgress?: () => Promise<void>, kind?: "interview_prepare") {
     useEffect(() => {
         if (!artistId || !enabled) return;
         let stopped = false;
@@ -42,7 +42,7 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
                 const res = await fetch(musicNerdApiUrl("/api/research/advance"), {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ artistId }),
+                    body: JSON.stringify({ artistId, ...(kind ? { kinds: [kind] } : {}) }),
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!stopped && res.ok && onProgress) await onProgress();
@@ -58,5 +58,5 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
         const id = setInterval(() => void tick(), TICK_MS);
         void tick();
         return () => { stopped = true; clearInterval(id); };
-    }, [artistId, enabled, onProgress]);
+    }, [artistId, enabled, onProgress, kind]);
 }
