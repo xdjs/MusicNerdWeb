@@ -151,3 +151,10 @@ it.each([
   await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith("check_for_updates", { outcome }));
   expect(mockTrackEvent).toHaveBeenCalledTimes(1);
 });
+it("explains a verified empty Instagram window in details", async () => {
+  fetch.mockResolvedValue(response({id:"j",status:"done",retryAt:new Date(Date.now()+600000).toISOString(), sources:{instagram:{status:"checked",detail:"no_new_posts"}}}));
+  renderEditor();
+  await screen.findByRole("button",{name:"View details"});
+  fireEvent.click(screen.getByRole("button",{name:"View details"}));
+  expect(screen.getByText("No new posts")).toBeInTheDocument();
+});

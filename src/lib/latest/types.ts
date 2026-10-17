@@ -16,6 +16,7 @@ export const LATEST_SOURCE_LABELS: Record<LatestSource, string> = {
 export type SourceResult = {
   status: "pending" | "checked" | "failed" | "disconnected";
   checkedAt?: string;
+  detail?: "posts_imported" | "older_posts_found" | "no_new_posts" | "instagram_unavailable" | "verifying_empty_window";
 };
 export type LatestRefreshState = {
   claimId: string | null;

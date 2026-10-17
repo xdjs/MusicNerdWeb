@@ -26,6 +26,7 @@ export async function getLatestRefresh(
             terminal && result?.status === "pending"
               ? "failed"
               : (result?.status ?? "failed"),
+          ...(s === "instagram" && ["posts_imported", "older_posts_found", "no_new_posts", "instagram_unavailable", "verifying_empty_window"].includes(result?.detail ?? "") ? { detail: result!.detail } : {}),
           ...(result?.checkedAt ? { checkedAt: result.checkedAt } : {}),
         },
       ];

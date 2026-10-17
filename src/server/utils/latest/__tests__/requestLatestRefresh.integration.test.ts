@@ -202,3 +202,18 @@ it("allows research after Latest has completed", async () => {
   await client.exec("update artist_research_jobs set status='done'");
   expect(await enqueue(artist, "social_ingest", { state: { force: true } })).toBe(true);
 });
+
+it.each(['pending', 'running'])("allows Latest when %s social research has finished Instagram and is waiting on X", async status => {
+  expect(await enqueue(artist, "social_ingest", { state: { instagramFinished: true, additionalSocial: { index: 0, tasks: [{ source: "x", runId: "saved-x-run" }] } } })).toBe(true);
+  await client.query("update artist_research_jobs set status=$1 where kind='social_ingest'", [status]);
+  await call();
+  expect((await read(artist))?.sources.instagram?.status).toBe("pending");
+  const { rows } = await client.query("select status,state from artist_research_jobs where kind='social_ingest'");
+  expect(rows[0]).toMatchObject({ status, state: { instagramFinished: true, additionalSocial: { tasks: [{ source: "x", runId: "saved-x-run" }] } } });
+});
+
+it.each([{}, { instagramFinished: false }, { instagramFinished: "true" }])("preserves duplicate protection unless Instagram explicitly finished: %j", async state => {
+  expect(await enqueue(artist, "social_ingest", { state })).toBe(true);
+  await call();
+  expect((await read(artist))?.sources.instagram?.status).toBe("failed");
+});

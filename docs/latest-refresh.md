@@ -105,3 +105,30 @@ This reduces redundant profile reads and covers the client lifecycle. It does
 not establish that router cache invalidation caused the original production
 incident, which predates the transaction-pooling transport change in #1523.
 The production editor refresh/navigation scenario still requires verification.
+
+## Initial Instagram import and empty windows — October 16 (#1554)
+
+This supersedes the unconditional thirty-day restriction above. With no Instagram
+Latest checkpoint, the API imports at most nine dated own posts without a date
+cutoff. Subsequent checks retain the saved continuity anchors and overlap. The
+collector keeps older posts returned by those bounded checks with their real dates.
+
+A `no_items` provider record does not prove privacy or no new activity. A filtered
+scan can reserve exactly one unfiltered verification in its existing job, with the
+same nine-result/$0.03 run limits (at most $0.06 across both runs). The reservation
+and each paid-start intent are durable before provider calls. A second ambiguous
+result is terminal for that job; transient network failures still retry the same
+saved dataset. Neither empty/error payloads nor pinned-only samples certify
+continuity. Readable own posts reconnecting the saved non-pinned anchors can report
+no new posts since the previous observation. Successful checks retain the normal
+checkpoint cooldown. This is a bounded feed check, not full-history coverage.
+
+The editor's existing View details panel receives an allowlisted outcome code:
+posts checked, older posts recovered, no new posts, verifying an empty date range,
+or unreadable posts with saved posts retained. Raw errors, run identifiers and
+original cutoff diagnostics stay private in the job. No new endpoint, migration,
+Lore rebuild, or public-page scrape is introduced.
+
+### Instagram ownership during broader research (October 16, 2026)
+
+A pending or running social-ingest job blocks a second Instagram scrape only while its Instagram phase is unfinished. Once its persisted `instagramFinished` field is the JSON boolean `true`, Update Latest may check Instagram while that job continues X, TikTok, or caption work. Missing, false, and malformed completion flags remain protected. The existing job and saved provider runs are retained.
