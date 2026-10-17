@@ -1,5 +1,5 @@
-const mockExecute = jest.fn();
-jest.mock("@/server/db/drizzle", () => ({ db: { execute: (...args: unknown[]) => mockExecute(...args) } }));
+import { db } from "@/server/db/drizzle";
+const mockExecute = jest.mocked(db.execute);
 import { getLatestRefresh } from "../getLatestRefresh";
 it.each(["no_new_posts", "older_posts_found", "instagram_unavailable"])("allows only safe Instagram detail %s", async detail => {
  mockExecute.mockResolvedValue([{id:"j",status:"done",created_at:"2026-10-17T00:00:00Z",state:{sources:{instagram:{status:"checked",detail,raw:"secret"}},instagramFailure:{reason:"private payload"}}}]);
