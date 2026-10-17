@@ -45,6 +45,7 @@ const reply = (body: unknown, status = 200) => ({
 });
 beforeEach(() => {
   jest.clearAllMocks();
+  localStorage.clear();
   global.fetch = jest.fn().mockResolvedValue(reply(empty));
 });
 it("reads only on mount and generates solely after explicit Start", async () => {
@@ -251,4 +252,29 @@ it("does not close during a save", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   expect(screen.getByLabelText("Your answer")).toHaveValue("Still saving");
+});
+
+it("restores a scoped draft after remount and returns focus to the invitation", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
+  const first = render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "After reload" } });
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Resume interview" })).toHaveFocus());
+  first.unmount();
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  expect(screen.getByLabelText("Your answer")).toHaveValue("After reload");
+});
+it("keeps the popup and draft open when browser persistence fails", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
+  const write = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Unavailable"); });
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Do not lose this" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save for later" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByLabelText("Your answer")).toHaveValue("Do not lose this");
+  expect(screen.getByRole("alert")).toHaveTextContent("could not be saved");
+  write.mockRestore();
 });

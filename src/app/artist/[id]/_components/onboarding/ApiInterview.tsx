@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { MessageCircleQuestion } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -143,12 +143,38 @@ export default function ApiInterview({
       if (!controller.signal.aborted) setLoading(false);
     }
   };
-  if (!ready || !authenticated) return null;
   const session = state?.session,
     legacy = state?.legacyOffers ?? [];
   const offered =
     legacy[0] ?? session?.questions.find((q) => q.state === "offered");
   const origin = offered ?? session?.questions.at(-1);
+  const draftKey = offered ? `mn-api-interview-draft:${JSON.stringify([scope, offered.id])}` : null;
+  useEffect(() => {
+    if (!draftKey || !offered) return;
+    try {
+      const text = localStorage.getItem(draftKey);
+      if (text !== null) setDraft({ key: `${scope}:${offered.id}`, text });
+    } catch { /* The current in-memory draft remains available. */ }
+  }, [draftKey, offered, scope]);
+  const keepDraft = (text: string) => {
+    if (!offered || !draftKey) return;
+    setDraft({ key: `${scope}:${offered.id}`, text });
+    try {
+      if (text) localStorage.setItem(draftKey, text);
+      else localStorage.removeItem(draftKey);
+    } catch { setError("Your draft could not be saved in this browser. Keep this interview open until you send it."); }
+  };
+  const close = () => {
+    if (pending.current) return;
+    if (draftKey && draft?.key === `${scope}:${offered?.id}`) {
+      try {
+        if (draft.text) localStorage.setItem(draftKey, draft.text);
+        else localStorage.removeItem(draftKey);
+      } catch { setError("Your draft could not be saved in this browser. Keep this interview open until you send it."); return; }
+    }
+    setOpen(false);
+  };
+  if (!ready || !authenticated) return null;
   const button =
     "min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
   const start = () => {
@@ -156,7 +182,7 @@ export default function ApiInterview({
     void mutate({ action: "start", requestId: startId.current });
   };
   return (
-    <>
+    <Dialog open={open && (!!state || !!error)} onOpenChange={(next) => { if (!next) close(); }}>
       <div className="glass flex items-start gap-3 rounded-xl p-4">
         <MessageCircleQuestion size={18} className="mt-0.5 shrink-0 text-pastypink" aria-hidden="true" />
         <div className="min-w-0 flex-1">
@@ -166,13 +192,12 @@ export default function ApiInterview({
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
             Three questions, in your own words. Pick up whenever you’re ready.
           </p>
-          <button type="button" className={`${button} mt-2`} disabled={loading || busy}
+          <DialogTrigger asChild><button type="button" className={`${button} mt-2`} disabled={loading || busy}
             onClick={() => { setOpen(true); if (state && !offered && session?.state !== "active") start(); }}>
             {loading ? "Loading your interview…" : session?.state === "active" || offered ? "Resume interview" : "Start interview"}
-          </button>
+          </button></DialogTrigger>
         </div>
       </div>
-      <Dialog open={open && (!!state || !!error)} onOpenChange={(next) => { if (!pending.current) setOpen(next); }}>
         <DialogContent aria-busy={busy}
           onEscapeKeyDown={(event) => { if (pending.current) event.preventDefault(); }}
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
@@ -210,17 +235,22 @@ export default function ApiInterview({
               key={`${scope}:${offered.id}`}
               question={offered}
               answer={draft?.key === `${scope}:${offered.id}` ? draft.text : ""}
-              onAnswerChange={(text) => setDraft({ key: `${scope}:${offered.id}`, text })}
+              onAnswerChange={keepDraft}
               busy={busy}
               call={(body) => call(body, life.current?.signal)}
-              onAnswer={(answer) =>
-                mutate({
+              onAnswer={async (answer) => {
+                const saved = await mutate({
                   action: "answer",
                   answerId: offered.id,
                   expectedRevision: offered.revision,
                   answer,
-                })
-              }
+                });
+                if (saved && draftKey) {
+                  setDraft(null);
+                  try { localStorage.removeItem(draftKey); } catch { /* The saved answer remains authoritative. */ }
+                }
+                return saved;
+              }}
             />
           ) : session?.state === "active" ? (
             <>
@@ -304,11 +334,10 @@ export default function ApiInterview({
         </div>
       )}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-3 dark:border-white/15">
-            <button type="button" disabled={busy} onClick={() => setOpen(false)} className="min-h-11 rounded-lg px-3 text-sm text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Save for later</button>
+            <button type="button" disabled={busy} onClick={close} className="min-h-11 rounded-lg px-3 text-sm text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Save for later</button>
             <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-lg px-3 text-xs text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Reload saved interview</button>
           </div>
         </DialogContent>
-      </Dialog>
-    </>
+    </Dialog>
   );
 }
