@@ -10,6 +10,7 @@ import {
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
 import ApiInterviewQuestion from "./ApiInterviewQuestion";
 import ApiInterviewBoundaries from "./ApiInterviewBoundaries";
+import dialogStyles from "./ApiInterviewDialog.module.css";
 /** Explicit interview actions backed by API sessions; mounting only restores saved state. */
 export default function ApiInterview({
   artistId,
@@ -195,13 +196,14 @@ export default function ApiInterview({
         <DialogContent aria-busy={busy}
           onEscapeKeyDown={(event) => { if (pending.current) event.preventDefault(); }}
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
-          className="mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6">
-          <DialogHeader className="space-y-2 pr-7 text-left">
+          className={`${dialogStyles.dialog} mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6`}>
+          <DialogHeader className="shrink-0 space-y-1.5 pr-7 text-left">
             <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">A few questions</DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
               Your interview with Music Nerd for {artistName}. Answer at your pace; skip any question.
             </DialogDescription>
           </DialogHeader>
+          <div className={`${dialogStyles.body} py-3 pr-1`}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -223,7 +225,7 @@ export default function ApiInterview({
         </p>
       )}
       {!loading && state && (
-        <div className="mt-5 space-y-4">
+        <div className="space-y-3">
           {offered ? (
             <ApiInterviewQuestion
               key={`${scope}:${offered.id}`}
@@ -327,7 +329,8 @@ export default function ApiInterview({
           )}
         </div>
       )}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-3 dark:border-white/15">
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-1 border-t border-black/10 pt-2 dark:border-white/15">
             <button type="button" disabled={busy} onClick={close} className="min-h-11 rounded-lg px-3 text-sm text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Save for later</button>
             <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-lg px-3 text-xs text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5">Reload saved interview</button>
           </div>
