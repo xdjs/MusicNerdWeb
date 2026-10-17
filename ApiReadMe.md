@@ -29,7 +29,7 @@ agent tool access. MCP bearer keys are not a general authentication scheme for t
  - CORS: Enabled
  - Error: Returns 400 if no queries provided, 408 for timeout, 500 for server errors
 
-The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHandle` are served by MusicNerdAPI at `api.musicnerd.net` ([docs](https://musicnerd-docs.vercel.app/api-reference/lookups/find-artist-by-spotify-id)).
+The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHandle` are served by MusicNerdAPI at `api.musicnerd.net` ([docs](https://docs.musicnerd.net/api-reference/lookups/find-artist-by-spotify-id)).
 
 **findArtistByDeezerID**
 
