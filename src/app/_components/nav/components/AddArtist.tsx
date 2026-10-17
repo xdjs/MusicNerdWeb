@@ -71,7 +71,6 @@ export default function AddArtist() {
     }, [pathname]);
 
     function applyResponse(resp: AddArtistResp) {
-        trackAddArtistResult("nav", resp);
         setAddArtistStatus(resp);
         if (resp.status === "success" || resp.status === "exists") {
             if (resp.artistId && pathname === `/artist/${resp.artistId}`) {
@@ -96,6 +95,7 @@ export default function AddArtist() {
 
         try {
             const response = await addArtist(parsed.id, parsed.platform);
+            trackAddArtistResult("nav", response);
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse(response);
             }
@@ -127,6 +127,7 @@ export default function AddArtist() {
                 addArtistStatus.platform,
                 { forceCreate: true },
             );
+            trackAddArtistResult("nav", resp);
             if (requestGenerationRef.current === requestGeneration) {
                 applyResponse(resp);
             }
