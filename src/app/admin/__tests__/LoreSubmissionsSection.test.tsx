@@ -50,7 +50,7 @@ it('keeps a way back when the last pending source on a later page is reviewed', 
   render(<LoreSubmissionsSection data={{ ...data, page: 2, total: 26 }} onReview={onReview} />);
   fireEvent.click(screen.getByRole('button', { name: 'Approve Lore source for LATASHA' }));
   await waitFor(() => expect(screen.queryByRole('link', { name: 'LATASHA' })).not.toBeInTheDocument());
-  expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '/admin?section=lore&lorePage=1&loreQuery=&loreOrigin=&loreClaim=');
+  expect(screen.getByRole('link', { name: 'Previous' })).toHaveAttribute('href', '/admin?section=lore&reviewType=sources&lorePage=1&loreQuery=&loreOrigin=&loreClaim=');
 });
 
 it('separates a research initiator from a submitter and exposes claim state', () => {
