@@ -14,7 +14,6 @@ import dialogStyles from "./ApiInterviewDialog.module.css";
 /** Explicit interview actions backed by API sessions; mounting only restores saved state. */
 export default function ApiInterview({
   artistId,
-  artistName,
 }: {
   artistId: string;
   artistName: string;
@@ -200,7 +199,7 @@ export default function ApiInterview({
           <DialogHeader className="shrink-0 space-y-1.5 pr-7 text-left">
             <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">A few questions</DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
-              Your interview with Music Nerd for {artistName}. Answer at your pace; skip any question.
+              Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss.
             </DialogDescription>
           </DialogHeader>
           <div className={`${dialogStyles.body} py-3 pr-1`}>
