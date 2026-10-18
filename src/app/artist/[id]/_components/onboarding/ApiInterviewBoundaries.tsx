@@ -195,8 +195,8 @@ export default function ApiInterviewBoundaries({
               </label>
               <textarea
                 id={`topic-${questionKey}`}
-                rows={3}
-                placeholder={'For example: “Keep the focus on my music, not my personal life.” Or “Ask me about how I made my latest release.”'}
+                rows={4}
+                placeholder={'For example: “Ask about my latest release. Leave out my personal life.”'}
                 value={wording}
                 maxLength={4000}
                 disabled={busy || pending}
