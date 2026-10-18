@@ -1,0 +1,61 @@
+/* Keep scrolling inside the body; the shared dialog rule scrolls the surface. */
+.dialog:global(.mn-themed-dialog)[role="dialog"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 36rem;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  scroll-padding-block: 1rem 2rem;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(80 65 85 / 0.25) transparent;
+}
+
+.body::-webkit-scrollbar { width: 5px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb { background: rgb(80 65 85 / 0.25); border-radius: 9999px; }
+:global(.dark) .body { scrollbar-color: rgb(255 255 255 / 0.2) transparent; }
+:global(.dark) .body::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.2); }
+
+/* Every action shares this scroll area; keep focused controls clear of its edges. */
+.body :is(button, textarea, input, summary) { scroll-margin-block: 1rem 2rem; }
+
+/* A short phone viewport needs space for the answer, not oversized chrome. */
+@media (max-height: 540px) {
+  .dialog:global(.mn-themed-dialog)[role="dialog"] {
+    max-height: calc(100dvh - 1rem);
+    padding: 1rem;
+  }
+}
+
+.utilityButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 150ms ease;
+}
+.utilityButton:hover { background: rgb(0 0 0 / 0.04); }
+.utilityButton:focus-visible { outline: 2px solid #e996f6; outline-offset: -2px; }
+.utilityButton:disabled { opacity: 0.4; }
+:global(.dark) .utilityButton { border-color: rgb(255 255 255 / 0.15); color: rgb(255 255 255 / 0.75); }
+:global(.dark) .utilityButton:hover { background: rgb(255 255 255 / 0.07); }
+@media (max-width: 480px) {
+  .utilityButton { gap: 0.375rem; padding-inline: 0.5rem; font-size: 0.6875rem; }
+}

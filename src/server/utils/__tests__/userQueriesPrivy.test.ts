@@ -7,6 +7,8 @@ jest.mock('@/server/utils/queries/bookmarkQueries', () => ({
   transferUserBookmarks: jest.fn(),
 }));
 
+jest.mock('@/server/utils/bio/transferBioCorrections', () => ({ transferBioCorrections: jest.fn() }));
+
 // Mock drizzle-orm operators
 jest.mock('drizzle-orm', () => ({
   eq: jest.fn((col, val) => ({ col, val, type: 'eq' })),
@@ -378,6 +380,9 @@ describe('Privy User Query Functions', () => {
 
       expect(lockBookmarkUsers).toHaveBeenCalledWith(mockTx, [currentUser.id, legacyUser.id]);
       expect(transferUserBookmarks).toHaveBeenCalledWith(mockTx, currentUser.id, legacyUser.id);
+      const { transferBioCorrections } = await import('@/server/utils/bio/transferBioCorrections');
+      expect(transferBioCorrections).toHaveBeenCalledWith(mockTx,currentUser.id,legacyUser.id);
+      expect(transferBioCorrections.mock.invocationCallOrder[0]).toBeLessThan(mockTx.delete.mock.invocationCallOrder[0]);
       expect(lockBookmarkUsers.mock.invocationCallOrder[0]).toBeLessThan(mockTx.query.users.findFirst.mock.invocationCallOrder[0]);
       expect(transferUserBookmarks.mock.invocationCallOrder[0]).toBeLessThan(mockTx.delete.mock.invocationCallOrder[0]);
     });

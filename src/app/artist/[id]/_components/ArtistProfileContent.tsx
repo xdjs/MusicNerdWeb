@@ -1,4 +1,5 @@
-import { Suspense } from "react";
+import type { PublicArtistAbout } from '@/lib/bio/types';
+import { Suspense, type ReactNode } from "react";
 import type { Artist, ArtistVaultSource, UrlMap } from "@/server/db/DbTypes";
 import type { ArtistLink } from "@/server/utils/queries/artistQueries";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
@@ -26,10 +27,12 @@ import VaultSection from "./VaultSection";
  *  onboarding runs, research paints it in place: Links, Lore and About show a
  *  loading state until their step is confirmed (docs/research-view.md). */
 export default function ArtistProfileContent({
-    artist, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
+    interviewAction, artist, publicAbout, imageUrl, platformImage, artistLinks, approvedSources, pendingSources, urlMapList, addLinkPrefill,
     blockedMusicSourceIds = [], isClaimed, isClaimedByUser, isPending, isPendingByUser, canEdit, autoApprove, claimStatusKnown = true, researching = false,
 }: {
+    interviewAction?: ReactNode;
     artist: Artist;
+    publicAbout?: PublicArtistAbout | null;
     imageUrl: string;
     platformImage: string | null;
     artistLinks: ArtistLink[];
@@ -60,7 +63,7 @@ export default function ArtistProfileContent({
                     initialPosition={artist.headerImagePosition?.imageUrl === imageUrl ? artist.headerImagePosition.y : 0}
                     hasPortrait={!!(customImageUrl(artist.customImage) || platformImage)}
                     artistName={artist.name ?? "Artist"} artistId={artist.id}
-                    bio={heroBio} listenLinks={listenLinks}
+                    bio={heroBio} publicAbout={publicAbout} listenLinks={listenLinks}
                     statusBadge={claimStatusKnown && <ArtistClaimBadge key={`${artist.id}:${isClaimed}`} isClaimed={isClaimed} />}>
                     <div role="group" aria-label="Manage artist profile" className="flex shrink-0 items-center gap-2">
                         {claimStatusKnown && <ClaimButton
@@ -74,6 +77,7 @@ export default function ArtistProfileContent({
                         />}
                         {canEdit && <EditModeToggle compactOnMobile />}
                     </div>
+                    {interviewAction}
                 </HeroSection>
 
                 <ProfileSectionNav key={`sections:${artist.id}`} />

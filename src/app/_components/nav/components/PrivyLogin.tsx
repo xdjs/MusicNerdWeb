@@ -1,7 +1,9 @@
 'use client';
 
 import { usePrivy, useLogin, useLogout, useIdentityToken, getIdentityToken } from '@privy-io/react-auth';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { getSession, signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
 import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
 import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
@@ -43,6 +45,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
     const { ready, authenticated, user: privyUser, getAccessToken } = usePrivy();
     const { identityToken } = useIdentityToken();
     const { data: session, status } = useSession();
+    const router = useRouter();
     const { toast } = useToast();
     const { theme, setTheme } = useTheme();
     const [showLegacyModal, setShowLegacyModal] = useState(false);
@@ -215,6 +218,13 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
               variant: 'destructive',
             });
           } else {
+            if (await resumeCorrectionSession(window.location.pathname, () => getSession({ broadcast: false }))) {
+              markLoginCompleted(isNewUserRef.current);
+              const completed = takeCompletedLogin();
+              if (completed) trackEvent('login', completed);
+              router.refresh();
+              return;
+            }
             // SessionProvider with refetchInterval=0 doesn't auto-update after
             // signIn sets the cookie. Neither update() nor getSession() reliably
             // propagate to all useSession() consumers. Reload the page to ensure

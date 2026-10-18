@@ -1,5 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import ApiInterviewBoundaries from "../ApiInterviewBoundaries";
+import { useState, type ComponentProps } from "react";
+import Boundaries from "../ApiInterviewBoundaries";
+function ApiInterviewBoundaries(props: Omit<ComponentProps<typeof Boundaries>, "open" | "onBack">) {
+  const [open, setOpen] = useState(false);
+  return <><button onClick={() => setOpen(true)}>Topic preferences</button><Boundaries {...props} open={open} onBack={() => setOpen(false)} /></>;
+}
+beforeAll(() => { HTMLElement.prototype.scrollIntoView = jest.fn(); });
 const id = "11111111-1111-4111-8111-111111111111",
   revision = "a".repeat(64);
 const boundary = {
@@ -32,7 +38,7 @@ it("restores exact instructions and retracts only the selected saved revision", 
     revision,
   });
 });
-it("keeps exact wording and an explicit scope when the artist saves", async () => {
+it.each([["sitting", "For this session"], ["until_retracted", "Until I remove it"]])("keeps exact wording and explicit %s scope when the artist saves", async (scope, label) => {
   const call = jest
     .fn()
     .mockResolvedValueOnce(page([]))
@@ -44,9 +50,8 @@ it("keeps exact wording and an explicit scope when the artist saves", async () =
   fireEvent.change(screen.getByLabelText("Your topic instruction"), {
     target: { value: " Please leave my family out. " },
   });
-  fireEvent.change(screen.getByLabelText("Keep this instruction"), {
-    target: { value: "until_retracted" },
-  });
+  fireEvent.keyDown(screen.getByRole("combobox", { name: "Keep this instruction" }), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: label }));
   fireEvent.click(
     screen.getByRole("button", { name: "Save topic instruction" }),
   );
@@ -56,7 +61,7 @@ it("keeps exact wording and an explicit scope when the artist saves", async () =
     expect.objectContaining({
       action: "boundary",
       wording: " Please leave my family out. ",
-      scope: "until_retracted",
+      scope,
       questionKey: "q",
     }),
   );

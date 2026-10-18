@@ -31,6 +31,10 @@ jest.mock('@privy-io/react-auth', () => ({
   getIdentityToken: jest.fn().mockResolvedValue('mock-identity-token'),
 }));
 
+const mockReadSession = jest.fn();
+const mockRouterRefresh = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({refresh: mockRouterRefresh}) }));
+
 const mockSignIn = jest.fn().mockResolvedValue({ ok: true, error: null });
 const mockSignOut = jest.fn().mockResolvedValue({ ok: true });
 let mockSessionData: any = null;
@@ -42,6 +46,7 @@ jest.mock('next-auth/react', () => ({
     status: mockSessionStatus,
     update: jest.fn(),
   }),
+  getSession: (...args) => mockReadSession(...args),
   signIn: (...args) => mockSignIn(...args),
   signOut: (...args) => mockSignOut(...args),
 }));
@@ -447,6 +452,20 @@ describe('PrivyLogin', () => {
       expect(mockToast).not.toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Welcome!' })
       );
+    });
+
+    it('refreshes the shared correction session and server data without remounting the page', async () => {
+      window.history.replaceState({}, '', '/artist/artist');
+      sessionStorage.setItem('mn:bio-correction:artist', JSON.stringify({reason:'incorrect',details:'',sourceUrl:'',bio:'Bio'}));
+      mockReadSession.mockResolvedValue({user:{id:'user'}});
+      mockPrivyState.authenticated = true;
+      mockPrivyState.user = {id:'did:privy:user123'};
+      render(<PrivyLogin />);
+      await loginCallbacks.onComplete?.({user:mockPrivyState.user,isNewUser:false,wasAlreadyAuthenticated:false});
+      await waitFor(() => expect(mockRouterRefresh).toHaveBeenCalledTimes(1));
+      expect(mockReadSession).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem('mn:bio-correction:artist')).not.toBeNull();
+      window.history.replaceState({}, '', '/');
     });
 
     it('triggers NextAuth login when wasAlreadyAuthenticated is false', async () => {

@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/queries/enqueueClaimInterview', () => ({ enqueueClaimInterview: jest.fn().mockResolvedValue(true) }));
 import { jest } from '@jest/globals';
 
 jest.mock('@/server/utils/queries/hasReusableDirectoryDiscovery', () => ({ hasReusableDirectoryDiscovery: jest.fn().mockResolvedValue(false) }));

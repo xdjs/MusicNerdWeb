@@ -32,6 +32,7 @@ const rejectedAngle: Check = {
   faithfulToLatestAnswer: true,
   respectsBoundaries: true,
   novelAgainstHistory: true,
+  addsNewInformation: true,
   oneClearAsk: true,
   reason: "The question is open; the intended unknown adds spill.",
 };
@@ -118,6 +119,7 @@ it.each([
   "faithfulToLatestAnswer",
   "respectsBoundaries",
   "novelAgainstHistory",
+  "addsNewInformation",
   "oneClearAsk",
 ] as const)("allows rewriting when %s fails", (field) => {
   expect(

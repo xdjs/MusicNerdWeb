@@ -19,3 +19,13 @@ describe('pre-claim public profile projection', () => {
     expect(artist.bio).toBe('Private prepared biography');
   });
 });
+
+it('adds eligible public prose without opening private Lore or mutating the stored artist', () => {
+ const artist = { id: 'artist', bio: 'Private old bio' };
+ const about = { bio: 'Public sourced biography.', kind: 'researched' as const, sources: [{ id: 'source', url: 'https://artist.example/bio', label: 'Bio' }] };
+ const projection = projectUnclaimedProfile(artist, [{ url: 'https://artist.example/interview', type: 'article', extractedText: 'Private interview original' }], about);
+ expect(projection.artist.bio).toBe(about.bio);
+ expect(projection.sources).toEqual([]);
+ expect(JSON.stringify(projection)).not.toContain('Private');
+ expect(artist.bio).toBe('Private old bio');
+});

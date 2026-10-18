@@ -759,7 +759,7 @@ export const artistResearchJobs = pgTable("artist_research_jobs", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).default(sql`(now() AT TIME ZONE 'utc'::text)`).notNull(),
 }, (table) => [
-	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match')`),
+	check("artist_research_jobs_kind_check", sql`${table.kind} in ('social_ingest', 'caption_extract', 'lore_refresh', 'source_search', 'latest_refresh', 'source_extract', 'question_research', 'spotify_match', 'interview_prepare')`),
 	check("artist_research_jobs_status_check", sql`${table.status} in ('pending','running','done','failed') or (${table.status} = 'queued' and ${table.kind} = 'source_extract' and coalesce(${table.state}->>'version','') = '2' and coalesce(${table.state}->>'autoSourceId','') <> '')`),
 	uniqueIndex("artist_research_jobs_one_live").on(table.artistId, table.kind).where(sql`${table.status} in ('pending', 'running')`),
 	uniqueIndex("artist_research_jobs_auto_source_live").on(table.artistId, sql`(${table.state}->>'autoSourceId')`)
@@ -1271,7 +1271,7 @@ export const artistSourceAssessments = pgTable('artist_source_assessments', {
     pgPolicy('mnweb_source_assessments', { for: 'all', to: ['mnweb'], using: sql`true`, withCheck: sql`true` }),
 ]).enableRLS();
 
-/** Never a public bio/doc; claimants review sources and explicitly publish separately. */
+/** Private drafts; only the versioned publicAbout projection is eligible for public reads. */
 export const artistDirectoryPreparations = pgTable('artist_directory_preparations', {
     artistId: uuid('artist_id').primaryKey().references(() => artists.id, { onDelete: 'cascade' }),
     activityId: uuid('activity_id').notNull().references(() => artistActivityEvents.id, { onDelete: 'cascade' }),
@@ -1280,6 +1280,7 @@ export const artistDirectoryPreparations = pgTable('artist_directory_preparation
     document: text(),
     about: text(),
     startingBio: text('starting_bio'),
+    publicAbout: jsonb('public_about'),
     manifest: jsonb().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, table => [
@@ -1327,4 +1328,27 @@ export const artistSocialRefreshes = pgTable("artist_social_refreshes", {
   pgPolicy("mnweb_insert_artist_social_refreshes", { for: "insert", to: ["mnweb"], withCheck: sql`true` }),
   pgPolicy("mnweb_update_artist_social_refreshes", { for: "update", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
   pgPolicy("mnweb_delete_artist_social_refreshes", { for: "delete", to: ["mnweb"], using: sql`true` }),
+]).enableRLS();
+
+// Private human-review reports. Application auth scopes every read and mutation.
+export const artistBioCorrections = pgTable("artist_bio_corrections", {
+  id: uuid().defaultRandom().primaryKey(),
+  artistId: uuid("artist_id").notNull().references(() => artists.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  reason: text().notNull(),
+  details: text().notNull(),
+  sourceUrl: text("source_url"),
+  bioSnapshot: text("bio_snapshot").notNull(),
+  status: text().default("pending").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+}, table => [
+  index("artist_bio_corrections_user_created").on(table.userId, table.createdAt),
+  index("artist_bio_corrections_status_created").on(table.status, table.createdAt),
+  check("artist_bio_corrections_reason", sql`${table.reason} in ('wrong_artist','incorrect','outdated','other')`),
+  check("artist_bio_corrections_status", sql`${table.status} in ('pending','resolved','dismissed')`),
+  check("artist_bio_corrections_bounds", sql`length(${table.details}) <= 2000 and length(${table.bioSnapshot}) between 1 and 12000 and (${table.sourceUrl} is null or length(${table.sourceUrl}) <= 2048)`),
+  check("artist_bio_corrections_review", sql`(${table.status} = 'pending' and ${table.reviewedAt} is null and ${table.reviewedBy} is null) or (${table.status} <> 'pending' and ${table.reviewedAt} is not null and ${table.reviewedBy} is not null)`),
+  pgPolicy("mnweb_bio_corrections", { for: "all", to: ["mnweb"], using: sql`true`, withCheck: sql`true` }),
 ]).enableRLS();

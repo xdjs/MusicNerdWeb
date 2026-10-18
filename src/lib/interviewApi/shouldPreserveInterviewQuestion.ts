@@ -20,6 +20,7 @@ export function shouldPreserveInterviewQuestion(
     verdict.faithfulToLatestAnswer &&
     verdict.respectsBoundaries &&
     verdict.novelAgainstHistory &&
+    verdict.addsNewInformation &&
     verdict.oneClearAsk
   );
 }

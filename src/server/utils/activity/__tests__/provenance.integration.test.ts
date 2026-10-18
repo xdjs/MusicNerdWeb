@@ -2,7 +2,8 @@
 import { readFileSync } from 'node:fs';
 import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from '@/server/db/schema';
-jest.mock('@/server/db/drizzle', () => ({ get db() { return database; } }));
+jest.mock('@/lib/auth-helpers', () => ({requireAdmin: jest.fn(async () => ({authenticated:true,userId:'admin'}))}));
+jest.mock('@/server/db/drizzle', () => ({ get db() { return new Proxy(database, {get(target, property, receiver) {if (property === 'execute') return async (query: Parameters<typeof database.execute>[0]) => (await database.execute(query)).rows; return Reflect.get(target, property, receiver);}}); } }));
 const { PGlite } = process.getBuiltinModule('module').createRequire(__filename)('@electric-sql/pglite') as typeof import('@electric-sql/pglite');
 const client = new PGlite();
 const database = drizzle(client, { schema });
@@ -10,18 +11,21 @@ const artist = '00000000-0000-4000-8000-000000000001';
 const user = '00000000-0000-4000-8000-000000000002';
 const source = '00000000-0000-4000-8000-000000000003';
 let record: typeof import('../recordArtistActivity').recordArtistActivity;
-let queue: typeof import('../../queries/getPendingLoreSources').getPendingLoreSources;
+let queue: typeof import('../../contributions/getAdminReviewQueue').getAdminReviewQueue;
 let activity: typeof import('../getArtistActivity').getArtistActivity;
 beforeAll(async () => {
   jest.resetModules();
   ({ recordArtistActivity: record } = await import('../recordArtistActivity'));
-  ({ getPendingLoreSources: queue } = await import('../../queries/getPendingLoreSources'));
+  ({ getAdminReviewQueue: queue } = await import('../../contributions/getAdminReviewQueue'));
   ({ getArtistActivity: activity } = await import('../getArtistActivity'));
   await client.exec(`
     create role mnweb; create role anon; create role authenticated;
     CREATE FUNCTION uuid_generate_v4() RETURNS uuid LANGUAGE SQL AS 'SELECT gen_random_uuid()';
     create table users (id uuid primary key, username text, email text);
     create table artists (id uuid primary key, name text);
+    create table ugcresearch (id uuid, artist_id uuid, user_id uuid, site_name text, ugc_url text, created_at timestamp, origin text, accepted boolean, date_processed timestamp);
+    create table artist_bio_corrections (id uuid, artist_id uuid, user_id uuid, reason text, source_url text, created_at timestamptz, bio_snapshot text, details text, status text);
+
     create table artist_claims (id uuid primary key, artist_id uuid, user_id uuid, status text, reference_code text, created_at timestamptz default now(), updated_at timestamptz default now());
     create table artist_research_jobs (id uuid primary key default gen_random_uuid(), artist_id uuid, kind text constraint artist_research_jobs_kind_check check (kind in ('social_ingest', 'caption_extract', 'lore_refresh')), status text default 'pending', cursor integer default 0, total integer, attempts integer default 0, state jsonb default '{}', claimed_at timestamptz, last_error text, created_at timestamptz default now(), updated_at timestamptz default now());
     create unique index artist_research_jobs_one_live on artist_research_jobs (artist_id, kind) where status in ('pending', 'running');
@@ -42,14 +46,13 @@ beforeAll(async () => {
 afterAll(async () => { await client.close(); });
 it('leaves legacy origins unknown and creates no guessed actor', async () => {
   const result = await queue();
-  expect(result.items[0]).toMatchObject({ origin: 'unknown', actorId: null, activityId: null, claimed: false });
+  expect(result.items[0]).toMatchObject({ origin: 'unknown', actorId: null, activityId: null });
 });
-it('joins a real initiator, combines origin/claim/contributor filters, and escapes wildcard search', async () => {
+it('joins a real initiator in the unified queue and escapes wildcard search', async () => {
   const event = await record(artist, 'source_search', { userId: user, trigger: 'editor_search' });
   await client.query('update artist_vault_sources set origin = $1, activity_id = $2 where id = $3', ['research', event, source]);
-  expect((await queue({ query: 'contributor', origin: 'research', claim: 'unclaimed' })).items[0]).toMatchObject({ actorId: user, actorName: 'contributor', origin: 'research' });
-  expect((await queue({ origin: 'submission' })).total).toBe(0);
-  expect((await queue({ claim: 'claimed' })).total).toBe(0);
+  expect((await queue({ query: 'contributor', type: 'sources' })).items[0]).toMatchObject({ actorId: user, actorName: 'contributor', origin: 'research' });
+  expect((await queue({ type: 'corrections' })).total).toBe(0);
   expect((await queue({ query: '%' })).total).toBe(0);
   expect((await activity({ query: user, action: 'source_search' })).items[0]).toMatchObject({ id: event, trigger: 'editor_search' });
 });
@@ -74,7 +77,7 @@ it('persists authenticated submissions and does not reattribute duplicate URLs',
   expect(first?.activityId).toBeTruthy();
   const duplicate = await insertVaultSource({ artistId: artist, url: 'https://example.test/submission#fragment', status: 'pending' });
   expect(duplicate).toBeUndefined();
-  const result = await queue({ origin: 'submission' });
+  const result = await queue({ type:'sources',query:'https://example.test/submission' });
   expect(result.items[0]).toMatchObject({ actorId: user, activityId: first?.activityId });
 });
 it('does not classify an unattributed file import as a user submission', async () => {
@@ -116,7 +119,7 @@ it('records source review in its write transaction without changing original pro
   const events = await activity({ action: 'source_approved' });
   expect(events.items[0]).toMatchObject({ sourceId: source, actorId: user, trigger: 'source_review' });
   await client.query("update artist_vault_sources set status = 'pending' where id = $1", [source]);
-  expect((await queue({ origin: 'research' })).items[0]).toMatchObject({ actorId: user, origin: 'research', trigger: 'editor_search' });
+  expect((await queue({ type: 'sources' })).items.find(item=>item.id===source)).toMatchObject({ actorId: user, origin: 'research', trigger: 'editor_search' });
 });
 it('accepts durable source searches after upgrading the existing job-kind constraint', async () => {
   const { enqueueResearchJob } = await import('../../queries/researchJobQueries');
@@ -146,8 +149,8 @@ it('rolls the new source back if its addition activity cannot be saved', async (
 
 it('preserves historical user origin when the account is deleted', async () => {
   await client.query('delete from users where id = $1', [user]);
-  const result = await queue({ origin: 'research' });
-  expect(result.items[0]).toMatchObject({ actorKind: 'user', actorId: null, origin: 'research' });
+  const result = await queue({ type: 'sources' });
+  expect(result.items.find(item=>item.id===source)).toMatchObject({ actorKind: 'user', actorId: null, origin: 'research' });
 });
 
 it.each(['pending', 'running'])('reports a %s source search for another claim as an enqueue failure', async status => {

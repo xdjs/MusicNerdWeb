@@ -7,7 +7,8 @@ beforeEach(()=>push.mockClear());
 it('applies dropdowns immediately with account and current search intact, resetting pagination',()=>{
  render(<ContributionFilters data={data}/>);
  fireEvent.change(screen.getByRole('searchbox'),{target:{value:'new search'}});
- fireEvent.change(screen.getByLabelText('Type'),{target:{value:'lore'}});
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Type'}),{key:'ArrowDown'});
+ fireEvent.click(screen.getByRole('option',{name:'Lore sources'}));
  const url = new URL(push.mock.calls[0][0],'https://example.test');
  expect(url.searchParams.get('userId')).toBe('account');
  expect(url.searchParams.get('query')).toBe('new search');
@@ -29,9 +30,10 @@ it('search submits with the selected origin and clear preserves account history 
 });
 it('shows origin counts without an unnecessary clear action on the default history',()=>{
  render(<ContributionFilters data={data}/>);
+ expect(screen.getByRole('searchbox')).toHaveAttribute('placeholder','Search artist or URL');
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Origin'}),{key:'ArrowDown'});
  expect(screen.getByRole('option',{name:'Unknown origin (145 total)'})).toBeInTheDocument();
  expect(screen.queryByRole('link',{name:'Clear filters'})).not.toBeInTheDocument();
- expect(screen.getByRole('searchbox')).toHaveAttribute('placeholder','Search artist or URL');
 });
 it('clears global filters to the pending queue',()=>{
  render(<ContributionFilters data={{...data,userId:'',status:'all'}}/>);

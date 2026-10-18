@@ -117,6 +117,9 @@ export const interviewCheckSchema = z.object({
     .describe(
       "True when the question does not repeat a prior offered, answered or skipped question; an unresolved follow-up can be novel.",
     ),
+  addsNewInformation: z.boolean().describe(
+    "The requested answer is not already supplied by the evidence or exact artist answers, even when this question has never been asked before. A specific unresolved detail can pass; asking to restate a known fact cannot.",
+  ),
   oneClearAsk: z.boolean(),
   reason: z.string().max(600),
 });

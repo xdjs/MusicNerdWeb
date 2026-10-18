@@ -1,3 +1,20 @@
+## Sourced About and corrections — October 17
+
+[#1558](https://github.com/xdjs/MusicNerdWeb/issues/1558) remains open.
+Web #1563 merged as `a4525925`; staging passed, its production job was cancelled.
+Release is held for account-merge correction references (#1568), preservation of
+admin edits during API preparation (#1569), and reopening the report form (#1570).
+Fixes are on `codex/about-audit-fixes` and draft API #55 (`4050ea3`); inspect their
+current PR evidence before marking ready. They are not released.
+
+Admin directory saves now mark `public_about.editedByAdmin`; the paired API worker
+preserves the entire corrected preparation while normal read-time eligibility
+still withdraws changed or rejected evidence. Account linking transfers both report
+submitters and reviewers atomically. Report confirmations reset for a new report.
+See [the contract](docs/sourced-artist-about.md) and the three owning issues.
+Migrations 0053–0054 were applied/role-verified on staging only; verify production
+migration prerequisites before either release. No production backfill is authorized.
+
 ## Public docs hostname — October 16
 
 [#1534](https://github.com/xdjs/MusicNerdWeb/issues/1534) now has working HTTPS

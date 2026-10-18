@@ -1,4 +1,5 @@
 "use client"
+import AdminSelect from "@/components/ui/MusicNerdSelect";
 import {
     ColumnDef,
     SortingState,
@@ -34,7 +35,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import SearchBar from "./UserSearch";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 
 // -----------------------------
@@ -418,11 +418,11 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
             <div className="flex flex-col gap-4 w-full">
                 <div className={styles.filterBar}>
                   <input type="search" aria-label="Search people" placeholder="Search username, email or wallet" value={query} onChange={event=>setQuery(event.target.value)}/>
-                  <label>Role<select aria-label="Role" value={roleFilter} onChange={event=>setRoleFilter(event.target.value)}><option value="All">All roles</option><option value="Admin">Admins</option><option value="Whitelisted">Whitelisted</option><option value="User">Standard users</option></select></label>
-                  <label>Leaderboard<select aria-label="Leaderboard visibility" value={visibility} onChange={event=>setVisibility(event.target.value)}><option value="All">All visibility</option><option value="Visible">Visible</option><option value="Hidden">Hidden</option></select></label>
+                  <label>Role<AdminSelect label="Role" value={roleFilter} onValueChange={value=>setRoleFilter(value)} options={[{value: 'All', label: 'All roles'}, {value: 'Admin', label: 'Admins'}, {value: 'Whitelisted', label: 'Whitelisted'}, {value: 'User', label: 'Standard users'}]} /></label>
+                  <label>Leaderboard<AdminSelect label="Leaderboard visibility" value={visibility} onValueChange={value=>setVisibility(value)} options={[{value: 'All', label: 'All visibility'}, {value: 'Visible', label: 'Visible'}, {value: 'Hidden', label: 'Hidden'}]} /></label>
                 </div>
                 <div className={styles.filterSummary}><span>{filteredData.length} of {data.length} people</span>{(query || roleFilter!=="All" || visibility!=="All") && <button type="button" onClick={()=>{setQuery("");setRoleFilter("All");setVisibility("All");}}>Clear filters</button>}</div>
-                <div className={styles.filterBar}><label>Sort by<select aria-label="People order" value={sorting[0]?.id === "role" ? "role" : sorting[0]?.desc ? "recent" : "oldest"} onChange={event=>setSorting([{id:event.target.value==="role"?"role":"updatedAt",desc:event.target.value==="recent"}])}><option value="recent">Recently updated</option><option value="oldest">Oldest updated</option><option value="role">Role</option></select></label></div>
+                <div className={styles.filterBar}><label>Sort by<AdminSelect label="People order" value={sorting[0]?.id === "role" ? "role" : sorting[0]?.desc ? "recent" : "oldest"} onValueChange={value=>setSorting([{id:value==="role"?"role":"updatedAt",desc:value==="recent"}])} options={[{value: 'recent', label: 'Recently updated'}, {value: 'oldest', label: 'Oldest updated'}, {value: 'role', label: 'Role'}]} /></label></div>
                 <label className="inline-flex items-center gap-2 text-sm"><Checkbox aria-label="Select people on this page" checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={value=>table.toggleAllPageRowsSelected(!!value)} disabled={!filteredData.length}/>Select this page{table.getFilteredSelectedRowModel().rows.length ? ` · ${table.getFilteredSelectedRowModel().rows.length} selected` : ""}</label>
                                 {/* Button row */}
                 <div className={`${styles.peopleActions} grid grid-cols-2 sm:grid-cols-3 gap-2 w-full`}>
@@ -515,16 +515,7 @@ export default function UsersDataTable<TData extends AdminPerson, TValue>({
                 <div className="flex flex-col sm:flex-row items-center justify-between px-2 py-2 gap-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>Rows per page:</span>
-                        <Select value={String(table.getState().pagination.pageSize)} onValueChange={(value)=> table.setPageSize(Number(value))}>
-                            <SelectTrigger className="w-[80px] h-8">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="10">10</SelectItem>
-                                <SelectItem value="20">20</SelectItem>
-                                <SelectItem value="50">50</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <AdminSelect label="Rows per page" value={String(table.getState().pagination.pageSize)} onValueChange={value => table.setPageSize(Number(value))} options={[10, 20, 50].map(size => ({value: String(size), label: String(size)}))} className="w-[80px]" />
                     </div>
 
                     <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
