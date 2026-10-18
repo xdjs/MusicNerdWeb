@@ -1,3 +1,18 @@
+## Claim submission recovery — October 18
+
+Pete reported a claim error on Olivier Boge and authorized an urgent isolated fix.
+Read-only production logs at 18:33:43 UTC show Next rejecting an old Server Action
+with HTTP 404 before the claim action ran (production `a82141c4`). Missing Instagram
+only controls advisory copy; it does not gate submission. This branch corrects the
+circular copy and offers an explicit full-profile reload for Next's unrecognized
+action error, without automatically replaying a mutation. Existing stale tabs still
+need a manual reload to receive the new code. See [the recovery contract](docs/development.md#claim-submission-recovery).
+Local npm run ci passed (498 suites, 4,646 tests; six existing skips); independent
+Astra review found no blockers. Preview and owner review remain pending;
+no claim data, approval logic, authentication or deployment settings were changed.
+The related manual-verification tracker is [#1487](https://github.com/xdjs/MusicNerdWeb/issues/1487);
+its Instagram automation remains deferred. No new issue is authorized.
+
 ## First failed Latest catalog snapshot — October 18
 
 [#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424) remains open and assigned

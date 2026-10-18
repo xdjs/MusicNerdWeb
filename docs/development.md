@@ -292,6 +292,19 @@ and renders nothing for approved claims. The status interaction never starts a
 claim or login. Owner/admin edit checks, routes, persistence, jobs, external
 services and migrations are unchanged.
 
+## Claim submission recovery
+
+A saved Instagram link is not required to submit a claim. Claimants send the generated
+reference code from their official artist account to `@musicnerdnet`; admins still
+verify identity before approving. Do not ask an unapproved claimant to edit the profile first.
+
+An open page can retain a Server Action ID from an earlier deployment. If Next.js explicitly
+rejects that action as unrecognized, the claim dialog replaces Submit Claim with a native
+Reload profile link. Reload fetches the current page and action bundle; the claimant must
+submit again themselves. Do not automatically replay a claim mutation. Other transport
+failures retain the generic error because their persistence outcome may be uncertain.
+This recovery does not change claim storage, authentication, approval or notifications.
+
 ## Admin claim submission dates
 
 Claim review normalizes PostgreSQL and ISO timestamps before displaying the submission

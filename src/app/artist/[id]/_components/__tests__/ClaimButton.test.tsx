@@ -1,7 +1,10 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { useSession } from "next-auth/react";
+import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 
+// Exercise Next's real unrecognized-action predicate, not the global navigation mock.
+jest.unmock("next/navigation");
 const mockTrackEvent = jest.fn();
 jest.mock("@/lib/analytics/trackEvent", () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock("next-auth/react", () => ({ useSession: jest.fn() }));
@@ -65,6 +68,51 @@ describe("ClaimButton claim events", () => {
         expect(screen.getByText("MN-TEST")).toBeInTheDocument();
         expect(screen.getByText("We'll review your claim and approve it once verified.")).toBeInTheDocument();
         expect(screen.queryByText(/musicnerdxyz/)).not.toBeInTheDocument();
+    });
+
+    it("allows a claim without a saved Instagram link and explains verification without profile editing", async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-NOIG" });
+        render(<ClaimButton {...props} artistInstagram={null} />);
+        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
+        expect(screen.getByText(/You can submit a claim without an Instagram link/)).toBeInTheDocument();
+        expect(screen.queryByText(/Consider adding/)).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Submit Claim" })).toBeEnabled();
+        fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
+        expect(await screen.findByText("MN-NOIG")).toBeInTheDocument();
+        expect(mockClaim).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers a full page reload after Next rejects an old action, without replaying the claim", async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        mockClaim.mockRejectedValue(new UnrecognizedActionError('Server Action "old-id" was not found on the server.'));
+        render(<ClaimButton {...props} />);
+        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
+        fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
+        const reload = await screen.findByRole("link", { name: "Reload profile" });
+        expect(reload).toHaveAttribute("href", "/artist/a1");
+        expect(screen.getByRole("alert")).toHaveTextContent("This page is out of date. Reload this profile, then submit your claim again.");
+        expect(screen.queryByRole("button", { name: "Submit Claim" })).not.toBeInTheDocument();
+        expect(screen.queryByText(/Your claim has been submitted/)).not.toBeInTheDocument();
+        expect(mockClaim).toHaveBeenCalledTimes(1);
+        fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
+        expect(screen.getByRole("link", { name: "Reload profile" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Submit Claim" })).not.toBeInTheDocument();
+        expect(mockClaim).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not classify an uncertain network failure as an outdated page or replay the claim", async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        mockClaim.mockRejectedValue(new Error("Failed to fetch"));
+        render(<ClaimButton {...props} />);
+        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
+        fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
+        await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith("claim", { step: "error" }));
+        expect(screen.queryByRole("link", { name: "Reload profile" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Submit Claim" })).toBeEnabled();
+        expect(mockClaim).toHaveBeenCalledTimes(1);
     });
 
     it("reports already_claimed and error outcomes", async () => {

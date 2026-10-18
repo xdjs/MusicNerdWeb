@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ShieldCheck, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export default function ClaimButton({
     const { data: session } = useSession();
     const [modalOpen, setModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [needsReload, setNeedsReload] = useState(false);
     const [referenceCode, setReferenceCode] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const { toast } = useToast();
@@ -58,6 +60,7 @@ export default function ClaimButton({
     }
 
     const handleClaim = async () => {
+        if (needsReload || loading) return;
         setLoading(true);
         try {
             const result = await claimArtistProfile(artistId);
@@ -80,8 +83,14 @@ export default function ClaimButton({
                     variant: "destructive",
                 });
             }
-        } catch {
+        } catch (error) {
             trackEvent("claim", { step: "error" });
+            if (unstable_isUnrecognizedActionError(error)) {
+                // Next rejected the old action before executing it. Fetch a fresh
+                // document; never replay a claim mutation automatically.
+                setNeedsReload(true);
+                return;
+            }
             toast({
                 title: "Error",
                 description: "Something went wrong. Please try again.",
@@ -140,20 +149,32 @@ export default function ClaimButton({
                             {!artistInstagram && (
                                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3">
                                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                                        This profile doesn&apos;t have an Instagram link yet. Consider adding
-                                        your Instagram first so we can verify your identity more easily.
+                                        You can submit a claim without an Instagram link on this profile.
+                                        Send the reference code from your official artist account so we can verify you.
                                     </p>
                                 </div>
                             )}
 
-                            <Button
-                                onClick={handleClaim}
-                                disabled={loading}
-                                variant="pink"
-                                className="w-full"
-                            >
-                                {loading ? "Submitting..." : "Submit Claim"}
-                            </Button>
+                            {needsReload ? (
+                                <div className="space-y-3">
+                                    <p role="alert" className="text-sm text-muted-foreground">
+                                        This page is out of date. Reload this profile, then submit your claim again.
+                                    </p>
+                                    <Button asChild variant="pink" className="w-full">
+                                        {/* A native link replaces the stale client bundle, unlike router.refresh(). */}
+                                        <a href={`/artist/${encodeURIComponent(artistId)}`}>Reload profile</a>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    onClick={handleClaim}
+                                    disabled={loading}
+                                    variant="pink"
+                                    className="w-full"
+                                >
+                                    {loading ? "Submitting..." : "Submit Claim"}
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-4">
