@@ -2,7 +2,7 @@ import type { StepSegment } from "@/lib/onboarding/stepSegments";
 
 const BAR: Record<StepSegment["state"], string> = {
     done: "bg-highlightpink",
-    active: "relative overflow-hidden bg-pastypink/40 dark:bg-pastyblue/40",
+    active: "relative overflow-hidden bg-highlightpink/40 dark:bg-pastyblue/40",
     waiting: "bg-black/10 dark:bg-white/10",
 };
 
@@ -12,7 +12,7 @@ const BAR: Record<StepSegment["state"], string> = {
 export default function ResearchSegment({ state }: { state: StepSegment["state"] }) {
     return (
         <span data-segment={state} className={`h-1 rounded-full ${BAR[state]}`}>
-            {state === "active" && <span className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-pastypink motion-safe:animate-research-sweep motion-reduce:w-full dark:bg-pastyblue" />}
+            {state === "active" && <span className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-highlightpink motion-safe:animate-research-sweep motion-reduce:w-full dark:bg-pastyblue" />}
         </span>
     );
 }

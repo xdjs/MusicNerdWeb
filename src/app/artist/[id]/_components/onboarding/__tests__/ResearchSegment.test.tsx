@@ -6,8 +6,10 @@ const SWEEP = ".motion-safe\\:animate-research-sweep";
 describe("ResearchSegment", () => {
     it("sweeps while its step is running, and holds still under reduced motion", () => {
         const { container } = render(<ResearchSegment state="active" />);
-        expect(container.querySelector("[data-segment=active]")).not.toBeNull();
-        expect(container.querySelector(SWEEP)).toHaveClass("motion-reduce:w-full");
+        const track = container.querySelector("[data-segment=active]");
+        const sweep = container.querySelector(SWEEP);
+        expect(track).toHaveClass("bg-highlightpink/40", "dark:bg-pastyblue/40");
+        expect(sweep).toHaveClass("bg-highlightpink", "dark:bg-pastyblue", "motion-reduce:w-full");
     });
 
     it("is a plain bar when done or waiting", () => {
