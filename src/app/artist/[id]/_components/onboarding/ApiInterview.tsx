@@ -1,8 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MessageCircleQuestion, LoaderCircle, MessageSquare, SlidersHorizontal } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { MessageCircleQuestion, LoaderCircle, MessageSquare, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -36,7 +35,7 @@ export default function ApiInterview({
     state: InterviewSessionState;
   } | null>(null);
   const [open, setOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [view, setView] = useState<"interview" | "preferences" | "responses">("interview");
   const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
@@ -169,7 +168,7 @@ export default function ApiInterview({
         toast({
           title: "Interview finished",
           description: state?.session?.questions.some((question) => question.state === "answered")
-            ? "Your saved responses are kept in your profile."
+            ? "Edit your responses anytime in Edit profile → Lore → Questions."
             : "You can start another interview when you’re ready.",
         });
       }
@@ -265,13 +264,13 @@ export default function ApiInterview({
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
           className={`${dialogStyles.dialog} mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6`}>
           <DialogHeader className="shrink-0 space-y-1.5 pr-7 text-left">
-            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">{preferencesOpen ? "Topic preferences" : "A few questions"}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">{view === "preferences" ? "Topic preferences" : view === "responses" ? "Your responses" : "A few questions"}</DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
-              {preferencesOpen ? "Choose what to explore or leave out. You can change these preferences anytime." : "Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss."}
+              {view === "preferences" ? "Choose what to explore or leave out. You can change these preferences anytime." : view === "responses" ? "Edit your responses anytime in Edit profile → Lore → Questions." : "Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss."}
             </DialogDescription>
           </DialogHeader>
           <div role="region" aria-label="Interview responses and controls" className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
-      <div hidden={preferencesOpen}>
+      <div hidden={view !== "interview"}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -385,33 +384,14 @@ export default function ApiInterview({
             </button>
           )}
           {(session || origin) && <button type="button" className={dialogStyles.utilityButton}
-            disabled={busy || answers.entries.length > 0} onClick={() => setPreferencesOpen(true)}>
+            disabled={busy || answers.entries.length > 0} onClick={() => setView("preferences")}>
             <SlidersHorizontal size={14} aria-hidden="true" /> Topic preferences
           </button>}
           {!!session?.questions.some((q) => q.state !== "offered") && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className={dialogStyles.utilityButton}>
-                  <MessageSquare size={14} aria-hidden="true" />
-                  Your responses <span className="text-muted-foreground">· {session.questions.filter(q => q.state !== "offered").length}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side="top" align="end" sideOffset={12} collisionPadding={16} aria-label="Your responses" className={dialogStyles.utilityPanel}>
-                <h3 className="text-sm font-semibold">Your responses</h3>
-              <ol className="mt-4 space-y-4">
-                {session.questions
-                  .filter((q) => q.state !== "offered")
-                  .map((q) => (
-                    <li key={q.id}>
-                      <p className="text-sm font-medium">{q.question}</p>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-500 dark:text-gray-400">
-                        {q.answer ?? "Skipped"}
-                      </p>
-                    </li>
-                  ))}
-              </ol>
-              </PopoverContent>
-            </Popover>
+            <button type="button" className={dialogStyles.utilityButton} onClick={() => setView("responses")}>
+              <MessageSquare size={14} aria-hidden="true" />
+              Your responses <span className="text-muted-foreground">· {session.questions.filter(q => q.state !== "offered").length}</span>
+            </button>
           )}
           </div>
         </div>
@@ -420,11 +400,25 @@ export default function ApiInterview({
             {error && <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>}
           </div>
           </div>
+          {view === "responses" && <section aria-label="Saved interview responses">
+            <button type="button" className={dialogStyles.utilityButton} onClick={() => setView("interview")}>
+              <ArrowLeft size={16} aria-hidden="true" /> Back to interview
+            </button>
+            <ol className="mt-5 divide-y divide-black/10 dark:divide-white/10">
+              {session?.questions.filter(q => q.state !== "offered").map((q, index) => (
+                <li key={q.id} className="py-5 first:pt-0 last:pb-0">
+                  <p className="mb-2 text-xs text-muted-foreground">Question {index + 1}</p>
+                  <h3 className="text-sm font-semibold leading-relaxed">{q.question}</h3>
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">{q.answer ?? "Skipped"}</p>
+                </li>
+              ))}
+            </ol>
+          </section>}
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
-              open={preferencesOpen}
-              onBack={() => setPreferencesOpen(false)}
+              open={view === "preferences"}
+              onBack={() => setView("interview")}
               questionKey={origin?.questionKey ?? null}
               busy={busy || answers.entries.length > 0}
               call={async (body) => {

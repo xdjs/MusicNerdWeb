@@ -98,3 +98,7 @@ same question and unfinished answer. The form uses the interview's bounded scrol
 shared controls, rather than an anchored popover that can extend above the viewport. Session
 scope is labeled “For this session.” Verify one dialog, draft preservation, and usable controls
 on desktop and mobile in both themes.
+
+Your responses uses the same in-dialog view and Back control as Topic preferences. Questions
+and exact saved answers remain in the interview scroll area, without a second overlay. The
+view and Finish confirmation direct artists to “Edit profile → Lore → Questions” to edit later.

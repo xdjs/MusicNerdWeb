@@ -286,7 +286,7 @@ it("closes only after Finish succeeds and confirms the saved responses", async (
   expect(screen.getByText("Your responses")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Interview finished", description: "Your saved responses are kept in your profile." }));
+  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Interview finished", description: "Edit your responses anytime in Edit profile → Lore → Questions." }));
   expect(screen.getByRole("button", { name: "Interview" })).toBeEnabled();
   expect(fetch).toHaveBeenCalledTimes(2);
 });
@@ -299,6 +299,12 @@ it("keeps the session and saved responses open when Finish fails", async () => {
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
   expect(screen.getByText("Keep my answer")).toBeInTheDocument();
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  expect(screen.getByRole("dialog", { name: "Your responses" })).toContainElement(screen.getByText("Keep my answer"));
+  expect(screen.getByText("Edit your responses anytime in Edit profile → Lore → Questions.")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Finish interview" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
+  expect(screen.getByRole("button", { name: "Finish interview" })).toBeVisible();
   expect(mockToast).not.toHaveBeenCalled();
 });
 
