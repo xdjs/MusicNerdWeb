@@ -2,15 +2,20 @@
 jest.mock("@/server/utils/musicPlatform/latestReleases", () => ({
   getLatestArtistReleases: jest.fn(),
 }));
+jest.mock("@/server/utils/musicPlatform/readCachedLatestArtistReleases", () => ({
+  readCachedLatestArtistReleases: jest.fn(),
+}));
 jest.mock("@/server/utils/fetchCachedArtistTimeline", () => ({
   fetchCachedArtistTimeline: jest.fn(),
 }));
 import { fillMissingLatestProviders } from "../fillMissingLatestProviders";
 import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
+import { readCachedLatestArtistReleases } from "@/server/utils/musicPlatform/readCachedLatestArtistReleases";
 import { fetchCachedArtistTimeline } from "@/server/utils/fetchCachedArtistTimeline";
 import type { Artist } from "@/server/db/DbTypes";
 import type { ArtistLatestItem } from "@/lib/artist/artistLatest";
 const catalog = jest.mocked(getLatestArtistReleases);
+const cachedCatalog = jest.mocked(readCachedLatestArtistReleases);
 const timeline = jest.mocked(fetchCachedArtistTimeline);
 const artist = {
   name: "Artist",
@@ -40,6 +45,7 @@ const card: ArtistLatestItem = {
 beforeEach(() => {
   jest.clearAllMocks();
   catalog.mockResolvedValue([]);
+  cachedCatalog.mockReset().mockResolvedValue([]);
   timeline.mockResolvedValue([]);
 });
 it("uses only missing connected provider IDs, preserving shared cards and coverage ownership", async () => {
@@ -180,4 +186,59 @@ it("does not label malformed connected IDs as successfully checked", async () =>
   expect(result.recoveredProviders).toEqual([]);
   expect(catalog).not.toHaveBeenCalled();
   expect(timeline).not.toHaveBeenCalled();
+});
+
+
+it.each(["spotify", "deezer"] as const)("reads only cached %s releases for a first failed snapshot without marking it recovered", async provider => {
+  cachedCatalog.mockResolvedValue([{ id: "123", title: "Cached", kind: "album", releaseDate: "2020-01-01", platform: provider,
+    url: "https://www.deezer.com/album/123", imageUrl: null }]);
+  const result = await fillMissingLatestProviders(artist, [], [{ provider, status: "failed", checkedAt: null }]);
+  expect(cachedCatalog).toHaveBeenCalledWith({ spotify: provider === "spotify" ? artist.spotify : null, deezer: provider === "deezer" ? artist.deezer : null });
+  expect(result.items.map(item => item.title)).toEqual(["Cached"]);
+  expect(result.recoveredProviders).toEqual([]);
+  expect(catalog).not.toHaveBeenCalled();
+  expect(timeline).not.toHaveBeenCalled();
+});
+it.each([
+  { status: "failed" as const, checkedAt: "2026-01-02T00:00:00Z" },
+  { status: "failed" as const },
+  { status: "checked" as const, checkedAt: null },
+  { status: "checked" as const, checkedAt: "2026-01-02T00:00:00Z" },
+  { status: "disconnected" as const, checkedAt: null },
+])("does not supplement retained or checked-empty snapshots: %j", async snapshot => {
+  const result = await fillMissingLatestProviders(artist, [card], [{ provider: "spotify", ...snapshot }]);
+  expect(result).toEqual({ items: [card], recoveredProviders: [] });
+  expect(cachedCatalog).not.toHaveBeenCalled();
+  expect(catalog).not.toHaveBeenCalled();
+});
+it("keeps a first failed timeline unchanged and rejects invalid or removed catalog connections", async () => {
+  for (const spotify of [null, "bad"]) {
+    await fillMissingLatestProviders({ ...artist, spotify }, [], [
+      { provider: "spotify", status: "failed", checkedAt: null },
+      { provider: "inprocess", status: "failed", checkedAt: null },
+    ]);
+  }
+  await fillMissingLatestProviders(artist, [], []);
+  expect(cachedCatalog).not.toHaveBeenCalled();
+  expect(catalog).not.toHaveBeenCalled();
+  expect(timeline).not.toHaveBeenCalled();
+});
+it("keeps shared cards when a failed snapshot has no usable cache", async () => {
+  cachedCatalog.mockRejectedValueOnce(new Error("cache unavailable"));
+  expect(await fillMissingLatestProviders(artist, [card], [{ provider: "spotify", status: "failed", checkedAt: null }]))
+    .toEqual({ items: [card], recoveredProviders: [] });
+  expect(catalog).not.toHaveBeenCalled();
+});
+it("deduplicates failed cached releases against shared cards and caps the merged display", async () => {
+  cachedCatalog.mockResolvedValue([
+    { id: "1", title: card.title, kind: card.text, releaseDate: card.date, platform: "spotify", url: "https://open.spotify.com/album/1", imageUrl: null,
+      listeningLinks: [{ siteName: "spotify", href: "https://open.spotify.com/album/1", label: "Spotify", iconSrc: "/siteIcons/spotify_icon.svg" }] },
+    ...[2, 3, 4].map(id => ({ id: String(id), title: `Older ${id}`, kind: "album", releaseDate: `2020-01-0${id}`, platform: "spotify" as const, url: `https://open.spotify.com/album/${id}`, imageUrl: null })),
+  ]);
+  const result = await fillMissingLatestProviders(artist, [card], [{ provider: "spotify", status: "failed", checkedAt: null }]);
+  expect(result.items).toHaveLength(3);
+  expect(result.items[0].id).toBe(card.id);
+  expect(result.items[0].listeningLinks?.map(link => link.siteName)).toEqual(["deezer", "spotify"]);
+  expect(card.listeningLinks).toHaveLength(1);
+  expect(result.recoveredProviders).toEqual([]);
 });

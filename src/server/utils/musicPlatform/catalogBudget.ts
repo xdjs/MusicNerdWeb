@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/server/db/drizzle';
+import { catalogCacheReadScope } from './catalogCacheReadScope';
 
 // Fixed keys, independent of artist IDs, share the budget across app instances.
 // The two-int advisory-lock space is separate from the bigint ownership locks.
@@ -17,6 +18,9 @@ export async function withCatalogBudget<T>(
     platform: keyof typeof PROVIDER_KEYS,
     operation: (signal: AbortSignal) => Promise<T>,
 ): Promise<T> {
+    // Also blocks Next's background revalidation of a stale display-only read.
+    // Keep this before the transaction and before operation can acquire tokens.
+    if (catalogCacheReadScope.getStore()) throw new Error('Release catalog cache-only read missed');
     return db.transaction(async (tx) => {
         let admitted = false;
         for (let slot = 0; slot < SLOTS; slot++) {
