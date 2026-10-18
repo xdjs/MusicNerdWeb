@@ -107,3 +107,15 @@ Saved answers in Your responses expose an accessible pencil control. Inline Save
 InterviewResponseCard and the existing revision-protected response PATCH endpoint; version
 history and Lore refresh behavior stay shared with the profile editor. Skipped questions have
 no edit control. Back retains the draft; closing requires saving or canceling an unfinished edit.
+
+### Save acknowledgement and storage recovery — October 18
+
+Optimistic answers advance the interview immediately, but cannot mount a response editor
+until the queue acknowledges the saved revision. Your responses is disabled while any
+answer remains queued; pending cards are not mounted behind the hidden responses view.
+This prevents a captured offered revision from racing the original save.
+
+Retry re-runs failed browser queue restoration. Malformed or obsolete stored JSON is
+preserved under a unique recovery key before the unusable queue is replaced. If storage
+is still inaccessible, recovery remains blocked and the current answer stays in the
+form. Existing queued writes retry unchanged; no response is silently dropped.

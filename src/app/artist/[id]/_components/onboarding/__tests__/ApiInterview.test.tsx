@@ -5,6 +5,7 @@ const mockToast = jest.fn();
 jest.mock("../useResearchPump", () => ({useResearchPump: jest.fn()}));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.mock("@privy-io/react-auth", () => ({
+  getAccessToken: () => token(),
   usePrivy: () => ({
     ready: true,
     authenticated: true,
@@ -411,6 +412,8 @@ it("advances to the next offered question before a slow save completes", async (
   expect(await screen.findByText(next.question)).toBeVisible();
   expect(screen.queryByText("Saving your interview…")).not.toBeInTheDocument();
   expect(localStorage.getItem(`mn-interview-outbox:${artist}:account`)).toContain("My exact unsaved words");
+  expect(screen.getByRole("button", { name: /Your responses/ })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Edit response", hidden: true })).not.toBeInTheDocument();
 });
 
 it('keeps an already offered question visible while background preparation is pending', async () => {
@@ -472,4 +475,27 @@ it("keeps an inline edit across Back and requires Save or Cancel before closing"
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("mounts the editor only after acknowledgement and edits using the confirmed revision", async () => {
+  let acknowledge!: (value: Response) => void;
+  const confirmed = { ...question, state: "answered", answer: "Original answer", revision: "b".repeat(64) };
+  jest.mocked(fetch).mockResolvedValueOnce(reply(active) as Response)
+    .mockImplementationOnce(() => new Promise(resolve => { acknowledge = resolve; }))
+    .mockResolvedValueOnce(reply({ status: "ok", response: { ...confirmed, answer: "Edited answer", revision: "c".repeat(64), source: null } }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Original answer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
+  expect(screen.getByRole("button", { name: /Your responses/ })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Edit response", hidden: true })).not.toBeInTheDocument();
+  await waitFor(() => expect(acknowledge).toBeDefined());
+  await act(async () => acknowledge(reply({ ...active, session: { ...active.session, questions: [confirmed] } }) as Response));
+  await waitFor(() => expect(screen.getByRole("button", { name: /Your responses/ })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit response" }));
+  fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "Edited answer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save response" }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[2][1]?.body as string).expectedRevision).toBe(confirmed.revision);
 });

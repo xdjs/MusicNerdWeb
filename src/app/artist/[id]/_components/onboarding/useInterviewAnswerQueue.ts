@@ -18,15 +18,28 @@ export function useInterviewAnswerQueue(scope: string, call: (body: InterviewReq
     current.current = { key, entries: next };
     setSaved(current.current);
   }, [key]);
-  useEffect(() => {
+  const restoreQueue = useCallback((recover = false) => {
     try {
-      current.current = { key, entries: queueSchema.parse(JSON.parse(localStorage.getItem(key) ?? "[]")) };
+      const raw = localStorage.getItem(key);
+      let restored: Answer[];
+      try {
+        restored = queueSchema.parse(JSON.parse(raw ?? "[]"));
+      } catch {
+        if (!recover) throw new Error("Invalid saved queue");
+        // Preserve unreadable words before replacing the unusable queue. If
+        // storage is unavailable, stay blocked rather than discard anything.
+        localStorage.setItem(`${key}:recovery:${crypto.randomUUID()}`, raw ?? "");
+        localStorage.setItem(key, "[]");
+        restored = [];
+      }
+      current.current = { key, entries: restored };
       setSaved(current.current);
       setFailure(null);
     } catch {
-      setFailure("Your saved responses could not be restored from this browser. Keep this window open.");
+      setFailure("Your saved responses could not be restored from this browser. Keep this window open and retry.");
     }
   }, [key]);
+  useEffect(() => { restoreQueue(); }, [restoreQueue]);
   const head = entries[0];
   useEffect(() => {
     if (!head || failure) return;
@@ -55,5 +68,9 @@ export function useInterviewAnswerQueue(scope: string, call: (body: InterviewReq
       return false;
     }
   };
-  return { entries, enqueue, failure, ready: saved.key === key, retry: () => { setFailure(null); setAttempt((value) => value + 1); } };
+  return { entries, enqueue, failure, ready: saved.key === key, retry: () => {
+    if (current.current.key !== key) restoreQueue(true);
+    else setFailure(null);
+    setAttempt((value) => value + 1);
+  } };
 }
