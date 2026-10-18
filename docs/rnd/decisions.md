@@ -280,6 +280,15 @@ Raised, not settled. Move up into a dated section when they close.
   volume is low; the thing to watch is whether artists wait noticeably for a profile. Raised by
   Carl. *(9/2)*
 
+## Artist claim verification inbox — October 16, 2026
+
+Pete confirmed `@musicnerdnet` as the receiving Instagram account for artist claim
+verification ([#1487](https://github.com/xdjs/MusicNerdWeb/issues/1487)). Both the
+instructions before and after claim submission and the Instagram link use that
+account, matching the About page. This replaces the older `@musicnerdxyz` claim
+instructions. Claims continue to require manual admin review; this correction does
+not enable DM ingestion or automatic approval.
+
 ## October 17, 2026 — Private interview preparation after claim approval
 
 Pete approved automatically preparing a private question bank after claim approval once usable research is ready, including reused directory research. This supersedes the earlier opt-in requirement for preparation only: artists still explicitly choose Start interview. No automatic popup, question offers, or generation on profile reads. Saving an answer advances through the prepared bank while persistence completes in the background.

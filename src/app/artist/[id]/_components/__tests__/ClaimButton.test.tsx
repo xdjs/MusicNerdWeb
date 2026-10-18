@@ -48,6 +48,25 @@ describe("ClaimButton claim events", () => {
         expect(mockClaim).toHaveBeenCalledWith("a1");
     });
 
+    it("directs the claimant to the confirmed inbox before and after submitting", async () => {
+        (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
+        mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-TEST" });
+        render(<ClaimButton {...props} />);
+        fireEvent.click(screen.getByRole("button", { name: /claim/i }));
+        expect(screen.getByText("@musicnerdnet")).toBeInTheDocument();
+        expect(screen.queryByText(/musicnerdxyz/)).not.toBeInTheDocument();
+        expect(mockClaim).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));
+        const inbox = await screen.findByRole("link", { name: "Open @musicnerdnet on Instagram" });
+        expect(inbox).toHaveAttribute("href", "https://www.instagram.com/musicnerdnet/");
+        expect(inbox).toHaveAttribute("rel", "noopener noreferrer");
+        expect(screen.getByText("@musicnerdnet")).toBeInTheDocument();
+        expect(screen.getByText("MN-TEST")).toBeInTheDocument();
+        expect(screen.getByText("We'll review your claim and approve it once verified.")).toBeInTheDocument();
+        expect(screen.queryByText(/musicnerdxyz/)).not.toBeInTheDocument();
+    });
+
     it("reports already_claimed and error outcomes", async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
         mockClaim.mockResolvedValueOnce({ success: false, alreadyClaimed: true });

@@ -133,7 +133,7 @@ export default function ClaimButton({
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
                                 To verify you are this artist, we&apos;ll generate a reference code.
-                                DM <strong>@musicnerdxyz</strong> on Instagram from your official
+                                DM <strong>@musicnerdnet</strong> on Instagram from your official
                                 artist account with this code.
                             </p>
 
@@ -159,7 +159,7 @@ export default function ClaimButton({
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
                                 Your claim has been submitted! Send this code to{" "}
-                                <strong>@musicnerdxyz</strong> on Instagram from your official account:
+                                <strong>@musicnerdnet</strong> on Instagram from your official account:
                             </p>
 
                             <div className="flex items-center justify-center gap-2 p-4 rounded-lg bg-muted">
@@ -177,12 +177,12 @@ export default function ClaimButton({
                             </div>
 
                             <a
-                                href="https://www.instagram.com/musicnerdxyz/"
+                                href="https://www.instagram.com/musicnerdnet/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center justify-center gap-2 w-full rounded-lg border border-pastypink/50 px-4 py-2 text-sm font-medium text-pastypink hover:bg-pastypink/10 transition-colors"
                             >
-                                Open @musicnerdxyz on Instagram
+                                Open @musicnerdnet on Instagram
                                 <ExternalLink size={14} />
                             </a>
 
