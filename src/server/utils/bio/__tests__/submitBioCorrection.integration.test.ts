@@ -29,3 +29,12 @@ it('saves changed details, reason and source but deduplicates an exact repeat',a
  expect(result.rows).toHaveLength(4);
  expect(result.rows).toContainEqual({details:'Original QA report',source_url:'https://report-test.com/'});
 });
+
+it('allows ten distinct reports, blocks the eleventh, and expires the rolling window',async()=>{
+ const input={reason:'other' as const,details:'',sourceUrl:null,expectedBio:'About'};
+ for(let i=0;i<10;i++) expect(await submit(user,artist,{...input,details:`Report ${i}`},'About')).toBe('created');
+ expect(await submit(user,artist,{...input,details:'Report 10'},'About')).toBe('limited');
+ expect(await submit(user,artist,{...input,details:'Report 0'},'About')).toBe('duplicate');
+ await client.exec("update artist_bio_corrections set created_at=now()-interval '25 hours'");
+ expect(await submit(user,artist,{...input,details:'Report 10'},'About')).toBe('created');
+});

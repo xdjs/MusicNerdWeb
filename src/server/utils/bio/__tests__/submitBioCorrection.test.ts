@@ -16,7 +16,12 @@ it('deduplicates pending reports before applying daily limit', async () => {
  expect(await submitBioCorrection('user', 'artist', input, 'bio')).toBe('duplicate');
  expect(limit).toHaveBeenCalledTimes(1); expect(values).not.toHaveBeenCalled();
 });
-it('limits submissions across artists to five a day', async () => {
- limit.mockResolvedValueOnce([]).mockResolvedValueOnce(Array(5).fill({ id: 'report' }));
+it('limits submissions across artists to ten per rolling 24 hours', async () => {
+ limit.mockResolvedValueOnce([]).mockResolvedValueOnce(Array(10).fill({ id: 'report' }));
  expect(await submitBioCorrection('user', 'artist', input, 'bio')).toBe('limited'); expect(values).not.toHaveBeenCalled();
+});
+
+it('accepts the tenth report', async () => {
+ limit.mockResolvedValueOnce([]).mockResolvedValueOnce(Array(9).fill({ id: 'report' }));
+ expect(await submitBioCorrection('user', 'artist', input, 'bio')).toBe('created');
 });

@@ -40,13 +40,14 @@ beforeAll(async () => {
   // Simulate hosted default grants; the migration must explicitly revoke them.
   await client.exec('alter default privileges grant all on tables to anon, authenticated');
   await client.exec(readFileSync('drizzle/0035_account_merge_attribution.sql','utf8'));
+  await client.exec(readFileSync('drizzle/0053_artist_bio_corrections.sql','utf8'));
   await client.exec(`grant select,insert,update,delete on users,artists,ugcresearch,artist_self_edits,artist_vault_sources to mnweb;
     alter table users enable row level security;
     create policy app_users on users to mnweb using (true) with check (true);`);
   await client.exec(`insert into artists(id,name) values ('${artist}','Fixture Artist')`);
 });
 beforeEach(async () => {
-  await client.exec('reset role; delete from account_merge_events');
+  await client.exec('reset role; delete from artist_bio_corrections; delete from account_merge_events');
   await driver.execute(sql`delete from artist_vault_sources`);
   await driver.execute(sql`delete from artist_activity_events`);
   await driver.execute(sql`delete from users`);
@@ -196,4 +197,28 @@ it('rolls back the actor transfer if recording its audit entry fails', async () 
   expect(await mergeAccounts(current,legacy)).toEqual({success:false,error:'Merge failed'});
   expect((await getArtistActivity({eventId:event})).items[0].actorId).toBe(current);
   expect((await driver.execute(sql`select activity_count from account_merge_events`)).rows).toEqual([{activity_count:0}]);
+});
+
+it('merges correction authors and reviewers using real constraints as mnweb', async()=>{
+ await driver.execute(sql`insert into artist_bio_corrections(artist_id,user_id,reason,details,bio_snapshot,status,reviewed_at,reviewed_by)
+ values (${artist},${current},'other','Both roles','Original','resolved',now(),${current}),
+ (${artist},${current},'other','Pending','Original','pending',null,null),
+ (${artist},${legacy},'other','Reviewer only','Original','dismissed',now(),${current})`);
+ expect(await mergeAccounts(current,legacy)).toEqual({success:true});
+ expect((await driver.execute(sql`select user_id,reviewed_by,status from artist_bio_corrections order by details`)).rows).toEqual([
+  {user_id:legacy,reviewed_by:legacy,status:'resolved'},
+  {user_id:legacy,reviewed_by:null,status:'pending'},
+  {user_id:legacy,reviewed_by:legacy,status:'dismissed'},
+ ]);
+ expect((await driver.query.users.findMany()).map(user=>user.id)).toEqual([legacy]);
+});
+it('rolls back identity and correction references when deletion fails after transfer',async()=>{
+ await driver.execute(sql`insert into artist_bio_corrections(artist_id,user_id,reason,details,bio_snapshot) values(${artist},${current},'other','Pending','Original')`);
+ await client.exec(`reset role; create table merge_delete_blocker(user_id uuid references users(id)); insert into merge_delete_blocker values('${current}'); set role mnweb`);
+ try {
+  expect(await mergeAccounts(current,legacy)).toEqual({success:false,error:'Merge failed'});
+  expect((await driver.execute(sql`select user_id from artist_bio_corrections`)).rows).toEqual([{user_id:current}]);
+  expect((await driver.query.users.findMany()).find(user=>user.id===current)?.privyUserId).toBe('test-privy');
+  expect((await driver.query.users.findMany()).find(user=>user.id===legacy)?.privyUserId).toBeNull();
+ } finally {await client.exec('reset role; drop table merge_delete_blocker; set role mnweb');}
 });

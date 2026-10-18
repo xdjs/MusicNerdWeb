@@ -4,3 +4,6 @@ export type PublicArtistAbout = {
     kind: 'official' | 'researched';
     sources: { id: string; url: string; label: string }[];
 };
+
+/** Per-account correction reports in a rolling 24-hour window. */
+export const BIO_CORRECTION_REPORT_LIMIT = 10;

@@ -156,3 +156,18 @@ Eligible directory About is edited in its existing public projection, preserving
 preparation, source manifest and identity gates. Edited official excerpts become researched
 text; the existing citations remain attached. A report URL is not automatically accepted as a
 citation. Claimed About edits use the artist bio. No generation or external request is started.
+
+## Release audit corrections (2026-10-17)
+Account linking transfers both correction authors and reviewers inside the existing merge transaction before deleting the placeholder account (#1568). Reports and review status remain intact; failure rolls the merge back.
+
+Admin directory edits mark the public envelope `editedByAdmin: true`. Preparation must preserve that entire preparation on subsequent or overlapping runs (#1569); existing read-time identity/source eligibility checks still withdraw invalid evidence. Automatic regeneration cannot undo a human correction. There is no new automatic reset.
+
+After confirmation is closed, a new report opens a clean form with the latest displayed About; an unfinished report retains its original snapshot for stale-edit protection (#1570).
+
+The login-to-report handoff uses the existing themed dialog with “Finishing sign-in…” while Privy and the application session settle. A saved draft restores this status during auth hydration after the login reload. The old document must not expose the form briefly before that reload; the new document opens it only after both sessions are ready. Closing cancels continuation; no timer or automatic submission is used.
+
+Pete set the correction allowance to **10 reports per account per rolling 24 hours**. Exact pending duplicates are still detected before the quota. The correction dialog reuses the interviewer’s bounded scrolling layout: only the fields scroll, while the error and Submit action retain the dialog’s bottom padding.
+
+Correction sign-in continuation updates the shared application session in place and refreshes server components without a document reload. The existing correction dialog changes from sign-in progress to the editable form once both sessions are ready. Ordinary login retains its existing reload path. A failed session refresh must retain the draft and surface a retryable error instead of silently discarding it.
+
+Shared Music Nerd selects draw the pink focus ring inside the control, matching the form textarea and preventing scroll-container edges from clipping the focus indicator.

@@ -1,3 +1,4 @@
+import { BIO_CORRECTION_REPORT_LIMIT } from '@/lib/bio/types';
 import { requireAuth } from '@/lib/auth-helpers';
 import { validateBioCorrection } from '@/lib/bio/validateBioCorrection';
 import { sanitizeBioText } from '@/lib/bio/bioText';
@@ -27,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const bio = sanitizeBioText(claimed ? artist.bio : (await getPublicArtistAbout(id))?.bio);
     if (!bio || !isRealBio(bio) || bio !== input.expectedBio) return Response.json({ error: 'This About has changed. Reload the profile before sending your suggestion.' }, { status: 409 });
     const result = await submitBioCorrection(auth.userId, id, input, bio);
-    if (result === 'limited') return Response.json({ error: 'You have sent five suggestions today. Please try again tomorrow.' }, { status: 429 });
+    if (result === 'limited') return Response.json({ error: `You have sent ${BIO_CORRECTION_REPORT_LIMIT} reports in the past 24 hours. Please try again when an earlier report is more than 24 hours old.` }, { status: 429 });
     return Response.json({ success: true, duplicate: result === 'duplicate' }, { status: result === 'created' ? 201 : 200 });
   } catch {
     return Response.json({ error: 'Could not save your suggestion. Please try again.' }, { status: 500 });

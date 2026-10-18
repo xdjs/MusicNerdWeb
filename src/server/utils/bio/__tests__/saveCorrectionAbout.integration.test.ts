@@ -51,6 +51,7 @@ it('edits public directory About, preserves private artist bio and citations, sa
  await saveCorrectionAbout(report,admin,'Corrected public About.',before.revision);
  expect(await getPublicArtistAbout(artist)).toEqual({bio:'Corrected public About.',kind:'researched',sources:publicAbout.sources});
  expect((await client.query('select bio from artists')).rows).toEqual([{bio:null}]);
+ expect((await client.query("select public_about->'editedByAdmin' as protected from artist_directory_preparations")).rows).toEqual([{protected:true}]);
  expect((await client.query('select bio_text from artist_bio_versions')).rows).toEqual([{bio_text:publicAbout.bio},{bio_text:'Corrected public About.'}]);
  expect((await client.query('select status,reviewed_by from artist_bio_corrections')).rows).toEqual([{status:'resolved',reviewed_by:admin}]);
 });
