@@ -1,7 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import dialogStyles from "./ApiInterviewDialog.module.css";
 import scopeStyles from "./ApiInterviewScope.module.css";
 import { z } from "zod";
@@ -24,16 +23,19 @@ const boundaryPageSchema = z.object({
 });
 /** Only explicit artist words become topic instructions; a skip has no implicit lifetime. */
 export default function ApiInterviewBoundaries({
+  open,
+  onBack,
   questionKey,
   busy,
   call,
 }: {
+  open: boolean;
+  onBack: () => void;
   questionKey: string | null;
   busy: boolean;
   call: (body: InterviewRequest) => Promise<unknown>;
 }) {
-  const [open, setOpen] = useState(false),
-    [wording, setWording] = useState(""),
+  const [wording, setWording] = useState(""),
     [scope, setScope] = useState<"sitting" | "until_retracted">("sitting"),
     [pending, setPending] = useState(false),
     [error, setError] = useState<string | null>(null),
@@ -119,25 +121,17 @@ export default function ApiInterviewBoundaries({
   };
   const button =
     "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
+  useEffect(() => {
+    if (open) void restore();
+    // Opening reloads authoritative preferences; typing must not reload them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  if (!open) return null;
   return (
-    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) void restore(); }}>
-      <PopoverTrigger asChild>
-      <button
-        type="button"
-        className={dialogStyles.utilityButton}
-        disabled={busy || pending}
-        aria-expanded={open}
-      >
-        <SlidersHorizontal size={14} aria-hidden="true" />
-        Topic preferences
+    <section aria-label="Topic preferences" className="space-y-5">
+      <button type="button" className={dialogStyles.utilityButton} onClick={onBack}>
+        <ArrowLeft size={16} aria-hidden="true" /> Back to interview
       </button>
-      </PopoverTrigger>
-      <PopoverContent side="top" align="start" sideOffset={12} collisionPadding={16} aria-label="Topic preferences" className={`${dialogStyles.utilityPanel} space-y-4`}>
-          <h3 className="text-sm font-semibold">Topic preferences</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Tell the interviewer what to leave out or how to approach a topic.
-            Your exact words stay active for the scope you choose.
-          </p>
           {pending && (
             <p role="status" className="text-sm">
               Updating topic preferences…
@@ -171,7 +165,7 @@ export default function ApiInterviewBoundaries({
               </p>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {entry.scope === "sitting"
-                  ? "This sitting only"
+                  ? "This session only"
                   : "Until you remove it"}
               </p>
               <button
@@ -222,7 +216,7 @@ export default function ApiInterviewBoundaries({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={`${scopeStyles.menu} z-[60] rounded-xl border-black/10 bg-[#faf7fc] text-[#111] shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-[#231f27] dark:text-white`}>
-                  <SelectItem value="sitting" className={`${scopeStyles.option} min-h-11 rounded-lg`}>For this sitting</SelectItem>
+                  <SelectItem value="sitting" className={`${scopeStyles.option} min-h-11 rounded-lg`}>For this session</SelectItem>
                   <SelectItem value="until_retracted" className={`${scopeStyles.option} min-h-11 rounded-lg`}>Until I remove it</SelectItem>
                 </SelectContent>
               </Select>
@@ -243,7 +237,6 @@ export default function ApiInterviewBoundaries({
               once a question is available.
             </p>
           )}
-      </PopoverContent>
-    </Popover>
+    </section>
   );
 }

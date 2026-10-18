@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MessageCircleQuestion, LoaderCircle, MessageSquare } from "lucide-react";
+import { MessageCircleQuestion, LoaderCircle, MessageSquare, SlidersHorizontal } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
@@ -36,6 +36,7 @@ export default function ApiInterview({
     state: InterviewSessionState;
   } | null>(null);
   const [open, setOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
@@ -264,12 +265,13 @@ export default function ApiInterview({
           onPointerDownOutside={(event) => { if (pending.current) event.preventDefault(); }}
           className={`${dialogStyles.dialog} mn-themed-dialog artist-link-panel max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border-white/15 bg-neutral-950/80 bg-gradient-to-br from-white/[0.08] via-transparent to-white/[0.02] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150 dark:bg-neutral-950/80 sm:rounded-2xl sm:p-6`}>
           <DialogHeader className="shrink-0 space-y-1.5 pr-7 text-left">
-            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">A few questions</DialogTitle>
+            <DialogTitle className="text-xl font-semibold leading-snug tracking-tight">{preferencesOpen ? "Topic preferences" : "A few questions"}</DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-muted-foreground dark:text-white/60">
-              Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss.
+              {preferencesOpen ? "Choose what to explore or leave out. You can change these preferences anytime." : "Tell your story in your own words. Answer at your pace, and skip anything you’d rather not discuss."}
             </DialogDescription>
           </DialogHeader>
           <div role="region" aria-label="Interview responses and controls" className={`${dialogStyles.body} pt-3 pb-6 px-1`}>
+      <div hidden={preferencesOpen}>
       {loading && (
         <p role="status" className="mt-3 text-sm">
           Loading your saved interview…
@@ -382,18 +384,10 @@ export default function ApiInterview({
               Start interview
             </button>
           )}
-          {(session || origin) && (
-            <ApiInterviewBoundaries
-              key={`${scope}:${session?.id ?? "legacy"}`}
-              questionKey={origin?.questionKey ?? null}
-              busy={busy || answers.entries.length > 0}
-              call={async (body) => {
-                const result = await call(body, life.current?.signal);
-                if ((body.action === "boundary" || body.action === "retract") && life.current) await restore(life.current.signal);
-                return result;
-              }}
-            />
-          )}
+          {(session || origin) && <button type="button" className={dialogStyles.utilityButton}
+            disabled={busy || answers.entries.length > 0} onClick={() => setPreferencesOpen(true)}>
+            <SlidersHorizontal size={14} aria-hidden="true" /> Topic preferences
+          </button>}
           {!!session?.questions.some((q) => q.state !== "offered") && (
             <Popover>
               <PopoverTrigger asChild>
@@ -425,6 +419,21 @@ export default function ApiInterview({
           <div className="mt-4">
             {error && <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>}
           </div>
+          </div>
+          {(session || origin) && (
+            <ApiInterviewBoundaries
+              key={`${scope}:${session?.id ?? "legacy"}`}
+              open={preferencesOpen}
+              onBack={() => setPreferencesOpen(false)}
+              questionKey={origin?.questionKey ?? null}
+              busy={busy || answers.entries.length > 0}
+              call={async (body) => {
+                const result = await call(body, life.current?.signal);
+                if ((body.action === "boundary" || body.action === "retract") && life.current) await restore(life.current.signal);
+                return result;
+              }}
+            />
+          )}
           </div>
         </DialogContent>
     </Dialog>

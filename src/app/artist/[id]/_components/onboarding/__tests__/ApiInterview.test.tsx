@@ -432,3 +432,16 @@ it('loads the remaining checked bank on explicit legacy Resume before accepting 
   expect(screen.getByText(next.question)).toBeVisible();
   expect(screen.queryByText(/Preparing your questions|Opening your question|Saving your interview/)).not.toBeInTheDocument();
 });
+
+it("shows preferences inside the same dialog and preserves the unfinished answer on Back", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "My unfinished words" } });
+  fireEvent.click(screen.getByRole("button", { name: "Topic preferences" }));
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  expect(screen.getByRole("dialog", { name: "Topic preferences" })).toContainElement(screen.getByRole("button", { name: "Back to interview" }));
+  expect(screen.queryByRole("textbox", { name: "Your answer" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
+  expect(screen.getByRole("textbox", { name: "Your answer" })).toHaveValue("My unfinished words");
+});

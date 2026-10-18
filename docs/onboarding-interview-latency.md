@@ -90,3 +90,11 @@ is readable before its private session exists, so the page can notice readiness.
 The successful Finish notification describes the completed session even when the API has
 already prepared a private next-session handoff. API-side repeat prewarming is tracked in
 MusicNerdAPI PR #56; it must not recursively create unused interviews or write on page reads.
+
+### Topic preferences layout
+
+Topic preferences replaces the interview body within the existing dialog. Back returns to the
+same question and unfinished answer. The form uses the interview's bounded scroll area and
+shared controls, rather than an anchored popover that can extend above the viewport. Session
+scope is labeled “For this session.” Verify one dialog, draft preservation, and usable controls
+on desktop and mobile in both themes.
