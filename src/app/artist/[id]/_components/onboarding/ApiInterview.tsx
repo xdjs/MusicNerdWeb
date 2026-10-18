@@ -167,7 +167,7 @@ export default function ApiInterview({
         setOpen(false);
         toast({
           title: "Interview finished",
-          description: result.session?.questions.some((question) => question.state === "answered")
+          description: state?.session?.questions.some((question) => question.state === "answered")
             ? "Your saved responses are kept in your profile."
             : "You can start another interview when you’re ready.",
         });
@@ -209,6 +209,7 @@ export default function ApiInterview({
     legacy = state?.legacyOffers ?? [];
   const offered =
     legacy[0] ?? (session?.interviewInvalidated ? undefined : session?.questions.find((q) => q.state === "offered"));
+  const readyToStart = session?.state === "active" && session.questions.length === 0 && preparationStatus === "ready";
   const origin = offered ?? session?.questions.at(-1);
   const draftKey = offered ? `mn-api-interview-draft:${JSON.stringify([scope, offered.id])}` : null;
   useEffect(() => {
@@ -336,7 +337,7 @@ export default function ApiInterview({
                     ? "Your interview is open."
                     : "Your response is saved."}
               </p>
-              {session.questions.length < 3 && !session.interviewInvalidated && (
+              {session.questions.length < 3 && !session.interviewInvalidated && !readyToStart && (
                 <button
                   type="button"
                   className={button}
@@ -359,7 +360,7 @@ export default function ApiInterview({
               Prepare interview
             </button>
           )}
-          {session?.state === "active" && !offered && (
+          {session?.state === "active" && session.questions.length > 0 && !offered && (
             <div>
               <button
                 type="button"
@@ -374,7 +375,13 @@ export default function ApiInterview({
 
             </div>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-black/10 pt-5 dark:border-white/10">
+          <div className={readyToStart ? "flex flex-wrap items-center gap-3 pt-2" : "mt-6 flex flex-wrap items-center gap-2 border-t border-black/10 pt-5 dark:border-white/10"}>
+          {readyToStart && (
+            <button type="button" className={button} disabled={busy}
+              onClick={() => void mutate({ action: "continue", sessionId: session.id })}>
+              Start interview
+            </button>
+          )}
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}

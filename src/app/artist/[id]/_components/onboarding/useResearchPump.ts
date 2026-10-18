@@ -34,6 +34,7 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
         let stopped = false;
         let idle = 0;
         let inFlight = false;
+        let continuation: ReturnType<typeof setTimeout> | undefined;
 
         const tick = async () => {
             if (stopped || inFlight) return;
@@ -49,6 +50,11 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
                 // Stop after a few empty ticks. A page left open for an hour
                 // should not keep asking a question the answer to which has
                 // been "nothing to do" since the first minute.
+                // A completed checkpoint can resume immediately; readiness waits,
+                // failures and empty leases retain the normal polling interval.
+                if (!stopped && res.ok && kind === "interview_prepare" && data?.ran && data.done === false && data.progress === "preparing") {
+                    continuation = setTimeout(() => void tick(), 100);
+                }
                 idle = data?.ran ? 0 : idle + 1;
                 if (idle >= IDLE_TICKS_BEFORE_STOP) { stopped = true; clearInterval(id); }
             } catch { /* background work; never surfaced */ }
@@ -57,6 +63,6 @@ export function useResearchPump(artistId: string | undefined, enabled: boolean |
 
         const id = setInterval(() => void tick(), TICK_MS);
         void tick();
-        return () => { stopped = true; clearInterval(id); };
+        return () => { stopped = true; clearInterval(id); clearTimeout(continuation); };
     }, [artistId, enabled, onProgress, kind]);
 }

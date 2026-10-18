@@ -354,6 +354,9 @@ it("shows how many questions are prepared before starting the session", async ()
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
   expect(await screen.findByText("3 questions ready. Answer at your own pace.")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Finish interview" })).not.toBeInTheDocument();
+  const start = screen.getAllByRole("button", { name: "Start interview" }).find(button => button.closest('[role="dialog"]'))!;
+  expect(start.parentElement).toContainElement(screen.getByRole("button", { name: "Topic preferences" }));
 });
 
 it("uses the prepared next question after saving instead of requesting generation", async () => {

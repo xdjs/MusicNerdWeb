@@ -71,5 +71,19 @@ New topic instructions invalidate the already offered bank and stop advancement;
 answers remain intact. Finish is explicit, and session-scoped instructions end with it.
 Future preparation uses new answers; the current fixed set is not regenerated between saves.
 
-Fresh-claim preparation handoff is still under review: existing decisions require interview
-opt-in. Page reads must remain read-only regardless of the eventual setup trigger.
+Fresh-claim preparation is automatic after approval once usable saved research is ready,
+per the October 17 decision. Start remains opt-in, and page reads remain read-only.
+
+## Returning artists and ready-state controls — 2026-10-17 (unreleased)
+
+The fresh-claim test does not establish repeat-session latency. Pete's existing-history
+session exposed a null batch draft followed by expensive sequential fallback work and a
+polling gap. Verify repeat preparation against the artist's accumulated history as well
+as a fresh claimant. A completed worker checkpoint resumes promptly; readiness waits and
+failed/empty work retain the ordinary polling interval, with no concurrent requests.
+
+Before any questions are offered, the ready state has Start interview and Topic preferences
+in a single wrapping action row. Finish is shown only after a session has offered questions.
+The successful Finish notification describes the completed session even when the API has
+already prepared a private next-session handoff. API-side repeat prewarming is tracked in
+MusicNerdAPI PR #56; it must not recursively create unused interviews or write on page reads.
