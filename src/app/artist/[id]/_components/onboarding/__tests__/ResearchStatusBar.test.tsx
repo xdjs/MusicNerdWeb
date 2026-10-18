@@ -31,6 +31,11 @@ describe("ResearchStatusBar", () => {
     it("says which of the three steps is running, and sweeps only the running segment", () => {
         const { container } = render(<ResearchStatusBar {...base} steps={{ ...none, profiles: "t1" }} currentStep="vault" />);
         expect(screen.getByText("2 of 3")).toBeInTheDocument();
+        const pill = screen.getByRole("button", { name: /reading what’s written about you/ });
+        const dot = pill.querySelector("span.h-2.w-2");
+        expect(dot).toHaveClass("bg-highlightpink", "dark:bg-pastyblue");
+        expect(pill.className).toContain("theme(colors.highlightpink)");
+        expect(pill.className).toContain("theme(colors.pastyblue)");
         const segments = container.querySelectorAll("[data-segment]");
         expect([...segments].map(s => s.getAttribute("data-segment"))).toEqual(["done", "active", "waiting"]);
         expect(segments[1].querySelector(".motion-safe\\:animate-research-sweep")).not.toBeNull();

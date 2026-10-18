@@ -75,6 +75,10 @@ is confirmed. The approved design is linked from the issue.
 > step count and a "Tap to follow along" hint. Sweetman approved the design the same day. Tracked
 > on [#1494](https://github.com/xdjs/MusicNerdWeb/issues/1494).
 
+> **Correction 2026-10-18 ([#1532](https://github.com/xdjs/MusicNerdWeb/issues/1532)):**
+> light-mode research activity uses `highlightpink` (`#ff75d8`) for the active segment track
+> and sweep, progress-pill glow, and status dot. Dark mode remains `pastyblue`.
+
 ## When it shows
 
 `page.tsx` fetches the onboarding state from MusicNerdAPI (`fetchOnboardingState`) for the
@@ -133,7 +137,7 @@ a build is being watched and its step has no confirmation time; otherwise it ren
   doesn't flash before the pill mounts; on that visit it stays hidden under the step-card modal
   and its banner too, until research completes. It carries the current step (`buildStepLabel`, announced politely), its place ("1 of 3"), and three
   segments (Links, Lore, About: done, running or waiting; `interview` counts as About). The running
-  segment sweeps and the pill has a soft glow (`pastypink` in light, `pastyblue` in dark), so it
+  segment sweeps and the pill has a soft glow (`highlightpink` in light, `pastyblue` in dark), so it
   reads as live. Until the artist first taps it, a "Tap to follow along" hint with a bouncing arrow
   sits above it (Pete, 2026-10-12: "the person wouldn't have known to click that"). Tapping the hint
   does what tapping the pill does (Sweetman, 2026-10-12 preview test); it is out of the tab order and
@@ -175,6 +179,14 @@ the existing **Try again** control remains available. Signing out or leaving the
 this wait prevents a late request. API authorization is unchanged; an actual rejected request
 is never automatically replayed.
 
+## Reviewing the loading colors
+
+For color review ([#1532](https://github.com/xdjs/MusicNerdWeb/issues/1532)),
+`/dev/research-preview` renders the actual progress pill and skeleton components with fixed
+sample state in development and Vercel previews. It starts no research jobs and changes no
+artist data. The route returns 404 in production. This fixture checks appearance; it does
+not establish live claim-build or production acceptance.
+
 ## After research: optional support links
 
 The completed page's `ProfileTour` runs after the build, once onboarding is complete. On its Links
@@ -211,7 +223,7 @@ offer an interview. The parameter has no effect in production.
 ## Rules
 
 - **Tokens only.** `bg-background`, `text-foreground`, `border` and the stock radii; dark mode
-  follows the tokens. The activity colour is `pastypink` in light and `pastyblue` in dark (the dot,
+  follows the tokens. The activity colour is `highlightpink` in light and `pastyblue` in dark (the dot,
   the running segment, the pill's glow); the follow hint uses the action pink, `highlightpink`, with
   black text. Muted text reads the token directly (`text-[hsl(var(--muted-foreground))]`), because
   `globals.css` forces `.dark .text-muted-foreground` to white with `!important` (DESIGN.md,

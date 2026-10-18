@@ -14,7 +14,7 @@ import { showResearchSection } from "./showResearchSection";
 const PLACE = "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-40 max-w-[calc(100vw-2rem)] sm:right-8";
 
 /** The soft activity-coloured glow that says the pill is live. */
-const GLOW = "shadow-[0_0_0_1px_theme(colors.pastypink),0_0_18px_theme(colors.pastypink/30%),0_8px_24px_rgba(0,0,0,0.2)] dark:shadow-[0_0_0_1px_theme(colors.pastyblue),0_0_18px_theme(colors.pastyblue/25%),0_8px_24px_rgba(0,0,0,0.4)]";
+const GLOW = "shadow-[0_0_0_1px_theme(colors.highlightpink),0_0_18px_theme(colors.highlightpink/30%),0_8px_24px_rgba(0,0,0,0.2)] dark:shadow-[0_0_0_1px_theme(colors.pastyblue),0_0_18px_theme(colors.pastyblue/25%),0_8px_24px_rgba(0,0,0,0.4)]";
 
 /**
  * The progress pill while research paints the profile in place
@@ -55,7 +55,7 @@ export default function ResearchStatusBar({ steps, currentStep, complete, failur
                 onClick={follow}
                 className={`flex min-h-[52px] w-[21rem] max-w-full flex-col justify-center gap-2 rounded-2xl bg-background px-4 py-2.5 text-left ${GLOW} transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
                 <span className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
-                    <span className="h-2 w-2 flex-none rounded-full bg-pastypink motion-safe:animate-pulse dark:bg-pastyblue" aria-hidden="true" />
+                    <span className="h-2 w-2 flex-none rounded-full bg-highlightpink motion-safe:animate-pulse dark:bg-pastyblue" aria-hidden="true" />
                     <span aria-live="polite" className="min-w-0 flex-1 truncate">{buildStepLabel(currentStep)}…</span>
                     <ResearchStepCount segments={segments} />
                     <span className="sr-only">, show me</span>
