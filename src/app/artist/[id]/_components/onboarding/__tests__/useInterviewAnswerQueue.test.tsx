@@ -30,3 +30,27 @@ it("restores an unconfirmed response after remount and never clears a mismatched
   await waitFor(() => expect(result.current.entries).toHaveLength(0));
   expect(call.mock.calls[1][0]).toEqual(first);
 });
+it.each(['{broken', '{"old":"format"}'])("recovers invalid storage through Retry without losing its original contents: %s", async (raw) => {
+  const key = "mn-interview-outbox:scope";
+  localStorage.setItem(key, raw);
+  const call = jest.fn().mockResolvedValue(ack(first));
+  const { result } = renderHook(() => useInterviewAnswerQueue("scope", call, jest.fn()));
+  expect(result.current.failure).toBeTruthy();
+  act(() => result.current.retry());
+  expect(result.current.ready).toBe(true);
+  expect(result.current.failure).toBeNull();
+  expect(Object.keys(localStorage).some(k => k.startsWith(`${key}:recovery:`) && localStorage.getItem(k) === raw)).toBe(true);
+  act(() => { expect(result.current.enqueue(first)).toBe(true); });
+  await waitFor(() => expect(result.current.entries).toHaveLength(0));
+});
+it("retries restoration when browser storage becomes accessible again", async () => {
+  const get = jest.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => { throw Error("blocked"); });
+  const call = jest.fn().mockResolvedValue(ack(first));
+  const { result } = renderHook(() => useInterviewAnswerQueue("scope", call, jest.fn()));
+  expect(result.current.ready).toBe(false);
+  get.mockRestore();
+  act(() => result.current.retry());
+  expect(result.current.ready).toBe(true);
+  act(() => { expect(result.current.enqueue(first)).toBe(true); });
+  await waitFor(() => expect(result.current.entries).toHaveLength(0));
+});

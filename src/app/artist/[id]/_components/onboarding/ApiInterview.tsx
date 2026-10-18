@@ -407,7 +407,7 @@ export default function ApiInterview({
             <SlidersHorizontal size={14} aria-hidden="true" /> Topic preferences
           </button>}
           {!!session?.questions.some((q) => q.state !== "offered") && (
-            <button type="button" className={dialogStyles.utilityButton} onClick={() => setView("responses")}>
+            <button type="button" className={dialogStyles.utilityButton} disabled={busy || answers.entries.length > 0} onClick={() => setView("responses")}>
               <MessageSquare size={14} aria-hidden="true" />
               Your responses <span className="text-muted-foreground">· {session.questions.filter(q => q.state !== "offered").length}</span>
             </button>
@@ -429,7 +429,7 @@ export default function ApiInterview({
                   <p className="mb-2 text-xs text-muted-foreground">Question {index + 1}</p>
                   <h3 className="text-sm font-semibold leading-relaxed">{q.question}</h3>
                   <div className="mt-3">
-                    {q.answer !== null ? <InterviewResponseCard artistId={artistId} response={{ ...q, answer: q.answer }} inline onUnsavedChange={trackUnsavedResponse}
+                    {answers.entries.some(entry => entry.answerId === q.id) ? <p className="text-sm text-muted-foreground">Waiting for save confirmation.</p> : q.answer !== null ? <InterviewResponseCard artistId={artistId} response={{ ...q, answer: q.answer }} inline onUnsavedChange={trackUnsavedResponse}
                       onSaved={(saved) => {
                         revision.current++;
                         setStored(previous => previous?.scope === scope && previous.state.session ? {
