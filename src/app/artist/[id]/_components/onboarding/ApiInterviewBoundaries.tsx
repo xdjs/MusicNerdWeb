@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import dialogStyles from "./ApiInterviewDialog.module.css";
 import scopeStyles from "./ApiInterviewScope.module.css";
 import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -69,14 +71,6 @@ export default function ApiInterviewBoundaries({
       setPending(false);
     }
   };
-  const toggle = async () => {
-    if (open) {
-      setOpen(false);
-      return;
-    }
-    setOpen(true);
-    await restore();
-  };
   const save = async () => {
     if (pending || busy || !wording.trim() || !questionKey) return;
     setPending(true);
@@ -126,19 +120,20 @@ export default function ApiInterviewBoundaries({
   const button =
     "min-h-11 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40";
   return (
-    <div>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) void restore(); }}>
+      <PopoverTrigger asChild>
       <button
         type="button"
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
+        className={dialogStyles.utilityButton}
         disabled={busy || pending}
         aria-expanded={open}
-        onClick={() => void toggle()}
       >
+        <SlidersHorizontal size={14} aria-hidden="true" />
         Topic preferences
-        <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180" : ""} />
       </button>
-      {open && (
-        <div className="mt-4 space-y-4">
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" sideOffset={12} collisionPadding={16} aria-label="Topic preferences" className={`${dialogStyles.utilityPanel} space-y-4`}>
+          <h3 className="text-sm font-semibold">Topic preferences</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Tell the interviewer what to leave out or how to approach a topic.
             Your exact words stay active for the scope you choose.
@@ -248,8 +243,7 @@ export default function ApiInterviewBoundaries({
               once a question is available.
             </p>
           )}
-        </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

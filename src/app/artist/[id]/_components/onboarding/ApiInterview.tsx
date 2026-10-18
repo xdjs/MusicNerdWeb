@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MessageCircleQuestion, LoaderCircle, ChevronDown } from "lucide-react";
+import { MessageCircleQuestion, LoaderCircle, MessageSquare } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -373,7 +374,7 @@ export default function ApiInterview({
 
             </div>
           )}
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-black/10 pt-5 dark:border-white/10">
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
@@ -387,11 +388,15 @@ export default function ApiInterview({
             />
           )}
           {!!session?.questions.some((q) => q.state !== "offered") && (
-            <details className="group">
-              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink [&::-webkit-details-marker]:hidden">
-                This session’s responses
-                <ChevronDown size={16} aria-hidden="true" className="group-open:rotate-180" />
-              </summary>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className={dialogStyles.utilityButton}>
+                  <MessageSquare size={14} aria-hidden="true" />
+                  Your responses <span className="text-muted-foreground">· {session.questions.filter(q => q.state !== "offered").length}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="end" sideOffset={12} collisionPadding={16} aria-label="Your responses" className={dialogStyles.utilityPanel}>
+                <h3 className="text-sm font-semibold">Your responses</h3>
               <ol className="mt-4 space-y-4">
                 {session.questions
                   .filter((q) => q.state !== "offered")
@@ -404,7 +409,8 @@ export default function ApiInterview({
                     </li>
                   ))}
               </ol>
-            </details>
+              </PopoverContent>
+            </Popover>
           )}
           </div>
         </div>

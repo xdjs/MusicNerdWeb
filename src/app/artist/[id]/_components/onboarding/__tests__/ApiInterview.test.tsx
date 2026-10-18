@@ -96,7 +96,7 @@ it("saves exact words and waits for Continue before preparing the next question"
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   const input = await screen.findByLabelText("Your answer");
   fireEvent.change(input, { target: { value: "  Exact words. 🥁  " } });
-  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
   await screen.findByRole("button", { name: "Prepare next question" });
   expect(
     JSON.parse(jest.mocked(fetch).mock.calls[1][1]?.body as string),
@@ -113,7 +113,7 @@ it("retains exact queued words after failure and retries without overwriting the
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Keep these words." } });
-  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
   await screen.findByRole("alert");
   expect(localStorage.getItem(`mn-interview-outbox:${artist}:account`)).toContain("Keep these words.");
   jest.mocked(fetch).mockResolvedValue(reply({ ...active, session: { ...active.session, questions: [{ ...question, state: "answered", answer: "Keep these words." }] } }) as Response);
@@ -239,7 +239,7 @@ it("allows closing during a save while keeping the durable answer intent", async
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Still saving" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(localStorage.getItem(`mn-interview-outbox:${artist}:account`)).toContain("Still saving");
@@ -283,7 +283,7 @@ it("closes only after Finish succeeds and confirms the saved responses", async (
   jest.mocked(fetch).mockResolvedValueOnce(reply(answered) as Response).mockResolvedValueOnce(reply({ ...answered, session: { ...answered.session, state: "finished", closedAt: "2026-10-17" } }) as Response);
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Interview" }));
-  expect(screen.getByText("This session’s responses")).toBeInTheDocument();
+  expect(screen.getByText("Your responses")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Interview finished", description: "Your saved responses are kept in your profile." }));
@@ -297,6 +297,7 @@ it("keeps the session and saved responses open when Finish fails", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("dialog")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
   expect(screen.getByText("Keep my answer")).toBeInTheDocument();
   expect(mockToast).not.toHaveBeenCalled();
 });
@@ -306,7 +307,7 @@ it("keeps every interview action in one scroll region below the header", async (
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   const body = screen.getByRole("region", { name: "Interview responses and controls" });
-  for (const name of ["Save answer", "Skip question"]) {
+  for (const name of ["Save & continue", "Skip"]) {
     expect(body).toContainElement(screen.getByRole("button", { name }));
   }
   expect(body).not.toContainElement(screen.getByRole("heading", { name: "A few questions" }));
@@ -374,7 +375,7 @@ it("uses the prepared next question after saving instead of requesting generatio
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "My own words" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
   fireEvent.click(await screen.findByRole("button", { name: "Next question" }));
   expect(await screen.findByText("How did you decide on that recording space?")).toBeVisible();
   expect(JSON.parse(jest.mocked(fetch).mock.calls[2][1]?.body as string)).toEqual({ action: "continue", sessionId: session });
@@ -387,7 +388,7 @@ it("advances to the next offered question before a slow save completes", async (
   render(<ApiInterview artistId={artist} artistName="Artist" />);
   fireEvent.click(await screen.findByRole("button", { name: "Resume interview" }));
   fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "My exact unsaved words" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save answer" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save & continue" }));
   expect(await screen.findByText(next.question)).toBeVisible();
   expect(screen.queryByText("Saving your interview…")).not.toBeInTheDocument();
   expect(localStorage.getItem(`mn-interview-outbox:${artist}:account`)).toContain("My exact unsaved words");
