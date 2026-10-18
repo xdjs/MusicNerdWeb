@@ -316,7 +316,7 @@ it("keeps every interview action in one scroll region below the header", async (
 it("shows background preparation and allows closing without canceling the saved job", async () => {
   jest.mocked(fetch).mockResolvedValueOnce(reply(empty) as Response).mockResolvedValue(reply({...active, session: {...active.session, questions: []}, preparation: {status: "running"}}) as Response);
   render(<ApiInterview artistId={artist} artistName="Artist" />);
-  fireEvent.click(await screen.findByRole("button", {name: "Interview", exact: true}));
+  fireEvent.click(await screen.findByRole("button", {name: /^Interview$/}));
   fireEvent.click(screen.getByRole("button", {name: "Prepare interview"}));
   await screen.findByText("Preparing your questions…");
   expect(screen.getByRole("status")).toHaveTextContent("Preparing your question");
