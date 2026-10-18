@@ -61,3 +61,34 @@ The API-backed interview uses a glass entry button in the hero action row and th
 The real API controller now opens the established themed interview popup from an explicit Start/Resume action. Closing or Save for later hides it without finishing the sitting or generating a question. Typed drafts are saved in this browser, scoped to the current user/artist/question, and restored on reopening or refresh. A confirmed send or skip clears the draft. If browser storage fails, closing is blocked rather than claiming the draft was saved. Closing is prevented during an active request.
 
 The Start/Resume control lives alongside the hero profile actions. Privy readiness changes the control in place instead of inserting an invitation above the hero, so authentication refresh and browser scroll anchoring cannot strand the entry above the visible profile. No forced scrolling or automatic generation is added.
+
+### Session controls follow-up (#1422)
+
+Opening the interview dialog is read-only, including when the previous session is finished.
+Only an active session is labeled **Resume interview**. A legacy offered question without an
+active session remains accessible as **Review saved question**. Starting a fresh session requires
+**Start interview** inside the dialog; continuing an active session likewise requires **Continue
+interview**. Neither reopening nor saved-state GET invokes question generation.
+
+Successful Finish closes the popup and confirms retained responses; a failed Finish leaves the
+session and draft open. The history heading is **This session’s responses**. Short viewports use
+smaller outer gutters while the header stays visible. All content and secondary controls share
+one scroll area; a divider separates Save for later and Reload, without a fixed footer cutting
+across other actions. Bottom padding and focus scroll margins keep the final controls reachable. Browser checks must establish actual clipping behavior; Jest
+checks do not prove layout. Session restore network latency is separate from explicit generation
+latency; no model-speed claim is made by these UI changes.
+
+### Known-answer follow-up check
+
+The existing draft checker now separately assesses `addsNewInformation`. A question can be
+factually supported and never previously asked, yet request a fact already supplied by the
+artist (a genre, instrument or recording location). Such drafts fail the existing bounded
+repair loop; they cannot be preserved while only their supporting angle is repaired. Planning
+and drafting first identify an unresolved detail and prefer concrete experiences/examples.
+This adds no model stage or retrieval call and does not claim to eliminate generation latency.
+
+Run `scripts/eval/interview-information-gain.ts` with staging AI Gateway configuration to
+exercise the actual checker prompt against six synthetic fixtures (one reported failure,
+three known-fact asks total, three unresolved follow-ups). The script writes only a local
+report, never artist answers. This is a narrow editorial regression, not full interview
+quality acceptance; end-to-end generated questions still need artist review.

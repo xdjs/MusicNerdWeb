@@ -14,7 +14,7 @@ export async function callInterviewApi(
   const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
   if (
     !new RegExp(
-      `^(?:session(?:/${uuid}/(?:offer|finish))?|answers/${uuid}|boundaries(?:/${uuid}/retract)?)$`,
+      `^(?:session(?:/${uuid}/(?:offer|finish|prepare))?|answers/${uuid}|boundaries(?:/${uuid}/retract)?)$`,
       "i",
     ).test(path)
   )

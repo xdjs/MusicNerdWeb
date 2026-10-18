@@ -55,7 +55,7 @@ const request = (body?: unknown) => {
 };
 beforeEach(() => {
   jest.resetAllMocks();
-  jest.mocked(callInterviewApi).mockResolvedValue(state);
+  jest.mocked(callInterviewApi).mockImplementation(async (_config, path) => path.endsWith("/prepare") ? { status: "ok", preparation: { status: "idle" } } : state);
   jest.mocked(generateApiInterviewQuestion).mockResolvedValue({
     question: "What do you think led to that sound?",
     memorySnapshotId: "a".repeat(64),
@@ -82,6 +82,7 @@ it("lists management pages even when mandatory model memory cannot be assembled"
   jest
     .mocked(callInterviewApi)
     .mockResolvedValueOnce(state)
+    .mockResolvedValueOnce({status: "ok", preparation: {status: "idle"}})
     .mockResolvedValueOnce(page);
   const result = await handleApiInterview(
     request({ action: "boundaries", cursor: "next" }),
@@ -161,31 +162,20 @@ it("denies missing authentication before generation or API reads", async () => {
   expect(callInterviewApi).not.toHaveBeenCalled();
   expect(generateApiInterviewQuestion).not.toHaveBeenCalled();
 });
-it("starts explicitly, generates from the durable sitting and submits its exact memory snapshot", async () => {
+it("starts explicitly and queues preparation without running a model in the request", async () => {
   await handleApiInterview(
     request({ action: "start", requestId: sessionId }),
     artistId,
   );
-  expect(generateApiInterviewQuestion).toHaveBeenCalledWith(
-    expect.objectContaining({ artistId }),
-    1,
-    expect.anything(),
-  );
+  expect(generateApiInterviewQuestion).not.toHaveBeenCalled();
   expect(callInterviewApi).toHaveBeenCalledWith(
-    expect.anything(),
-    `session/${sessionId}/offer`,
-    expect.objectContaining({
-      body: {
-        ordinal: 1,
-        question: "What do you think led to that sound?",
-        memorySnapshotId: "a".repeat(64),
-        references: [],
-      },
-    }),
+    expect.anything(), `session/${sessionId}/prepare`,
+    expect.objectContaining({ body: { action: "prepare" } }),
   );
+  expect(callInterviewApi).toHaveBeenCalledTimes(2);
 });
 it("returns an already-offered question on Continue instead of regenerating it", async () => {
-  jest.mocked(callInterviewApi).mockResolvedValue({
+  jest.mocked(callInterviewApi).mockImplementation(async (_config, path) => path.endsWith("/prepare") ? {status: "ok", preparation: {status: "idle"}} : {
     ...state,
     session: {
       ...state.session,
@@ -230,7 +220,7 @@ it("rejects model-chosen scope, answer injection and raw generation failures", a
     ).status,
   ).toBe(400);
   jest
-    .mocked(generateApiInterviewQuestion)
+    .mocked(callInterviewApi)
     .mockRejectedValue(new Error("PRIVATE ORIGINAL"));
   const r = await handleApiInterview(
     request({ action: "continue", sessionId }),
@@ -250,7 +240,7 @@ it.each([
   "Interview check exceeds its context budget",
 ])("explains persistent saved-context limits: %s", async (message) => {
   jest
-    .mocked(generateApiInterviewQuestion)
+    .mocked(callInterviewApi)
     .mockRejectedValue(new Error(message));
   const response = await handleApiInterview(
     request({ action: "continue", sessionId }),
@@ -269,7 +259,7 @@ it.each([
 });
 it("preserves a context-limit HTTP status without classifying transient failures by a loose keyword", async () => {
   jest
-    .mocked(generateApiInterviewQuestion)
+    .mocked(callInterviewApi)
     .mockRejectedValue(
       Object.assign(new Error("Mandatory memory exceeds its context budget"), {
         status: 413,
@@ -284,7 +274,7 @@ it("preserves a context-limit HTTP status without classifying transient failures
     ).status,
   ).toBe(413);
   jest
-    .mocked(generateApiInterviewQuestion)
+    .mocked(callInterviewApi)
     .mockRejectedValue(new Error("A provider budget service timed out"));
   const response = await handleApiInterview(
     request({ action: "continue", sessionId }),
@@ -294,4 +284,11 @@ it("preserves a context-limit HTTP status without classifying transient failures
   expect(response.status).toBe(503);
   expect(result.error).toContain("reload and try again");
   expect(result.error).not.toContain("provider");
+});
+
+it("consumes a prepared candidate without generating a replacement", async () => {
+  const response = await handleApiInterview(request({action: "continue", sessionId}), artistId);
+  expect(response.status).toBe(200);
+  expect(callInterviewApi).toHaveBeenCalledWith(expect.anything(), `session/${sessionId}/prepare`, expect.objectContaining({body: {action: "consume"}}));
+  expect(generateApiInterviewQuestion).not.toHaveBeenCalled();
 });

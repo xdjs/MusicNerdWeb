@@ -1,5 +1,10 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import ApiInterviewBoundaries from "../ApiInterviewBoundaries";
+import { useState, type ComponentProps } from "react";
+import Boundaries from "../ApiInterviewBoundaries";
+function ApiInterviewBoundaries(props: Omit<ComponentProps<typeof Boundaries>, "open" | "onBack">) {
+  const [open, setOpen] = useState(false);
+  return <><button onClick={() => setOpen(true)}>Topic preferences</button><Boundaries {...props} open={open} onBack={() => setOpen(false)} /></>;
+}
 beforeAll(() => { HTMLElement.prototype.scrollIntoView = jest.fn(); });
 const id = "11111111-1111-4111-8111-111111111111",
   revision = "a".repeat(64);
@@ -33,7 +38,7 @@ it("restores exact instructions and retracts only the selected saved revision", 
     revision,
   });
 });
-it.each([["sitting", "For this sitting"], ["until_retracted", "Until I remove it"]])("keeps exact wording and explicit %s scope when the artist saves", async (scope, label) => {
+it.each([["sitting", "For this session"], ["until_retracted", "Until I remove it"]])("keeps exact wording and explicit %s scope when the artist saves", async (scope, label) => {
   const call = jest
     .fn()
     .mockResolvedValueOnce(page([]))

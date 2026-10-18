@@ -901,3 +901,41 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .artist-carousel-card::after { transition: none; }
 }
+
+/* Compact owner actions; labels expand smoothly on desktop. Touch targets invoke directly without a first-tap reveal. */
+.profile-reveal-action {
+  position: relative;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  gap: 0;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+.profile-reveal-action > svg { flex-shrink: 0; }
+.profile-reveal-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 640px) {
+  .profile-reveal-action {
+    transition: width 180ms ease-out, background-color 150ms ease-out;
+  }
+  .profile-reveal-action:hover, .profile-reveal-action:focus-visible {
+    width: 188px;
+  }
+  .profile-reveal-action:hover .profile-reveal-label,
+  .profile-reveal-action:focus-visible .profile-reveal-label {
+    max-width: 146px;
+    opacity: 1;
+    margin-left: 8px;
+  }
+  .profile-reveal-label { transition: opacity 150ms ease-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-reveal-action, .profile-reveal-label { transition: none; }
+}

@@ -52,7 +52,7 @@ export default function ApiInterviewQuestion({
           disabled={busy || !answer.trim()}
           onClick={() => void onAnswer(answer)}
         >
-          Save answer
+          Save & continue
         </button>
         <button
           type="button"
@@ -60,7 +60,7 @@ export default function ApiInterviewQuestion({
           disabled={busy}
           onClick={() => void onAnswer(null)}
         >
-          Skip question
+          Skip
         </button>
       </div>
     </div>

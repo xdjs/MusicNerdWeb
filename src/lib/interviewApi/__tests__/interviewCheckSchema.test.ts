@@ -6,6 +6,7 @@ const globals = {
   faithfulToLatestAnswer: true,
   respectsBoundaries: true,
   novelAgainstHistory: true,
+  addsNewInformation: true,
   oneClearAsk: true,
   reason: "All factual premises audited.",
 };
@@ -68,4 +69,10 @@ it("bounds the audit to eight compact items and rejects unsupported status label
       interviewCheckSchema.safeParse({ ...globals, premiseAudit: invalid })
         .success,
     ).toBe(false);
+});
+
+it("requires an explicit judgment that the requested detail is not already answered", () => {
+  const verdict: Record<string, unknown> = { ...globals, premiseAudit: audit };
+  delete verdict.addsNewInformation;
+  expect(interviewCheckSchema.safeParse(verdict).success).toBe(false);
 });

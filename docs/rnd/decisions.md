@@ -279,3 +279,7 @@ Raised, not settled. Move up into a dated section when they close.
   time limit and the slicing, and add infrastructure we do not otherwise run. Not urgent while
   volume is low; the thing to watch is whether artists wait noticeably for a profile. Raised by
   Carl. *(9/2)*
+
+## October 17, 2026 — Private interview preparation after claim approval
+
+Pete approved automatically preparing a private question bank after claim approval once usable research is ready, including reused directory research. This supersedes the earlier opt-in requirement for preparation only: artists still explicitly choose Start interview. No automatic popup, question offers, or generation on profile reads. Saving an answer advances through the prepared bank while persistence completes in the background.

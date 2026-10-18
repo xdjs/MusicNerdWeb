@@ -15,12 +15,12 @@ export default function EditModeToggle({ compactOnMobile = false }: { compactOnM
             onClick={toggle}
             disabled={isSaving}
             data-testid="edit-mode-toggle"
-            className={compactOnMobile ? "px-3 sm:px-4" : undefined}
+            className={compactOnMobile && !isEditing ? "profile-reveal-action" : undefined}
             aria-label={compactOnMobile ? (isSaving ? "Saving profile" : isEditing ? "Done editing profile" : "Edit profile") : undefined}
             title={isSaving ? "Saving profile" : isEditing ? "Done editing profile" : "Edit profile"}
         >
             {isEditing ? <Check size={16} aria-hidden="true" /> : <Pencil size={16} aria-hidden="true" />}
-            <span>{isSaving ? "Saving…" : isEditing ? "Done" : "Edit profile"}</span>
+            <span className={compactOnMobile && !isEditing ? "profile-reveal-label" : undefined}>{isSaving ? "Saving…" : isEditing ? "Done" : "Edit profile"}</span>
         </Button>
     );
 }
