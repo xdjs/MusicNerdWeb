@@ -56,3 +56,20 @@ ready, eligible questions. Validate the full answer → next → finish flow on 
 Remove the nested Preferences & responses wrapper. Topic preferences and This session’s
 responses are direct, matching expandable controls, separated by whitespace rather than
 dividers touching their edges. Verify the rendered layout on desktop and phone.
+
+## Immediate transitions — 2026-10-17 (unreleased)
+
+At explicit Start the API atomically offers the checked three-question bank, fixing all
+offer timestamps then. Web already has the next question: saving or skipping persists an
+exact answer intent in an account/artist-scoped browser outbox and advances immediately.
+A serialized background writer confirms each response; no model call, loading screen or
+Next button interrupts the fixed set. Responses remain local until the server acknowledges
+the exact answer. Failed saves show a retry without losing words; Finish and preference
+changes wait for all responses to be confirmed. Reload replays unconfirmed intents safely.
+
+New topic instructions invalidate the already offered bank and stop advancement; saved
+answers remain intact. Finish is explicit, and session-scoped instructions end with it.
+Future preparation uses new answers; the current fixed set is not regenerated between saves.
+
+Fresh-claim preparation handoff is still under review: existing decisions require interview
+opt-in. Page reads must remain read-only regardless of the eventual setup trigger.

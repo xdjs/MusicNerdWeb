@@ -26,6 +26,7 @@ export const interviewSessionStateSchema = z.object({
   session: z
     .object({
       id: z.string().uuid(),
+      interviewInvalidated: z.boolean().optional(),
       sitting: z.number().int().positive(),
       state: z.enum(["active", "finished"]),
       createdAt: z.string(),
@@ -35,6 +36,7 @@ export const interviewSessionStateSchema = z.object({
     .nullable(),
   legacyOffers: z.array(sessionQuestionSchema).max(3),
   preparation: interviewPreparationSchema.optional(),
+  savedQuestion: sessionQuestionSchema.optional(),
 });
 export type SessionQuestion = z.infer<typeof sessionQuestionSchema>;
 export type InterviewSessionState = z.infer<typeof interviewSessionStateSchema>;

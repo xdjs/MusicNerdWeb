@@ -1,0 +1,32 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { useInterviewAnswerQueue } from "../useInterviewAnswerQueue";
+const first = { action: "answer" as const, answerId: "11111111-1111-4111-8111-111111111111", expectedRevision: "a".repeat(64), answer: "Exact first words" };
+const second = { ...first, answerId: "22222222-2222-4222-8222-222222222222", answer: "Exact second words" };
+const ack = (intent: typeof first) => ({ status: "ok", session: null, legacyOffers: [], savedQuestion: { id: intent.answerId, questionKey: "key", question: "Question?", answer: intent.answer, state: "answered", revision: "b".repeat(64), sitting: 1, offeredAt: "2026-10-17", answerUpdatedAt: "2026-10-17", ordinal: 1, references: [] } });
+beforeEach(() => localStorage.clear());
+it("serializes rapid responses while preserving both locally until exact acknowledgements", async () => {
+  let resolveFirst!: (value: unknown) => void;
+  const call = jest.fn().mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; })).mockResolvedValueOnce(ack(second));
+  const confirmed = jest.fn();
+  const { result } = renderHook(() => useInterviewAnswerQueue("scope", call, confirmed));
+  act(() => { result.current.enqueue(first); result.current.enqueue(second); });
+  expect(call).toHaveBeenCalledTimes(1);
+  expect(result.current.entries).toHaveLength(2);
+  expect(localStorage.getItem("mn-interview-outbox:scope")).toContain(second.answer);
+  await act(async () => resolveFirst(ack(first)));
+  await waitFor(() => expect(result.current.entries).toHaveLength(0));
+  expect(call.mock.calls.map(([intent]) => intent.answer)).toEqual([first.answer, second.answer]);
+  expect(confirmed).toHaveBeenCalledTimes(2);
+});
+it("restores an unconfirmed response after remount and never clears a mismatched acknowledgement", async () => {
+  localStorage.setItem("mn-interview-outbox:scope", JSON.stringify([first]));
+  const call = jest.fn().mockResolvedValueOnce(ack(second)).mockResolvedValueOnce(ack(first));
+  const confirmed = jest.fn();
+  const { result } = renderHook(() => useInterviewAnswerQueue("scope", call, confirmed));
+  await waitFor(() => expect(result.current.failure).toBeTruthy());
+  expect(result.current.entries).toEqual([first]);
+  expect(confirmed).not.toHaveBeenCalled();
+  act(() => result.current.retry());
+  await waitFor(() => expect(result.current.entries).toHaveLength(0));
+  expect(call.mock.calls[1][0]).toEqual(first);
+});

@@ -12,6 +12,7 @@ import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema
 import ApiInterviewQuestion from "./ApiInterviewQuestion";
 import ApiInterviewBoundaries from "./ApiInterviewBoundaries";
 import dialogStyles from "./ApiInterviewDialog.module.css";
+import { useInterviewAnswerQueue } from "./useInterviewAnswerQueue";
 import { useResearchPump } from "./useResearchPump";
 /** Explicit interview actions backed by API sessions; mounting only restores saved state. */
 export default function ApiInterview({
@@ -40,9 +41,7 @@ export default function ApiInterview({
     [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [opening, setOpening] = useState(false);
-  const state = stored?.scope === scope ? stored.state : null;
-  const preparationStatus = state?.preparation?.status;
-  const queued = preparationStatus === "pending" || preparationStatus === "running";
+  const serverState = stored?.scope === scope ? stored.state : null;
 
   const call = useCallback(
     async (body?: InterviewRequest, signal?: AbortSignal) => {
@@ -70,6 +69,23 @@ export default function ApiInterview({
     },
     [artistId, getAccessToken],
   );
+  const confirmAnswer = useCallback((result: InterviewSessionState) => {
+    revision.current++;
+    setStored({ scope, state: result });
+  }, [scope]);
+  const answers = useInterviewAnswerQueue(scope, call, confirmAnswer);
+  const state = serverState && {
+    ...serverState,
+    session: serverState.session && {
+      ...serverState.session,
+      questions: serverState.session.questions.map((question) => {
+        const intent = answers.entries.find((entry) => entry.answerId === question.id);
+        return intent ? { ...question, answer: intent.answer, state: intent.answer === null ? "skipped" as const : "answered" as const } : question;
+      }),
+    },
+  };
+  const preparationStatus = state?.preparation?.status;
+  const queued = preparationStatus === "pending" || preparationStatus === "running";
   const restore = useCallback(
     async (signal: AbortSignal) => {
       const observedRevision = revision.current;
@@ -191,7 +207,7 @@ export default function ApiInterview({
   const session = state?.session,
     legacy = state?.legacyOffers ?? [];
   const offered =
-    legacy[0] ?? session?.questions.find((q) => q.state === "offered");
+    legacy[0] ?? (session?.interviewInvalidated ? undefined : session?.questions.find((q) => q.state === "offered"));
   const origin = offered ?? session?.questions.at(-1);
   const draftKey = offered ? `mn-api-interview-draft:${JSON.stringify([scope, offered.id])}` : null;
   useEffect(() => {
@@ -265,6 +281,10 @@ export default function ApiInterview({
           {error}
         </p>
       )}
+      {answers.failure && <div role="alert" className="my-4 space-y-3 rounded-xl border border-amber-600/40 p-3 text-sm">
+        <p>{answers.failure}</p>
+        <button type="button" onClick={answers.retry} className="min-h-11 rounded-xl border border-input px-4 py-2.5 font-medium focus-visible:ring-2 focus-visible:ring-pastypink">Retry saving</button>
+      </div>}
       {(busy || queued) && (
         <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
           <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
@@ -288,12 +308,13 @@ export default function ApiInterview({
               busy={busy}
               call={(body) => call(body, life.current?.signal)}
               onAnswer={async (answer) => {
-                const saved = await mutate({
+                const saved = answers.enqueue({
                   action: "answer",
                   answerId: offered.id,
                   expectedRevision: offered.revision,
                   answer,
                 });
+                if (saved) revision.current++;
                 if (saved && draftKey) {
                   setDraft(null);
                   try { localStorage.removeItem(draftKey); } catch { /* The saved answer remains authoritative. */ }
@@ -304,7 +325,9 @@ export default function ApiInterview({
           ) : session?.state === "active" ? (
             <>
               <p className="text-sm">
-                {session.questions.length >= 3
+                {session.interviewInvalidated
+                  ? "Your topic preferences changed. Finish this session to prepare new questions. Session-only preferences end when you finish."
+                  : session.questions.length >= 3
                   ? "That’s three questions. Thanks for sharing your story."
                   : preparationStatus === "ready" && state.preparation?.readyCount
                     ? `${state.preparation.readyCount} ${state.preparation.readyCount === 1 ? "question" : "questions"} ready. Answer at your own pace.`
@@ -312,7 +335,7 @@ export default function ApiInterview({
                     ? "Your interview is open."
                     : "Your response is saved."}
               </p>
-              {session.questions.length < 3 && (
+              {session.questions.length < 3 && !session.interviewInvalidated && (
                 <button
                   type="button"
                   className={button}
@@ -340,7 +363,7 @@ export default function ApiInterview({
               <button
                 type="button"
                 className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40"
-                disabled={busy}
+                disabled={busy || answers.entries.length > 0}
                 onClick={() =>
                   void mutate({ action: "finish", sessionId: session.id })
                 }
@@ -355,8 +378,12 @@ export default function ApiInterview({
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
               questionKey={origin?.questionKey ?? null}
-              busy={busy}
-              call={(body) => call(body, life.current?.signal)}
+              busy={busy || answers.entries.length > 0}
+              call={async (body) => {
+                const result = await call(body, life.current?.signal);
+                if ((body.action === "boundary" || body.action === "retract") && life.current) await restore(life.current.signal);
+                return result;
+              }}
             />
           )}
           {!!session?.questions.some((q) => q.state !== "offered") && (

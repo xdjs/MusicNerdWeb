@@ -97,14 +97,14 @@ export async function handleApiInterview(request: Request, artistId: string) {
       return reply({ status: "ok" });
     }
     if (input.action === "answer") {
-      await callInterviewApi(config, `answers/${input.answerId}`, {
+      const saved = await callInterviewApi(config, `answers/${input.answerId}`, {
         body: {
           expectedRevision: input.expectedRevision,
           answer: input.answer,
         },
         signal,
       });
-      return reply(await restore());
+      return reply({ ...await restore(), savedQuestion: (saved as { question?: unknown }).question });
     }
     if (input.action === "finish") {
       await callInterviewApi(config, `session/${input.sessionId}/finish`, {
