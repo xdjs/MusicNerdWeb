@@ -24,10 +24,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
   const [expectedBio, setExpectedBio] = useState(bio);
   const awaitingLogin = useRef(false);
   const submitting = useRef(false);
-  // PrivyLogin completes NextAuth and reloads. Do not briefly reveal the form
-  // in the old document when NextAuth broadcasts its session before that reload.
-  const awaitingSessionReload = useRef(false);
-  const finishingSignIn = resume && (!ready || !signedIn || awaitingSessionReload.current);
+  const finishingSignIn = resume && (!ready || !signedIn);
   const draftKey = `mn:bio-correction:${artistId}`;
   useEffect(() => {
     try {
@@ -42,13 +39,12 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
       }
     } catch { /* In-memory draft still survives a non-redirect login. */ }
     if (awaitingLogin.current && (authenticated || !ready)) {
-      if (ready && signedIn && !awaitingSessionReload.current) awaitingLogin.current = false;
+      if (ready && signedIn) awaitingLogin.current = false;
       setResume(true); setOpen(true);
     }
   }, [signedIn, authenticated, ready, draftKey]);
-  // Privy authentication is followed by a separate NextAuth reload. Keep the
-  // draft until a confirmed send or deliberate dismissal, including edits made
-  // between those two stages.
+  // Keep the draft through both authentication stages and incidental reloads,
+  // until a confirmed send or deliberate dismissal.
   useEffect(() => {
     if (!resume || !open || sent) return;
     try { sessionStorage.setItem(draftKey, JSON.stringify({ reason, details, sourceUrl, bio: expectedBio })); }
@@ -60,7 +56,7 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     if (!signedIn) {
       try { sessionStorage.setItem(draftKey, JSON.stringify({ reason, details, sourceUrl, bio: expectedBio })); }
       catch { setError('Your browser could not save this draft. Keep this tab open while signing in.'); }
-      awaitingLogin.current = true; awaitingSessionReload.current = !authenticated; setOpen(false); if (!authenticated) login(); return;
+      awaitingLogin.current = true; setOpen(false); if (!authenticated) login(); return;
     }
     submitting.current = true;
     setBusy(true); setError('');
@@ -82,7 +78,6 @@ export default function BioCorrectionDialog({ artistId, artistName, bio, portrai
     if (next && !signedIn) {
       try { sessionStorage.setItem(draftKey, JSON.stringify(sent ? { reason: 'incorrect', details: '', sourceUrl: '', bio } : { reason, details, sourceUrl, bio: expectedBio })); } catch { /* In-memory intent is retained. */ }
       awaitingLogin.current = true;
-      awaitingSessionReload.current = !authenticated;
       if (!authenticated) login();
       return;
     }

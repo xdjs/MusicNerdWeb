@@ -32,7 +32,7 @@ export default function MusicNerdSelect({label, options, value, defaultValue = '
       setSelected(option.value);
       onValueChange?.(option.value);
     }}>
-      <SelectTrigger id={id} aria-label={label} aria-describedby={describedBy} className={cn('min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-pastypink focus:ring-offset-0', className)}>
+      <SelectTrigger id={id} aria-label={label} aria-describedby={describedBy} className={cn('min-h-11 rounded-xl border-input bg-black/[0.03] text-foreground dark:border-white/20 dark:bg-white/5 focus:ring-inset focus:ring-pastypink focus:ring-offset-0', className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent className={styles.menu}>

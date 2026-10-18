@@ -44,7 +44,8 @@ it('restores a draft after a login reload and requires an explicit send', async 
  expect(fetch).toHaveBeenCalledWith('/api/artist/artist/bio-corrections',expect.objectContaining({body:JSON.stringify({reason:'other',details:'Clarify the instrument',sourceUrl:'https://example.test/source',expectedBio:'Original snapshot'})}));
  expect(sessionStorage.getItem('mn:bio-correction:artist')).toBeNull();
 });
-it('keeps a finishing state through login and opens the form only after the session reload', async () => {
+it('transitions the same dialog from sign-in progress to the form without a reload', async () => {
+ mockSessionStatus='unauthenticated';
  jest.mocked(usePrivy).mockReturnValue({ready:true,authenticated:false,login} as never);
  const {rerender}=render(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
  fireEvent.click(screen.getByRole('button',{name:'Suggest a correction'}));
@@ -55,6 +56,11 @@ it('keeps a finishing state through login and opens the form only after the sess
  expect(await screen.findByRole('dialog')).toBeVisible();
  expect(screen.getByRole('status')).toHaveTextContent('Finishing sign-in');
  expect(screen.queryByRole('button',{name:'Submit report'})).not.toBeInTheDocument();
+ const dialog = screen.getByRole('dialog');
+ mockSessionStatus='authenticated';
+ rerender(<BioCorrectionDialog artistId="artist" artistName="Artist" bio="Bio"/>);
+ expect(screen.getByRole('dialog')).toBe(dialog);
+ expect(screen.getByRole('button',{name:'Submit report'})).toBeVisible();
  expect(fetch).not.toHaveBeenCalled();
 });
 it('keeps the restored draft through the subsequent NextAuth page reload', async () => {
