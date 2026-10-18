@@ -12,9 +12,29 @@ Migration 0045 adds server-only snapshot storage (RLS, SELECT/INSERT/UPDATE for 
 
 Production has 39,638 artists with a nonempty supported provider connection; 11 have approved claims. A small fixture bootstrap cannot establish full-corpus coverage. When a valid API response explicitly marks a currently connected provider `missing`, Web uses the existing bounded cached catalog/timeline helper for only that provider. Release cards are merged by exact normalized title, original date and release type, retain both listening links, and remain capped at three. Shared cards keep priority. No jobs, model calls, Apify scrapes or database writes are introduced.
 
-There is no fallback for checked-empty, failed, stale existing or disconnected snapshots, missing coverage entries, malformed responses, or API errors. Original coverage and `unavailable` remain unchanged: compatibility display does not pretend the shared API has those originals. These display-only cards are not supplied to public Ask as retained research evidence. The fallback ends independently for each provider once its snapshot exists. During this transition a cold Web cache may still contact a catalog or timeline provider; the API's stored-read contract remains unchanged.
+There is no fallback for checked-empty, stale existing or disconnected snapshots, missing coverage entries, malformed responses, or API errors. Original coverage and `unavailable` remain unchanged: compatibility display does not pretend the shared API has those originals. These display-only cards are not supplied to public Ask as retained research evidence. The normal compatibility fetch ends independently for each provider once its snapshot exists; the first-failed catalog exception below can still read an existing Web cache. During this transition a cold Web cache for a `missing` snapshot may still contact a catalog or timeline provider; the API's stored-read contract remains unchanged.
 
-Full-corpus snapshot materialization and removal of this compatibility path remain tracked under #1424. Provider bootstrap must be paginated, bounded and attributed, preserve account/claim checks, and report failures without clearing healthy data. No bulk provider sweep is part of this release.
+### First failed catalog snapshot — #1424 preview change
+
+When a currently connected Spotify or Deezer snapshot is explicitly `failed` with
+`checkedAt: null`, Web may retain releases from that account's existing catalog cache.
+An asynchronous read scope blocks uncached catalog work before budget transactions,
+token acquisition or provider HTTP, including stale-cache background revalidation.
+Cache misses, invalidation and missing cache context fail closed. Stale reads outside
+an App Router request also fail closed. Existing cache survival across builds is best
+effort; this does not reconstruct evicted catalogs or create durable API snapshots.
+
+The provider remains failed and its display warning stays visible, even when cached
+cards are shown. These Web compatibility cards do not become durable API snapshots
+or shared Ask evidence. The existing authenticated interview candidate reader can
+reuse recent Latest cards, including these restored cards, under its unchanged date,
+source URL and previously offered exclusions; approved Lore rules are unchanged.
+Shared cards keep priority with the existing deduplication and three-release cap. A previous successful check
+(including checked-empty), an invalid/currently disconnected ID or absent coverage
+does not enter this path. In Process behavior is unchanged. No worker, credential,
+database schema or production data change is required.
+
+The October 16 decision in #1424 limits any further provider materialization to the approved claimed-artist cohort, with the exact cohort boundary requiring verification. Directory-wide backfill is excluded. Any authorized refresh must be bounded and attributed, preserve account/claim checks, and report failures without clearing healthy data. This cache-read fix runs no provider bootstrap.
 
 ## Display recovery and retry — October 14, 2026 (#1424)
 

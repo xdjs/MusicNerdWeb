@@ -1,5 +1,6 @@
 import type { Artist } from "@/server/db/DbTypes";
 import { getLatestArtistReleases } from "@/server/utils/musicPlatform/latestReleases";
+import { readCachedLatestArtistReleases } from "@/server/utils/musicPlatform/readCachedLatestArtistReleases";
 import { fetchCachedArtistTimeline } from "@/server/utils/fetchCachedArtistTimeline";
 import { extractInProcessAddress } from "@/lib/inprocess/extractInProcessAddress";
 import { momentToLatestItem } from "@/lib/artist/momentToLatestItem";
@@ -11,9 +12,10 @@ import {
 type Coverage = {
   provider: "spotify" | "deezer" | "inprocess";
   status: "checked" | "failed" | "missing" | "disconnected";
+  checkedAt?: string | null;
 };
 
-/** Temporary display compatibility for explicitly missing snapshots; never writes or supplies research evidence. */
+/** Temporary display compatibility; failed first catalog snapshots may read cache only. */
 export async function fillMissingLatestProviders(
   artist: Artist,
   items: ArtistLatestItem[],
@@ -22,12 +24,14 @@ export async function fillMissingLatestProviders(
   const missing = (provider: Coverage["provider"]) =>
     Boolean(artist[provider]) &&
     coverage.some((c) => c.provider === provider && c.status === "missing");
+  const firstFailed = (provider: "spotify" | "deezer") =>
+    coverage.some((c) => c.provider === provider && c.status === "failed" && c.checkedAt === null);
   const providers = (["spotify", "deezer"] as const).filter(provider =>
-    missing(provider) && (provider === "spotify" ? /^[a-zA-Z0-9]{22}$/ : /^[1-9]\d*$/).test(artist[provider] ?? ""),
+    (missing(provider) || firstFailed(provider)) && (provider === "spotify" ? /^[a-zA-Z0-9]{22}$/ : /^[1-9]\d*$/).test(artist[provider] ?? ""),
   );
   const checkTimeline = missing("inprocess") && !!extractInProcessAddress(artist.inprocess);
   const [catalogs, timeline] = await Promise.all([
-    Promise.allSettled(providers.map(provider => getLatestArtistReleases({
+    Promise.allSettled(providers.map(provider => (firstFailed(provider) ? readCachedLatestArtistReleases : getLatestArtistReleases)({
       spotify: provider === "spotify" ? artist.spotify : null,
       deezer: provider === "deezer" ? artist.deezer : null,
     }))),
@@ -37,7 +41,8 @@ export async function fillMissingLatestProviders(
   const extras: ArtistLatestItem[] = [];
   for (const [index, catalog] of catalogs.entries()) {
     if (catalog.status !== "fulfilled") continue;
-    recoveredProviders.push(providers[index]);
+    // Cached cards never turn a failed shared snapshot into recovered coverage.
+    if (!firstFailed(providers[index])) recoveredProviders.push(providers[index]);
     for (const release of catalog.value)
       extras.push({
         id: `release:${release.platform}:${release.id}`,

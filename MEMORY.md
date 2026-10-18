@@ -1,3 +1,15 @@
+## First failed Latest catalog snapshot — October 18
+
+[#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424) remains open and assigned
+to Pete. The `codex/1424-latest-failed-display` branch adds a cache-only Web read for
+Spotify/Deezer coverage explicitly failed with no previous successful check. It
+retains available cached releases and the failed warning; cache misses and stale
+revalidation cannot acquire provider tokens, catalog budget transactions or HTTP.
+This is a review change, not a production release or completion of the wider issue.
+See [the contract and limits](docs/artist-latest.md#first-failed-catalog-snapshot--1424-preview-change).
+The preview-only `/dev/latest-preview` uses fixed samples and the real card component.
+No worker refresh, migration, provider bootstrap or directory backfill is included.
+
 ## Sourced About and corrections — October 17
 
 [#1558](https://github.com/xdjs/MusicNerdWeb/issues/1558) remains open.

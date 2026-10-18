@@ -44,3 +44,19 @@ it('excludes a previously offered key and ignores future-dated sources', async (
     load.mockResolvedValue({ items: [item('moment', '2027-01-01')] as never, unavailable: false });
     expect(await getProfileInterviewCandidates('a1', null, new Set(), new Set(), now)).toEqual([]);
 });
+
+it('keeps existing source and offer exclusions for a restored release with failed provider coverage', async () => {
+    const sourceUrl = `https://open.spotify.com/album/${'b'.repeat(22)}`;
+    load.mockResolvedValue({
+        items: [{ ...item('release'), title: 'Cached record', text: 'album', sourceUrl }] as never,
+        unavailable: true, displayUnavailable: true, displayUnavailableProviders: ['spotify'],
+        coverage: [{ provider: 'spotify', status: 'failed', checkedAt: null, lastAttemptAt: null, stale: true }],
+    });
+    const now = new Date('2026-09-16');
+    const [candidate] = await getProfileInterviewCandidates('a1', null, new Set(), new Set(), now);
+    expect(candidate?.sourceUrls).toEqual([sourceUrl]);
+    expect(candidate?.material).toContain('Do not infer credits, ownership, or release status beyond this text.');
+    expect(await getProfileInterviewCandidates('a1', null, new Set([candidate!.key]), new Set(), now)).toEqual([]);
+    expect(await getProfileInterviewCandidates('a1', null, new Set(), new Set([sourceUrl]), now)).toEqual([]);
+    expect(await getProfileInterviewCandidates('a1', '2026-09-15', new Set(), new Set(), now)).toEqual([]);
+});
