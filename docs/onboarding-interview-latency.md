@@ -102,3 +102,8 @@ on desktop and mobile in both themes.
 Your responses uses the same in-dialog view and Back control as Topic preferences. Questions
 and exact saved answers remain in the interview scroll area, without a second overlay. The
 view and Finish confirmation direct artists to “Edit profile → Lore → Questions” to edit later.
+
+Saved answers in Your responses expose an accessible pencil control. Inline Save/Cancel reuse
+InterviewResponseCard and the existing revision-protected response PATCH endpoint; version
+history and Lore refresh behavior stay shared with the profile editor. Skipped questions have
+no edit control. Back retains the draft; closing requires saving or canceling an unfinished edit.

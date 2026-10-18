@@ -451,3 +451,21 @@ it("shows preferences inside the same dialog and preserves the unfinished answer
   fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
   expect(screen.getByRole("textbox", { name: "Your answer" })).toHaveValue("My unfinished words");
 });
+
+it("keeps an inline edit across Back and requires Save or Cancel before closing", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply({ ...active, session: { ...active.session, questions: [{ ...question, state: "answered", answer: "Saved words" }] } }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Interview" }));
+  fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit response" }));
+  fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "Unfinished edit" } });
+  fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
+  fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
+  expect(screen.getByLabelText("Your response")).toHaveValue("Unfinished edit");
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("dialog", { name: "Your responses" })).toBeVisible();
+  expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Your edit is still open" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});

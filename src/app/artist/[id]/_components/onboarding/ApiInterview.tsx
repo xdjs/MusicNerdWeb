@@ -9,6 +9,7 @@ import {
   type InterviewSessionState,
 } from "@/lib/interviewApi/sessionSchemas";
 import type { InterviewRequest } from "@/lib/interviewApi/interviewRequestSchema";
+import InterviewResponseCard from "../InterviewResponseCard";
 import ApiInterviewQuestion from "./ApiInterviewQuestion";
 import ApiInterviewBoundaries from "./ApiInterviewBoundaries";
 import dialogStyles from "./ApiInterviewDialog.module.css";
@@ -24,6 +25,11 @@ export default function ApiInterview({
   const { ready, authenticated, user, getAccessToken } = usePrivy();
   const { toast } = useToast();
   const scope = `${artistId}:${user?.id ?? ""}`;
+  const unsavedResponses = useRef(new Set<string>());
+  const trackUnsavedResponse = useCallback((id: string, unsaved: boolean) => {
+    if (unsaved) unsavedResponses.current.add(id);
+    else unsavedResponses.current.delete(id);
+  }, []);
   const life = useRef<AbortController | null>(null),
     pending = useRef(false),
     startId = useRef<string | null>(null),
@@ -229,6 +235,11 @@ export default function ApiInterview({
   };
   const close = () => {
     if (pending.current) return;
+    if (unsavedResponses.current.size) {
+      setView("responses");
+      toast({ title: "Your edit is still open", description: "Save or cancel your response edit before closing." });
+      return;
+    }
     if (draftKey && draft?.key === `${scope}:${offered?.id}`) {
       try {
         if (draft.text) localStorage.setItem(draftKey, draft.text);
@@ -400,7 +411,7 @@ export default function ApiInterview({
             {error && <button type="button" disabled={busy || loading} onClick={() => void reload()} className="min-h-11 rounded-xl border border-input bg-black/[0.03] px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink disabled:opacity-40">Reload saved interview</button>}
           </div>
           </div>
-          {view === "responses" && <section aria-label="Saved interview responses">
+          <section hidden={view !== "responses"} aria-label="Saved interview responses">
             <button type="button" className={dialogStyles.utilityButton} onClick={() => setView("interview")}>
               <ArrowLeft size={16} aria-hidden="true" /> Back to interview
             </button>
@@ -409,11 +420,25 @@ export default function ApiInterview({
                 <li key={q.id} className="py-5 first:pt-0 last:pb-0">
                   <p className="mb-2 text-xs text-muted-foreground">Question {index + 1}</p>
                   <h3 className="text-sm font-semibold leading-relaxed">{q.question}</h3>
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">{q.answer ?? "Skipped"}</p>
+                  <div className="mt-3">
+                    {q.answer !== null ? <InterviewResponseCard artistId={artistId} response={{ ...q, answer: q.answer }} inline onUnsavedChange={trackUnsavedResponse}
+                      onSaved={(saved) => {
+                        revision.current++;
+                        setStored(previous => previous?.scope === scope && previous.state.session ? {
+                          ...previous,
+                          state: { ...previous.state, session: { ...previous.state.session,
+                            questions: previous.state.session.questions.map(question => question.id === saved.id ? {
+                              ...question, answer: saved.answer, revision: saved.revision,
+                              answerUpdatedAt: saved.answerUpdatedAt ?? question.answerUpdatedAt,
+                            } : question),
+                          } },
+                        } : previous);
+                      }} /> : <p className="text-sm text-muted-foreground">Skipped</p>}
+                  </div>
                 </li>
               ))}
             </ol>
-          </section>}
+          </section>
           {(session || origin) && (
             <ApiInterviewBoundaries
               key={`${scope}:${session?.id ?? "legacy"}`}
