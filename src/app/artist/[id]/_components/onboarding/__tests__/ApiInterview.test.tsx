@@ -393,3 +393,29 @@ it("advances to the next offered question before a slow save completes", async (
   expect(screen.queryByText("Saving your interview…")).not.toBeInTheDocument();
   expect(localStorage.getItem(`mn-interview-outbox:${artist}:account`)).toContain("My exact unsaved words");
 });
+
+it('keeps an already offered question visible while background preparation is pending', async () => {
+  jest.mocked(fetch).mockResolvedValue(reply({ ...active, preparation: { status: 'pending' } }) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Resume interview' }));
+  expect(screen.getByText(question.question)).toBeVisible();
+  expect(screen.queryByText('Preparing your questions…')).not.toBeInTheDocument();
+});
+
+it('loads the remaining checked bank on explicit legacy Resume before accepting answers', async () => {
+  const next = { ...question, id: '44444444-4444-4444-8444-444444444444', ordinal: 2, question: 'What happened next?' };
+  jest.mocked(fetch)
+    .mockResolvedValueOnce(reply({ ...active, session: { ...active.session, needsPreparedBankResume: true } }) as Response)
+    .mockResolvedValueOnce(reply({ ...active, session: { ...active.session, questions: [question, next] } }) as Response)
+    .mockImplementationOnce(() => new Promise(() => {}));
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  await screen.findByRole('button', { name: 'Resume interview' });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Resume interview' }));
+  await screen.findByLabelText('Your answer');
+  expect(JSON.parse(jest.mocked(fetch).mock.calls[1][1]?.body as string)).toEqual({ action: 'continue', sessionId: session });
+  fireEvent.change(screen.getByLabelText('Your answer'), { target: { value: 'Exact legacy response' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
+  expect(screen.getByText(next.question)).toBeVisible();
+  expect(screen.queryByText(/Preparing your questions|Opening your question|Saving your interview/)).not.toBeInTheDocument();
+});

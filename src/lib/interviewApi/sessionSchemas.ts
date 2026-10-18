@@ -27,6 +27,7 @@ export const interviewSessionStateSchema = z.object({
     .object({
       id: z.string().uuid(),
       interviewInvalidated: z.boolean().optional(),
+      needsPreparedBankResume: z.boolean().optional(),
       sitting: z.number().int().positive(),
       state: z.enum(["active", "finished"]),
       createdAt: z.string(),

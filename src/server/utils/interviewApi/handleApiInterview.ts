@@ -133,7 +133,7 @@ export async function handleApiInterview(request: Request, artistId: string) {
         { error: "Reload the saved interview before continuing." },
         409,
       );
-    if (session.questions.some((q) => q.state === "offered"))
+    if (session.questions.some((q) => q.state === "offered") && !(input.action === "continue" && session.needsPreparedBankResume))
       return reply(state);
     if (session.questions.length >= 3)
       return reply(

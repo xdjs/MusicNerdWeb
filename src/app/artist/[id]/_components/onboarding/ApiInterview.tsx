@@ -251,7 +251,7 @@ export default function ApiInterview({
           disabled={loading || busy}
           onClick={() => {
             setOpen(true);
-            if (!offered && preparationStatus === "ready" && session)
+            if (session && (session.needsPreparedBankResume || (!offered && preparationStatus === "ready")))
               void mutate({ action: "continue", sessionId: session.id });
           }}>
           <MessageCircleQuestion size={18} aria-hidden="true" />
@@ -286,7 +286,7 @@ export default function ApiInterview({
         <p>{answers.failure}</p>
         <button type="button" onClick={answers.retry} className="min-h-11 rounded-xl border border-input px-4 py-2.5 font-medium focus-visible:ring-2 focus-visible:ring-pastypink">Retry saving</button>
       </div>}
-      {(busy || queued) && (
+      {(busy || (queued && !offered)) && (
         <div role="status" aria-live="polite" className="my-6 flex items-center gap-3 rounded-xl bg-black/[0.03] p-4 text-sm dark:bg-white/5">
           <LoaderCircle aria-hidden="true" className="h-5 w-5 shrink-0 animate-spin text-pastypink motion-reduce:animate-none" />
           <div>
@@ -298,7 +298,7 @@ export default function ApiInterview({
       {preparationStatus === "failed" && !busy && (
         <p role="alert" className="my-4 text-sm text-muted-foreground">We couldn’t finish preparing your interview. Your saved responses are safe.</p>
       )}
-      {!loading && !busy && !queued && state && (
+      {!loading && !busy && (!queued || !!offered) && state && (
         <div className="space-y-3">
           {offered ? (
             <ApiInterviewQuestion
