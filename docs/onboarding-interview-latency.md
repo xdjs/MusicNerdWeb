@@ -84,6 +84,9 @@ failed/empty work retain the ordinary polling interval, with no concurrent reque
 
 Before any questions are offered, the ready state has Start interview and Topic preferences
 in a single wrapping action row. Finish is shown only after a session has offered questions.
+While background preparation is pending, the invitation is disabled instead of opening a
+waiting-only popup; saved offered questions remain accessible. Claim preparation metadata
+is readable before its private session exists, so the page can notice readiness.
 The successful Finish notification describes the completed session even when the API has
 already prepared a private next-session handoff. API-side repeat prewarming is tracked in
 MusicNerdAPI PR #56; it must not recursively create unused interviews or write on page reads.

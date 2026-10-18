@@ -314,14 +314,24 @@ it("keeps every interview action in one scroll region below the header", async (
 });
 
 it("shows background preparation and allows closing without canceling the saved job", async () => {
-  jest.mocked(fetch).mockResolvedValue(reply({...active, session: {...active.session, questions: []}, preparation: {status: "running"}}) as Response);
+  jest.mocked(fetch).mockResolvedValueOnce(reply(empty) as Response).mockResolvedValue(reply({...active, session: {...active.session, questions: []}, preparation: {status: "running"}}) as Response);
   render(<ApiInterview artistId={artist} artistName="Artist" />);
-  fireEvent.click(await screen.findByRole("button", {name: "Preparing interview…"}));
+  fireEvent.click(await screen.findByRole("button", {name: "Interview", exact: true}));
+  fireEvent.click(screen.getByRole("button", {name: "Prepare interview"}));
+  await screen.findByText("Preparing your questions…");
   expect(screen.getByRole("status")).toHaveTextContent("Preparing your question");
   expect(screen.queryByRole("button", {name: "Prepare interview"})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", {name: "Close"}));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+it("does not open a waiting room from the background-preparation invitation", async () => {
+  jest.mocked(fetch).mockResolvedValue(reply({...empty, preparation: {status: "pending"}}) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  const invitation = await screen.findByRole("button", {name: "Preparing interview…"});
+  expect(invitation).toBeDisabled();
+  fireEvent.click(invitation);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 it("opens a ready question by consuming it, with no new preparation", async () => {
   jest.mocked(fetch).mockResolvedValueOnce(reply({...active, session: {...active.session, questions: []}, preparation: {status: "ready"}}) as Response).mockResolvedValueOnce(reply(active) as Response);
