@@ -38,7 +38,6 @@ export default function InterviewResponseCard({
   const [current, setCurrent] = useState(response);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(response.answer);
-  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
   const alive = useRef(true);
@@ -55,7 +54,7 @@ export default function InterviewResponseCard({
     return () => onUnsavedChange?.(current.id, false);
   }, [current.id, dirty, busy, onUnsavedChange]);
   const valid =
-    Boolean(draft.trim()) && draft.length <= 2000 && note.length <= 400;
+    Boolean(draft.trim()) && draft.length <= 2000;
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -75,13 +74,12 @@ export default function InterviewResponseCard({
         artistId,
         `/${current.id}`,
         responseReadSchema,
-        { body: { expectedRevision: current.revision, answer: draft, note } },
+        { body: { expectedRevision: current.revision, answer: draft, note: "" } },
       );
       if (!alive.current) return;
       setCurrent(result.response);
       onSaved?.(result.response);
       setDraft(result.response.answer);
-      setNote("");
       setEditing(false);
       setSaved(true);
       setLatest(null);
@@ -97,7 +95,7 @@ export default function InterviewResponseCard({
       saving.current = false;
       if (alive.current) setBusy(false);
     }
-  }, [dirty, valid, artistId, current.id, current.revision, draft, note, onSaved]);
+  }, [dirty, valid, artistId, current.id, current.revision, draft, onSaved]);
   useEffect(
     () => inline ? undefined : registerSave?.(`interview-response-${current.id}`, save),
     [registerSave, current.id, save, inline],
@@ -208,21 +206,8 @@ export default function InterviewResponseCard({
               className="w-full rounded-xl border border-black/20 bg-black/[0.02] p-3 text-base text-foreground dark:border-white/25 dark:bg-white/5 sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink"
             />
             <p className="text-xs text-muted-foreground">
-              {draft.length.toLocaleString()} / 2,000 characters. Keep any
-              details about which song, version, or time you mean.
+              {draft.length.toLocaleString()} / 2,000 characters
             </p>
-            <label htmlFor={`${id}-note`} className="block text-sm">
-              What changed?{" "}
-              <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <input
-              id={`${id}-note`}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              disabled={busy}
-              maxLength={400}
-              className="w-full rounded-xl border border-black/20 bg-black/[0.02] p-3 text-base text-foreground dark:border-white/25 dark:bg-white/5 sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pastypink"
-            />
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -241,7 +226,6 @@ export default function InterviewResponseCard({
                 onClick={() => {
                   setEditing(false);
                   setDraft(current.answer);
-                  setNote("");
                   setError("");
                   setLatest(null);
                 }}
@@ -249,10 +233,6 @@ export default function InterviewResponseCard({
                 Cancel
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              This becomes your current response. Earlier wording stays in
-              version history; saved bios stay as they are.
-            </p>
           </div>
         ) : !inline ? (
           <Button
