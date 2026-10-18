@@ -10,6 +10,14 @@ General questions default to stored evidence; an unprompted model choice cannot 
 
 The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. A reload can resume the job without starting paid collection again. The UI may stop waiting while the job remains durable; resume does not enqueue another request. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Request limits remain the API's documented limits, including five new requests per artist per day.
 
+When an unresolved result carries the API's `unsupported_speech` limitation, Web
+explains that saved sources did not establish what was said and that it cannot
+transcribe speech from that source. This deterministic capability message does
+not claim that the retained record is caption-only, that no transcript exists
+elsewhere, or that the artist said nothing. Rendering the limitation starts no
+additional drafting or provider work. Existing quota, refresh and account messages
+retain their precedence.
+
 Before answering, Web reopens each exact source revision and surrounding original context through the API. It drafts from those passages only, with exact supporting quotes and stable references, then checks the draft against that original context. An unknown reference, changed revision, missing quotation, failed check or incomplete read withholds the claim. Titles, descriptions, summaries, upload dates and unverified speakers are not substitutes for evidence. A model check is a runtime safeguard, not editorial acceptance.
 
 The public path does not read uploaded private files, interview answers/corrections or private review queues. It does not fall back to an uncited provider-grounded answer. Existing citation, literal supported Instagram-handle and verified music-link rendering stays available; unsupported entity links are withheld. Pending discoveries are clearly labelled as outside approved Lore. A reader can reopen the exact cited passage, while the external link opens the source website.

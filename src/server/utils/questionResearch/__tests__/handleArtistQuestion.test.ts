@@ -203,6 +203,23 @@ it('explains when the requested provider needs a refresh without claiming no inf
  expect(body.answer).toMatch(/refresh/);
  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
+it('explains unsupported speech from the API reason without drafting or claiming caption-only evidence', async () => {
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',limitations:['unsupported_speech']});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toBe("I couldn't establish what was said from the saved sources, and I can't transcribe speech from this source.");
+ expect(body.sources).toEqual([]);
+ expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+ expect(planArtistQuestion).not.toHaveBeenCalled();
+ expect(registerResearchQuestion).not.toHaveBeenCalled();
+ expect(callResearchApi).toHaveBeenCalledTimes(1);
+});
+it('keeps the quota explanation when unsupported speech is also reported', async () => {
+ jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',outsideResearchReason:'quota',limitations:['unsupported_speech']});
+ const body=await (await handleArtistQuestion(request({jobId}))).json();
+ expect(body.answer).toMatch(/Outside research is at its limit/);
+ expect(body.code).toBe('research_quota');
+ expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
 it('returns an operational error rather than an answer for a failed research job',async()=>{
  jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'failed'});
  const r=await handleArtistQuestion(request({jobId}));
