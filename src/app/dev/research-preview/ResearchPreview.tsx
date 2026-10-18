@@ -8,7 +8,7 @@ import { useTheme } from '@/app/_components/ThemeProvider';
 export default function ResearchPreview() {
     const { theme, setTheme } = useTheme();
     return (
-        <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 pb-44">
+        <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 pb-44 text-foreground">
             <header>
                 <h1 className="text-2xl font-semibold">Research loading preview</h1>
                 <p className="mt-2 text-sm text-muted-foreground">Sample state for color review.</p>
