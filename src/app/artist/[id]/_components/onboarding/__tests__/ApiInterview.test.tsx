@@ -462,6 +462,10 @@ it("keeps an inline edit across Back and requires Save or Cancel before closing"
   fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
   fireEvent.click(screen.getByRole("button", { name: /Your responses/ }));
   expect(screen.getByLabelText("Your response")).toHaveValue("Unfinished edit");
+  fireEvent.click(screen.getByRole("button", { name: "Back to interview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Finish interview" }));
+  expect(screen.getByLabelText("Your response")).toHaveValue("Unfinished edit");
+  expect(fetch).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.getByRole("dialog", { name: "Your responses" })).toBeVisible();
   expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Your edit is still open" }));

@@ -152,6 +152,11 @@ export default function ApiInterview({
     return () => controller.abort();
   }, [ready, authenticated, restore]);
   const mutate = async (action: InterviewRequest) => {
+    if (action.action === "finish" && unsavedResponses.current.size) {
+      setView("responses");
+      toast({ title: "Your edit is still open", description: "Save or cancel your response edit before finishing." });
+      return;
+    }
     const controller = life.current;
     if (!controller || controller.signal.aborted || pending.current)
       return false;
