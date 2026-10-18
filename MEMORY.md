@@ -1,14 +1,30 @@
+## Claim submission recovery — October 18
+
+Pete reported a claim error on Olivier Boge and authorized an urgent isolated fix.
+Read-only production logs at 18:33:43 UTC show Next rejecting an old Server Action
+with HTTP 404 before the claim action ran (production `a82141c4`). Missing Instagram
+only controls advisory copy; it does not gate submission. At Pete's request this branch removes the
+missing-Instagram notice entirely and offers an explicit full-profile reload for Next's unrecognized
+action error, without automatically replaying a mutation. Existing stale tabs still
+need a manual reload to receive the new code. See [the recovery contract](docs/development.md#claim-submission-recovery).
+Local npm run ci passed (498 suites, 4,646 tests; six existing skips); independent
+Astra review found no blockers. Preview and owner review remain pending;
+no claim data, approval logic, authentication or deployment settings were changed.
+The related manual-verification tracker is [#1487](https://github.com/xdjs/MusicNerdWeb/issues/1487);
+its Instagram automation remains deferred. No new issue is authorized.
+
 ## First failed Latest catalog snapshot — October 18
 
-[#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424) remains open and assigned
-to Pete. The `codex/1424-latest-failed-display` branch adds a cache-only Web read for
-Spotify/Deezer coverage explicitly failed with no previous successful check. It
-retains available cached releases and the failed warning; cache misses and stale
-revalidation cannot acquire provider tokens, catalog budget transactions or HTTP.
-This is a review change, not a production release or completion of the wider issue.
-See [the contract and limits](docs/artist-latest.md#first-failed-catalog-snapshot--1424-preview-change).
-The preview-only `/dev/latest-preview` uses fixed samples and the real card component.
-No worker refresh, migration, provider bootstrap or directory backfill is included.
+[#1574](https://github.com/xdjs/MusicNerdWeb/pull/1574#issuecomment-6253751162)
+is production released at `1ec331b8`; test/build/staging/production passed in
+run39154370458. Exact deployment, production target/alias, health, homepage and
+sampled assets were verified. Preview-only `/dev/latest-preview` returns404 in production.
+The cache-only display read retains available warm Spotify/Deezer releases when the
+first snapshot fails; misses/revalidation cannot acquire provider budget/token/HTTP.
+Cache availability remains best-effort and does not create durable shared originals.
+No migration or forced provider request. Pete waived phone review for this release;
+production fallback was not deliberately triggered. [#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424)
+was reconciled with linked acceptance evidence and remains open for narrow remaining checks.
 
 ## Sourced About and corrections — October 17
 

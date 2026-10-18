@@ -72,7 +72,6 @@ export default function ArtistProfileContent({
                             isClaimedByUser={isClaimedByUser}
                             isPending={isPending}
                             isPendingByUser={isPendingByUser}
-                            artistInstagram={artist.instagram}
                             compactOnMobile
                         />}
                         {canEdit && <EditModeToggle compactOnMobile />}
