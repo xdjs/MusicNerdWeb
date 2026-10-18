@@ -256,6 +256,7 @@ export default function ApiInterview({
   if (!ready || !authenticated) return null;
   const button =
     "min-h-11 rounded-xl button-pink bg-highlightpink px-4 py-2.5 text-sm font-semibold text-[#111] transition-colors hover:bg-highlightpink/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40";
+  const triggerLabel = loading ? "Loading interview…" : offered ? (legacy.length ? "Review saved question" : "Resume interview") : queued ? "Preparing interview…" : preparationStatus === "ready" ? "Start interview" : "Interview";
   const start = () => {
     startId.current ??= crypto.randomUUID();
     void mutate({ action: "start", requestId: startId.current });
@@ -264,7 +265,9 @@ export default function ApiInterview({
     <Dialog open={open && (!!state || !!error)} onOpenChange={(next) => { if (!next) close(); }}>
       <DialogTrigger asChild>
         <button type="button"
-          className="button-glass inline-flex min-h-11 items-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
+          aria-label={triggerLabel}
+          title={triggerLabel}
+          className="profile-reveal-action button-glass inline-flex min-h-11 items-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-black/5 dark:border-white/20 dark:bg-white/10 dark:hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pastypink disabled:opacity-40"
           disabled={loading || busy || (queued && !offered)}
           onClick={() => {
             setOpen(true);
@@ -272,7 +275,7 @@ export default function ApiInterview({
               void mutate({ action: "continue", sessionId: session.id });
           }}>
           <MessageCircleQuestion size={18} aria-hidden="true" />
-          {loading ? "Loading interview…" : offered ? (legacy.length ? "Review saved question" : "Resume interview") : queued ? "Preparing interview…" : preparationStatus === "ready" ? "Start interview" : "Interview"}
+          <span className="profile-reveal-label">{triggerLabel}</span>
         </button>
       </DialogTrigger>
         <DialogContent aria-busy={busy || queued}
