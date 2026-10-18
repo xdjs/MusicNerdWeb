@@ -163,3 +163,5 @@ Account linking transfers both correction authors and reviewers inside the exist
 Admin directory edits mark the public envelope `editedByAdmin: true`. Preparation must preserve that entire preparation on subsequent or overlapping runs (#1569); existing read-time identity/source eligibility checks still withdraw invalid evidence. Automatic regeneration cannot undo a human correction. There is no new automatic reset.
 
 After confirmation is closed, a new report opens a clean form with the latest displayed About; an unfinished report retains its original snapshot for stale-edit protection (#1570).
+
+The login-to-report handoff uses the existing themed dialog with “Finishing sign-in…” while Privy and the application session settle. A saved draft restores this status during auth hydration after the login reload. The old document must not expose the form briefly before that reload; the new document opens it only after both sessions are ready. Closing cancels continuation; no timer or automatic submission is used.
