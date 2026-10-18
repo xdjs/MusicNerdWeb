@@ -28,6 +28,16 @@ implicit seven-day cutoff. Explicit date bounds still apply. Topical research
 uses `retrieval: relevance`; recent topical questions retain their freshness
 filter. This optional routing field requires the paired MusicNerdAPI change.
 
+A calendar date mentioned in a question is not automatically a source-date filter.
+The planner first decides whether the listener requested a source-date window.
+Only an existing planned window is normalized to the explicit calendar day (including
+the latest past occurrence of a yearless day). Questions about a recording, release,
+or performance date retain that date as subject matter without excluding sources
+published later. For example, asking what June 14, 2024 dates in a recording dossier
+must still allow that dossier's January 2025 publication. This distinction is covered
+by offline planner regressions for [#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424);
+it does not establish a new live-model or end-to-end acceptance pass.
+
 Verification covers reference resolution input, source-only answer grounding,
 request budgets, cache binding, polling/retry continuity, and generic latest
 versus topical recent routing. Interview routes and memory are unchanged.

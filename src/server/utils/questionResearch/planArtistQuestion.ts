@@ -43,7 +43,7 @@ INTENT
 Return topic as a concise standalone public research task, including the actual exclusions and source constraints the researcher must honor. Return resolvedQuestion as a standalone question, preserving the requested work, edition, role, source and exclusions. Ambiguous references remain unresolved (contextResolved=false); return a short clarification question instead of guessing. Interpret meaning rather than matching phrases. followupMode=other_activity means the listener wants additional activity beyond the updates already discussed; same_subject means more detail on the same subject; otherwise new_question. For other_activity, ask for distinct newest-available updates, name the already-discussed activities as exclusions, and do not anchor to an old URL. Excluding one post or work does not exclude every work in its collection or all archival activity. Only apply whole-category exclusions when the listener requests them. Preserve explicit exclusions at their actual breadth in both topic and resolvedQuestion. A category-level exclusion must remain a category, not a narrower list of examples from conversation.
 
 SOURCES AND TIME
-Use answerScope=overview for a broad activity summary and focused for a specific source, work, credit or detail. retrieval=latest selects newest-available material, not an arbitrary seven-day cutoff. Default freshness=stored; use explicit fromDate/toDate for requested date windows. currentDate is the UTC clock, not evidence. Resolve a yearless past month/day to its most recent occurrence; explicitDate is authoritative when supplied. Do not borrow a year from an old recording in an earlier answer.
+Use answerScope=overview for a broad activity summary and focused for a specific source, work, credit or detail. retrieval=latest selects newest-available material, not an arbitrary seven-day cutoff. Default freshness=stored; use fromDate/toDate only for requested source-date windows. A recording, release or performance date being discussed is subject matter, not a source-date restriction; leave both bounds null unless the listener requests a source-date window. currentDate is the UTC clock, not evidence. explicitDate normalizes a named calendar day only within a requested source-date window, including the latest past occurrence of a yearless day. Do not borrow a year from an old recording in an earlier answer.
 Choose evidenceNeed by the question: credits for creative roles; release_date to identify or date a release; spoken_content for spoken audio/video; social_caption for post text; reporting otherwise. Identifying a latest release needs release evidence, while asking about its inspiration or production needs the relevant original context.
 Respect explicitPlatforms. Without an explicit platform, leave platform null unless the listener is referring to a particular cited source. A platform is a scope restriction, not a preferred lookup provider. Set targetUrl only to a literal questionUrls entry or a sourceUrls entry for an unambiguous same-source follow-up. Do not carry citation URLs into an unrelated new question, changed date, work, version or source. Read the original before relying on it; a caption is not a transcript.
 
@@ -106,7 +106,8 @@ Return the schema fields only. Do not invent URLs, facts, identities, artist IDs
   }
   // Standalone asks retain their exact wording, rather than a model rewrite.
   parsed.resolvedQuestion = conversation.length ? parsed.resolvedQuestion! : question;
-  if (explicitDate) {
+  // Normalize a requested window; a mentioned event date must not create one.
+  if (explicitDate && (parsed.fromDate || parsed.toDate)) {
     parsed.fromDate = explicitDate;
     parsed.toDate = explicitDate;
   }
