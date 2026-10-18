@@ -70,12 +70,16 @@ describe("ClaimButton claim events", () => {
         expect(screen.queryByText(/musicnerdxyz/)).not.toBeInTheDocument();
     });
 
-    it("allows a claim without a saved Instagram link and explains verification without profile editing", async () => {
+    it("allows a claim without a saved Instagram link and shows no missing-link warning", async () => {
         (useSession as jest.Mock).mockReturnValue({ data: { user: { id: "u1" } }, status: "authenticated" });
         mockClaim.mockResolvedValue({ success: true, referenceCode: "MN-NOIG" });
-        render(<ClaimButton {...props} artistInstagram={null} />);
+        // No Instagram data is required by the claim dialog.
+        render(<ClaimButton {...props} />);
         fireEvent.click(screen.getByRole("button", { name: /claim/i }));
-        expect(screen.getByText(/You can submit a claim without an Instagram link/)).toBeInTheDocument();
+        expect(screen.queryByText(/You can submit a claim without an Instagram link/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/doesn.t have an Instagram link/)).not.toBeInTheDocument();
+        expect(screen.getByText("@musicnerdnet")).toBeInTheDocument();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
         expect(screen.queryByText(/Consider adding/)).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Submit Claim" })).toBeEnabled();
         fireEvent.click(screen.getByRole("button", { name: "Submit Claim" }));

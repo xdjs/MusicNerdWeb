@@ -296,7 +296,8 @@ services and migrations are unchanged.
 
 A saved Instagram link is not required to submit a claim. Claimants send the generated
 reference code from their official artist account to `@musicnerdnet`; admins still
-verify identity before approving. Do not ask an unapproved claimant to edit the profile first.
+verify identity before approving. The dialog has no missing-Instagram warning; its normal
+claim and DM instructions apply whether or not a link is saved.
 
 An open page can retain a Server Action ID from an earlier deployment. If Next.js explicitly
 rejects that action as unrecognized, the claim dialog replaces Submit Claim with a native

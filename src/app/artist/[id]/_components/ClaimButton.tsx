@@ -23,7 +23,6 @@ interface ClaimButtonProps {
     isClaimedByUser: boolean;
     isPending?: boolean;
     isPendingByUser?: boolean;
-    artistInstagram?: string | null;
     compactOnMobile?: boolean;
 }
 
@@ -32,7 +31,6 @@ export default function ClaimButton({
     isClaimed,
     isPending = false,
     isPendingByUser = false,
-    artistInstagram,
     compactOnMobile = false,
 }: ClaimButtonProps) {
     const { data: session } = useSession();
@@ -145,15 +143,6 @@ export default function ClaimButton({
                                 DM <strong>@musicnerdnet</strong> on Instagram from your official
                                 artist account with this code.
                             </p>
-
-                            {!artistInstagram && (
-                                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3">
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                                        You can submit a claim without an Instagram link on this profile.
-                                        Send the reference code from your official artist account so we can verify you.
-                                    </p>
-                                </div>
-                            )}
 
                             {needsReload ? (
                                 <div className="space-y-3">
