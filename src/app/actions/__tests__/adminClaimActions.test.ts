@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/queries/enqueueClaimInterview', () => ({ enqueueClaimInterview: jest.fn().mockResolvedValue(true) }));
 import { jest } from "@jest/globals";
 
 jest.mock("@/server/auth", () => ({
@@ -93,6 +94,8 @@ describe("adminClaimActions", () => {
             expect(await m.approveClaimAction('c1')).toEqual({ success: true });
             expect(m.hasReusableDirectoryDiscovery).toHaveBeenCalledWith('a1', 'c1');
             expect(m.enqueueResearchJob).not.toHaveBeenCalled();
+            const { enqueueClaimInterview } = await import('@/server/utils/queries/enqueueClaimInterview');
+            expect(enqueueClaimInterview).toHaveBeenCalledWith('a1', 'c1', 'u1');
             const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
             expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
         });

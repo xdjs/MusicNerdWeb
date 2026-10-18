@@ -4,6 +4,7 @@ import { getServerAuthSession } from "@/server/auth";
 import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, getAllClaims, getClaimById, revokeApprovedClaim } from "@/server/utils/queries/dashboardQueries";
 import { hasReusableDirectoryDiscovery } from "@/server/utils/queries/hasReusableDirectoryDiscovery";
+import { enqueueClaimInterview } from '@/server/utils/queries/enqueueClaimInterview';
 import { enqueueResearchJob } from "@/server/utils/queries/researchJobQueries";
 import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -53,6 +54,16 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
             }
         }
 
+        let interviewReady = true;
+        try {
+            interviewReady = await withArtistOperation(claim.artistId,
+                { userId: session.user.id, expectedClaimId: claim.id, trigger: 'claim_approval' },
+                () => enqueueClaimInterview(claim.artistId, claim.id, claim.userId));
+        } catch (error) {
+            interviewReady = false;
+            console.error('[approveClaimAction] Interview preparation enqueue failed:', error);
+        }
+
         // Approval email — AWAITED (not fire-and-forget). On Vercel a serverless
         // lambda can freeze immediately after the action returns, so a floating
         // promise here may never actually send. sendEmail/sendClaimApprovedEmail
@@ -80,6 +91,7 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
 
         return {
             success: true,
+            ...(!interviewReady && researchReady ? { warning: 'Claim approved, but interview preparation could not be queued. The artist can still prepare an interview from their profile.' } : {}),
             ...(!researchReady ? { warning: 'Claim approved, but source research could not be queued. Open the artist’s Lore and use “Search web for sources” to retry.' } : {}),
         };
     } catch (error) {
