@@ -1,3 +1,4 @@
+import MusicNerdSelect from '@/components/ui/MusicNerdSelect';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { getArtistActivity } from '@/server/utils/activity/getArtistActivity';
@@ -14,7 +15,7 @@ export default function ArtistActivitySection({ data }: { data: Awaited<ReturnTy
       <input type="hidden" name="section" value="activity" />
       <input type="search" name="activityQuery" aria-label="Search artist activity" placeholder="Search artist or contributor" defaultValue={data.query} maxLength={100} />
       <label className="flex min-w-0 flex-col gap-1 text-sm">Action
-        <select name="activityAction" defaultValue={data.action}><option value="">All actions</option>{Object.entries(activityLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select>
+        <MusicNerdSelect label="Action" name="activityAction" defaultValue={data.action} options={[{value:"",label:"All actions"},...Object.entries(activityLabels).map(([value,label])=>({value,label}))]} />
       </label>
       <Button type="submit" variant="outline" className="min-h-11 rounded-xl">Search</Button>
       {(data.query || data.action || data.eventId) && <Link href="/admin?section=activity" className="text-sm underline">Show all activity</Link>}

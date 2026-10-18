@@ -2,6 +2,7 @@
 // These allow kept components to compile even though packages are uninstalled
 
 declare module 'next-auth/react' {
+  export function getSession(options?: { broadcast?: boolean }): Promise<import('next-auth').Session | null>;
   export function useSession(...args: any[]): any;
   export function SessionProvider(...args: any[]): any;
   export function signIn(...args: any[]): any;

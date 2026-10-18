@@ -38,7 +38,7 @@ waiting, and a Next question action only for a ready candidate. Preferences and 
 collapsed; Reload appears for recovery. Closing preserves the scoped browser draft. Finish
 persists the session closure before dismissing the popup.
 
-Dependencies: Web migration `0053_interview_preparation` expands the existing job-kind check;
+Dependencies: Web migration `0055_interview_preparation` expands the existing job-kind check;
 MusicNerdAPI PR #56 supplies the worker and session preparation contract; MusicNerdDocs PR #23
 records the API contract. These changes require paired preview verification before release.
 The ten-second preparation target is not yet established by end-to-end measurements.

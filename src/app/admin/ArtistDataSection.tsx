@@ -1,5 +1,6 @@
 "use client";
 
+import AdminSelect from "@/components/ui/MusicNerdSelect";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import styles from "@/components/community/Community.module.css";
@@ -307,7 +308,7 @@ export default function ArtistDataSection({dataUrl="/api/admin/artist-data"}:{da
         </Button>
       </div>
 
-      <div className={styles.filterBar}><label>Show data<select aria-label="Artist data view" value={view} onChange={event=>setView(event.target.value)}><option value="all">All data</option><option value="ids">Platform coverage</option><option value="links">Link coverage</option><option value="completeness">Profile completeness</option><option value="readiness">Research readiness</option></select></label></div>
+      <div className={styles.filterBar}><label>Show data<AdminSelect label="Artist data view" value={view} onValueChange={value=>setView(value)} options={[{value: 'all', label: 'All data'}, {value: 'ids', label: 'Platform coverage'}, {value: 'links', label: 'Link coverage'}, {value: 'completeness', label: 'Profile completeness'}, {value: 'readiness', label: 'Research readiness'}]} /></label></div>
       {(view==="all" || view==="ids") && <PlatformIdCoverageSection
         coverage={data.platformIdCoverage}
         totalWithSpotify={data.totalWithSpotify}

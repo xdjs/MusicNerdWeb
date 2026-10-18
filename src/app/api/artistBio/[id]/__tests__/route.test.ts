@@ -1,4 +1,5 @@
 // @ts-nocheck
+jest.mock('@/server/utils/bio/getPublicArtistAbout', () => ({ getPublicArtistAbout: jest.fn().mockResolvedValue(null) }));
 
 import { jest } from '@jest/globals';
 

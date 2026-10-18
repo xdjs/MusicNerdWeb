@@ -1,3 +1,4 @@
+import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import { getLoreClaimGeneration } from '@/server/utils/queries/lorePersistence';
 import { getArtistByProperty } from '@/server/utils/queries/artistQueries';
 import { artists } from '@/server/db/schema';
@@ -18,7 +19,8 @@ async function handler(req: Request) {
   const artistResp = await getArtistByProperty(artists.deezer, deezerID);
   if (artistResp.status === 200 && artistResp.data) {
     const claimed = await getLoreClaimGeneration(artistResp.data.id);
-    return Response.json({ result: { ...artistResp.data, bio: claimed ? artistResp.data.bio : null } }, { headers: { 'Cache-Control': 'private, no-store' } });
+    const directoryAbout = claimed ? null : await getPublicArtistAbout(artistResp.data.id);
+    return Response.json({ result: { ...artistResp.data, bio: claimed ? artistResp.data.bio : directoryAbout?.bio ?? null } }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
   return new Response(artistResp.message, {status : artistResp.status});

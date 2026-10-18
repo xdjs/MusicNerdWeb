@@ -17,8 +17,19 @@ it('has one identity search and resets selection and pagination as filters chang
  await waitFor(()=>expect(screen.getByText('Page 1 of 1')).toBeVisible());
  expect(screen.queryByRole('button',{name:'Hide Selected'})).not.toBeInTheDocument();
  expect(screen.getByText('1 of 12 people')).toBeVisible();
- fireEvent.change(screen.getByRole('combobox',{name:'Leaderboard visibility'}),{target:{value:'Hidden'}});
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Leaderboard visibility'}),{key:"ArrowDown"});
+ fireEvent.click(screen.getByRole("option",{name:"Hidden"}));
  expect(screen.getByText('No people match these filters.')).toBeVisible();
  fireEvent.click(screen.getByRole('button',{name:'Clear filters'}));
  expect(screen.getByText('12 of 12 people')).toBeVisible();
+});
+
+it('updates pagination through the styled rows-per-page menu',()=>{
+ render(<UsersSection columns={whitelistedColumns} data={data}/>);
+ expect(screen.getByText('Page 1 of 2')).toBeVisible();
+ fireEvent.keyDown(screen.getByRole('combobox',{name:'Rows per page'}),{key:'ArrowDown'});
+ fireEvent.click(screen.getByRole('option',{name:'20'}));
+ expect(screen.getByText('Page 1 of 1')).toBeVisible();
+ expect(screen.getByRole('button',{name:'Next'})).toBeDisabled();
+ expect(screen.getByText('person-11')).toBeVisible();
 });

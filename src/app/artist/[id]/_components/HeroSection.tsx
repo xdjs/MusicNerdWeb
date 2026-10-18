@@ -13,7 +13,10 @@ import ListenPicker from "./ListenPicker";
 import type { ProfileLink } from "@/lib/artist/artistProfileLinks";
 import { useToast } from "@/hooks/use-toast";
 
+import type { PublicArtistAbout } from '@/lib/bio/types';
+
 interface HeroSectionProps {
+    publicAbout?: PublicArtistAbout | null;
     imageUrl: string;
     artistName: string;
     artistId: string;
@@ -25,7 +28,7 @@ interface HeroSectionProps {
     children?: ReactNode;
 }
 
-export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, listenLinks = [], statusBadge, children }: HeroSectionProps) {
+export default function HeroSection({ imageUrl, artistName, artistId, hasPortrait = false, initialPosition = 0, bio, publicAbout, listenLinks = [], statusBadge, children }: HeroSectionProps) {
     const { isEditing, canEdit, refreshProfile, suspendedEditMode } = useContext(EditModeContext);
     const { toast } = useToast();
     const [img, setImg] = useState(imageUrl);
@@ -116,7 +119,7 @@ export default function HeroSection({ imageUrl, artistName, artistId, hasPortrai
 
     const identity = <>
         <h1 className={`break-words font-extrabold leading-[1.05] tracking-tight ${portrait ? 'text-[40px] text-white sm:text-[56px]' : 'text-3xl text-black dark:text-white sm:text-4xl'}`}>{artistName}</h1>
-        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} hero portrait={portrait} /></ResearchPending></div>
+        <div id="mn-about" className={`mt-3 max-w-xl ${portrait ? "text-white" : "mx-auto"}`}><ResearchPending step="publish" skeleton="about" label="writing your about…" arrivedLabel="Your About is ready"><BlurbSection artistName={artistName} artistId={artistId} initialBio={bio ?? ""} publicAbout={publicAbout} hero portrait={portrait} /></ResearchPending></div>
     </>;
 
     return <header data-edit-highlight={!portrait && highlighted || undefined} className={`space-y-4 rounded-2xl ${!portrait && highlighted ? styles.highlight : ""}`}>

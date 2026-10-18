@@ -1,3 +1,4 @@
+import { getPublicArtistAbout } from '@/server/utils/bio/getPublicArtistAbout';
 import DirectoryDiscoveryObserver from "./_components/DirectoryDiscoveryObserver";
 import { publicLinkRevision } from "@/server/utils/directoryDiscovery/publicLinkRevision";
 import { projectUnclaimedProfile } from '@/lib/artist/projectUnclaimedProfile';
@@ -73,8 +74,10 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
     // assistant quotes, and it says nothing about the artist. The About is
     // right there and is the best 160 characters we have.
     const publicClaim = await getLoreClaimGeneration(id);
-    const description = publicClaim && artist.bio && isRealBio(artist.bio)
-        ? summarize(artist.bio)
+    const directoryAbout = publicClaim ? null : await getPublicArtistAbout(id);
+    const publicBio = publicClaim && isRealBio(artist.bio) ? artist.bio : directoryAbout?.bio;
+    const description = publicBio
+        ? summarize(publicBio)
         : `Discover ${artistName}'s social links and streaming profiles on Music Nerd.`;
     const pageUrl = `https://musicnerd.net/artist/${id}`;
 
@@ -161,7 +164,8 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
     const isClaimedByUser = isClaimed && !!session && existingClaim.userId === session.user.id;
     const isPendingByUser = isPending && !!session && existingClaim.userId === session.user.id;
     const canEdit = isClaimedByUser || isAdmin;
-    const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources);
+    const directoryAbout = isClaimed ? null : await getPublicArtistAbout(id);
+    const publicProfile = isClaimed ? { artist, sources: approvedSources } : projectUnclaimedProfile(artist, approvedSources, directoryAbout);
 
     // Private review data must not delay visitors who cannot use it (#1261).
     const pendingSourcesRaw = canEdit ? await getVaultSourcesByArtistId(id, "pending") : [];
@@ -187,6 +191,7 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
 
     const profile = (
         <ArtistProfileContent
+            publicAbout={directoryAbout}
             interviewAction={!interviewPreview && !tourPreview && isClaimedByUser && onboardingState?.complete && MUSICNERD_API_INTERVIEWER_ENABLED
                 ? <ApiInterview key={`${artist.id}:${session?.user.id ?? "anonymous"}`} artistId={artist.id} artistName={artist.name ?? "your"} />
                 : null}

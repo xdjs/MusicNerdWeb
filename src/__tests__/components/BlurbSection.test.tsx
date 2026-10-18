@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BlurbSection from '@/app/artist/[id]/_components/BlurbSection';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 
+jest.mock('@privy-io/react-auth', () => ({usePrivy: () => ({ready:true,authenticated:false,login:jest.fn()})}));
+
 // Mock the useArtistBio hook
 jest.mock('@/hooks/useArtistBio', () => ({
     useArtistBio: jest.fn()
@@ -54,6 +56,13 @@ describe('BlurbSection', () => {
         fireEvent.change(screen.getByPlaceholderText('Enter artist bio...'), { target: { value: 'Another draft' } });
         fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
         expect(screen.getByPlaceholderText('Enter artist bio...')).toHaveValue('Selected saved bio');
+    });
+
+    it('offers corrections to visitors but not people who can edit this profile', () => {
+        const { rerender } = render(<EditModeContext.Provider value={{ isEditing: false, canEdit: false, toggle: jest.fn() }}><BlurbSection {...defaultProps} hero /></EditModeContext.Provider>);
+        expect(screen.getByRole('button', {name:'Suggest a correction'})).toBeInTheDocument();
+        rerender(<EditModeContext.Provider value={{ isEditing: false, canEdit: true, toggle: jest.fn() }}><BlurbSection {...defaultProps} hero /></EditModeContext.Provider>);
+        expect(screen.queryByRole('button', {name:'Suggest a correction'})).not.toBeInTheDocument();
     });
 
     describe('Basic Rendering', () => {
