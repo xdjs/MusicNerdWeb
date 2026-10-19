@@ -22,11 +22,13 @@ baseline win, four ties and one incomparable pair. The fresh archive-gap candida
 omitted the lost-copy explanation even though its checker reported complete.
 Both versions clarified the catalog-title case under the existing topic limit;
 the baseline also clarified the namesake case. No outcome or rubric was replaced.
-The draft remains for owner review, with this regression unresolved; these data
-do not support general improvement or release. All 40 model calls were accounted
+The strict T05 omission remains recorded. Its no-name conclusion and bounded
+explanation answer the visitor’s narrow mastering question; the additional missing-copy
+explanation is a frozen rubric requirement, not a demonstrated product release blocker.
+These data do not establish general improvement. All 40 model calls were accounted
 at $0.20345875; confirmed all-history cost is $0.72000610, or $0.74734810 exposure
 including the old unresolved reservation. No observed case exercised a repair
-retry; deterministic tests cover that branch. The static versioned report includes
+retry; its former deterministic branch tests did not establish a live benefit. The static versioned report includes
 all exact displayed answers, sources, frozen strict scores and attribution limits.
 
 Within the existing planning call, a required `publicSubject` describes
@@ -38,13 +40,21 @@ Private experiences, raw conversation and contact details remain excluded. This
 does not guarantee extraction of undeclared qualifiers: an empty or incomplete
 model-produced qualifier list remains a measured limitation.
 
-The existing independent answer checker now reports factual support and answer
-coverage separately. A missing supported detail that changes the requested
-meaning can use the existing second writer/checker attempt, with the same original
-evidence, exact-quote checks, deadlines and maximum calls. An unavailable detail
-cannot trigger invention. Coverage does not demand extraneous dates, places or
-citations; per-work credit roles and different unidentified speakers must remain
-distinct when the question needs that distinction. No new model stage is added.
+The smaller follow-up removes the experimental checker coverage field, coverage-driven
+repair and notice overrides. Factual verification and its existing bounded repair
+remain unchanged. A supported first draft no longer risks a second generation solely
+for completeness. Per-work credit, distinct-speaker and cited-gap writer guidance stays.
+
+The planner now declares public scope before composing topic and is instructed to
+reuse each complete declared clause verbatim, including identity qualifiers and
+negation. This instructs the planner to avoid generating two differently worded
+versions of the same scope; compliance remains model-dependent.
+The host still uses exact whole-phrase matching, appends missing declarations and
+clarifies at more than 160 characters. It never interprets synonyms, drops clauses,
+uses raw/private conversation as a fallback, or rewrites the old saved T02 outputs.
+Those nonconforming outputs still clarify in deterministic replay. Canonical fixture
+replays establish wiring only; changed-prompt model behavior requires separately
+labeled new generations. Prior reports and scores remain immutable.
 
 Web uses the server-only public research HTTP capability for question jobs, status
 and exact original reads. MusicNerdAPI owns public evidence selection, source
@@ -59,11 +69,9 @@ claim check as any fact, and must stay scoped to the supplied originals. For
 example, an explicitly incomplete credit list supports explaining why a missing
 name does not settle participation. This is not permission to invent absence.
 When cited sentences address every requested part, including explicit supported
-gaps, the writer sets `unanswered=null`. The host can also suppress a redundant
-generic suffix when the independent checker approves every sentence and reports
-complete coverage. That full-draft decision cannot clear a notice after sentence
-filtering. Missing coverage keeps the writer's conservative notice; explicit
-incomplete coverage retains a fixed notice even if the writer omitted one.
+gaps, the writer sets `unanswered=null`. Otherwise the host preserves the writer’s
+fixed missing-detail notice, including after retaining only independently supported
+sentences. The checker does not override that notice based on a coverage judgment.
 Free-text `unanswered` is never rendered,
 even if a checker approves it; zero-sentence results retain the safe fallback.
 

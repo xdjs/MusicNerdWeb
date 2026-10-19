@@ -97,30 +97,22 @@ async function submit(question: string) {
   fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
 }
 
-it("repairs an omitted subject distinction and renders the independently checked gap without a redundant suffix", async () => {
+it("renders the writer's cited gap without a generic suffix or a completeness repair", async () => {
   const defaultModel = jest.mocked(generateText).getMockImplementation()!;
-  let drafts = 0, checks = 0;
   jest.mocked(generateText).mockImplementation(async input => {
     if (input.instructions?.startsWith("Resolve")) return defaultModel(input);
-    if (input.instructions?.startsWith("Verify")) return { output: {
-      supported: true,
-      coverage: ++checks === 1 ? "missing_supported_detail" : "complete",
-      reason: checks === 1 ? "Explain the requested trio's missing producer credit separately from the other performer's supported credit." : "Both the identity distinction and the bounded gap are supported.",
-    } } as never;
-    const data = JSON.parse(input.prompt as string);
-    const repaired = ++drafts > 1;
-    if (repaired) expect(data.repairFeedback.rejectedDraft.sentences[0].text).toBe("Pax Cedar produced the 2025 club edition.");
-    return { output: { sentences: [{ kind: repaired ? "limitation" : "fact",
-      text: repaired ? "These records do not list the Bellwater trio's producer; the credited 2025 club edition belongs to a different performer." : "Pax Cedar produced the 2025 club edition.",
+    if (input.instructions?.startsWith("Verify")) return { output: { supported: true, reason: "Supported." } } as never;
+    return { output: { sentences: [{ kind: "limitation",
+      text: "These records do not list the Bellwater trio's producer; the credited 2025 club edition belongs to a different performer.",
       evidence: [{ n: 1, quote: text }],
-    }], unanswered: "The trio's producer is not listed." } } as never;
+    }], unanswered: null } } as never;
   });
   render(<AskAboutArtist artistId={artistId} artistName="Oriel Loom" />);
   await submit("Did Pax Cedar produce the Bellwater trio Oriel Loom’s 2022 album Folded Coast?");
   await screen.findByText(/These records do not list the Bellwater trio's producer/);
   expect(screen.getByTestId("answer")).not.toHaveTextContent("I couldn’t confirm the other details.");
   expect(screen.getByTestId("answer").querySelector('a[href="https://artist.example/credits"]')).toBeTruthy();
-  expect(drafts).toBe(2); expect(checks).toBe(2);
+  expect(jest.mocked(generateText)).toHaveBeenCalledTimes(3);
   expect(apiRequests.filter(request => request.path.includes("/evidence/"))).toHaveLength(1);
   expect(continueCandidateResearch).not.toHaveBeenCalled();
 });

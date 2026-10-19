@@ -384,76 +384,21 @@ it("keeps a missing-details notice when a cited limitation leaves another reques
   expect(result.answer).toBe("The supplied sleeve does not establish the full personnel. [1] I couldn’t confirm the other details.");
   expect(result.answer).not.toContain("recording location");
 });
-it("omits redundant generic copy only when the checker verifies the whole answer explains the requested gap", async () => {
-  const text = "The retained note is a caption only; no transcript of the spoken explanation is included.";
-  const source = { ...reference, text, end: text.length };
-  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
+it.each(["complete", "missing_supported_detail", "unresolved_gap"])("does not let obsolete coverage metadata override the writer notice or request another generation (%s)", async coverage => {
   model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [{ kind: "limitation", text: "The saved caption does not include the spoken explanation.", evidence: [{ n: 1, quote: text }] }], unanswered: "The spoken explanation is unavailable." } } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "complete", reason: "The cited limitation addresses the exact speech question." } } as never);
-  const result = await draftResearchAnswer("artist", "Artist", "What explanation is given aloud?", [source]);
-  expect(result.answer).toBe("The saved caption does not include the spoken explanation. [1]");
-  expect(model).toHaveBeenCalledTimes(2);
-});
-it.each([
-  ["The album thanks Sam. Track A: produced by Pat; mixed by Sam. Track B: produced by Sam.", "Does the album thank-you establish that Sam produced both tracks?", "Sam produced Track B.", "Sam produced Track B; the thank-you does not establish production of both tracks, and Track A credits Pat as producer."],
-  ["Voice one: the stage goes to the annex. Voice two: I will fund transport. Neither voice is identified.", "What destination and transport promise do the two voices describe?", "The stage goes to the annex.", "One unidentified voice says the stage goes to the annex; a different unidentified voice promises transport funding."],
-])("repairs a supported omission through the existing bounded writer/checker cycle (%s)", async (text, question, initial, complete) => {
-  const source = { ...reference, text, end: text.length };
-  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
-  const answer = (sentence: string) => ({ sentences: [{ text: sentence, evidence: [{ n: 1, field: "text", quote: text }] }], unanswered: null });
-  model.mockReset();
-  model.mockResolvedValueOnce({ output: answer(initial) } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "missing_supported_detail", reason: "The supplied original answers another requested distinction omitted from this draft." } } as never)
-    .mockResolvedValueOnce({ output: answer(complete) } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "complete", reason: "Every requested distinction is supported." } } as never);
-  const result = await draftResearchAnswer("artist", "Artist", question, [source]);
-  expect(result.answer).toBe(`${complete} [1]`);
-  expect(model).toHaveBeenCalledTimes(4);
-  expect(JSON.parse(model.mock.calls[2][0].prompt as string).repairFeedback.rejectedDraft).toEqual(answer(initial));
-  expect(JSON.parse(model.mock.calls[2][0].prompt as string).originals).toEqual(JSON.parse(model.mock.calls[0][0].prompt as string).originals);
-});
-it("reports an unexplained remaining gap without asking the writer to invent evidence", async () => {
-  model.mockReset();
-  model.mockResolvedValueOnce({ output: draft } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "unresolved_gap", reason: "The recording location is unavailable and not explained in the answer." } } as never);
-  const result = await draftResearchAnswer("artist", "Artist", "What did they play and where was it recorded?", [reference]);
-  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
-  expect(model).toHaveBeenCalledTimes(2);
-});
-it("keeps the notice after sentence filtering even when coverage describes the complete unfiltered draft", async () => {
-  model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [...draft.sentences, { text: "It was recorded at home.", evidence: [{ n: 1, quote: reference.text }] }], unanswered: "Recording location is uncertain." } } as never)
-    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [1], coverage: "complete", reason: "The claimed recording location is unsupported." } } as never);
+  model.mockResolvedValueOnce({ output: { ...draft, unanswered: "A requested detail is unavailable." } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, coverage, reason: "Supported." } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they play and where?", [reference]);
   expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
   expect(model).toHaveBeenCalledTimes(2);
 });
-it.each(["missing_supported_detail", "unresolved_gap"])("retains the checker's explicit incomplete status after sentence filtering (%s)", async coverage => {
-  model.mockReset();
-  model.mockResolvedValueOnce({ output: { sentences: [...draft.sentences, { text: "It was recorded at home.", evidence: [{ n: 1, quote: reference.text }] }], unanswered: null } } as never)
-    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [1], coverage, reason: "The location is unsupported and a requested detail remains missing." } } as never);
-  const result = await draftResearchAnswer("artist", "Artist", "What did they play and where?", [reference]);
-  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
-  expect(result.answer).not.toContain("home");
-  expect(model).toHaveBeenCalledTimes(2);
-});
-it("stops after the existing repair limit and preserves supported facts with a missing-details notice", async () => {
-  model.mockReset();
-  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "missing_supported_detail", reason: "A requested supported distinction remains omitted." } } as never);
-  const result = await draftResearchAnswer("artist", "Artist", "What did they play and did they produce it?", [reference]);
-  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
-  expect(model).toHaveBeenCalledTimes(4);
-});
-it("rejects an unsupported completeness repair even when its quotes match and coverage says complete", async () => {
+it("keeps a verified first draft without an optional completeness repair", async () => {
   model.mockReset();
   model.mockResolvedValueOnce({ output: draft } as never)
-    .mockResolvedValueOnce({ output: { supported: true, coverage: "missing_supported_detail", reason: "Address the requested production role." } } as never)
-    .mockResolvedValueOnce({ output: { sentences: [{ text: "They produced the track.", evidence: [{ n: 1, quote: reference.text }] }], unanswered: null } } as never)
-    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], coverage: "complete", reason: "The source explicitly denies that production role." } } as never);
-  await expect(draftResearchAnswer("artist", "Artist", "What did they play and did they produce it?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
-  expect(model).toHaveBeenCalledTimes(4);
+    .mockResolvedValueOnce({ output: { supported: true, coverage: "missing_supported_detail", reason: "A detail is missing." } } as never)
+    .mockRejectedValueOnce(new Error("An unnecessary second generation failed"));
+  expect((await draftResearchAnswer("artist", "Artist", "What did they play?", [reference])).answer).toBe("They played drums. [1]");
+  expect(model).toHaveBeenCalledTimes(2);
 });
 it("does not let a limitation bypass exact quotes or claim verification", async () => {
   model.mockReset();

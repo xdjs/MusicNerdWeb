@@ -1,3 +1,16 @@
+## Smaller #1424 candidate — October 19, draft only
+
+The coverage-field/repair/notice-override experiment is removed from draft #1577;
+writer guidance and declared-public-subject protection remain. Planner scope clauses
+are emitted before topic and reused verbatim to avoid artificial scope duplication;
+exact host checks and the160-character cap are unchanged. Old nonconforming T02
+outputs still safely clarify. New verification must distinguish authored replay
+from actual generations with the changed prompt. Prior reports/scores stay unchanged.
+T05 remains a strict missing-copy rubric omission, not evidence that its supported
+unknown-mastering answer materially failed the narrow product question.
+No merge, production release, issue closure or matrix edit is authorized here.
+See [the contract](docs/research/question-research-client.md).
+
 ## Ask About bounded comparison — October 19
 
 Draft [Web #1577](https://github.com/xdjs/MusicNerdWeb/pull/1577), refs
