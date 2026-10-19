@@ -63,6 +63,51 @@ it("reopens the original before drafting and retains exact stable references wit
     curation: "pending",
   });
 });
+it("returns a concrete song insight with a scoped uncertainty and host-supplied citations", async () => {
+  const text =
+    "I want the song's story about rent and work to feel warm, not like a warning. I can't tell if the story lands with listeners yet.";
+  const caption = {
+    ...reference,
+    text,
+    end: text.length,
+    evidenceKind: "caption" as const,
+    speaker: "unverified" as const,
+  };
+  api.mockResolvedValue({ status: "ok", passage: caption, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model
+    .mockResolvedValueOnce({
+      output: {
+        sentences: [
+          {
+            text: "The caption frames the song's rent-and-work story warmly, not as a warning.",
+            evidence: [{ n: 1, quote: "the song's story about rent and work to feel warm, not like a warning" }],
+          },
+          {
+            text: "Its writer is unsure whether listeners will connect with it.",
+            evidence: [{ n: 1, quote: "I can't tell if the story lands with listeners yet" }],
+          },
+        ],
+        unanswered: null,
+      },
+    } as never)
+    .mockResolvedValueOnce({
+      output: { supported: true, reason: "Supported." },
+    } as never);
+
+  const result = await draftResearchAnswer(
+    "artist",
+    "Marlowe Echo",
+    "What is the song about, and how does the writer feel about its reception?",
+    [caption],
+  );
+
+  expect(result.answer).toBe(
+    "The caption frames the song's rent-and-work story warmly, not as a warning. [1] Its writer is unsure whether listeners will connect with it. [1]",
+  );
+  expect(result.sources).toHaveLength(1);
+  expect(model).toHaveBeenCalledTimes(2);
+});
 it("keeps the original citation when a model collapses whitespace in its quote", async () => {
   const text =
     "Dutchyyy has been building it out  over the past year\n\nto escape platform dependency & reach listeners.";
