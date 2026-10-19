@@ -11,9 +11,12 @@ General questions default to stored evidence; an unprompted model choice cannot 
 The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. A reload can resume the job without starting paid collection again. The UI may stop waiting while the job remains durable; resume does not enqueue another request. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Request limits remain the API's documented limits, including five new requests per artist per day.
 
 When an unresolved result carries the API's `unsupported_speech` limitation, Web
-explains that saved sources did not establish what was said and that it cannot
-transcribe speech from that source. This deterministic capability message does
-not claim that the retained record is caption-only, that no transcript exists
+says: “I couldn't establish what was said from the saved sources.” The status
+contract does not distinguish a server capability decision from a model-selected
+evidence limitation. A null provider can occur in either case, and an
+`instagram_reels` provider does not guarantee sufficient speech evidence. Web
+therefore makes no transcription-capability claim from this reason alone. It also
+does not claim that the retained record is caption-only, that no transcript exists
 elsewhere, or that the artist said nothing. Rendering the limitation starts no
 additional drafting or provider work. Existing quota, refresh and account messages
 retain their precedence.

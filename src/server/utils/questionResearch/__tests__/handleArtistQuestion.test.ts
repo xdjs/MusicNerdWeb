@@ -203,15 +203,37 @@ it('explains when the requested provider needs a refresh without claiming no inf
  expect(body.answer).toMatch(/refresh/);
  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
 });
-it('explains unsupported speech from the API reason without drafting or claiming caption-only evidence', async () => {
- jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',limitations:['unsupported_speech']});
- const body=await (await handleArtistQuestion(request({jobId}))).json();
- expect(body.answer).toBe("I couldn't establish what was said from the saved sources, and I can't transcribe speech from this source.");
- expect(body.sources).toEqual([]);
- expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
- expect(planArtistQuestion).not.toHaveBeenCalled();
- expect(registerResearchQuestion).not.toHaveBeenCalled();
- expect(callResearchApi).toHaveBeenCalledTimes(1);
+it.each([
+  {
+    scenario: "TikTok speech unsupported by the server route",
+    question: "What reason does Ember Folio give aloud in this TikTok for changing the winter show venue?",
+    provider: null,
+  },
+  {
+    scenario: "supported Instagram Reel with insufficient saved evidence before collection",
+    question: "What reason does the artist give aloud in this Instagram Reel?",
+    provider: null,
+  },
+  {
+    scenario: "supported Instagram Reel with insufficient evidence after collection",
+    question: "What reason does the artist give aloud in this Instagram Reel?",
+    provider: "instagram_reels",
+  },
+])("reports only the evidence gap for $scenario", async ({ question, provider }) => {
+  // The wire status has no capability provenance: even provider:null is ambiguous.
+  jest.mocked(callResearchApi).mockResolvedValue({
+    ...status,
+    stage: "unresolved",
+    provider,
+    limitations: ["unsupported_speech"],
+  });
+  const body = await (await handleArtistQuestion(request({ jobId, question }))).json();
+  expect(body.answer).toBe("I couldn't establish what was said from the saved sources.");
+  expect(body.sources).toEqual([]);
+  expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+  expect(planArtistQuestion).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).not.toHaveBeenCalled();
+  expect(callResearchApi).toHaveBeenCalledTimes(1);
 });
 it('keeps the quota explanation when unsupported speech is also reported', async () => {
  jest.mocked(callResearchApi).mockResolvedValue({...status,stage:'unresolved',outsideResearchReason:'quota',limitations:['unsupported_speech']});

@@ -1,6 +1,6 @@
 import type { ResearchStatus } from "./schemas";
 
-/** Explain trusted capability/status reasons without generating unsupported source claims. */
+/** Explain status reasons without treating an evidence limitation as a capability verdict. */
 export function getUnresolvedResearchAnswer(
   state: Pick<ResearchStatus, "outsideResearchReason" | "limitations">,
 ): string {
@@ -11,6 +11,6 @@ export function getUnresolvedResearchAnswer(
   if (state.limitations.includes("connected_account_required"))
     return "I need a connected account for that source before I can check it.";
   if (state.limitations.includes("unsupported_speech"))
-    return "I couldn't establish what was said from the saved sources, and I can't transcribe speech from this source.";
+    return "I couldn't establish what was said from the saved sources.";
   return "I don't have enough information to answer that yet.";
 }
