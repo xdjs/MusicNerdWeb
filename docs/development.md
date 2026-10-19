@@ -90,9 +90,10 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
   (`queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
-  `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the onboarding
-  chat (`useOnboardingChat`) sends every turn to MusicNerdAPI's `/api/onboarding/{artistId}/chat`,
-  both with the Privy access token. The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
+  `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the
+  build view's "try again" (`useRestartClaimBuild`) posts MusicNerdAPI's `/api/onboarding/{artistId}/build`,
+  both with the Privy access token. Claim approval starts that build server to server (`startClaimBuild`,
+  research key); the page never sends onboarding chat turns ([research-view.md](research-view.md)). The base URL is hardcoded in `src/lib/musicNerdApi/const.ts`, chosen by
   `NEXT_PUBLIC_VERCEL_ENV`: production → `api.musicnerd.net`; previews, staging and local →
   `musicnerd-api-staging.vercel.app` (MusicNerdAPI's `staging` environment: `main` on the staging
   database). Promote a production-target build: a promoted preview build still calls staging.

@@ -101,8 +101,8 @@ citation markers included, and the page shows the validated version.
 `{ kind: "text-delta", group: "about-write", call: "doc" | "about", delta }` on MusicNerdAPI's
 `/api/onboarding/{artistId}/chat` stream, through `yieldWhileRunning` (in MusicNerdAPI): a generator cannot `yield` from inside a callback, so the
 helper runs the call, yields what it emits while it runs, and returns its result (or rethrows
-its error) once it settles. `useOnboardingChat` appends deltas to one `writing` item per `call`,
-and the [research view](research-view.md) renders them as Markdown under "Writing your About".
+its error) once it settles. Since the build moved to a server workflow (#1538) nothing on the site
+reads these deltas: the [research view](research-view.md) shows the About when `publish` is confirmed.
 
 ## How each Gemini option maps
 
