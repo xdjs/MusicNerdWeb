@@ -579,3 +579,36 @@ it("uses a detailed rejection to repair the draft instead of failing the entire 
   expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toBe(reason);
   expect(model.mock.calls[1][0].anthropicEffort).toBe('low');
 });
+
+it("identifies only rejected evidence in the existing bounded repair without weakening quote checks", async () => {
+  const stitched = { sentences: [{ text: "They played drums without producing the work.", evidence: [
+    { n: 1, field: "text", quote: "I played drums." },
+    { n: 1, field: "text", quote: "I played drums ... did not produce it." },
+  ] }], unanswered: null };
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: stitched } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  expect((await draftResearchAnswer("artist", "Artist", "What was their role?", [reference])).answer).toBe("They played drums. [1]");
+  const first = JSON.parse(model.mock.calls[0][0].prompt);
+  const repair = JSON.parse(model.mock.calls[1][0].prompt);
+  expect(repair.repairFeedback.rejectedEvidence).toEqual([
+    { sentenceNumber: 1, evidenceNumber: 2, sourceNumber: 1, field: "text" },
+  ]);
+  expect(repair.originals).toEqual(first.originals);
+  expect(model).toHaveBeenCalledTimes(3);
+  expect(api).toHaveBeenCalledTimes(1);
+});
+
+it("still rejects a repeated stitched quote after targeted feedback without invoking the checker", async () => {
+  const stitched = { sentences: [{ text: "They played drums without producing the work.", evidence: [
+    { n: 1, field: "text", quote: "I played drums ... did not produce it." },
+  ] }], unanswered: null };
+  model.mockReset();
+  model.mockResolvedValue({ output: stitched } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "What was their role?", [reference])).rejects.toMatchObject({
+    verificationCode: "quote_rejected", verificationStage: "quote_check",
+  });
+  expect(JSON.parse(model.mock.calls[1][0].prompt).repairFeedback.rejectedEvidence).toHaveLength(1);
+  expect(model).toHaveBeenCalledTimes(2);
+});
