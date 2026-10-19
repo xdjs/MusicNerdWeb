@@ -15,6 +15,7 @@ import { callResearchApi } from "./callResearchApi";
 import { getOrDraftResearchAnswer } from "./getOrDraftResearchAnswer";
 import { registerResearchQuestion } from "./registerResearchQuestion";
 import { researchStatusSchema } from "@/lib/questionResearch/schemas";
+import { getUnresolvedResearchAnswer } from "@/lib/questionResearch/getUnresolvedResearchAnswer";
 /** Public chat is limited to the API's public evidence capability; private history is never loaded. */
 export async function handleArtistQuestion(request: Request) {
   const signal = AbortSignal.any([...(request.signal ? [request.signal] : []), AbortSignal.timeout(55000)]);
@@ -151,13 +152,7 @@ export async function handleArtistQuestion(request: Request) {
         {
           answer:
             state.stage === "unresolved"
-              ? state.outsideResearchReason === "quota"
-                ? "The saved sources I checked did not answer that. Outside research is at its limit for now. You can still ask about saved sources."
-                : state.limitations.includes("provider_latest_refresh_required")
-                  ? "I don't have enough saved information from that source, and I can't refresh it from this chat yet."
-                  : state.limitations.includes("connected_account_required")
-                    ? "I need a connected account for that source before I can check it."
-                    : "I don't have enough information to answer that yet."
+              ? getUnresolvedResearchAnswer(state)
               : "Research could not finish. That does not mean the information doesn't exist.",
           ...(state.outsideResearchReason === "quota" ? {
             code: "research_quota", resetAt: state.resetAt, retryAfterSeconds: state.retryAfterSeconds, retryFromStart: true,

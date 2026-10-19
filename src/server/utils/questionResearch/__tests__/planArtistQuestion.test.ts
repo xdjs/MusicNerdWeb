@@ -179,6 +179,34 @@ describe("dated originals and pasted source URLs (#1491)", () => {
   });
 });
 
+it.each([
+  "Was the released Paper Reservoir master recorded entirely live in the quarry? What was changed, and what does June 14, 2024 date?",
+  "Why was the concert recorded on June 14, 2024?",
+])("does not turn an event date into an unrequested source window: %s", async question => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Artist recording context", evidenceNeed: "reporting", freshness: "stored",
+    fromDate: null, toDate: null, targetUrl: null, platform: null,
+  }} as never);
+  const plan = await planArtistQuestion("Artist", question);
+  expect(plan).not.toHaveProperty("fromDate");
+  expect(plan).not.toHaveProperty("toDate");
+  expect(plan).toMatchObject({ resolvedQuestion: question });
+});
+
+it("keeps a cited dossier when a same-source follow-up asks about its recording date", async () => {
+  const targetUrl = "https://artist.example/recording-dossier.pdf";
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Artist recording context", evidenceNeed: "reporting", freshness: "stored",
+    resolvedQuestion: "What does June 14, 2024 date in the cited dossier?",
+    fromDate: null, toDate: null, targetUrl, platform: null,
+  }} as never);
+  const plan = await planArtistQuestion("Artist", "What does June 14, 2024 date?", undefined,
+    [{ question: "Was it entirely live?", answer: "The dossier describes the recording.", sourceUrls: [targetUrl] }]);
+  expect(plan).toMatchObject({ targetUrl });
+  expect(plan).not.toHaveProperty("fromDate");
+  expect(plan).not.toHaveProperty("toDate");
+});
+
 it.each(['And beyond that?', 'Anything different happening?', 'Catch me up on the rest.'])(
   'honors semantic other-activity intent without a phrase whitelist: %s', async question => {
     const url='https://artist.example/previous-project';
