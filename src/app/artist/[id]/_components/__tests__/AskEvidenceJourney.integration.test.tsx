@@ -52,8 +52,9 @@ beforeEach(() => {
   jest.mocked(generateText).mockImplementation(async input => {
     const data = JSON.parse(input.prompt as string);
     if (input.instructions?.startsWith("Resolve")) return { output: {
+      publicSubject: { name: "Oriel Loom", qualifiers: ["Bellwater trio"] },
       topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
-      publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
+      publicConstraints: ["whether Pax Cedar produced Folded Coast"],
       evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
       resolvedQuestion: data.question === "Which edition has that credit?"
         ? "Which edition of Folded Coast has the Pax Cedar producer credit?" : data.question,
@@ -96,6 +97,34 @@ async function submit(question: string) {
   fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
 }
 
+it("repairs an omitted subject distinction and renders the independently checked gap without a redundant suffix", async () => {
+  const defaultModel = jest.mocked(generateText).getMockImplementation()!;
+  let drafts = 0, checks = 0;
+  jest.mocked(generateText).mockImplementation(async input => {
+    if (input.instructions?.startsWith("Resolve")) return defaultModel(input);
+    if (input.instructions?.startsWith("Verify")) return { output: {
+      supported: true,
+      coverage: ++checks === 1 ? "missing_supported_detail" : "complete",
+      reason: checks === 1 ? "Explain the requested trio's missing producer credit separately from the other performer's supported credit." : "Both the identity distinction and the bounded gap are supported.",
+    } } as never;
+    const data = JSON.parse(input.prompt as string);
+    const repaired = ++drafts > 1;
+    if (repaired) expect(data.repairFeedback.rejectedDraft.sentences[0].text).toBe("Pax Cedar produced the 2025 club edition.");
+    return { output: { sentences: [{ kind: repaired ? "limitation" : "fact",
+      text: repaired ? "These records do not list the Bellwater trio's producer; the credited 2025 club edition belongs to a different performer." : "Pax Cedar produced the 2025 club edition.",
+      evidence: [{ n: 1, quote: text }],
+    }], unanswered: "The trio's producer is not listed." } } as never;
+  });
+  render(<AskAboutArtist artistId={artistId} artistName="Oriel Loom" />);
+  await submit("Did Pax Cedar produce the Bellwater trio Oriel Loom’s 2022 album Folded Coast?");
+  await screen.findByText(/These records do not list the Bellwater trio's producer/);
+  expect(screen.getByTestId("answer")).not.toHaveTextContent("I couldn’t confirm the other details.");
+  expect(screen.getByTestId("answer").querySelector('a[href="https://artist.example/credits"]')).toBeTruthy();
+  expect(drafts).toBe(2); expect(checks).toBe(2);
+  expect(apiRequests.filter(request => request.path.includes("/evidence/"))).toHaveLength(1);
+  expect(continueCandidateResearch).not.toHaveBeenCalled();
+});
+
 it("preserves public constraints through API dispatch and renders cited uncertainty before resolving a follow-up", async () => {
   render(<AskAboutArtist artistId={artistId} artistName="Oriel Loom" />);
   const question = "Did Pax Cedar produce the Bellwater trio Oriel Loom’s 2022 album Folded Coast?";
@@ -106,6 +135,7 @@ it("preserves public constraints through API dispatch and renders cited uncertai
   expect(apiRequests[0].body).toMatchObject({ preferDirectEvidence: true,
     topic: "Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast" });
   expect(apiRequests[0].body).not.toHaveProperty("publicConstraints");
+  expect(apiRequests[0].body).not.toHaveProperty("publicSubject");
   expect(apiRequests[0].body).not.toHaveProperty("conversation");
   expect(apiRequests.some(r => r.path.includes("/evidence/vault%3A"))).toBe(true);
   for (const link of screen.getAllByTitle("artist.example")) expect(link).toHaveAttribute("href", original.url);

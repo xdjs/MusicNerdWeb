@@ -10,8 +10,26 @@ inline. The separate `/review/1424` interaction remains manually illustrated.
 The actual-results route has no scripts, model calls, remote assets or application
 layout; a restrictive content policy blocks network integrations. It returns 404
 outside local development and Vercel preview. This delivery route does not alter
-the evaluated research logic at `3d344d91`, and observed output differences are not
+the report's evaluated research logic at `3d344d91`, and observed output differences are not
 proof of causality or completion of #1424.
+
+The next bounded iteration preserves that report and its scores as development
+evidence. Within the existing planning call, a required `publicSubject` describes
+the selected public artist and explicitly stated identity qualifiers before topic
+compression. The host preserves those declared phrases within the existing
+160-character API topic, strips the planner-only object, and clarifies rather than
+truncating overflow. Missing/malformed subject output fails before API dispatch.
+Private experiences, raw conversation and contact details remain excluded. This
+does not guarantee extraction of undeclared qualifiers: an empty or incomplete
+model-produced qualifier list remains a measured limitation.
+
+The existing independent answer checker now reports factual support and answer
+coverage separately. A missing supported detail that changes the requested
+meaning can use the existing second writer/checker attempt, with the same original
+evidence, exact-quote checks, deadlines and maximum calls. An unavailable detail
+cannot trigger invention. Coverage does not demand extraneous dates, places or
+citations; per-work credit roles and different unidentified speakers must remain
+distinct when the question needs that distinction. No new model stage is added.
 
 Web uses the server-only public research HTTP capability for question jobs, status
 and exact original reads. MusicNerdAPI owns public evidence selection, source
@@ -25,9 +43,13 @@ structured answer. It needs the same exact supporting quotes and independent
 claim check as any fact, and must stay scoped to the supplied originals. For
 example, an explicitly incomplete credit list supports explaining why a missing
 name does not settle participation. This is not permission to invent absence.
-When cited sentences address every requested part, the writer sets
-`unanswered=null`. Otherwise the host keeps the generic “other details” suffix,
-even if a different cited limitation survives checking. Free-text `unanswered` is never rendered,
+When cited sentences address every requested part, including explicit supported
+gaps, the writer sets `unanswered=null`. The host can also suppress a redundant
+generic suffix when the independent checker approves every sentence and reports
+complete coverage. That full-draft decision cannot clear a notice after sentence
+filtering. Missing coverage keeps the writer's conservative notice; explicit
+incomplete coverage retains a fixed notice even if the writer omitted one.
+Free-text `unanswered` is never rendered,
 even if a checker approves it; zero-sentence results retain the safe fallback.
 
 Candidate selection is only permission to attempt a checked answer. After originals are reopened, a host-accepted schema-valid zero-sentence
