@@ -92,7 +92,11 @@ then the Lore and About, each a retried step. It finishes whether or not anyone 
 ([#1538](https://github.com/xdjs/MusicNerdWeb/issues/1538)).
 
 While onboarding is incomplete, `OnboardingGate` renders the profile it is given inside the build
-view (`ResearchInPlace`), which only watches the state endpoint. There is no popup, step card or
+view (`ResearchInPlace`), which watches the state endpoint. When it opens, once Privy is signed in,
+it also starts the build with the claimant's token (`useStartClaimBuild`), in case nothing has: a
+claim approved before the build moved to the server, a failed start at approval, or a preview
+without the research key. That is safe to repeat: a running build is left alone and a stopped one
+resumes at its first unconfirmed step. There is no popup, step card or
 chat: the old "Set up {artist}" step-card modal and its chat client are deleted
 ([#1533](https://github.com/xdjs/MusicNerdWeb/issues/1533)).
 
@@ -170,8 +174,9 @@ a build is being watched and its step has no confirmation time; otherwise it ren
 
 ## Sign-in
 
-Watching the build needs no sign-in: the state endpoint is public. Only "try again" sends the
-claimant's Privy access token; without one it reports the restart failure and sends nothing.
+Watching the build needs no sign-in: the state endpoint is public. Starting it on open and "try
+again" send the claimant's Privy access token; without one, the start on open sends nothing and
+"try again" reports the restart failure.
 
 ## Reviewing the loading colors
 
