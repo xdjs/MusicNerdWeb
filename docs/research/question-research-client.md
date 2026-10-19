@@ -52,9 +52,17 @@ versions of the same scope; compliance remains model-dependent.
 The host still uses exact whole-phrase matching, appends missing declarations and
 clarifies at more than 160 characters. It never interprets synonyms, drops clauses,
 uses raw/private conversation as a fallback, or rewrites the old saved T02 outputs.
-Those nonconforming outputs still clarify in deterministic replay. Canonical fixture
-replays establish wiring only; changed-prompt model behavior requires separately
-labeled new generations. Prior reports and scores remain immutable.
+The old candidate output still clarifies; the older baseline output lacks the
+required subject field and fails closed under the final schema. Canonical fixture
+replays establish wiring only. The separate `/review/1424/actual/compact-routing`
+report records two new final-code confirmations against `f33d7796`: T02 generated a
+115-character topic and a cited title/artist answer; T01 generated a 77-character
+public topic, omitted the private setup from dispatch/answer and retained the
+civil-identity limitation. Six calls cost $0.02406125 with no generation retries.
+These two known synthetic cases establish observed behavior, not general accuracy
+or deployed storage/authentication acceptance. All-history confirmed cost is
+$0.74406735, exposure $0.77140935 including the old $0.027342 reservation. No further
+tuning or model calls followed. Prior reports and scores remain immutable.
 
 Web uses the server-only public research HTTP capability for question jobs, status
 and exact original reads. MusicNerdAPI owns public evidence selection, source

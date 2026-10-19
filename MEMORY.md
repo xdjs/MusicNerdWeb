@@ -4,8 +4,11 @@ The coverage-field/repair/notice-override experiment is removed from draft #1577
 writer guidance and declared-public-subject protection remain. Planner scope clauses
 are emitted before topic and reused verbatim to avoid artificial scope duplication;
 exact host checks and the160-character cap are unchanged. Old nonconforming T02
-outputs still safely clarify. New verification must distinguish authored replay
-from actual generations with the changed prompt. Prior reports/scores stay unchanged.
+outputs still safely clarify. Two new final-code confirmations at `f33d7796` completed T02 with a115-character
+public topic and T01 without forwarding private context. Six calls cost$0.02406125;
+all-history exposure$0.77140935 includes the old unresolved$0.027342 reservation.
+The compact-routing preview report distinguishes actual generations from authored
+replay. Prior reports/scores stay unchanged. No further tuning followed.
 T05 remains a strict missing-copy rubric omission, not evidence that its supported
 unknown-mastering answer materially failed the narrow product question.
 No merge, production release, issue closure or matrix edit is authorized here.
