@@ -41,18 +41,18 @@ Object.assign(globalThis, { Request: primitives.Request, Response: primitives.Re
 
 const fixture = JSON.parse(readFileSync(join(__dirname, "fixtures/t02-scope-regressions.fixture.json"), "utf8")) as any;
 const t02 = fixture.savedT02;
-const canonical = { ...fixture.canonicalT02.plannerOutput, evidenceFacets: [
+const canonical = { ...fixture.canonicalT02.plannerOutput, researchTask: { kind: "comparison", sides: [
   "whether Kite Museum is the work title or artist name",
   "who is credited as the artist",
-] };
+] } };
 const identity = {
   ...fixture.publicIdentityBoundary,
-  plannerOutput: { ...fixture.publicIdentityBoundary.plannerOutput, evidenceFacets: [
+  plannerOutput: { ...fixture.publicIdentityBoundary.plannerOutput, researchTask: { kind: "ordinary", requirements: [
     "whether Sora Vale is a Harbor Glass member or bridge arranger",
-  ] },
-  overflowPlannerOutput: { ...fixture.publicIdentityBoundary.overflowPlannerOutput, evidenceFacets: [
+  ] } },
+  overflowPlannerOutput: { ...fixture.publicIdentityBoundary.overflowPlannerOutput, researchTask: { kind: "ordinary", requirements: [
     "whether Sora Vale is a Harbor Glass member or bridge arranger",
-  ] },
+  ] } },
 };
 const jobId = "22222222-2222-4222-8222-222222222222";
 const apiRequests: { path: string; method?: string; body?: Record<string, unknown> }[] = [];
@@ -87,7 +87,11 @@ beforeEach(() => {
     if (instructions.startsWith("Resolve")) {
       const prompt = JSON.parse(input.prompt as string);
       plannerPrompts.push(prompt);
-      const intents = Array.isArray(plannerOutput.evidenceFacets) ? plannerOutput.evidenceFacets as string[] : [];
+      const task = plannerOutput.researchTask as { kind?: string; requirements?: string[]; sides?: string[]; choice?: string; reason?: string } | undefined;
+      const intents = task?.kind === "ordinary" ? task.requirements ?? []
+        : task?.kind === "comparison" ? task.sides ?? []
+          : task?.kind === "recommendation" && task.choice && task.reason
+            ? [task.choice, task.reason] : [];
       mockBoundFacets = { state: "ready", facets: intents.map((intent, index) => ({ id: `f${index + 1}`, intent })) };
       return { output: plannerOutput } as never;
     }
@@ -145,12 +149,12 @@ function requestBody(artist: typeof activeArtist, question: string, conversation
   });
 }
 
-it("replays saved 007 in the chat and keeps the historical T02 scope overflow as a clarification", async () => {
+it("replays saved 007 as a clarification without promoting its legacy constraints into answer facets", async () => {
   plannerOutput = t02.oldPlanner.patch.output;
   render(<AskAboutArtist artistId={t02.artist.id} artistName={t02.artist.name} />);
   await submit(t02.question);
 
-  expect(await screen.findByText(/Could you narrow this to one public research question/)).toBeVisible();
+  expect(await screen.findByText(/What specific fact or relationship would you like me to check/)).toBeVisible();
   expect(apiRequests).toHaveLength(0);
   expect(jest.mocked(getOrDraftResearchAnswer)).not.toHaveBeenCalled();
   expect(jest.mocked(generateText)).toHaveBeenCalledTimes(1);

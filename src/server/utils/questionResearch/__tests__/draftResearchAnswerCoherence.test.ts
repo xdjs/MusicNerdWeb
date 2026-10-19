@@ -32,7 +32,8 @@ it.each(["That reviewer describes driving synths.", "These picks show Morgan's m
     expect(model).toHaveBeenCalledTimes(4);
     const repair = JSON.parse(model.mock.calls[2][0].prompt);
     expect(repair.repairFeedback.supportedSentenceNumbers).toEqual([2]);
-    expect(repair.repairFeedback.reason).toContain("self-contained");
+    expect(repair.repairFeedback.reason).toContain("Preserve valid claims, exact quotes, references, and ordinary transitions");
+    expect(repair.repairFeedback.reason).toContain("sentence numbers are repair hints only");
     expect(model.mock.calls[2][0].abortSignal).toBe(model.mock.calls[0][0].abortSignal);
   },
 );
@@ -49,6 +50,30 @@ it("does not publish another unchecked subset when the repaired draft still fail
   await expect(draftResearchAnswer("artist", "Artist", "What is the sound like?", [reference])).rejects.toThrow("The sources did not support the drafted answer");
   expect(model).toHaveBeenCalledTimes(4);
 });
+
+it.each([undefined, []] as (number[] | undefined)[])(
+  "uses whole-answer repair guidance when supported sentence hints are %s", async supportedSentenceNumbers => {
+    const draft = answer([sentence("The review describes driving synths; Morgan mixed the track.")]);
+    const repaired = answer([{
+      text: "The review describes driving synths; Morgan mixed the track.",
+      evidence: [{ n: 1, quote: "The review describes driving synths." }, { n: 1, quote: "The track was mixed by Morgan." }],
+    }]);
+    model.mockResolvedValueOnce({ output: draft } as never)
+      .mockResolvedValueOnce({ output: {
+        supported: false,
+        ...(supportedSentenceNumbers === undefined ? {} : { supportedSentenceNumbers }),
+        reason: "Sentence 1: missing quote coverage for Morgan's mixing credit; source 1 says 'The track was mixed by Morgan.'",
+      } } as never)
+      .mockResolvedValueOnce({ output: repaired } as never)
+      .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+    await draftResearchAnswer("artist", "Artist", "What is the sound and mixing credit?", [reference]);
+    const feedback = JSON.parse(model.mock.calls[2][0].prompt).repairFeedback;
+    expect(feedback.reason).toContain("Preserve valid claims, exact quotes, references, and ordinary transitions");
+    expect(feedback.reason).toContain("Re-evaluate and verify the entire revised answer");
+    expect(feedback.supportedSentenceNumbers).toBeUndefined();
+    expect(model).toHaveBeenCalledTimes(4);
+  },
+);
 
 it("repairs missing quote coverage without discarding a full-source-supported detail", async () => {
   const draft = answer([
@@ -67,10 +92,17 @@ it("repairs missing quote coverage without discarding a full-source-supported de
   expect(result.answer).toBe("The review describes driving synths; Morgan mixed the track. [1]");
   expect(model).toHaveBeenCalledTimes(4);
   const feedback = JSON.parse(model.mock.calls[2][0].prompt).repairFeedback;
-  expect(feedback.reason).toContain("For missing quote coverage, retain a claim only when the supplied originals support it");
+  expect(feedback.reason).toContain("Add the exact original span for a supported claim with missing quote coverage");
+  expect(feedback.reason).toContain("Re-evaluate and verify the entire revised answer");
   expect(feedback.reason).not.toContain("Do not restore rejected assertions.");
-  expect(model.mock.calls[3][0].instructions).toContain("Evaluate only the current draft");
+  expect(model.mock.calls[3][0].instructions).toContain("Verify the complete draft");
   expect(model.mock.calls[3][0].instructions).toContain("missing quote coverage");
+  expect(model.mock.calls[3][0].instructions).toContain("report every concrete defect you find");
+  expect(model.mock.calls[3][0].instructions).toContain("indices of sentences that are supported");
+  expect(model.mock.calls[3][0].instructions).toContain("A source can still support a timeless recording trait or a recommendation today");
+  expect(model.mock.calls[3][0].instructions).toContain("attribute an older description to its reporting frame");
+  expect(model.mock.calls[0][0].instructions).not.toContain("independently useful fact");
+  expect(model.mock.calls[3][0].instructions).not.toContain("other sentences removed");
 });
 
 it("can repair an unsupported recommendation to zero evidence for existing research continuation", async () => {

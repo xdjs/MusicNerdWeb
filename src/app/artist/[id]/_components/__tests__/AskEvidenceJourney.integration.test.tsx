@@ -69,7 +69,7 @@ beforeEach(() => {
         ? "Oriel Loom; Harrow Quay electronic solo performer; 2025 Folded Coast club edition; which Folded Coast edition carries Pax Cedar's producer credit"
         : "Oriel Loom; Bellwater trio; 2022 Folded Coast; whether Pax Cedar produced Folded Coast for the Bellwater trio",
       publicConstraints: evidenceFacets,
-      evidenceFacets,
+      researchTask: { kind: "ordinary", requirements: evidenceFacets },
       evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
       resolvedQuestion: isEditionFollowup
         ? "Which edition of Folded Coast has the Pax Cedar producer credit?" : data.question,

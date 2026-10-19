@@ -94,7 +94,7 @@ it("serializes real planner-normalized public scope without planner-only fields 
     publicSubject: { name: "Oriel Loom", qualifiers: [] },
     topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
     publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
-    evidenceFacets: ["whether Pax Cedar produced Folded Coast"],
+    researchTask: { kind: "ordinary", requirements: ["whether Pax Cedar produced Folded Coast"] },
     resolvedQuestion: "Did Pax Cedar produce the Bellwater trio's 2022 Folded Coast?",
     answerIntent: "Pax Cedar credit", contextResolved: true,
     evidenceNeed: "credits", freshness: "stored",
@@ -144,7 +144,7 @@ it("does not start API research or bind reuse when declared public scope needs c
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Artist", qualifiers: [] },
     topic: "x".repeat(150), publicConstraints: ["only the original edition"],
-    contextResolved: true, evidenceFacets: ["whether Sora Vale arranged Harbor Glass"], evidenceNeed: "credits", freshness: "stored",
+    contextResolved: true, researchTask: { kind: "ordinary", requirements: ["whether Sora Vale arranged Harbor Glass"] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   const response = await handleArtistQuestion(request());
@@ -515,7 +515,7 @@ it("serializes the separately extracted public subject without forwarding privat
     publicSubject: { name: "Tidal Orchard", qualifiers: ["Lisbon instrumental duo"] },
     topic: "Harbor Glass arranging credits", publicConstraints: ["whether Sora Vale arranged Harbor Glass"],
     resolvedQuestion: "Did Sora Vale arrange Harbor Glass by the Lisbon instrumental duo Tidal Orchard?",
-    contextResolved: true, evidenceFacets: ["whether Sora Vale arranged Harbor Glass"], evidenceNeed: "credits", freshness: "stored",
+    contextResolved: true, researchTask: { kind: "ordinary", requirements: ["whether Sora Vale arranged Harbor Glass"] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   const response = await handleArtistQuestion(request({ question: "Did Sora arrange that duo's record?",

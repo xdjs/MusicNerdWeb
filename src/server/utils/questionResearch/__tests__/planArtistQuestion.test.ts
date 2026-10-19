@@ -6,7 +6,7 @@ jest.mock("ai", () => ({ Output: { object: jest.fn() } }));
 
 it("preserves declared public constraints before stripping planner-only fields", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Oriel Loom", qualifiers: [] },
-    topic: "Production credits for Oriel Loom's 2022 album Folded Coast", evidenceFacets: ["Production credits for Oriel Loom's 2022 album Folded Coast"],
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast", researchTask: { kind: "ordinary", requirements: ["Production credits for Oriel Loom's 2022 album Folded Coast"] },
     publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
     evidenceNeed: "credits", freshness: "stored", contextResolved: true,
     targetUrl: null, platform: null, fromDate: null, toDate: null,
@@ -18,7 +18,7 @@ it("preserves declared public constraints before stripping planner-only fields",
 
 it("asks for a narrower request rather than dropping declared scope over 160 characters", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] },
-    topic: "x".repeat(150), evidenceFacets: ["x".repeat(150)], publicConstraints: ["original French-language edition"],
+    topic: "x".repeat(150), researchTask: { kind: "ordinary", requirements: ["x".repeat(150)] }, publicConstraints: ["original French-language edition"],
     evidenceNeed: "credits", freshness: "stored", contextResolved: true,
     targetUrl: null, platform: null, fromDate: null, toDate: null,
     reuseCandidateId: "candidate", reuseAction: "same_answer",
@@ -31,7 +31,7 @@ it("asks for a narrower request rather than dropping declared scope over 160 cha
 
 it("retains resolved public follow-up scope without copying the private setup into the topic", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Mira Vale", qualifiers: [] },
-    topic: "Mira Vale recording credits", evidenceFacets: ["Mira Vale recording credits"], publicConstraints: ["original edition", "Ivo Reed arranging role"],
+    topic: "Mira Vale recording credits", researchTask: { kind: "ordinary", requirements: ["Mira Vale recording credits"] }, publicConstraints: ["original edition", "Ivo Reed arranging role"],
     evidenceNeed: "credits", freshness: "stored", contextResolved: true,
     targetUrl: null, platform: null, fromDate: null, toDate: null,
     resolvedQuestion: "What was Ivo Reed's arranging role on Mira Vale's original edition?",
@@ -49,7 +49,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
     .mocked(generateText)
     .mockResolvedValue({
       output: { publicSubject: { name: "Artist", qualifiers: [] },
-        topic: "Record drum credits", evidenceFacets: ["Record drum credits"],
+        topic: "Record drum credits", researchTask: { kind: "ordinary", requirements: ["Record drum credits"] },
         evidenceNeed: "credits",
         freshness: "stored",
         platform: null,
@@ -70,7 +70,7 @@ it("keeps the neutral public evidence request and strips absent optional routing
   });
   expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ model: "google/gemini-3.8-flash", thinkingLevel: "low", maxRetries: 0 }));
 });
-it("uses a raw string-array facet schema for planner output and clarifies if a resolved output omits facets", async () => {
+it("requires a discriminated planner task and rejects the former flat facet shape", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Artist", qualifiers: [] }, topic: "Annette recording details",
     evidenceNeed: "reporting", freshness: "stored", contextResolved: true,
@@ -80,15 +80,23 @@ it("uses a raw string-array facet schema for planner output and clarifies if a r
   expect(result).toEqual({ clarification: "What specific fact or relationship would you like me to check?" });
   const outputSchema = (require("ai").Output.object as jest.Mock).mock.calls.at(-1)![0].schema;
   const base = { topic: "Annette recording details", evidenceNeed: "reporting", freshness: "stored", targetUrl: null, platform: null, fromDate: null, toDate: null };
-  expect(outputSchema.safeParse({ ...base, publicSubject: { name: "Artist", qualifiers: [] }, evidenceFacets: ["Annette's recording details"] }).success).toBe(true);
-  expect(outputSchema.safeParse({ ...base, publicSubject: { name: "Artist", qualifiers: [] }, evidenceFacets: [{ id: "f1", intent: "Annette's recording details" }] }).success).toBe(false);
+  const subject = { name: "Artist", qualifiers: [] };
+  expect(outputSchema.safeParse({ ...base, publicSubject: subject,
+    researchTask: { kind: "ordinary", requirements: ["Annette's recording details"] } }).success).toBe(true);
+  expect(outputSchema.safeParse({ ...base, publicSubject: subject,
+    researchTask: { kind: "comparison", sides: ["early releases sound", "later releases sound"] } }).success).toBe(true);
+  expect(outputSchema.safeParse({ ...base, publicSubject: subject,
+    researchTask: { kind: "recommendation", choice: "which release to start with", reason: "a musical detail in that same release" } }).success).toBe(true);
+  expect(outputSchema.safeParse({ ...base, publicSubject: subject,
+    researchTask: { kind: "comparison", sides: ["only one side"] } }).success).toBe(false);
+  expect(outputSchema.safeParse({ ...base, publicSubject: subject, evidenceFacets: ["Annette's recording details"] }).success).toBe(false);
 });
 it("never accepts a model-invented original URL that was not in the question", async () => {
   jest
     .mocked(generateText)
     .mockResolvedValue({
       output: { publicSubject: { name: "Artist", qualifiers: [] },
-        topic: "Record credits", evidenceFacets: ["Record credits"],
+        topic: "Record credits", researchTask: { kind: "ordinary", requirements: ["Record credits"] },
         evidenceNeed: "credits",
         freshness: "stored",
         platform: null,
@@ -108,14 +116,14 @@ it.each([
   ["What has she posted this week?", "stored"],
 ])("does not invent a recent-only filter for %s", async (question, freshness) => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "LATASHÁ", qualifiers: [] },
-    topic: "LATASHÁ music description", evidenceFacets: ["LATASHÁ music description"], evidenceNeed: "reporting", freshness: "recent",
+    topic: "LATASHÁ music description", researchTask: { kind: "ordinary", requirements: ["LATASHÁ music description"] }, evidenceNeed: "reporting", freshness: "recent",
     platform: null, targetUrl: null, fromDate: null, toDate: null,
   }} as never);
   expect(await planArtistQuestion("LATASHÁ", question)).toMatchObject({ freshness });
 });
 it("resolves a follow-up with bounded public conversation without treating it as evidence", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "LATASHA", qualifiers: [] },
-    topic: "PPNE NYC visualizer creator", evidenceFacets: ["PPNE NYC visualizer creator"], evidenceNeed: "credits", freshness: "stored",
+    topic: "PPNE NYC visualizer creator", researchTask: { kind: "ordinary", requirements: ["PPNE NYC visualizer creator"] }, evidenceNeed: "credits", freshness: "stored",
     retrieval: "relevance", resolvedQuestion: "Who created LATASHA's PPNE NYC visualizer?",
     platform: null, targetUrl: null, fromDate: null, toDate: null,
   }} as never);
@@ -131,7 +139,7 @@ it("keeps exact cited source numbers distinct when resolving a same-referent fol
     publicSubject: { name: "Pete Rango", qualifiers: [] },
     topic: "Pete Rango Spotify playlist introduction rationale; why the Spotify playlist is a good introduction",
     publicConstraints: ["Spotify playlist described in VoyageMIA interview"],
-    evidenceFacets: ["why the Spotify playlist is a good introduction"],
+    researchTask: { kind: "ordinary", requirements: ["why the Spotify playlist is a good introduction"] },
     evidenceNeed: "reporting", freshness: "stored", retrieval: "relevance",
     resolvedQuestion: "Why is the Spotify playlist described in the VoyageMIA interview a good introduction to Pete Rango?",
     targetUrl: interview, platform: null, fromDate: null, toDate: null,
@@ -157,7 +165,7 @@ it("keeps exact cited source numbers distinct when resolving a same-referent fol
 });
 it("routes newest available posts without a seven-day freshness cutoff", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] },
-    topic: "artist newest Instagram post", evidenceFacets: ["artist newest Instagram post"], evidenceNeed: "social_caption", freshness: "recent",
+    topic: "artist newest Instagram post", researchTask: { kind: "ordinary", requirements: ["artist newest Instagram post"] }, evidenceNeed: "social_caption", freshness: "recent",
     retrieval: "latest", resolvedQuestion: "What is the latest Instagram post?",
     platform: "instagram", targetUrl: null, fromDate: null, toDate: null,
   }} as never);
@@ -165,7 +173,7 @@ it("routes newest available posts without a seven-day freshness cutoff", async (
 });
 it("preserves explicit dates for latest retrieval", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] },
-    topic: "artist latest post", evidenceFacets: ["artist latest post"], evidenceNeed: "social_caption", freshness: "recent",
+    topic: "artist latest post", researchTask: { kind: "ordinary", requirements: ["artist latest post"] }, evidenceNeed: "social_caption", freshness: "recent",
     retrieval: "latest", resolvedQuestion: "What was the latest post in September 2026?",
     platform: null, targetUrl: null, fromDate: "2026-09-01", toDate: "2026-09-30",
   }} as never);
@@ -173,13 +181,13 @@ it("preserves explicit dates for latest retrieval", async () => {
 });
 it('allows an exact cited original for a matching follow-up and explains the subject boundary', async()=>{
  const sourceUrl='https://www.instagram.com/p/example-original/';
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'rooftop visualizer filming credit', evidenceFacets: ['rooftop visualizer filming credit'],evidenceNeed:'credits',freshness:'stored',retrieval:'relevance',resolvedQuestion:'Who filmed the rooftop visualizer described in the cited post?',targetUrl:sourceUrl,platform:'instagram',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'rooftop visualizer filming credit', researchTask: { kind: "ordinary", requirements: ['rooftop visualizer filming credit'] },evidenceNeed:'credits',freshness:'stored',retrieval:'relevance',resolvedQuestion:'Who filmed the rooftop visualizer described in the cited post?',targetUrl:sourceUrl,platform:'instagram',fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What is this post about?',answer:'The rooftop visualizer.',sourceUrls:[sourceUrl]}])).toMatchObject({targetUrl:sourceUrl});
  expect(jest.mocked(generateText).mock.calls.at(-1)![0].instructions).toContain('Do not carry citation URLs into an unrelated new question');
 });
 it('does not accept a routing URL merely embedded in prior answer prose',async()=>{
  const sourceUrl='https://untrusted.example/work';
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'film credit', evidenceFacets: ['film credit'],evidenceNeed:'credits',freshness:'stored',resolvedQuestion:'Who filmed the visualizer?',targetUrl:sourceUrl,platform:null,fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'film credit', researchTask: { kind: "ordinary", requirements: ['film credit'] },evidenceNeed:'credits',freshness:'stored',resolvedQuestion:'Who filmed the visualizer?',targetUrl:sourceUrl,platform:null,fromDate:null,toDate:null}} as never);
  await expect(planArtistQuestion('Artist','Who filmed it?',undefined,[{question:'What post?',answer:`See ${sourceUrl}`}])).rejects.toThrow(/URL/);
 });
 it.each([
@@ -187,22 +195,22 @@ it.each([
  ['What is the latest Spotify release?', 'spotify'],
  ['What is their latest Deezer release?', 'deezer'],
 ])('preserves explicit platform even when the model picks a different provider: %s', async (question, platform) => {
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', evidenceFacets: ['latest artist posts'],evidenceNeed:'social_caption',freshness:'recent',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', researchTask: { kind: "ordinary", requirements: ['latest artist posts'] },evidenceNeed:'social_caption',freshness:'recent',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Artist',question)).toMatchObject({platform,retrieval:'latest',freshness:'stored'});
 });
 it('does not invent a platform restriction for a broad latest overview', async () => {
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', evidenceFacets: ['latest artist posts'],evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', researchTask: { kind: "ordinary", requirements: ['latest artist posts'] },evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',targetUrl:null,platform:'tiktok',fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Artist','What is the latest?')).not.toHaveProperty('platform');
 });
 it('drops a stale cited target when the current question explicitly changes platforms', async () => {
  const url='https://www.tiktok.com/@artist/video/123';
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', evidenceFacets: ['latest artist posts'],evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',resolvedQuestion:'What is their latest InProcess post?',targetUrl:url,platform:'tiktok',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'latest artist posts', researchTask: { kind: "ordinary", requirements: ['latest artist posts'] },evidenceNeed:'social_caption',freshness:'stored',retrieval:'latest',resolvedQuestion:'What is their latest InProcess post?',targetUrl:url,platform:'tiktok',fromDate:null,toDate:null}} as never);
  const plan=await planArtistQuestion('Artist','What is their latest on InProcess?',undefined,[{question:'What is this TikTok?',answer:'A video.',sourceUrls:[url]}]);
  expect(plan).toMatchObject({platform:'inprocess'});
  expect(plan).not.toHaveProperty('targetUrl');
 });
 it("retains semantic latest-release identification using catalog evidence", async () => {
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Dutchyyy", qualifiers: [] },topic:'Dutchyyy latest music release', evidenceFacets: ['Dutchyyy latest music release'],evidenceNeed:'release_date',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Dutchyyy", qualifiers: [] },topic:'Dutchyyy latest music release', researchTask: { kind: "ordinary", requirements: ['Dutchyyy latest music release'] },evidenceNeed:'release_date',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Dutchyyy',"What's Dutchyyy's latest release?")).toMatchObject({evidenceNeed:'release_date',retrieval:'latest'});
 });
 
@@ -211,24 +219,24 @@ it.each([
  ["What is the latest release post about?", 'social_caption'],
  ["Who produced Dutchyyy's latest release?", 'credits'],
 ])('preserves the evidence type for a question about a release: %s', async (question, evidenceNeed) => {
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Dutchyyy", qualifiers: [] },topic:'Dutchyyy latest release context', evidenceFacets: ['Dutchyyy latest release context'],evidenceNeed,freshness:'stored',retrieval:'relevance',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Dutchyyy", qualifiers: [] },topic:'Dutchyyy latest release context', researchTask: { kind: "ordinary", requirements: ['Dutchyyy latest release context'] },evidenceNeed,freshness:'stored',retrieval:'relevance',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
  expect(await planArtistQuestion('Dutchyyy',question)).toMatchObject({evidenceNeed,retrieval:'relevance'});
 });
 it('keeps a broader recent-activity follow-up recent and excludes already discussed sources',async()=>{
  const url='https://www.inprocess.world/collect/base:example/2';
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Pete Rango", qualifiers: [] },topic:'Pete Rango other projects', evidenceFacets: ['Pete Rango other projects'],followupMode:'other_activity',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Pete Rango", qualifiers: [] },topic:'Pete Rango other projects', researchTask: { kind: "ordinary", requirements: ['Pete Rango other projects'] },followupMode:'other_activity',evidenceNeed:'reporting',freshness:'stored',retrieval:'relevance',resolvedQuestion:'What other projects has Pete Rango been working on?',targetUrl:url,platform:'inprocess',fromDate:null,toDate:null}} as never);
  const result=await planArtistQuestion('Pete Rango','what else has he been up to?',undefined,[{question:"What's Pete Rango's latest project?",answer:'Plugin designs.',sourceUrls:[url]}]);
  expect(result).toMatchObject({retrieval:'latest',freshness:'stored',excludeSourceUrls:[url]});
  expect(result).not.toHaveProperty('targetUrl');expect(result).not.toHaveProperty('platform');
 });
 
 it('preserves the exact positive facet in the public topic',async()=>{
- jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:"Artist's latest project", evidenceFacets: ["Artist's latest project"],evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
- expect(await planArtistQuestion('Artist',"What's Artist's latest project?")).toMatchObject({topic:"Artist's latest project",evidenceFacets:[{id:'f1',intent:"Artist's latest project"}]});
+ jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:"Artist's latest project", researchTask: { kind: "ordinary", requirements: ["Artist's latest project"] },evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+ expect(await planArtistQuestion('Artist',"What's Artist's latest project?")).toMatchObject({topic:"Artist's latest project",evidenceFacets: [{id:'f1',intent:"Artist's latest project"}]});
 });
 
 it("retains overview intent for a broad request and focused intent for a latest post", async () => {
-  const base = {publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist recent activity", evidenceFacets: ["Artist recent activity"], evidenceNeed: "reporting", freshness: "stored", retrieval: "latest", platform: null, targetUrl: null, fromDate: null, toDate: null};
+  const base = {publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist recent activity", researchTask: { kind: "ordinary", requirements: ["Artist recent activity"] }, evidenceNeed: "reporting", freshness: "stored", retrieval: "latest", platform: null, targetUrl: null, fromDate: null, toDate: null};
   jest.mocked(generateText).mockResolvedValue({output:{...base, answerScope:"overview"}} as never);
   expect(await planArtistQuestion("Artist", "What's new with Artist?")).toMatchObject({answerScope:"overview", retrieval:"latest"});
   jest.mocked(generateText).mockResolvedValue({output:{...base, answerScope:"focused", evidenceNeed:"social_caption"}} as never);
@@ -236,7 +244,7 @@ it("retains overview intent for a broad request and focused intent for a latest 
 });
 it("does not broaden a follow-up explicitly anchored to the same video", async () => {
   const url = "https://www.instagram.com/p/clip/";
-  jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist same video activity", evidenceFacets: ["Artist same video activity"], evidenceNeed: "spoken_content", freshness: "stored", retrieval: "relevance", answerScope: "focused", targetUrl: url, platform: "instagram", fromDate: null, toDate: null, resolvedQuestion: "What else is Artist doing in that video?" } } as never);
+  jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist same video activity", researchTask: { kind: "ordinary", requirements: ["Artist same video activity"] }, evidenceNeed: "spoken_content", freshness: "stored", retrieval: "relevance", answerScope: "focused", targetUrl: url, platform: "instagram", fromDate: null, toDate: null, resolvedQuestion: "What else is Artist doing in that video?" } } as never);
   const result = await planArtistQuestion("Artist", "What else is he doing in that video?", undefined, [{ question: "What is this video about?", answer: "An archive session.", sourceUrls: [url] }]);
   expect(result).toMatchObject({ answerScope: "focused", targetUrl: url, retrieval: "relevance" });
   expect(result.excludeSourceUrls).toBeUndefined();
@@ -245,7 +253,7 @@ it("does not broaden a follow-up explicitly anchored to the same video", async (
 
 describe("dated originals and pasted source URLs (#1491)", () => {
   const url = "https://www.instagram.com/p/DeH-zaDygKO/";
-  const output = { publicSubject: { name: "LATASHA", qualifiers: [] }, topic: "PPNE caption choices", evidenceFacets: ["PPNE caption choices"], evidenceNeed: "social_caption", freshness: "stored", retrieval: "relevance", resolvedQuestion: "Which choices appear in the October 7 caption?", targetUrl: url, platform: "instagram", fromDate: "2023-10-07", toDate: "2023-10-07" };
+  const output = { publicSubject: { name: "LATASHA", qualifiers: [] }, topic: "PPNE caption choices", researchTask: { kind: "ordinary", requirements: ["PPNE caption choices"] }, evidenceNeed: "social_caption", freshness: "stored", retrieval: "relevance", resolvedQuestion: "Which choices appear in the October 7 caption?", targetUrl: url, platform: "instagram", fromDate: "2023-10-07", toDate: "2023-10-07" };
   beforeEach(() => { jest.useFakeTimers({now: new Date("2026-10-13T12:00:00Z"), doNotFake: ["nextTick", "setImmediate"]}); });
   afterEach(() => jest.useRealTimers());
   it("uses the clock for a yearless date and drops the older citation", async () => {
@@ -270,7 +278,7 @@ it.each([
   "Why was the concert recorded on June 14, 2024?",
 ])("does not turn an event date into an unrequested source window: %s", async question => {
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] },
-    topic: "Artist recording context", evidenceFacets: ["Artist recording context"], evidenceNeed: "reporting", freshness: "stored",
+    topic: "Artist recording context", researchTask: { kind: "ordinary", requirements: ["Artist recording context"] }, evidenceNeed: "reporting", freshness: "stored",
     fromDate: null, toDate: null, targetUrl: null, platform: null,
   }} as never);
   const plan = await planArtistQuestion("Artist", question);
@@ -282,7 +290,7 @@ it.each([
 it("keeps a cited dossier when a same-source follow-up asks about its recording date", async () => {
   const targetUrl = "https://artist.example/recording-dossier.pdf";
   jest.mocked(generateText).mockResolvedValue({ output: { publicSubject: { name: "Artist", qualifiers: [] },
-    topic: "Artist recording context", evidenceFacets: ["Artist recording context"], evidenceNeed: "reporting", freshness: "stored",
+    topic: "Artist recording context", researchTask: { kind: "ordinary", requirements: ["Artist recording context"] }, evidenceNeed: "reporting", freshness: "stored",
     resolvedQuestion: "What does June 14, 2024 date in the cited dossier?",
     fromDate: null, toDate: null, targetUrl, platform: null,
   }} as never);
@@ -296,7 +304,7 @@ it("keeps a cited dossier when a same-source follow-up asks about its recording 
 it.each(['And beyond that?', 'Anything different happening?', 'Catch me up on the rest.'])(
   'honors semantic other-activity intent without a phrase whitelist: %s', async question => {
     const url='https://artist.example/previous-project';
-    jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'Artist other activity', evidenceFacets: ['Artist other activity'],evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',answerScope:'overview',followupMode:'other_activity',resolvedQuestion:'What other activity has Artist shared?',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
+    jest.mocked(generateText).mockResolvedValue({output:{ publicSubject: { name: "Artist", qualifiers: [] },topic:'Artist other activity', researchTask: { kind: "ordinary", requirements: ['Artist other activity'] },evidenceNeed:'reporting',freshness:'stored',retrieval:'latest',answerScope:'overview',followupMode:'other_activity',resolvedQuestion:'What other activity has Artist shared?',targetUrl:null,platform:null,fromDate:null,toDate:null}} as never);
     expect(await planArtistQuestion('Artist',question,undefined,[{question:'What is new?',answer:'The artist shared a mix.',sourceUrls:[url]}])).toMatchObject({excludeSourceUrls:[url],answerScope:'overview',retrieval:'latest'});
   }
 );
@@ -337,7 +345,7 @@ it('reports gateway failures separately when no deadline or caller abort occurre
 it("preserves separately declared subject identity when the shortened topic omits it", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Tidal Orchard", qualifiers: ["Lisbon instrumental duo", "formerly Juniper Signal"] },
-    topic: "Tidal Orchard Harbor Glass arranging credits", evidenceFacets: ["Tidal Orchard Harbor Glass arranging credits"], publicConstraints: ["whether Sora Vale arranged Harbor Glass"],
+    topic: "Tidal Orchard Harbor Glass arranging credits", researchTask: { kind: "ordinary", requirements: ["Tidal Orchard Harbor Glass arranging credits"] }, publicConstraints: ["whether Sora Vale arranged Harbor Glass"],
     evidenceNeed: "credits", freshness: "stored", contextResolved: true,
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
@@ -351,7 +359,7 @@ it.each([undefined, null, { name: "Artist" }, { name: "", qualifiers: [] },
 ])("rejects absent or malformed required public subject before returning a route: %j", async publicSubject => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     ...(publicSubject === undefined ? {} : { publicSubject }),
-    topic: "Artist recording credits", evidenceFacets: ["Artist recording credits"], evidenceNeed: "credits", freshness: "stored",
+    topic: "Artist recording credits", researchTask: { kind: "ordinary", requirements: ["Artist recording credits"] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   await expect(planArtistQuestion("Artist", "Who played drums?")).rejects.toThrow();
@@ -360,7 +368,7 @@ it.each([undefined, null, { name: "Artist" }, { name: "", qualifiers: [] },
 it("clarifies rather than truncating an overflowing declared subject", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Artist", qualifiers: ["the original instrumental ensemble"] },
-    topic: `Artist ${"x".repeat(140)}`, evidenceFacets: [`Artist ${"x".repeat(140)}`], evidenceNeed: "credits", freshness: "stored",
+    topic: `Artist ${"x".repeat(140)}`, researchTask: { kind: "ordinary", requirements: [`Artist ${"x".repeat(140)}`] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   expect(await planArtistQuestion("Artist", "Which ensemble?")).toEqual({ clarification: expect.stringMatching(/narrow/) });
@@ -369,7 +377,7 @@ it("clarifies rather than truncating an overflowing declared subject", async () 
 it("rejects a generated public subject for a different artist", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Other Artist", qualifiers: [] },
-    topic: "Artist recording credits", evidenceFacets: ["Artist recording credits"], evidenceNeed: "credits", freshness: "stored",
+    topic: "Artist recording credits", researchTask: { kind: "ordinary", requirements: ["Artist recording credits"] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   await expect(planArtistQuestion("Artist", "Who played drums?")).rejects.toThrow(/subject.*selected artist/);
@@ -378,33 +386,74 @@ it("rejects a generated public subject for a different artist", async () => {
 it("accepts the selected name across trimmed case and canonical Unicode forms", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "  A\u0301rbor  ", qualifiers: [] },
-    topic: "ÁRBOR recording credits", evidenceFacets: ["ÁRBOR recording credits"], evidenceNeed: "credits", freshness: "stored",
+    topic: "ÁRBOR recording credits", researchTask: { kind: "ordinary", requirements: ["ÁRBOR recording credits"] }, evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   expect(await planArtistQuestion("ÁRBOR", "Who played drums?")).toMatchObject({ topic: "ÁRBOR recording credits" });
 });
 
-it("retains declared named comparison targets in a follow-up research task", async () => {
+it("retains each requested comparison side as its own facet", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Mira Vale", qualifiers: [] },
     publicConstraints: ["compare Folded Coast with Glass Weather"],
-    topic: "Mira Vale sonic changes", evidenceFacets: ["Mira Vale sonic changes"], evidenceNeed: "reporting", freshness: "stored",
-    contextResolved: true, followupMode: "same_subject",
+    topic: "Mira Vale; compare Folded Coast with Glass Weather; Folded Coast's sound; Glass Weather's sound",
+    researchTask: { kind: "comparison", sides: ["Folded Coast's sound", "Glass Weather's sound"] },
+    evidenceNeed: "reporting", freshness: "stored", contextResolved: true, followupMode: "same_subject",
     resolvedQuestion: "What should I listen for when comparing Folded Coast with Glass Weather?",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   const result = await planArtistQuestion("Mira Vale", "What should I listen for to hear that change?", undefined, [
     { question: "How did the sound change?", answer: "The comparison discussed Folded Coast and Glass Weather." },
   ]);
-  expect(result.topic).toBe("Mira Vale sonic changes; compare Folded Coast with Glass Weather");
+  expect(result.topic).toBe("Mira Vale; compare Folded Coast with Glass Weather; Folded Coast's sound; Glass Weather's sound");
+  expect(result.evidenceFacets).toEqual([
+    { id: "f1", intent: "Folded Coast's sound" },
+    { id: "f2", intent: "Glass Weather's sound" },
+  ]);
   expect(jest.mocked(generateText).mock.calls.at(-1)![0].instructions)
     .toContain("Preserve the unambiguous named works on both sides of a comparison");
+});
+
+it("derives a listening choice and a same-choice evidence reason without treating a credit as an endorsement", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Artist", qualifiers: [] },
+    topic: "Artist; which collection to start with; a musical detail in that same release",
+    researchTask: { kind: "recommendation", choice: "which collection to start with", reason: "a musical detail in that same release" },
+    evidenceNeed: "reporting", freshness: "stored", targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const result = await planArtistQuestion("Artist", "Where should I start listening?");
+  expect(result.evidenceFacets).toEqual([
+    { id: "f1", intent: "which collection to start with" },
+    { id: "f2", intent: "a musical detail in that same release" },
+  ]);
+  expect(result.topic).toBe("Artist; which collection to start with; a musical detail in that same release");
+  expect(String(result.topic).length).toBeLessThanOrEqual(160);
+});
+
+it("keeps exclusions separate from positive comparison facets and fails closed on missing task structure", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist; compare early and later records; early records' sound; later records' sound",
+    publicConstraints: ["exclude rehearsal recordings"],
+    researchTask: { kind: "comparison", sides: ["early records' sound", "later records' sound"] },
+    evidenceNeed: "reporting", freshness: "stored", targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const plan = await planArtistQuestion("Artist", "How does the sound change over time?");
+  expect(plan.topic).toContain("exclude rehearsal recordings");
+  expect(plan.evidenceFacets).toHaveLength(2);
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Artist", qualifiers: [] }, topic: "Artist recording credits",
+    evidenceNeed: "credits", freshness: "stored", contextResolved: true,
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  expect(await planArtistQuestion("Artist", "Who played drums?")).toEqual({
+    clarification: "What specific fact or relationship would you like me to check?",
+  });
 });
 
 it("uses whole-phrase matching so Ann is not treated as present inside Annette", async () => {
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Ann", qualifiers: [] },
-    topic: "Annette's studio note", evidenceFacets: ["Ann's production relationship"],
+    topic: "Annette's studio note", researchTask: { kind: "ordinary", requirements: ["Ann's production relationship"] },
     publicConstraints: ["Ann recording, not Annette"],
     evidenceNeed: "reporting", freshness: "stored", contextResolved: true,
     targetUrl: null, platform: null, fromDate: null, toDate: null,

@@ -644,7 +644,8 @@ it("uses a detailed rejection to repair the draft instead of failing the entire 
     .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
   const result = await draftResearchAnswer('artist', 'Artist', 'What?', [reference]);
   expect(result.answer).toBe('They played drums. [1]');
-  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toBe(reason);
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toContain(reason);
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toContain("Re-evaluate and verify the entire revised answer");
   expect(model.mock.calls[1][0].anthropicEffort).toBe('low');
 });
 
