@@ -19,7 +19,7 @@ export async function callResearchApi(
       (origin.protocol === "http:" &&
         ["localhost", "127.0.0.1"].includes(origin.hostname))
     ) ||
-    !/^\/api\/(?:artist\/[0-9a-f-]+\/research\/|research\/advance$)/i.test(
+    !/^\/api\/(?:artist\/[0-9a-f-]+\/research\/|research\/advance$|onboarding\/[0-9a-f-]+\/build$)/i.test(
       path,
     ) ||
     path.includes("..")

@@ -13,3 +13,10 @@ it('drops malformed reset metadata and unknown error codes',async()=>{
  global.fetch=jest.fn().mockResolvedValue(reply({code:'secret',retryAfterSeconds:-1,resetAt:'not a date'}));
  try {await callResearchApi('/api/artist/11111111-1111-4111-8111-111111111111/research/questions');throw Error('expected');}catch(error){expect(error).not.toHaveProperty('retryAfterSeconds');expect(error).not.toHaveProperty('resetAt');expect(error).toHaveProperty('code',undefined);}
 });
+it('may start a claimed artist\'s page build, and nothing else under onboarding',async()=>{
+ const read=jest.fn().mockResolvedValueOnce({done:false,value:Buffer.from('{"status":"ok","started":true,"runId":"wrun_1"}')}).mockResolvedValue({done:true});
+ global.fetch=jest.fn().mockResolvedValue({ok:true,status:200,body:{getReader:()=>({read,cancel:async()=>{},releaseLock:()=>{}})}});
+ await expect(callResearchApi('/api/onboarding/11111111-1111-4111-8111-111111111111/build',{body:{}})).resolves.toMatchObject({started:true});
+ expect(global.fetch).toHaveBeenCalledWith(new URL('https://api.example.test/api/onboarding/11111111-1111-4111-8111-111111111111/build'),expect.objectContaining({method:'POST'}));
+ await expect(callResearchApi('/api/onboarding/11111111-1111-4111-8111-111111111111/chat',{body:{}})).rejects.toThrow('Invalid research destination');
+});

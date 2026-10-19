@@ -254,7 +254,6 @@ export default async function ArtistProfile({ params, searchParams }: ArtistProf
                 {!interviewPreview && !tourPreview && onboardingState ? (
                     <OnboardingGate
                         artistId={artist.id}
-                        artistName={artist.name ?? "your profile"}
                         state={onboardingState}
                         researchItems={{
                             links: [...getProfileLinks(artist, artistLinks, 'links'), ...getProfileLinks(artist, artistLinks, 'support')].map(link => link.siteName),
