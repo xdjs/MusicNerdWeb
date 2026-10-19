@@ -5,6 +5,8 @@ import { useOnboardingProgress } from '../useOnboardingProgress';
 
 const restart = jest.fn();
 jest.mock('../useRestartClaimBuild', () => ({ useRestartClaimBuild: () => restart }));
+const startBuild = jest.fn();
+jest.mock('../useStartClaimBuild', () => ({ useStartClaimBuild: (id) => startBuild(id) }));
 jest.mock('../useOnboardingProgress', () => ({ useOnboardingProgress: jest.fn() }));
 jest.mock('../ResearchStatusBar', () => ({
     __esModule: true,
@@ -26,6 +28,12 @@ describe('ResearchInPlace', () => {
         render(<ResearchInPlace artistId="a1" initialState={state} researchItems={{ links: [], sources: [] }} onComplete={() => {}}><p>page</p></ResearchInPlace>);
         expect(screen.getByText('page')).toBeInTheDocument();
         expect(screen.getByTestId('pill').dataset.failure).toBe('');
+    });
+
+    it('kicks off the build for the artist when it opens, in case nothing started it', () => {
+        useOnboardingProgress.mockReturnValue(progress());
+        render(<ResearchInPlace artistId="a1" initialState={state} researchItems={{ links: [], sources: [] }} onComplete={() => {}} />);
+        expect(startBuild).toHaveBeenCalledWith('a1');
     });
 
     it('offers a retry when the build stalls, which restarts it on the server', async () => {

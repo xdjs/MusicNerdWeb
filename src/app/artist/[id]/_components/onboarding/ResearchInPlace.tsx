@@ -7,6 +7,7 @@ import ResearchStatusBar from "./ResearchStatusBar";
 import { useFreshSections } from "./useFreshSections";
 import { useOnboardingProgress } from "./useOnboardingProgress";
 import { useRestartClaimBuild } from "./useRestartClaimBuild";
+import { useStartClaimBuild } from "./useStartClaimBuild";
 
 const STALLED = "This is taking longer than usual.";
 const RESTART_FAILED = "Couldn't restart the build. Try again in a moment.";
@@ -18,7 +19,8 @@ export type ResearchItems = { links: string[]; sources: string[] };
  * the progress pill over the page, each research section's skeleton and
  * arrival from the confirmed steps, and what is new against the links and
  * sources the page had when this mounted. The build runs on the server; this
- * only watches it, and "Try again" restarts it. Nothing scrolls by itself.
+ * starts it once in case nothing has, watches it, and "Try again" restarts it.
+ * Nothing scrolls by itself.
  */
 export default function ResearchInPlace({ artistId, initialState, researchItems, onComplete, children }: {
     artistId: string;
@@ -27,6 +29,7 @@ export default function ResearchInPlace({ artistId, initialState, researchItems,
     onComplete: () => void;
     children?: ReactNode;
 }) {
+    useStartClaimBuild(artistId);
     const progress = useOnboardingProgress(artistId, initialState, onComplete);
     const { fresh, markSeen } = useFreshSections(progress.steps);
     const [baseline] = useState(researchItems);
