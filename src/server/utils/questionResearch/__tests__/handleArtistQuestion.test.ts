@@ -12,6 +12,10 @@ import { reuseQuestionRequest } from '../reuseQuestionRequest';
 import { bindQuestionRequest } from '../bindQuestionRequest';
 jest.mock('../reuseQuestionRequest',()=>({reuseQuestionRequest:jest.fn()}));
 jest.mock('../bindQuestionRequest',()=>({bindQuestionRequest:jest.fn()}));
+jest.mock('../getBoundEvidenceFacets',()=>({
+  getBoundEvidenceFacets:jest.fn(async()=>({state:'legacy'})),
+  legacyQuestionHash:(question:string)=>require('node:crypto').createHash('sha256').update(question).digest('hex'),
+}));
 import { reserveQuestionPlanning } from "../reserveQuestionPlanning";
 jest.mock("../reserveQuestionPlanning",()=>({reserveQuestionPlanning:jest.fn()}));
 import { handleArtistQuestion } from "../handleArtistQuestion";
@@ -59,6 +63,7 @@ beforeEach(() => {
   jest.mocked(listReusableQuestionCandidates).mockResolvedValue([]);
   jest.mocked(releaseQuestionRequest).mockResolvedValue(undefined);
   jest.mocked(reuseQuestionRequest).mockResolvedValue({state:'claimed',requestHash:'hash',token:'token'});
+  jest.mocked(require("../getBoundEvidenceFacets").getBoundEvidenceFacets).mockResolvedValue({state:"legacy"});
   jest
     .mocked(getArtistById)
     .mockResolvedValue({ id: artistId, name: "Artist" } as never);
@@ -89,6 +94,7 @@ it("serializes real planner-normalized public scope without planner-only fields 
     publicSubject: { name: "Oriel Loom", qualifiers: [] },
     topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
     publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
+    evidenceFacets: ["whether Pax Cedar produced Folded Coast"],
     resolvedQuestion: "Did Pax Cedar produce the Bellwater trio's 2022 Folded Coast?",
     answerIntent: "Pax Cedar credit", contextResolved: true,
     evidenceNeed: "credits", freshness: "stored",
@@ -101,12 +107,34 @@ it("serializes real planner-normalized public scope without planner-only fields 
   const expected = {
     topic: "Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast",
     evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true,
+    evidenceFacets: [{ id: "f1", intent: "whether Pax Cedar produced Folded Coast" }],
   };
   expect(JSON.parse(JSON.stringify(options.body))).toEqual(expected);
   expect(JSON.stringify(options.body)).not.toMatch(/publicConstraints|resolvedQuestion|answerIntent|conversation|Private visitor/);
   expect(bindQuestionRequest).toHaveBeenCalledWith(expect.objectContaining({ routing: {
     topic: expected.topic, evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
+    evidenceFacets: [{ id: "f1", intent: "whether Pax Cedar produced Folded Coast" }],
   }}));
+});
+
+it("keeps exact cited URL mapping planner-only while binding the same public facets to the job", async () => {
+  const sourceRefs = [{ n: 3, url: "https://interview.example/story" }, { n: 4, url: "https://artist.example/playlist" }];
+  jest.mocked(planArtistQuestion).mockResolvedValue({
+    topic: "Pete Rango Spotify playlist introduction rationale",
+    evidenceNeed: "reporting", freshness: "stored", retrieval: "relevance",
+    evidenceFacets: [{ id: "f1", intent: "why the cited Spotify playlist is an introduction" }],
+  });
+  const conversation = [{ question: "What should I listen to first?", answer: "Spotify list [3]. Site playlist [4].",
+    sourceUrls: ["https://artist.example/playlist", "https://interview.example/story"], sourceRefs }];
+  const response = await handleArtistQuestion(request({ question: "What makes that a good introduction?", conversation }));
+  expect(response.status).toBe(202);
+  const body = jest.mocked(callResearchApi).mock.calls[0][1]?.body as Record<string, unknown>;
+  expect(body.evidenceFacets).toEqual([{ id: "f1", intent: "why the cited Spotify playlist is an introduction" }]);
+  expect(JSON.stringify(body)).not.toContain("sourceRefs");
+  expect(JSON.stringify(body)).not.toContain("Site playlist [4]");
+  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.objectContaining({
+    routing: expect.objectContaining({ evidenceFacets: body.evidenceFacets }),
+  }));
 });
 
 it("does not start API research or bind reuse when declared public scope needs clarification", async () => {
@@ -116,7 +144,7 @@ it("does not start API research or bind reuse when declared public scope needs c
   jest.mocked(generateText).mockResolvedValue({ output: {
     publicSubject: { name: "Artist", qualifiers: [] },
     topic: "x".repeat(150), publicConstraints: ["only the original edition"],
-    contextResolved: true, evidenceNeed: "credits", freshness: "stored",
+    contextResolved: true, evidenceFacets: ["whether Sora Vale arranged Harbor Glass"], evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   const response = await handleArtistQuestion(request());
@@ -487,7 +515,7 @@ it("serializes the separately extracted public subject without forwarding privat
     publicSubject: { name: "Tidal Orchard", qualifiers: ["Lisbon instrumental duo"] },
     topic: "Harbor Glass arranging credits", publicConstraints: ["whether Sora Vale arranged Harbor Glass"],
     resolvedQuestion: "Did Sora Vale arrange Harbor Glass by the Lisbon instrumental duo Tidal Orchard?",
-    contextResolved: true, evidenceNeed: "credits", freshness: "stored",
+    contextResolved: true, evidenceFacets: ["whether Sora Vale arranged Harbor Glass"], evidenceNeed: "credits", freshness: "stored",
     targetUrl: null, platform: null, fromDate: null, toDate: null,
   }} as never);
   const response = await handleArtistQuestion(request({ question: "Did Sora arrange that duo's record?",
@@ -495,7 +523,7 @@ it("serializes the separately extracted public subject without forwarding privat
   expect(response.status).toBe(202);
   const body = JSON.parse(JSON.stringify(jest.mocked(callResearchApi).mock.calls[0][1]!.body));
   expect(body).toEqual({ topic: "Harbor Glass arranging credits; Tidal Orchard; Lisbon instrumental duo; whether Sora Vale arranged Harbor Glass",
-    evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true });
+    evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true, evidenceFacets: [{id:"f1",intent:"whether Sora Vale arranged Harbor Glass"}] });
   expect(JSON.stringify(body)).not.toMatch(/publicSubject|qualifiers|publicConstraints|conversation|resolvedQuestion|Private visitor|18:45|my home/);
   expect(generateText).toHaveBeenCalledTimes(1);
 });

@@ -5,4 +5,5 @@ it('binds exact public context, artist and wording without semantic equivalence'
  expect(key).toMatch(/^[a-f0-9]{64}$/);
  expect(getQuestionRequestHash('a','Who mixed it?', [{...turn}])).toBe(key);
  for (const other of [getQuestionRequestHash('b','Who mixed it?',[turn]), getQuestionRequestHash('a','Who mixed it?',[]), getQuestionRequestHash('a','Who produced it?',[turn]),getQuestionRequestHash('a','Who mixed it?',[{...turn,sourceUrls:['https://example.com/b']}])]) expect(other).not.toBe(key);
+ expect(getQuestionRequestHash('a','Who mixed it?',[{...turn,sourceRefs:[{n:3,url:'https://example.com/a'}]}])).not.toBe(key);
 });

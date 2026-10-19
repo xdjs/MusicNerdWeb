@@ -590,9 +590,21 @@ export default function AskAboutArtist({ artistId, artistName, researchRunner = 
         const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error && !turn.quota).slice(-4)
             .map(turn => {
                 const sourceUrls = [...new Set(turn.sources.map(source => source.url).filter((url): url is string => typeof url === "string" && url.length <= 2048 && /^https?:\/\//i.test(url)))].slice(0, 3);
-                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000), ...(sourceUrls.length ? { sourceUrls } : {}) };
+                const sourceUrlSet = new Set(sourceUrls);
+                const seenCitationNumbers = new Set<number>();
+                const sourceRefs = turn.sources.flatMap(source => {
+                    if (!Number.isInteger(source.n) || source.n < 1 || source.n > 24
+                        || typeof source.url !== "string" || !sourceUrlSet.has(source.url)
+                        || seenCitationNumbers.has(source.n)) return [];
+                    seenCitationNumbers.add(source.n);
+                    return [{ n: source.n, url: source.url }];
+                }).slice(0, 3);
+                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000),
+                    ...(sourceUrls.length ? { sourceUrls } : {}), ...(sourceRefs.length ? { sourceRefs } : {}) };
             });
-        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0), 0) > 12000) conversation.shift();
+        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length
+            + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0)
+            + (turn.sourceRefs ?? []).reduce((size, ref) => size + ref.url.length + 12, 0), 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
         setLoading(true);

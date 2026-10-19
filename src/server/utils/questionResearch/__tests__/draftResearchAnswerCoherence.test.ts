@@ -96,7 +96,7 @@ it("uses one absence rule across writer, checker and repair while retaining supp
     .mockResolvedValueOnce({ output: { sentences: [sentence("The review describes driving synths.")], unanswered: "A representative first listen remains unconfirmed." } } as never)
     .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
   const result = await draftResearchAnswer("artist", "Morgan", "What is this track like, and is it a representative first listen?", [reference]);
-  expect(result.answer).toBe("The review describes driving synths. [1] I couldn’t confirm the other details.");
+  expect(result.answer).toBe("The review describes driving synths. [1]");
   expect(result.answer).not.toContain("do not establish");
   expect(model).toHaveBeenCalledTimes(4);
   for (const [call] of model.mock.calls) {

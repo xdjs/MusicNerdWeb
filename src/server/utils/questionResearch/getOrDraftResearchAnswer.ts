@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/server/db/drizzle";
 import type { ResearchReference } from "@/lib/questionResearch/schemas";
 import { draftResearchAnswer } from "./draftResearchAnswer";
+import { evidenceFacetsSchema } from "@/lib/questionResearch/schemas";
 
 const source = z.object({
   n: z.number().int().min(1).max(MAX_RESEARCH_REFERENCES),
@@ -37,6 +38,11 @@ const saved = z.object({
     activityDate: z.string().optional(),
     activityDateKind: z.enum(["release", "moment"]).optional(),
   })).max(MAX_RESEARCH_REFERENCES),
+  evidenceFacetHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  facetAssessment: z.object({
+    coveredFacetIds: z.array(z.string().regex(/^f[1-4]$/)).max(4),
+    missingFacetIds: z.array(z.string().regex(/^f[1-4]$/)).max(4),
+  }).strict().optional(),
 });
 type Row = {
   question_hash: string;
@@ -65,12 +71,16 @@ export async function getOrDraftResearchAnswer(input: {
   references: ResearchReference[];
   /** API selection phase for these exact references; absent on legacy jobs. */
   selection?: "candidates" | "research";
+  evidenceFacets?: unknown;
+  facetCoverage?: unknown;
   signal?: AbortSignal;
   /** Internal hash binding; read-only reuse must never acquire a drafting lease. */
   readOnlyQuestionHash?: string;
 }): Promise<Outcome> {
   const { artistId, artistName, jobId, question, references, signal } = input;
   const currentQuestionHash = input.readOnlyQuestionHash ?? getResearchQuestionHash(question);
+  const evidenceFacets = input.evidenceFacets === undefined ? undefined : evidenceFacetsSchema.parse(input.evidenceFacets);
+  const evidenceFacetHash = evidenceFacets ? hash(JSON.stringify(evidenceFacets)) : undefined;
   const legacyQuestionHash = input.readOnlyQuestionHash ?? hash(question);
   let questionHash = currentQuestionHash;
   const token = randomUUID();
@@ -105,6 +115,11 @@ export async function getOrDraftResearchAnswer(input: {
     if (row.status === "verified") {
       const parsed = saved.safeParse(row.result);
       if (!parsed.success) return { state: "unavailable" };
+      if (parsed.data.evidenceFacetHash && !evidenceFacets) return { state: "unavailable" };
+      if (evidenceFacets && (parsed.data.evidenceFacetHash !== evidenceFacetHash
+        || !parsed.data.facetAssessment
+        || !validFacetAssessment(evidenceFacets.map(f => f.id), parsed.data.facetAssessment)))
+        return { state: "unavailable" };
       // The API status already rechecked these exact slices against current
       // public originals and removed revoked/wrong-artist sources.
       const current = parsed.data.basis.map(b => references.find(r =>
@@ -160,14 +175,18 @@ export async function getOrDraftResearchAnswer(input: {
   if (!ownsLease) return { state: "drafting" };
   try {
     const drafted = await draftResearchAnswer(
-      artistId, artistName, question, references, signal,
+      artistId, artistName, question, references, signal, { evidenceFacets, facetCoverage: input.facetCoverage },
     );
+    if (evidenceFacets && (!drafted.facetAssessment
+      || !validFacetAssessment(evidenceFacets.map(f => f.id), drafted.facetAssessment)))
+      throw Object.assign(new Error("The checked answer did not preserve its bound facet assessment"), { verificationStage: "store_result", verificationCode: "facet_check_rejected" });
     const used = drafted.sources.map(s => references[s.n - 1]);
     if (used.some((r, i) => !r || r.sourceId !== drafted.sources[i].sourceId ||
       r.revision !== drafted.sources[i].revision))
       throw Object.assign(new Error("Cited reference unavailable"), { verificationStage: "store_result" });
     const result = saved.parse({
       ...drafted,
+      ...(evidenceFacetHash ? { evidenceFacetHash } : {}),
       basis: used.map(r => ({
         sourceId: r.sourceId, revision: r.revision, start: r.start,
         end: r.end, url: r.url, textHash: hash(r.text), publishedAt: r.publishedAt,
@@ -209,4 +228,11 @@ export async function getOrDraftResearchAnswer(input: {
         and status='drafting'`);
     return { state: "failed", stage, retryable: true };
   }
+}
+
+function validFacetAssessment(ids: string[], assessment: { coveredFacetIds: string[]; missingFacetIds: string[] }) {
+  const all = [...assessment.coveredFacetIds, ...assessment.missingFacetIds];
+  return all.length === ids.length && new Set(all).size === ids.length
+    && ids.every(id => assessment.coveredFacetIds.includes(id) !== assessment.missingFacetIds.includes(id))
+    && all.every(id => ids.includes(id));
 }

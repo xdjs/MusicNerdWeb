@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db/drizzle";
+import { evidenceFacetsSchema } from "@/lib/questionResearch/schemas";
 import type { QuestionReuseCandidate } from "@/lib/questionResearch/reuseTypes";
 const rowSchema = z.object({
   job_id: z.string().uuid(),
@@ -11,7 +12,7 @@ const rowSchema = z.object({
   answer_intent: z.string().trim().min(1).max(500),
   routing: z.record(
     z.string(),
-    z.union([z.string(), z.array(z.string()), z.null()]),
+    z.union([z.string(), z.array(z.string()), evidenceFacetsSchema, z.null()]),
   ),
   answer: z.string().min(1).max(4000),
   refs: z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES),

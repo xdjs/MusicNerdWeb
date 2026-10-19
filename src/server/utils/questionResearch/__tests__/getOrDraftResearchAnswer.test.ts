@@ -104,6 +104,52 @@ it("withholds an old cached answer whose publication-date basis was not recorded
   expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
   expect(draft).not.toHaveBeenCalled();
 });
+it("reuses a cached partial answer only for the exact saved facet partition", async () => {
+  const facets = [{ id: "f1", intent: "who played the drums" }, { id: "f2", intent: "who mixed the recording" }];
+  const bound = { ...saved, evidenceFacetHash: hash(JSON.stringify(facets)),
+    facetAssessment: { coveredFacetIds: ["f1"], missingFacetIds: ["f2"] } };
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: bound }] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, evidenceFacets: facets, facetCoverage: [
+    { id: "f1", referenceIndexes: [0] }, { id: "f2", referenceIndexes: [] },
+  ] })).toEqual({ state: "ready", result });
+
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: bound }] as never);
+  const changedIntent = [{ ...facets[0], intent: "who performed the drums" }, facets[1]];
+  expect(await getOrDraftResearchAnswer({ ...input, evidenceFacets: changedIntent })).toEqual({ state: "unavailable" });
+
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: bound }] as never);
+  expect(await getOrDraftResearchAnswer(input)).toEqual({ state: "unavailable" });
+  expect(draft).not.toHaveBeenCalled();
+});
+
+it("persists a checked facet partition and refuses to save an invalid partition", async () => {
+  const facets = [{ id: "f1", intent: "who played the drums" }, { id: "f2", intent: "who mixed the recording" }];
+  const assessment = { coveredFacetIds: ["f1"], missingFacetIds: ["f2"] };
+  draft.mockResolvedValue({ ...result, facetAssessment: assessment });
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ claim_token: "token" }] as never)
+    .mockResolvedValueOnce([{ job_id: input.jobId }] as never);
+  const outcome = await getOrDraftResearchAnswer({ ...input, evidenceFacets: facets,
+    facetCoverage: [{ id: "f1", referenceIndexes: [0] }, { id: "f2", referenceIndexes: [] }] });
+  expect(outcome).toEqual({ state: "ready", result });
+  expect(draft).toHaveBeenCalledWith(input.artistId, input.artistName, input.question, input.references, undefined,
+    { evidenceFacets: facets, facetCoverage: [{ id: "f1", referenceIndexes: [0] }, { id: "f2", referenceIndexes: [] }] });
+  const storedQuery = new PgDialect().sqlToQuery(execute.mock.calls[3][0] as SQL);
+  const stored = JSON.parse(storedQuery.params.find((value): value is string => typeof value === "string" && value.includes('"basis"'))!);
+  expect(stored.evidenceFacetHash).toBe(hash(JSON.stringify(facets)));
+  expect(stored.facetAssessment).toEqual(assessment);
+
+  draft.mockResolvedValue({ ...result, facetAssessment: { coveredFacetIds: ["f1"], missingFacetIds: ["f1"] } } as never);
+  execute.mockResolvedValueOnce([] as never)
+    .mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "waiting", claim_until: new Date(0).toISOString(), attempts: 0 }] as never)
+    .mockResolvedValueOnce([{ claim_token: "token" }] as never)
+    .mockResolvedValueOnce([] as never);
+  expect(await getOrDraftResearchAnswer({ ...input, evidenceFacets: facets })).toMatchObject({ state: "failed", stage: "store_result" });
+});
 it("withholds a cached answer when date metadata changes without changing original text", async () => {
   execute.mockResolvedValueOnce([] as never).mockResolvedValueOnce([{ artist_id: input.artistId, question_hash: getResearchQuestionHash(input.question), status: "verified", result: { ...saved, basis: saved.basis.map(b => ({ ...b, publishedAt: "2026-10-05" })) } }] as never);
   expect(await getOrDraftResearchAnswer({ ...input, references: [{ ...ref, publishedAt: "2026-10-06" }] })).toEqual({ state: "unavailable" });

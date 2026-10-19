@@ -28,6 +28,10 @@ jest.mock("@/server/utils/questionResearch/bindQuestionRequest", () => ({ bindQu
 jest.mock("@/server/utils/questionResearch/releaseQuestionRequest", () => ({ releaseQuestionRequest: jest.fn(async () => undefined) }));
 jest.mock("@/server/utils/questionResearch/registerResearchQuestion", () => ({ registerResearchQuestion: jest.fn(async () => true) }));
 jest.mock("@/server/utils/questionResearch/getOrDraftResearchAnswer", () => ({ getOrDraftResearchAnswer: jest.fn() }));
+let mockBoundFacets: { state: "ready"; facets: { id: string; intent: string }[] } = { state: "ready", facets: [] };
+jest.mock("@/server/utils/questionResearch/getBoundEvidenceFacets", () => ({
+  getBoundEvidenceFacets: jest.fn(async () => mockBoundFacets),
+}));
 jest.mock("@/server/utils/questionResearch/continueCandidateResearch", () => ({ continueCandidateResearch: jest.fn() }));
 jest.mock("@/server/utils/questionResearch/continueQuestionResearch", () => ({ continueQuestionResearch: jest.fn(async () => null) }));
 
@@ -37,8 +41,19 @@ Object.assign(globalThis, { Request: primitives.Request, Response: primitives.Re
 
 const fixture = JSON.parse(readFileSync(join(__dirname, "fixtures/t02-scope-regressions.fixture.json"), "utf8")) as any;
 const t02 = fixture.savedT02;
-const canonical = fixture.canonicalT02.plannerOutput;
-const identity = fixture.publicIdentityBoundary;
+const canonical = { ...fixture.canonicalT02.plannerOutput, evidenceFacets: [
+  "whether Kite Museum is the work title or artist name",
+  "who is credited as the artist",
+] };
+const identity = {
+  ...fixture.publicIdentityBoundary,
+  plannerOutput: { ...fixture.publicIdentityBoundary.plannerOutput, evidenceFacets: [
+    "whether Sora Vale is a Harbor Glass member or bridge arranger",
+  ] },
+  overflowPlannerOutput: { ...fixture.publicIdentityBoundary.overflowPlannerOutput, evidenceFacets: [
+    "whether Sora Vale is a Harbor Glass member or bridge arranger",
+  ] },
+};
 const jobId = "22222222-2222-4222-8222-222222222222";
 const apiRequests: { path: string; method?: string; body?: Record<string, unknown> }[] = [];
 let activeArtist: { id: string; name: string };
@@ -54,25 +69,34 @@ beforeEach(() => {
   activeArtist = t02.artist;
   activeOriginal = t02.originals[0];
   plannerOutput = canonical;
+  mockBoundFacets = { state: "ready", facets: [] };
   apiState = {
     status: "ok", jobId, stage: "complete", selection: "candidates", provider: null,
     message: "Evidence ready", updatedAt: "2026-10-19T12:00:00Z",
     references: [activeOriginal], limitations: [],
+    facetCoverage: [{ id: "f1", referenceIndexes: [0] }, { id: "f2", referenceIndexes: [0] }],
   };
   jest.mocked(require("@/server/utils/queries/artistQueries").getArtistById).mockImplementation(async () => ({ name: activeArtist.name }) as never);
   jest.mocked(getOrDraftResearchAnswer).mockImplementation(async input => ({
     state: "ready",
-    result: await draftResearchAnswer(input.artistId, input.artistName, input.question, input.references, input.signal),
+    result: await draftResearchAnswer(input.artistId, input.artistName, input.question, input.references, input.signal,
+      { evidenceFacets: input.evidenceFacets, facetCoverage: input.facetCoverage }),
   }));
   jest.mocked(generateText).mockImplementation(async input => {
     const instructions = String(input.instructions ?? "");
     if (instructions.startsWith("Resolve")) {
       const prompt = JSON.parse(input.prompt as string);
       plannerPrompts.push(prompt);
+      const intents = Array.isArray(plannerOutput.evidenceFacets) ? plannerOutput.evidenceFacets as string[] : [];
+      mockBoundFacets = { state: "ready", facets: intents.map((intent, index) => ({ id: `f${index + 1}`, intent })) };
       return { output: plannerOutput } as never;
     }
-    if (instructions.startsWith("Verify"))
-      return { output: { supported: true, supportedSentenceNumbers: [1], reason: "Supported." } } as never;
+    if (instructions.startsWith("Verify")) {
+      const inputData = JSON.parse(input.prompt as string).input;
+      const ids = (inputData.evidenceFacets ?? []).map((facet: { id: string }) => facet.id);
+      return { output: { supported: true, supportedSentenceNumbers: [1], coveredFacetIds: ids,
+        missingFacetIds: [], reason: "Supported." } } as never;
+    }
     const answerInput = JSON.parse(input.prompt as string);
     const originalText = answerInput.originals?.[0]?.text;
     return { output: { sentences: [{

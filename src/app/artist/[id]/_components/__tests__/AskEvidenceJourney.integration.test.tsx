@@ -26,6 +26,10 @@ jest.mock("@/server/utils/questionResearch/bindQuestionRequest", () => ({ bindQu
 jest.mock("@/server/utils/questionResearch/releaseQuestionRequest", () => ({ releaseQuestionRequest: jest.fn(async () => undefined) }));
 jest.mock("@/server/utils/questionResearch/registerResearchQuestion", () => ({ registerResearchQuestion: jest.fn(async () => true) }));
 jest.mock("@/server/utils/questionResearch/getOrDraftResearchAnswer", () => ({ getOrDraftResearchAnswer: jest.fn() }));
+let mockBoundFacets: { state: "ready"; facets: { id: string; intent: string }[] } = { state: "ready", facets: [] };
+jest.mock("@/server/utils/questionResearch/getBoundEvidenceFacets", () => ({
+  getBoundEvidenceFacets: jest.fn(async () => mockBoundFacets),
+}));
 jest.mock("@/server/utils/questionResearch/continueCandidateResearch", () => ({ continueCandidateResearch: jest.fn() }));
 jest.mock("@/server/utils/questionResearch/continueQuestionResearch", () => ({ continueQuestionResearch: jest.fn(async () => null) }));
 
@@ -41,26 +45,40 @@ const original = {
   evidenceKind: "original_text", speaker: "not_applicable", publishedAt: null, retrievedAt: null, truncated: false,
 };
 const state = { status: "ok", jobId, stage: "complete", selection: "candidates", provider: null,
-  message: "Evidence ready", updatedAt: "2026-10-19", references: [original], limitations: [] };
+  message: "Evidence ready", updatedAt: "2026-10-19", references: [original], limitations: [],
+  facetCoverage: [{ id: "f1", referenceIndexes: [0] }] };
 const apiRequests: { path: string; method?: string; body?: Record<string, unknown> }[] = [];
 let unavailable = false;
 
 beforeEach(() => {
-  jest.clearAllMocks(); apiRequests.length = 0; unavailable = false;
+  jest.clearAllMocks(); apiRequests.length = 0; unavailable = false; mockBoundFacets = { state: "ready", facets: [] };
   jest.mocked(getOrDraftResearchAnswer).mockImplementation(async input => ({ state: "ready", result:
-    await draftResearchAnswer(input.artistId, input.artistName, input.question, input.references, input.signal) }));
+    await draftResearchAnswer(input.artistId, input.artistName, input.question, input.references, input.signal,
+      { evidenceFacets: input.evidenceFacets, facetCoverage: input.facetCoverage }) }));
   jest.mocked(generateText).mockImplementation(async input => {
     const data = JSON.parse(input.prompt as string);
-    if (input.instructions?.startsWith("Resolve")) return { output: {
-      publicSubject: { name: "Oriel Loom", qualifiers: ["Bellwater trio"] },
-      topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
-      publicConstraints: ["whether Pax Cedar produced Folded Coast"],
+    if (input.instructions?.startsWith("Resolve")) {
+      const isEditionFollowup = data.question === "Which edition has that credit?";
+      const evidenceFacets = [isEditionFollowup
+        ? "which Folded Coast edition carries Pax Cedar's producer credit"
+        : "whether Pax Cedar produced Folded Coast for the Bellwater trio"];
+      mockBoundFacets = { state: "ready", facets: evidenceFacets.map((intent, index) => ({ id: `f${index + 1}`, intent })) };
+      return { output: {
+      publicSubject: { name: "Oriel Loom", qualifiers: [isEditionFollowup ? "Harrow Quay electronic solo performer" : "Bellwater trio"] },
+      topic: isEditionFollowup
+        ? "Oriel Loom; Harrow Quay electronic solo performer; 2025 Folded Coast club edition; which Folded Coast edition carries Pax Cedar's producer credit"
+        : "Oriel Loom; Bellwater trio; 2022 Folded Coast; whether Pax Cedar produced Folded Coast for the Bellwater trio",
+      publicConstraints: evidenceFacets,
+      evidenceFacets,
       evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
-      resolvedQuestion: data.question === "Which edition has that credit?"
+      resolvedQuestion: isEditionFollowup
         ? "Which edition of Folded Coast has the Pax Cedar producer credit?" : data.question,
       contextResolved: true, targetUrl: null, platform: null, fromDate: null, toDate: null,
     } } as never;
-    if (input.instructions?.startsWith("Verify")) return { output: { supported: true, reason: "Supported." } } as never;
+    }
+    if (input.instructions?.startsWith("Verify")) return { output: {
+      supported: true, supportedSentenceNumbers: [1], coveredFacetIds: ["f1"], missingFacetIds: [], reason: "Supported.",
+    } } as never;
     const followup = data.question.startsWith("Which edition");
     return { output: { sentences: [{
       kind: followup ? "fact" : "limitation",
@@ -101,7 +119,9 @@ it("renders the writer's cited gap without a generic suffix or a completeness re
   const defaultModel = jest.mocked(generateText).getMockImplementation()!;
   jest.mocked(generateText).mockImplementation(async input => {
     if (input.instructions?.startsWith("Resolve")) return defaultModel(input);
-    if (input.instructions?.startsWith("Verify")) return { output: { supported: true, reason: "Supported." } } as never;
+    if (input.instructions?.startsWith("Verify")) return { output: {
+      supported: true, supportedSentenceNumbers: [1], coveredFacetIds: ["f1"], missingFacetIds: [], reason: "Supported.",
+    } } as never;
     return { output: { sentences: [{ kind: "limitation",
       text: "These records do not list the Bellwater trio's producer; the credited 2025 club edition belongs to a different performer.",
       evidence: [{ n: 1, quote: text }],
@@ -123,9 +143,9 @@ it("preserves public constraints through API dispatch and renders cited uncertai
   await submit(question);
   await screen.findByText(/These records leave the Bellwater trio's producer \[unverified\]/);
   expect(screen.queryByText(/unchecked field/)).not.toBeInTheDocument();
-  expect(screen.getByTestId("answer")).toHaveTextContent("I couldn’t confirm the other details.");
+  expect(screen.getByTestId("answer")).not.toHaveTextContent("I couldn’t confirm the other details.");
   expect(apiRequests[0].body).toMatchObject({ preferDirectEvidence: true,
-    topic: "Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast" });
+    topic: "Oriel Loom; Bellwater trio; 2022 Folded Coast; whether Pax Cedar produced Folded Coast for the Bellwater trio" });
   expect(apiRequests[0].body).not.toHaveProperty("publicConstraints");
   expect(apiRequests[0].body).not.toHaveProperty("publicSubject");
   expect(apiRequests[0].body).not.toHaveProperty("conversation");

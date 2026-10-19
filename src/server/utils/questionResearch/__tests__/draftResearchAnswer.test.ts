@@ -412,12 +412,12 @@ it("rejects an unsupported second draft without a third repair", async () => {
   await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toMatchObject({verificationCode: 'claim_rejected', verificationStage: 'claim_check'});
   expect(model).toHaveBeenCalledTimes(4);
 });
-it("renders a fixed scoped limitation instead of model-written unanswered prose", async () => {
+it("does not expose unchecked unanswered prose or invent a legacy generic gap", async () => {
   model.mockReset();
   model.mockResolvedValueOnce({ output: { ...draft, unanswered: 'There are no records anywhere about the release.' } } as never)
     .mockResolvedValueOnce({ output: { supported: true, reason: 'Mock checker approval cannot authorize arbitrary limitation prose.' } } as never);
   const result = await draftResearchAnswer('artist', 'Artist', 'What did they play and when?', [reference]);
-  expect(result.answer).toBe('They played drums. [1] I couldn’t confirm the other details.');
+  expect(result.answer).toBe('They played drums. [1]');
   expect(result.sources[0].sourceId).toBe(reference.sourceId);
   expect(result.answer).not.toContain('anywhere');
 });
@@ -435,7 +435,7 @@ it("preserves a cited limitation without replacing it with generic unanswered co
   expect(result.answer).toBe("The supplied sleeve lists only selected credits, so it cannot settle who else played on the recording. [1]");
   expect(result.sources).toHaveLength(1);
 });
-it("keeps a missing-details notice when a cited limitation leaves another requested part unanswered", async () => {
+it("does not expose an unchecked legacy gap after a cited limitation", async () => {
   const text = "This sleeve lists selected credits only. The full personnel list is not provided.";
   const source = { ...reference, text, end: text.length };
   api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
@@ -445,15 +445,15 @@ it("keeps a missing-details notice when a cited limitation leaves another reques
     unanswered: "The supplied source does not establish the recording location.",
   } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "Bounded personnel and location gaps." } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "Who played bass and where was it recorded?", [source]);
-  expect(result.answer).toBe("The supplied sleeve does not establish the full personnel. [1] I couldn’t confirm the other details.");
+  expect(result.answer).toBe("The supplied sleeve does not establish the full personnel. [1]");
   expect(result.answer).not.toContain("recording location");
 });
-it.each(["complete", "missing_supported_detail", "unresolved_gap"])("does not let obsolete coverage metadata override the writer notice or request another generation (%s)", async coverage => {
+it.each(["complete", "missing_supported_detail", "unresolved_gap"])("does not use obsolete coverage metadata to add a generic gap or request another generation (%s)", async coverage => {
   model.mockReset();
   model.mockResolvedValueOnce({ output: { ...draft, unanswered: "A requested detail is unavailable." } } as never)
     .mockResolvedValueOnce({ output: { supported: true, coverage, reason: "Supported." } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they play and where?", [reference]);
-  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
+  expect(result.answer).toBe("They played drums. [1]");
   expect(model).toHaveBeenCalledTimes(2);
 });
 it("keeps a verified first draft without an optional completeness repair", async () => {
@@ -507,7 +507,7 @@ it("returns independently verified sentences without an unnecessary repair for a
   expect(model).toHaveBeenCalledTimes(4);
 });
 
-it("retains a missing requested detail after keeping only independently supported sentences", async () => {
+it("retains only independently supported sentences when no validated facet is available", async () => {
   model.mockReset();
   const unanswered = "The supplied source does not establish the recording location.";
   model.mockResolvedValueOnce({ output: {
@@ -522,7 +522,7 @@ it("retains a missing requested detail after keeping only independently supporte
 
   const result = await draftResearchAnswer("artist", "Artist", "What did they play and where was it recorded?", [reference]);
 
-  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
+  expect(result.answer).toBe("They played drums. [1]");
   expect(result.answer).not.toContain(unanswered);
   expect(result.answer).not.toContain("produced");
   expect(model).toHaveBeenCalledTimes(4);

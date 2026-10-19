@@ -4,6 +4,7 @@ import { researchStatusSchema } from '@/lib/questionResearch/schemas';
 import { acquireQuestionRequest } from './acquireQuestionRequest';
 import { callResearchApi } from './callResearchApi';
 import { getOrDraftResearchAnswer } from './getOrDraftResearchAnswer';
+import { getBoundEvidenceFacets } from './getBoundEvidenceFacets';
 /** Revalidation is read-only: this path cannot plan, draft, advance jobs or collect. */
 export async function reuseQuestionRequest(input: { artistId: string; artistName: string; question: string; conversation?: PublicChatTurn[]; signal?: AbortSignal }) {
   const requestHash = getQuestionRequestHash(input.artistId, input.question, input.conversation);
@@ -16,9 +17,15 @@ export async function reuseQuestionRequest(input: { artistId: string; artistName
     ));
     if (!['complete','unresolved','failed','cancelled'].includes(state.stage)) return { state: 'busy' as const, requestHash };
     if (binding.reusable && state.stage === 'complete') {
+      const boundFacets = await getBoundEvidenceFacets({ artistId: input.artistId, jobId: binding.job_id,
+        questionHashes: [binding.question_hash] });
+      if (boundFacets.state === 'invalid' || (state.facetCoverage !== undefined && boundFacets.state !== 'ready'))
+        return { state: 'scope_mismatch' as const, requestHash };
       const answer = await getOrDraftResearchAnswer({
         ...input, jobId: binding.job_id, references: state.references, selection: state.selection,
         readOnlyQuestionHash: binding.question_hash,
+        evidenceFacets: boundFacets.state === 'ready' ? boundFacets.facets : undefined,
+        facetCoverage: state.facetCoverage,
       });
       if (answer.state === 'ready' && answer.result.sources.length > 0) return { ...answer, limitations: state.limitations, requestHash };
       if (answer.state === 'drafting') return { state: 'busy' as const, requestHash };
