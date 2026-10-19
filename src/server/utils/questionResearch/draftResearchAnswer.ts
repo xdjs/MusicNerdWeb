@@ -161,7 +161,7 @@ Return supportedSentenceNumbers containing every 1-based sentence index fully su
         const supported = checked.supportedSentenceNumbers ?? [];
         if (supported.length && supported.every(n => n <= draft.sentences.length)) {
           // Independently verified useful facts need no second writer/checker cycle.
-          draft = { sentences: draft.sentences.filter((_, i) => supported.includes(i + 1)), unanswered: null };
+          draft = { ...draft, sentences: draft.sentences.filter((_, i) => supported.includes(i + 1)) };
           break;
         }
         if (attempt === 1)

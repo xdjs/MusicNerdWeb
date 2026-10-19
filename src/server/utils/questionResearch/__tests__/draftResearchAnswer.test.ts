@@ -424,6 +424,26 @@ it("returns independently verified sentences without an unnecessary repair for a
   expect(model).toHaveBeenCalledTimes(2);
 });
 
+it("retains a missing requested detail after keeping only independently supported sentences", async () => {
+  model.mockReset();
+  const unanswered = "The supplied source does not establish the recording location.";
+  model.mockResolvedValueOnce({ output: {
+    sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }],
+    unanswered,
+  } } as never).mockResolvedValueOnce({ output: {
+    supported: false,
+    supportedSentenceNumbers: [1],
+    reason: "The drums credit is supported; production is not. The recording location remains unknown.",
+  } } as never);
+
+  const result = await draftResearchAnswer("artist", "Artist", "What did they play and where was it recorded?", [reference]);
+
+  expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
+  expect(result.answer).not.toContain(unanswered);
+  expect(result.answer).not.toContain("produced");
+  expect(model).toHaveBeenCalledTimes(2);
+});
+
 it("does not accept out-of-range partial-verification sentence numbers", async () => {
   model.mockReset();
   for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: draft } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Unsupported", supportedSentenceNumbers: [2] } } as never);
