@@ -338,3 +338,20 @@ it("accepts the selected name across trimmed case and canonical Unicode forms", 
   }} as never);
   expect(await planArtistQuestion("ÁRBOR", "Who played drums?")).toMatchObject({ topic: "ÁRBOR recording credits" });
 });
+
+it("retains declared named comparison targets in a follow-up research task", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Mira Vale", qualifiers: [] },
+    publicConstraints: ["compare Folded Coast with Glass Weather"],
+    topic: "Mira Vale sonic changes", evidenceNeed: "reporting", freshness: "stored",
+    contextResolved: true, followupMode: "same_subject",
+    resolvedQuestion: "What should I listen for when comparing Folded Coast with Glass Weather?",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const result = await planArtistQuestion("Mira Vale", "What should I listen for to hear that change?", undefined, [
+    { question: "How did the sound change?", answer: "The comparison discussed Folded Coast and Glass Weather." },
+  ]);
+  expect(result.topic).toBe("Mira Vale sonic changes; compare Folded Coast with Glass Weather");
+  expect(jest.mocked(generateText).mock.calls.at(-1)![0].instructions)
+    .toContain("Preserve the unambiguous named works on both sides of a comparison");
+});

@@ -49,3 +49,26 @@ it("does not publish another unchecked subset when the repaired draft still fail
   await expect(draftResearchAnswer("artist", "Artist", "What is the sound like?", [reference])).rejects.toThrow("The sources did not support the drafted answer");
   expect(model).toHaveBeenCalledTimes(4);
 });
+
+it("repairs missing quote coverage without discarding a full-source-supported detail", async () => {
+  const draft = answer([
+    sentence("The review describes driving synths; Morgan mixed the track."),
+    sentence("The review describes driving synths."),
+  ]);
+  const repaired = answer([{
+    text: "The review describes driving synths; Morgan mixed the track.",
+    evidence: [{ n: 1, quote: "The review describes driving synths." }, { n: 1, quote: "The track was mixed by Morgan." }],
+  }]);
+  model.mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [2], reason: "Sentence 1: missing quote coverage for Morgan's mixing credit; the full original supports it." } } as never)
+    .mockResolvedValueOnce({ output: repaired } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "What is the sound and mixing credit?", [reference]);
+  expect(result.answer).toBe("The review describes driving synths; Morgan mixed the track. [1]");
+  expect(model).toHaveBeenCalledTimes(4);
+  const feedback = JSON.parse(model.mock.calls[2][0].prompt).repairFeedback;
+  expect(feedback.reason).toContain("For missing quote coverage, retain a claim only when the supplied originals support it");
+  expect(feedback.reason).not.toContain("Do not restore rejected assertions.");
+  expect(model.mock.calls[3][0].instructions).toContain("Evaluate only the current draft");
+  expect(model.mock.calls[3][0].instructions).toContain("missing quote coverage");
+});
