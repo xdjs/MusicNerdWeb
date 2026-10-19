@@ -2,6 +2,17 @@
 
 ## Evidence journey alignment (#1424, implementation preview)
 
+The preview-only `/review/1424/actual` serves a static, reviewed comparison of 32
+recorded model answers against fictional originals (16 baseline/candidate pairs).
+It identifies the evaluated commits, frozen scoring, partial blinding, remaining
+strict omissions, mocked boundaries and costs. All source passages are available
+inline. The separate `/review/1424` interaction remains manually illustrated.
+The actual-results route has no scripts, model calls, remote assets or application
+layout; a restrictive content policy blocks network integrations. It returns 404
+outside local development and Vercel preview. This delivery route does not alter
+the evaluated research logic at `3d344d91`, and observed output differences are not
+proof of causality or completion of #1424.
+
 Web uses the server-only public research HTTP capability for question jobs, status
 and exact original reads. MusicNerdAPI owns public evidence selection, source
 access and acquisition. Web owns public conversation resolution, admission and
