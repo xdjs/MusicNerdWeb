@@ -29,6 +29,26 @@ export const referenceSchema = z.object({
   retrievedAt: z.string().nullable(),
   truncated: z.boolean().nullable(),
 });
+export const evidenceFacetSchema = z.object({
+  id: z.string().regex(/^f[1-4]$/),
+  intent: z.string().trim().min(1).max(160),
+}).strict();
+export const evidenceFacetsSchema = z.array(evidenceFacetSchema).min(1).max(4)
+  .superRefine((facets, ctx) => {
+    const normalizedIntents = new Set<string>();
+    facets.forEach((facet, index) => {
+      if (facet.id !== `f${index + 1}`)
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Facet IDs must be ordered and host-canonical" });
+      const normalizedIntent = facet.intent.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+      if (normalizedIntents.has(normalizedIntent))
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Facet intents must be distinct after normalization" });
+      normalizedIntents.add(normalizedIntent);
+    });
+  });
+export const facetCoverageSchema = z.array(z.object({
+  id: z.string().regex(/^f[1-4]$/),
+  referenceIndexes: z.array(z.number().int().nonnegative()).max(MAX_RESEARCH_REFERENCES).refine(xs => new Set(xs).size === xs.length),
+}).strict()).max(4);
 export const researchStatusSchema = z.object({
   selection: z.enum(["candidates", "research"]).optional(),
   status: z.literal("ok"),
@@ -54,6 +74,7 @@ export const researchStatusSchema = z.object({
   message: z.string().max(2000),
   updatedAt: z.string(),
   references: z.array(referenceSchema).max(MAX_RESEARCH_REFERENCES),
+  facetCoverage: facetCoverageSchema.optional(),
   limitations: z.array(z.string().max(2000)).max(30),
 });
 export const researchReadSchema = z.object({
@@ -86,12 +107,14 @@ export const questionPlanSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .nullable(),
+    evidenceFacets: evidenceFacetsSchema.optional(),
   })
   .strict();
 export const answerDraftSchema = z.object({
   sentences: z
     .array(
       z.object({
+        kind: z.enum(["fact", "limitation"]).optional(),
         text: z.string().trim().min(1).max(700),
         evidence: z
           .array(

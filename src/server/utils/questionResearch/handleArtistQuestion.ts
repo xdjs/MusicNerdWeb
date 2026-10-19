@@ -16,6 +16,11 @@ import { getOrDraftResearchAnswer } from "./getOrDraftResearchAnswer";
 import { registerResearchQuestion } from "./registerResearchQuestion";
 import { researchStatusSchema } from "@/lib/questionResearch/schemas";
 import { getUnresolvedResearchAnswer } from "@/lib/questionResearch/getUnresolvedResearchAnswer";
+import { evidenceFacetsSchema } from "@/lib/questionResearch/schemas";
+import { getBoundEvidenceFacets } from "./getBoundEvidenceFacets";
+import { legacyQuestionHash } from "./legacyQuestionHash";
+import { getResearchQuestionHash } from "@/lib/questionResearch/getResearchQuestionHash";
+import type { QuestionReuseCandidate } from "@/lib/questionResearch/reuseTypes";
 /** Public chat is limited to the API's public evidence capability; private history is never loaded. */
 export async function handleArtistQuestion(request: Request) {
   const signal = AbortSignal.any([...(request.signal ? [request.signal] : []), AbortSignal.timeout(55000)]);
@@ -57,6 +62,10 @@ export async function handleArtistQuestion(request: Request) {
       bandcamp: artist.bandcamp ? `https://${artist.bandcamp}.bandcamp.com` : null,
       limitations: reuse.limitations,
     }, { headers });
+    if (reuse?.state === "scope_mismatch") return Response.json(
+      { error: "The saved question scope could not be verified. Start a new question." },
+      { status: 409, headers },
+    );
     if (reuse?.state === "busy") throw Object.assign(new Error("An identical request is already running"), { status: 429, code: "research_busy" });
     if (reuse?.state === "claimed") requestLease = { artistId, requestHash: reuse.requestHash, token: reuse.token };
     if (!jobId) await reserveQuestionPlanning(artistId, await getQuestionVisitorKey(request));
@@ -69,8 +78,10 @@ export async function handleArtistQuestion(request: Request) {
     }, { headers });
     const { resolvedQuestion: resolved = question, answerIntent, reuseCandidateId, reuseAction, ...routing } = plan ?? {};
     const resolvedQuestion = typeof resolved === "string" ? resolved : question;
+    let evidenceFacets = routing.evidenceFacets === undefined
+      ? undefined : evidenceFacetsSchema.parse(routing.evidenceFacets);
     const candidate = typeof reuseCandidateId === "string"
-      ? candidates.find(c => c.id === reuseCandidateId && hasCompatibleReuseScope(routing, c, String(reuseAction))) : undefined;
+      ? candidates.find(c => c.id === reuseCandidateId && hasCompatibleReuseScope(routing as QuestionReuseCandidate["routing"], c, String(reuseAction))) : undefined;
     if (candidate && reuse?.state === "claimed" && typeof answerIntent === "string"
       && ["same_answer","adapt_evidence"].includes(String(reuseAction))) {
       const current = researchStatusSchema.parse(await callResearchApi(
@@ -80,6 +91,7 @@ export async function handleArtistQuestion(request: Request) {
         const checked = await getOrDraftResearchAnswer({
           artistId, artistName:name, jobId:candidate.jobId, question:resolvedQuestion,
           references:current.references, selection:current.selection, signal, readOnlyQuestionHash:candidate.questionHash,
+          evidenceFacets, facetCoverage:current.facetCoverage,
         });
         if (checked.state === "ready" && checked.result.sources.length > 0
           && await registerResearchQuestion(artistId, candidate.jobId, resolvedQuestion)) {
@@ -106,6 +118,13 @@ export async function handleArtistQuestion(request: Request) {
             signal,
           }),
     );
+    if (jobId) {
+      const boundFacets = await getBoundEvidenceFacets({ artistId, jobId,
+        questionHashes: [getResearchQuestionHash(resolvedQuestion), legacyQuestionHash(resolvedQuestion)] });
+      if (boundFacets.state === "invalid" || (state.facetCoverage !== undefined && boundFacets.state !== "ready"))
+        return Response.json({ error: "The saved question scope could not be verified. Start a new question." }, { status: 409, headers });
+      evidenceFacets = boundFacets.state === "ready" ? boundFacets.facets : undefined;
+    }
     if (
       !jobId &&
       !(await registerResearchQuestion(artistId, state.jobId, resolvedQuestion))
@@ -179,6 +198,8 @@ export async function handleArtistQuestion(request: Request) {
         references: state.references,
         selection: state.selection,
         signal,
+        evidenceFacets,
+        facetCoverage: state.facetCoverage,
       });
       if (outcome.state === "continuing" || (state.selection === "candidates"
         && outcome.state === "ready" && outcome.result.sources.length === 0)) {

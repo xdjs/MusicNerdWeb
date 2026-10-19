@@ -4,6 +4,8 @@ import type { PublicChatTurn } from './publicChatTypes';
 export function getQuestionRequestHash(artistId: string, question: string, conversation: PublicChatTurn[] = []): string {
   return createHash('sha256').update(JSON.stringify([
     'public-request-v1', artistId, question,
-    conversation.map(turn => [turn.question, turn.answer, turn.sourceUrls ?? []]),
+    conversation.map(turn => turn.sourceRefs?.length
+      ? [turn.question, turn.answer, turn.sourceUrls ?? [], turn.sourceRefs]
+      : [turn.question, turn.answer, turn.sourceUrls ?? []]),
   ])).digest('hex');
 }

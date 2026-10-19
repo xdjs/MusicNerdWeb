@@ -63,6 +63,70 @@ it("reopens the original before drafting and retains exact stable references wit
     curation: "pending",
   });
 });
+it("returns a concrete song insight with a scoped uncertainty and host-supplied citations", async () => {
+  const text =
+    "I want the song's story about rent and work to feel warm, not like a warning. I can't tell if the story lands with listeners yet.";
+  const caption = {
+    ...reference,
+    text,
+    end: text.length,
+    evidenceKind: "caption" as const,
+    speaker: "unverified" as const,
+  };
+  api.mockResolvedValue({ status: "ok", passage: caption, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model
+    .mockResolvedValueOnce({
+      output: {
+        sentences: [
+          {
+            text: "The caption frames the song's rent-and-work story warmly, not as a warning.",
+            evidence: [{ n: 1, quote: "the song's story about rent and work to feel warm, not like a warning" }],
+          },
+          {
+            text: "Its writer is unsure whether listeners will connect with it.",
+            evidence: [{ n: 1, quote: "I can't tell if the story lands with listeners yet" }],
+          },
+        ],
+        unanswered: null,
+      },
+    } as never)
+    .mockResolvedValueOnce({
+      output: { supported: true, reason: "Supported." },
+    } as never);
+
+  const result = await draftResearchAnswer(
+    "artist",
+    "Marlowe Echo",
+    "What is the song about, and how does the writer feel about its reception?",
+    [caption],
+  );
+
+  expect(result.answer).toBe(
+    "The caption frames the song's rent-and-work story warmly, not as a warning. [1] Its writer is unsure whether listeners will connect with it. [1]",
+  );
+  expect(result.sources).toHaveLength(1);
+  expect(model).toHaveBeenCalledTimes(2);
+});
+it("keeps a production credit from standing in for a representative artist release", async () => {
+  const text = `Silver Thread's album Night Glass identifies Silver Thread as artist. Elara Wynn is credited as mixing engineer on track "Clear Water". The note does not describe any release by Elara Wynn as a recording artist or describe its sound.`;
+  const linerNote = { ...reference, text, end: text.length, url: "https://artist.example/night-glass-credits" };
+  api.mockResolvedValue({ status: "ok", passage: linerNote, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "This note credits Elara Wynn as mixer on Silver Thread's “Clear Water,” but it does not describe an Elara Wynn artist release or give a musical reason to recommend one.", evidence: [{ n: 1, quote: text }] }],
+    unanswered: null,
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "The source scopes the mixer credit and does not describe an artist release." } } as never);
+
+  const result = await draftResearchAnswer("artist", "Elara Wynn", "What is a representative song from Elara Wynn's own releases to start with?", [linerNote]);
+
+  expect(model.mock.calls[0][0].prompt).toContain(JSON.stringify(text).slice(1, -1));
+  expect(model.mock.calls[0][0].instructions).toContain("do not treat that credit alone as evidence of an own release or representative introduction");
+  expect(model.mock.calls[0][0].instructions).toContain("A representative or recommended work needs a supported musical, creation-story, or artist-stated reason");
+  expect(model.mock.calls[1][0].instructions).toContain("does not establish an own artist release or that the work represents the credited person's music");
+  expect(result.answer).toBe("This note credits Elara Wynn as mixer on Silver Thread's “Clear Water,” but it does not describe an Elara Wynn artist release or give a musical reason to recommend one. [1]");
+  expect(result.sources).toMatchObject([{ sourceId: linerNote.sourceId, revision: linerNote.revision }]);
+});
 it("keeps the original citation when a model collapses whitespace in its quote", async () => {
   const text =
     "Dutchyyy has been building it out  over the past year\n\nto escape platform dependency & reach listeners.";
@@ -348,14 +412,65 @@ it("rejects an unsupported second draft without a third repair", async () => {
   await expect(draftResearchAnswer('artist', 'Artist', 'What?', [reference])).rejects.toMatchObject({verificationCode: 'claim_rejected', verificationStage: 'claim_check'});
   expect(model).toHaveBeenCalledTimes(4);
 });
-it("renders a fixed scoped limitation instead of model-written unanswered prose", async () => {
+it("does not expose unchecked unanswered prose or invent a legacy generic gap", async () => {
   model.mockReset();
   model.mockResolvedValueOnce({ output: { ...draft, unanswered: 'There are no records anywhere about the release.' } } as never)
     .mockResolvedValueOnce({ output: { supported: true, reason: 'Mock checker approval cannot authorize arbitrary limitation prose.' } } as never);
   const result = await draftResearchAnswer('artist', 'Artist', 'What did they play and when?', [reference]);
-  expect(result.answer).toBe('They played drums. [1] I couldn’t confirm the other details.');
+  expect(result.answer).toBe('They played drums. [1]');
   expect(result.sources[0].sourceId).toBe(reference.sourceId);
   expect(result.answer).not.toContain('anywhere');
+});
+it("preserves a cited limitation without replacing it with generic unanswered copy", async () => {
+  const text = "This sleeve lists selected credits only. The full personnel list is not provided.";
+  const source = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "The supplied sleeve lists only selected credits, so it cannot settle who else played on the recording.",
+      evidence: [{ n: 1, quote: text }] }],
+    unanswered: null,
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "The limitation follows from the explicit scope of the sleeve." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "Does the missing credit prove they did not play?", [source]);
+  expect(result.answer).toBe("The supplied sleeve lists only selected credits, so it cannot settle who else played on the recording. [1]");
+  expect(result.sources).toHaveLength(1);
+});
+it("does not expose an unchecked legacy gap after a cited limitation", async () => {
+  const text = "This sleeve lists selected credits only. The full personnel list is not provided.";
+  const source = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "The supplied sleeve does not establish the full personnel.", evidence: [{ n: 1, quote: text }] }],
+    unanswered: "The supplied source does not establish the recording location.",
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "Bounded personnel and location gaps." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "Who played bass and where was it recorded?", [source]);
+  expect(result.answer).toBe("The supplied sleeve does not establish the full personnel. [1]");
+  expect(result.answer).not.toContain("recording location");
+});
+it.each(["complete", "missing_supported_detail", "unresolved_gap"])("does not use obsolete coverage metadata to add a generic gap or request another generation (%s)", async coverage => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: { ...draft, unanswered: "A requested detail is unavailable." } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, coverage, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "What did they play and where?", [reference]);
+  expect(result.answer).toBe("They played drums. [1]");
+  expect(model).toHaveBeenCalledTimes(2);
+});
+it("keeps a verified first draft without an optional completeness repair", async () => {
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, coverage: "missing_supported_detail", reason: "A detail is missing." } } as never)
+    .mockRejectedValueOnce(new Error("An unnecessary second generation failed"));
+  expect((await draftResearchAnswer("artist", "Artist", "What did they play?", [reference])).answer).toBe("They played drums. [1]");
+  expect(model).toHaveBeenCalledTimes(2);
+});
+it("does not let a limitation bypass exact quotes or claim verification", async () => {
+  model.mockReset();
+  const unsupported = { sentences: [{ kind: "limitation", text: "Nobody else played on the recording.", evidence: [{ n: 1, quote: reference.text }] }], unanswered: null };
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: unsupported } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason: "The original does not establish the complete personnel." } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "Who else played?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
+  expect(model).toHaveBeenCalledTimes(4);
 });
 it.each(['2025', '2025-08'])("accepts an exact partial activity date without inventing precision: %s", async activityDate => {
   const dated = { ...reference, activityDate, activityDateKind: 'release' as const };
@@ -383,10 +498,34 @@ it("preserves the eight-character minimum for text evidence", async () => {
 it("returns independently verified sentences without an unnecessary repair for an unsupported extra", async () => {
   const mixed = { sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null };
   model.mockReset();
-  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: mixed } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never);
+  model.mockResolvedValueOnce({ output: mixed } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never)
+    .mockResolvedValueOnce({ output: { sentences: [draft.sentences[0]], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "The revised answer stands alone." } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they do?", [reference]);
   expect(result.answer).toBe("They played drums. [1]");
-  expect(model).toHaveBeenCalledTimes(2);
+  expect(model).toHaveBeenCalledTimes(4);
+});
+
+it("retains only independently supported sentences when no validated facet is available", async () => {
+  model.mockReset();
+  const unanswered = "The supplied source does not establish the recording location.";
+  model.mockResolvedValueOnce({ output: {
+    sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }],
+    unanswered,
+  } } as never).mockResolvedValueOnce({ output: {
+    supported: false,
+    supportedSentenceNumbers: [1],
+    reason: "The drums credit is supported; production is not. The recording location remains unknown.",
+  } } as never).mockResolvedValueOnce({ output: { sentences: [draft.sentences[0]], unanswered } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "The answer and scoped gap are supported." } } as never);
+
+  const result = await draftResearchAnswer("artist", "Artist", "What did they play and where was it recorded?", [reference]);
+
+  expect(result.answer).toBe("They played drums. [1]");
+  expect(result.answer).not.toContain(unanswered);
+  expect(result.answer).not.toContain("produced");
+  expect(model).toHaveBeenCalledTimes(4);
 });
 
 it("does not accept out-of-range partial-verification sentence numbers", async () => {
@@ -505,6 +644,40 @@ it("uses a detailed rejection to repair the draft instead of failing the entire 
     .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
   const result = await draftResearchAnswer('artist', 'Artist', 'What?', [reference]);
   expect(result.answer).toBe('They played drums. [1]');
-  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toBe(reason);
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toContain(reason);
+  expect(JSON.parse(model.mock.calls[2][0].prompt).repairFeedback.reason).toContain("Re-evaluate and verify the entire revised answer");
   expect(model.mock.calls[1][0].anthropicEffort).toBe('low');
+});
+
+it("identifies only rejected evidence in the existing bounded repair without weakening quote checks", async () => {
+  const stitched = { sentences: [{ text: "They played drums without producing the work.", evidence: [
+    { n: 1, field: "text", quote: "I played drums." },
+    { n: 1, field: "text", quote: "I played drums ... did not produce it." },
+  ] }], unanswered: null };
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: stitched } as never)
+    .mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  expect((await draftResearchAnswer("artist", "Artist", "What was their role?", [reference])).answer).toBe("They played drums. [1]");
+  const first = JSON.parse(model.mock.calls[0][0].prompt);
+  const repair = JSON.parse(model.mock.calls[1][0].prompt);
+  expect(repair.repairFeedback.rejectedEvidence).toEqual([
+    { sentenceNumber: 1, evidenceNumber: 2, sourceNumber: 1, field: "text" },
+  ]);
+  expect(repair.originals).toEqual(first.originals);
+  expect(model).toHaveBeenCalledTimes(3);
+  expect(api).toHaveBeenCalledTimes(1);
+});
+
+it("still rejects a repeated stitched quote after targeted feedback without invoking the checker", async () => {
+  const stitched = { sentences: [{ text: "They played drums without producing the work.", evidence: [
+    { n: 1, field: "text", quote: "I played drums ... did not produce it." },
+  ] }], unanswered: null };
+  model.mockReset();
+  model.mockResolvedValue({ output: stitched } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "What was their role?", [reference])).rejects.toMatchObject({
+    verificationCode: "quote_rejected", verificationStage: "quote_check",
+  });
+  expect(JSON.parse(model.mock.calls[1][0].prompt).repairFeedback.rejectedEvidence).toHaveLength(1);
+  expect(model).toHaveBeenCalledTimes(2);
 });

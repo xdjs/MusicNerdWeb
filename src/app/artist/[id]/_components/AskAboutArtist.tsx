@@ -3,15 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { runArtistResearch } from "@/lib/questionResearch/runArtistResearch";
+import { readSourceDetails } from "@/lib/questionResearch/readSourceDetails";
 import type { PublicChatTurn } from "@/lib/questionResearch/publicChatTypes";
 import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
+import { parseAnswerCitationMarkers } from "@/lib/questionResearch/parseAnswerCitationMarkers";
 import type { QuestionQuota } from '@/lib/questionResearch/getQuestionQuota';
 import QuestionQuotaNotice from './QuestionQuotaNotice';
 
 interface AskAboutArtistProps {
     artistId: string;
     artistName: string;
+    /** Test and nonproduction review seam; normal profiles use the real research runner. */
+    researchRunner?: typeof runArtistResearch;
+    /** Test and nonproduction review seam; normal citations read stored originals. */
+    sourceReader?: typeof readSourceDetails;
+    /** Optional initial rendered turns for the bounded nonproduction replay. */
+    initialTurns?: ConversationTurn[];
+    /** Optional follow-up prompts for the bounded nonproduction replay. */
+    initialSuggestions?: string[];
+    /** Disclosure for synthetic review content; normal answers retain their AI attribution. */
+    answerDisclosure?: string;
 }
 
 const DEFAULT_SUGGESTIONS = (name: string) => [
@@ -101,18 +113,14 @@ function renderAnswer(
     // no source behind it and never can be — the document has no public URL — so
     // it is dropped rather than shown. A reader was seeing an internal variable
     // name in the middle of a sentence.
-    for (const m of text.matchAll(/\[([^\]]{1,60})\]/g)) {
-        const body = m[1];
-        if (/\d{4}-\d{2}/.test(body)) continue;                     // a date, not a citation
-        const nums = body.split(",").map(p => Number(p.trim())).filter(n => Number.isInteger(n) && n > 0);
-        const cited = nums.map(n => byNumber.get(n)).filter((x): x is AnswerSource => !!x);
+    for (const marker of parseAnswerCitationMarkers(text)) {
+        const cited = marker.numbers.map(n => byNumber.get(n)).filter((x): x is AnswerSource => !!x);
         // A bracket with nothing citable in it disappears entirely, which covers
         // "[Artist Doc]" and a number for a source the answer did not end up
         // carrying.
-        const at = m.index ?? 0;
         spans.push({
-            start: at,
-            end: at + m[0].length,
+            start: marker.start,
+            end: marker.end,
             node: key => cited.length === 0 ? null : (
                 <sup key={key} className="ml-0.5 text-[0.65em] font-medium">
                     {cited.map((c, i) => (
@@ -455,7 +463,7 @@ type ConversationTurn = {
     quota?: QuestionQuota;
 };
 
-function ConversationAnswer({ turn, artistName, artistId }: { turn: ConversationTurn; artistName: string; artistId: string }) {
+function ConversationAnswer({ turn, artistName, artistId, sourceReader, answerDisclosure }: { turn: ConversationTurn; artistName: string; artistId: string; sourceReader?: typeof readSourceDetails; answerDisclosure?: string }) {
     const { answer, sources, mentions, instagramMentions, songs, bandcamp, fromOpenWeb, webDomains } = turn;
     return <div className="space-y-3 px-1">
         {/* Answer */}
@@ -506,7 +514,7 @@ function ConversationAnswer({ turn, artistName, artistId }: { turn: Conversation
             </div>
         )}
 
-        {sources.map(source => <ResearchSourcePassage key={`${source.n}:${source.revision}`} artistId={artistId} source={source} />)}
+        {sources.map(source => <ResearchSourcePassage key={`${source.n}:${source.revision}`} artistId={artistId} source={source} sourceReader={sourceReader} />)}
 
         {/* Answered from the open web, because our own sources did
           * not cover it. Named as such: a reader has to be able to
@@ -534,20 +542,20 @@ function ConversationAnswer({ turn, artistName, artistId }: { turn: Conversation
 
         {answer && (
             <p className="text-[10px] text-white/50 italic">
-                {sources.length > 0
+                {answerDisclosure ?? (sources.length > 0
                     ? "Written by AI from the sources above"
                     : fromOpenWeb
                         ? "Written by AI from a web search"
-                        : "AI-generated response"}
+                        : "AI-generated response")}
             </p>
         )}
     </div>;
 }
 
-export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistProps) {
+export default function AskAboutArtist({ artistId, artistName, researchRunner = runArtistResearch, sourceReader, initialTurns, initialSuggestions, answerDisclosure }: AskAboutArtistProps) {
     const [question, setQuestion] = useState("");
-    const [turns, setTurns] = useState<ConversationTurn[]>([]);
-    const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS(artistName));
+    const [turns, setTurns] = useState<ConversationTurn[]>(initialTurns ?? []);
+    const [suggestions, setSuggestions] = useState<string[]>(initialSuggestions ?? DEFAULT_SUGGESTIONS(artistName));
     const [loading, setLoading] = useState(false);
     const [quotaNow, setQuotaNow] = useState(Date.now);
     const requestPending = useRef(false);
@@ -582,9 +590,21 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         const conversation = retryConversation?.map(turn => ({ ...turn })) ?? turns.filter(turn => turn.answer && !turn.error && !turn.quota).slice(-4)
             .map(turn => {
                 const sourceUrls = [...new Set(turn.sources.map(source => source.url).filter((url): url is string => typeof url === "string" && url.length <= 2048 && /^https?:\/\//i.test(url)))].slice(0, 3);
-                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000), ...(sourceUrls.length ? { sourceUrls } : {}) };
+                const sourceUrlSet = new Set(sourceUrls);
+                const seenCitationNumbers = new Set<number>();
+                const sourceRefs = turn.sources.flatMap(source => {
+                    if (!Number.isInteger(source.n) || source.n < 1 || source.n > 24
+                        || typeof source.url !== "string" || !sourceUrlSet.has(source.url)
+                        || seenCitationNumbers.has(source.n)) return [];
+                    seenCitationNumbers.add(source.n);
+                    return [{ n: source.n, url: source.url }];
+                }).slice(0, 3);
+                return { question: turn.question.slice(0, 500), answer: turn.answer!.slice(0, 3000),
+                    ...(sourceUrls.length ? { sourceUrls } : {}), ...(sourceRefs.length ? { sourceRefs } : {}) };
             });
-        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0), 0) > 12000) conversation.shift();
+        while (conversation.reduce((total, turn) => total + turn.question.length + turn.answer.length
+            + (turn.sourceUrls ?? []).reduce((size, url) => size + url.length, 0)
+            + (turn.sourceRefs ?? []).reduce((size, ref) => size + ref.url.length + 12, 0), 0) > 12000) conversation.shift();
         requestPending.current = true;
         const controller = new AbortController(); activeRequest.current = controller;
         setLoading(true);
@@ -601,7 +621,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
             setTurns(previous => previous.map(turn => turn.id === pending.id ? { ...turn, ...result } : turn));
         };
         try {
-            const data = await runArtistResearch({ artistId, question: trimmed, jobId, conversation, resolvedQuestion, signal: controller.signal,
+            const data = await researchRunner({ artistId, question: trimmed, jobId, conversation, resolvedQuestion, signal: controller.signal,
                 onCooldown: seconds => finish({ progress: seconds === null ? "Checking Lore…" : `Waiting ${seconds}s, then continuing…` }),
                 onProgress: progress => {
                     if (controller.signal.aborted) return;
@@ -639,15 +659,17 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
         } finally {
             if (activeRequest.current === controller) { requestPending.current = false; setLoading(false); }
         }
-    }, [artistId, turns, isQuotaBlocked]);
+    }, [artistId, turns, isQuotaBlocked, researchRunner]);
 
     useEffect(() => {
         activeRequest.current?.abort(); requestPending.current = false; setLoading(false);
-        setTurns([]); activeTurnId.current = null; setQuestion(""); askedQuestions.current.clear(); setSuggestions(DEFAULT_SUGGESTIONS(artistName));
+        setTurns(initialTurns ?? []); activeTurnId.current = null; setQuestion("");
+        askedQuestions.current = new Set((initialTurns ?? []).map(turn => turn.question.toLowerCase()));
+        setSuggestions(initialSuggestions ?? DEFAULT_SUGGESTIONS(artistName));
         // A fresh chat is idle. Reopening a profile must never retry an old
         // failed question or advance research from a browser recovery record.
         return () => { activeRequest.current?.abort(); };
-    }, [artistId, artistName]);
+    }, [artistId, artistName, initialTurns, initialSuggestions]);
 
     useEffect(() => {
         // Scroll only the conversation, never the artist page behind it. Show
@@ -672,7 +694,7 @@ export default function AskAboutArtist({ artistId, artistName }: AskAboutArtistP
                                 onRetry={() => { void ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion); }} />
                             : turn.error
                             ? <div role="alert" className="space-y-2 px-1"><p className="text-sm text-red-300">{turn.error}</p><button type="button" disabled={loading || isQuotaBlocked(turn.question, quotaNow)} onClick={() => ask(turn.question, turn.jobId, turn.id, turn.requestConversation, turn.resolvedQuestion)} className="min-h-11 text-sm text-pastypink underline underline-offset-4">Try again</button></div>
-                            : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} />
+                            : turn.answer ? <ConversationAnswer turn={turn} artistName={artistName} artistId={artistId} sourceReader={sourceReader} answerDisclosure={answerDisclosure} />
                                 : <p role="status" className="flex items-center gap-2 px-1 text-sm text-white/60"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-pastypink motion-safe:animate-pulse" />{turn.progress ?? "Checking Lore…"}</p>}
                     </div>
                 ))}

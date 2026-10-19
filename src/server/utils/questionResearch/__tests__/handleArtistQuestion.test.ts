@@ -12,6 +12,10 @@ import { reuseQuestionRequest } from '../reuseQuestionRequest';
 import { bindQuestionRequest } from '../bindQuestionRequest';
 jest.mock('../reuseQuestionRequest',()=>({reuseQuestionRequest:jest.fn()}));
 jest.mock('../bindQuestionRequest',()=>({bindQuestionRequest:jest.fn()}));
+jest.mock('../getBoundEvidenceFacets',()=>({
+  getBoundEvidenceFacets:jest.fn(async()=>({state:'legacy'})),
+  legacyQuestionHash:(question:string)=>require('node:crypto').createHash('sha256').update(question).digest('hex'),
+}));
 import { reserveQuestionPlanning } from "../reserveQuestionPlanning";
 jest.mock("../reserveQuestionPlanning",()=>({reserveQuestionPlanning:jest.fn()}));
 import { handleArtistQuestion } from "../handleArtistQuestion";
@@ -20,6 +24,9 @@ import { planArtistQuestion } from "../planArtistQuestion";
 import { callResearchApi } from "../callResearchApi";
 import { getOrDraftResearchAnswer } from "../getOrDraftResearchAnswer";
 import { registerResearchQuestion } from "../registerResearchQuestion";
+import { generateText } from "@/server/lib/ai/generateText";
+jest.mock("@/server/lib/ai/generateText", () => ({ generateText: jest.fn() }));
+jest.mock("ai", () => ({ Output: { object: jest.fn() } }));
 jest.mock("@/server/utils/queries/artistQueries", () => ({
   getArtistById: jest.fn(),
 }));
@@ -56,6 +63,7 @@ beforeEach(() => {
   jest.mocked(listReusableQuestionCandidates).mockResolvedValue([]);
   jest.mocked(releaseQuestionRequest).mockResolvedValue(undefined);
   jest.mocked(reuseQuestionRequest).mockResolvedValue({state:'claimed',requestHash:'hash',token:'token'});
+  jest.mocked(require("../getBoundEvidenceFacets").getBoundEvidenceFacets).mockResolvedValue({state:"legacy"});
   jest
     .mocked(getArtistById)
     .mockResolvedValue({ id: artistId, name: "Artist" } as never);
@@ -75,6 +83,75 @@ it("acknowledges the durable job before any collection or answer call", async ()
   expect(callResearchApi).toHaveBeenCalledTimes(1);
   expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who played drums?");
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+
+it("serializes real planner-normalized public scope without planner-only fields or conversation", async () => {
+  jest.mocked(getArtistById).mockResolvedValue({ id: artistId, name: "Oriel Loom" } as never);
+  jest.mocked(planArtistQuestion).mockImplementation(
+    jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion,
+  );
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Oriel Loom", qualifiers: [] },
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
+    publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
+    researchTask: { kind: "ordinary", requirements: ["whether Pax Cedar produced Folded Coast"] },
+    resolvedQuestion: "Did Pax Cedar produce the Bellwater trio's 2022 Folded Coast?",
+    answerIntent: "Pax Cedar credit", contextResolved: true,
+    evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const conversation = [{ question: "Private visitor anecdote must not become a query", answer: "The Bellwater trio's 2022 Folded Coast." }];
+  const response = await handleArtistQuestion(request({ question: "Did Pax Cedar produce that recording?", conversation }));
+  expect(response.status).toBe(202);
+  const options = jest.mocked(callResearchApi).mock.calls[0][1]!;
+  const expected = {
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast",
+    evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true,
+    evidenceFacets: [{ id: "f1", intent: "whether Pax Cedar produced Folded Coast" }],
+  };
+  expect(JSON.parse(JSON.stringify(options.body))).toEqual(expected);
+  expect(JSON.stringify(options.body)).not.toMatch(/publicConstraints|resolvedQuestion|answerIntent|conversation|Private visitor/);
+  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.objectContaining({ routing: {
+    topic: expected.topic, evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
+    evidenceFacets: [{ id: "f1", intent: "whether Pax Cedar produced Folded Coast" }],
+  }}));
+});
+
+it("keeps exact cited URL mapping planner-only while binding the same public facets to the job", async () => {
+  const sourceRefs = [{ n: 3, url: "https://interview.example/story" }, { n: 4, url: "https://artist.example/playlist" }];
+  jest.mocked(planArtistQuestion).mockResolvedValue({
+    topic: "Pete Rango Spotify playlist introduction rationale",
+    evidenceNeed: "reporting", freshness: "stored", retrieval: "relevance",
+    evidenceFacets: [{ id: "f1", intent: "why the cited Spotify playlist is an introduction" }],
+  });
+  const conversation = [{ question: "What should I listen to first?", answer: "Spotify list [3]. Site playlist [4].",
+    sourceUrls: ["https://artist.example/playlist", "https://interview.example/story"], sourceRefs }];
+  const response = await handleArtistQuestion(request({ question: "What makes that a good introduction?", conversation }));
+  expect(response.status).toBe(202);
+  const body = jest.mocked(callResearchApi).mock.calls[0][1]?.body as Record<string, unknown>;
+  expect(body.evidenceFacets).toEqual([{ id: "f1", intent: "why the cited Spotify playlist is an introduction" }]);
+  expect(JSON.stringify(body)).not.toContain("sourceRefs");
+  expect(JSON.stringify(body)).not.toContain("Site playlist [4]");
+  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.objectContaining({
+    routing: expect.objectContaining({ evidenceFacets: body.evidenceFacets }),
+  }));
+});
+
+it("does not start API research or bind reuse when declared public scope needs clarification", async () => {
+  jest.mocked(planArtistQuestion).mockImplementation(
+    jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion,
+  );
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Artist", qualifiers: [] },
+    topic: "x".repeat(150), publicConstraints: ["only the original edition"],
+    contextResolved: true, researchTask: { kind: "ordinary", requirements: ["whether Sora Vale arranged Harbor Glass"] }, evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const response = await handleArtistQuestion(request());
+  expect(await response.json()).toMatchObject({ answer: expect.stringMatching(/narrow.*public research question/i), sources: [] });
+  expect(callResearchApi).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).not.toHaveBeenCalled();
+  expect(bindQuestionRequest).not.toHaveBeenCalled();
 });
 it("resumes the known artist-scoped job without replanning or enqueueing", async () => {
   const r = await handleArtistQuestion(request({ jobId }));
@@ -429,4 +506,51 @@ it('preserves quota reset metadata when semantic fallback needs a new saved admi
  expect(response.headers.get('Retry-After')).toBe('600');
  expect(await response.json()).toMatchObject({code:'saved_evidence_quota',resetAt,retryAfterSeconds:600});
  expect(reserveQuestionPlanning).not.toHaveBeenCalled();
+});
+
+it("serializes the separately extracted public subject without forwarding private setup", async () => {
+  jest.mocked(getArtistById).mockResolvedValue({ id: artistId, name: "Tidal Orchard" } as never);
+  jest.mocked(planArtistQuestion).mockImplementation(jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion);
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Tidal Orchard", qualifiers: ["Lisbon instrumental duo"] },
+    topic: "Harbor Glass arranging credits", publicConstraints: ["whether Sora Vale arranged Harbor Glass"],
+    resolvedQuestion: "Did Sora Vale arrange Harbor Glass by the Lisbon instrumental duo Tidal Orchard?",
+    contextResolved: true, researchTask: { kind: "ordinary", requirements: ["whether Sora Vale arranged Harbor Glass"] }, evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const response = await handleArtistQuestion(request({ question: "Did Sora arrange that duo's record?",
+    conversation: [{ question: "Private visitor appointment: 18:45 at my home. I mean the Lisbon instrumental duo Tidal Orchard.", answer: "Their record is Harbor Glass." }] }));
+  expect(response.status).toBe(202);
+  const body = JSON.parse(JSON.stringify(jest.mocked(callResearchApi).mock.calls[0][1]!.body));
+  expect(body).toEqual({ topic: "Harbor Glass arranging credits; Tidal Orchard; Lisbon instrumental duo; whether Sora Vale arranged Harbor Glass",
+    evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true, evidenceFacets: [{id:"f1",intent:"whether Sora Vale arranged Harbor Glass"}] });
+  expect(JSON.stringify(body)).not.toMatch(/publicSubject|qualifiers|publicConstraints|conversation|resolvedQuestion|Private visitor|18:45|my home/);
+  expect(generateText).toHaveBeenCalledTimes(1);
+});
+
+it("does not dispatch or bind when the actual planner response omits the required public subject", async () => {
+  jest.mocked(planArtistQuestion).mockImplementation(jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion);
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Artist recording credits", publicConstraints: [],
+    evidenceNeed: "credits", freshness: "stored", contextResolved: true,
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const response = await handleArtistQuestion(request());
+  expect(response.status).toBe(503);
+  expect(callResearchApi).not.toHaveBeenCalled();
+  expect(bindQuestionRequest).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).not.toHaveBeenCalled();
+});
+
+it("does not dispatch when the model substitutes another artist as the public subject", async () => {
+  jest.mocked(planArtistQuestion).mockImplementation(jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion);
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    publicSubject: { name: "Other Artist", qualifiers: ["the solo performer"] },
+    topic: "Artist recording credits", evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  expect((await handleArtistQuestion(request())).status).toBe(503);
+  expect(callResearchApi).not.toHaveBeenCalled();
+  expect(bindQuestionRequest).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).not.toHaveBeenCalled();
 });

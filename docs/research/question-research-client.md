@@ -1,5 +1,102 @@
 # Ask About and discovery review through MusicNerdAPI
 
+## Evidence journey alignment (#1424, implementation preview)
+
+The preview-only `/review/1424/actual` serves a static, reviewed comparison of 32
+recorded model answers against fictional originals (16 baseline/candidate pairs).
+It identifies the evaluated commits, frozen scoring, partial blinding, remaining
+strict omissions, mocked boundaries and costs. All source passages are available
+inline. The separate `/review/1424` interaction remains manually illustrated.
+The actual-results route has no scripts, model calls, remote assets or application
+layout; a restrictive content policy blocks network integrations. It returns 404
+outside local development and Vercel preview. This delivery route does not alter
+the report's evaluated research logic at `3d344d91`, and observed output differences are not
+proof of causality or completion of #1424.
+
+The bounded second iteration preserves that report and its scores as development
+evidence. `/review/1424/actual/iteration-2` compares prior logic `3d344d91`
+with candidate `49f8eef0`, retaining all ten pairs: six fresh transfer cases and
+four previously seen development cases. Locked blind answer review found three
+candidate wins and one tie on development; transfer had no candidate wins, one
+baseline win, four ties and one incomparable pair. The fresh archive-gap candidate
+omitted the lost-copy explanation even though its checker reported complete.
+Both versions clarified the catalog-title case under the existing topic limit;
+the baseline also clarified the namesake case. No outcome or rubric was replaced.
+The strict T05 omission remains recorded. Its no-name conclusion and bounded
+explanation answer the visitor’s narrow mastering question; the additional missing-copy
+explanation is a frozen rubric requirement, not a demonstrated product release blocker.
+These data do not establish general improvement. All 40 model calls were accounted
+at $0.20345875; confirmed all-history cost is $0.72000610, or $0.74734810 exposure
+including the old unresolved reservation. No observed case exercised a repair
+retry; its former deterministic branch tests did not establish a live benefit. The static versioned report includes
+all exact displayed answers, sources, frozen strict scores and attribution limits.
+
+Within the existing planning call, a required `publicSubject` describes
+the selected public artist and explicitly stated identity qualifiers before topic
+compression. The host preserves those declared phrases within the existing
+160-character API topic, strips the planner-only object, and clarifies rather than
+truncating overflow. Missing/malformed subject output fails before API dispatch.
+Private experiences, raw conversation and contact details remain excluded. This
+does not guarantee extraction of undeclared qualifiers: an empty or incomplete
+model-produced qualifier list remains a measured limitation.
+
+The smaller follow-up removes the experimental checker coverage field, coverage-driven
+repair and notice overrides. Factual verification and its existing bounded repair
+remain unchanged. A supported first draft no longer risks a second generation solely
+for completeness. Per-work credit, distinct-speaker and cited-gap writer guidance stays.
+
+The planner now declares public scope before composing topic and is instructed to
+reuse each complete declared clause verbatim, including identity qualifiers and
+negation. This instructs the planner to avoid generating two differently worded
+versions of the same scope; compliance remains model-dependent.
+The host still uses exact whole-phrase matching, appends missing declarations and
+clarifies at more than 160 characters. It never interprets synonyms, drops clauses,
+uses raw/private conversation as a fallback, or rewrites the old saved T02 outputs.
+The old candidate output still clarifies; the older baseline output lacks the
+required subject field and fails closed under the final schema. Canonical fixture
+replays establish wiring only. The separate `/review/1424/actual/compact-routing`
+report records two new final-code confirmations against `f33d7796`: T02 generated a
+115-character topic and a cited title/artist answer; T01 generated a 77-character
+public topic, omitted the private setup from dispatch/answer and retained the
+civil-identity limitation. Six calls cost $0.02406125 with no generation retries.
+These two known synthetic cases establish observed behavior, not general accuracy
+or deployed storage/authentication acceptance. All-history confirmed cost is
+$0.74406735, exposure $0.77140935 including the old $0.027342 reservation. No further
+tuning or model calls followed. Prior reports and scores remain immutable.
+
+Web uses the server-only public research HTTP capability for question jobs, status
+and exact original reads. MusicNerdAPI owns public evidence selection, source
+access and acquisition. Web owns public conversation resolution, admission and
+answer leases, checking and presentation; these orchestration tables are not a
+second evidence index. The API's `createQuestionResearchTools` SDK wraps the same
+routes for agent clients and is not a separate Web database reader.
+
+A useful uncertainty explanation may be a `kind: limitation` sentence in the
+structured answer. It needs the same exact supporting quotes and independent
+claim check as any fact, and must stay scoped to the supplied originals. For
+example, an explicitly incomplete credit list supports explaining why a missing
+name does not settle participation. This is not permission to invent absence.
+When cited sentences address every requested part, including explicit supported
+gaps, the writer sets `unanswered=null`. Otherwise the host preserves the writer’s
+fixed missing-detail notice after a fully checked answer, including a repaired answer. The checker does not override that notice based on a coverage judgment.
+Free-text `unanswered` is never rendered,
+even if a checker approves it; zero-sentence results retain the safe fallback.
+
+Candidate selection is only permission to attempt a checked answer. After originals are reopened, a host-accepted schema-valid zero-sentence
+candidate result can continue the same job into research. That result returns
+before the independent claim checker; it is not independent proof of insufficiency. Failure to
+verify a draft is not proof of insufficient evidence: provider, schema, original
+access and factual-check failures remain withheld, with bounded retry. They do
+not automatically authorize outside collection or reset budgets.
+
+Existing verified answers retain their normal 24-hour reuse lifetime. These
+planner/writer changes apply to newly processed work; they do not invalidate
+request bindings or silently rewrite existing saved answers.
+
+Citation rendering recognizes numeric source markers and the legacy Artist Doc
+marker. Ordinary bracketed prose, speaker qualifications and timestamps stay
+visible. Source links and exact-revision passage reads retain their access rules.
+
 Refs #1424 and #1422. Fourth accepted delivery slice; depends on [API#24](https://github.com/xdjs/MusicNerdAPI/pull/24) and [Docs#8](https://github.com/xdjs/MusicNerdDocs/pull/8). Not released.
 
 ## Asking a question
@@ -8,7 +105,7 @@ Ask About sends one bounded question to Web. Web translates it into a neutral pu
 
 General questions default to stored evidence; an unprompted model choice cannot impose the API’s recent-only window and discard undated originals such as official bios. Explicit recent/latest requests retain their freshness route.
 
-The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. A reload can resume the job without starting paid collection again. The UI may stop waiting while the job remains durable; resume does not enqueue another request. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Request limits remain the API's documented limits, including five new requests per artist per day.
+The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. While the mounted UI retains its job ID and resolved question, retry can resume that saved job without starting paid collection again. The backend job remains durable if the UI stops waiting, but browser turns and job IDs are not restored after unmount or reload. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Saved-evidence admission and outside-research budgets remain separate; the five-per-artist daily allowance applies to outside research, not every saved-evidence question.
 
 When an unresolved result carries the API's `unsupported_speech` limitation, Web
 says: “I couldn't establish what was said from the saved sources.” The status
@@ -81,9 +178,9 @@ evidence used to check answers are unchanged, and opening details starts no rese
 The planner distinguishes broad activity overviews (`answerScope=overview`) from
 focused questions (`focused`, the default). A broad latest overview asks the shared
 API to consider several recent originals and select distinct activities; a latest
-post or release question retains its narrow scope. Web reopens at most three
+post or release question retains its narrow scope. Web reopens at most six
 selected originals, drafts once and checks once, with the existing single bounded
-repair. There is no extra stylistic model pass.
+repair and a fresh check of every repaired claim. There is no extra stylistic model pass.
 
 Answers lead with the useful activity, in plain language. Dates, platform names,
 filenames and collection titles appear only when they help answer the question.
@@ -135,3 +232,12 @@ A saved job and its resolved question survive the wait and explicit retry. A quo
 response without `Retry-After` remains an error; it does not automatically start
 new work or reset budgets. Existing clients using the old POST resume shape remain
 supported, but continue to use that route's strict request tier until refreshed.
+
+
+## Integrated outcome contract (2026-10-19, draft #1577)
+
+The writer and checker share one source-omission rule: a cited limitation needs an explicit supporting source statement and exact quote. Missing evidence alone cannot become a cited absence claim. Keep positively supported details that answer the question; leave unsupported remainder in the undisplayed `unanswered` field. Repair feedback is fallible diagnostic data and cannot override originals or these rules.
+
+A first partial factual verdict uses the existing second draft/check cycle to produce a coherent answer. A second partial rejection withholds the answer; the host does not publish an unchecked subset. A schema-valid zero-sentence draft returns before the factual checker. Candidate zero can continue the same job under its existing lease, attempt and lifetime limits. Ordinary research zero does not automatically restart navigation: the separate semantic-reuse fallback requires a persisted `reuseFallbackJobId` binding. Original, quote, schema, provider and checker failures remain failures, never evidence gaps.
+
+Known-case frozen-corpus harnesses substitute persistence, auth and queue execution. Their continuation and exhaustion behavior must match these branches before they can establish recovery; they do not establish deployed durability or general answer quality. Prior result artifacts remain historical evidence at their recorded code pins.

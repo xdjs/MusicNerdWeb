@@ -3,14 +3,16 @@ import { reuseQuestionRequest } from '../reuseQuestionRequest';
 import { acquireQuestionRequest } from '../acquireQuestionRequest';
 import { callResearchApi } from '../callResearchApi';
 import { getOrDraftResearchAnswer } from '../getOrDraftResearchAnswer';
+import { getBoundEvidenceFacets } from '../getBoundEvidenceFacets';
 jest.mock('../acquireQuestionRequest',()=>({acquireQuestionRequest:jest.fn()}));
 jest.mock('../callResearchApi',()=>({callResearchApi:jest.fn()}));
 jest.mock('../getOrDraftResearchAnswer',()=>({getOrDraftResearchAnswer:jest.fn()}));
+jest.mock('../getBoundEvidenceFacets',()=>({getBoundEvidenceFacets:jest.fn()}));
 const artistId='11111111-1111-4111-8111-111111111111',jobId='22222222-2222-4222-8222-222222222222';
 const input={artistId,artistName:'Example',question:'Who produced Glass Harbor?'};
 const binding={token:'old',job_id:jobId,question_hash:'a'.repeat(64),reusable:true,busy:false};
 const status={status:'ok',jobId,stage:'complete',provider:null,message:'Complete',updatedAt:'2026-10-12',references:[],limitations:[]};
-beforeEach(()=>{jest.resetAllMocks();jest.mocked(acquireQuestionRequest).mockResolvedValueOnce({state:'bound',binding});jest.mocked(callResearchApi).mockResolvedValue(status);});
+beforeEach(()=>{jest.resetAllMocks();jest.mocked(acquireQuestionRequest).mockResolvedValueOnce({state:'bound',binding});jest.mocked(callResearchApi).mockResolvedValue(status);jest.mocked(getBoundEvidenceFacets).mockResolvedValue({state:'legacy'});});
 it('revalidates API originals then only reads the bound verified answer hash',async()=>{
  const result={answer:'Ari produced it.',sources:[{n:1,title:'Credits',url:'https://example.com/credits',sourceId:'vault:33333333-3333-4333-8333-333333333333',revision:'a'.repeat(64),start:0,end:10,curation:'approved' as const,evidenceKind:'original_text' as const}],instagramMentions:[],fromOpenWeb:false,webDomains:[],suggestions:[]};
  jest.mocked(getOrDraftResearchAnswer).mockResolvedValue({state:'ready',result});

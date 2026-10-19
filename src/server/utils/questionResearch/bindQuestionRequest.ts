@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/server/db/drizzle';
 import { getResearchQuestionHash } from '@/lib/questionResearch/getResearchQuestionHash';
 /** Persist digests only; a late worker cannot overwrite the next lease owner. */
-export async function bindQuestionRequest(input: { artistId: string; requestHash: string; token: string; jobId: string; question: string; reusable: boolean; questionHash?: string; answerIntent?: string; routing?: Record<string, string | string[] | null> }): Promise<void> {
+export async function bindQuestionRequest(input: { artistId: string; requestHash: string; token: string; jobId: string; question: string; reusable: boolean; questionHash?: string; answerIntent?: string; routing?: Record<string, unknown> }): Promise<void> {
   const rows = await db.execute(sql`
     update artist_question_requests set job_id=${input.jobId}::uuid,
       question_hash=${input.questionHash ?? getResearchQuestionHash(input.question)},reusable=${input.reusable},lease_until=now(),

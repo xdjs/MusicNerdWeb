@@ -96,7 +96,7 @@ budgets remain enforced by code. Source discovery never approves Lore.
 
 Provider records may encode a title or description as JSON. The answer writer receives decoded text fields from complete records, and quote verification accepts only contiguous literal wording within one such field (or the unchanged raw passage). Decoding is limited to `latest:` records; it does not concatenate fields, repair malformed/truncated JSON, relax wording, or replace the independent claim check. Original revision/offset verification still runs before drafting.
 
-A rejected extra sentence must not erase independently verified useful facts or force another model cycle. The checker may explicitly identify sentence numbers that fully answer part of the question and remain supported with all other sentences removed. Only those sentences survive immediately after either check; unsupported extras and unanswered text are discarded. Invalid indices or no independently supported sentences still fail closed. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced.
+A partial checker verdict identifies supported details for the existing bounded repair cycle. The writer rewrites them into a coherent answer, preserving necessary attribution and requested distinctions, and every new quote and claim is checked again. A second partial rejection fails closed; the host does not immediately render a filtered subset or clear the missing-detail notice. Original reads, exact quotes, and the existing two-draft/two-check budget remain enforced. This draft behavior supersedes the earlier immediate-subset approach.
 
 
 ## Preserve the selected evidence through drafting (#1492)

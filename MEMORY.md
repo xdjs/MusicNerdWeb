@@ -1,3 +1,34 @@
+## Smaller #1424 candidate — October 19, draft only
+
+The coverage-field/repair/notice-override experiment is removed from draft #1577;
+writer guidance and declared-public-subject protection remain. Planner scope clauses
+are emitted before topic and reused verbatim to avoid artificial scope duplication;
+exact host checks and the160-character cap are unchanged. Old nonconforming T02
+outputs still safely clarify. Two new final-code confirmations at `f33d7796` completed T02 with a115-character
+public topic and T01 without forwarding private context. Six calls cost$0.02406125;
+all-history exposure$0.77140935 includes the old unresolved$0.027342 reservation.
+The compact-routing preview report distinguishes actual generations from authored
+replay. Prior reports/scores stay unchanged. No further tuning followed.
+T05 remains a strict missing-copy rubric omission, not evidence that its supported
+unknown-mastering answer materially failed the narrow product question.
+No merge, production release, issue closure or matrix edit is authorized here.
+See [the contract](docs/research/question-research-client.md).
+
+## Ask About bounded comparison — October 19
+
+Draft [Web #1577](https://github.com/xdjs/MusicNerdWeb/pull/1577), refs
+[#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424), includes research candidate
+`49f8eef0`: preserve declared public identity and check requested answer coverage
+under the existing privacy, quote, topic and call limits. Full CI passed. The
+single frozen comparison had three candidate wins/one tie on development cases;
+fresh transfer had zero wins, one baseline win, four ties and one incomparable
+pair. The candidate missed an archive lost-copy detail despite complete checker
+coverage. Keep this regression and overflow clarifications visible; no further
+tuning or release is implied. See [the versioned comparison contract](docs/research/question-research-client.md)
+and preview-only `/review/1424/actual/iteration-2`; the previous report is unchanged.
+Owner review and broader issue acceptance remain pending. No merge, production
+change, migration or issue-status update was performed.
+
 ## Claim submission recovery — October 18
 
 Pete reported a claim error on Olivier Boge and authorized an urgent isolated fix.

@@ -1,0 +1,208 @@
+{
+  "provenance": "Frozen T02 input and sanitized planner JSON extracted from transfer-v2 run records 007/008. Provider metadata, usage, routing, costs, IDs and credentials are deliberately excluded. The 113-character and boundary planner outputs are locally authored fixtures, not model generations.",
+  "savedT02": {
+    "artist": {
+      "id": "3cb22f39-b407-42a8-9e24-49b20d25edba",
+      "name": "Elin Marr"
+    },
+    "question": "On public card KM-82, is “Kite Museum” the work title or Elin Marr’s artist name, and who is credited as artist?",
+    "conversation": [
+      {
+        "question": "I am reading public catalog card KM-82 and trying to distinguish its work-title field from its performing-artist field.",
+        "answer": "Those fields can be checked separately in the catalog record."
+      }
+    ],
+    "originals": [
+      {
+        "sourceId": "vault:4c088c64-e0ca-4cb3-9014-3fc5f3c8caa2",
+        "revision": "0abb5d6e338206f13adda6ecb4cacb3c5288c43b7ddd5940089be82613b358e3",
+        "text": "Public Catalog card KM-82. work_title: “Kite Museum”. performing_artist: Elin Marr. The card assigns the title and artist to separate fields; it makes no claim that the work title is another person or alias.",
+        "start": 0,
+        "end": 207,
+        "url": "https://example.com/mn1424-transfer-v2/T02/card-km-82",
+        "curation": "approved",
+        "evidenceKind": "original_text",
+        "speaker": "not_applicable",
+        "publishedAt": "2023-08-19T09:30:00Z",
+        "retrievedAt": "2026-10-18T12:00:00Z",
+        "truncated": false
+      }
+    ],
+    "oldPlanner": {
+      "patch": {
+        "runRecord": "007",
+        "output": {
+          "publicSubject": {
+            "name": "Elin Marr",
+            "qualifiers": []
+          },
+          "topic": "Card KM-82 whether Kite Museum is work title or artist name and credited artist",
+          "evidenceNeed": "credits",
+          "freshness": "stored",
+          "retrieval": "relevance",
+          "answerScope": "focused",
+          "resolvedQuestion": "On public card KM-82, is “Kite Museum” the work title or Elin Marr’s artist name, and who is credited as artist?",
+          "targetUrl": null,
+          "platform": null,
+          "fromDate": null,
+          "toDate": null,
+          "publicConstraints": [
+            "public card KM-82",
+            "work title vs artist name distinction for Kite Museum",
+            "credited artist verification"
+          ],
+          "clarification": null,
+          "followupMode": "same_subject",
+          "contextResolved": true,
+          "answerIntent": "identify whether Kite Museum is the work title or Elin Marr's artist name on card KM-82 and verify the credited artist",
+          "reuseCandidateId": null,
+          "reuseAction": "none"
+        },
+        "recordedOutcome": {
+          "status": "answer_from_initial_response",
+          "body": {
+            "answer": "Could you narrow this to one public research question? I couldn't preserve all its constraints within the request limit.",
+            "sources": [],
+            "suggestions": []
+          }
+        }
+      },
+      "baseline": {
+        "runRecord": "008",
+        "output": {
+          "topic": "Verify on card KM-82 whether Kite Museum is work title or Elin Marr artist name, and credited artist",
+          "evidenceNeed": "credits",
+          "freshness": "stored",
+          "retrieval": "relevance",
+          "answerScope": "focused",
+          "resolvedQuestion": "On public card KM-82, is “Kite Museum” the work title or Elin Marr’s artist name, and who is credited as the artist?",
+          "targetUrl": null,
+          "platform": null,
+          "fromDate": null,
+          "toDate": null,
+          "publicConstraints": [
+            "public card KM-82",
+            "Kite Museum title vs artist name",
+            "credited artist identity",
+            "Elin Marr"
+          ],
+          "clarification": null,
+          "followupMode": "same_subject",
+          "contextResolved": true,
+          "answerIntent": "credited artist and title designation on card KM-82",
+          "reuseCandidateId": null,
+          "reuseAction": "none"
+        },
+        "recordedOutcome": {
+          "status": "answer_from_initial_response",
+          "body": {
+            "answer": "Could you narrow this to one public research question? I couldn't preserve all its constraints within the request limit.",
+            "sources": [],
+            "suggestions": []
+          }
+        }
+      }
+    },
+    "historicalClarification": "Could you narrow this to one public research question? I couldn't preserve all its constraints within the request limit."
+  },
+  "canonicalT02": {
+    "plannerOutput": {
+      "publicSubject": {
+        "name": "Elin Marr",
+        "qualifiers": []
+      },
+      "publicConstraints": [
+        "public card KM-82",
+        "whether Kite Museum is the work title or artist name",
+        "who is credited as the artist"
+      ],
+      "topic": "Elin Marr; public card KM-82; whether Kite Museum is the work title or artist name; who is credited as the artist",
+      "evidenceNeed": "credits",
+      "freshness": "stored",
+      "retrieval": "relevance",
+      "answerScope": "focused",
+      "resolvedQuestion": "On public card KM-82, is “Kite Museum” the work title or Elin Marr’s artist name, and who is credited as artist?",
+      "targetUrl": null,
+      "platform": null,
+      "fromDate": null,
+      "toDate": null,
+      "clarification": null,
+      "followupMode": "new_question",
+      "contextResolved": true,
+      "answerIntent": "card KM-82 title designation and credited artist",
+      "reuseCandidateId": null,
+      "reuseAction": "none"
+    }
+  },
+  "publicIdentityBoundary": {
+    "artist": {
+      "id": "77777777-7777-4777-8777-777777777777",
+      "name": "Tidal Orchard"
+    },
+    "question": "For Tidal Orchard, the Lisbon instrumental duo formerly known as Juniper Signal, does the Harbor Glass credit list Sora Vale as a member or as bridge arranger? Do not state an unsupported membership claim.",
+    "conversation": [
+      {
+        "question": "Private setup: my fictional sister Lora lives at 7 Seaglass Lane; please keep that off public research.",
+        "answer": "Understood. That private location is only context, not part of the public credit question."
+      }
+    ],
+    "plannerOutput": {
+      "publicSubject": {
+        "name": "Tidal Orchard",
+        "qualifiers": [
+          "Lisbon instrumental duo",
+          "formerly Juniper Signal"
+        ]
+      },
+      "publicConstraints": [
+        "whether Sora Vale is a Harbor Glass member or bridge arranger",
+        "no unsupported membership claims"
+      ],
+      "topic": "Tidal Orchard; Lisbon instrumental duo; formerly Juniper Signal; whether Sora Vale is a Harbor Glass member or bridge arranger; no unsupported membership claims",
+      "evidenceNeed": "credits",
+      "freshness": "stored",
+      "retrieval": "relevance",
+      "answerScope": "focused",
+      "resolvedQuestion": "Does the Harbor Glass credit list Sora Vale as a member or as bridge arranger?",
+      "targetUrl": null,
+      "platform": null,
+      "fromDate": null,
+      "toDate": null,
+      "clarification": null,
+      "followupMode": "new_question",
+      "contextResolved": true,
+      "answerIntent": "Sora Vale’s credited Harbor Glass role",
+      "reuseCandidateId": null,
+      "reuseAction": "none"
+    },
+    "overflowPlannerOutput": {
+      "publicSubject": {
+        "name": "Tidal Orchard",
+        "qualifiers": [
+          "Lisbon instrumental duo",
+          "formerly Juniper Signal"
+        ]
+      },
+      "publicConstraints": [
+        "whether Sora Vale is a Harbor Glass member or bridge arranger",
+        "no unsupported membership claims"
+      ],
+      "topic": "Tidal Orchard; Lisbon instrumental duo; formerly Juniper Signal; Harbor Glass public-credit check; separate Sora Vale member status from bridge work",
+      "evidenceNeed": "credits",
+      "freshness": "stored",
+      "retrieval": "relevance",
+      "answerScope": "focused",
+      "resolvedQuestion": "Does the Harbor Glass credit list Sora Vale as a member or as bridge arranger?",
+      "targetUrl": null,
+      "platform": null,
+      "fromDate": null,
+      "toDate": null,
+      "clarification": null,
+      "followupMode": "new_question",
+      "contextResolved": true,
+      "answerIntent": "Sora Vale’s credited Harbor Glass role",
+      "reuseCandidateId": null,
+      "reuseAction": "none"
+    }
+  }
+}
