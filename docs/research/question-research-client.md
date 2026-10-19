@@ -13,8 +13,23 @@ outside local development and Vercel preview. This delivery route does not alter
 the report's evaluated research logic at `3d344d91`, and observed output differences are not
 proof of causality or completion of #1424.
 
-The next bounded iteration preserves that report and its scores as development
-evidence. Within the existing planning call, a required `publicSubject` describes
+The bounded second iteration preserves that report and its scores as development
+evidence. `/review/1424/actual/iteration-2` compares prior logic `3d344d91`
+with candidate `49f8eef0`, retaining all ten pairs: six fresh transfer cases and
+four previously seen development cases. Locked blind answer review found three
+candidate wins and one tie on development; transfer had no candidate wins, one
+baseline win, four ties and one incomparable pair. The fresh archive-gap candidate
+omitted the lost-copy explanation even though its checker reported complete.
+Both versions clarified the catalog-title case under the existing topic limit;
+the baseline also clarified the namesake case. No outcome or rubric was replaced.
+The draft remains for owner review, with this regression unresolved; these data
+do not support general improvement or release. All 40 model calls were accounted
+at $0.20345875; confirmed all-history cost is $0.72000610, or $0.74734810 exposure
+including the old unresolved reservation. No observed case exercised a repair
+retry; deterministic tests cover that branch. The static versioned report includes
+all exact displayed answers, sources, frozen strict scores and attribution limits.
+
+Within the existing planning call, a required `publicSubject` describes
 the selected public artist and explicitly stated identity qualifiers before topic
 compression. The host preserves those declared phrases within the existing
 160-character API topic, strips the planner-only object, and clarifies rather than

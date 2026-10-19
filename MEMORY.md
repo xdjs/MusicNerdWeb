@@ -1,3 +1,18 @@
+## Ask About bounded comparison — October 19
+
+Draft [Web #1577](https://github.com/xdjs/MusicNerdWeb/pull/1577), refs
+[#1424](https://github.com/xdjs/MusicNerdWeb/issues/1424), includes research candidate
+`49f8eef0`: preserve declared public identity and check requested answer coverage
+under the existing privacy, quote, topic and call limits. Full CI passed. The
+single frozen comparison had three candidate wins/one tie on development cases;
+fresh transfer had zero wins, one baseline win, four ties and one incomparable
+pair. The candidate missed an archive lost-copy detail despite complete checker
+coverage. Keep this regression and overflow clarifications visible; no further
+tuning or release is implied. See [the versioned comparison contract](docs/research/question-research-client.md)
+and preview-only `/review/1424/actual/iteration-2`; the previous report is unchanged.
+Owner review and broader issue acceptance remain pending. No merge, production
+change, migration or issue-status update was performed.
+
 ## Claim submission recovery — October 18
 
 Pete reported a claim error on Olivier Boge and authorized an urgent isolated fix.
