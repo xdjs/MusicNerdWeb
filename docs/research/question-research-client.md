@@ -78,8 +78,7 @@ example, an explicitly incomplete credit list supports explaining why a missing
 name does not settle participation. This is not permission to invent absence.
 When cited sentences address every requested part, including explicit supported
 gaps, the writer sets `unanswered=null`. Otherwise the host preserves the writer’s
-fixed missing-detail notice, including after retaining only independently supported
-sentences. The checker does not override that notice based on a coverage judgment.
+fixed missing-detail notice after a fully checked answer, including a repaired answer. The checker does not override that notice based on a coverage judgment.
 Free-text `unanswered` is never rendered,
 even if a checker approves it; zero-sentence results retain the safe fallback.
 
@@ -106,7 +105,7 @@ Ask About sends one bounded question to Web. Web translates it into a neutral pu
 
 General questions default to stored evidence; an unprompted model choice cannot impose the API’s recent-only window and discard undated originals such as official bios. Explicit recent/latest requests retain their freshness route.
 
-The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. A reload can resume the job without starting paid collection again. The UI may stop waiting while the job remains durable; resume does not enqueue another request. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Request limits remain the API's documented limits, including five new requests per artist per day.
+The first response acknowledges a durable job. The UI shows actual saved-source, outside-Lore search, collection and reading progress; it does not fabricate timer-based activity. A server proxy resumes existing API work and polls status with backoff. While the mounted UI retains its job ID and resolved question, retry can resume that saved job without starting paid collection again. The backend job remains durable if the UI stops waiting, but browser turns and job IDs are not restored after unmount or reload. Source failures and unresolved questions are explicit, never treated as proof that something did not happen. Saved-evidence admission and outside-research budgets remain separate; the five-per-artist daily allowance applies to outside research, not every saved-evidence question.
 
 When an unresolved result carries the API's `unsupported_speech` limitation, Web
 says: “I couldn't establish what was said from the saved sources.” The status
@@ -179,9 +178,9 @@ evidence used to check answers are unchanged, and opening details starts no rese
 The planner distinguishes broad activity overviews (`answerScope=overview`) from
 focused questions (`focused`, the default). A broad latest overview asks the shared
 API to consider several recent originals and select distinct activities; a latest
-post or release question retains its narrow scope. Web reopens at most three
+post or release question retains its narrow scope. Web reopens at most six
 selected originals, drafts once and checks once, with the existing single bounded
-repair. There is no extra stylistic model pass.
+repair and a fresh check of every repaired claim. There is no extra stylistic model pass.
 
 Answers lead with the useful activity, in plain language. Dates, platform names,
 filenames and collection titles appear only when they help answer the question.
@@ -233,3 +232,12 @@ A saved job and its resolved question survive the wait and explicit retry. A quo
 response without `Retry-After` remains an error; it does not automatically start
 new work or reset budgets. Existing clients using the old POST resume shape remain
 supported, but continue to use that route's strict request tier until refreshed.
+
+
+## Integrated outcome contract (2026-10-19, draft #1577)
+
+The writer and checker share one source-omission rule: a cited limitation needs an explicit supporting source statement and exact quote. Missing evidence alone cannot become a cited absence claim. Keep positively supported details that answer the question; leave unsupported remainder in the undisplayed `unanswered` field. Repair feedback is fallible diagnostic data and cannot override originals or these rules.
+
+A first partial factual verdict uses the existing second draft/check cycle to produce a coherent answer. A second partial rejection withholds the answer; the host does not publish an unchecked subset. A schema-valid zero-sentence draft returns before the factual checker. Candidate zero can continue the same job under its existing lease, attempt and lifetime limits. Ordinary research zero does not automatically restart navigation: the separate semantic-reuse fallback requires a persisted `reuseFallbackJobId` binding. Original, quote, schema, provider and checker failures remain failures, never evidence gaps.
+
+Known-case frozen-corpus harnesses substitute persistence, auth and queue execution. Their continuation and exhaustion behavior must match these branches before they can establish recovery; they do not establish deployed durability or general answer quality. Prior result artifacts remain historical evidence at their recorded code pins.

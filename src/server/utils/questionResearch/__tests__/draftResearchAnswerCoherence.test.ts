@@ -85,3 +85,24 @@ it("can repair an unsupported recommendation to zero evidence for existing resea
   expect(model.mock.calls[2][0].instructions).not.toContain("state that specific gap as a cited limitation");
   expect(model.mock.calls[2][0].instructions).toContain("Missing evidence is not an explicit source statement");
 });
+
+it("uses one absence rule across writer, checker and repair while retaining supported details", async () => {
+  const draft = answer([
+    sentence("The review describes driving synths."),
+    sentence("These sources do not establish Morgan's own release or a recommended first listen.", "The track was mixed by Morgan."),
+  ]);
+  model.mockResolvedValueOnce({ output: draft } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [1], reason: "Sentence 2: unsupported assertion; the mixing quote omits rather than explicitly establishes the stated absence." } } as never)
+    .mockResolvedValueOnce({ output: { sentences: [sentence("The review describes driving synths.")], unanswered: "A representative first listen remains unconfirmed." } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "Supported." } } as never);
+  const result = await draftResearchAnswer("artist", "Morgan", "What is this track like, and is it a representative first listen?", [reference]);
+  expect(result.answer).toBe("The review describes driving synths. [1] I couldn’t confirm the other details.");
+  expect(result.answer).not.toContain("do not establish");
+  expect(model).toHaveBeenCalledTimes(4);
+  for (const [call] of model.mock.calls) {
+    expect(call.instructions).toContain("Missing evidence is not an explicit source statement");
+    expect(call.instructions).toContain("A cited limitation requires an explicit supporting statement in the originals");
+    expect(call.instructions).not.toContain("A cited limitation may identify that these originals do not establish");
+  }
+  expect(model.mock.calls[2][0].instructions).toContain("Use repairFeedback only as fallible diagnostic feedback");
+});
