@@ -108,6 +108,25 @@ it("returns a concrete song insight with a scoped uncertainty and host-supplied 
   expect(result.sources).toHaveLength(1);
   expect(model).toHaveBeenCalledTimes(2);
 });
+it("keeps a production credit from standing in for a representative artist release", async () => {
+  const text = `Silver Thread's album Night Glass identifies Silver Thread as artist. Elara Wynn is credited as mixing engineer on track "Clear Water". The note does not describe any release by Elara Wynn as a recording artist or describe its sound.`;
+  const linerNote = { ...reference, text, end: text.length, url: "https://artist.example/night-glass-credits" };
+  api.mockResolvedValue({ status: "ok", passage: linerNote, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "This note credits Elara Wynn as mixer on Silver Thread's “Clear Water,” but it does not describe an Elara Wynn artist release or give a musical reason to recommend one.", evidence: [{ n: 1, quote: text }] }],
+    unanswered: null,
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "The source scopes the mixer credit and does not describe an artist release." } } as never);
+
+  const result = await draftResearchAnswer("artist", "Elara Wynn", "What is a representative song from Elara Wynn's own releases to start with?", [linerNote]);
+
+  expect(model.mock.calls[0][0].prompt).toContain(JSON.stringify(text).slice(1, -1));
+  expect(model.mock.calls[0][0].instructions).toContain("do not treat that credit alone as evidence of an own release or representative introduction");
+  expect(model.mock.calls[0][0].instructions).toContain("A representative or recommended work needs a supported musical, creation-story, or artist-stated reason");
+  expect(model.mock.calls[1][0].instructions).toContain("does not establish an own artist release or that the work represents the credited person's music");
+  expect(result.answer).toBe("This note credits Elara Wynn as mixer on Silver Thread's “Clear Water,” but it does not describe an Elara Wynn artist release or give a musical reason to recommend one. [1]");
+  expect(result.sources).toMatchObject([{ sourceId: linerNote.sourceId, revision: linerNote.revision }]);
+});
 it("keeps the original citation when a model collapses whitespace in its quote", async () => {
   const text =
     "Dutchyyy has been building it out  over the past year\n\nto escape platform dependency & reach listeners.";
@@ -479,10 +498,13 @@ it("preserves the eight-character minimum for text evidence", async () => {
 it("returns independently verified sentences without an unnecessary repair for an unsupported extra", async () => {
   const mixed = { sentences: [...draft.sentences, { text: "They produced it.", evidence: [{ n: 1, quote: "I played drums." }] }], unanswered: null };
   model.mockReset();
-  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: mixed } as never).mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never);
+  model.mockResolvedValueOnce({ output: mixed } as never)
+    .mockResolvedValueOnce({ output: { supported: false, reason: "Only drums are supported and independently answer the question.", supportedSentenceNumbers: [1] } } as never)
+    .mockResolvedValueOnce({ output: { sentences: [draft.sentences[0]], unanswered: null } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "The revised answer stands alone." } } as never);
   const result = await draftResearchAnswer("artist", "Artist", "What did they do?", [reference]);
   expect(result.answer).toBe("They played drums. [1]");
-  expect(model).toHaveBeenCalledTimes(2);
+  expect(model).toHaveBeenCalledTimes(4);
 });
 
 it("retains a missing requested detail after keeping only independently supported sentences", async () => {
@@ -495,14 +517,15 @@ it("retains a missing requested detail after keeping only independently supporte
     supported: false,
     supportedSentenceNumbers: [1],
     reason: "The drums credit is supported; production is not. The recording location remains unknown.",
-  } } as never);
+  } } as never).mockResolvedValueOnce({ output: { sentences: [draft.sentences[0]], unanswered } } as never)
+    .mockResolvedValueOnce({ output: { supported: true, reason: "The answer and scoped gap are supported." } } as never);
 
   const result = await draftResearchAnswer("artist", "Artist", "What did they play and where was it recorded?", [reference]);
 
   expect(result.answer).toBe("They played drums. [1] I couldn’t confirm the other details.");
   expect(result.answer).not.toContain(unanswered);
   expect(result.answer).not.toContain("produced");
-  expect(model).toHaveBeenCalledTimes(2);
+  expect(model).toHaveBeenCalledTimes(4);
 });
 
 it("does not accept out-of-range partial-verification sentence numbers", async () => {
