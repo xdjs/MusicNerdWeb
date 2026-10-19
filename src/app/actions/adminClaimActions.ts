@@ -5,6 +5,7 @@ import { getUserById } from "@/server/utils/queries/userQueries";
 import { approveClaim, rejectClaim, getAllClaims, getClaimById, revokeApprovedClaim } from "@/server/utils/queries/dashboardQueries";
 import { hasReusableDirectoryDiscovery } from "@/server/utils/queries/hasReusableDirectoryDiscovery";
 import { enqueueClaimInterview } from '@/server/utils/queries/enqueueClaimInterview';
+import { startClaimBuild } from '@/server/utils/onboarding/startClaimBuild';
 import { enqueueResearchJob } from "@/server/utils/queries/researchJobQueries";
 import { withArtistOperation } from '@/server/utils/artistOperationContext';
 import { sendDiscordMessage } from "@/server/utils/queries/discord";
@@ -64,6 +65,16 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
             console.error('[approveClaimAction] Interview preparation enqueue failed:', error);
         }
 
+        // The page builds on MusicNerdAPI as a durable workflow; the artist page
+        // only watches it (docs/research-view.md). A failed start is retried
+        // from the page's "Try again".
+        let buildStarted = false;
+        try {
+            buildStarted = await startClaimBuild(claim.artistId);
+        } catch (error) {
+            console.error('[approveClaimAction] Page build start failed:', error);
+        }
+
         // Approval email — AWAITED (not fire-and-forget). On Vercel a serverless
         // lambda can freeze immediately after the action returns, so a floating
         // promise here may never actually send. sendEmail/sendClaimApprovedEmail
@@ -93,6 +104,7 @@ export async function approveClaimAction(claimId: string): Promise<{ success: bo
             success: true,
             ...(!interviewReady && researchReady ? { warning: 'Claim approved, but interview preparation could not be queued. The artist can still prepare an interview from their profile.' } : {}),
             ...(!researchReady ? { warning: 'Claim approved, but source research could not be queued. Open the artist’s Lore and use “Search web for sources” to retry.' } : {}),
+            ...(!buildStarted && researchReady && interviewReady ? { warning: 'Claim approved, but the page build could not start. It restarts when the artist taps “Try again” on their page.' } : {}),
         };
     } catch (error) {
         console.error("[approveClaimAction] Error:", error);

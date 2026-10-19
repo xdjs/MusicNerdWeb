@@ -1,5 +1,6 @@
 // @ts-nocheck
 jest.mock('@/server/utils/queries/enqueueClaimInterview', () => ({ enqueueClaimInterview: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/server/utils/onboarding/startClaimBuild', () => ({ startClaimBuild: jest.fn().mockResolvedValue(true) }));
 import { jest } from "@jest/globals";
 
 jest.mock("@/server/auth", () => ({
@@ -121,6 +122,29 @@ describe("adminClaimActions", () => {
             expect(result.success).toBe(true);
             expect(result.warning).toContain('Claim approved');
             expect(result.warning).toContain('Search web for sources');
+            const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
+            expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
+        });
+
+        it("starts the page build on the server once the claim is approved", async () => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            expect(await m.approveClaimAction('c1')).toEqual({ success: true });
+            const { startClaimBuild } = await import('@/server/utils/onboarding/startClaimBuild');
+            expect(startClaimBuild).toHaveBeenCalledWith('a1');
+        });
+
+        it.each(['false', 'throw'])('still approves, with a warning, when the build start returns %s', async failure => {
+            const m = await setup();
+            mockAdmin(m);
+            m.approveClaim.mockResolvedValue({ id: 'c1', artistId: 'a1', userId: 'u1', referenceCode: 'MN-TEST' });
+            const { startClaimBuild } = await import('@/server/utils/onboarding/startClaimBuild');
+            if (failure === 'throw') (startClaimBuild as jest.Mock).mockRejectedValueOnce(new Error('api down'));
+            else (startClaimBuild as jest.Mock).mockResolvedValueOnce(false);
+            const result = await m.approveClaimAction('c1');
+            expect(result.success).toBe(true);
+            expect(result.warning).toContain('page build could not start');
             const { sendDiscordMessage } = await import('@/server/utils/queries/discord');
             expect(sendDiscordMessage).toHaveBeenCalledWith(expect.stringContaining('Claim APPROVED'));
         });

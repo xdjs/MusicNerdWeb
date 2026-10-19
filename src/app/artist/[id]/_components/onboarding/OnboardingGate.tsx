@@ -1,98 +1,47 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import OnboardingChat from "./OnboardingChat";
+import { useState, type ReactNode } from "react";
 import type { OnboardingStateView } from "@/lib/onboarding/onboardingStateTypes";
-import type { ResearchItems } from "./ResearchInPlace";
-import OnboardingBanner from "./OnboardingBanner";
+import ResearchInPlace, { type ResearchItems } from "./ResearchInPlace";
 import { armTour } from "@/app/artist/[id]/_components/onboarding/armTour";
 import { tourFlagKey } from "@/app/artist/[id]/_components/onboarding/tourFlagKey";
 
-export function skipFlagKey(artistId: string): string {
-    return `mn-onboarding-skip-${artistId}`;
-}
-
 type Props = {
     artistId: string;
-    artistName: string;
     /** The onboarding state the page rendered with, from MusicNerdAPI (docs/research-view.md). */
     state: OnboardingStateView;
     /** The profile links and approved sources the page shows now (what counts as new). */
     researchItems?: ResearchItems;
-    /** The artist page. While onboarding runs, research paints it in place
+    /** The artist page. While MusicNerdAPI builds it, research paints it in place
      *  (docs/research-view.md); otherwise it's shown as usual. */
     children?: ReactNode;
 };
 
+const NO_ITEMS: ResearchItems = { links: [], sources: [] };
+
 /**
- * Client-side takeover-vs-banner branch. The server only reports onboarding
- * state; the skip flag lives in sessionStorage and is invisible to the server
- * component (spec §8). Skip is session-scoped: a later visit reopens the chat.
+ * The claimant's page while the server builds it. The build runs on
+ * MusicNerdAPI from claim approval, so this only watches it. The page renders
+ * the gate for the claimant whatever the state, so a build that completes
+ * during the visit keeps its view (docs/research-view.md, "Done"); a page that
+ * arrived complete has nothing to show here.
  */
-export default function OnboardingGate({ artistId, artistName, state, researchItems, children }: Props) {
-    // Start closed and decide after mount — sessionStorage is unavailable during SSR.
-    const [mode, setMode] = useState<"closed" | "chat" | "banner">("closed");
-    // The page renders the gate for the claimant whatever the state, so a build
-    // that completes during the visit keeps its view (docs/research-view.md,
-    // "Done"). A page that arrived complete has nothing to show here.
+export default function OnboardingGate({ artistId, state, researchItems = NO_ITEMS, children }: Props) {
     const [completeOnArrival] = useState(state.complete);
+    if (completeOnArrival) return <>{children}</>;
 
-    useEffect(() => {
-        if (completeOnArrival) return;
-        const skipped = sessionStorage.getItem(skipFlagKey(artistId)) === "1";
-        setMode(skipped ? "banner" : "chat");
-    }, [artistId, completeOnArrival]);
-
+    // The build finished while the artist watched: arm the tour but keep the
+    // page as it is, with the new-item marks. Arming (not rendering) survives
+    // the server re-fetch that follows completion.
     const armTourOnce = () => {
         let alreadyDone = false;
         try { alreadyDone = sessionStorage.getItem(tourFlagKey(artistId)) === "1"; } catch { /* private mode */ }
         if (!alreadyDone) armTour(artistId);
     };
 
-    if (mode === "closed") return <>{children}</>;
-    if (mode === "chat") {
-        return (
-            <OnboardingChat
-                artistId={artistId}
-                artistName={artistName}
-                initialState={state}
-                researchItems={researchItems}
-                onSkip={() => {
-                    sessionStorage.setItem(skipFlagKey(artistId), "1");
-                    setMode("banner");
-                }}
-                // "See my page" after a real finish: close the takeover WITHOUT the
-                // skip flag, so a later visit (onboarding now complete) never shows
-                // the "Finish setting up" banner it would flash before refresh.
-                //
-                // Arms the tour rather than rendering it. This component is only
-                // rendered while onboarding is INCOMPLETE, and the build's last
-                // act is completing it — so a tour owned here is unmounted by the
-                // next server re-fetch, which is exactly what happened. The flag
-                // outlives both. Skipping the chat arms nothing: someone who
-                // dismissed the setup does not want a guided pass either.
-                onFinish={() => {
-                    armTourOnce();
-                    setMode("closed");
-                }}
-                // The build finished while the artist watched: arm the tour but keep
-                // the page as it is, with the ready card and the new-item marks.
-                onBuildComplete={armTourOnce}
-            >
-                {children}
-            </OnboardingChat>
-        );
-    }
     return (
-        <>
-            <OnboardingBanner
-                currentStep={state.currentStep}
-                onContinue={() => {
-                    sessionStorage.removeItem(skipFlagKey(artistId));
-                    setMode("chat");
-                }}
-            />
+        <ResearchInPlace artistId={artistId} initialState={state} researchItems={researchItems} onComplete={armTourOnce}>
             {children}
-        </>
+        </ResearchInPlace>
     );
 }
