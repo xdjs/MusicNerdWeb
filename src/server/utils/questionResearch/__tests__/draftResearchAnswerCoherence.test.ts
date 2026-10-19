@@ -72,3 +72,16 @@ it("repairs missing quote coverage without discarding a full-source-supported de
   expect(model.mock.calls[3][0].instructions).toContain("Evaluate only the current draft");
   expect(model.mock.calls[3][0].instructions).toContain("missing quote coverage");
 });
+
+it("can repair an unsupported recommendation to zero evidence for existing research continuation", async () => {
+  model.mockResolvedValueOnce({ output: answer([sentence("Start with this track as Morgan's own music.", "The track was mixed by Morgan.")]) } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason: "A mixing credit does not identify an artist release or a supported reason to recommend one." } } as never)
+    .mockResolvedValueOnce({ output: { sentences: [], unanswered: "The selected originals do not support a relevant recommendation." } } as never);
+  const result = await draftResearchAnswer("artist", "Morgan", "Which of Morgan's own songs should I start with?", [reference]);
+  expect(result.sources).toEqual([]);
+  expect(result.answer).toBe("I don't have enough information to answer that yet.");
+  expect(result.answer).not.toContain("mixing");
+  expect(model).toHaveBeenCalledTimes(3);
+  expect(model.mock.calls[2][0].instructions).not.toContain("state that specific gap as a cited limitation");
+  expect(model.mock.calls[2][0].instructions).toContain("Missing evidence is not an explicit source statement");
+});
