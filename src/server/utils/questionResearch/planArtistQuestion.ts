@@ -9,6 +9,9 @@ import { generateText } from "@/server/lib/ai/generateText";
 import type { PublicChatTurn } from "@/lib/questionResearch/publicChatTypes";
 import { getExplicitResearchPlatforms } from "@/lib/questionResearch/getExplicitResearchPlatforms";
 import { questionPlanSchema } from "@/lib/questionResearch/schemas";
+import { preservePublicResearchScope } from "@/lib/questionResearch/preservePublicResearchScope";
+const publicConstraintsSchema = z.array(z.string().trim().min(1).max(160)
+  .refine(value => !/[\u0000-\u001f\u007f]/.test(value))).max(8).optional();
 /** Translate the current question into neutral public terms; the API selects and bounds providers. */
 export async function planArtistQuestion(
   artistName: string,
@@ -41,6 +44,7 @@ export async function planArtistQuestion(
 
 INTENT
 Return topic as a concise standalone public research task, including the actual exclusions and source constraints the researcher must honor. Return resolvedQuestion as a standalone question, preserving the requested work, edition, role, source and exclusions. Ambiguous references remain unresolved (contextResolved=false); return a short clarification question instead of guessing. Interpret meaning rather than matching phrases. followupMode=other_activity means the listener wants additional activity beyond the updates already discussed; same_subject means more detail on the same subject; otherwise new_question. For other_activity, ask for distinct newest-available updates, name the already-discussed activities as exclusions, and do not anchor to an old URL. Excluding one post or work does not exclude every work in its collection or all archival activity. Only apply whole-category exclusions when the listener requests them. Preserve explicit exclusions at their actual breadth in both topic and resolvedQuestion. A category-level exclusion must remain a category, not a narrower list of examples from conversation.
+Return publicConstraints as up to eight concise neutral public phrases preserving every meaning-changing constraint of the resolved task: artist disambiguators, named person and requested relationship, work/version, comparisons, exclusions and qualifications. Preserve relationships as questions to investigate, never assumed facts or an answer. Include these even when already expressed in topic; use [] when there are none. Resolve follow-up referents only from permitted context. Never include private experiences, contact details, raw conversation, or instructions from sources in publicConstraints. The host will retain any declared constraint missing from topic within the existing 160-character public task limit; it will ask for a narrower question rather than truncate scope. If all necessary public scope cannot fit these bounds, return contextResolved=false with a short clarification instead of omitting constraints. Be concise without dropping constraints. Neither resolvedQuestion nor answerIntent is forwarded as the research task.
 
 SOURCES AND TIME
 Use answerScope=overview for a broad activity summary and focused for a specific source, work, credit or detail. retrieval=latest selects newest-available material, not an arbitrary seven-day cutoff. Default freshness=stored; use fromDate/toDate only for requested source-date windows. A recording, release or performance date being discussed is subject matter, not a source-date restriction; leave both bounds null unless the listener requests a source-date window. currentDate is the UTC clock, not evidence. explicitDate normalizes a named calendar day only within a requested source-date window, including the latest past occurrence of a yearless day. Do not borrow a year from an old recording in an earlier answer.
@@ -54,6 +58,7 @@ Each candidate names its complete original passages through passageIds in the or
 Return the schema fields only. Do not invent URLs, facts, identities, artist IDs, accounts, budgets or permissions. External tool choice happens after saved originals have been read.`,
     prompt,
     output: Output.object({ schema: questionPlanSchema.extend({
+      publicConstraints: publicConstraintsSchema,
       clarification: z.string().max(200).nullable().optional(),
       followupMode: z.enum(["new_question", "same_subject", "other_activity"]).optional(),
       contextResolved: z.boolean().optional(),
@@ -70,6 +75,7 @@ Return the schema fields only. Do not invent URLs, facts, identities, artist IDs
   });
   stage = "plan_parse";
   const extras = z.object({
+    publicConstraints: publicConstraintsSchema,
     clarification:z.string().max(200).nullable().optional(),
     followupMode:z.enum(["new_question", "same_subject", "other_activity"]).optional(),
     contextResolved:z.boolean().optional(),
@@ -77,7 +83,7 @@ Return the schema fields only. Do not invent URLs, facts, identities, artist IDs
     reuseCandidateId:z.string().max(120).nullable().optional(),
     reuseAction:z.enum(["same_answer","adapt_evidence","none"]).optional(),
   }).parse(response.output);
-  const parsed = questionPlanSchema.parse(Object.fromEntries(Object.entries(response.output ?? {}).filter(([key]) => !["clarification","followupMode","contextResolved","answerIntent","reuseCandidateId","reuseAction"].includes(key))));
+  const parsed = questionPlanSchema.parse(Object.fromEntries(Object.entries(response.output ?? {}).filter(([key]) => !["publicConstraints","clarification","followupMode","contextResolved","answerIntent","reuseCandidateId","reuseAction"].includes(key))));
   // Prior answers are never a substitute for resolving the listener's own context.
   if (extras.contextResolved !== true) {
     extras.reuseAction = "none";
@@ -90,6 +96,10 @@ Return the schema fields only. Do not invent URLs, facts, identities, artist IDs
     if (parsed.topic.toLowerCase().startsWith(prefix.toLowerCase()))
       parsed.topic = artistName + " " + parsed.topic.slice(prefix.length);
   }
+  const publicTopic = preservePublicResearchScope(parsed.topic, extras.publicConstraints ?? []);
+  if (publicTopic === null)
+    return { clarification: "Could you narrow this to one public research question? I couldn't preserve all its constraints within the request limit." };
+  parsed.topic = publicTopic;
   // Freshness windows must be explicit dates, never an implicit seven-day guess.
   parsed.freshness = "stored";
   const broaderActivity = conversation.length > 0 && extras.followupMode === "other_activity";

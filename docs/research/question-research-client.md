@@ -1,5 +1,39 @@
 # Ask About and discovery review through MusicNerdAPI
 
+## Evidence journey alignment (#1424, implementation preview)
+
+Web uses the server-only public research HTTP capability for question jobs, status
+and exact original reads. MusicNerdAPI owns public evidence selection, source
+access and acquisition. Web owns public conversation resolution, admission and
+answer leases, checking and presentation; these orchestration tables are not a
+second evidence index. The API's `createQuestionResearchTools` SDK wraps the same
+routes for agent clients and is not a separate Web database reader.
+
+A useful uncertainty explanation may be a `kind: limitation` sentence in the
+structured answer. It needs the same exact supporting quotes and independent
+claim check as any fact, and must stay scoped to the supplied originals. For
+example, an explicitly incomplete credit list supports explaining why a missing
+name does not settle participation. This is not permission to invent absence.
+When cited sentences address every requested part, the writer sets
+`unanswered=null`. Otherwise the host keeps the generic “other details” suffix,
+even if a different cited limitation survives checking. Free-text `unanswered` is never rendered,
+even if a checker approves it; zero-sentence results retain the safe fallback.
+
+Candidate selection is only permission to attempt a checked answer. After originals are reopened, a host-accepted schema-valid zero-sentence
+candidate result can continue the same job into research. That result returns
+before the independent claim checker; it is not independent proof of insufficiency. Failure to
+verify a draft is not proof of insufficient evidence: provider, schema, original
+access and factual-check failures remain withheld, with bounded retry. They do
+not automatically authorize outside collection or reset budgets.
+
+Existing verified answers retain their normal 24-hour reuse lifetime. These
+planner/writer changes apply to newly processed work; they do not invalidate
+request bindings or silently rewrite existing saved answers.
+
+Citation rendering recognizes numeric source markers and the legacy Artist Doc
+marker. Ordinary bracketed prose, speaker qualifications and timestamps stay
+visible. Source links and exact-revision passage reads retain their access rules.
+
 Refs #1424 and #1422. Fourth accepted delivery slice; depends on [API#24](https://github.com/xdjs/MusicNerdAPI/pull/24) and [Docs#8](https://github.com/xdjs/MusicNerdDocs/pull/8). Not released.
 
 ## Asking a question

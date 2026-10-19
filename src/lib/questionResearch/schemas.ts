@@ -92,6 +92,7 @@ export const answerDraftSchema = z.object({
   sentences: z
     .array(
       z.object({
+        kind: z.enum(["fact", "limitation"]).optional(),
         text: z.string().trim().min(1).max(700),
         evidence: z
           .array(

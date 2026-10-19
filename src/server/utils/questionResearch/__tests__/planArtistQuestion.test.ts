@@ -3,6 +3,47 @@ import { planArtistQuestion } from "../planArtistQuestion";
 import { generateText } from "@/server/lib/ai/generateText";
 jest.mock("@/server/lib/ai/generateText", () => ({ generateText: jest.fn() }));
 jest.mock("ai", () => ({ Output: { object: jest.fn() } }));
+
+it("preserves declared public constraints before stripping planner-only fields", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
+    publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
+    evidenceNeed: "credits", freshness: "stored", contextResolved: true,
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const result = await planArtistQuestion("Oriel Loom", "Did Pax Cedar produce the Bellwater trio Oriel Loom's 2022 album Folded Coast?");
+  expect(result.topic).toBe("Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast");
+  expect(result).not.toHaveProperty("publicConstraints");
+});
+
+it("asks for a narrower request rather than dropping declared scope over 160 characters", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "x".repeat(150), publicConstraints: ["original French-language edition"],
+    evidenceNeed: "credits", freshness: "stored", contextResolved: true,
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+    reuseCandidateId: "candidate", reuseAction: "same_answer",
+  }} as never);
+  const result = await planArtistQuestion("Artist", "Which version?");
+  expect(result).toEqual({ clarification: expect.stringMatching(/narrow.*public research question/i) });
+  expect(result).not.toHaveProperty("topic");
+  expect(result).not.toHaveProperty("reuseCandidateId");
+});
+
+it("retains resolved public follow-up scope without copying the private setup into the topic", async () => {
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Mira Vale recording credits", publicConstraints: ["original edition", "Ivo Reed arranging role"],
+    evidenceNeed: "credits", freshness: "stored", contextResolved: true,
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+    resolvedQuestion: "What was Ivo Reed's arranging role on Mira Vale's original edition?",
+  }} as never);
+  const result = await planArtistQuestion("Mira Vale", "What about Ivo's role?", undefined, [
+    { question: "My private anecdote is not research: which recording?", answer: "Mira Vale's original edition." },
+  ]);
+  expect(result.topic).toBe("Mira Vale recording credits; original edition; Ivo Reed arranging role");
+  expect(result.topic).not.toContain("private anecdote");
+  expect(result).not.toHaveProperty("conversation");
+  expect(result).not.toHaveProperty("publicConstraints");
+});
 it("keeps the neutral public evidence request and strips absent optional routing fields", async () => {
   jest
     .mocked(generateText)

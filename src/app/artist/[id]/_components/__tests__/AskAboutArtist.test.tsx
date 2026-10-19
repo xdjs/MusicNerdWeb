@@ -122,6 +122,31 @@ describe("an answer, rendered", () => {
         expect(screen.getByTestId("answer").textContent).not.toMatch(/\[99\]/);
     });
 
+    it("preserves bracketed prose and timestamps while linking citations and dropping unknown numbers", async () => {
+        const container = await ask(answerWith({
+            answer: "The note recently says [unverified] and [voice B] on [2026-05-13]; see [2] and [99].",
+            songs: [], mentions: [],
+            sources: [{ n: 2, title: "Source two", url: "https://example.com/source-two" }],
+        }));
+        const prose = within(screen.getByTestId("answer"));
+        expect(container.textContent).toContain("[unverified]");
+        expect(container.textContent).toContain("[voice B]");
+        expect(container.textContent).toContain("[2026-05-13]");
+        expect(prose.getByTitle("Source two")).toHaveAttribute("href", "https://example.com/source-two");
+        expect(container.textContent).not.toContain("[99]");
+    });
+
+    it("keeps citations in the mixed legacy Artist Doc marker without rendering the private label", async () => {
+        const container = await ask(answerWith({
+            answer: "The credit was recently recorded here [Artist Doc, 2, 4].",
+            songs: [], mentions: [],
+        }));
+        const prose = within(screen.getByTestId("answer"));
+        expect(container.textContent).not.toMatch(/Artist Doc/);
+        expect(prose.getByTitle("Cast Out Of Hell on Discogs")).toHaveTextContent("2");
+        expect(prose.getByTitle("crying on the floor — Spotify")).toHaveTextContent("4");
+    });
+
     it("sends a collaborator already in the directory to their Music Nerd profile", async () => {
         // Pete: "if we bring up artists that are in our database, it should take
         // us to their Music Nerd profile."

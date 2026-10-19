@@ -20,6 +20,9 @@ import { planArtistQuestion } from "../planArtistQuestion";
 import { callResearchApi } from "../callResearchApi";
 import { getOrDraftResearchAnswer } from "../getOrDraftResearchAnswer";
 import { registerResearchQuestion } from "../registerResearchQuestion";
+import { generateText } from "@/server/lib/ai/generateText";
+jest.mock("@/server/lib/ai/generateText", () => ({ generateText: jest.fn() }));
+jest.mock("ai", () => ({ Output: { object: jest.fn() } }));
 jest.mock("@/server/utils/queries/artistQueries", () => ({
   getArtistById: jest.fn(),
 }));
@@ -75,6 +78,49 @@ it("acknowledges the durable job before any collection or answer call", async ()
   expect(callResearchApi).toHaveBeenCalledTimes(1);
   expect(registerResearchQuestion).toHaveBeenCalledWith(artistId, jobId, "Who played drums?");
   expect(getOrDraftResearchAnswer).not.toHaveBeenCalled();
+});
+
+it("serializes real planner-normalized public scope without planner-only fields or conversation", async () => {
+  jest.mocked(planArtistQuestion).mockImplementation(
+    jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion,
+  );
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast",
+    publicConstraints: ["Bellwater trio", "whether Pax Cedar produced Folded Coast"],
+    resolvedQuestion: "Did Pax Cedar produce the Bellwater trio's 2022 Folded Coast?",
+    answerIntent: "Pax Cedar credit", contextResolved: true,
+    evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const conversation = [{ question: "Private visitor anecdote must not become a query", answer: "The Bellwater trio's 2022 Folded Coast." }];
+  const response = await handleArtistQuestion(request({ question: "Did Pax Cedar produce that recording?", conversation }));
+  expect(response.status).toBe(202);
+  const options = jest.mocked(callResearchApi).mock.calls[0][1]!;
+  const expected = {
+    topic: "Production credits for Oriel Loom's 2022 album Folded Coast; Bellwater trio; whether Pax Cedar produced Folded Coast",
+    evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused", preferDirectEvidence: true,
+  };
+  expect(JSON.parse(JSON.stringify(options.body))).toEqual(expected);
+  expect(JSON.stringify(options.body)).not.toMatch(/publicConstraints|resolvedQuestion|answerIntent|conversation|Private visitor/);
+  expect(bindQuestionRequest).toHaveBeenCalledWith(expect.objectContaining({ routing: {
+    topic: expected.topic, evidenceNeed: "credits", freshness: "stored", retrieval: "relevance", answerScope: "focused",
+  }}));
+});
+
+it("does not start API research or bind reuse when declared public scope needs clarification", async () => {
+  jest.mocked(planArtistQuestion).mockImplementation(
+    jest.requireActual<typeof import("../planArtistQuestion")>("../planArtistQuestion").planArtistQuestion,
+  );
+  jest.mocked(generateText).mockResolvedValue({ output: {
+    topic: "x".repeat(150), publicConstraints: ["only the original edition"],
+    contextResolved: true, evidenceNeed: "credits", freshness: "stored",
+    targetUrl: null, platform: null, fromDate: null, toDate: null,
+  }} as never);
+  const response = await handleArtistQuestion(request());
+  expect(await response.json()).toMatchObject({ answer: expect.stringMatching(/narrow.*public research question/i), sources: [] });
+  expect(callResearchApi).not.toHaveBeenCalled();
+  expect(registerResearchQuestion).not.toHaveBeenCalled();
+  expect(bindQuestionRequest).not.toHaveBeenCalled();
 });
 it("resumes the known artist-scoped job without replanning or enqueueing", async () => {
   const r = await handleArtistQuestion(request({ jobId }));

@@ -6,6 +6,7 @@ import { readSourceDetails } from "@/lib/questionResearch/readSourceDetails";
 export default function ResearchSourcePassage({
   artistId,
   source,
+  sourceReader = readSourceDetails,
 }: {
   artistId: string;
   source: {
@@ -15,6 +16,8 @@ export default function ResearchSourcePassage({
     start?: number;
     curation?: string;
   };
+  /** Nonproduction review seam; normal citations use the stored-source reader. */
+  sourceReader?: typeof readSourceDetails;
 }) {
   const [open, setOpen] = useState(false),
     [text, setText] = useState<string | null>(null),
@@ -38,7 +41,7 @@ export default function ResearchSourcePassage({
     controller.current = c;
     setError(null);
     try {
-      const original = await readSourceDetails(artistId, {
+      const original = await sourceReader(artistId, {
         sourceId: source.sourceId!, revision: source.revision!, start: source.start,
       }, c.signal);
       setText(original.text);

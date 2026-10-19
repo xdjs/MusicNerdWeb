@@ -357,6 +357,41 @@ it("renders a fixed scoped limitation instead of model-written unanswered prose"
   expect(result.sources[0].sourceId).toBe(reference.sourceId);
   expect(result.answer).not.toContain('anywhere');
 });
+it("preserves a cited limitation without replacing it with generic unanswered copy", async () => {
+  const text = "This sleeve lists selected credits only. The full personnel list is not provided.";
+  const source = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "The supplied sleeve lists only selected credits, so it cannot settle who else played on the recording.",
+      evidence: [{ n: 1, quote: text }] }],
+    unanswered: null,
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "The limitation follows from the explicit scope of the sleeve." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "Does the missing credit prove they did not play?", [source]);
+  expect(result.answer).toBe("The supplied sleeve lists only selected credits, so it cannot settle who else played on the recording. [1]");
+  expect(result.sources).toHaveLength(1);
+});
+it("keeps a missing-details notice when a cited limitation leaves another requested part unanswered", async () => {
+  const text = "This sleeve lists selected credits only. The full personnel list is not provided.";
+  const source = { ...reference, text, end: text.length };
+  api.mockResolvedValue({ status: "ok", passage: source, totalChars: text.length, nextStart: null });
+  model.mockReset();
+  model.mockResolvedValueOnce({ output: {
+    sentences: [{ kind: "limitation", text: "The supplied sleeve does not establish the full personnel.", evidence: [{ n: 1, quote: text }] }],
+    unanswered: "The supplied source does not establish the recording location.",
+  } } as never).mockResolvedValueOnce({ output: { supported: true, reason: "Bounded personnel and location gaps." } } as never);
+  const result = await draftResearchAnswer("artist", "Artist", "Who played bass and where was it recorded?", [source]);
+  expect(result.answer).toBe("The supplied sleeve does not establish the full personnel. [1] I couldn’t confirm the other details.");
+  expect(result.answer).not.toContain("recording location");
+});
+it("does not let a limitation bypass exact quotes or claim verification", async () => {
+  model.mockReset();
+  const unsupported = { sentences: [{ kind: "limitation", text: "Nobody else played on the recording.", evidence: [{ n: 1, quote: reference.text }] }], unanswered: null };
+  for (let i = 0; i < 2; i++) model.mockResolvedValueOnce({ output: unsupported } as never)
+    .mockResolvedValueOnce({ output: { supported: false, supportedSentenceNumbers: [], reason: "The original does not establish the complete personnel." } } as never);
+  await expect(draftResearchAnswer("artist", "Artist", "Who else played?", [reference])).rejects.toMatchObject({ verificationCode: "claim_rejected" });
+  expect(model).toHaveBeenCalledTimes(4);
+});
 it.each(['2025', '2025-08'])("accepts an exact partial activity date without inventing precision: %s", async activityDate => {
   const dated = { ...reference, activityDate, activityDateKind: 'release' as const };
   api.mockResolvedValue({ status: 'ok', passage: dated, totalChars: dated.text.length, nextStart: null });
