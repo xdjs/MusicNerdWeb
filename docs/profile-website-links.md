@@ -2,9 +2,13 @@
 
 Approved website sources belong in Links alongside the other destination icons.
 Support provider classification and genuine editorial Lore retain their existing rules.
-The saved Tim/Skipless walkthrough at 60:00 shows two `theelliscourt.com` pills,
-but does not expose their exact hrefs. The historical misplaced-URL inventory remains
-unresolved; no reclassification of unknown records is justified by that frame.
+The saved Tim/Skipless walkthrough at 55:15 exposes the homepage and
+`/whats-the-ellis-court-2/` biography, both classified Website. These are distinct
+resources with identical old host labels, not canonical duplicates. Keep both
+destinations, using the path/query/fragment before the host for distinct page labels.
+The biography belongs in Lore only after source review or an accepted classification
+policy; do not infer editorial intent from a non-root path or suppress same-domain pages.
+Substack is an Article in the recording and retains its existing Lore placement.
 
 Website presentation compares canonical URL serialization (host casing, default ports,
 and root slash) against both direct and source-backed destinations.
@@ -26,6 +30,7 @@ confirmation separately from issue assignment.
 The non-production `/dev/website-links-preview` route compares illustrative before
 pills with the actual fixed grid using local fixtures. It is disabled on production,
 uses no artist query, and provides no mutation controls in the fixture. The app shell
-still mounts auth/navigation; review logged out and avoid global add/login actions. It proves rendering, not the
-historical URL inventory or persisted-record equivalence. Later authorization on
+still mounts auth/navigation; review logged out and avoid global add/login actions. It reproduces the recorded root/deep-page pair, plus a separate synthetic equivalent
+homepage variant. Integration tests cover Links, Support, public Lore and a local
+biography reclassification. It does not correct persisted source classifications. Later authorization on
 2026-10-20 permits a feature-branch preview before any main merge.

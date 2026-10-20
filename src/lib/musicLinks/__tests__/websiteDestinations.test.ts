@@ -18,3 +18,12 @@ it('preserves placement, approval and editorial rules independently of deduplica
  expect(getSourceLinks(records).map(x=>x.sourceId)).toEqual(['web']);
  expect(getSourceLinks(records,[],'support').map(x=>x.sourceId)).toEqual(['support']);
 });
+
+it('distinguishes the recorded homepage and biography without merging their source identities', () => {
+ const home=site('home','https://theelliscourt.com/');
+ const bio=site('bio','https://theelliscourt.com/whats-the-ellis-court-2/');
+ expect(getSourceLinks([home,bio])).toEqual([
+  expect.objectContaining({sourceId:'home',href:home.url,label:'theelliscourt.com'}),
+  expect.objectContaining({sourceId:'bio',href:bio.url,label:'/whats-the-ellis-court-2/ · theelliscourt.com'}),
+ ]);
+});

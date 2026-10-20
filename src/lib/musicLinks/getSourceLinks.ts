@@ -1,6 +1,7 @@
 import type { ProfileLink, LinkSection } from '@/lib/artist/artistProfileLinks';
 import { canonicalizeDestinationUrl } from '@/lib/links/canonicalizeDestinationUrl';
 import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
+import { websiteDestinationLabel } from '@/lib/links/websiteDestinationLabel';
 import { isDestinationSource } from './isDestinationSource';
 import { parseMusicDestination } from './parseMusicDestination';
 
@@ -36,7 +37,7 @@ export function getSourceLinks(
       ? destination.kind === 'release' && source.title?.trim()
         ? `${source.title.trim()} · ${destination.label}`
         : destination.label
-      : new URL(href).hostname.replace(/^www\./, '');
+      : websiteDestinationLabel(href);
     const siteName = destination?.kind === 'artist' ? destination.platform === 'apple_music' ? 'applemusic' : destination.platform : `source:${source.id}`;
     result.push({ siteName, href, label, iconSrc: destination ? MUSIC_ICONS[destination.platform] ?? '/siteIcons/music_icon.svg' : '/siteIcons/website_icon.svg', sourceId: source.id, kind: destination?.kind ?? 'website' });
     if (destination?.kind === 'artist') seen.add(destination.platform);
