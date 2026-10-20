@@ -1,0 +1,297 @@
+{
+  "images": [
+    {
+      "case": "pete",
+      "status": 200,
+      "bytes": 58512,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-logo",
+      "status": 200,
+      "bytes": 156765,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-pink",
+      "status": 200,
+      "bytes": 156762,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-pete",
+      "status": 200,
+      "bytes": 77949,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-stress",
+      "status": 200,
+      "bytes": 66894,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-missing",
+      "status": 200,
+      "bytes": 34746,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-accent",
+      "status": 200,
+      "bytes": 29093,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cover-unicode",
+      "status": 200,
+      "bytes": 33717,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-logo",
+      "status": 200,
+      "bytes": 118362,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-pink",
+      "status": 200,
+      "bytes": 117173,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-pete",
+      "status": 200,
+      "bytes": 71738,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-stress",
+      "status": 200,
+      "bytes": 78005,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-missing",
+      "status": 200,
+      "bytes": 40969,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-accent",
+      "status": 200,
+      "bytes": 34840,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "sleeve-unicode",
+      "status": 200,
+      "bytes": 41076,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-logo",
+      "status": 200,
+      "bytes": 164264,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-pink",
+      "status": 200,
+      "bytes": 162277,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-pete",
+      "status": 200,
+      "bytes": 80072,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-stress",
+      "status": 200,
+      "bytes": 84676,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-missing",
+      "status": 200,
+      "bytes": 47779,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-accent",
+      "status": 200,
+      "bytes": 42637,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "dossier-unicode",
+      "status": 200,
+      "bytes": 47506,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-editorial",
+      "status": 200,
+      "bytes": 59426,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-portrait",
+      "status": 200,
+      "bytes": 75203,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-profile",
+      "status": 200,
+      "bytes": 55940,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-story",
+      "status": 200,
+      "bytes": 56947,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    }
+  ],
+  "metadata": {
+    "og:title": "Pete Rango | Music Nerd",
+    "og:description": "Pete Rango is a Colombian-born music producer, audio engineer, and creative director working in the United States, known for composing and producing soundscapes that enhance storytelling and create emotional connections.",
+    "og:image": "https://app-pa113pq4m-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "https://app-pa113pq4m-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1"
+  }
+}
