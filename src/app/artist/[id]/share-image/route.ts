@@ -8,7 +8,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-    const palette = new URL(request.url).searchParams.get('palette') === 'pink' ? 'pink' : 'white';
+    const requestedPalette = new URL(request.url).searchParams.get('palette');
+    const palette = requestedPalette === 'pink' || requestedPalette === 'logo' ? requestedPalette : 'white';
     const { id } = await params;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
         return new Response('Artist not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });

@@ -10,7 +10,8 @@ Artist URLs advertise a 1200 × 630 PNG at `/artist/{id}/share-image?v=1` in Ope
 Graph and Twitter metadata. Preview metadata points at its own Vercel deployment;
 canonical artist URLs remain on musicnerd.net. Homepage artwork and typography
 remain unchanged. `palette=pink` selects the alternative brand-pink background;
-white is the default proposal. Other palette values fall back to white.
+white is the default proposal. `palette=logo` selects the navigation-logo pink
+#FB57C0 alongside the named-token pink #FF9CE3. Other values fall back to white.
 
 The card combines the public artist name, existing profile portrait selection,
 an eligible public bio excerpt, and the exact repository glasses artwork
@@ -107,3 +108,14 @@ independent action/button semantics. The entire profile link opens the artist.
 The pink remains #FF9CE3 (Tailwind named brandpink), whereas the navigation logo
 asset musicNerdLogo.png has dominant #FB57C0. This discrepancy does not establish
 owner color acceptance; do not claim the background changed or is now approved.
+
+## Logo-pink comparison
+
+Show logo pink #FB57C0 alongside site-token pink #FF9CE3, clearly labelled.
+Logo pink is the recommended likely brand match because it comes from the current
+navigation logo; Pete has not selected a hex value or approved the design.
+Typography, portrait, bio, CTA and corner glasses remain identical across palettes.
+
+On logo pink, bio/CTA ink is #171717 (about6.17:1 contrast) rather than the
+#343434 used on the lighter palettes (about4.28:1 on logo pink). This keeps the
+small invitation readable without button styling.

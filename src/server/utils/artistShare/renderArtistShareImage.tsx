@@ -11,12 +11,12 @@ const regularFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-R
 const boldFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-Bold.ttf'));
 
 /** Receives only public display content and already-normalized portrait bytes. */
-export function renderArtistShareImage(name: string, portrait: string | null, publicBio?: string | null, palette: 'white' | 'pink' = 'white') {
+export function renderArtistShareImage(name: string, portrait: string | null, publicBio?: string | null, palette: 'white' | 'pink' | 'logo' = 'white') {
     const chars = Array.from(getShareArtistName(name));
     const displayName = chars.length > 90 ? `${chars.slice(0, 89).join('')}…` : chars.join('');
     const excerpt = getShareBioExcerpt(publicBio, chars.length > 40 ? 90 : 130);
     return new ImageResponse(
-        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: palette === 'pink' ? '#ff9ce3' : '#ffffff', color: '#171717', padding: 48, fontFamily: 'Inter' }}>
+        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: palette === 'logo' ? '#fb57c0' : palette === 'pink' ? '#ff9ce3' : '#ffffff', color: '#171717', padding: 48, fontFamily: 'Inter' }}>
             <div style={{ display: 'flex', width: 480, height: 534, borderRadius: 24, overflow: 'hidden', background: portrait ? 'transparent' : '#ff75d8', alignItems: 'center', justifyContent: 'center' }}>
                 {portrait
                     // ImageResponse consumes normalized inline PNGs, not Next Image.
@@ -31,8 +31,8 @@ export function renderArtistShareImage(name: string, portrait: string | null, pu
             <div style={{ display: 'flex', flexDirection: 'column', width: 560, paddingLeft: 48, justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 24 }}>
                     <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 2, textOverflow: 'ellipsis', overflow: 'hidden', fontSize: chars.length > 40 ? 36 : chars.length > 22 ? 52 : 72, fontWeight: 700, lineHeight: 1.2, paddingBottom: 6, letterSpacing: '-1px', wordBreak: 'break-word' }}>{displayName}</div>
-                    {excerpt && <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 4, textOverflow: 'ellipsis', overflow: 'hidden', marginTop: 28, color: '#343434', fontSize: 38, lineHeight: 1.3, wordBreak: 'break-word' }}>{excerpt}</div>}
-                    <div style={{ display: 'flex', marginTop: 22, color: '#343434', fontSize: 26, lineHeight: 1.2 }}>Explore the artist</div>
+                    {excerpt && <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 4, textOverflow: 'ellipsis', overflow: 'hidden', marginTop: 28, color: palette === 'logo' ? '#171717' : '#343434', fontSize: 38, lineHeight: 1.3, wordBreak: 'break-word' }}>{excerpt}</div>}
+                    <div style={{ display: 'flex', marginTop: 22, color: palette === 'logo' ? '#171717' : '#343434', fontSize: 26, lineHeight: 1.2 }}>Explore the artist</div>
                 </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'absolute', right: 48, bottom: 48 }}>

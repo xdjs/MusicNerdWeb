@@ -36,7 +36,7 @@ describe('artist share image', () => {
         expect((await run()).status).toBe(200);
         expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc', null, 'white');
     });
-    test.each([['pink', 'pink'], ['unexpected', 'white']])('bounds the palette query %s to %s', async (query, palette) => {
+    test.each([['pink', 'pink'], ['logo', 'logo'], ['unexpected', 'white']])('bounds the palette query %s to %s', async (query, palette) => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Artist' });
         (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);

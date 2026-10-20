@@ -52,3 +52,9 @@ Restore prior Inter, retain corner logo and no domain. Plain text “Explore the
 artist” sits below the bio; it is not an independently clickable button. KoHo
 assets are removed. Pink is unchanged #FF9CE3 (named token); the navigation logo
 asset is predominantly #FB57C0. Color intent remains unresolved by that token.
+
+### October 20 — compare logo and token pink
+
+Present #FB57C0 from the navigation logo alongside named token #FF9CE3. Recommend
+logo pink as the likely intended match without claiming Pete selected either hex.
+Both use restored Inter, plain CTA, public portrait/bio and bottom-right glasses.

@@ -51,6 +51,7 @@ async function main() {
         return png;
     }
     assert.notDeepEqual(await render('Pete Rango', null, 'white'), await render('Pete Rango', null, 'pink'));
+    assert.notDeepEqual(await render('Pete Rango', null, 'logo'), await render('Pete Rango', null, 'pink'));
     assert.notDeepEqual(await render('Björk', 'Björk makes music.'), await render('Björk'));
     assert.deepEqual(await render('Björk', '坂本龍一'), await render('Björk'));
     await render('W'.repeat(90), 'W'.repeat(500));
