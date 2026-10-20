@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import PreviousShareStudies from './PreviousShareStudies';
 
-export const metadata = { title: 'Three art directions | Music Nerd', robots: { index: false, follow: false } };
+export const metadata = { title: 'Six more artist directions | Music Nerd', robots: { index: false, follow: false } };
 const artist = '/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6';
 const previousDirections = [
     { key: 'cover', name: 'The cover', cta: 'read', invitation: 'Read their story', rationale: 'An oversized image and a name across the photograph. A white caption band gives the story its own clean space. The most immediate visual introduction.' },
@@ -9,18 +9,28 @@ const previousDirections = [
     { key: 'dossier', name: 'The dossier', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'A photographic print and a pink biography slip overlap like an artist file. The personal introduction joins the image to the story. One source image, no invented archive material.' },
 ];
 
-const directions = [
+const recentDirections = [
     { key: 'spotlight', name: 'Spotlight', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'A central arched portrait stands between the name and biography. A stage-like composition on pink, with the artist image as the focal point.' },
     { key: 'sequence', name: 'Sequence', cta: 'read', invitation: 'Read their story', rationale: 'One public photograph repeated as a three-frame sequence, including a closer crop. A wide name and caption make the reading order direct. These are crops of one image, not additional source photographs.' },
     { key: 'broadcast', name: 'Broadcast', cta: 'explore', invitation: 'Explore LATASHÁ', rationale: 'A pink-washed image, vertical name and angled white caption create a poster-like composition. The strongest departure in image treatment, with a less conventional reading direction.' },
 ];
 
+const directions = [
+    { key: 'manifesto', name: 'Manifesto', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'The public biography becomes the headline. A small portrait and name sign the bottom, giving the story priority over the image.' },
+    { key: 'orbit', name: 'Orbit', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'Two floating circular forms pair a complete portrait with the biography. Horizontal typography keeps the reading order calm.' },
+    { key: 'checkerboard', name: 'Checkerboard', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'Four alternating blocks give the name, portrait, biography and invitation their own spaces. No overlaps or rotations.' },
+    { key: 'panorama', name: 'Panorama', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'An oversized name leads into one continuous photographic ribbon. The crop favors the upper portrait; the pink caption below carries the story.' },
+    { key: 'monogram', name: 'Initial', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'The first letter of the public name becomes a large typographic backdrop, with a circular portrait and a separate story panel. This is decorative type, not an artist logo.' },
+    { key: 'margin', name: 'Wide margin', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'An uncropped portrait sits inside a broad white surround. The name signs the lower margin while the biography runs down the pink edge.' },
+];
+const preservedDirections = [...previousDirections, ...recentDirections];
+
 export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
     return <main className="mx-auto max-w-[1600px] px-5 py-10 text-foreground space-y-12">
         <header className="max-w-3xl space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">Three more ways in.</h1>
-            <p className="text-lg">Spotlight, Sequence and Broadcast. Three additional compositions using the same LATASHÁ image and public biography excerpt.</p>
+            <h1 className="text-4xl font-bold tracking-tight">Six more ways in.</h1>
+            <p className="text-lg">Six additional compositions using the same LATASHÁ image, public biography excerpt and invitation. All twelve directions remain available for comparison.</p>
             <p className="opacity-70">All prior options remain below. Inter and the genuine corner glasses stay; no separate buttons, invented facts or playback promises.</p>
             <nav className="flex flex-wrap gap-5 underline"><a href="#directions">Compare directions</a><a href="#stress">Long-name check</a><a href="#previous">Previous version</a></nav>
         </header>
@@ -42,9 +52,9 @@ export default function ArtistSharePreviewPage() {
                 </div>
             </article>)}
         </section>
-        <details className="space-y-6 border-t border-gray-500/30 pt-6"><summary className="text-2xl font-bold cursor-pointer">Cover, Sleeve and Dossier / preserved</summary>
+        <details className="space-y-6 border-t border-gray-500/30 pt-6"><summary className="text-2xl font-bold cursor-pointer">The previous six / preserved</summary>
         <section id="first-directions" className="grid grid-cols-1 lg:grid-cols-3 gap-7">
-            {previousDirections.map(d => <article key={d.key} className="space-y-4 min-w-0">
+            {preservedDirections.map(d => <article key={d.key} className="space-y-4 min-w-0">
                 <h2 className="text-2xl font-bold">{d.name}</h2>
                 {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                 <a className="block border border-gray-500/30 focus-visible:outline focus-visible:outline-2" href={`${artist}/share-image?v=1&layout=${d.key}&palette=logo&cta=${d.cta}`}>
@@ -64,8 +74,8 @@ export default function ArtistSharePreviewPage() {
         </details>
         <section className="max-w-3xl space-y-3">
             <h2 className="text-2xl font-bold">The design recommendation</h2>
-            <p>Spotlight is the strongest new direction: its arch preserves the full pose and creates a clear focal point. “Get to know LATASHÁ” invites discovery without promising playback. Sequence reads directly but repeats one photograph; Broadcast has poster character, but its vertical title is slower to read on a phone. The earlier Dossier remains a strong alternative, not a discarded choice.</p>
-            <p>“Get to know LATASHÁ” is a personal introduction. “Read their story” promises the public biography and falls back when it is missing. “Explore LATASHÁ” leaves the route open to the profile’s music links and context. These are three different invitations, not independent buttons.</p>
+            <p>Manifesto offers the strongest new story-first direction; Checkerboard gives the clearest modular reading order. Orbit is a softer portrait-led alternative. Panorama depends on a suitable image crop, while Initial and Wide margin trade image scale for graphic identity. These are proposals, not a new feature default.</p>
+            <p>“Get to know LATASHÁ” stays constant across this set so the composition is what changes. The earlier CTA studies remain below. The invitation describes the linked artist profile; it is not an independently clickable control.</p>
             <p className="text-sm opacity-70">The public artist image is artwork, not a newly generated portrait. All excerpts use the same text limit and preserve the original wording. Shown at social-card proportions; open a card for its native 1200 × 630 image. This is a proposal awaiting review.</p>
         </section>
         <section id="stress" className="space-y-5">

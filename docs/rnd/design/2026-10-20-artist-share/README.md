@@ -86,3 +86,9 @@ Inter regular/bold; white #FFFFFF, ink #171717, actual logo pink #FB57C0, separa
 ### Three additional concepts requested
 
 Retain all earlier studies and compare three new silhouettes with the same LATASHÁ public content: Spotlight (central arch and flank typography), Sequence (one photograph deliberately repeated across three frames, not three different photos), Broadcast (pink-washed full image, vertical name and angled white biography panel). Inter and the existing pink references remain; public eligibility/cache/default metadata stay unchanged. Each gets the same 100-character public excerpt limit. Visual critique and stress checks precede publication.
+
+## Six further studies — 2026-10-20
+
+Manifesto leads with the actual public biography and signs it with the portrait/name. Orbit pairs two floating forms. Checkerboard separates identity/image/story/invitation into four blocks. Panorama favors a face crop inside a continuous ribbon. Initial uses the public name's first character as decorative typography, not a claimed logo. Wide margin preserves the whole image inside an editorial surround. All use the same content and CTA for fair comparison; the previous six and earlier studies remain available and the default stays unchanged.
+
+Recommendation after pixel review: Manifesto best communicates Music Nerd's story/context value at thumbnail size; Checkerboard is the clearest geometric alternative. Panorama's explicit crop is specific to the demonstrated image and is not a general face-safe solution. Narrow margin text and Initial's dominant letter are deliberate tradeoffs, not default recommendations. Independent review caught 12-wide-character title bounds in Panorama/Margin; both were reduced before publishing, with the case added to the offline matrix. The larger renderer matrix requires a 90-second subprocess allowance; no render cases were removed.

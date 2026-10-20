@@ -12,7 +12,7 @@ test('story refinement and wording stay explicitly preview-only', () => {
     expect(getShareProposalOptions(params, true)).toEqual({ layout: 'story', palette: 'logo', cta: 'story' });
 });
 
-test.each(['cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast'])('%s art direction and alternate pink are preview-only', layout => {
+test.each(['cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast', 'manifesto', 'orbit', 'checkerboard', 'panorama', 'monogram', 'margin'])('%s art direction and alternate pink are preview-only', layout => {
     const params = new URLSearchParams(`layout=${layout}&palette=pink&cta=read`);
     expect(getShareProposalOptions(params, false)).toBeNull();
     expect(getShareProposalOptions(params, true)).toEqual({ layout, palette: 'pink', cta: 'read' });

@@ -18,7 +18,7 @@ function loadSource(relative) {
     loaded.paths = module.paths;
     loaded.require = id => id.startsWith('@/lib/')
         ? loadSource(`src/${id.slice(2)}.ts`)
-        : id === './renderArtistAdditionalDirection' ? loadSource('src/server/utils/artistShare/renderArtistAdditionalDirection.tsx') : id === './renderArtistArtDirection' ? loadSource('src/server/utils/artistShare/renderArtistArtDirection.tsx') : id === './renderArtistStoryProposal' ? loadSource('src/server/utils/artistShare/renderArtistStoryProposal.tsx') : id === './shareImageAssets' ? loadSource('src/server/utils/artistShare/shareImageAssets.ts') : require(id);
+        : id === './renderArtistSixDirections' ? loadSource('src/server/utils/artistShare/renderArtistSixDirections.tsx') : id === './renderArtistAdditionalDirection' ? loadSource('src/server/utils/artistShare/renderArtistAdditionalDirection.tsx') : id === './renderArtistArtDirection' ? loadSource('src/server/utils/artistShare/renderArtistArtDirection.tsx') : id === './renderArtistStoryProposal' ? loadSource('src/server/utils/artistShare/renderArtistStoryProposal.tsx') : id === './shareImageAssets' ? loadSource('src/server/utils/artistShare/shareImageAssets.ts') : require(id);
     loaded._compile(ts.transpileModule(readFileSync(filename, 'utf8'), {
         compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
         fileName: filename,
@@ -58,8 +58,8 @@ async function main() {
     await render('W'.repeat(40), 'W'.repeat(500));
     const { renderArtistShareProposal } = loadSource('src/server/utils/artistShare/renderArtistShareProposal.tsx');
     const layouts = [];
-    for (const layout of ['editorial', 'portrait', 'profile', 'story', 'cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast']) {
-        for (const name of ['Pete Rango', 'Beyonce\u0301', '坂本龍一', 'W'.repeat(16), 'W'.repeat(17), 'W'.repeat(24), 'W'.repeat(90)]) {
+    for (const layout of ['editorial', 'portrait', 'profile', 'story', 'cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast', 'manifesto', 'orbit', 'checkerboard', 'panorama', 'monogram', 'margin']) {
+        for (const name of ['Pete Rango', 'Beyonce\u0301', '坂本龍一', 'W'.repeat(12), 'W'.repeat(16), 'W'.repeat(17), 'W'.repeat(24), 'W'.repeat(90)]) {
             const bytes = Buffer.from(await renderArtistShareProposal(name, null, 'A public biography. '.repeat(20), layout, 'logo', 'know').arrayBuffer());
             assert.equal(bytes.readUInt32BE(16), 1200);
             assert.equal(bytes.readUInt32BE(20), 630);
