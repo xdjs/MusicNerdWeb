@@ -40,7 +40,7 @@ can remain until expiry after withdrawal. Social apps maintain independent cache
 and may retain older cards longer. No new writes, jobs, scraping, generation,
 paid calls, migrations, credentials or security changes.
 
-## Typography and the Inter proposal
+## Typography: KoHo with Inter glyph fallback
 
 The homepage inherits Tailwind's `ui-sans-serif, system-ui` stack. On Pete's Mac,
 Chrome's rendered-font inspection reports Apple San Francisco (`.SF NS`), weight 700.
@@ -51,13 +51,15 @@ not the homepage heading font.
 A server-generated PNG needs its own available font files. An earlier explanation
 that fonts cannot be used in card images was overbroad: licensing depends on the
 specific font and distribution. Pete requested a reviewable Inter alternative.
-The card now uses unmodified official **Inter 4.1 Regular 400 and Bold 700**, with
+The earlier Inter-only design is superseded by KoHo Regular/Bold as the primary
+font (see the refinement below). Its glyph fallback uses unmodified official
+**Inter 4.1 Regular 400 and Bold 700**, with
 static TrueType files from https://github.com/rsms/inter/releases/tag/v4.1.
 The complete SIL Open Font License 1.1 is retained in `public/fonts/inter/LICENSE.txt`.
-The project permits font embedding/bundling under that license. This proposal is
-Inter, not an asserted exact match to San Francisco. No homepage font changes.
+The project permits font embedding/bundling under that license. Neither KoHo nor Inter is asserted to be an exact match to San Francisco.
+No homepage font changes.
 
-Two static files total 832,068 bytes. They load once per server module and do not
+The two Inter files total 832,068 bytes; with KoHo, all four total 1,022,312 bytes. They load once per server module and do not
 require variable-font conversion or remote font requests. Provenance and file
 sizes live alongside the fonts. Coverage uses the intersection of both actual
 font glyph maps, excluding missing glyph 0. Offline regressions verify both file
@@ -83,3 +85,19 @@ Pete Rango's live public card in white and pink plus clearly labelled fixtures.
 A browser simulation is not proof of native iMessage delivery. Local tests,
 independent review, exact-commit deployment checks and owner acceptance are
 separate evidence; record them on draft PR #1585 before any release decision.
+
+## October 20 brand refinement proposal
+
+Pete requested the authoritative pink, bottom-right glasses without a domain
+label, and a closer brand font. `tailwind.config.ts` defines `brandpink` as
+`#ff9ce3` (distinct from `highlightpink` #ff75d8). The pink card retains the exact
+brandpink value; no sampled or guessed replacement is introduced.
+
+`src/app/globals.css` declares KoHo for `.koho-light`, `.koho-extralight` and
+`.pink-btn`; the design-system brand audit identifies it as the intended brand
+font that currently never loads. This proposal actually embeds official static
+KoHo Regular/Bold under SIL OFL 1.1, with the existing Inter fonts as glyph
+fallback. It does not claim KoHo is the currently rendered homepage font.
+The additional font bytes total 190,244. Existing Inter coverage remains the
+explicit supported-script boundary, and all fonts render offline. Glasses align
+to the card's bottom-right inset; the image contains no domain label.

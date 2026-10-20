@@ -38,3 +38,10 @@ asset directly on their background, without a badge. Static official Inter 4.1
 Regular/Bold files and the complete OFL license are bundled locally. The homepage
 continues using its device-installed system font. Earlier Noto/no-added-font
 notes above describe superseded revisions. Owner approval remains pending.
+
+### October 20 — KoHo and corner logo revision
+
+Owner requested exact brand pink, bottom-right glasses and no domain label. Use
+`brandpink` #ff9ce3 from Tailwind. Preview KoHo, the declared intended brand font
+in globals.css, loaded locally under OFL with Inter glyph fallback. Supersedes
+the Inter-only composition; owner acceptance remains pending.

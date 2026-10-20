@@ -7,6 +7,9 @@ import { getShareArtistName } from '@/lib/artistShare/getShareArtistName';
 // Exact repository artwork, embedded locally: no asset/font request during rendering.
 const brandLogo = `data:image/png;base64,${readFileSync(join(process.cwd(), 'public/music-nerd-shades.png')).toString('base64')}`;
 
+const kohoRegular = readFileSync(join(process.cwd(), 'public/fonts/koho/KoHo-Regular.ttf'));
+const kohoBold = readFileSync(join(process.cwd(), 'public/fonts/koho/KoHo-Bold.ttf'));
+
 const regularFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-Regular.ttf'));
 const boldFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-Bold.ttf'));
 
@@ -16,7 +19,7 @@ export function renderArtistShareImage(name: string, portrait: string | null, pu
     const displayName = chars.length > 90 ? `${chars.slice(0, 89).join('')}…` : chars.join('');
     const excerpt = getShareBioExcerpt(publicBio, chars.length > 40 ? 90 : 130);
     return new ImageResponse(
-        <div style={{ display: 'flex', width: '100%', height: '100%', background: palette === 'pink' ? '#ff9ce3' : '#ffffff', color: '#171717', padding: 48, fontFamily: 'Inter' }}>
+        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: palette === 'pink' ? '#ff9ce3' : '#ffffff', color: '#171717', padding: 48, fontFamily: 'KoHo, Inter' }}>
             <div style={{ display: 'flex', width: 480, height: 534, borderRadius: 24, overflow: 'hidden', background: portrait ? 'transparent' : '#ff75d8', alignItems: 'center', justifyContent: 'center' }}>
                 {portrait
                     // ImageResponse consumes normalized inline PNGs, not Next Image.
@@ -33,15 +36,16 @@ export function renderArtistShareImage(name: string, portrait: string | null, pu
                     <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 2, textOverflow: 'ellipsis', overflow: 'hidden', fontSize: chars.length > 40 ? 36 : chars.length > 22 ? 52 : 72, fontWeight: 700, lineHeight: 1.2, paddingBottom: 6, letterSpacing: '-1px', wordBreak: 'break-word' }}>{displayName}</div>
                     {excerpt && <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 4, textOverflow: 'ellipsis', overflow: 'hidden', marginTop: 28, color: '#343434', fontSize: 38, lineHeight: 1.3, wordBreak: 'break-word' }}>{excerpt}</div>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'absolute', right: 48, bottom: 48 }}>
                     {/* Exact transparent asset directly on the card background. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={brandLogo} alt="Music Nerd glasses" width={100} height={71} />
-                    <div style={{ display: 'flex', fontSize: 28, color: '#343434' }}>musicnerd.net</div>
-                </div>
             </div>
         </div>,
         { width: 1200, height: 630, fonts: [
+            { name: 'KoHo', data: kohoRegular, weight: 400, style: 'normal' },
+            { name: 'KoHo', data: kohoBold, weight: 700, style: 'normal' },
             { name: 'Inter', data: regularFont, weight: 400, style: 'normal' },
             { name: 'Inter', data: boldFont, weight: 700, style: 'normal' },
         ], headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } },

@@ -20,6 +20,11 @@ describe('renderArtistShareImage', () => {
         expect(element.props.style.background).toBe(palette === 'pink' ? '#ff9ce3' : '#ffffff');
         expect(html).toContain('Music Nerd glasses');
         expect(html).not.toContain('padding:12px');
+        expect(html).not.toContain('musicnerd.net');
+        expect(html).toContain('justify-content:flex-end');
+        expect(html).toContain('right:48px;bottom:48px');
+        expect(element.props.children[2].props.style).toMatchObject({ position: 'absolute', right: 48, bottom: 48 });
+        expect(element.props.style.fontFamily).toBe('KoHo, Inter');
     });
     test.each(['Björk', 'Beyoncé', 'LATASHÁ'])('passes the supported artist name %s unchanged to the renderer', name => {
         renderArtistShareImage(name, null);
