@@ -1,4 +1,5 @@
 import type { ProfileLink, LinkSection } from '@/lib/artist/artistProfileLinks';
+import { canonicalizeDestinationUrl } from '@/lib/links/canonicalizeDestinationUrl';
 import { normalizePublicUrl } from '@/lib/links/normalizePublicUrl';
 import { isDestinationSource } from './isDestinationSource';
 import { parseMusicDestination } from './parseMusicDestination';
@@ -19,7 +20,7 @@ export function getSourceLinks(
 ): (ProfileLink & { sourceId: string; kind: 'artist' | 'release' | 'website' })[] {
   const result: (ProfileLink & { sourceId: string; kind: 'artist' | 'release' | 'website' })[] = [];
   const seen = new Set(existingLinks.map(link => link.siteName === 'applemusic' ? 'apple_music' : link.siteName));
-  const urls = new Set(existingLinks.map(link => link.href));
+  const urls = new Set(existingLinks.map(link => canonicalizeDestinationUrl(link.href)));
   // Explicit website destinations predate URL-based routing and remain preferred.
   const ordered = [...sources].sort((a, b) => Number(b.type === 'website') - Number(a.type === 'website'));
   for (const source of ordered) {
@@ -28,7 +29,8 @@ export function getSourceLinks(
     const destination = parseMusicDestination(href);
     if (!destination && source.type !== 'website') continue;
     if ((destination?.support ?? false) !== (section === 'support')) continue;
-    if (urls.has(href)) continue;
+    const urlKey = canonicalizeDestinationUrl(href);
+    if (urls.has(urlKey)) continue;
     if (destination?.kind === 'artist' && seen.has(destination.platform)) continue;
     const label = destination
       ? destination.kind === 'release' && source.title?.trim()
@@ -36,9 +38,9 @@ export function getSourceLinks(
         : destination.label
       : new URL(href).hostname.replace(/^www\./, '');
     const siteName = destination?.kind === 'artist' ? destination.platform === 'apple_music' ? 'applemusic' : destination.platform : `source:${source.id}`;
-    result.push({ siteName, href, label, iconSrc: destination ? MUSIC_ICONS[destination.platform] ?? '/siteIcons/music_icon.svg' : '', sourceId: source.id, kind: destination?.kind ?? 'website' });
+    result.push({ siteName, href, label, iconSrc: destination ? MUSIC_ICONS[destination.platform] ?? '/siteIcons/music_icon.svg' : '/siteIcons/website_icon.svg', sourceId: source.id, kind: destination?.kind ?? 'website' });
     if (destination?.kind === 'artist') seen.add(destination.platform);
-    urls.add(href);
+    urls.add(urlKey);
   }
   return result;
 }

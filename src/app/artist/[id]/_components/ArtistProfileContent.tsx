@@ -15,7 +15,6 @@ import ArtistClaimBadge from "./ArtistClaimBadge";
 import HeroSection from "./HeroSection";
 import KnowledgeSection from "./KnowledgeSection";
 import LatestSection from "./LatestSection";
-import OfficialSiteLinks from "./OfficialSiteLinks";
 import ProfileSectionNav from "./ProfileSectionNav";
 import RevealSection from "./RevealSection";
 import ResearchPending from "./onboarding/ResearchPending";
@@ -100,9 +99,8 @@ export default function ArtistProfileContent({
                         />
                     </div>
                     <ResearchPending step="profiles" skeleton="links" label="finding your profiles…" arrivedLabel="Your links are ready">
-                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks).filter(link => link.kind === "artist")} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
+                        <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks)} isMonetized={false} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks).length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                     </ResearchPending>
-                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} />
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-5 dark:border-white/10">
                         <h3 className="text-black dark:text-white text-base font-semibold">Support the artist</h3>
                         <AddArtistData
@@ -114,8 +112,7 @@ export default function ArtistProfileContent({
                             autoApprove={autoApprove}
                         />
                     </div>
-                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").filter(link => link.kind === "artist")} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
-                    <OfficialSiteLinks blockedSourceIds={blockedMusicSourceIds} artistId={artist.id} sources={approvedSources} pendingSources={pendingSources} existingLinks={profileLinks} section="support" />
+                    <ArtistLinksGrid supplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support")} isMonetized={true} hasSupplementalLinks={getSourceLinks(publicLinkSources, profileLinks, "support").length > 0} artist={artist} availableLinks={urlMapList} canEdit={canEdit} />
                 </RevealSection>
                 <div id="mn-lore">
                     <VaultSection artistId={artist.id} isClaimed={isClaimed} autoApprove={autoApprove} pendingSources={pendingSources} approvedSources={approvedSources} />
