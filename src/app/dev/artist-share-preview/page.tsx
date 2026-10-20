@@ -16,9 +16,13 @@ export default function ArtistSharePreviewPage() {
             <a href={`/dev/artist-share-preview/image?case=${key}`} className="block overflow-hidden rounded-2xl border border-gray-500/30">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/dev/artist-share-preview/image?case=${key}`} alt={label} width="1200" height="630" className="w-full h-auto" />
-                <div className="p-4"><p className="text-xs opacity-60">musicnerd.net</p><p className="font-semibold">{key === 'long' ? 'The Extraordinary Ensemble…' : 'Pete Rango'} | Music Nerd</p></div>
+                <div className="p-4"><p className="text-xs opacity-60">musicnerd.net</p><p className="font-semibold">{key === 'long' ? 'The Extraordinary Ensemble…' : key === 'unicode' ? '坂本龍一' : 'Pete Rango'} | Music Nerd</p></div>
             </a>
         </section>)}
+        <section className="space-y-3"><h2 className="text-xl font-semibold">Real staging profiles</h2>
+            <p>Open these profile links to review their live share metadata and public content.</p>
+            <div className="flex flex-wrap gap-4 underline"><a href="/artist/53bac261-74f1-4c69-a826-f275728d7a1f">Radiohead</a><a href="/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b">Dutchyyy</a></div>
+        </section>
         <p className="text-sm opacity-70">Illustrative link cards. Each app chooses its own crop and layout. Images refresh on our CDN within an hour; social apps can retain older cards. Open an image to inspect the full-size PNG.</p>
     </main>;
 }
