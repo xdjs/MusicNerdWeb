@@ -1,0 +1,121 @@
+{
+  "images": [
+    {
+      "case": "normal",
+      "status": 200,
+      "bytes": 24976,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "missing",
+      "status": 200,
+      "bytes": 32398,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "long",
+      "status": 200,
+      "bytes": 46390,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "unicode",
+      "status": 200,
+      "bytes": 36537,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "accent",
+      "status": 200,
+      "bytes": 29066,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "decomposed",
+      "status": 200,
+      "bytes": 30811,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete",
+      "status": 200,
+      "bytes": 58512,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "beta-radio",
+      "status": 200,
+      "bytes": 302123,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete-pink",
+      "status": 200,
+      "bytes": 61194,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete-logo",
+      "status": 200,
+      "bytes": 62675,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    }
+  ],
+  "metadata": {
+    "og:title": "Pete Rango | Music Nerd",
+    "og:description": "Pete Rango is a Colombian-born music producer, audio engineer, and creative director working in the United States, known for composing and producing soundscapes that enhance storytelling and create emotional connections.",
+    "og:image": "https://app-816cc8wsw-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "https://app-816cc8wsw-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1"
+  }
+}
