@@ -37,7 +37,8 @@ phone at 2×/touch and 832px desktop in both themes; no phone preview is claimed
 | API research adoption | API#62: same DSP gate at the shared vault writer. |
 | Dedicated API Spotify recording matcher | Existing separate recording evidence, tie/eligibility and locked collision checks; unchanged. Opt-in PostgreSQL acceptance still outstanding. |
 | Explicit Web/API owner confirmation | Retains authenticated ownership and direct/mapping collision checks; intentionally does not require automatic corroboration. Human confirmation can still be mistaken. |
-| Web MCP, directory creation and approved UGC | Existing explicit-input/approval boundaries, unchanged. This patch does not certify semantic correctness of submitted IDs. |
+| Web MCP and approved UGC | Existing explicit-input/approval boundaries, unchanged. This patch does not certify semantic correctness of submitted IDs. |
+| Web directory creation | Submitted provider identity is validated; the extra provider uses the existing reciprocal Wikidata/MusicBrainz resolver plus exact target-ID and normalized-name checks. That separate resolver is unchanged. |
 | Legacy Web onboarding evaluation | `runResearchCase` → `writeDiscoveredProfiles` → `applyProfileLinkDecisions` remains a separate evaluation writer; no live route caller found. Do not run it against shared data as prevention acceptance. |
 | Existing stored IDs and Latest snapshots | Unchanged. Wrong existing anchors can still produce mutually matching accounts of the wrong artist; separate record review/cleanup required. |
 
