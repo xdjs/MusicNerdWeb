@@ -1,0 +1,110 @@
+{
+  "images": [
+    {
+      "case": "normal",
+      "status": 200,
+      "bytes": 24770,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "missing",
+      "status": 200,
+      "bytes": 32215,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "long",
+      "status": 200,
+      "bytes": 46451,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "unicode",
+      "status": 200,
+      "bytes": 36351,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "accent",
+      "status": 200,
+      "bytes": 28870,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "decomposed",
+      "status": 200,
+      "bytes": 30610,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete",
+      "status": 200,
+      "bytes": 58345,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "beta-radio",
+      "status": 200,
+      "bytes": 301850,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete-pink",
+      "status": 200,
+      "bytes": 61055,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    }
+  ],
+  "metadata": {
+    "og:title": "Pete Rango | Music Nerd",
+    "og:description": "Pete Rango is a Colombian-born music producer, audio engineer, and creative director working in the United States, known for composing and producing soundscapes that enhance storytelling and create emotional connections.",
+    "og:image": "https://app-aeij5h2m0-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "https://app-aeij5h2m0-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1"
+  }
+}
