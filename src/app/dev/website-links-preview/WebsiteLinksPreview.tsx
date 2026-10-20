@@ -17,7 +17,7 @@ const sources = [
 /** Read-only fixtures exercise the shipped grid without artist reads or mutation controls. */
 export default function WebsiteLinksPreview() {
     const [isEditing, setEditing] = useState(false);
-    return <div className="mx-auto w-full max-w-[832px] space-y-6 px-4 py-8">
+    return <div className="mx-auto w-full max-w-[832px] space-y-6 px-4 py-8 text-black dark:text-white">
         <h1 className="text-2xl font-bold">Website links · review #1583</h1>
         <p>Fixture comparison, not live artist data. The walkthrough showed two website pills; the exact historical URLs remain unconfirmed.</p>
         <button className="rounded-full border px-4 py-2" onClick={() => setEditing(!isEditing)}>{isEditing ? 'Show public view' : 'Show edit view'}</button>
