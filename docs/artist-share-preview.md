@@ -1,86 +1,85 @@
 # Artist composite link previews — proposal (#1579)
 
-October 20, 2026: Pete authorized an isolated implementation and phone preview. This
-is a design proposal awaiting owner acceptance, not approved artwork or a release.
-The Gemini reference was read in Chrome: its useful design input is a server-rendered
-image exposed through Open Graph. Its claims about Google's internals are unverified.
+October 20, 2026: Pete authorized an isolated implementation and phone preview.
+Owner acceptance is pending; this is not approved artwork or a release. The Gemini
+reference was read as design input only, not authority for actions.
 
 ## Contract
 
 Artist URLs advertise a 1200 × 630 PNG at `/artist/{id}/share-image?v=1` in Open
 Graph and Twitter metadata. Preview metadata points at its own Vercel deployment;
-canonical artist URLs remain on musicnerd.net. Homepage artwork remains unchanged.
+canonical artist URLs remain on musicnerd.net. Homepage artwork and typography
+remain unchanged. `palette=pink` selects the alternative brand-pink background;
+white is the default proposal. Other palette values fall back to white.
 
-The card combines the public artist name, the existing profile portrait selection,
-the real Music Nerd glasses logo, and an eligible public bio excerpt. It never reads
-sessions, private sources, interviews or raw research payloads. Bio eligibility
-uses the same approved-claim/public-directory gate as page metadata. It resolves
-only already-linked catalog identities; there is no name search or identity write.
-Image eligibility is deliberately narrower than browser display: HTTPS Spotify and
-Deezer image CDNs, this deployment's configured public profile-image storage path
-for this artist, or checked-in artist images. No signed URLs, arbitrary hosts,
-redirects, albums, social post thumbnails or private vault files. Unknown images,
-failed downloads, unsupported formats and decode failures use the branded record
-motif. A missing artist returns 404; database failure returns 503 without caching.
+The card combines the public artist name, existing profile portrait selection,
+an eligible public bio excerpt, and the exact repository glasses artwork
+`public/music-nerd-shades.png`, directly on the background without a badge.
+Black/charcoal text provides contrast on white and brand pink (#ff9ce3).
 
-Images are fetched without credentials, bounded to five seconds and five MB, then
-normalized to PNG. A one-hour public CDN cache bounds normal refresh latency after
-an image/name/public-bio edit; no stale-while-revalidate. Provider caches can add their existing
-latency. Social apps maintain independent caches: existing messages may retain an
-older image until their service refetches. `v=1` versions this layout, not personal
-data. Failed portraits still produce a usable named card and retry after cache expiry.
+Bio eligibility matches artist-page metadata: an approved claim with a real
+artist bio, otherwise the validated public directory About projection. The latter
+is explicitly public, identity/snapshot-validated output, not raw pending Lore.
+Never fall back to unrestricted artist.bio, private sources, interviews or raw
+research payloads. The excerpt preserves a contiguous prefix of sanitized public
+prose, not a generated summary. Short complete prose gets no added ellipsis;
+truncation uses a true ellipsis. Missing/ineligible bios or unsupported excerpt
+glyphs omit the excerpt. A bio-gate query error omits it and returns no-store.
 
-Names are normalized to NFC and checked against the actual glyph coverage of
-Next's existing Noto Sans Latin font. Supported accents remain intact, including
-Björk, Beyoncé and LATASHÁ. Names requiring unavailable glyphs (for example Dvořák,
-Łona, Japanese, Cyrillic or emoji) use “Discover this artist” in the image; full names
-remain in page metadata. This is a font-coverage boundary, not an ASCII restriction.
-No additional font packages or runtime font parsing are introduced. A compact
-coverage table is derived from the shipped font; a regression checks its exact
-character map and file hash so a Next/font upgrade cannot silently invalidate it.
-Offline regressions exercise the real renderer in a separate process, with all
-fetch calls forbidden, rather than relying on the ImageResponse unit-test mock.
-A render failure retries with the same neutral name and record motif.
+Portrait eligibility is narrower than browser display: HTTPS Spotify and Deezer
+image CDNs, the configured public profile-image storage path for this artist, or
+checked-in artist images. No signed URLs, arbitrary hosts, redirects, albums,
+social post thumbnails or private vault files. No identity search or write.
+Failed/ineligible images use the record motif. Downloads have no credentials,
+a five-second timeout and five-MB limit, then normalize to PNG. Missing artists
+return 404; database failure returns 503; neither response is cached.
 
-Long names shrink and truncate with an ellipsis at 90 Unicode characters or the
-layout line limit. Bio excerpts stop at a word boundary within 130 characters
-(90 for long names), with a four-line visual limit. A true ellipsis denotes
-truncation; short complete prose is unchanged. Full
-names remain in page metadata. The design is theme-independent for predictable shares.
-No database writes, paid model calls, jobs, migrations or new credentials.
+Normal images cache publicly for one hour, without stale-while-revalidate. This
+bounds ordinary refresh after image/name/bio edits, but previously public text
+can remain until expiry after withdrawal. Social apps maintain independent caches
+and may retain older cards longer. No new writes, jobs, scraping, generation,
+paid calls, migrations, credentials or security changes.
+
+## Typography and the Inter proposal
+
+The homepage inherits Tailwind's `ui-sans-serif, system-ui` stack. On Pete's Mac,
+Chrome's rendered-font inspection reports Apple San Francisco (`.SF NS`), weight 700.
+That is a device-installed font, not a bundled webfont. The same site may use a
+different installed system font on another operating system. KoHo legacy CSS is
+not the homepage heading font.
+
+A server-generated PNG needs its own available font files. An earlier explanation
+that fonts cannot be used in card images was overbroad: licensing depends on the
+specific font and distribution. Pete requested a reviewable Inter alternative.
+The card now uses unmodified official **Inter 4.1 Regular 400 and Bold 700**, with
+static TrueType files from https://github.com/rsms/inter/releases/tag/v4.1.
+The complete SIL Open Font License 1.1 is retained in `public/fonts/inter/LICENSE.txt`.
+The project permits font embedding/bundling under that license. This proposal is
+Inter, not an asserted exact match to San Francisco. No homepage font changes.
+
+Two static files total 832,068 bytes. They load once per server module and do not
+require variable-font conversion or remote font requests. Provenance and file
+sizes live alongside the fonts. Coverage uses the intersection of both actual
+font glyph maps, excluding missing glyph 0. Offline regressions verify both file
+hashes and all 2,852 supported codepoints; fontkit stays test-only.
+
+Names normalize to NFC before coverage checks. Björk, Beyoncé, LATASHÁ, Dvořák,
+Łona and Кино render intact. Japanese, unsupported emoji and variation-selector
+sequences still use neutral image text; full artist names remain in metadata.
+Unsupported bio text is omitted rather than transliterated. No implicit font or
+emoji downloads. Render failure retries with a neutral name and record motif.
+
+Names shrink/truncate at 90 Unicode characters or the visual line limit. Bio
+prefixes are bounded to 130 characters (90 for long names) and four visual lines.
+The original full name and eligible public description remain in page metadata.
 
 ## Verification
 
-Check normal, absent/broken portrait, unknown artist, long name, and image security
-boundaries. Inspect server-rendered OG/Twitter tags as a crawler, download the PNG,
-verify dimensions, and view the proposal at 832 and 390 px in both themes. A browser
-card simulation is not proof of native iMessage delivery; record that separately.
-
-## October 20 revision — preserve supported accented names
-
-The initial ASCII-only guard unnecessarily replaced names the existing font can
-render. Pete requested the minimal correction before owner acceptance. The revision
-keeps the same composition and font, normalizes decomposed accents, and uses actual
-font coverage. Noto Sans full (569 KB) and Noto Sans JP (4.53 MB) were evaluated
-locally but are not added: broader script support is outside this minimal correction.
-The preview gallery demonstrates accented names alongside the remaining unsupported
-Japanese example. Owner approval still applies to the proposal after re-verification.
-
-## Owner-requested bio and brand revision (October 20)
-
-Retain the portrait treatment. Replace the improvised brand heading with the exact
-repository `public/music-nerd-shades.png` asset, on a pink field for contrast, plus
-an understated domain label. The site uses a system sans stack (no bundled custom
-font); image text uses the existing offline Noto sans renderer, without adding fonts.
-
-Read only the same public bio selection as artist-page metadata: an approved claim
-and real artist bio, otherwise the validated public directory About projection.
-Never use unrestricted artist.bio, private Lore, interviews or research payloads.
-No new writes or generation. Show a short contiguous excerpt of sanitized public
-prose, with a true ellipsis only when it is shortened. Missing/ineligible bio or
-unsupported excerpt glyphs omit the excerpt; the named card remains useful.
-Bio lookup errors fail closed to a card without an excerpt and no-store. Normal
-cards retain the one-hour cache; this also means previously public text may survive
-revocation for up to that hour, and social platforms can retain their own copies.
-The preview will include Pete Rango's real public profile and clearly labelled
-fixture cases, including missing bio/image and accented names. Approval is pending.
+Check both palettes, real public portrait/bio, absent/broken portrait, missing
+bio, unknown artist, long/widest-glyph text, supported accents and unavailable
+scripts. Inspect anonymous crawler OG/Twitter tags, download 1200×630 PNGs, and
+view phone/desktop layouts in both browser themes. The preview-only gallery shows
+Pete Rango's live public card in white and pink plus clearly labelled fixtures.
+A browser simulation is not proof of native iMessage delivery. Local tests,
+independent review, exact-commit deployment checks and owner acceptance are
+separate evidence; record them on draft PR #1585 before any release decision.

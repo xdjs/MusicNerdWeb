@@ -13,6 +13,14 @@ describe('renderArtistShareImage', () => {
         expect(html).toContain('Music Nerd');
         expect(html).toContain('data:image/png');
     });
+    test.each(['white', 'pink'] as const)('places the genuine glasses directly on the %s card', palette => {
+        renderArtistShareImage('Pete Rango', null, 'Public bio.', palette);
+        const [element] = (ImageResponse as unknown as jest.Mock).mock.calls.at(-1)!;
+        const html = renderToStaticMarkup(element);
+        expect(element.props.style.background).toBe(palette === 'pink' ? '#ff9ce3' : '#ffffff');
+        expect(html).toContain('Music Nerd glasses');
+        expect(html).not.toContain('padding:12px');
+    });
     test.each(['Björk', 'Beyoncé', 'LATASHÁ'])('passes the supported artist name %s unchanged to the renderer', name => {
         renderArtistShareImage(name, null);
         const [element] = (ImageResponse as unknown as jest.Mock).mock.calls.at(-1)!;

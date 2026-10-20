@@ -34,7 +34,15 @@ describe('artist share image', () => {
         (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://i.scdn.co/image/abc');
         (loadSharePortrait as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc', null);
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc', null, 'white');
+    });
+    test.each([['pink', 'pink'], ['unexpected', 'white']])('bounds the palette query %s to %s', async (query, palette) => {
+        (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Artist' });
+        (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
+        (loadSharePortrait as jest.Mock).mockResolvedValue(null);
+        const response = await GET(new Request(`https://example.com?palette=${query}`), { params: Promise.resolve({ id }) });
+        expect(response.status).toBe(200);
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Artist', null, null, palette);
     });
     test('bio lookup failure omits text and disables caching', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Artist', bio: 'PRIVATE' });
@@ -44,7 +52,7 @@ describe('artist share image', () => {
         const response = await run();
         expect(response.status).toBe(200);
         expect(response.headers.get('cache-control')).toBe('no-store');
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Artist', null, null);
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Artist', null, null, 'white');
     });
     test('retries render failure with a network-independent card', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Example' });
@@ -52,13 +60,13 @@ describe('artist share image', () => {
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         (renderArtistShareImage as jest.Mock).mockImplementationOnce(() => ({ arrayBuffer: () => Promise.reject(new Error('render')) }));
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Discover this artist', null);
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Discover this artist', null, null, 'white');
     });
     test('failed portrait still produces named fallback', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Dutchyyy' });
         (musicPlatformData.getArtistPortrait as jest.Mock).mockRejectedValue(new Error('provider'));
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null, null);
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null, null, 'white');
     });
 });

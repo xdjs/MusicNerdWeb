@@ -12,5 +12,6 @@ export async function GET(request: Request) {
     const portrait = scenario === 'normal'
         ? `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public/demo/pete-rango-logo.png'))).toString('base64')}`
         : null;
-    return renderArtistShareImage(example.name, portrait);
+    const palette = new URL(request.url).searchParams.get('palette') === 'pink' ? 'pink' : 'white';
+    return renderArtistShareImage(example.name, portrait, null, palette);
 }

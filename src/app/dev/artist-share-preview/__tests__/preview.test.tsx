@@ -15,7 +15,7 @@ describe('preview access boundary', () => {
     test.each([['accent', 'Björk'], ['decomposed', 'Beyonce\u0301'], ['unicode', '坂本龍一']])('passes the %s example identity to the real renderer boundary', async (scenario, name) => {
         process.env.VERCEL_ENV = 'preview';
         expect((await GET(new Request(`https://example.com?case=${scenario}`))).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenLastCalledWith(name, null);
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith(name, null, null, 'white');
     });
     test('gallery and missing portrait fixture work in preview', async () => {
         process.env.VERCEL_ENV = 'preview';
