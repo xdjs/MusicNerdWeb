@@ -16,7 +16,7 @@ function loadSource(relative) {
     compiledModules.set(filename, loaded);
     loaded.filename = filename;
     loaded.paths = module.paths;
-    loaded.require = id => id.startsWith('@/lib/artistShare/')
+    loaded.require = id => id.startsWith('@/lib/')
         ? loadSource(`src/${id.slice(2)}.ts`)
         : require(id);
     loaded._compile(ts.transpileModule(readFileSync(filename, 'utf8'), {
@@ -38,14 +38,17 @@ async function main() {
     let fetchCalls = 0;
     global.fetch = async () => { fetchCalls++; throw new Error('Offline rendering must not fetch fonts, emoji or other assets'); };
     const { renderArtistShareImage } = loadSource('src/server/utils/artistShare/renderArtistShareImage.tsx');
-    async function render(name) {
-        const png = Buffer.from(await renderArtistShareImage(name, null).arrayBuffer());
+    async function render(name, bio) {
+        const png = Buffer.from(await renderArtistShareImage(name, null, bio).arrayBuffer());
         assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
         assert.equal(png.readUInt32BE(16), 1200);
         assert.equal(png.readUInt32BE(20), 630);
         assert.equal(fetchCalls, 0);
         return png;
     }
+    assert.notDeepEqual(await render('Björk', 'Björk makes music.'), await render('Björk'));
+    assert.deepEqual(await render('Björk', '坂本龍一'), await render('Björk'));
+    await render('W'.repeat(90), 'W'.repeat(500));
     const fallback = await render('Discover this artist');
     const supported = ['Björk', 'Beyoncé', 'LATASHÁ', 'Sigur Rós', 'Zoë Keating', 'João Gilberto', 'MØ', 'Ólafur Arnalds', 'Artist © ® ™ Œ'];
     for (const name of supported) assert.notDeepEqual(await render(name), fallback, `${name} must retain its identity`);

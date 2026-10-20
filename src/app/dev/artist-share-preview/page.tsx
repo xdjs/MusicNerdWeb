@@ -7,7 +7,19 @@ export const metadata = { title: 'Artist share proposal | Music Nerd', robots: {
 export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
     return <main className="mx-auto max-w-3xl text-foreground px-5 py-10 space-y-8">
-        <header className="space-y-3"><p className="text-sm text-pink-400">Design proposal · #1579</p><h1 className="text-3xl font-bold">A little more artist. In every share.</h1><p>Public artist name, portrait and Music Nerd. These examples use the existing public Pete Rango demo logo and a fictional long name. Owner approval is pending. Supported accented names now stay intact with the existing font. Names outside its glyph set use neutral image text; the full artist name stays in the link title.</p></header>
+        <header className="space-y-3"><p className="text-sm text-pink-400">Design proposal · #1579</p><h1 className="text-3xl font-bold">A little more artist. In every share.</h1><p>Revised with public bio excerpts and the actual Music Nerd glasses logo. The portrait treatment stays. Only eligible public bios appear; missing bios stay absent. An ellipsis means the excerpt continues. Owner approval is pending.</p></header>
+        <section className="space-y-3">
+            <h2 className="text-xl font-semibold">Pete Rango · live public profile</h2>
+            {/* Direct PNG download, not a Next page navigation. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1" className="block overflow-hidden rounded-2xl border border-gray-500/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1" alt="Pete Rango public portrait and bio excerpt with Music Nerd glasses" width="1200" height="630" className="w-full h-auto" />
+                <div className="p-4"><p className="text-xs opacity-60">musicnerd.net</p><p className="font-semibold">Pete Rango | Music Nerd</p></div>
+            </a>
+            <Link className="underline" href="/artist/50f23458-df64-4381-8042-7333e8b64531">View the public profile</Link>
+        </section>
+        <p>Fallback and typography fixtures below use the existing public demo logo, supported accented names and a fictional long name. No biography is invented for these examples. Unsupported names use neutral image text while the full name remains in the link title.</p>
         {artistSharePreviewCases.map(({ key, label, name }) => <section key={key} className="space-y-3">
             <h2 className="text-xl font-semibold">{label}</h2>
             <a href={`/dev/artist-share-preview/image?case=${key}`} className="block overflow-hidden rounded-2xl border border-gray-500/30">

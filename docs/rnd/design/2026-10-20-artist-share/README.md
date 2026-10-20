@@ -23,3 +23,9 @@ accented names through NFC normalization and the existing bundled font's exact
 coverage. Composition and font are unchanged; no new font assets or packages.
 The revised gallery adds Björk and Beyoncé; Japanese remains an explicit unsupported
 case. This correction does not imply owner acceptance.
+
+Owner feedback revision: include eligible public bio excerpts, retain the portrait panel,
+and replace the improvised brand heading with the exact repository glasses asset.
+No invented missing biography; unsupported excerpt glyphs omit the excerpt.
+The existing site uses a system sans stack; no new font packages are introduced.
+Revised preview and owner acceptance remain separate gates.

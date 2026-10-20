@@ -29,7 +29,7 @@ describe('renderArtistShareImage', () => {
         const html = renderToStaticMarkup(element);
         expect(html).toContain('…');
         expect(html).toContain('&lt;script&gt;');
-        expect(html).not.toContain('<img');
+        expect(html).toContain('Music Nerd glasses');
         expect(html).not.toContain('Long '.repeat(40));
     });
 });

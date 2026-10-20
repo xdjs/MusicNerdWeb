@@ -1,3 +1,4 @@
+import { getSharePublicBio } from '@/server/utils/artistShare/getSharePublicBio';
 import { getArtistById } from '@/server/utils/queries/artistQueries';
 import { musicPlatformData } from '@/server/utils/musicPlatform';
 import { loadSharePortrait } from '@/server/utils/artistShare/loadSharePortrait';
@@ -14,18 +15,20 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     try {
         const artist = await getArtistById(id);
         if (!artist) return new Response('Artist not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+        let bioLookupFailed = false;
+        const publicBio = await getSharePublicBio(artist).catch(() => { bioLookupFailed = true; return null; });
         const portraitUrl = await musicPlatformData.getArtistPortrait(artist).catch(() => null);
         const portrait = await loadSharePortrait(portraitUrl, id);
         // Finish rendering before returning so a failed render cannot stream a broken card.
         let bytes: ArrayBuffer;
         try {
-            bytes = await renderArtistShareImage(artist.name ?? 'Unknown Artist', portrait).arrayBuffer();
+            bytes = await renderArtistShareImage(artist.name ?? 'Unknown Artist', portrait, publicBio).arrayBuffer();
         } catch {
             bytes = await renderArtistShareImage('Discover this artist', null).arrayBuffer();
         }
         return new Response(bytes, { headers: {
             'Content-Type': 'image/png',
-            'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+            'Cache-Control': bioLookupFailed ? 'no-store' : 'public, max-age=3600, s-maxage=3600',
             'X-Content-Type-Options': 'nosniff',
         } });
     } catch {
