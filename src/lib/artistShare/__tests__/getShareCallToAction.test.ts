@@ -17,3 +17,8 @@ test('compares context-led copy without promising a story when the public bio is
     expect(getShareCallToAction('Pete Rango', 'story', false)).toBe('Get to know Pete Rango');
     expect(getShareCallToAction('W'.repeat(24), 'explore')).toBe('Explore the artist');
 });
+
+test('story-reading invitation requires a usable public biography', () => {
+    expect(getShareCallToAction('LATASHÁ', 'read', true)).toBe('Read their story');
+    expect(getShareCallToAction('LATASHÁ', 'read', false)).toBe('Get to know LATASHÁ');
+});

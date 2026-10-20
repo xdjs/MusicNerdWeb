@@ -17,5 +17,6 @@ export async function GET(request: Request) {
     const requestedPalette = new URL(request.url).searchParams.get('palette');
     const palette = requestedPalette === 'pink' || requestedPalette === 'logo' ? requestedPalette : 'white';
     const proposal = getShareProposalOptions(new URL(request.url).searchParams, true);
-    return proposal ? renderArtistShareProposal(example.name, portrait, null, proposal.layout, proposal.palette, proposal.cta) : renderArtistShareImage(example.name, portrait, null, palette);
+    const bio = scenario === 'stress' ? 'Synthetic stress-test biography. This long paragraph verifies layout and truncation without claiming facts about a real artist. '.repeat(5) : null;
+    return proposal ? renderArtistShareProposal(example.name, portrait, bio, proposal.layout, proposal.palette, proposal.cta) : renderArtistShareImage(example.name, portrait, null, palette);
 }

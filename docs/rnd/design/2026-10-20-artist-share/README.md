@@ -72,3 +72,13 @@ At 348px rendered card width on a 390px phone viewport, the earlier editorial's 
 **Recommendation:** refine Editorial, favor logo pink #FB57C0 for brand recognition, and use “Get to know [artist]”. It promises the person, story and context surrounding their music, without suggesting a player. “Explore [artist]” is compact but less specific; “Their music. Their story.” expresses positioning but is less clearly an invitation. These judgments are a proposal, not measured click-through claims or owner approval.
 
 The new `layout=story` study uses an 80px short name, 40px bio (shorter contiguous excerpt, three lines), 36px CTA directly following the excerpt, a 408px square portrait, and the same genuine corner glasses. White is retained as a secondary palette. CTA comparisons show know/explore/story on identical artwork; the story wording falls back to “Get to know” when no eligible bio is available. Earlier layouts and the original reference stay unchanged. No image editing, invented biography or public-content boundary change.
+
+### New art-direction exploration — owner rejected the shared split-card structure
+
+The next comparison changes silhouette, hierarchy and image treatment, not spacing. Same LATASHÁ public profile/image/bio in all three; this profile has an eligible public excerpt and public artist artwork. Pete's current public image is a logo, so he remains a secondary check rather than pretending it is photography.
+
+- Cover: oversized image field, large name over its top edge, white caption band across the foot. Invitation: “Read their story” only when public biography exists.
+- Sleeve: giant circular artist-image crop on a pink field, offset white title strip and compact caption below. A record-sleeve graphic language, not a claim that a particular record exists. Invitation: “Explore the artist”.
+- Dossier: tilted photographic print over a white page, name spanning the top and a pink biography slip across the lower middle. Invitation: “Get to know [artist]”. No invented metadata, dates, issue numbers or extra photographs.
+
+Inter regular/bold; white #FFFFFF, ink #171717, actual logo pink #FB57C0, separately labeled site token #FF9CE3. Genuine glasses unboxed at bottom right. Each preview receives the same contiguous public excerpt limit; no private data or public-content gate changes. Long-name/public-bio stress examples are explicitly synthetic. Prior gallery retained. Recommendation follows actual render critique; no owner approval implied.

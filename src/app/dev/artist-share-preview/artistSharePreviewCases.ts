@@ -4,6 +4,7 @@ export const artistSharePreviewCases = [
     { key: 'missing', label: 'Without a usable portrait', name: 'Pete Rango' },
     { key: 'accent', label: 'Supported accented name', name: 'Björk' },
     { key: 'decomposed', label: 'Decomposed accent, normalized to NFC', name: 'Beyonce\u0301' },
+    { key: 'stress', label: 'Synthetic long-name and biography stress test', name: 'The Extraordinary Ensemble of Midnight Dreamers and Their Incredibly Long Artist Name' },
     { key: 'long', label: 'A longer artist name', name: 'The Extraordinary Ensemble of Midnight Dreamers and Their Incredibly Long Artist Name' },
     { key: 'unicode', label: 'Unsupported glyphs still use neutral image text', name: '坂本龍一' },
 ];

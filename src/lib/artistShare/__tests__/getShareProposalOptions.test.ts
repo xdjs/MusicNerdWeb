@@ -11,3 +11,9 @@ test('story refinement and wording stay explicitly preview-only', () => {
     expect(getShareProposalOptions(params, false)).toBeNull();
     expect(getShareProposalOptions(params, true)).toEqual({ layout: 'story', palette: 'logo', cta: 'story' });
 });
+
+test.each(['cover', 'sleeve', 'dossier'])('%s art direction and alternate pink are preview-only', layout => {
+    const params = new URLSearchParams(`layout=${layout}&palette=pink&cta=read`);
+    expect(getShareProposalOptions(params, false)).toBeNull();
+    expect(getShareProposalOptions(params, true)).toEqual({ layout, palette: 'pink', cta: 'read' });
+});
