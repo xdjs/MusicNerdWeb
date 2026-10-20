@@ -54,3 +54,19 @@ still mounts auth/navigation; review logged out and avoid global add/login actio
 homepage variant. Integration tests cover Links, Support, public Lore and preservation of source identities. The fixture uses the real Lore renderer, not a
 static substitute. It does not rewrite persisted source classifications. Later authorization on
 2026-10-20 permits a feature-branch preview before any main merge.
+
+### Thumbnail metadata (2026-10-20)
+
+Onboarding now preserves the `imageUrl` already returned by `fetchLinkPreview`
+as the source's `ogImage`, just as manual Lore additions do. No extra fetch,
+permission change, ownership decision or background job is introduced. Valid
+HTTPS OG metadata remains subject to the existing preview parser; absent metadata
+stays null. Supporting website pages use the same Lore image renderer as other
+sources, falling back to the site favicon and gradient when images are missing or
+fail to load.
+
+The read-only preview includes a clearly labeled local demo image, missing-image
+metadata, and an intentionally broken local image URL. These fixtures verify
+rendering, not a live artist metadata extraction. The API's text extraction job
+still stores text only; existing rows without images are not backfilled by this
+change and require a separate reviewed correction.
