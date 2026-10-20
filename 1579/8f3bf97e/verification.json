@@ -1,0 +1,363 @@
+{
+  "images": [
+    {
+      "case": "normal",
+      "status": 200,
+      "bytes": 24976,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "missing",
+      "status": 200,
+      "bytes": 32398,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "long",
+      "status": 200,
+      "bytes": 46390,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "unicode",
+      "status": 200,
+      "bytes": 36537,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "accent",
+      "status": 200,
+      "bytes": 29066,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "decomposed",
+      "status": 200,
+      "bytes": 30811,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete",
+      "status": 200,
+      "bytes": 58512,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "beta-radio",
+      "status": 200,
+      "bytes": 302123,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete-pink",
+      "status": 200,
+      "bytes": 61194,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "pete-logo",
+      "status": 200,
+      "bytes": 62675,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-white",
+      "status": 200,
+      "bytes": 58132,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-logo",
+      "status": 200,
+      "bytes": 59426,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-missing",
+      "status": 200,
+      "bytes": 23909,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-long",
+      "status": 200,
+      "bytes": 40585,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-accent",
+      "status": 200,
+      "bytes": 20780,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "editorial-unicode",
+      "status": 200,
+      "bytes": 26957,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-white",
+      "status": 200,
+      "bytes": 73082,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-logo",
+      "status": 200,
+      "bytes": 74119,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-missing",
+      "status": 200,
+      "bytes": 27127,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-long",
+      "status": 200,
+      "bytes": 38399,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-accent",
+      "status": 200,
+      "bytes": 23949,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "portrait-unicode",
+      "status": 200,
+      "bytes": 30200,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-white",
+      "status": 200,
+      "bytes": 55119,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-logo",
+      "status": 200,
+      "bytes": 54889,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-missing",
+      "status": 200,
+      "bytes": 23567,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-long",
+      "status": 200,
+      "bytes": 39381,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-accent",
+      "status": 200,
+      "bytes": 19635,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "profile-unicode",
+      "status": 200,
+      "bytes": 27404,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cta-know",
+      "status": 200,
+      "bytes": 59426,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "HIT"
+    },
+    {
+      "case": "cta-music",
+      "status": 200,
+      "bytes": 58312,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "cta-meet",
+      "status": 200,
+      "bytes": 58340,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "beta-portrait",
+      "status": 200,
+      "bytes": 409104,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    }
+  ],
+  "metadata": {
+    "og:title": "Pete Rango | Music Nerd",
+    "og:description": "Pete Rango is a Colombian-born music producer, audio engineer, and creative director working in the United States, known for composing and producing soundscapes that enhance storytelling and create emotional connections.",
+    "og:image": "https://app-n4juqs30y-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "https://app-n4juqs30y-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1"
+  }
+}
