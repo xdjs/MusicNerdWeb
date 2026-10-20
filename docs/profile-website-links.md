@@ -70,3 +70,7 @@ metadata, and an intentionally broken local image URL. These fixtures verify
 rendering, not a live artist metadata extraction. The API's text extraction job
 still stores text only; existing rows without images are not backfilled by this
 change and require a separate reviewed correction.
+
+Lore also checks already-completed failed images when attaching the image node,
+so failures before hydration reveal the fallback. Image nodes are keyed by URL
+so replacing a failed thumbnail retries the new URL.

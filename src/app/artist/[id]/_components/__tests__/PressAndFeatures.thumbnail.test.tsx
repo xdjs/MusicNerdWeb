@@ -22,3 +22,16 @@ it('retains card and gradient fallback with no metadata or broken favicon',()=>{
  expect(card.querySelector('.bg-gradient-to-br')).toBeInTheDocument();
  expect(card).toHaveTextContent('Biography');
 });
+
+it('hides images that failed before hydration and retries a replacement URL',()=>{
+ const complete=jest.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(true);
+ const width=jest.spyOn(HTMLImageElement.prototype,'naturalWidth','get').mockReturnValue(0);
+ const {container,rerender}=render(<PressAndFeatures sources={[main,{...page,ogImage:'https://example.org/broken.jpg'}]}/>);
+ const failed=container.querySelector('img[src="https://example.org/broken.jpg"]') as HTMLImageElement;
+ expect(failed.style.display).toBe('none');
+ complete.mockReturnValue(false);
+ rerender(<PressAndFeatures sources={[main,{...page,ogImage:'https://example.org/replacement.jpg'}]}/>);
+ const replacement=container.querySelector('img[src="https://example.org/replacement.jpg"]') as HTMLImageElement;
+ expect(replacement.style.display).not.toBe('none');
+ complete.mockRestore();width.mockRestore();
+});

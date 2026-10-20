@@ -92,6 +92,11 @@ function SourceCard({ source }: { source: VaultSource }) {
                 {hasImage && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
+                        key={source.ogImage}
+                        ref={image => {
+                            // A cached failure can precede hydration and its error listener.
+                            if (image?.complete && image.naturalWidth === 0) image.style.display = 'none';
+                        }}
                         src={source.ogImage!}
                         alt=""
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
