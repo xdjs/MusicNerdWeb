@@ -5,7 +5,7 @@ export function eligibleSharePortrait(value: string | null, artistId: string, st
     try {
         const url = new URL(value);
         if (url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash) return null;
-        if (url.hostname === 'i.scdn.co' && /^\/image\/[a-zA-Z0-9]+$/.test(url.pathname)) return url.href;
+        if (['i.scdn.co', 'image-cdn-fa.spotifycdn.com', 'image-cdn-ak.spotifycdn.com'].includes(url.hostname) && /^\/image\/[a-zA-Z0-9]+$/.test(url.pathname)) return url.href;
         if (url.hostname === 'cdn-images.dzcdn.net' && /^\/images\/artist\/[a-zA-Z0-9/_.-]+$/.test(url.pathname)) return url.href;
         if (storageOrigin && url.origin === new URL(storageOrigin).origin
             && url.pathname.startsWith(`/storage/v1/object/public/vault-files/profile-images/${artistId}_`)

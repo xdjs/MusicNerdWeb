@@ -4,12 +4,13 @@ export const metadata = { title: 'Artist share proposal | Music Nerd', robots: {
 
 export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
-    return <main className="mx-auto max-w-3xl px-5 py-10 space-y-8">
-        <header className="space-y-3"><p className="text-sm text-pink-400">Design proposal · #1579</p><h1 className="text-3xl font-bold">A little more artist. In every share.</h1><p>Public artist name, portrait and Music Nerd. These examples use the existing public Pete Rango demo logo and a fictional long name. Owner approval is pending.</p></header>
+    return <main className="mx-auto max-w-3xl text-foreground px-5 py-10 space-y-8">
+        <header className="space-y-3"><p className="text-sm text-pink-400">Design proposal · #1579</p><h1 className="text-3xl font-bold">A little more artist. In every share.</h1><p>Public artist name, portrait and Music Nerd. These examples use the existing public Pete Rango demo logo and a fictional long name. Owner approval is pending. Names outside the bundled glyph set use neutral image text; the full artist name stays in the link title.</p></header>
         {[
             ['normal', 'With a public portrait'],
             ['missing', 'Without a usable portrait'],
             ['long', 'A longer artist name'],
+            ['unicode', 'Names needing additional fonts'],
         ].map(([key, label]) => <section key={key} className="space-y-3">
             <h2 className="text-xl font-semibold">{label}</h2>
             <a href={`/dev/artist-share-preview/image?case=${key}`} className="block overflow-hidden rounded-2xl border border-gray-500/30">

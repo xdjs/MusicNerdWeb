@@ -10,5 +10,5 @@ export async function GET(request: Request) {
     const portrait = scenario === 'normal'
         ? `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public/demo/pete-rango-logo.png'))).toString('base64')}`
         : null;
-    return renderArtistShareImage(scenario === 'long' ? 'The Extraordinary Ensemble of Midnight Dreamers and Their Incredibly Long Artist Name' : 'Pete Rango', portrait);
+    return renderArtistShareImage(scenario === 'long' ? 'The Extraordinary Ensemble of Midnight Dreamers and Their Incredibly Long Artist Name' : scenario === 'unicode' ? '坂本龍一' : 'Pete Rango', portrait);
 }

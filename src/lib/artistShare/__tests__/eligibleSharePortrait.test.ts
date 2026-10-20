@@ -1,7 +1,7 @@
 import { eligibleSharePortrait } from '../eligibleSharePortrait';
 const storage = 'https://example.supabase.co';
 describe('eligibleSharePortrait', () => {
-    test.each(['https://i.scdn.co/image/abc', 'https://cdn-images.dzcdn.net/images/artist/abc/1000x1000.jpg', '/artist-images/example.jpg'])( 'accepts public portrait %s', value => {
+    test.each(['https://image-cdn-fa.spotifycdn.com/image/abc', 'https://image-cdn-ak.spotifycdn.com/image/abc', 'https://i.scdn.co/image/abc', 'https://cdn-images.dzcdn.net/images/artist/abc/1000x1000.jpg', '/artist-images/example.jpg'])( 'accepts public portrait %s', value => {
         expect(eligibleSharePortrait(value, 'artist', storage)).toBeTruthy();
     });
     test('accepts only this artist public profile upload', () => {
