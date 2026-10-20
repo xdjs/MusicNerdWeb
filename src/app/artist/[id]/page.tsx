@@ -7,7 +7,6 @@ import { getHiddenLinkSourceIds } from "@/server/utils/artistLinkReview/getHidde
 import { getConflictingMusicSourceIds } from "@/server/utils/musicLinks/getConflictingMusicSourceIds";
 import { addSourceContributors } from "@/server/utils/source/addSourceContributors";
 import { getArtistById, getAllLinks, getArtistLinks } from "@/server/utils/queries/artistQueries";
-import { absoluteImageUrl } from "@/lib/artist/absoluteImageUrl";
 import { customImageUrl } from "@/lib/artist/customImageUrl";
 import { musicPlatformData } from "@/server/utils/musicPlatform";
 import { getServerAuthSession } from "@/server/auth";
@@ -60,11 +59,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
         };
     }
 
-    const platformImage = await musicPlatformData.getArtistPortrait(artist);
-    const ownImage = customImageUrl(artist.customImage);
-    const imageUrl = ownImage
-        ? absoluteImageUrl(ownImage)
-        : platformImage || "https://musicnerd.net/default_pfp_pink.png";
+    const imageOrigin = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}` : 'https://musicnerd.net';
+    const imageUrl = `${imageOrigin}/artist/${encodeURIComponent(id)}/share-image?v=1`;
     const artistName = artist.name ?? "Unknown Artist";
 
     // The artist's own About, when one has been written, rather than the
@@ -101,9 +98,9 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
             images: [
                 {
                     url: imageUrl,
-                    width: 640,
-                    height: 640,
-                    alt: `${artistName} profile image`,
+                    width: 1200,
+                    height: 630,
+                    alt: `${artistName} on Music Nerd`,
                 },
             ],
         },

@@ -600,11 +600,28 @@ describe('ArtistProfile page', () => {
     });
 
     describe('generateMetadata', () => {
-        it('uses the preferred provider image for social previews', async () => {
+        it('points preview images at the deployment and keeps canonical URLs stable', async () => {
+            const oldEnv = process.env.VERCEL_ENV;
+            const oldUrl = process.env.VERCEL_URL;
+            process.env.VERCEL_ENV = 'preview';
+            process.env.VERCEL_URL = 'proposal.vercel.app';
+            try {
+                const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
+                expect(metadata.openGraph?.images?.[0]).toMatchObject({ url: 'https://proposal.vercel.app/artist/artist-uuid/share-image?v=1' });
+                expect(metadata.twitter?.images).toEqual(['https://proposal.vercel.app/artist/artist-uuid/share-image?v=1']);
+                expect(metadata.alternates?.canonical).toBe('https://musicnerd.net/artist/artist-uuid');
+                expect(musicPlatformData.getArtistPortrait).not.toHaveBeenCalled();
+            } finally {
+                if (oldEnv === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = oldEnv;
+                if (oldUrl === undefined) delete process.env.VERCEL_URL; else process.env.VERCEL_URL = oldUrl;
+            }
+        });
+
+        it('uses the composite route for social previews', async () => {
             (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images).toEqual(expect.arrayContaining([
-                expect.objectContaining({ url: 'https://cdn.spotify.com/artist.jpg' }),
+                expect.objectContaining({ url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=1', width: 1200, height: 630 }),
             ]));
         });
 
@@ -654,10 +671,10 @@ describe('ArtistProfile page', () => {
             expect(metadata.title).toBe('Artist Not Found | Music Nerd');
         });
 
-        it('includes OpenGraph image from platform provider', async () => {
+        it('uses the same composite for OpenGraph and Twitter', async () => {
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images?.[0]).toMatchObject({
-                url: 'https://cdn.deezer.com/artist.jpg',
+                url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=1',
             });
         });
     });

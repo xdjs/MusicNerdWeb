@@ -1,0 +1,52 @@
+/** @jest-environment node */
+jest.mock('@/server/utils/queries/artistQueries', () => ({ getArtistById: jest.fn() }));
+jest.mock('@/server/utils/musicPlatform', () => ({ musicPlatformData: { getArtistPortrait: jest.fn() } }));
+jest.mock('@/server/utils/artistShare/loadSharePortrait', () => ({ loadSharePortrait: jest.fn() }));
+jest.mock('@/server/utils/artistShare/renderArtistShareImage', () => ({ renderArtistShareImage: jest.fn(() => new Response('png')) }));
+import { GET } from '../route';
+import { getArtistById } from '@/server/utils/queries/artistQueries';
+import { musicPlatformData } from '@/server/utils/musicPlatform';
+import { renderArtistShareImage } from '@/server/utils/artistShare/renderArtistShareImage';
+import { loadSharePortrait } from '@/server/utils/artistShare/loadSharePortrait';
+const id = '00000000-0000-0000-0000-000000000001';
+const run = (value = id) => GET(new Request('https://example.com'), { params: Promise.resolve({ id: value }) });
+describe('artist share image', () => {
+    beforeEach(() => jest.clearAllMocks());
+    test('invalid ids do not reach the database', async () => {
+        expect((await run('bad')).status).toBe(404);
+        expect(getArtistById).not.toHaveBeenCalled();
+    });
+    test('unknown artist is uncached 404', async () => {
+        (getArtistById as jest.Mock).mockResolvedValue(null);
+        expect((await run()).status).toBe(404);
+    });
+    test('database failure is uncached 503', async () => {
+        (getArtistById as jest.Mock).mockRejectedValue(new Error('private database detail'));
+        const res = await run();
+        expect(res.status).toBe(503);
+        expect(res.headers.get('cache-control')).toBe('no-store');
+        expect(await res.text()).not.toContain('private');
+    });
+    test('passes only public name and normalized image to the renderer', async () => {
+        (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Dutchyyy', bio: 'PRIVATE', addedBy: 'PRIVATE' });
+        (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://i.scdn.co/image/abc');
+        (loadSharePortrait as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
+        expect((await run()).status).toBe(200);
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc');
+    });
+    test('retries render failure with a network-independent card', async () => {
+        (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Example' });
+        (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
+        (loadSharePortrait as jest.Mock).mockResolvedValue(null);
+        (renderArtistShareImage as jest.Mock).mockImplementationOnce(() => ({ arrayBuffer: () => Promise.reject(new Error('render')) }));
+        expect((await run()).status).toBe(200);
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Discover this artist', null);
+    });
+    test('failed portrait still produces named fallback', async () => {
+        (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Dutchyyy' });
+        (musicPlatformData.getArtistPortrait as jest.Mock).mockRejectedValue(new Error('provider'));
+        (loadSharePortrait as jest.Mock).mockResolvedValue(null);
+        expect((await run()).status).toBe(200);
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null);
+    });
+});

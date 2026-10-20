@@ -1,0 +1,23 @@
+import { notFound } from 'next/navigation';
+
+export const metadata = { title: 'Artist share proposal | Music Nerd', robots: { index: false, follow: false } };
+
+export default function ArtistSharePreviewPage() {
+    if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
+    return <main className="mx-auto max-w-3xl px-5 py-10 space-y-8">
+        <header className="space-y-3"><p className="text-sm text-pink-400">Design proposal · #1579</p><h1 className="text-3xl font-bold">A little more artist. In every share.</h1><p>Public artist name, portrait and Music Nerd. These examples use the existing public Pete Rango demo logo and a fictional long name. Owner approval is pending.</p></header>
+        {[
+            ['normal', 'With a public portrait'],
+            ['missing', 'Without a usable portrait'],
+            ['long', 'A longer artist name'],
+        ].map(([key, label]) => <section key={key} className="space-y-3">
+            <h2 className="text-xl font-semibold">{label}</h2>
+            <a href={`/dev/artist-share-preview/image?case=${key}`} className="block overflow-hidden rounded-2xl border border-gray-500/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/dev/artist-share-preview/image?case=${key}`} alt={label} width="1200" height="630" className="w-full h-auto" />
+                <div className="p-4"><p className="text-xs opacity-60">musicnerd.net</p><p className="font-semibold">{key === 'long' ? 'The Extraordinary Ensemble…' : 'Pete Rango'} | Music Nerd</p></div>
+            </a>
+        </section>)}
+        <p className="text-sm opacity-70">Illustrative link cards. Each app chooses its own crop and layout. Images refresh on our CDN within an hour; social apps can retain older cards. Open an image to inspect the full-size PNG.</p>
+    </main>;
+}
