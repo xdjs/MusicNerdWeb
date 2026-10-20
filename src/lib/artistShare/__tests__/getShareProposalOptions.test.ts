@@ -5,3 +5,9 @@ test('ignores experimental layouts outside previews and bounds query input', () 
     expect(getShareProposalOptions(new URLSearchParams('layout=portrait&palette=pink&cta=untrusted'), true)).toEqual({ layout: 'portrait', palette: 'white', cta: 'know' });
     expect(getShareProposalOptions(new URLSearchParams('layout=profile&palette=logo&cta=meet'), true)).toEqual({ layout: 'profile', palette: 'logo', cta: 'meet' });
 });
+
+test('story refinement and wording stay explicitly preview-only', () => {
+    const params = new URLSearchParams('layout=story&palette=logo&cta=story');
+    expect(getShareProposalOptions(params, false)).toBeNull();
+    expect(getShareProposalOptions(params, true)).toEqual({ layout: 'story', palette: 'logo', cta: 'story' });
+});

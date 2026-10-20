@@ -1,3 +1,4 @@
+import { renderArtistStoryProposal } from './renderArtistStoryProposal';
 import { ImageResponse } from 'next/og';
 import { getShareArtistName } from '@/lib/artistShare/getShareArtistName';
 import { getShareBioExcerpt } from '@/lib/artistShare/getShareBioExcerpt';
@@ -5,7 +6,8 @@ import { getShareCallToAction } from '@/lib/artistShare/getShareCallToAction';
 import { shareGlasses, shareImageFonts } from './shareImageAssets';
 
 /** Preview-only composition studies. Inputs have already passed the public-content boundary. */
-export function renderArtistShareProposal(name: string, portrait: string | null, publicBio: string | null | undefined, layout: 'editorial' | 'portrait' | 'profile', palette: 'white' | 'logo' = 'white', cta: 'know' | 'music' | 'meet' = 'know') {
+export function renderArtistShareProposal(name: string, portrait: string | null, publicBio: string | null | undefined, layout: 'editorial' | 'portrait' | 'profile' | 'story', palette: 'white' | 'logo' = 'white', cta: 'know' | 'music' | 'meet' | 'explore' | 'story' = 'know') {
+    if (layout === 'story') return renderArtistStoryProposal(name, portrait, publicBio, palette, cta);
     const chars = Array.from(getShareArtistName(name));
     const displayName = chars.length > 90 ? `${chars.slice(0, 89).join('')}…` : chars.join('');
     const long = chars.length > 24;
@@ -23,7 +25,7 @@ export function renderArtistShareProposal(name: string, portrait: string | null,
     </div>;
     const title = <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: long ? 3 : 2, textOverflow: 'ellipsis', overflow: 'visible', paddingRight: 24, fontSize: long ? 42 : layout === 'profile' ? 82 : 64, fontWeight: 700, lineHeight: 1.08, letterSpacing: '-1.5px', wordBreak: 'break-word', paddingBottom: 6 }}>{displayName}</div>;
     const bio = excerpt ? <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: layout === 'profile' ? 4 : long ? 3 : 5, textOverflow: 'ellipsis', overflow: 'visible', paddingRight: 24, fontSize: layout === 'profile' ? 34 : 32, lineHeight: 1.32, wordBreak: 'break-word' }}>{excerpt}</div> : null;
-    const invitation = <div style={{ display: 'flex', width: layout === 'portrait' ? 472 : 960, fontSize: 28, lineHeight: 1.2, wordBreak: 'break-word' }}>{getShareCallToAction(name, cta)}</div>;
+    const invitation = <div style={{ display: 'flex', width: layout === 'portrait' ? 472 : 960, fontSize: 28, lineHeight: 1.2, wordBreak: 'break-word' }}>{getShareCallToAction(name, cta, Boolean(excerpt))}</div>;
     return new ImageResponse(
         <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background, color: '#171717', fontFamily: 'Inter' }}>
             {layout === 'editorial' && <>

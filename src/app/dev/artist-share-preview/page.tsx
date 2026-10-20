@@ -19,12 +19,48 @@ export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
     return <main className="mx-auto max-w-3xl text-foreground px-5 py-10 space-y-12">
         <header className="space-y-4">
-            <p className="text-sm uppercase tracking-widest opacity-60">Music Nerd / Design studies / 1579</p>
-            <h1 className="text-4xl font-bold tracking-tight">Three ways to meet an artist.</h1>
-            <p className="text-lg">Different compositions. A few quieter invitations. Same public artist image, public bio, Inter and genuine glasses.</p>
-            <p className="text-sm opacity-70">Preview proposals only. No layout or CTA has owner approval. White and logo pink #FB57C0 are shown; the earlier candidate is preserved below. Click a card to inspect its image. In a shared link, the entire card opens the artist profile.</p>
-            <nav className="flex gap-5 underline text-sm"><a href="#layouts">Layouts</a><a href="#invitations">CTA comparison</a><a href="#reference">Earlier candidate</a></nav>
+            <h1 className="text-4xl font-bold tracking-tight">An artist. A reason to know them.</h1>
+            <p className="text-lg">Recommendation: refine Editorial. Keep the portrait recognizable, let a short piece of the artist’s story do more work, and bring “Get to know” into the same reading sequence.</p>
+            <p className="text-sm opacity-70">The earlier cards left too much space between the biography and invitation. On a phone, both became small. This refinement makes them larger and closer, with less text. Logo pink #FB57C0 adds Music Nerd character; white remains available. A design recommendation, not an approved choice or a measured click-through claim.</p>
+            <nav className="flex flex-wrap gap-5 underline text-sm"><a href="#refinement">Before / after</a><a href="#wording">Wording</a><a href="#earlier-studies">Earlier studies</a></nav>
         </header>
+        <section id="refinement" className="space-y-6">
+            {[{key:'editorial',label:'Before / editorial study'},{key:'story',label:'After / recommended refinement'}].map(item => <div key={item.key} className="space-y-3">
+                <h2 className="text-2xl font-semibold">{item.label}</h2>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href={`${profile}/share-image?v=1&layout=${item.key}&palette=logo&cta=know`} className="block overflow-hidden rounded-xl border border-gray-500/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`${profile}/share-image?v=1&layout=${item.key}&palette=logo&cta=know`} alt={`${item.label}: Pete Rango, public biography, Get to know Pete Rango`} width="1200" height="630" className="w-full h-auto" />
+                </a>
+            </div>)}
+            <p>The artist’s name remains the anchor. A shorter, larger public excerpt gives a reason to open the profile. The invitation follows immediately; the real glasses stay quietly at bottom right. The whole shared card is the link.</p>
+            <div className="flex flex-wrap gap-5 text-sm underline">
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href={`${profile}/share-image?v=1&layout=story&palette=white&cta=know`}>See the white refinement</a>
+                <a href="/dev/artist-share-preview/image?case=long&layout=story">Long-name example</a>
+                <a href="/dev/artist-share-preview/image?case=missing&layout=story">Missing image / bio</a>
+                <a href="/dev/artist-share-preview/image?case=decomposed&layout=story">Accented name</a>
+            </div>
+        </section>
+        <section id="wording" className="space-y-6 border-t border-gray-500/30 pt-8">
+            <h2 className="text-2xl font-semibold">What earns the click?</h2>
+            <p>Music Nerd offers the person, their story and the context around their music. The invitation should promise that discovery, without suggesting a music player.</p>
+            {[
+                {key:'know',label:'Get to know Pete Rango',note:'Recommended. Human, specific and accurate to the profile. The biography supplies the reason to care.'},
+                {key:'explore',label:'Explore Pete Rango',note:'Shorter and flexible, but less clear about what makes this destination worth opening.'},
+                {key:'story',label:'Their music. Their story.',note:'A useful statement of value, but weaker as a direct invitation. Falls back to “Get to know” if no eligible public biography exists.'},
+            ].map(item => <div key={item.key} className="space-y-3">
+                <h3 className="text-lg font-semibold">{item.label}</h3><p className="text-sm opacity-70">{item.note}</p>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href={`${profile}/share-image?v=1&layout=story&palette=logo&cta=${item.key}`} className="block max-w-lg overflow-hidden rounded-xl border border-gray-500/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`${profile}/share-image?v=1&layout=story&palette=logo&cta=${item.key}`} alt={`Refined editorial: ${item.label}`} width="1200" height="630" className="w-full h-auto" />
+                </a>
+            </div>)}
+        </section>
+        <details id="earlier-studies" className="space-y-10 border-t border-gray-500/30 pt-8">
+            <summary className="cursor-pointer text-2xl font-semibold">Earlier studies / preserved</summary>
+            <p>Portrait-led is strongest with photography, but narrows the text column. Compact profile has a strong name and color, but feels more like a directory entry. Editorial gives the story and artist image the best balance. These earlier renders are unchanged.</p>
         <div id="layouts" className="space-y-12">
             {studies.map(study => <section key={study.key} className="space-y-3">
                 <h2 className="text-2xl font-semibold">{study.title}</h2><p className="opacity-70">{study.description}</p>
@@ -66,6 +102,7 @@ export default function ArtistSharePreviewPage() {
             <p className="opacity-70">The portrait-led layout with a public photographic artist image, using the same eligibility and public-bio gates.</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/artist/2fc885c3-7be5-4710-b7b2-63e9dfc9945d/share-image?v=1&layout=portrait&palette=white&cta=know" alt="Beta Radio portrait-led proposal" width="1200" height="630" className="w-full h-auto" />
+        </details>
         </details>
         <p className="text-sm opacity-60">Only eligible public images and biography excerpts. Missing bios stay omitted. Longer excerpts end with an ellipsis. Share apps choose their own crop and can retain old cards; our image cache refreshes within an hour. No production changes.</p>
     </main>;

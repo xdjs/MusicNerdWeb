@@ -10,3 +10,10 @@ describe('getShareCallToAction', () => {
         expect(getShareCallToAction(name, 'meet')).toBe('Meet the artist');
     });
 });
+
+test('compares context-led copy without promising a story when the public bio is absent', () => {
+    expect(getShareCallToAction('Pete Rango', 'explore')).toBe('Explore Pete Rango');
+    expect(getShareCallToAction('Pete Rango', 'story', true)).toBe('Their music. Their story.');
+    expect(getShareCallToAction('Pete Rango', 'story', false)).toBe('Get to know Pete Rango');
+    expect(getShareCallToAction('W'.repeat(24), 'explore')).toBe('Explore the artist');
+});
