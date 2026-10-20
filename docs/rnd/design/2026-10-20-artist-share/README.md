@@ -45,3 +45,10 @@ Owner requested exact brand pink, bottom-right glasses and no domain label. Use
 `brandpink` #ff9ce3 from Tailwind. Preview KoHo, the declared intended brand font
 in globals.css, loaded locally under OFL with Inter glyph fallback. Supersedes
 the Inter-only composition; owner acceptance remains pending.
+
+### October 20 — Pete rejects KoHo; restore Inter, add CTA
+
+Restore prior Inter, retain corner logo and no domain. Plain text “Explore the
+artist” sits below the bio; it is not an independently clickable button. KoHo
+assets are removed. Pink is unchanged #FF9CE3 (named token); the navigation logo
+asset is predominantly #FB57C0. Color intent remains unresolved by that token.

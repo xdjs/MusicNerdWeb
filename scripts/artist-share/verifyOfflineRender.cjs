@@ -39,17 +39,6 @@ async function main() {
     const expectedCoverage = shareFontCoverage.flatMap(([start, end]) => Array.from({ length: end - start + 1 }, (_, index) => start + index));
     assert.deepEqual(fonts[0].characterSet.filter(point => fonts.every(font => font.hasGlyphForCodePoint(point))).sort((a,b) => a-b), expectedCoverage);
 
-    for (const [file, hash] of Object.entries({
-        'KoHo-Regular.ttf': 'd9dfeb7f627c7ce3ed9437c8130504daf2644ece5f54a27b9f7930dbdd45ad30',
-        'KoHo-Bold.ttf': 'ad66b62adef88839e0292bbf4a1dfb5d9345826a19a3ffd780d34f7bc669e1b1',
-    })) {
-        const data = readFileSync(path.join(root, 'public/fonts/koho', file));
-        assert.equal(createHash('sha256').update(data).digest('hex'), hash);
-        const font = createFont(data);
-        assert.equal(font.familyName, 'KoHo');
-        assert.deepEqual(font.variationAxes, {});
-    }
-
     let fetchCalls = 0;
     global.fetch = async () => { fetchCalls++; throw new Error('Offline rendering must not fetch fonts, emoji or other assets'); };
     const { renderArtistShareImage } = loadSource('src/server/utils/artistShare/renderArtistShareImage.tsx');
@@ -65,6 +54,7 @@ async function main() {
     assert.notDeepEqual(await render('Björk', 'Björk makes music.'), await render('Björk'));
     assert.deepEqual(await render('Björk', '坂本龍一'), await render('Björk'));
     await render('W'.repeat(90), 'W'.repeat(500));
+    await render('W'.repeat(40), 'W'.repeat(500));
     const fallback = await render('Discover this artist');
     const supported = ['Björk', 'Beyoncé', 'LATASHÁ', 'Sigur Rós', 'Zoë Keating', 'João Gilberto', 'MØ', 'Ólafur Arnalds', 'Artist © ® ™ Œ', 'Dvořák', 'Łona', 'Кино'];
     for (const name of supported) assert.notDeepEqual(await render(name), fallback, `${name} must retain its identity`);
