@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export const metadata = { title: 'Artist share proposal | Music Nerd', robots: { index: false, follow: false } };
@@ -21,7 +22,7 @@ export default function ArtistSharePreviewPage() {
         </section>)}
         <section className="space-y-3"><h2 className="text-xl font-semibold">Real staging profiles</h2>
             <p>Open these profile links to review their live share metadata and public content.</p>
-            <div className="flex flex-wrap gap-4 underline"><a href="/artist/53bac261-74f1-4c69-a826-f275728d7a1f">Radiohead</a><a href="/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b">Dutchyyy</a></div>
+            <div className="flex flex-wrap gap-4 underline"><Link href="/artist/53bac261-74f1-4c69-a826-f275728d7a1f">Radiohead</Link><Link href="/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b">Dutchyyy</Link></div>
         </section>
         <p className="text-sm opacity-70">Illustrative link cards. Each app chooses its own crop and layout. Images refresh on our CDN within an hour; social apps can retain older cards. Open an image to inspect the full-size PNG.</p>
     </main>;
