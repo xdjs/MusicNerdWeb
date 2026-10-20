@@ -46,6 +46,7 @@ function getFaviconUrl(url: string): string {
 
 const TYPE_LABELS: Record<string, string> = {
     article: "Article",
+    website: "Website page",
     interview: "Interview",
     review: "Review",
     profile: "Profile",
@@ -171,9 +172,8 @@ function PodcastCard({ sources }: { sources: VaultSource[] }) {
 }
 
 export default function PressAndFeatures({ sources: allSources }: PressAndFeaturesProps) {
-    // The artist's own site is surfaced beside Links (see OfficialSiteLinks) —
-    // it isn't press, and rendering it here too would show it twice.
-    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => !isDestinationSource(s))), [allSources]);
+    // Primary website destinations live in Links; supporting pages retain their Lore cards.
+    const cards = useMemo(() => groupPodcastSources(allSources.filter((s) => !isDestinationSource(s, allSources))), [allSources]);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 

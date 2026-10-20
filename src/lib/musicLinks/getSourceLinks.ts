@@ -18,6 +18,7 @@ export function getSourceLinks(
   sources: { id: string; url: string; type?: string | null; title?: string | null; podcastEpisodeKey?: string | null; status?: string }[],
   existingLinks: ProfileLink[] = [],
   section: LinkSection = 'links',
+  placementSources = sources,
 ): (ProfileLink & { sourceId: string; kind: 'artist' | 'release' | 'website' })[] {
   const result: (ProfileLink & { sourceId: string; kind: 'artist' | 'release' | 'website' })[] = [];
   const seen = new Set(existingLinks.map(link => link.siteName === 'applemusic' ? 'apple_music' : link.siteName));
@@ -26,7 +27,7 @@ export function getSourceLinks(
   const ordered = [...sources].sort((a, b) => Number(b.type === 'website') - Number(a.type === 'website'));
   for (const source of ordered) {
     const href = normalizePublicUrl(source.url);
-    if (!href || !isDestinationSource(source) || (source.status && source.status !== 'approved')) continue;
+    if (!href || !isDestinationSource(source, placementSources) || (source.status && source.status !== 'approved')) continue;
     const destination = parseMusicDestination(href);
     if (!destination && source.type !== 'website') continue;
     if ((destination?.support ?? false) !== (section === 'support')) continue;

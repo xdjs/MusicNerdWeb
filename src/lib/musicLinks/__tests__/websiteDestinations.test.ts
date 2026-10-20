@@ -1,3 +1,4 @@
+import { canonicalizeDestinationUrl } from '@/lib/links/canonicalizeDestinationUrl';
 import { getSourceLinks } from '../getSourceLinks';
 const site = (id: string, url: string) => ({id, url, type:'website', status:'approved'});
 it('deduplicates serialized website variants while retaining the original href and source identity', () => {
@@ -11,7 +12,7 @@ it('deduplicates equivalent source websites against direct destinations', () => 
 });
 it('preserves distinct paths, query destinations, hostnames and schemes', () => {
  const urls=['https://theelliscourt.com/#/music','https://theelliscourt.com/#/store','https://theelliscourt.com/News','https://theelliscourt.com/news','https://theelliscourt.com/news/','https://theelliscourt.com/?page=1','https://theelliscourt.com/?page=2','https://www.theelliscourt.com/','http://theelliscourt.com/'];
- expect(getSourceLinks(urls.map((url,i)=>site(String(i),url)))).toHaveLength(urls.length);
+ expect(new Set(urls.map(url => canonicalizeDestinationUrl(url))).size).toBe(urls.length);
 });
 it('preserves placement, approval and editorial rules independently of deduplication', () => {
  const records=[site('web','https://theelliscourt.com'),site('support','https://theelliscourt.bandcamp.com'),{...site('press','https://example.com/review'),type:'article'},{...site('pending','https://pending.example.com'),status:'pending'},{...site('rejected','https://rejected.example.com'),status:'rejected'}];
@@ -19,11 +20,15 @@ it('preserves placement, approval and editorial rules independently of deduplica
  expect(getSourceLinks(records,[],'support').map(x=>x.sourceId)).toEqual(['support']);
 });
 
-it('distinguishes the recorded homepage and biography without merging their source identities', () => {
+it('keeps only the recorded homepage in Links without merging source identities', () => {
  const home=site('home','https://theelliscourt.com/');
  const bio=site('bio','https://theelliscourt.com/whats-the-ellis-court-2/');
  expect(getSourceLinks([home,bio])).toEqual([
   expect.objectContaining({sourceId:'home',href:home.url,label:'theelliscourt.com'}),
-  expect.objectContaining({sourceId:'bio',href:bio.url,label:'/whats-the-ellis-court-2/ · theelliscourt.com'}),
  ]);
+});
+
+it('does not promote a supporting page when its main destination is hidden',()=>{
+ const home=site('home','https://artist.example/'),bio=site('bio','https://artist.example/about');
+ expect(getSourceLinks([bio],[],'links',[home,bio])).toEqual([]);
 });

@@ -34,11 +34,11 @@ it.each([false,true])('routes the recorded inventory and a local biography recla
   </EditModeContext.Provider>;
  };
  const {rerender}=render(view(bio));
- expect(within(screen.getByTestId('links')).getAllByRole('link')).toHaveLength(2);
- expect(screen.getByRole('link',{name:'/whats-the-ellis-court-2/ · theelliscourt.com'})).toHaveAttribute('href',bio.url);
+ expect(within(screen.getByTestId('links')).getAllByRole('link')).toHaveLength(1);
+ expect(within(screen.getByTestId('links')).queryByRole('link',{name:/whats-the-ellis/})).toBeNull();
  expect(within(screen.getByTestId('support')).getByRole('link',{name:'Bandcamp'})).toHaveAttribute('href',support.url);
  expect(within(screen.getByTestId('lore')).getByRole('link',{name:/Ellis Court Substack/})).toHaveAttribute('href',substack.url);
- expect(within(screen.getByTestId('lore')).queryByText(bio.title)).toBeNull();
+ expect(within(screen.getByTestId('lore')).getByRole('link',{name:/The Ellis Court biography/})).toHaveAttribute('href',bio.url);
  // Local fixture only: illustrates the existing source-review correction, without changing saved data.
  rerender(view({...bio,type:'article'}));
  expect(within(screen.getByTestId('links')).getAllByRole('link')).toHaveLength(1);

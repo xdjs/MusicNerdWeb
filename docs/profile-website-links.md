@@ -1,14 +1,34 @@
 # Profile website destinations — #1583
 
-Approved website sources belong in Links alongside the other destination icons.
-Support provider classification and genuine editorial Lore retain their existing rules.
-The saved Tim/Skipless walkthrough at 55:15 exposes the homepage and
-`/whats-the-ellis-court-2/` biography, both classified Website. These are distinct
-resources with identical old host labels, not canonical duplicates. Keep both
-destinations, using the path/query/fragment before the host for distinct page labels.
-The biography belongs in Lore only after source review or an accepted classification
-policy; do not infer editorial intent from a non-root path or suppress same-domain pages.
-Substack is an Article in the recording and retains its existing Lore placement.
+Approved main website sources belong in Links alongside the other destination icons.
+Supporting pages belong in Lore, even when their source type records artist-owned Website.
+Pete confirmed this distinction on 2026-10-20 after reviewing the first phone preview.
+The saved walkthrough exposes `https://theelliscourt.com/` and its
+`/whats-the-ellis-court-2/` biography: one globe in Links, biography in Lore.
+
+A shared read-time rule uses the complete approved website inventory: a query/fragment-free
+URL is the main destination for other pages beneath its exact origin and path-segment
+boundary. Thus `/artists/alice/` can be a hosted homepage and `/artists/alice/about`
+a supporting page, without matching `/artists/alice-two/`. Equivalent URLs remain eligible
+for canonical deduplication. Pending/rejected roots never affect approved placement.
+Resolve placement before hidden-link filtering so hiding a homepage cannot promote its
+biography. Known platform/Support/release rules take precedence. Public unclaimed profiles
+continue hiding Lore, including supporting website pages; the editor retains source evidence.
+
+Do not guess a standalone path's purpose from words such as `about`: it may be a hosted
+artist homepage. Without an approved ancestor, ambiguous standalone/sibling pages retain
+existing destination behavior and require source review. No redirects, www aliases, or
+scheme equivalence are guessed.
+
+Ingestion audit: `applyProfileLinkDecisions` uses artist-title ownership to set `website`;
+`insertVaultSource` persists it, and API-owned research can also supply it. Ownership is
+not homepage semantics. Those shared writers and #1424 research are unchanged. The shared
+read-time role applies equally to existing and newly ingested website records, independent
+of arrival order once the main site is approved. No stored URL/type/provenance is changed,
+and no migration or production correction is required for the recorded pair. Raw-type
+consumers outside profile rendering (e.g. research outcome evaluation and private link-review
+history) still see the original ownership classification; they are not public placement proof.
+Substack remains Article/Lore; provider identity work remains outside this change.
 
 Website presentation compares canonical URL serialization (host casing, default ports,
 and root slash) against both direct and source-backed destinations.
@@ -31,6 +51,6 @@ The non-production `/dev/website-links-preview` route compares illustrative befo
 pills with the actual fixed grid using local fixtures. It is disabled on production,
 uses no artist query, and provides no mutation controls in the fixture. The app shell
 still mounts auth/navigation; review logged out and avoid global add/login actions. It reproduces the recorded root/deep-page pair, plus a separate synthetic equivalent
-homepage variant. Integration tests cover Links, Support, public Lore and a local
-biography reclassification. It does not correct persisted source classifications. Later authorization on
+homepage variant. Integration tests cover Links, Support, public Lore and preservation of source identities. The fixture uses the real Lore renderer, not a
+static substitute. It does not rewrite persisted source classifications. Later authorization on
 2026-10-20 permits a feature-branch preview before any main merge.
