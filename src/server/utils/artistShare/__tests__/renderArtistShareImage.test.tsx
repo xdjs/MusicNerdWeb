@@ -13,6 +13,16 @@ describe('renderArtistShareImage', () => {
         expect(html).toContain('Music Nerd');
         expect(html).toContain('data:image/png');
     });
+    test.each(['Björk', 'Beyoncé', 'LATASHÁ'])('passes the supported artist name %s unchanged to the renderer', name => {
+        renderArtistShareImage(name, null);
+        const [element] = (ImageResponse as unknown as jest.Mock).mock.calls.at(-1)!;
+        expect(renderToStaticMarkup(element)).toContain(name);
+    });
+    test('passes NFC-normalized text to the renderer', () => {
+        renderArtistShareImage('Beyonce\u0301', null);
+        const [element] = (ImageResponse as unknown as jest.Mock).mock.calls.at(-1)!;
+        expect(renderToStaticMarkup(element)).toContain('Beyoncé');
+    });
     test('fallback and long names stay bounded and escaped', () => {
         renderArtistShareImage('<script>' + 'Long '.repeat(40), null);
         const [element] = (ImageResponse as unknown as jest.Mock).mock.calls.at(-1)!;

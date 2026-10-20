@@ -15,5 +15,11 @@ layout remain an acceptance check. This is not owner approval.
 
 Existing saved images with another artist UUID in their object filename are omitted
 by the conservative eligibility rule (observed for the copied Dutchyyy staging image).
-Owner review should consider that tradeoff alongside the international-name fallback.
+Owner review should consider that tradeoff alongside the unsupported-glyph fallback.
 Screenshots and exact-commit verification belong on the draft PR, not this branch.
+
+October 20 revision: the blanket ASCII restriction was too broad. Preserve supported
+accented names through NFC normalization and the existing bundled font's exact
+coverage. Composition and font are unchanged; no new font assets or packages.
+The revised gallery adds Björk and Beyoncé; Japanese remains an explicit unsupported
+case. This correction does not imply owner acceptance.

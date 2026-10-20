@@ -1,12 +1,9 @@
 import { ImageResponse } from 'next/og';
+import { getShareArtistName } from '@/lib/artistShare/getShareArtistName';
 
 /** Receives only a public display name and already-normalized image bytes. */
 export function renderArtistShareImage(name: string, portrait: string | null) {
-    // The bundled Latin font must not trigger implicit Google-font/emoji network calls.
-    // Keep the original full name in page metadata; use neutral copy for unsupported scripts.
-    const normalized = name.trim().replace(/\s+/g, ' ') || 'Unknown Artist';
-    const safeName = /^[\x20-\x7e]*$/.test(normalized) ? normalized : 'Discover this artist';
-    const chars = Array.from(safeName);
+    const chars = Array.from(getShareArtistName(name));
     const displayName = chars.length > 90 ? `${chars.slice(0, 89).join('')}…` : chars.join('');
     return new ImageResponse(
         <div style={{ display: 'flex', width: '100%', height: '100%', background: '#101010', color: '#fff', padding: 48, fontFamily: 'sans-serif' }}>
