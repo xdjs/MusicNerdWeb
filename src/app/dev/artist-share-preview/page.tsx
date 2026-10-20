@@ -3,19 +3,25 @@ import PreviousShareStudies from './PreviousShareStudies';
 
 export const metadata = { title: 'Three art directions | Music Nerd', robots: { index: false, follow: false } };
 const artist = '/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6';
-const directions = [
+const previousDirections = [
     { key: 'cover', name: 'The cover', cta: 'read', invitation: 'Read their story', rationale: 'An oversized image and a name across the photograph. A white caption band gives the story its own clean space. The most immediate visual introduction.' },
     { key: 'sleeve', name: 'The sleeve', cta: 'explore', invitation: 'Explore LATASHÁ', rationale: 'A circular image and a diagonal title strip turn the card into a piece of music graphics. The boldest pink silhouette; exploration rather than a playback promise.' },
     { key: 'dossier', name: 'The dossier', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'A photographic print and a pink biography slip overlap like an artist file. The personal introduction joins the image to the story. One source image, no invented archive material.' },
+];
+
+const directions = [
+    { key: 'spotlight', name: 'Spotlight', cta: 'know', invitation: 'Get to know LATASHÁ', rationale: 'A central arched portrait stands between the name and biography. A stage-like composition on pink, with the artist image as the focal point.' },
+    { key: 'sequence', name: 'Sequence', cta: 'read', invitation: 'Read their story', rationale: 'One public photograph repeated as a three-frame sequence, including a closer crop. A wide name and caption make the reading order direct. These are crops of one image, not additional source photographs.' },
+    { key: 'broadcast', name: 'Broadcast', cta: 'explore', invitation: 'Explore LATASHÁ', rationale: 'A pink-washed image, vertical name and angled white caption create a poster-like composition. The strongest departure in image treatment, with a less conventional reading direction.' },
 ];
 
 export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
     return <main className="mx-auto max-w-[1600px] px-5 py-10 text-foreground space-y-12">
         <header className="max-w-3xl space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">Three different ways in.</h1>
-            <p className="text-lg">A cover, a sleeve, an artist dossier. Different shapes and image treatments, using the same LATASHÁ image and the same public biography excerpt.</p>
-            <p className="opacity-70">The earlier designs repeated a split-card structure. These studies change the composition itself. Inter and the genuine corner glasses stay; no separate buttons, invented facts or playback promises.</p>
+            <h1 className="text-4xl font-bold tracking-tight">Three more ways in.</h1>
+            <p className="text-lg">Spotlight, Sequence and Broadcast. Three additional compositions using the same LATASHÁ image and public biography excerpt.</p>
+            <p className="opacity-70">All prior options remain below. Inter and the genuine corner glasses stay; no separate buttons, invented facts or playback promises.</p>
             <nav className="flex flex-wrap gap-5 underline"><a href="#directions">Compare directions</a><a href="#stress">Long-name check</a><a href="#previous">Previous version</a></nav>
         </header>
         <section id="directions" className="grid grid-cols-1 lg:grid-cols-3 gap-7">
@@ -36,9 +42,29 @@ export default function ArtistSharePreviewPage() {
                 </div>
             </article>)}
         </section>
+        <details className="space-y-6 border-t border-gray-500/30 pt-6"><summary className="text-2xl font-bold cursor-pointer">Cover, Sleeve and Dossier / preserved</summary>
+        <section id="first-directions" className="grid grid-cols-1 lg:grid-cols-3 gap-7">
+            {previousDirections.map(d => <article key={d.key} className="space-y-4 min-w-0">
+                <h2 className="text-2xl font-bold">{d.name}</h2>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a className="block border border-gray-500/30 focus-visible:outline focus-visible:outline-2" href={`${artist}/share-image?v=1&layout=${d.key}&palette=logo&cta=${d.cta}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`${artist}/share-image?v=1&layout=${d.key}&palette=logo&cta=${d.cta}`} alt={`${d.name}: LATASHÁ with public bio and ${d.invitation}`} width={1200} height={630} className="w-full h-auto" />
+                </a>
+                <p>{d.rationale}</p><p className="font-semibold">{d.invitation}</p>
+                <div className="flex flex-wrap gap-4 text-sm underline">
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                    <a href={`${artist}/share-image?v=1&layout=${d.key}&palette=pink&cta=${d.cta}`}>Site-token pink alternative</a>
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                    <a href={`/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1&layout=${d.key}&palette=logo&cta=${d.cta}`}>Pete Rango</a>
+                    <a href={`/dev/artist-share-preview/image?case=missing&layout=${d.key}&cta=${d.cta}`}>Missing content</a>
+                </div>
+            </article>)}
+        </section>
+        </details>
         <section className="max-w-3xl space-y-3">
             <h2 className="text-2xl font-bold">The design recommendation</h2>
-            <p>The dossier is the strongest Music Nerd direction: it makes the artist’s story feel like something worth opening, without borrowing the look of a streaming app. The cover is the strongest image-first alternative. The sleeve is the most graphic, but its circular crop is less adaptable across photographs.</p>
+            <p>Spotlight is the strongest new direction: its arch preserves the full pose and creates a clear focal point. “Get to know LATASHÁ” invites discovery without promising playback. Sequence reads directly but repeats one photograph; Broadcast has poster character, but its vertical title is slower to read on a phone. The earlier Dossier remains a strong alternative, not a discarded choice.</p>
             <p>“Get to know LATASHÁ” is a personal introduction. “Read their story” promises the public biography and falls back when it is missing. “Explore LATASHÁ” leaves the route open to the profile’s music links and context. These are three different invitations, not independent buttons.</p>
             <p className="text-sm opacity-70">The public artist image is artwork, not a newly generated portrait. All excerpts use the same text limit and preserve the original wording. Shown at social-card proportions; open a card for its native 1200 × 630 image. This is a proposal awaiting review.</p>
         </section>

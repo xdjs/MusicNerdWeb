@@ -82,3 +82,7 @@ The next comparison changes silhouette, hierarchy and image treatment, not spaci
 - Dossier: tilted photographic print over a white page, name spanning the top and a pink biography slip across the lower middle. Invitation: “Get to know [artist]”. No invented metadata, dates, issue numbers or extra photographs.
 
 Inter regular/bold; white #FFFFFF, ink #171717, actual logo pink #FB57C0, separately labeled site token #FF9CE3. Genuine glasses unboxed at bottom right. Each preview receives the same contiguous public excerpt limit; no private data or public-content gate changes. Long-name/public-bio stress examples are explicitly synthetic. Prior gallery retained. Recommendation follows actual render critique; no owner approval implied.
+
+### Three additional concepts requested
+
+Retain all earlier studies and compare three new silhouettes with the same LATASHÁ public content: Spotlight (central arch and flank typography), Sequence (one photograph deliberately repeated across three frames, not three different photos), Broadcast (pink-washed full image, vertical name and angled white biography panel). Inter and the existing pink references remain; public eligibility/cache/default metadata stay unchanged. Each gets the same 100-character public excerpt limit. Visual critique and stress checks precede publication.

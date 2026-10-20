@@ -30,7 +30,7 @@ test('gallery preserves the reference and compares three compositions and invita
     process.env.VERCEL_ENV = 'preview';
     try {
         const html = renderToStaticMarkup(ArtistSharePreviewPage());
-        for (const layout of ['editorial', 'portrait', 'profile', 'story']) expect(html).toContain(`layout=${layout}`);
+        for (const layout of ['editorial', 'portrait', 'profile', 'story', 'cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast']) expect(html).toContain(`layout=${layout}`);
         for (const cta of ['know', 'music', 'meet', 'explore', 'story']) expect(html).toContain(`cta=${cta}`);
         expect(html).toContain('Earlier candidate / unchanged');
         expect(html).toContain('share-image?v=1&amp;palette=logo');

@@ -1,3 +1,4 @@
+import { renderArtistAdditionalDirection } from './renderArtistAdditionalDirection';
 import { renderArtistArtDirection } from './renderArtistArtDirection';
 import { renderArtistStoryProposal } from './renderArtistStoryProposal';
 import { ImageResponse } from 'next/og';
@@ -7,7 +8,8 @@ import { getShareCallToAction } from '@/lib/artistShare/getShareCallToAction';
 import { shareGlasses, shareImageFonts } from './shareImageAssets';
 
 /** Preview-only composition studies. Inputs have already passed the public-content boundary. */
-export function renderArtistShareProposal(name: string, portrait: string | null, publicBio: string | null | undefined, layout: 'editorial' | 'portrait' | 'profile' | 'story' | 'cover' | 'sleeve' | 'dossier', palette: 'white' | 'logo' | 'pink' = 'white', cta: 'know' | 'music' | 'meet' | 'explore' | 'story' | 'read' = 'know') {
+export function renderArtistShareProposal(name: string, portrait: string | null, publicBio: string | null | undefined, layout: 'editorial' | 'portrait' | 'profile' | 'story' | 'cover' | 'sleeve' | 'dossier' | 'spotlight' | 'sequence' | 'broadcast', palette: 'white' | 'logo' | 'pink' = 'white', cta: 'know' | 'music' | 'meet' | 'explore' | 'story' | 'read' = 'know') {
+    if (layout === 'spotlight' || layout === 'sequence' || layout === 'broadcast') return renderArtistAdditionalDirection(name, portrait, publicBio, layout, palette, cta);
     if (layout === 'cover' || layout === 'sleeve' || layout === 'dossier') return renderArtistArtDirection(name, portrait, publicBio, layout, palette, cta);
     if (layout === 'story') return renderArtistStoryProposal(name, portrait, publicBio, palette === 'pink' ? 'white' : palette, cta === 'read' ? 'know' : cta);
     const chars = Array.from(getShareArtistName(name));
