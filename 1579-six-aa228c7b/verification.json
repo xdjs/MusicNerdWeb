@@ -1,0 +1,594 @@
+{
+  "images": [
+    {
+      "case": "pete",
+      "status": 200,
+      "bytes": 58512,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-logo",
+      "status": 200,
+      "bytes": 74785,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-pink",
+      "status": 200,
+      "bytes": 73297,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-pete",
+      "status": 200,
+      "bytes": 57411,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-stress",
+      "status": 200,
+      "bytes": 68548,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-missing",
+      "status": 200,
+      "bytes": 22391,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-accent",
+      "status": 200,
+      "bytes": 17577,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "manifesto-unicode",
+      "status": 200,
+      "bytes": 19831,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-logo",
+      "status": 200,
+      "bytes": 140771,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-pink",
+      "status": 200,
+      "bytes": 139193,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-pete",
+      "status": 200,
+      "bytes": 68216,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-stress",
+      "status": 200,
+      "bytes": 69723,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-missing",
+      "status": 200,
+      "bytes": 37486,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-accent",
+      "status": 200,
+      "bytes": 33924,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "orbit-unicode",
+      "status": 200,
+      "bytes": 36451,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-logo",
+      "status": 200,
+      "bytes": 106042,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-pink",
+      "status": 200,
+      "bytes": 105820,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-pete",
+      "status": 200,
+      "bytes": 52936,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-stress",
+      "status": 200,
+      "bytes": 60277,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-missing",
+      "status": 200,
+      "bytes": 24335,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-accent",
+      "status": 200,
+      "bytes": 20668,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "checkerboard-unicode",
+      "status": 200,
+      "bytes": 23856,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-logo",
+      "status": 200,
+      "bytes": 143896,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-pink",
+      "status": 200,
+      "bytes": 142886,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-pete",
+      "status": 200,
+      "bytes": 75450,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-stress",
+      "status": 200,
+      "bytes": 53454,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-missing",
+      "status": 200,
+      "bytes": 24595,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-accent",
+      "status": 200,
+      "bytes": 19783,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "panorama-unicode",
+      "status": 200,
+      "bytes": 21003,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-logo",
+      "status": 200,
+      "bytes": 82041,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-pink",
+      "status": 200,
+      "bytes": 81939,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-pete",
+      "status": 200,
+      "bytes": 57300,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-stress",
+      "status": 200,
+      "bytes": 63401,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-missing",
+      "status": 200,
+      "bytes": 32228,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-accent",
+      "status": 200,
+      "bytes": 28126,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "monogram-unicode",
+      "status": 200,
+      "bytes": 26110,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-logo",
+      "status": 200,
+      "bytes": 116769,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-pink",
+      "status": 200,
+      "bytes": 115749,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-pete",
+      "status": 200,
+      "bytes": 52761,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-stress",
+      "status": 200,
+      "bytes": 59659,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "HIT"
+    },
+    {
+      "case": "margin-missing",
+      "status": 200,
+      "bytes": 24195,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-accent",
+      "status": 200,
+      "bytes": 20504,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "margin-unicode",
+      "status": 200,
+      "bytes": 24124,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-editorial",
+      "status": 200,
+      "bytes": 59426,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "HIT"
+    },
+    {
+      "case": "prior-portrait",
+      "status": 200,
+      "bytes": 75203,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-profile",
+      "status": 200,
+      "bytes": 55940,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-story",
+      "status": 200,
+      "bytes": 56947,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "HIT"
+    },
+    {
+      "case": "prior-cover",
+      "status": 200,
+      "bytes": 79531,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-sleeve",
+      "status": 200,
+      "bytes": 72532,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-dossier",
+      "status": 200,
+      "bytes": 80072,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-spotlight",
+      "status": 200,
+      "bytes": 63824,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-sequence",
+      "status": 200,
+      "bytes": 76381,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    },
+    {
+      "case": "prior-broadcast",
+      "status": 200,
+      "bytes": 105503,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "cache": "public, max-age=3600",
+      "cdn": "MISS"
+    }
+  ],
+  "metadata": {
+    "og:title": "Pete Rango | Music Nerd",
+    "og:description": "Pete Rango is a Colombian-born music producer, audio engineer, and creative director working in the United States, known for composing and producing soundscapes that enhance storytelling and create emotional connections.",
+    "og:image": "https://app-rmu3knpuf-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1",
+    "twitter:card": "summary_large_image",
+    "twitter:image": "https://app-rmu3knpuf-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=1"
+  }
+}
