@@ -1,3 +1,5 @@
+import { getShareProposalOptions } from '@/lib/artistShare/getShareProposalOptions';
+import { renderArtistShareProposal } from '@/server/utils/artistShare/renderArtistShareProposal';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { artistSharePreviewCases } from '../artistSharePreviewCases';
@@ -14,5 +16,6 @@ export async function GET(request: Request) {
         : null;
     const requestedPalette = new URL(request.url).searchParams.get('palette');
     const palette = requestedPalette === 'pink' || requestedPalette === 'logo' ? requestedPalette : 'white';
-    return renderArtistShareImage(example.name, portrait, null, palette);
+    const proposal = getShareProposalOptions(new URL(request.url).searchParams, true);
+    return proposal ? renderArtistShareProposal(example.name, portrait, null, proposal.layout, proposal.palette, proposal.cta) : renderArtistShareImage(example.name, portrait, null, palette);
 }

@@ -1,3 +1,5 @@
+jest.mock('@/server/utils/artistShare/renderArtistShareProposal', () => ({ renderArtistShareProposal: jest.fn(() => new Response('proposal')) }));
+import { renderArtistShareProposal } from '@/server/utils/artistShare/renderArtistShareProposal';
 jest.mock('@/server/utils/artistShare/getSharePublicBio', () => ({ getSharePublicBio: jest.fn().mockResolvedValue(null) }));
 import { getSharePublicBio } from '@/server/utils/artistShare/getSharePublicBio';
 /** @jest-environment node */
@@ -68,5 +70,27 @@ describe('artist share image', () => {
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         expect((await run()).status).toBe(200);
         expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null, null, 'white');
+    });
+});
+
+describe('preview proposal selection', () => {
+    const previous = process.env.VERCEL_ENV;
+    afterEach(() => { if (previous === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = previous; });
+    test.each(['preview', 'production'])('proposals are isolated from %s defaults', async environment => {
+        jest.clearAllMocks();
+        process.env.VERCEL_ENV = environment;
+        (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Pete Rango', bio: 'PRIVATE' });
+        (getSharePublicBio as jest.Mock).mockResolvedValue('Eligible public bio.');
+        (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
+        (loadSharePortrait as jest.Mock).mockResolvedValue(null);
+        const response = await GET(new Request('https://example.com?layout=editorial&palette=logo&cta=meet'), { params: Promise.resolve({ id }) });
+        expect(response.status).toBe(200);
+        if (environment === 'preview') {
+            expect(renderArtistShareProposal).toHaveBeenCalledWith('Pete Rango', null, 'Eligible public bio.', 'editorial', 'logo', 'meet');
+            expect(renderArtistShareImage).not.toHaveBeenCalled();
+        } else {
+            expect(renderArtistShareProposal).not.toHaveBeenCalled();
+            expect(renderArtistShareImage).toHaveBeenCalledWith('Pete Rango', null, 'Eligible public bio.', 'logo');
+        }
     });
 });

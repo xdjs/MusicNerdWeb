@@ -58,3 +58,9 @@ asset is predominantly #FB57C0. Color intent remains unresolved by that token.
 Present #FB57C0 from the navigation logo alongside named token #FF9CE3. Recommend
 logo pink as the likely intended match without claiming Pete selected either hex.
 Both use restored Inter, plain CTA, public portrait/bio and bottom-right glasses.
+
+## 2026-10-20 — Three composition studies and CTA comparison
+
+Pete requested further design and invitation exploration after the Inter/color preview. The gallery now preserves that exact candidate as a reference and adds three preview-only compositions: text-led editorial (portrait right), portrait-led (full-height image left / text panel right), and compact profile (large name / circular portrait / broad bio). Each has white and #FB57C0 versions. Inter remains; KoHo stays removed. The gallery separately compares the same editorial composition with “Get to know Pete Rango”, “Explore their music”, and “Meet Pete Rango”. “Get to know” is the proposed recommendation, not owner acceptance. Longer or unsupported names use “the artist”; unsupported name text still follows the documented neutral fallback. The music wording means exploring profile links, not an embedded player.
+
+New `layout`/`cta` query options are explicitly enabled only on development/preview deployments. Default profile metadata and the earlier renderer remain the reference. No changes to identity, public-content gates, image eligibility or refresh policy. Owner choice and approval are still required before merge/production.

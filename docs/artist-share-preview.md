@@ -119,3 +119,9 @@ Typography, portrait, bio, CTA and corner glasses remain identical across palett
 On logo pink, bio/CTA ink is #171717 (about6.17:1 contrast) rather than the
 #343434 used on the lighter palettes (about4.28:1 on logo pink). This keeps the
 small invitation readable without button styling.
+
+### 2026-10-20 — layout and CTA exploration (owner request)
+
+Keep the existing candidate unchanged as the comparison reference. Preview-only `layout=editorial|portrait|profile` proposals reuse the same public-content gate, portrait loader, Inter files and real glasses. Editorial puts text before a separate portrait; portrait-led gives the image a full-height area alongside a clean panel; compact profile leads with a broad name and a small circular portrait. Only white and navigation-logo pink #FB57C0 are used for new proposals. No choice is approved.
+
+Compare `cta=know|music|meet`: “Get to know [artist]”, “Explore their music”, and “Meet [artist]”. Personalized copy uses NFC-supported names up to 16 characters; longer/unsupported names use “the artist” rather than a clipped identity. Music wording describes exploring profile links, not playback. CTAs remain plain image text. The canonical share metadata and default card remain the existing reference. Explicit proposal selection is ignored outside development/Vercel preview. No new data access, credentials or writes.

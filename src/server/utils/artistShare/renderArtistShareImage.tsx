@@ -1,14 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { shareGlasses as brandLogo, shareImageFonts } from './shareImageAssets';
 import { getShareBioExcerpt } from '@/lib/artistShare/getShareBioExcerpt';
 import { ImageResponse } from 'next/og';
 import { getShareArtistName } from '@/lib/artistShare/getShareArtistName';
-
-// Exact repository artwork, embedded locally: no asset/font request during rendering.
-const brandLogo = `data:image/png;base64,${readFileSync(join(process.cwd(), 'public/music-nerd-shades.png')).toString('base64')}`;
-
-const regularFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-Regular.ttf'));
-const boldFont = readFileSync(join(process.cwd(), 'public/fonts/inter/Inter-Bold.ttf'));
 
 /** Receives only public display content and already-normalized portrait bytes. */
 export function renderArtistShareImage(name: string, portrait: string | null, publicBio?: string | null, palette: 'white' | 'pink' | 'logo' = 'white') {
@@ -41,9 +34,6 @@ export function renderArtistShareImage(name: string, portrait: string | null, pu
                     <img src={brandLogo} alt="Music Nerd glasses" width={100} height={71} />
             </div>
         </div>,
-        { width: 1200, height: 630, fonts: [
-            { name: 'Inter', data: regularFont, weight: 400, style: 'normal' },
-            { name: 'Inter', data: boldFont, weight: 700, style: 'normal' },
-        ], headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } },
+        { width: 1200, height: 630, fonts: shareImageFonts, headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } },
     );
 }

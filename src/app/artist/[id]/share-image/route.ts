@@ -1,3 +1,5 @@
+import { getShareProposalOptions } from '@/lib/artistShare/getShareProposalOptions';
+import { renderArtistShareProposal } from '@/server/utils/artistShare/renderArtistShareProposal';
 import { getSharePublicBio } from '@/server/utils/artistShare/getSharePublicBio';
 import { getArtistById } from '@/server/utils/queries/artistQueries';
 import { musicPlatformData } from '@/server/utils/musicPlatform';
@@ -10,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const requestedPalette = new URL(request.url).searchParams.get('palette');
     const palette = requestedPalette === 'pink' || requestedPalette === 'logo' ? requestedPalette : 'white';
+    const proposal = getShareProposalOptions(new URL(request.url).searchParams, process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview');
     const { id } = await params;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
         return new Response('Artist not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
@@ -24,7 +27,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         // Finish rendering before returning so a failed render cannot stream a broken card.
         let bytes: ArrayBuffer;
         try {
-            bytes = await renderArtistShareImage(artist.name ?? 'Unknown Artist', portrait, publicBio, palette).arrayBuffer();
+            bytes = await (proposal
+                ? renderArtistShareProposal(artist.name ?? 'Unknown Artist', portrait, publicBio, proposal.layout, proposal.palette, proposal.cta)
+                : renderArtistShareImage(artist.name ?? 'Unknown Artist', portrait, publicBio, palette)).arrayBuffer();
         } catch {
             bytes = await renderArtistShareImage('Discover this artist', null, null, palette).arrayBuffer();
         }
