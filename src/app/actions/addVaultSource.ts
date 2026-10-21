@@ -13,6 +13,7 @@ import { canonicalizeLoreUrl } from "@/lib/source/canonicalizeLoreUrl";
 import { podcastService } from "@/lib/source/podcastService";
 import { fetchPageContent, isUnsafeUrl } from "@/server/utils/fetchPageContent";
 import { fetchLinkPreview } from "@/server/utils/linkPreview";
+import { isThumbnailPreviewTest } from "@/server/utils/source/isThumbnailPreviewTest";
 
 export async function addVaultSource(
     artistId: string,
@@ -35,6 +36,13 @@ export async function addVaultSource(
         }
 
         url = normalizedUrl;
+
+        // Capture before network/write work: expiry during a slow fetch must
+        // never turn this explicitly unpaid test into a paid Lore refresh.
+        const thumbnailTest = isThumbnailPreviewTest(artistId, url, true);
+        if (thumbnailTest && !isThumbnailPreviewTest(artistId, url)) {
+            return { success: false, error: 'Thumbnail preview test expired; no source was added.' };
+        }
 
         const existing = await getVaultSourceUrlsByArtistId(artistId);
         if (existing.some(sourceUrl => canonicalizeLoreUrl(sourceUrl) === url)) {
@@ -78,7 +86,9 @@ export async function addVaultSource(
         }
 
         let warning: string | undefined;
-        if (source.status === "approved") {
+        if (source.status === "approved" && thumbnailTest) {
+            warning = 'Thumbnail preview test: source saved; paid AI Lore rewrite intentionally skipped.';
+        } else if (source.status === "approved") {
             try { await queueLoreRefresh(artistId, claimId, { userId: session.user.id, trigger: "source_submission" }); }
             catch (error) {
                 console.error('[addVaultSource] Source saved; Lore enqueue failed', error);

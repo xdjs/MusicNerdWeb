@@ -90,3 +90,23 @@ unchanged.
 ### Local extraction demonstration (2026-10-21)
 
 The review page's biography card uses the actual HTTPS `og:image` returned by MusicNerdAPI's guarded reader for the linked Ellis Court biography on 2026-10-21, recorded in `ellisCourtPreview.json`. It loads that remote source image through the normal Lore renderer. This is a captured extraction result, not a live scrape on each render and not a saved staging artist source. API extraction remains in MusicNerdAPI. The page explicitly separates this demonstration from the still-pending authenticated saved-ingestion test. Missing and broken image fixtures remain separately labeled. No unrelated test artwork or account logo is used for the biography.
+
+### Temporary preview-only thumbnail integration experiment (2026-10-21)
+
+Local experiment only; remove this experiment and its configuration before merge.
+`MN_THUMBNAIL_TEST_SCOPE` is a server-only JSON object with one `artistId`, exact
+canonical `url`, and numeric `expiresAt` (milliseconds). It activates only on
+Vercel Preview for `codex/1583-suggestion-routing`, with at most 24 hours remaining.
+For that one source, owner submission retains normal authorization, image metadata,
+transactional insertion and `source_extract` scheduling, but does not enqueue the
+paid AI Lore rewrite. The response explicitly reports the skipped rewrite. Removal
+of that exact source also skips rewrite, including after expiry. Other source URLs,
+artists, branches and production retain their normal behavior. Keep the same preview
+and scope configuration until test cleanup is verified; do not use bulk removal.
+
+This does not cancel or suppress existing jobs. Before activation, verify that no
+existing Lore job can consume the temporary source or be advanced by the test UI.
+Do not call the general research advance endpoint, which may execute unrelated paid
+jobs. Source extraction alone has no model call. Deployed extraction requires an
+independently verified safe worker route. This experiment is not a dollar cap and
+must not be represented as AI-rewrite or non-admin authorization coverage.
