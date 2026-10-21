@@ -34,8 +34,6 @@ export default function LatestCardImage({ item, artistImage, artistName, detail 
                 if (width > 0 && height > 0) setLoadedSize({ src, width, height });
             }}
             onError={() => setFailed(previous => [...previous, src])} />}
-        {/* Fade the actual artwork into the dialog's black surface, without copying or stretching it. */}
-        {!release && <div aria-hidden="true" className="absolute inset-x-0 -bottom-px h-[clamp(6rem,40%,12rem)] max-h-full"
-            style={{ background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,.2) 20%, rgba(0,0,0,.75) 55%, #000 95%)' }} />}
+
     </div>;
 }

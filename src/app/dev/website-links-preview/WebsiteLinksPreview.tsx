@@ -6,10 +6,11 @@ import { Globe, ExternalLink } from 'lucide-react';
 import SortableArtistLinks from '@/app/_components/SortableArtistLinks';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 import { getSourceLinks } from '@/lib/musicLinks/getSourceLinks';
+import ellisCourtPreview from './ellisCourtPreview.json';
 
 const sources = [
     { id: 'website-one', url: 'https://theelliscourt.com', type: 'website', status: 'approved' },
-    { id: 'website-two', title: 'The Ellis Court biography', ogImage: '/demo/pete-rango-logo.png', url: 'https://theelliscourt.com/whats-the-ellis-court-2/', type: 'website', status: 'approved' },
+    { id: 'website-two', title: 'The Ellis Court biography', ogImage: ellisCourtPreview.imageUrl, url: ellisCourtPreview.sourceUrl, type: 'website', status: 'approved' },
     { id: 'equivalent-home', url: 'https://THEELLISCOURT.com:443/', type: 'website', status: 'approved' },
     { id: 'support', url: 'https://theelliscourt.bandcamp.com', type: 'profile', status: 'approved' },
     { id: 'editorial', url: 'https://example.com/artist-interview', type: 'interview', title: 'Artist interview', status: 'approved' },
@@ -38,7 +39,7 @@ export default function WebsiteLinksPreview() {
                 <p className="text-sm text-muted-foreground">Only the main website appears in Links. Its biography page appears in Lore below. An equivalent homepage fixture is deduplicated. Website review/removal stays in Lore. Pending websites stay private. Support is read-only in this fixture.</p>
             </section>
         </EditModeContext.Provider>
-        <section className="glass space-y-2 p-5" aria-label="Lore fixture"><h2 className="text-xl font-bold">Lore · supporting pages and editorial sources</h2><p className="text-sm text-muted-foreground">Thumbnail fixtures: the biography uses a local demo image, not artwork extracted from that site. The other website cards exercise missing metadata and a deliberately broken image. These use the real Lore renderer.</p><PressAndFeatures sources={sources.filter(source => source.status === 'approved')} /></section>
+        <section className="glass space-y-2 p-5" aria-label="Lore fixture"><h2 className="text-xl font-bold">Lore · supporting pages and editorial sources</h2><p className="text-sm text-muted-foreground">The biography shows the image declared by its actual webpage, extracted by MusicNerdAPI on {ellisCourtPreview.capturedOn}. This captured extraction result uses the real Lore renderer; saving a new link on staging is not yet verified. The other cards are labeled missing-image and broken-image tests.</p><PressAndFeatures sources={sources.filter(source => source.status === 'approved')} /></section>
         <p className="text-sm">Routing uses the approved main website as an anchor, including homepages hosted under a path. Supporting pages retain their original URLs and provenance. This fixture uses the real Links and Lore renderers without changing artist data.</p>
     </div>;
 }
