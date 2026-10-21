@@ -1,3 +1,4 @@
+import { getApprovedWebsiteInventory } from './getApprovedWebsiteInventory';
 import { approveSourceBackedUgc } from './approveSourceBackedUgc';
 import { sql } from 'drizzle-orm';
 import { db } from '@/server/db/drizzle';
@@ -26,8 +27,9 @@ export async function reviewArtistLinkSuggestion(artistId: string, userId: strin
     if (!row) throw new ArtistLinkConflictError('This suggestion is no longer available. Refresh the profile.');
     const url = String(input.kind==='ugc'?row.ugc_url:row.url);
     const destination = parseMusicDestination(url);
+    const websites = input.kind === 'source' ? await getApprovedWebsiteInventory(tx, artistId) : [];
     const sourceBacked = destination?.kind==='artist' && ['apple_music','beatport'].includes(destination.platform);
-    if (destination?.kind==='release' || (input.kind==='source' && !isDestinationSource({url,type:row.type as string|null,podcastEpisodeKey:row.podcast_episode_key as string|null}))) throw new ArtistLinkConflictError('This is not an artist profile link. Review it in Lore.');
+    if (destination?.kind==='release' || (input.kind==='source' && !isDestinationSource({url,type:row.type as string|null,podcastEpisodeKey:row.podcast_episode_key as string|null}, websites))) throw new ArtistLinkConflictError('This is not an artist profile link. Review it in Lore.');
     if (input.decision==='remove') {
       if (input.kind!=='source' || row.status!=='approved') throw new ArtistLinkConflictError('Only an approved source link can be removed here.');
       await recordArtistActivity(artistId,'link_hidden',{userId,sourceId:input.id,trigger:'artist_link_review'},tx);

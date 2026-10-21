@@ -1,3 +1,4 @@
+import { getApprovedWebsiteInventory } from './getApprovedWebsiteInventory';
 import { sql } from 'drizzle-orm';
 import { db } from '@/server/db/drizzle';
 import { isDestinationSource } from '@/lib/musicLinks/isDestinationSource';
@@ -10,6 +11,7 @@ export async function getArtistLinkSuggestions(artistId: string, userId: string,
   if (!Number.isSafeInteger(offset) || offset<0 || offset>100000) throw new Error('Invalid page offset');
   return db.transaction(async tx => {
     await lockLinkReview(tx, artistId, userId);
+    const websites = await getApprovedWebsiteInventory(tx, artistId);
     const rows = await tx.execute(sql`with suggestions as (
       select g.id,'ugc' as kind,g.ugc_url as url,g.site_name as title,g.site_name as platform,
         case when g.accepted then 'approved' when g.date_processed is not null then 'rejected' else 'pending' end as status,
@@ -30,7 +32,7 @@ export async function getArtistLinkSuggestions(artistId: string, userId: string,
     for (const row of rows.slice(0,100)) {
       const url = String(row.url ?? '');
       const destination = parseMusicDestination(url);
-      if (!url || destination?.kind === 'release' || (row.kind === 'source' && !isDestinationSource({url,type:row.type as string|null}))) continue;
+      if (!url || destination?.kind === 'release' || (row.kind === 'source' && !isDestinationSource({url,type:row.type as string|null}, websites))) continue;
       items.push({id:String(row.id),kind:row.kind as 'ugc'|'source',url,title:String(row.title ?? destination?.label ?? 'Website'),platform:String(row.platform ?? destination?.platform ?? 'website'),
         hidden:row.review_action==='link_hidden',status:row.status as LinkSuggestion['status'],origin:String(row.origin), submittedAt:row.submitted_at ? new Date(row.submitted_at instanceof Date ? row.submitted_at.getTime() : String(row.submitted_at)).toISOString():null,
         suggestedBy:{id:row.user_id && !row.is_hidden ? String(row.user_id):null,name:row.origin==='research'?'Automated research':row.user_id && !row.is_hidden?getUserDisplayName({username:row.username as string|null,wallet:row.wallet as string|null}):'Not recorded'},

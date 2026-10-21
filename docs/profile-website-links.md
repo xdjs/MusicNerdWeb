@@ -74,3 +74,15 @@ change and require a separate reviewed correction.
 Lore also checks already-completed failed images when attaching the image node,
 so failures before hydration reveal the fallback. Image nodes are keyed by URL
 so replacing a failed thumbnail retries the new URL.
+
+### Suggested-link review consistency
+
+The private suggestion list and decision endpoint read the same artist's complete
+approved website inventory after acquiring the existing ownership/review lock.
+Supporting pages are excluded from Suggested links and reviewed through Lore;
+`Add to Links` remains reserved for artist destinations. Stale link actions for a
+page that now belongs in Lore are rejected with `Review it in Lore` before any
+status, activity or extraction-job write. Homepage anchors are independent of
+suggestion pagination and visibility; pending, podcast and other-artist records
+cannot anchor this classification. URLs, source attribution and moderation are
+unchanged.
