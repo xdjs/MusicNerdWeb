@@ -1,3 +1,5 @@
+import type { CatalogWriteEvidence } from '../providerIdentity/types';
+import { writeVerifiedCatalogLink } from '../providerIdentity/writeVerifiedCatalogLink';
 import { cancelSpotifyMatchForIdentityEdit } from '../spotify/cancelSpotifyMatchForIdentityEdit';
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
@@ -19,6 +21,7 @@ async function setArtistLinkWithExecutor(
   columnName: string,
   value: string,
   selfEditUrl?: string,
+  evidence?: CatalogWriteEvidence,
 ): Promise<{ oldValue: string | null; artistName: string | null }> {
   // Fetch full row to capture oldValue for audit trail (MCP callers use the return value)
   const artist = await database.query.artists.findFirst({
@@ -66,15 +69,18 @@ async function setArtistLinkWithExecutor(
     }
   }
 
-  if (oldValue !== value && (columnName === 'spotify' || columnName === 'deezer')) {
-    await cancelSpotifyMatchForIdentityEdit(database, artistId);
-  }
-
   // Update the link column only. We intentionally do NOT null or regenerate the
   // bio on link changes — that overwrote artist edits and re-ran generation on
   // every UGC/agent submission. The About refreshes on explicit regenerate, or
   // lazily when it's absent (see the artistBio route).
-  await database.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value} WHERE id = ${artistId}`);
+  if (evidence) {
+    await writeVerifiedCatalogLink(database, artistId, columnName, value, evidence);
+  } else {
+    await database.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = ${value} WHERE id = ${artistId}`);
+  }
+  if (oldValue !== value && (columnName === 'spotify' || columnName === 'deezer')) {
+    await cancelSpotifyMatchForIdentityEdit(database, artistId);
+  }
 
   if (selfEditUrl && oldValue !== value) {
     await recordArtistSelfEdit(database, artistId, columnName, oldValue, value, selfEditUrl);
@@ -88,6 +94,7 @@ export async function setArtistLink(
   value: string,
   selfEditUrl?: string,
   transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  evidence?: CatalogWriteEvidence,
 ): Promise<{ oldValue: string | null; artistName: string | null }> {
   if (selfEditUrl && !getArtistOperationOwnership(artistId)?.userId) {
     throw new Error("Self-edit recording requires an authenticated artist operation");
@@ -104,7 +111,7 @@ export async function setArtistLink(
       await acquireArtistPlatformWriteLocks(transaction, artistId, columnName, value);
     }
     await lockScopedArtistWrite(transaction, artistId);
-    return setArtistLinkWithExecutor(transaction, artistId, columnName, value, selfEditUrl);
+    return setArtistLinkWithExecutor(transaction, artistId, columnName, value, selfEditUrl, evidence);
   }
 
   if (columnName === "spotify" || columnName === "deezer") {
@@ -116,9 +123,9 @@ export async function setArtistLink(
         value,
       );
       await lockScopedArtistWrite(transaction, artistId);
-      return setArtistLinkWithExecutor(transaction, artistId, columnName, value, selfEditUrl);
+      return setArtistLinkWithExecutor(transaction, artistId, columnName, value, selfEditUrl, evidence);
     });
   }
 
-  return withScopedArtistWrite(artistId, tx => setArtistLinkWithExecutor(tx, artistId, columnName, value, selfEditUrl));
+  return withScopedArtistWrite(artistId, tx => setArtistLinkWithExecutor(tx, artistId, columnName, value, selfEditUrl, evidence));
 }
