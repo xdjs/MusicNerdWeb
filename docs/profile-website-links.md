@@ -110,3 +110,6 @@ Do not call the general research advance endpoint, which may execute unrelated p
 jobs. Source extraction alone has no model call. Deployed extraction requires an
 independently verified safe worker route. This experiment is not a dollar cap and
 must not be represented as AI-rewrite or non-admin authorization coverage.
+# Temporary preview queue inspection
+
+The guarded `/dev/thumbnail-test-status` view uses the configured test artist, the existing server-session edit authorization, and the existing Privy-authenticated API read client. Active preview scope and edit authorization are rechecked before every page read. It paginates the research-status endpoint and displays only extraction-job IDs, status and progress. Failures or incomplete pagination are never an empty queue. It has no mutation or worker controls. Remove this diagnostic with the temporary test suppression before merge.
