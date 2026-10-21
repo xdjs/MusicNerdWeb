@@ -4,7 +4,8 @@ import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { EditModeContext } from '@/app/_components/EditModeContext';
 import type { ArtistVaultSource } from '@/server/db/DbTypes';
-import OfficialSiteLinks from '../OfficialSiteLinks';
+import SortableArtistLinks from '@/app/_components/SortableArtistLinks';
+import { getSourceLinks } from '@/lib/musicLinks/getSourceLinks';
 import VaultSection from '../VaultSection';
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh: jest.fn() }) }));
@@ -33,7 +34,7 @@ function view(type: string, status: ArtistVaultSource['status'], url = moving.ur
   const approvedSources = [website, article, ...(status === 'approved' ? [entry] : [])];
   const pendingSources = status === 'pending' ? [entry] : [];
   return <EditModeContext.Provider value={editing}>
-    <div data-testid="links-editor"><OfficialSiteLinks artistId="artist-1" sources={approvedSources} pendingSources={pendingSources} /></div>
+    <div data-testid="links-editor"><SortableArtistLinks artistId="artist-1" section="links" links={[]} supplementalLinks={getSourceLinks(approvedSources)} canEdit /></div>
     <div data-testid="lore-editor"><VaultSection artistId="artist-1" isClaimed approvedSources={approvedSources} pendingSources={pendingSources} /></div>
   </EditModeContext.Provider>;
 }

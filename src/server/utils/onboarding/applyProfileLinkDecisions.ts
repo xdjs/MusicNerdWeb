@@ -156,6 +156,7 @@ export async function applyProfileLinkDecisions(
                     artistId,
                     url: raw.url,
                     title: preview.title ?? undefined,
+                    ogImage: preview.imageUrl,
                     // `ownedByArtist` means the artist handed us this URL AND
                     // the page's own title carries their name — that is the
                     // artist's official site, so record it as such instead of

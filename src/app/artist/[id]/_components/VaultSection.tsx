@@ -33,7 +33,7 @@ export default function VaultSection({ artistId, isClaimed, autoApprove = false,
   const { isEditing, canEdit, toggle, suspendedEditMode, editingBlocked } = edit;
   const retainEditor = (canEdit && isEditing) || !!suspendedEditMode;
   const [collapsed, setCollapsed] = useState(false);
-  const pendingLore = pendingSources.filter(source => !isDestinationSource(source));
+  const pendingLore = pendingSources.filter(source => !isDestinationSource(source, approvedSources));
   const approvedLore = approvedSources;
 
   return (

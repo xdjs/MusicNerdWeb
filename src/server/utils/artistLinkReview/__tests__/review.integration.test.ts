@@ -158,3 +158,41 @@ it('prefers attributed review activity over a legacy processing timestamp',async
  await client.query("insert into artist_activity_events(artist_id,source_id,actor_user_id,actor_kind,action,trigger,created_at)values($1,$2,$3,'user','link_rejected','artist_link_review','2026-10-06 09:15:00Z')",[artist,result.rows[0].id,admin]);
  expect((await list(artist,admin)).items[0]).toMatchObject({status:'rejected',reviewedAt:'2026-10-06T09:15:00.000Z',reviewedBy:{id:admin,name:'Artist'}});
 });
+
+it('keeps supporting website pages out of link suggestions even when their approved homepage is outside the page', async()=>{
+ await client.query("insert into artist_vault_sources(artist_id,url,type,status,origin) values($1,'https://example.org/','website','approved','research'),($1,'https://example.org/about','website','pending','research')",[artist]);
+ await client.query("insert into artist_vault_sources(artist_id,url,type,status,origin,created_at) select $1,'https://other.test/article/'||i,'article','pending','research',now()+interval '1 hour' from generate_series(1,99)i",[artist]);
+ const first=await list(artist,admin);
+ expect(first.items).toEqual([]);
+ expect(first.hasMore).toBe(true);
+ expect((await list(artist,admin,100)).items.map(item=>item.url)).toEqual(['https://example.org/']);
+});
+it('rejects stale link-review actions for a supporting page without changing its status or provenance',async()=>{
+ const source=(await add({artistId:artist,url:'https://example.org/about',type:'website',status:'pending'}))!;
+ expect((await list(artist,admin)).items.some(item=>item.id===source.id)).toBe(true);
+ await client.query("insert into artist_vault_sources(artist_id,url,type,status,origin) values($1,'https://example.org/','website','approved','research')",[artist]);
+ const before=(await client.query('select * from artist_activity_events')).rows;
+ for(const decision of ['approve','dismiss'] as const) await expect(decide(artist,admin,{kind:'source',id:source.id,decision})).rejects.toThrow('Review it in Lore');
+ expect((await client.query('select status from artist_vault_sources where id=$1',[source.id])).rows[0]).toEqual({status:'pending'});
+ expect((await client.query('select * from artist_activity_events')).rows).toEqual(before);
+ expect((await client.query('select * from artist_research_jobs')).rows).toHaveLength(0);
+});
+it('uses hidden path-hosted homepages as anchors, but not pending, podcast or other-artist websites',async()=>{
+ const main=(await add({artistId:artist,url:'https://host.test/artists/alice',type:'website',status:'approved'}))!;
+ await decide(artist,admin,{kind:'source',id:main.id,decision:'remove'});
+ await client.query("insert into artist_vault_sources(artist_id,url,type,status,origin,podcast_episode_key) values($1,'https://host.test/artists/alice/about','website','pending','research',null),($1,'https://pending.test/','website','pending','research',null),($1,'https://pending.test/about','website','pending','research',null),($1,'https://podcast.test/','website','approved','research','episode'),($1,'https://podcast.test/about','website','pending','research',null),($1,'https://otherartist.test/about','website','pending','research',null)",[artist]);
+ await client.query("insert into artist_vault_sources(artist_id,url,type,status,origin) values('00000000-0000-4000-8000-000000000099','https://otherartist.test/','website','approved','research')");
+ const urls=(await list(artist,admin)).items.map(item=>item.url);
+ expect(urls).not.toContain('https://host.test/artists/alice/about');
+ expect(urls).toEqual(expect.arrayContaining(['https://host.test/artists/alice','https://pending.test/about','https://podcast.test/about','https://otherartist.test/about']));
+});
+it('keeps a path-hosted main website reviewable while refusing remove/restore of its approved supporting page',async()=>{
+ const main=(await add({artistId:artist,url:'https://host.test/artists/alice',type:'website',status:'pending'}))!;
+ await decide(artist,admin,{kind:'source',id:main.id,decision:'approve'});
+ expect((await list(artist,admin)).items.find(item=>item.id===main.id)?.status).toBe('approved');
+ const page=(await add({artistId:artist,url:'https://host.test/artists/alice/about',type:'website',status:'approved'}))!;
+ const before=(await client.query('select count(*) from artist_activity_events')).rows;
+ for(const decision of ['remove','restore'] as const) await expect(decide(artist,admin,{kind:'source',id:page.id,decision})).rejects.toThrow('Review it in Lore');
+ expect((await client.query('select count(*) from artist_activity_events')).rows).toEqual(before);
+ expect(await hidden(artist)).not.toContain(page.id);
+});
