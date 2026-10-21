@@ -65,7 +65,9 @@ stays null. Supporting website pages use the same Lore image renderer as other
 sources, falling back to the site favicon and gradient when images are missing or
 fail to load.
 
-The read-only preview includes a clearly labeled local demo image, missing-image
+The read-only preview uses a neutral SVG labeled “TEST IMAGE” for the valid-thumbnail case; it must not reuse any real artist’s artwork or logo. On 2026-10-21, Pete identified that the earlier fixture used his logo on The Ellis Court biography. That explicit fixture assignment was misleading and is replaced; it was not an account-avatar fallback or a saved source update.
+
+The preview also includes missing-image
 metadata, and an intentionally broken local image URL. These fixtures verify
 rendering, not a live artist metadata extraction. The API's text extraction job
 still stores text only; existing rows without images are not backfilled by this

@@ -35,3 +35,16 @@ it('hides images that failed before hydration and retries a replacement URL',()=
  expect(replacement.style.display).not.toBe('none');
  complete.mockRestore();width.mockRestore();
 });
+
+
+it('never retains another artist thumbnail when source props change, including missing metadata',()=>{
+ const {container,rerender}=render(<PressAndFeatures sources={[main,{...page,ogImage:'https://example.org/artist-a.jpg'}]}/>);
+ const otherMain={...main,artistId:'b',url:'https://artist-b.example/'};
+ const otherPage={...page,artistId:'b',url:'https://artist-b.example/about'};
+ rerender(<PressAndFeatures sources={[otherMain,{...otherPage,ogImage:'https://artist-b.example/artist-b.jpg'}]}/>);
+ expect(container.querySelector('img[src="https://example.org/artist-a.jpg"]')).toBeNull();
+ expect(container.querySelector('img[src="https://artist-b.example/artist-b.jpg"]')).toBeInTheDocument();
+ rerender(<PressAndFeatures sources={[otherMain,otherPage]}/>);
+ expect(container.querySelector('img[src="https://artist-b.example/artist-b.jpg"]')).toBeNull();
+ expect(container.querySelector('img[src*="domain=artist-b.example"]')).toBeInTheDocument();
+});
