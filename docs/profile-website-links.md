@@ -65,13 +65,11 @@ stays null. Supporting website pages use the same Lore image renderer as other
 sources, falling back to the site favicon and gradient when images are missing or
 fail to load.
 
-The read-only preview uses a neutral SVG labeled “TEST IMAGE” for the valid-thumbnail case; it must not reuse any real artist’s artwork or logo. On 2026-10-21, Pete identified that the earlier fixture used his logo on The Ellis Court biography. That explicit fixture assignment was misleading and is replaced; it was not an account-avatar fallback or a saved source update.
+On 2026-10-21, Pete identified that the earlier fixture used his logo on The Ellis Court biography. That explicit assignment was misleading, not an account-avatar fallback or a saved source update. A temporary neutral TEST IMAGE replaced it; that demonstration is now superseded by the captured real page image described below. Never use unrelated artist branding.
 
 The preview also includes missing-image
 metadata, and an intentionally broken local image URL. These fixtures verify
-rendering, not a live artist metadata extraction. The API's text extraction job
-still stores text only; existing rows without images are not backfilled by this
-change and require a separate reviewed correction.
+rendering, not a live artist metadata extraction. MusicNerdAPI PR #69 adds image preservation to the API extraction job and is required for the paired preview. Existing text-bearing rows without images are not backfilled by this change and require a separate reviewed correction.
 
 Lore also checks already-completed failed images when attaching the image node,
 so failures before hydration reveal the fallback. Image nodes are keyed by URL
@@ -88,3 +86,7 @@ status, activity or extraction-job write. Homepage anchors are independent of
 suggestion pagination and visibility; pending, podcast and other-artist records
 cannot anchor this classification. URLs, source attribution and moderation are
 unchanged.
+
+### Local extraction demonstration (2026-10-21)
+
+The review page's biography card uses the actual HTTPS `og:image` returned by MusicNerdAPI's guarded reader for the linked Ellis Court biography on 2026-10-21, recorded in `ellisCourtPreview.json`. It loads that remote source image through the normal Lore renderer. This is a captured extraction result, not a live scrape on each render and not a saved staging artist source. API extraction remains in MusicNerdAPI. The page explicitly separates this demonstration from the still-pending authenticated saved-ingestion test. Missing and broken image fixtures remain separately labeled. No unrelated test artwork or account logo is used for the biography.
