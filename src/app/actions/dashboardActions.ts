@@ -1,5 +1,4 @@
 "use server"
-import { isThumbnailPreviewTest } from "@/server/utils/source/isThumbnailPreviewTest";
 
 import { withArtistOperation } from '@/server/utils/artistOperationContext';
 
@@ -170,10 +169,8 @@ export async function removeVaultSource(
         const ownership = await verifySourceEditable(session.user.id, sourceId);
         if (!ownership.authorized) return { success: false, error: ownership.error };
 
-        const removed = await deleteVaultSource(sourceId);
-        if (!isThumbnailPreviewTest(ownership.artistId, removed?.url, true)) {
-            await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
-        }
+        await deleteVaultSource(sourceId);
+        await scheduleDocRefresh(ownership.artistId, ownership.claimId, session.user.id, 'source_change');
         return { success: true };
     } catch (error) {
         console.error("[removeVaultSource] Error:", error);

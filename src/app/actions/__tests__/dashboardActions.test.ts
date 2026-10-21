@@ -196,32 +196,6 @@ describe("addVaultSource", () => {
         });
     });
 
-    it("preserves preview image insertion while suppressing only the configured test rewrite", async () => {
-        const env = { ...process.env };
-        try {
-            process.env.VERCEL_ENV = 'preview';
-            process.env.VERCEL_GIT_COMMIT_REF = 'codex/1583-suggestion-routing';
-            process.env.MN_THUMBNAIL_TEST_SCOPE = JSON.stringify({artistId:'artist-1',url:'https://example.com/article',expiresAt:Date.now()+60000});
-            const { addVaultSource, insertVaultSource } = await setup();
-            const { queueLoreRefresh } = await import('@/server/utils/queries/loreRefresh');
-            const { fetchLinkPreview } = await import('@/server/utils/linkPreview');
-            fetchLinkPreview.mockImplementation(async () => {
-                process.env.MN_THUMBNAIL_TEST_SCOPE = JSON.stringify({artistId:'artist-1',url:'https://example.com/article',expiresAt:Date.now()-1000});
-                return {title:'Own article',imageUrl:'https://example.com/image.jpg'};
-            });
-            insertVaultSource.mockImplementation(async data => ({id:'test-source',...data,status:'approved'}));
-            const result = await addVaultSource('artist-1','https://example.com/article');
-            expect(result).toMatchObject({success:true,source:{ogImage:'https://example.com/image.jpg'},warning:expect.stringMatching(/intentionally skipped/)});
-            expect(queueLoreRefresh).not.toHaveBeenCalled();
-            insertVaultSource.mockClear();
-            expect(await addVaultSource('artist-1','https://example.com/article')).toMatchObject({success:false,error:expect.stringMatching(/expired/)});
-            expect(insertVaultSource).not.toHaveBeenCalled();
-            expect(queueLoreRefresh).not.toHaveBeenCalled();
-            await addVaultSource('artist-1','https://example.com/other');
-            expect(queueLoreRefresh).toHaveBeenCalledTimes(1);
-        } finally { process.env = env; }
-    });
-
     it("reports an insert conflict instead of claiming an existing source was added", async () => {
         const { addVaultSource, insertVaultSource } = await setup();
         insertVaultSource.mockResolvedValueOnce(undefined);
@@ -405,22 +379,6 @@ describe("dashboardActions — the knowledge doc follows the sources", () => {
         const { removeVaultSource, queueLoreRefresh } = await setup();
         await removeVaultSource("s1");
         expect(queueLoreRefresh).toHaveBeenCalledWith("a1", "claim-1", { userId: "u1", trigger: "source_change" });
-    });
-
-    it("suppresses rewrite only for cleanup of the configured preview source", async () => {
-        const env = { ...process.env };
-        try {
-            process.env.VERCEL_ENV='preview';
-            process.env.VERCEL_GIT_COMMIT_REF='codex/1583-suggestion-routing';
-            process.env.MN_THUMBNAIL_TEST_SCOPE=JSON.stringify({artistId:'a1',url:'https://example.com/article',expiresAt:Date.now()-1000});
-            const { removeVaultSource, dq, queueLoreRefresh } = await setup();
-            dq.deleteVaultSource.mockResolvedValueOnce({url:'https://example.com/article'});
-            expect(await removeVaultSource('s1')).toEqual({success:true});
-            expect(queueLoreRefresh).not.toHaveBeenCalled();
-            dq.deleteVaultSource.mockResolvedValueOnce({url:'https://example.com/other'});
-            await removeVaultSource('s1');
-            expect(queueLoreRefresh).toHaveBeenCalledTimes(1);
-        } finally { process.env=env; }
     });
 
     it("durably queues every change so the database can coalesce a burst", async () => {
