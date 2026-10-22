@@ -6,10 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const STRICT_PATHS = ['/api/funFacts'];
 
-type Tier = 'strict' | 'default' | 'artistImage';
+type Tier = 'strict' | 'default';
 
 function getTier(pathname: string): Tier {
-  if (/^\/api\/artist\/[^/]+\/image$/.test(pathname)) return 'artistImage';
   if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
   return 'default';
 }
@@ -24,7 +23,6 @@ function envInt(name: string, fallback: number): number {
 const LIMITS = {
   strict: envInt('RATE_LIMIT_STRICT', 5),
   default: envInt('RATE_LIMIT_DEFAULT', 60),
-  artistImage: envInt('RATE_LIMIT_ARTIST_IMAGE', 180),
 } as const;
 const WINDOW_MS = envInt('RATE_LIMIT_WINDOW_MS', 60_000);
 

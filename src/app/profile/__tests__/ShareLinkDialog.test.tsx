@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ShareLinkDialog from '../ShareLinkDialog';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 const originalFetch = global.fetch;
 afterEach(() => { global.fetch = originalFetch; });
@@ -10,6 +11,7 @@ it('searches for an artist to contribute to, without a bookmark action', async (
   fireEvent.change(screen.getByLabelText('Search for an artist to share a link'), {target: {value: 'Pete'}});
   expect(await screen.findByRole('link', {name: 'Pete Rango'})).toHaveAttribute('href','/artist/artist-1#mn-links');
   expect(screen.queryByRole('button',{name:/bookmark/i})).not.toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith(musicNerdApiUrl('/api/searchArtists'), expect.objectContaining({method: 'POST', credentials: 'omit'}));
 });
 
 it('does not offer external-only artists as contribution targets', async () => {
