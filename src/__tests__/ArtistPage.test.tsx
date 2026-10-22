@@ -607,8 +607,8 @@ describe('ArtistProfile page', () => {
             process.env.VERCEL_URL = 'proposal.vercel.app';
             try {
                 const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
-                expect(metadata.openGraph?.images?.[0]).toMatchObject({ url: 'https://proposal.vercel.app/artist/artist-uuid/share-image?v=2' });
-                expect(metadata.twitter?.images).toEqual(['https://proposal.vercel.app/artist/artist-uuid/share-image?v=2']);
+                expect(metadata.openGraph?.images?.[0]).toMatchObject({ url: 'https://proposal.vercel.app/artist/artist-uuid/share-image?v=3' });
+                expect(metadata.twitter?.images).toEqual(['https://proposal.vercel.app/artist/artist-uuid/share-image?v=3']);
                 expect(metadata.alternates?.canonical).toBe('https://musicnerd.net/artist/artist-uuid');
                 expect(musicPlatformData.getArtistPortrait).not.toHaveBeenCalled();
             } finally {
@@ -621,7 +621,7 @@ describe('ArtistProfile page', () => {
             (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://cdn.spotify.com/artist.jpg');
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images).toEqual(expect.arrayContaining([
-                expect.objectContaining({ url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=2', width: 1200, height: 630 }),
+                expect.objectContaining({ url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=3', width: 1200, height: 630 }),
             ]));
         });
 
@@ -674,7 +674,7 @@ describe('ArtistProfile page', () => {
         it('uses the same composite for OpenGraph and Twitter', async () => {
             const metadata = await generateMetadata({ params: Promise.resolve({ id: 'artist-uuid' }) });
             expect(metadata.openGraph?.images?.[0]).toMatchObject({
-                url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=2',
+                url: 'https://musicnerd.net/artist/artist-uuid/share-image?v=3',
             });
         });
     });

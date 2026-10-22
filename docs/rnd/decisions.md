@@ -10,6 +10,10 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-10-22 · [artist share portrait framing](https://github.com/xdjs/MusicNerdWeb/issues/1579)
+
+- Use the approved wider, top-aligned portrait instead of the fixed close-up. Local Rae Isla and Sound of Fractures comparisons accepted; no face detection, extra dependencies or per-artist exceptions. Authorized push and squash merge; production promotion is separate. — Pete; [contract](../artist-share-preview.md#october-22--wider-portrait-framing)
+
 ## 2026-10-21 · [artist share previews](https://github.com/xdjs/MusicNerdWeb/issues/1579)
 
 - Use the selected black-and-white close-up with “Nerd out on”, white artist name, pink glasses, no About and no arrow for artist-profile shares. — Pete

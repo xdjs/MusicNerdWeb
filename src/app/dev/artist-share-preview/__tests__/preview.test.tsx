@@ -34,7 +34,7 @@ test('gallery preserves the reference and compares three compositions and invita
         for (const cta of ['know', 'music', 'meet', 'explore', 'story']) expect(html).toContain(`cta=${cta}`);
         expect(html).toContain('Earlier candidate / unchanged');
         expect(html).toContain('Nerd out on');
-        expect(html).toContain('share-image?v=2');
+        expect(html).toContain('share-image?v=3');
         expect(html).toContain('case=wide');
         expect(html).toContain('share-image?v=1&amp;palette=logo');
     } finally { if (prior === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = prior; }

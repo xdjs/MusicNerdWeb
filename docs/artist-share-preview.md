@@ -9,7 +9,16 @@ arrow or terminal period. Inter Bold 700 uses the homepage’s -0.045em tracking
 the homepage itself still uses system fonts. This decision supersedes the proposals
 below; those remain development/preview-only comparisons.
 
-Every artist profile advertises `/artist/{id}/share-image?v=2` through its OG and
+### October 22 — wider portrait framing
+
+Pete approved local Rae Isla and Sound of Fractures examples with less zoom:
+the square portrait is displayed at 720 × 720, x=480/y=0, on the 1200 × 630 card.
+Top alignment retains more of the upper portrait; the bottom 90 px remain outside
+the canvas. This is one fixed composition, not face detection. Full-body photos
+also appear wider. Typography, gradient, glasses and the missing-photo fallback
+remain unchanged. No dependencies or artist-specific crop settings are added.
+
+Every artist profile advertises `/artist/{id}/share-image?v=3` through its OG and
 Twitter metadata. The request resolves that artist’s existing public portrait and
 name, then renders a 1200 × 630 PNG. The selected path does not read biography,
 research, interviews or private sources. Missing/ineligible/broken portraits use Pete’s selected side-by-side fallback:
@@ -32,7 +41,8 @@ Inspiration: Pete’s [shared Gemini explanation of Google link previews](https:
 read October 21. It describes a generated composite image advertised through OG
 metadata. It is design inspiration, not verified documentation of Google’s internals.
 Implementation, preview verification, main merge and production release are separate
-states; record their actual evidence on draft #1585.
+states; record their actual evidence on #1579 and its PRs. The original design
+shipped through #1585; the wider framing is a separate follow-up.
 
 Pete accepted the full-glasses fallback on October 21 and authorized the feature
 branch push. Main merge and production promotion remain separate. The preview
