@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: ArtistProfileProps): Promise<
 
     const imageOrigin = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}` : 'https://musicnerd.net';
-    const imageUrl = `${imageOrigin}/artist/${encodeURIComponent(id)}/share-image?v=1`;
+    const imageUrl = `${imageOrigin}/artist/${encodeURIComponent(id)}/share-image?v=2`;
     const artistName = artist.name ?? "Unknown Artist";
 
     // The artist's own About, when one has been written, rather than the

@@ -16,6 +16,16 @@ describe('loadSharePortrait', () => {
         expect(result).toMatch(/^data:image\/png;base64,/);
         expect(await sharp(Buffer.from(result!.split(',')[1], 'base64')).metadata()).toMatchObject({ width: 480, height: 534, format: 'png' });
     });
+    test('close-up uses a square monochrome crop', async () => {
+        const bytes = await sharp({ create: { width: 640, height: 640, channels: 3, background: '#fb57c0' } }).png().toBuffer();
+        (fetch as jest.Mock).mockResolvedValue({ ok: true, headers: new Headers({ 'content-type': 'image/png' }), body: new ReadableStream({ start(controller) { controller.enqueue(bytes); controller.close(); } }) });
+        const result = await loadSharePortrait('https://i.scdn.co/image/abc', 'id', true);
+        const png = Buffer.from(result!.split(',')[1], 'base64');
+        expect(await sharp(png).metadata()).toMatchObject({ width: 640, height: 640, format: 'png' });
+        const [r, g, b] = await sharp(png).removeAlpha().raw().toBuffer();
+        expect(r).toBe(g);
+        expect(g).toBe(b);
+    });
     test('rejects invalid image bytes', async () => {
         (fetch as jest.Mock).mockResolvedValue({ ok: true, headers: new Headers({ 'content-type': 'image/png' }), body: new ReadableStream({ start(controller) { controller.enqueue(Buffer.from('not an image')); controller.close(); } }) });
         expect(await loadSharePortrait('https://i.scdn.co/image/abc', 'id')).toBeNull();

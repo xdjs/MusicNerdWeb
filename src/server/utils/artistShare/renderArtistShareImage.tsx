@@ -1,38 +1,27 @@
-import { shareGlasses as brandLogo, shareImageFonts } from './shareImageAssets';
-import { getShareBioExcerpt } from '@/lib/artistShare/getShareBioExcerpt';
+import { sharePinkGlasses, shareImageFonts } from './shareImageAssets';
 import { ImageResponse } from 'next/og';
 import { getShareArtistName } from '@/lib/artistShare/getShareArtistName';
 
-/** Receives only public display content and already-normalized portrait bytes. */
-export function renderArtistShareImage(name: string, portrait: string | null, publicBio?: string | null, palette: 'white' | 'pink' | 'logo' = 'white') {
-    const chars = Array.from(getShareArtistName(name));
+/** Selected close-up and full-glasses fallback, using only public identity/portrait. */
+export function renderArtistShareImage(name: string, portrait: string | null) {
+    const supportedName = getShareArtistName(name);
+    const chars = Array.from(supportedName === 'Discover this artist' ? 'this artist' : supportedName);
     const displayName = chars.length > 90 ? `${chars.slice(0, 89).join('')}…` : chars.join('');
-    const excerpt = getShareBioExcerpt(publicBio, chars.length > 40 ? 90 : 130);
+    const fontSize = portrait
+        ? chars.length <= 9 ? 135 : chars.length <= 16 ? 105 : chars.length <= 30 ? 80 : 58
+        : chars.length <= 10 ? 113 : chars.length <= 16 ? 94 : chars.length <= 30 ? 70 : 45;
     return new ImageResponse(
-        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: palette === 'logo' ? '#fb57c0' : palette === 'pink' ? '#ff9ce3' : '#ffffff', color: '#171717', padding: 48, fontFamily: 'Inter' }}>
-            <div style={{ display: 'flex', width: 480, height: 534, borderRadius: 24, overflow: 'hidden', background: portrait ? 'transparent' : '#ff75d8', alignItems: 'center', justifyContent: 'center' }}>
-                {portrait
-                    // ImageResponse consumes normalized inline PNGs, not Next Image.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={portrait} alt="" width={480} height={534} style={{ objectFit: 'cover' }} />
-                    : <div style={{ display: 'flex', width: 360, height: 360, borderRadius: '50%', border: '24px solid #282128', background: '#101010', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ display: 'flex', width: 112, height: 112, background: '#ff75d8', borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: 22, height: 22, background: '#101010', borderRadius: '50%' }} />
-                        </div>
-                    </div>}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', width: 560, paddingLeft: 48, justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 24 }}>
-                    <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 2, textOverflow: 'ellipsis', overflow: 'hidden', fontSize: chars.length > 40 ? 36 : chars.length > 22 ? 52 : 72, fontWeight: 700, lineHeight: 1.2, paddingBottom: 6, letterSpacing: '-1px', wordBreak: 'break-word' }}>{displayName}</div>
-                    {excerpt && <div style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: chars.length > 22 ? 3 : 4, textOverflow: 'ellipsis', overflow: 'hidden', marginTop: 28, color: palette === 'logo' ? '#171717' : '#343434', fontSize: 38, lineHeight: 1.3, wordBreak: 'break-word' }}>{excerpt}</div>}
-                    <div style={{ display: 'flex', marginTop: 22, color: palette === 'logo' ? '#171717' : '#343434', fontSize: 26, lineHeight: 1.2 }}>Explore the artist</div>
-                </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'absolute', right: 48, bottom: 48 }}>
-                    {/* Exact transparent asset directly on the card background. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={brandLogo} alt="Music Nerd glasses" width={100} height={71} />
-            </div>
+        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#000000', color: '#ffffff', fontFamily: 'Inter', fontWeight: 700 }}>
+            {portrait &&
+                // ImageResponse consumes already-normalized inline PNGs.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={portrait} alt="" width={1472} height={1472} style={{ position: 'absolute', left: 187, top: -294, objectFit: 'cover' }} />}
+            {portrait && <div style={{ position: 'absolute', left: 0, top: 0, width: 1200, height: 630, background: 'linear-gradient(90deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.94) 49%, rgba(0,0,0,0.25) 82%, rgba(0,0,0,0) 100%)' }} />}
+            <div style={{ display: 'flex', position: 'absolute', left: 53, top: portrait ? 181 : 167, fontSize: portrait ? 81 : 79, lineHeight: 1.2, letterSpacing: '-0.045em', color: '#fb57c0' }}>Nerd out on</div>
+            <div style={{ display: '-webkit-box', position: 'absolute', left: portrait ? 47 : 48, top: portrait ? (fontSize === 135 ? 285 : 296) : (chars.length > 18 ? 314 : 291), width: portrait ? 826 : 600, fontSize, lineHeight: 1.12, letterSpacing: '-0.045em', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, textOverflow: 'ellipsis', overflow: 'hidden', wordBreak: 'break-word' }}>{displayName}</div>
+            {/* Exact repository glasses, recolored to logo pink, without a badge. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={sharePinkGlasses} alt="Music Nerd glasses" width={portrait ? 100 : 484} height={portrait ? 71 : 484 * 1370 / 1929} style={{ position: 'absolute', ...(portrait ? { right: 48, bottom: 48 } : { left: 668, top: 137 }) }} />
         </div>,
         { width: 1200, height: 630, fonts: shareImageFonts, headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } },
     );

@@ -42,20 +42,42 @@ async function main() {
     let fetchCalls = 0;
     global.fetch = async () => { fetchCalls++; throw new Error('Offline rendering must not fetch fonts, emoji or other assets'); };
     const { renderArtistShareImage } = loadSource('src/server/utils/artistShare/renderArtistShareImage.tsx');
-    async function render(name, bio, palette) {
-        const png = Buffer.from(await renderArtistShareImage(name, null, bio, palette).arrayBuffer());
+    const sharp = require('sharp');
+    const whitePortrait = `data:image/png;base64,${(await sharp({ create: { width: 64, height: 64, channels: 3, background: '#fff' } }).png().toBuffer()).toString('base64')}`;
+    const composited = Buffer.from(await renderArtistShareImage('LATASHÁ', whitePortrait).arrayBuffer());
+    const shadedPixel = await sharp(composited).extract({ left: 300, top: 100, width: 1, height: 1 }).removeAlpha().raw().toBuffer();
+    assert.ok(shadedPixel.every(channel => channel < 20), 'The black gradient must cover the photo behind the type');
+    async function render(name) {
+        const png = Buffer.from(await renderArtistShareImage(name, null).arrayBuffer());
         assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
         assert.equal(png.readUInt32BE(16), 1200);
         assert.equal(png.readUInt32BE(20), 630);
         assert.equal(fetchCalls, 0);
         return png;
     }
-    assert.notDeepEqual(await render('Pete Rango', null, 'white'), await render('Pete Rango', null, 'pink'));
-    assert.notDeepEqual(await render('Pete Rango', null, 'logo'), await render('Pete Rango', null, 'pink'));
-    assert.notDeepEqual(await render('Björk', 'Björk makes music.'), await render('Björk'));
-    assert.deepEqual(await render('Björk', '坂本龍一'), await render('Björk'));
-    await render('W'.repeat(90), 'W'.repeat(500));
-    await render('W'.repeat(40), 'W'.repeat(500));
+    const selectedFallback = await render('Pete Rango');
+    const { data: fallbackPixels, info: fallbackInfo } = await sharp(selectedFallback).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const logoBounds = { left: 1200, top: 630, right: 0, bottom: 0 };
+    let whiteBottom = 0;
+    for (let y = 0; y < fallbackInfo.height; y++) for (let x = 0; x < fallbackInfo.width; x++) {
+        const offset = (y * fallbackInfo.width + x) * fallbackInfo.channels;
+        const [r, g, b] = fallbackPixels.subarray(offset, offset + 3);
+        if (r > 230 && g > 230 && b > 230) {
+            assert.ok(x < 648, 'Fallback name must not enter the glasses area');
+            whiteBottom = Math.max(whiteBottom, y);
+        }
+        if (x > 650 && r > 200 && g < 150 && b > 150) {
+            logoBounds.left = Math.min(logoBounds.left, x);
+            logoBounds.right = Math.max(logoBounds.right, x);
+            logoBounds.top = Math.min(logoBounds.top, y);
+            logoBounds.bottom = Math.max(logoBounds.bottom, y);
+        }
+    }
+    assert.ok(whiteBottom > 390 && whiteBottom < 430, 'Selected short name must remain one line');
+    assert.ok(logoBounds.left >= 668 && logoBounds.right <= 1151 && logoBounds.right - logoBounds.left > 475, 'Full glasses must fit with the right margin');
+    assert.ok(logoBounds.top >= 137 && logoBounds.bottom <= 482 && logoBounds.bottom - logoBounds.top > 335, 'Full glasses must fit vertically');
+    await render('W'.repeat(90));
+    await render('W'.repeat(40));
     const { renderArtistShareProposal } = loadSource('src/server/utils/artistShare/renderArtistShareProposal.tsx');
     const layouts = [];
     for (const layout of ['editorial', 'portrait', 'profile', 'story', 'cover', 'sleeve', 'dossier', 'spotlight', 'sequence', 'broadcast', 'manifesto', 'orbit', 'checkerboard', 'panorama', 'monogram', 'margin']) {

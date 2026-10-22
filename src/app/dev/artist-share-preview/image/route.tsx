@@ -14,9 +14,7 @@ export async function GET(request: Request) {
     const portrait = scenario === 'normal'
         ? `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public/demo/pete-rango-logo.png'))).toString('base64')}`
         : null;
-    const requestedPalette = new URL(request.url).searchParams.get('palette');
-    const palette = requestedPalette === 'pink' || requestedPalette === 'logo' ? requestedPalette : 'white';
     const proposal = getShareProposalOptions(new URL(request.url).searchParams, true);
     const bio = scenario === 'stress' ? 'Synthetic stress-test biography. This long paragraph verifies layout and truncation without claiming facts about a real artist. '.repeat(5) : null;
-    return proposal ? renderArtistShareProposal(example.name, portrait, bio, proposal.layout, proposal.palette, proposal.cta) : renderArtistShareImage(example.name, portrait, null, palette);
+    return proposal ? renderArtistShareProposal(example.name, portrait, bio, proposal.layout, proposal.palette, proposal.cta) : renderArtistShareImage(example.name, portrait);
 }

@@ -10,6 +10,11 @@ engineering state and working rules live in [MEMORY.md](../../MEMORY.md) and
 
 ---
 
+## 2026-10-21 · [artist share previews](https://github.com/xdjs/MusicNerdWeb/issues/1579)
+
+- Use the selected black-and-white close-up with “Nerd out on”, white artist name, pink glasses, no About and no arrow for artist-profile shares. — Pete
+- Missing or unusable photos use the side-by-side black card with the entire pink glasses mark visible at right. Approved for feature-branch push; merge and production are separate. — Pete; [contract](../artist-share-preview.md)
+
 ## 2026-10-16 · [default social preview](https://github.com/xdjs/MusicNerdWeb/issues/1503)
 
 - Use “Be Curious. Stay nerdy” as the default social preview title above the URL; keep the approved thumbnail. — Pete; [contract](../social-preview.md)

@@ -5,7 +5,7 @@ import { SUPABASE_URL } from '@/env';
 import { eligibleSharePortrait } from '@/lib/artistShare/eligibleSharePortrait';
 
 /** Bounded, credential-free public image read. Decode before handing data to Satori. */
-export async function loadSharePortrait(value: string | null, artistId: string): Promise<string | null> {
+export async function loadSharePortrait(value: string | null, artistId: string, closeUp = false): Promise<string | null> {
     const url = eligibleSharePortrait(value, artistId, SUPABASE_URL);
     if (!url) return null;
     const maxBytes = 5 * 1024 * 1024;
@@ -32,7 +32,11 @@ export async function loadSharePortrait(value: string | null, artistId: string):
             bytes = Buffer.concat(chunks);
         }
         if (bytes.length > maxBytes) return null;
-        const png = await sharp(bytes, { limitInputPixels: 25_000_000 }).rotate().resize(480, 534, { fit: 'cover' }).png().toBuffer();
+        const image = sharp(bytes, { limitInputPixels: 25_000_000 }).rotate();
+        const normalized = closeUp
+            ? image.resize(1472, 1472, { fit: 'cover', withoutEnlargement: true }).grayscale()
+            : image.resize(480, 534, { fit: 'cover' });
+        const png = await normalized.png().toBuffer();
         return `data:image/png;base64,${png.toString('base64')}`;
     } catch { return null; }
 }

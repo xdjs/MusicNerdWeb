@@ -36,25 +36,28 @@ describe('artist share image', () => {
         (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue('https://i.scdn.co/image/abc');
         (loadSharePortrait as jest.Mock).mockResolvedValue('data:image/png;base64,abc');
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc', null, 'white');
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', 'data:image/png;base64,abc');
+        expect(loadSharePortrait).toHaveBeenCalledWith('https://i.scdn.co/image/abc', id, true);
+        expect(getSharePublicBio).not.toHaveBeenCalled();
     });
-    test.each([['pink', 'pink'], ['logo', 'logo'], ['unexpected', 'white']])('bounds the palette query %s to %s', async (query, palette) => {
+    test.each(['pink', 'logo', 'unexpected'])('keeps the selected design for palette query %s', async query => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Artist' });
         (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         const response = await GET(new Request(`https://example.com?palette=${query}`), { params: Promise.resolve({ id }) });
         expect(response.status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Artist', null, null, palette);
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Artist', null);
     });
-    test('bio lookup failure omits text and disables caching', async () => {
+    test('default card does not query biography even when its service is unavailable', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Artist', bio: 'PRIVATE' });
         (getSharePublicBio as jest.Mock).mockRejectedValue(new Error('gate unavailable'));
         (musicPlatformData.getArtistPortrait as jest.Mock).mockResolvedValue(null);
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         const response = await run();
         expect(response.status).toBe(200);
-        expect(response.headers.get('cache-control')).toBe('no-store');
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Artist', null, null, 'white');
+        expect(response.headers.get('cache-control')).toBe('public, max-age=3600, s-maxage=3600');
+        expect(getSharePublicBio).not.toHaveBeenCalled();
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Artist', null);
     });
     test('retries render failure with a network-independent card', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Example' });
@@ -62,14 +65,14 @@ describe('artist share image', () => {
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         (renderArtistShareImage as jest.Mock).mockImplementationOnce(() => ({ arrayBuffer: () => Promise.reject(new Error('render')) }));
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenLastCalledWith('Discover this artist', null, null, 'white');
+        expect(renderArtistShareImage).toHaveBeenLastCalledWith('this artist', null);
     });
     test('failed portrait still produces named fallback', async () => {
         (getArtistById as jest.Mock).mockResolvedValue({ id, name: 'Dutchyyy' });
         (musicPlatformData.getArtistPortrait as jest.Mock).mockRejectedValue(new Error('provider'));
         (loadSharePortrait as jest.Mock).mockResolvedValue(null);
         expect((await run()).status).toBe(200);
-        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null, null, 'white');
+        expect(renderArtistShareImage).toHaveBeenCalledWith('Dutchyyy', null);
     });
 });
 
@@ -90,7 +93,7 @@ describe('preview proposal selection', () => {
             expect(renderArtistShareImage).not.toHaveBeenCalled();
         } else {
             expect(renderArtistShareProposal).not.toHaveBeenCalled();
-            expect(renderArtistShareImage).toHaveBeenCalledWith('Pete Rango', null, 'Eligible public bio.', 'logo');
+            expect(renderArtistShareImage).toHaveBeenCalledWith('Pete Rango', null);
         }
     });
 });

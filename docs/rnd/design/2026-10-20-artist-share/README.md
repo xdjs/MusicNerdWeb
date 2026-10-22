@@ -1,6 +1,31 @@
 # Composite artist share proposal
 
-October 20, 2026 — proposed under #1579; owner approval pending.
+## October 21 — selected for implementation
+
+Pete selected the mixed-case “Nerd out on” 05B close-up with no About, no arrow,
+white artist name and pink glasses alone. The final typography study uses Inter
+Bold 700 and -0.045em tracking. The all-caps invitation was declined. This
+supersedes the recommendations below. Implement as the default artist OG/Twitter
+image with actual public name/portrait and a matching no-photo fallback. The local
+design approval is not evidence of a main merge or production deployment.
+
+### Selected missing-photo fallback
+
+Pete selected the round-two “Side by side” fallback on October 21 and authorized
+wrapping up and pushing the feature branch. The entire official pink glasses mark
+sits at x=668, y=137, width=484 with a 48 px right margin; the mixed-case invitation
+and white name sit to its left on black. No About, badge or arrow. The plain fallback,
+cropped glasses, and other exploratory layouts were declined. The full-resolution
+logo alpha is retained when recoloring to #FB57C0. The production renderer uses
+this composition whenever the eligible portrait cannot be loaded or decoded.
+
+The selected image and all comparison studies remain local design artifacts;
+actual-renderer captures and verification are linked from PR #1585. This acceptance
+authorizes the feature push, not a main merge or production release.
+
+## Historical exploration
+
+October 20, 2026 — proposed under #1579; owner approval was pending.
 
 Large public portrait (or pink record motif), artist name, Music Nerd, and the existing
 “The music is only half the story.” copy. Contract: [artist-share-preview](../../../artist-share-preview.md).

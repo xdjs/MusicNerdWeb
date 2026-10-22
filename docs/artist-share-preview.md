@@ -1,4 +1,45 @@
-# Artist composite link previews — proposal (#1579)
+# Artist composite link previews (#1579)
+
+## Selected design — October 21, 2026
+
+Pete selected the mixed-case 05B close-up for the default artist profile share image:
+“Nerd out on” in logo pink #FB57C0, the public artist name in white, a monochrome
+portrait fading into black, and the genuine pink glasses without a circle. No About,
+arrow or terminal period. Inter Bold 700 uses the homepage’s -0.045em tracking;
+the homepage itself still uses system fonts. This decision supersedes the proposals
+below; those remain development/preview-only comparisons.
+
+Every artist profile advertises `/artist/{id}/share-image?v=2` through its OG and
+Twitter metadata. The request resolves that artist’s existing public portrait and
+name, then renders a 1200 × 630 PNG. The selected path does not read biography,
+research, interviews or private sources. Missing/ineligible/broken portraits use Pete’s selected side-by-side fallback:
+invitation and white name at left, full pink glasses at right (484 px wide, x=668,
+y=137), with 48 px clear at the right edge. The black background and typography
+match the photo card. The plain corner-logo fallback and other fallback studies
+were declined. Long names reduce
+in size and wrap to at most two lines; unsupported scripts use “this artist” in
+the image while metadata retains the full name. No portrait is synthesized.
+
+Portrait reads retain the existing HTTPS host/path allowlist, five-second timeout,
+five-MB byte limit, 25-million-pixel decode limit and redirect rejection. The chosen
+composition uses a square monochrome crop; preview studies retain their older crop.
+Successful cards cache for one hour. Image/name edits appear after that cache expires;
+social platforms may keep their own copies longer. Invalid/unknown artists return
+uncached 404s and unavailable artist data returns an uncached 503. No persistence,
+jobs, model calls, scraping or migrations are introduced.
+
+Inspiration: Pete’s [shared Gemini explanation of Google link previews](https://share.gemini.google/sqF9dgBAK6EG),
+read October 21. It describes a generated composite image advertised through OG
+metadata. It is design inspiration, not verified documentation of Google’s internals.
+Implementation, preview verification, main merge and production release are separate
+states; record their actual evidence on draft #1585.
+
+Pete accepted the full-glasses fallback on October 21 and authorized the feature
+branch push. Main merge and production promotion remain separate. The preview
+gallery labels and links the selected fallback directly under “Names and missing
+photos”; its fixture deliberately passes no portrait to the actual renderer.
+
+## Superseded exploration record
 
 October 20, 2026: Pete authorized an isolated implementation and phone preview.
 Owner acceptance is pending; this is not approved artwork or a release. The Gemini

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import PreviousShareStudies from './PreviousShareStudies';
+import { artistSharePreviewCases } from './artistSharePreviewCases';
 
-export const metadata = { title: 'Six more artist directions | Music Nerd', robots: { index: false, follow: false } };
+export const metadata = { title: 'Artist share images | Music Nerd', robots: { index: false, follow: false } };
 const artist = '/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6';
 const previousDirections = [
     { key: 'cover', name: 'The cover', cta: 'read', invitation: 'Read their story', rationale: 'An oversized image and a name across the photograph. A white caption band gives the story its own clean space. The most immediate visual introduction.' },
@@ -29,11 +30,38 @@ export default function ArtistSharePreviewPage() {
     if (process.env.NODE_ENV !== 'development' && process.env.VERCEL_ENV !== 'preview') notFound();
     return <main className="mx-auto max-w-[1600px] px-5 py-10 text-foreground space-y-12">
         <header className="max-w-3xl space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">Six more ways in.</h1>
-            <p className="text-lg">Six additional compositions using the same LATASHÁ image, public biography excerpt and invitation. All twelve directions remain available for comparison.</p>
-            <p className="opacity-70">All prior options remain below. Inter and the genuine corner glasses stay; no separate buttons, invented facts or playback promises.</p>
-            <nav className="flex flex-wrap gap-5 underline"><a href="#directions">Compare directions</a><a href="#stress">Long-name check</a><a href="#previous">Previous version</a></nav>
+            <h1 className="text-4xl font-bold tracking-tight">Nerd out on</h1>
+            <p className="text-lg">The selected artist share image: a close-up, the artist’s name, and pink Music Nerd glasses.</p>
+            <nav className="flex flex-wrap gap-5 underline"><a href="#selected">Selected design</a><a href="#fallbacks">Names and missing photos</a><a href="#directions">Earlier studies</a></nav>
         </header>
+        <section id="selected" className="max-w-[1200px] space-y-4">
+            <h2 className="text-2xl font-bold">LATASHÁ</h2>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href={`${artist}/share-image?v=2`} className="block focus-visible:outline focus-visible:outline-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${artist}/share-image?v=2`} alt="Nerd out on LATASHÁ — selected share image" width={1200} height={630} className="w-full h-auto" />
+            </a>
+            <div className="flex flex-wrap gap-5 underline">
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href={artist}>Open artist profile</a>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href="/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2">Pete Rango</a>
+            </div>
+        </section>
+        <section id="fallbacks" className="space-y-5">
+            <h2 className="text-2xl font-bold">Names and missing photos</h2>
+            <p>The selected fallback keeps the full pink glasses beside the artist’s name.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
+                {['missing', 'accent', 'long', 'wide', 'unicode'].map(scenario => <article key={scenario} className="space-y-3 min-w-0">
+                    <h3 className="font-semibold">{scenario === 'missing' ? 'Selected missing-photo fallback' : artistSharePreviewCases.find(example => example.key === scenario)?.label}</h3>
+                    <a href={`/dev/artist-share-preview/image?case=${scenario}`} className="block focus-visible:outline focus-visible:outline-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/dev/artist-share-preview/image?case=${scenario}`} alt={`Selected share image: ${scenario} example`} width={1200} height={630} className="w-full h-auto" />
+                    </a>
+                </article>)}
+            </div>
+        </section>
+        <h2 className="text-3xl font-bold">Earlier studies</h2>
         <section id="directions" className="grid grid-cols-1 lg:grid-cols-3 gap-7">
             {directions.map(d => <article key={d.key} className="space-y-4 min-w-0">
                 <h2 className="text-2xl font-bold">{d.name}</h2>
@@ -73,8 +101,8 @@ export default function ArtistSharePreviewPage() {
         </section>
         </details>
         <section className="max-w-3xl space-y-3">
-            <h2 className="text-2xl font-bold">The design recommendation</h2>
-            <p>Manifesto offers the strongest new story-first direction; Checkerboard gives the clearest modular reading order. Orbit is a softer portrait-led alternative. Panorama depends on a suitable image crop, while Initial and Wide margin trade image scale for graphic identity. These are proposals, not a new feature default.</p>
+            <h2 className="text-2xl font-bold">Earlier design recommendations</h2>
+            <p>Manifesto offers the strongest new story-first direction; Checkerboard gives the clearest modular reading order. Orbit is a softer portrait-led alternative. Panorama depends on a suitable image crop, while Initial and Wide margin trade image scale for graphic identity. These are preserved proposals. The selected close-up above is now the default in this branch.</p>
             <p>“Get to know LATASHÁ” stays constant across this set so the composition is what changes. The earlier CTA studies remain below. The invitation describes the linked artist profile; it is not an independently clickable control.</p>
             <p className="text-sm opacity-70">The public artist image is artwork, not a newly generated portrait. All excerpts use the same text limit and preserve the original wording. Shown at social-card proportions; open a card for its native 1200 × 630 image. This is a proposal awaiting review.</p>
         </section>
@@ -86,7 +114,7 @@ export default function ArtistSharePreviewPage() {
                 <img src={`/dev/artist-share-preview/image?case=stress&layout=${d.key}&palette=logo&cta=${d.cta}`} alt={`${d.name}: synthetic long-name and long-bio check`} width={1200} height={630} className="w-full h-auto border border-gray-500/30" />
             </a></div>)}</div>
         </section>
-        <p className="text-sm opacity-70 max-w-3xl">Logo pink #FB57C0 comes from the navigation logo asset. Site-token pink #FF9CE3 remains a separate reference; neither is presented as an owner-approved choice. Only eligible public image/bio inputs. Missing bios are omitted; an ellipsis marks truncation. Image cache: one hour. Share apps may cache or crop differently.</p>
+        <p className="text-sm opacity-70 max-w-3xl">Logo pink #FB57C0 comes from the navigation logo asset. Site-token pink #FF9CE3 remains a separate reference; the selected close-up uses logo pink. Only eligible public image/bio inputs. Missing bios are omitted; an ellipsis marks truncation. Image cache: one hour. Share apps may cache or crop differently.</p>
         <details id="previous" className="border-t border-gray-500/30 pt-6"><summary className="text-2xl font-bold cursor-pointer">Previous version / preserved for comparison</summary><PreviousShareStudies /></details>
     </main>;
 }
