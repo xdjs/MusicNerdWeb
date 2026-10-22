@@ -12,7 +12,7 @@ Approved destinations appear as platform icons. Apple Music and Beatport artist 
 
 Only the claimed artist or an admin can read or decide the artist's suggestions. The server rechecks current ownership and pending state within the mutation. Requests cannot supply contributor/reviewer identity or timestamps. Existing admin review remains available. Anonymous visitors cannot access pending submissions. Reads do not scrape or generate content.
 
-The private route `/api/artist/[id]/link-suggestions` lists a bounded set of pending and recent reviewed items, with an offset and a Load more control. Decisions use the original record kind and ID. Both the submitted record and the activity log remain the source of truth. No synthetic preview contributor or clock string ships.
+The private MusicNerdAPI route `/api/artist/{id}/link-suggestions` (Privy bearer token) lists a bounded set of pending and recent reviewed items, with an offset and a Load more control. Decisions use the original record kind and ID. Both the submitted record and the activity log remain the source of truth. No synthetic preview contributor or clock string ships.
 
 ## Verification
 

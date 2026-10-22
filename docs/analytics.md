@@ -73,8 +73,9 @@ lower-case tokens; free text appears only where the table says so.
 | `add_artist` | The nav **+** is clicked, signed in or not (`nav/AddArtist.tsx`), or a search result's "Add to MusicNerd" is chosen, before any login (`nav/SearchBar.tsx`) → `start`; that add resolves → exactly one of `added` · `exists` · `error`, even if the visitor closed the dialog first (a possible duplicate sends nothing until the visitor chooses) | `surface` = `nav` · `search`; `step` = `start` · `added` · `exists` · `error` | client | Do people add artists from search or the **+**, and how many who start an add finish it (`start` minus resolved = abandoned)? |
 | `check_for_updates` | An editor clicks **Update Latest** ("Check for updates") in edit mode (`LatestRefreshControl.tsx`) | `outcome` = `started` (the normal case; a click while a check is running returns that check) · `error` (rare: the session ended, edit rights changed, or the request failed; during the cooldown the button is disabled, so it never sends `error`) | client | How often artists check their sources for new updates |
 
-Fire points for `profile_edit`: `api/directEditLink` (`set` → `link_add`, `clear` → `link_remove`),
-`api/removeArtistData` (`link_remove`), `api/artist/link-order` (`reorder`),
+Fire points for `profile_edit`: the browser, after MusicNerdAPI answers 200: `AddArtistData.tsx`
+(`directEditLink` `set` that changed the link → `link_add`), `EditableLinkIcon.tsx` (`directEditLink` `clear` → `link_remove`),
+`EditablePlatformLink.tsx` (`removeArtistData` → `link_remove`), `SortableArtistLinks.tsx` (`artist/link-order` → `reorder`);
 `api/artist/profile-image` and `api/artist/photo-choice` (`photo`), `api/vault/upload/complete` (`vault_upload`),
 `actions/dismissLegacyLink` (`dismiss`).
 

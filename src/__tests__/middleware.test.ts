@@ -69,10 +69,10 @@ describe('middleware rate limiting', () => {
   it('medium paths have their own limit (20/min)', async () => {
     const { middleware } = await loadMiddleware();
     for (let i = 0; i < 20; i++) {
-      const res = middleware(makeRequest('/api/validateLink'));
+      const res = middleware(makeRequest('/api/artist/a1/lore-suggestions'));
       expect(res.status).not.toBe(429);
     }
-    const res = middleware(makeRequest('/api/validateLink'));
+    const res = middleware(makeRequest('/api/artist/a1/lore-suggestions'));
     expect(res.status).toBe(429);
   });
 
@@ -245,7 +245,6 @@ describe('middleware rate limiting', () => {
     // Regular API paths should match
     expect(matcher.test('/api/leaderboard')).toBe(true);
     expect(matcher.test('/api/funFacts/random')).toBe(true);
-    expect(matcher.test('/api/validateLink')).toBe(true);
   });
 
   it('covers the LLM-facing routes, which are not under /api', async () => {

@@ -8,6 +8,8 @@ import { EditModeContext } from './EditModeContext';
 import EditableLinkIcon from './EditableLinkIcon';
 import { orderProfileLinks, type LinkSection, type ProfileLink } from '@/lib/artist/artistProfileLinks';
 import ResearchNewMark from '@/app/artist/[id]/_components/onboarding/ResearchNewMark';
+import { requestArtistLinkOrder } from '@/lib/artistLinks/requestArtistLinkOrder';
+import { trackEvent } from '@/lib/analytics/trackEvent';
 
 function LinkItem({ link, artistId, canEdit, editing, saving }: {
     link: ProfileLink; artistId: string; canEdit: boolean; editing: boolean; saving: boolean;
@@ -38,11 +40,12 @@ export default function SortableArtistLinks({ artistId, section, links, suppleme
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
     const save = useCallback(async () => {
         if (!canEdit || order === sourceOrder) return;
-        const response = await fetch('/api/artist/link-order', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ artistId, section, order: JSON.parse(order) }) });
+        const response = await requestArtistLinkOrder({ artistId, section, order: JSON.parse(order) });
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || 'Could not save your link order. Try Done again.');
         }
+        trackEvent('profile_edit', { action: 'reorder', target: section });
     }, [artistId, section, order, sourceOrder, canEdit]);
     useEffect(() => registerSave?.(`links:${artistId}:${section}`, save), [registerSave, artistId, section, save]);
     function onDragEnd({ active, over }: DragEndEvent) {

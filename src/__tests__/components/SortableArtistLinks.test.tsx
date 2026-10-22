@@ -6,6 +6,10 @@ import EditModeToggle from '@/app/_components/EditModeToggle';
 import { EditModeProvider } from '@/app/_components/EditModeContext';
 const refresh = jest.fn();
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
+jest.mock('@privy-io/react-auth', () => ({ getAccessToken: jest.fn().mockResolvedValue('private-token') }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
+import { trackEvent } from '@/lib/analytics/trackEvent';
 let dragEnd: (event: unknown) => void;
 // JSDOM has no layout. Drive the drag-end event through the real editor/save flow.
 // The keyboard activation is tested separately with the actual dnd sensor.
@@ -34,9 +38,11 @@ test('the icons themselves are drag buttons; Done persists their order before ex
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Reorder Spotify' })).toBeDisabled();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await act(async () => finish({ ok: true } as Response));
     expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/artist/link-order', expect.objectContaining({ body: JSON.stringify({ artistId: 'a1', section: 'links', order: ['deezer', 'spotify'] }) }));
+    expect(fetchMock).toHaveBeenCalledWith('https://api-preview.test/api/artist/link-order', expect.objectContaining({ method: 'PUT', headers: expect.objectContaining({ Authorization: 'Bearer private-token' }), body: JSON.stringify({ artistId: 'a1', section: 'links', order: ['deezer', 'spotify'] }) }));
+    expect(trackEvent).toHaveBeenCalledWith('profile_edit', { action: 'reorder', target: 'links' });
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([links[1].href, links[0].href]);
     expect(refresh).toHaveBeenCalled();
     fetchMock.mockRestore();
@@ -49,6 +55,7 @@ test('failed saves keep the draft and edit mode; Done retries it', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Done' })).not.toBeDisabled());
     expect(refresh).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledTimes(2);
