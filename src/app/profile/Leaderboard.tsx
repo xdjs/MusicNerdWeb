@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 import LeaderboardRow from "./LeaderboardRow";
 import surface from "./ProfileConcept.module.css";
 import styles from "@/components/community/Community.module.css";
@@ -43,7 +44,7 @@ export default function Leaderboard({ currentUserId, highlightIdentifier, onRang
     setLoading(true); setError(false);
     void (async () => {
       try {
-        const response = await fetch(`/api/leaderboard${params.size ? `?${params}` : ''}`, {signal:controller.signal});
+        const response = await fetch(musicNerdApiUrl(`/api/leaderboard${params.size ? `?${params}` : ''}`), {signal:controller.signal, credentials:'omit'});
         if (!response.ok) throw new Error('Leaderboard unavailable');
         const data = await response.json();
         if (!cancelled) setEntries(Array.isArray(data) ? data : data.entries);

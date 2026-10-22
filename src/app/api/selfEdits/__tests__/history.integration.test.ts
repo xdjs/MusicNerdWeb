@@ -27,7 +27,6 @@ const mockDatabase = {
     transaction: (callback: (tx: ReturnType<typeof adapt>) => Promise<unknown>) => database.transaction(tx => callback(adapt(tx))),
 };
 let history: typeof import('../route').GET;
-let getLeaderboard: typeof import('@/server/utils/queries/getLeaderboard').getLeaderboard;
 let getRecentActivity: typeof import('@/server/utils/queries/activityQueries').getRecentActivity;
 let requireAuth: typeof import('@/lib/auth-helpers').requireAuth;
 const artistId = '00000000-0000-4000-8000-000000001134';
@@ -40,7 +39,6 @@ beforeAll(async () => {
     jest.resetModules();
     ({ GET: history } = await import('../route'));
     ({ getRecentActivity } = await import('@/server/utils/queries/activityQueries'));
-    ({ getLeaderboard } = await import('@/server/utils/queries/getLeaderboard'));
     ({ requireAuth } = await import('@/lib/auth-helpers'));
     const tables = { users: schema.users, artists: schema.artists, ugcresearch: schema.ugcresearch,
         artistClaims: schema.artistClaims, claimStatus: schema.claimStatus,
@@ -74,7 +72,6 @@ it('reads addition/update history and activity without counting it as UGC credit
     await seedHistory('first', null, '2026-10-01T00:00:00Z');
     await seedHistory('second', 'first', '2026-10-02T00:00:00Z');
     expect(await database.query.ugcresearch.findMany()).toEqual([]);
-    expect(await getLeaderboard()).toEqual([]);
     const events = await getRecentActivity(since);
     expect(events.map(e => e.type).sort()).toEqual(['self_edit_added', 'self_edit_updated']);
     const res = await history(new Request(`https://test/api/selfEdits?userId=${otherId}`));

@@ -13,6 +13,7 @@ import { render, screen, waitFor, fireEvent, within } from "@testing-library/rea
 import "@testing-library/jest-dom";
 
 import AskAboutArtist from "../AskAboutArtist";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 const ANSWER = {
     answer: 'Rango co-produced "crying on the floor (pete rango mix)" with Dame Atlas [Artist Doc, 2, 4] and has produced for Kilo Kish [10].',
@@ -144,7 +145,7 @@ describe("an answer, rendered", () => {
         expect(calls().some(u => u.includes("/api/trackLinks"))).toBe(false);
 
         fireEvent.click(screen.getByRole("button", { name: /crying on the floor/i }));
-        await waitFor(() => expect(calls().some(u => u.includes("/api/trackLinks"))).toBe(true));
+        await waitFor(() => expect(calls().some(u => u.startsWith(musicNerdApiUrl("/api/trackLinks?")))).toBe(true));
     });
 
     it("offers Spotify immediately and the rest once they resolve", async () => {

@@ -8,6 +8,7 @@ import ResearchSourcePassage from "./ResearchSourcePassage";
 import { getInstagramMentions } from "@/lib/instagram/getInstagramMentions";
 import type { QuestionQuota } from '@/lib/questionResearch/getQuestionQuota';
 import QuestionQuotaNotice from './QuestionQuotaNotice';
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 interface AskAboutArtistProps {
     artistId: string;
@@ -335,7 +336,7 @@ function SongLink({
                 // Albums and singles need different provider endpoints.
                 kind: song.kind ?? "album",
             });
-            const res = await fetch(`/api/trackLinks?${q}`);
+            const res = await fetch(musicNerdApiUrl(`/api/trackLinks?${q}`), { credentials: 'omit' });
             const data = await res.json();
             setLinks(Array.isArray(data.links) ? data.links : []);
         } catch {

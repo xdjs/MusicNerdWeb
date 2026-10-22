@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, ArrowUpRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 type Result = { id: string; name: string; imageUrl?: string | null; isExternalOnly?: boolean };
 
@@ -20,7 +21,7 @@ export default function ShareLinkDialog({ open, onOpenChange, title = "Share a l
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch('/api/searchArtists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: query.trim() }), signal: controller.signal });
+        const response = await fetch(musicNerdApiUrl('/api/searchArtists'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: query.trim() }), credentials: 'omit', signal: controller.signal });
         if (!response.ok) throw new Error('Search failed');
         const data = await response.json() as { results: Result[] };
         if (controller.signal.aborted) return;

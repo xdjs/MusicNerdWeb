@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Leaderboard from '../Leaderboard';
+import { musicNerdApiUrl } from '@/lib/musicNerdApi/musicNerdApiUrl';
 
 const entry = (userId: string, isHidden = false) => ({userId, wallet: '', username: userId, email: null, ugcCount: 2, artistsCount: 1, isHidden});
 const reply = (data: unknown) => ({ok: true, json: async () => data}) as Response;
@@ -34,7 +35,7 @@ it('resets pagination with a new period, retains an empty state, and retries a f
   fireEvent.click(await screen.findByRole('button', {name:'Try again'}));
   expect(await screen.findByText('No contributions in this period yet.')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name:'Next'})).not.toBeInTheDocument();
-  await waitFor(()=>expect(fetch).toHaveBeenLastCalledWith('/api/leaderboard', expect.anything()));
+  await waitFor(()=>expect(fetch).toHaveBeenLastCalledWith(musicNerdApiUrl('/api/leaderboard'), expect.anything()));
 });
 
 it('ignores a superseded period response', async () => {
