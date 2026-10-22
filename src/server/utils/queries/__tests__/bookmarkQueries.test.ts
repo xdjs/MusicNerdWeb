@@ -126,14 +126,4 @@ describe('account bookmarks', () => {
         expect(conditions[0].params).toEqual([USER, LEGACY]);
         expect(locks).toEqual(['update']);
     });
-
-    it('merges bookmark union with target order and creation times preserved', async () => {
-        const { transferUserBookmarks, tx, inserted, updates } = await setup([
-            [stored(B), stored(A)], [stored(A), stored(C)],
-        ]);
-        await transferUserBookmarks(tx, USER, LEGACY);
-        expect(inserted).toEqual([{ userId: LEGACY, artistId: C, createdAt: date, removedAt: undefined, position: 2 }]);
-        expect(updates[0].values.params).toEqual([B, 0, A, 1, C, 2]);
-        expect(updates[0].condition.params).toEqual([LEGACY, B, A, C]);
-    });
 });

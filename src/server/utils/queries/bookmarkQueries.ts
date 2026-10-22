@@ -101,17 +101,3 @@ export async function editUserBookmarks(userId: string, orderedArtistIds: string
 export async function removeUserBookmark(userId: string, artistId: string): Promise<BookmarkItem[]> {
     return editUserBookmarks(userId, [], [artistId]);
 }
-
-/** Called inside mergeAccounts after both user rows are locked. Keep the legacy
- * account's saved positions/createdAt; append only missing placeholder entries. */
-export async function transferUserBookmarks(tx: Transaction, currentUserId: string, legacyUserId: string): Promise<void> {
-    const target = await existingBookmarks(tx, legacyUserId);
-    const source = await tx.select({ artistId: userArtistBookmarks.artistId, createdAt: userArtistBookmarks.createdAt, removedAt: userArtistBookmarks.removedAt }).from(userArtistBookmarks).where(eq(userArtistBookmarks.userId, currentUserId));
-    const targetIds = new Set(target.map(({ artistId }) => artistId));
-    const additions = source.filter(({ artistId }) => !targetIds.has(artistId));
-    if (!additions.length) return;
-    await tx.insert(userArtistBookmarks).values(additions.map(({ artistId, createdAt, removedAt }, index) => ({
-        userId: legacyUserId, artistId, createdAt, removedAt, position: target.length + index,
-    }))).onConflictDoNothing({ target: [userArtistBookmarks.userId, userArtistBookmarks.artistId] });
-    await writeOrder(tx, legacyUserId, [...target.map(({ artistId }) => artistId), ...additions.map(({ artistId }) => artistId)]);
-}

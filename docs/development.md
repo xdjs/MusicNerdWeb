@@ -71,7 +71,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
   the existing indexes and fuzzy fallback remain in use. Regression: issue #1256.
 - **Auth:** `src/server/auth.ts` uses a Privy CredentialsProvider and NextAuth JWT sessions.
   `src/server/utils/privy.ts` verifies tokens. Privy login UI lives under
-  `src/app/_components/nav/components/`. Legacy wallets can be linked with `mergeAccounts()`;
+  `src/app/_components/nav/components/`. Legacy wallets are linked by MusicNerdAPI's `POST /api/auth/link-wallet`
+  (`src/lib/account/requestLinkWallet.ts`), which runs `mergeAccounts`;
   inspect account-owned data whenever changing that path.
 - **Authorization:** `src/lib/auth-helpers.ts` provides `requireAuth`, `requireAdmin`, and
   `requireWhitelistedOrAdmin`. Artist edits additionally require the existing ownership guard.
