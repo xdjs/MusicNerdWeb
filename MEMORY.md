@@ -1,3 +1,16 @@
+## Artist share images — October 21
+
+Pete selected the mixed-case “Nerd out on” monochrome close-up and the complete,
+large pink glasses side-by-side fallback, and authorized the feature-branch push.
+[Draft #1585](https://github.com/xdjs/MusicNerdWeb/pull/1585) and
+[#1579](https://github.com/xdjs/MusicNerdWeb/issues/1579) hold live check/deployment
+status; [contract](docs/artist-share-preview.md). This branch implements the designs
+as the default artist OG/Twitter image. No About read on that path, model call,
+new persistence or migration. Long/unsupported names remain bounded, and portraits
+retain the public allowlist and byte/decode/timeout limits. Earlier proposals remain
+preview-only. Main merge, native messaging-app acceptance and production promotion
+are not established by the local design approval or feature push.
+
 ## Claim submission recovery — October 18
 
 Pete reported a claim error on Olivier Boge and authorized an urgent isolated fix.

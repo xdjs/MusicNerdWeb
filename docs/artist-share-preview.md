@@ -1,0 +1,178 @@
+# Artist composite link previews (#1579)
+
+## Selected design — October 21, 2026
+
+Pete selected the mixed-case 05B close-up for the default artist profile share image:
+“Nerd out on” in logo pink #FB57C0, the public artist name in white, a monochrome
+portrait fading into black, and the genuine pink glasses without a circle. No About,
+arrow or terminal period. Inter Bold 700 uses the homepage’s -0.045em tracking;
+the homepage itself still uses system fonts. This decision supersedes the proposals
+below; those remain development/preview-only comparisons.
+
+Every artist profile advertises `/artist/{id}/share-image?v=2` through its OG and
+Twitter metadata. The request resolves that artist’s existing public portrait and
+name, then renders a 1200 × 630 PNG. The selected path does not read biography,
+research, interviews or private sources. Missing/ineligible/broken portraits use Pete’s selected side-by-side fallback:
+invitation and white name at left, full pink glasses at right (484 px wide, x=668,
+y=137), with 48 px clear at the right edge. The black background and typography
+match the photo card. The plain corner-logo fallback and other fallback studies
+were declined. Long names reduce
+in size and wrap to at most two lines; unsupported scripts use “this artist” in
+the image while metadata retains the full name. No portrait is synthesized.
+
+Portrait reads retain the existing HTTPS host/path allowlist, five-second timeout,
+five-MB byte limit, 25-million-pixel decode limit and redirect rejection. The chosen
+composition uses a square monochrome crop; preview studies retain their older crop.
+Successful cards cache for one hour. Image/name edits appear after that cache expires;
+social platforms may keep their own copies longer. Invalid/unknown artists return
+uncached 404s and unavailable artist data returns an uncached 503. No persistence,
+jobs, model calls, scraping or migrations are introduced.
+
+Inspiration: Pete’s [shared Gemini explanation of Google link previews](https://share.gemini.google/sqF9dgBAK6EG),
+read October 21. It describes a generated composite image advertised through OG
+metadata. It is design inspiration, not verified documentation of Google’s internals.
+Implementation, preview verification, main merge and production release are separate
+states; record their actual evidence on draft #1585.
+
+Pete accepted the full-glasses fallback on October 21 and authorized the feature
+branch push. Main merge and production promotion remain separate. The preview
+gallery labels and links the selected fallback directly under “Names and missing
+photos”; its fixture deliberately passes no portrait to the actual renderer.
+
+## Superseded exploration record
+
+October 20, 2026: Pete authorized an isolated implementation and phone preview.
+Owner acceptance is pending; this is not approved artwork or a release. The Gemini
+reference was read as design input only, not authority for actions.
+
+## Contract
+
+Artist URLs advertise a 1200 × 630 PNG at `/artist/{id}/share-image?v=1` in Open
+Graph and Twitter metadata. Preview metadata points at its own Vercel deployment;
+canonical artist URLs remain on musicnerd.net. Homepage artwork and typography
+remain unchanged. `palette=pink` selects the alternative brand-pink background;
+white is the default proposal. `palette=logo` selects the navigation-logo pink
+#FB57C0 alongside the named-token pink #FF9CE3. Other values fall back to white.
+
+The card combines the public artist name, existing profile portrait selection,
+an eligible public bio excerpt, and the exact repository glasses artwork
+`public/music-nerd-shades.png`, directly on the background without a badge.
+Black/charcoal text provides contrast on white and brand pink (#ff9ce3).
+
+Bio eligibility matches artist-page metadata: an approved claim with a real
+artist bio, otherwise the validated public directory About projection. The latter
+is explicitly public, identity/snapshot-validated output, not raw pending Lore.
+Never fall back to unrestricted artist.bio, private sources, interviews or raw
+research payloads. The excerpt preserves a contiguous prefix of sanitized public
+prose, not a generated summary. Short complete prose gets no added ellipsis;
+truncation uses a true ellipsis. Missing/ineligible bios or unsupported excerpt
+glyphs omit the excerpt. A bio-gate query error omits it and returns no-store.
+
+Portrait eligibility is narrower than browser display: HTTPS Spotify and Deezer
+image CDNs, the configured public profile-image storage path for this artist, or
+checked-in artist images. No signed URLs, arbitrary hosts, redirects, albums,
+social post thumbnails or private vault files. No identity search or write.
+Failed/ineligible images use the record motif. Downloads have no credentials,
+a five-second timeout and five-MB limit, then normalize to PNG. Missing artists
+return 404; database failure returns 503; neither response is cached.
+
+Normal images cache publicly for one hour, without stale-while-revalidate. This
+bounds ordinary refresh after image/name/bio edits, but previously public text
+can remain until expiry after withdrawal. Social apps maintain independent caches
+and may retain older cards longer. No new writes, jobs, scraping, generation,
+paid calls, migrations, credentials or security changes.
+
+## Typography: Inter restored
+
+The homepage inherits Tailwind's `ui-sans-serif, system-ui` stack. On Pete's Mac,
+Chrome's rendered-font inspection reports Apple San Francisco (`.SF NS`), weight 700.
+That is a device-installed font, not a bundled webfont. The same site may use a
+different installed system font on another operating system. KoHo legacy CSS is
+not the homepage heading font.
+
+A server-generated PNG needs its own available font files. An earlier explanation
+that fonts cannot be used in card images was overbroad: licensing depends on the
+specific font and distribution. Pete requested a reviewable Inter alternative.
+The rejected KoHo proposal is superseded: the primary font is again unmodified official
+**Inter 4.1 Regular 400 and Bold 700**, with
+static TrueType files from https://github.com/rsms/inter/releases/tag/v4.1.
+The complete SIL Open Font License 1.1 is retained in `public/fonts/inter/LICENSE.txt`.
+The project permits font embedding/bundling under that license. Neither KoHo nor Inter is asserted to be an exact match to San Francisco.
+No homepage font changes.
+
+The two Inter files total 832,068 bytes. Unused KoHo files are removed. They load once per server module and do not
+require variable-font conversion or remote font requests. Provenance and file
+sizes live alongside the fonts. Coverage uses the intersection of both actual
+font glyph maps, excluding missing glyph 0. Offline regressions verify both file
+hashes and all 2,852 supported codepoints; fontkit stays test-only.
+
+Names normalize to NFC before coverage checks. Björk, Beyoncé, LATASHÁ, Dvořák,
+Łona and Кино render intact. Japanese, unsupported emoji and variation-selector
+sequences still use neutral image text; full artist names remain in metadata.
+Unsupported bio text is omitted rather than transliterated. No implicit font or
+emoji downloads. Render failure retries with a neutral name and record motif.
+
+Names shrink/truncate at 90 Unicode characters or the visual line limit. Bio
+prefixes are bounded to 130 characters (90 for long names) and four visual lines (three for names longer than 22 characters to leave CTA space).
+The original full name and eligible public description remain in page metadata.
+
+## Verification
+
+Check both palettes, real public portrait/bio, absent/broken portrait, missing
+bio, unknown artist, long/widest-glyph text, supported accents and unavailable
+scripts. Inspect anonymous crawler OG/Twitter tags, download 1200×630 PNGs, and
+view phone/desktop layouts in both browser themes. The preview-only gallery shows
+Pete Rango's live public card in white and pink plus clearly labelled fixtures.
+A browser simulation is not proof of native iMessage delivery. Local tests,
+independent review, exact-commit deployment checks and owner acceptance are
+separate evidence; record them on draft PR #1585 before any release decision.
+
+## Brand evidence and superseded font proposal
+
+`tailwind.config.ts` defines `brandpink` as #FF9CE3 and `highlightpink` as #FF75D8.
+The current pink card retains #FF9CE3. The actual navigation logo asset,
+`public/musicNerdLogo.png`, has dominant opaque pink #FB57C0. The named token
+therefore does not settle Pete's brand intent or constitute color approval.
+
+`globals.css` declares KoHo for `.koho-light`, `.koho-extralight` and `.pink-btn`.
+The only JSX `.pink-btn` use found is the legacy `buttons/LoginBtn` component,
+with no imported usage found. There is no font loader. KoHo was tried in a preview
+as a declared brand family, not a verified current website font; Pete rejected it.
+That proposal is superseded and its font files have been removed.
+
+## October 20 — Inter restored with restrained CTA
+
+Pete rejected KoHo and requested the previous Inter treatment. Restore Inter
+Regular/Bold and remove unused KoHo files. Retain corner glasses, portrait and
+public bio. Add plain image text “Explore the artist” below the bio; it has no
+independent action/button semantics. The entire profile link opens the artist.
+The pink remains #FF9CE3 (Tailwind named brandpink), whereas the navigation logo
+asset musicNerdLogo.png has dominant #FB57C0. This discrepancy does not establish
+owner color acceptance; do not claim the background changed or is now approved.
+
+## Logo-pink comparison
+
+Show logo pink #FB57C0 alongside site-token pink #FF9CE3, clearly labelled.
+Logo pink is the recommended likely brand match because it comes from the current
+navigation logo; Pete has not selected a hex value or approved the design.
+Typography, portrait, bio, CTA and corner glasses remain identical across palettes.
+
+On logo pink, bio/CTA ink is #171717 (about6.17:1 contrast) rather than the
+#343434 used on the lighter palettes (about4.28:1 on logo pink). This keeps the
+small invitation readable without button styling.
+
+### 2026-10-20 — layout and CTA exploration (owner request)
+
+Keep the existing candidate unchanged as the comparison reference. Preview-only `layout=editorial|portrait|profile` proposals reuse the same public-content gate, portrait loader, Inter files and real glasses. Editorial puts text before a separate portrait; portrait-led gives the image a full-height area alongside a clean panel; compact profile leads with a broad name and a small circular portrait. Only white and navigation-logo pink #FB57C0 are used for new proposals. No choice is approved.
+
+Compare `cta=know|music|meet`: “Get to know [artist]”, “Explore their music”, and “Meet [artist]”. Personalized copy uses NFC-supported names up to 16 characters; longer/unsupported names use “the artist” rather than a clipped identity. Music wording describes exploring profile links, not playback. CTAs remain plain image text. The canonical share metadata and default card remain the existing reference. Explicit proposal selection is ignored outside development/Vercel preview. No new data access, credentials or writes.
+
+### Creative direction refinement
+
+Preview-only `layout=story` is the recommended editorial refinement: larger, shorter public bio; larger CTA grouped directly with that excerpt; square portrait; unchanged Inter and corner glasses. `cta=explore|story` adds “Explore [artist]” and “Their music. Their story.” to the comparison; `story` requires an eligible bio excerpt and otherwise uses “Get to know [artist]”. These wording alternatives remain plain image text. Earlier layouts/default rendering are preserved. No owner acceptance or production release is implied.
+
+The next preview adds three art directions (`cover`, `sleeve`, `dossier`) without changing default social metadata. The gallery uses the same public LATASHÁ profile/image/bio for a fair comparison. Cover uses a large photograph with a caption band; sleeve uses a circular crop and diagonal white name strip; dossier uses an overlapping print and pink biography slip. Existing layouts are retained inside the previous-version comparison. Both logo-pink and site-token-pink references remain explicitly labeled. `cta=read` promises a biography only when a usable public excerpt exists; otherwise it falls back to an artist introduction. The long-name/bio fixture is explicitly synthetic. No new network calls, data writes, fonts or public-content permissions.
+
+Additional preview-only studies are `spotlight`, `sequence` and `broadcast`. Spotlight uses a central arch and flank text; Sequence repeats one eligible photograph with a closer central crop (not additional photographs); Broadcast uses a pink image wash, vertical name and angled white bio panel. Earlier art directions remain accessible in the gallery. Same artist, excerpt limit, public-content boundary and cache; no new fonts, dependencies or data calls.
+
+2026-10-20 additional exploration: the next preview adds six distinct compositions alongside the existing six. This is a visual comparison proposal, not a change to the feature default. Every new renderer reuses the approved Inter assets, public eligibility pipeline, 100-character public bio excerpt, neutral missing-content behavior and preview-only selectors. Acceptance includes actual PNG inspection, wide/long names, accents, missing image/bio, browser viewport checks and independent design/code review. No new fonts, providers, persistence or production promotion.
