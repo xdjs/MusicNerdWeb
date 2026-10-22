@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { requestArtistImageApi } from '@/lib/artistImages/requestArtistImageApi';
 
 interface Props {
     artistId: string;
@@ -32,7 +33,7 @@ export default function HeaderPhotoPosition({ artistId, imageUrl, position, onCh
         setSaving(true);
         setError('');
         try {
-            const res = await fetch('/api/artist/header-position', {
+            const res = await requestArtistImageApi('/api/artist/header-position', {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ artistId, imageUrl, y: draft }),
             });
