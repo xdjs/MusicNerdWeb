@@ -1,3 +1,4 @@
+import { lockVerifiedDeezerMapping } from "@/server/utils/providerIdentity/lockVerifiedDeezerMapping";
 /**
  * Service layer for cross-platform artist ID mappings.
  * Maps Spotify artist IDs to Deezer, Apple Music, MusicBrainz, etc.
@@ -203,6 +204,8 @@ export async function resolveArtistMapping(params: {
         };
       }
 
+      if (platform === "deezer" && !(await lockVerifiedDeezerMapping(transaction, artist, platformId)))
+        throw new MappingConflictError("Deezer mapping identity not corroborated or changed during verification");
       try {
         await transaction.execute(sql`
           UPDATE artist_id_mappings
@@ -227,6 +230,8 @@ export async function resolveArtistMapping(params: {
       };
     }
 
+    if (platform === "deezer" && !(await lockVerifiedDeezerMapping(transaction, artist, platformId)))
+      throw new MappingConflictError("Deezer mapping identity not corroborated or changed during verification");
     try {
       await transaction.execute(sql`
         INSERT INTO artist_id_mappings (artist_id, platform, platform_id, confidence, source, reasoning, api_key_hash)

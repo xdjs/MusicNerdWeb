@@ -2,6 +2,8 @@
 import { jest } from "@jest/globals";
 import { PgDialect } from "drizzle-orm/pg-core";
 
+jest.mock("@/server/utils/providerIdentity/lockVerifiedDeezerMapping", () => ({ lockVerifiedDeezerMapping: jest.fn(async () => true) }));
+
 const dialect = new PgDialect();
 
 describe("idMappingService", () => {

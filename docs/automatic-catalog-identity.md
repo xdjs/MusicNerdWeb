@@ -37,7 +37,8 @@ phone at 2×/touch and 832px desktop in both themes; no phone preview is claimed
 | API research adoption | API#62: same DSP gate at the shared vault writer. |
 | Dedicated API Spotify recording matcher | Existing separate recording evidence, tie/eligibility and locked collision checks; unchanged. Opt-in PostgreSQL acceptance still outstanding. |
 | Explicit Web/API owner confirmation | Retains authenticated ownership and direct/mapping collision checks; intentionally does not require automatic corroboration. Human confirmation can still be mistaken. |
-| Web MCP and approved UGC | Existing explicit-input/approval boundaries, unchanged. This patch does not certify semantic correctness of submitted IDs. |
+| Web/API MCP `resolve_artist_id` | Follow-up below: every persisted Deezer insert/update requires fresh reciprocal proof and a locked unchanged snapshot. Caller labels, including `manual`, are not owner confirmation. Other mapping platforms are unchanged. |
+| Approved UGC | Existing approval boundary, unchanged. This patch does not certify semantic correctness of approved IDs. |
 | Web directory creation | Submitted provider identity is validated; the extra provider uses the existing reciprocal Wikidata/MusicBrainz resolver plus exact target-ID and normalized-name checks. That separate resolver is unchanged. |
 | Legacy Web onboarding evaluation | `runResearchCase` → `writeDiscoveredProfiles` → `applyProfileLinkDecisions` remains a separate evaluation writer; no live route caller found. Do not run it against shared data as prevention acceptance. |
 | Existing stored IDs and Latest snapshots | Unchanged. Wrong existing anchors can still produce mutually matching accounts of the wrong artist; separate record review/cleanup required. |
@@ -51,3 +52,11 @@ on main, not the deployed production SHA, configuration or observed traffic.
 ## October 22 integration path
 
 This local refresh of Web1588 starts from main `c23e95b1`. The legacy editor source-search path remains active and retains this guard until Sweetman's #1589 API cutover. The paired API62 refresh preserves current API main's submitted-URL auditing and caller transactions with automatic evidence in the final argument. API85 already carries the earlier guards; its owner must consume the reconciled prerequisite and remove duplicates before merging. This refresh does not activate the #1589 client or change migration/source writers.
+
+## MCP mapping follow-up
+
+The API-key-only `resolve_artist_id` contract has no artist-owner confirmation evidence. Its source, confidence and reasoning fields are caller assertions, including `manual`. Every actual Deezer mapping insert or update therefore requires the same fresh unique Spotify/Deezer pair corroboration. This includes same-ID confidence, source and reasoning updates; a confidence upgrade can make a retained candidate active again. A lower-confidence skipped request persists nothing and does not query the provider. Other supported mapping platforms and authenticated owner/direct link-edit paths keep their existing behavior; Spotify is not a supported mapping target and is not added.
+
+Verification runs after current collision and confidence checks in the existing mapping transaction. Before persistence, a conditional `SELECT ... FOR UPDATE` locks the artist row only if both observed catalog slots still match. The existing artist/platform advisory lock serializes mapping writers; the row lock holds the verified catalog snapshot through commit. Missing/ambiguous/unavailable proof or changed slots reject without mapping persistence. The reused public lookup is bounded to four seconds; it adds that bounded network wait to a mapping transaction. No migrations, fallback name matching or new credentials are introduced.
+
+Regressions reconstruct the public Rnd1/RNDN IDs and observed `name_search`/`medium` metadata including the captured stored reasoning, with mocked provider responses. They do not assert the current live Wikidata answer or prove the original first-class link-write path. Snapshot-change tests use an in-transaction simulated row change, not real concurrent PostgreSQL sessions. The existing bad mapping and link are not corrected by this code.
