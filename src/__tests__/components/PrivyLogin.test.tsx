@@ -29,7 +29,9 @@ jest.mock('@privy-io/react-auth', () => ({
   },
   useIdentityToken: () => ({ identityToken: 'mock-identity-token' }),
   getIdentityToken: jest.fn().mockResolvedValue('mock-identity-token'),
+  getAccessToken: jest.fn().mockResolvedValue('mock-access-token'),
 }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
 
 const mockRequestAdminApi = jest.fn();
 jest.mock('@/lib/admin/requestAdminApi', () => ({ requestAdminApi: (...a: unknown[]) => mockRequestAdminApi(...a) }));
@@ -272,6 +274,17 @@ describe('PrivyLogin', () => {
 
       expect(screen.getByText('Leaderboard')).toBeInTheDocument();
       expect(screen.getByText('User Profile')).toBeInTheDocument();
+    });
+
+    it('asks the API whether the account has a claim and links its artist', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ status: 'ok', hasClaim: true, artistId: 'artist-1' }) });
+      render(<PrivyLogin />);
+
+      expect(await screen.findByText('My Artist Profile')).toBeInTheDocument();
+      expect(screen.getByText('My Artist Profile').closest('a')).toHaveAttribute('href', '/artist/artist-1');
+      expect(global.fetch).toHaveBeenCalledWith('https://api.test/api/user/has-claim', expect.objectContaining({
+        headers: { Authorization: 'Bearer mock-access-token' }, credentials: 'omit',
+      }));
     });
 
     it('shows Log Out menu item', () => {
