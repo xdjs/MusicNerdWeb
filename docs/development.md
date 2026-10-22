@@ -88,7 +88,8 @@ a `dev@localhost` admin user. Use a dev database; this fallback is not a login t
 - **Source-backed research:** since the cutover (#1365), MusicNerdAPI runs every
   `artist_research_jobs` kind (`social_ingest`, `caption_extract`, `lore_refresh`, `source_search`,
   `latest_refresh`) and its cron resumes unwatched work. This repo queues jobs
-  (`queries/researchJobQueries.ts`, `latest/requestLatestRefresh.ts`);
+  (`queries/researchJobQueries.ts`); Update Latest is read and queued by MusicNerdAPI's
+  `/api/artist/{id}/latest-refresh` (`src/lib/latest/requestLatestRefresh.ts`, Privy token);
   the browser pumps (`useResearchPump`, `LatestRefreshControl`) post to MusicNerdAPI's
   `/api/research/advance`, "Look again" calls MusicNerdAPI's `/api/artist/{id}/research/refresh`, and the
   build view's "try again" (`useRestartClaimBuild`) posts MusicNerdAPI's `/api/onboarding/{artistId}/build`,
