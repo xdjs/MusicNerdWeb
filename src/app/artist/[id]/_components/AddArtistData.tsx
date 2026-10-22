@@ -37,6 +37,7 @@ import Link from "next/link";
 import { LINK_NOT_SUPPORTED, LINK_TWITTER_INVALID } from "@/lib/linkSubmissionMessages";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import { trackEvent } from "@/lib/analytics/trackEvent";
+import { requestArtistLinkEdit } from "@/lib/artistLinks/requestArtistLinkEdit";
 
 type AddArtistDataProps = {
     artist: Artist;
@@ -262,26 +263,25 @@ export default function AddArtistData({ artist, availableLinks, isOpenOnLoad = f
         }
         if (directEdit) {
             try {
-                const res = await fetch("/api/directEditLink", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ artistId: artist.id, action: "set", url: formattedUrl }),
+                const res = await requestArtistLinkEdit("directEditLink", {
+                    artistId: artist.id, action: "set", url: formattedUrl,
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    if (data.changed === true) trackEvent("profile_edit", { action: "link_add", target: data.siteName ?? null });
                     toast({ title: `${artist.name}'s ${data.platformName ?? data.siteName ?? "link"} saved` });
                     setAddArtistResp({ status: "success", message: "Link saved successfully." });
                 } else {
                     setAddArtistResp({ status: "error", message: data.error ?? "Failed to save link." });
                 }
-            } catch {
-                setAddArtistResp({ status: "error", message: "Failed to save link." });
+            } catch (error) {
+                setAddArtistResp({ status: "error", message: error instanceof Error ? error.message : "Failed to save link." });
             }
             setIsLoading(false);
             return;
         }
         const resp = await addArtistData(formattedUrl, artist);
-        // Owners edit through /api/directEditLink above, which reports `profile_edit` server-side.
+        // Owners edit through the authenticated API path above; only changed saves report profile_edit.
         trackEvent("add_link_submit", { platform: resp.siteName ?? null, result: resp.status === "success" ? "success" : "error" });
         if (resp.status === "success") {
             toast({
