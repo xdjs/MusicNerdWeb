@@ -1,6 +1,6 @@
 # Cross-Platform Artist ID Mapping Agent
 
-Automated agent that resolves Deezer IDs for artists in the MusicNerd database using a tiered lookup strategy: Wikidata SPARQL → MusicBrainz → Google Search → Deezer name search. Artists that can't be mapped (name mismatches, conflicts, ambiguous names) are excluded from future batches to prevent wasted turns. Runs as a Claude Code session with MCP tools for database access.
+Automated agent that resolves Deezer IDs for artists in the MusicNerd database using a tiered lookup strategy: Wikidata SPARQL → MusicBrainz → Google Search → Deezer name search. Artists that can't be mapped (name mismatches, conflicts, ambiguous names) are excluded from future batches to prevent wasted turns. Runs as a Claude Code session with MCP tools for database access. The MCP server is MusicNerdAPI's `/api/mcp`.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ Automated agent that resolves Deezer IDs for artists in the MusicNerd database u
 # Required: your MCP API key
 export MCP_API_KEY="your-key-here"
 
-# Optional: override the MCP server URL (defaults to https://musicnerd.net/api/mcp)
-export MCP_URL="https://musicnerd.net/api/mcp"
+# Optional: override the MCP server URL (defaults to https://api.musicnerd.net/api/mcp)
+export MCP_URL="https://api.musicnerd.net/api/mcp"
 ```
 
 ## Running
@@ -24,18 +24,17 @@ export MCP_URL="https://musicnerd.net/api/mcp"
 ./agents/id-mapping/claude-runner.sh
 ```
 
-### Against local dev server
+### Against staging or a local API
 
 ```bash
 # Against a deployed staging/dev URL (recommended):
-MCP_URL=https://staging.musicnerd.net/api/mcp \
+MCP_URL=https://musicnerd-api-staging.vercel.app/api/mcp \
 MCP_API_KEY=your-dev-key \
 BATCH_SIZE=5 \
 ./agents/id-mapping/claude-runner.sh
 
-# Against localhost (requires a real cert — self-signed certs may cause hangs):
-npm run dev  # in another terminal
-MCP_URL=https://localhost:3000/api/mcp \
+# Against a local MusicNerdAPI (run `pnpm dev` in a MusicNerdAPI checkout):
+MCP_URL=http://localhost:3000/api/mcp \
 MCP_API_KEY=your-dev-key \
 BATCH_SIZE=5 \
 ./agents/id-mapping/claude-runner.sh
@@ -46,7 +45,7 @@ BATCH_SIZE=5 \
 | Env Var | Default | Description |
 |---------|---------|-------------|
 | `MCP_API_KEY` | (required) | MCP API key for write operations |
-| `MCP_URL` | `https://musicnerd.net/api/mcp` | MCP server endpoint |
+| `MCP_URL` | `https://api.musicnerd.net/api/mcp` | MCP server endpoint |
 | `BATCH_SIZE` | `50` | Number of artists to process per session |
 | `VERBOSE` | `0` | Set to `1` for stream-json + verbose debug output |
 
@@ -94,7 +93,7 @@ claude login
 # Create env file with required vars
 cat > ~/.env.mapping <<'EOF'
 export MCP_API_KEY="your-key-here"
-export MCP_URL="https://musicnerd.net/api/mcp"
+export MCP_URL="https://api.musicnerd.net/api/mcp"
 export BATCH_SIZE=50
 export MAX_ITERATIONS=400
 export LOG_DIR=$HOME/tmp/id-mapping
@@ -149,7 +148,7 @@ Workers naturally diverge as each resolves/excludes different artists from the s
 ```bash
 # Quick test with 2 iterations of 5 artists
 MAX_ITERATIONS=2 BATCH_SIZE=5 LOG_DIR=/tmp/id-mapping \
-  MCP_API_KEY=your-key MCP_URL=https://staging.musicnerd.net/api/mcp \
+  MCP_API_KEY=your-key MCP_URL=https://musicnerd-api-staging.vercel.app/api/mcp \
   AGENT_API_URL=https://musicnerd-api-staging.vercel.app \
   ./agents/id-mapping/run-full-catalog.sh
 
