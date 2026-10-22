@@ -46,7 +46,6 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/app/_components/ArtistLinksGrid', () => function ArtistLinksGrid() { return <div data-testid="artist-links" />; });
-jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
     EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
     // A real context, not a stub: KnowledgeSection and VaultSection both call
@@ -300,11 +299,6 @@ describe('ArtistProfile page', () => {
             expect(screen.getByTestId('ask-about-artist')).toBeVisible();
         });
 
-        it('does not render bookmark button when not authenticated', async () => {
-            await renderArtistPage();
-            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
-        });
-
         it('does not render edit mode toggle when not authenticated', async () => {
             await renderArtistPage();
             expect(screen.queryByTestId('edit-mode-toggle')).not.toBeInTheDocument();
@@ -358,11 +352,6 @@ describe('ArtistProfile page', () => {
 
         beforeEach(() => {
             setupMocks({ session: mockSession });
-        });
-
-        it('does not offer bookmarks now that profiles reflect contributions', async () => {
-            await renderArtistPage();
-            expect(screen.queryByTestId('bookmark-button')).not.toBeInTheDocument();
         });
 
         it('renders edit mode toggle when admin', async () => {

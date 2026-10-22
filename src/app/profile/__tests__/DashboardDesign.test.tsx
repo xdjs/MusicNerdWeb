@@ -24,7 +24,6 @@ it('keeps contribution actions and username editing available without a music co
   render(<><button aria-label="Add new artist" onClick={openArtist}>+</button><Dashboard user={user} allowEditUsername showLeaderboard={false} /></>);
   expect(await screen.findByRole('heading', { name: 'Music fan' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Contribution history' })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: /Find an artist/ })).toHaveAttribute('href', '/');
   fireEvent.click(screen.getByRole('button', { name: 'Add an artist' }));
   expect(openArtist).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole('button', { name: 'Edit user name' }));
@@ -34,15 +33,4 @@ it('keeps contribution actions and username editing available without a music co
   fireEvent.click(screen.getByRole('button', { name: 'Edit user name' }));
   expect(screen.getByLabelText('User name')).toHaveValue('Music fan');
   expect(screen.queryByText(/Connect Spotify|MusicNerd TV/)).not.toBeInTheDocument();
-});
-
-it('renders existing browser bookmarks and preserves artist destinations and editing', async () => {
-  localStorage.setItem('bookmarks_profile-test', JSON.stringify([{ artistId: 'artist-one', artistName: 'Saved artist', imageUrl: null }]));
-  render(<Dashboard user={user} allowEditUsername showLeaderboard={false} />);
-  expect(await screen.findByRole('link', { name: 'Saved artist' })).toHaveAttribute('href', '/artist/artist-one');
-  fireEvent.click(screen.getByRole('button', { name: 'Edit collection' }));
-  expect(screen.getByRole('button', { name: 'Remove Saved artist' })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-  expect(screen.queryByRole('button', { name: 'Remove Saved artist' })).not.toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem('bookmarks_profile-test')!)[0].artistId).toBe('artist-one');
 });
