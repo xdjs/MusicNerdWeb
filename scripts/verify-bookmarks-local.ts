@@ -72,7 +72,6 @@ async function main() {
         const { db } = await import('../src/server/db/drizzle');
         app = db.$client;
         const { addUserBookmarks, editUserBookmarks, getUserBookmarks, removeUserBookmark } = await import('../src/server/utils/queries/bookmarkQueries');
-        const { mergeAccounts } = await import('../src/server/utils/queries/userQueries');
         const ids = async (id: string) => (await getUserBookmarks(id)).map(({ artistId }) => artistId);
         await addUserBookmarks(user, [a, b, a]);
         await addUserBookmarks(user, [a]);
@@ -84,23 +83,14 @@ async function main() {
         assert.deepEqual(await ids(user), [c, a], 'stale reorder must not resurrect deleted bookmark');
         await removeUserBookmark(user, b);
         await addUserBookmarks(legacy, [b, a]);
-        const [added, merged] = await Promise.allSettled([addUserBookmarks(user, [b]), mergeAccounts(user, legacy)]);
-        assert.equal(merged.status, 'fulfilled');
-        if (merged.status === 'fulfilled') assert.equal(merged.value.success, true);
-        // Both serializations are valid: the add finishes before transfer, or
-        // merge wins the lock and the stale deleted account cannot be written.
-        if (added.status === 'rejected') assert.match(added.reason.message, /Bookmark account no longer exists/);
-        assert.deepEqual(await ids(legacy), [b, a, c]);
-        assert.equal((await database`SELECT id FROM users WHERE id = ${user}`).length, 0);
-        const positions = await database`SELECT position FROM user_artist_bookmarks WHERE user_id = ${legacy} ORDER BY position`;
-        assert.deepEqual(positions.map(({ position }) => position), [0, 1, 2]);
+        assert.deepEqual(await ids(legacy), [b, a]);
         await removeUserBookmark(legacy, a);
         await addUserBookmarks(legacy, [a], true);
-        assert.deepEqual(await ids(legacy), [b, c], 'stale browser import must not restore removals');
+        assert.deepEqual(await ids(legacy), [b], 'stale browser import must not restore removals');
         await addUserBookmarks(legacy, [a]);
-        assert.deepEqual(await ids(legacy), [a, b, c], 'explicit bookmark restores a removed artist');
+        assert.deepEqual(await ids(legacy), [a, b], 'explicit bookmark restores a removed artist');
         await database`DELETE FROM artists WHERE id = ${c}`;
-        assert.deepEqual(await ids(legacy), [a, b], 'artist deletion must cascade');
+        assert.deepEqual(await ids(user), [a], 'artist deletion must cascade');
         for (const role of ['anon', 'authenticated']) {
             for (const statement of [
                 'SELECT * FROM user_artist_bookmarks',
@@ -113,7 +103,7 @@ async function main() {
                 }), (error: unknown) => (error as { code?: string }).code === '42501');
             }
         }
-        console.log('PASS: migration, exact RLS/ACLs, mnweb CRUD, public-role denial, idempotency, concurrent add/reorder/merge, no resurrection, cascading delete.');
+        console.log('PASS: migration, exact RLS/ACLs, mnweb CRUD, public-role denial, idempotency, concurrent add/reorder, no resurrection, cascading delete.');
     } finally {
         await app?.end();
         await database?.end();

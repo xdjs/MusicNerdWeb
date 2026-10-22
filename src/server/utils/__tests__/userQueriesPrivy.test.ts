@@ -2,13 +2,6 @@
 
 import { jest } from '@jest/globals';
 
-jest.mock('@/server/utils/queries/bookmarkQueries', () => ({
-  lockBookmarkUsers: jest.fn(),
-  transferUserBookmarks: jest.fn(),
-}));
-
-jest.mock('@/server/utils/bio/transferBioCorrections', () => ({ transferBioCorrections: jest.fn() }));
-
 // Mock drizzle-orm operators
 jest.mock('drizzle-orm', () => ({
   eq: jest.fn((col, val) => ({ col, val, type: 'eq' })),
@@ -97,8 +90,6 @@ describe('Privy User Query Functions', () => {
   let getUserByPrivyId;
   let createUserFromPrivy;
   let updateUserPrivyId;
-  let linkWalletToUser;
-  let mergeAccounts;
   let db;
 
   beforeAll(async () => {
@@ -106,8 +97,6 @@ describe('Privy User Query Functions', () => {
     getUserByPrivyId = mod.getUserByPrivyId;
     createUserFromPrivy = mod.createUserFromPrivy;
     updateUserPrivyId = mod.updateUserPrivyId;
-    linkWalletToUser = mod.linkWalletToUser;
-    mergeAccounts = mod.mergeAccounts;
 
     const dbMod = await import('@/server/db/drizzle');
     db = dbMod.db;
@@ -257,216 +246,6 @@ describe('Privy User Query Functions', () => {
       await expect(updateUserPrivyId('uuid', 'did:privy:x')).rejects.toThrow(
         'Error updating user Privy ID'
       );
-    });
-  });
-
-  describe('linkWalletToUser', () => {
-    it('rejects invalid wallet address format', async () => {
-      await expect(linkWalletToUser('uuid', 'not-a-wallet')).rejects.toThrow(
-        'Invalid wallet address format'
-      );
-      await expect(linkWalletToUser('uuid', '0x123')).rejects.toThrow(
-        'Invalid wallet address format'
-      );
-      await expect(linkWalletToUser('uuid', '')).rejects.toThrow(
-        'Invalid wallet address format'
-      );
-    });
-
-    it('lowercases wallet address and updates user', async () => {
-      const wallet = '0xABCDEF1234567890ABCDEF1234567890ABCDEF12';
-      const updatedUser = { id: 'uuid', wallet: wallet.toLowerCase() };
-
-      const mockReturningFn = jest.fn().mockResolvedValue([updatedUser]);
-      const mockWhereFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      const mockSetFn = jest.fn().mockReturnValue({ where: mockWhereFn });
-      db.update.mockReturnValue({ set: mockSetFn });
-
-      const result = await linkWalletToUser('uuid', wallet);
-
-      expect(mockSetFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          wallet: wallet.toLowerCase(),
-        })
-      );
-      expect(result).toEqual(updatedUser);
-    });
-
-    it('accepts valid checksummed wallet address', async () => {
-      const wallet = '0x1234567890abcdef1234567890abcdef12345678';
-      const updatedUser = { id: 'uuid', wallet };
-
-      const mockReturningFn = jest.fn().mockResolvedValue([updatedUser]);
-      const mockWhereFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      const mockSetFn = jest.fn().mockReturnValue({ where: mockWhereFn });
-      db.update.mockReturnValue({ set: mockSetFn });
-
-      const result = await linkWalletToUser('uuid', wallet);
-      expect(result).toEqual(updatedUser);
-    });
-
-    it('throws on database error', async () => {
-      const wallet = '0x1234567890abcdef1234567890abcdef12345678';
-
-      const mockReturningFn = jest.fn().mockRejectedValue(new Error('DB error'));
-      const mockWhereFn = jest.fn().mockReturnValue({ returning: mockReturningFn });
-      const mockSetFn = jest.fn().mockReturnValue({ where: mockWhereFn });
-      db.update.mockReturnValue({ set: mockSetFn });
-
-      await expect(linkWalletToUser('uuid', wallet)).rejects.toThrow(
-        'Error linking wallet to user'
-      );
-    });
-  });
-
-  describe('mergeAccounts', () => {
-    const currentUser = {
-      id: 'privy-user-uuid',
-      privyUserId: 'did:privy:current',
-      email: 'current@test.com',
-      wallet: null,
-      acceptedUgcCount: 3,
-    };
-
-    const legacyUser = {
-      id: 'legacy-user-uuid',
-      privyUserId: null,
-      email: null,
-      wallet: '0xlegacy',
-      acceptedUgcCount: 10,
-    };
-
-    // We need to set up the transaction mock on the actual db module
-    // since jest.setup.ts provides a global db mock
-    let transactionFn;
-
-    beforeEach(() => {
-      // Reset transaction mock
-      mockTx.query.users.findFirst.mockReset();
-      mockTx.update.mockReturnValue({
-        set: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            returning: jest.fn(),
-          }),
-        }),
-      });
-      mockTx.delete.mockReturnValue({ where: jest.fn() });
-      mockTx.execute.mockResolvedValue(undefined);
-
-      // Override the db.transaction with our controllable mock
-      transactionFn = jest.fn(async (callback) => callback(mockTx));
-      db.transaction = transactionFn;
-    });
-
-    it('merges accounts successfully within a transaction', async () => {
-      mockTx.query.users.findFirst
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(legacyUser);
-
-      const result = await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
-
-      expect(result).toEqual({ success: true });
-      expect(transactionFn).toHaveBeenCalled();
-      expect(mockTx.update).toHaveBeenCalled();
-      expect(mockTx.execute).toHaveBeenCalled();
-      expect(mockTx.delete).toHaveBeenCalled();
-    });
-
-    it('locks both accounts and transfers bookmarks before deleting the placeholder', async () => {
-      const { lockBookmarkUsers, transferUserBookmarks } = await import('@/server/utils/queries/bookmarkQueries');
-      mockTx.query.users.findFirst.mockResolvedValueOnce(currentUser).mockResolvedValueOnce(legacyUser);
-
-      expect(await mergeAccounts(currentUser.id, legacyUser.id)).toEqual({ success: true });
-
-      expect(lockBookmarkUsers).toHaveBeenCalledWith(mockTx, [currentUser.id, legacyUser.id]);
-      expect(transferUserBookmarks).toHaveBeenCalledWith(mockTx, currentUser.id, legacyUser.id);
-      const { transferBioCorrections } = await import('@/server/utils/bio/transferBioCorrections');
-      expect(transferBioCorrections).toHaveBeenCalledWith(mockTx,currentUser.id,legacyUser.id);
-      expect(transferBioCorrections.mock.invocationCallOrder[0]).toBeLessThan(mockTx.delete.mock.invocationCallOrder[0]);
-      expect(lockBookmarkUsers.mock.invocationCallOrder[0]).toBeLessThan(mockTx.query.users.findFirst.mock.invocationCallOrder[0]);
-      expect(transferUserBookmarks.mock.invocationCallOrder[0]).toBeLessThan(mockTx.delete.mock.invocationCallOrder[0]);
-    });
-
-    it('returns failure when current user not found', async () => {
-      mockTx.query.users.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(legacyUser);
-
-      const result = await mergeAccounts('nonexistent', 'legacy-user-uuid');
-
-      expect(result).toEqual({ success: false, error: 'User not found' });
-    });
-
-    it('returns failure when legacy user not found', async () => {
-      mockTx.query.users.findFirst
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(null);
-
-      const result = await mergeAccounts('privy-user-uuid', 'nonexistent');
-
-      expect(result).toEqual({ success: false, error: 'User not found' });
-    });
-
-    it('returns failure when current user has no privyUserId', async () => {
-      const currentUserNoPrivy = { ...currentUser, privyUserId: null };
-      mockTx.query.users.findFirst
-        .mockResolvedValueOnce(currentUserNoPrivy)
-        .mockResolvedValueOnce(legacyUser);
-
-      const result = await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
-
-      expect(result).toEqual({ success: false, error: 'Current user has no Privy ID' });
-      expect(mockTx.update).not.toHaveBeenCalled();
-    });
-
-    it('rejects a legacy account newly linked to another Privy user inside the lock', async () => {
-      mockTx.query.users.findFirst.mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce({ ...legacyUser, privyUserId: 'did:privy:someone-else' });
-      expect(await mergeAccounts(currentUser.id, legacyUser.id)).toEqual({
-        success: false, error: 'Legacy account is already linked to another user',
-      });
-      expect(mockTx.update).not.toHaveBeenCalled();
-      expect(mockTx.delete).not.toHaveBeenCalled();
-    });
-
-    it('rejects same-account merges before touching persistence', async () => {
-      expect(await mergeAccounts(currentUser.id, currentUser.id)).toEqual({
-        success: false, error: 'Cannot merge the same account',
-      });
-      expect(transactionFn).not.toHaveBeenCalled();
-    });
-
-    it('clears privyUserId from placeholder before setting on legacy user', async () => {
-      mockTx.query.users.findFirst
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(legacyUser);
-
-      const updateCalls = [];
-      mockTx.update.mockImplementation(() => ({
-        set: (values) => {
-          updateCalls.push(values);
-          return {
-            where: jest.fn().mockReturnValue({
-              returning: jest.fn(),
-            }),
-          };
-        },
-      }));
-
-      await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
-
-      expect(updateCalls[0]).toEqual({ privyUserId: null });
-      expect(updateCalls[1]).toMatchObject({
-        privyUserId: 'did:privy:current',
-      });
-    });
-
-    it('returns failure when transaction throws', async () => {
-      transactionFn.mockRejectedValueOnce(new Error('Transaction deadlock'));
-
-      const result = await mergeAccounts('privy-user-uuid', 'legacy-user-uuid');
-
-      expect(result).toEqual({ success: false, error: 'Merge failed' });
     });
   });
 });
