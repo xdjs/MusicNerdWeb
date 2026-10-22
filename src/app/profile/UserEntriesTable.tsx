@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowUpRight, Check, Clock, Search, SlidersHorizontal } from "lucide-react";
+import { requestContributions } from "@/lib/contributions/requestContributions";
 
 export interface UserEntry {
   id: string;
@@ -38,7 +39,7 @@ export default function UserEntriesTable({ concept = false, artistImages = {}, a
     setLoading(true);
     setError(false);
     // The existing all=true endpoint lets filters/sorting cover the whole history.
-    fetch(serverPagination ? `/api/userEntries?${new URLSearchParams({page: String(page), query, siteName: site, status, order})}` : '/api/userEntries?all=true', { signal: controller.signal })
+    requestContributions(serverPagination ? `/api/userEntries?${new URLSearchParams({page: String(page), query, siteName: site, status, order})}` : '/api/userEntries?all=true', controller.signal)
       .then(async response => {
         if (!response.ok) throw new Error('Unable to load contributions');
         const data = await response.json();
