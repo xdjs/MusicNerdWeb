@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Leaderboard from '../Leaderboard';
 
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
+
 const entry = (userId: string, isHidden = false) => ({userId, wallet: '', username: userId, email: null, ugcCount: 2, artistsCount: 1, isHidden});
 const reply = (data: unknown) => ({ok: true, json: async () => data}) as Response;
 beforeEach(() => { jest.mocked(fetch).mockReset(); });
@@ -15,7 +17,7 @@ it('keeps hidden contributors unranked and highlights only the matching account'
 });
 
 it('opens recent edits deliberately and lets a failed request retry', async () => {
-  jest.mocked(fetch).mockResolvedValueOnce(reply([entry('pete')])).mockResolvedValueOnce({ok: false} as Response).mockResolvedValueOnce(reply([{ugcId:'edit',artistId:'artist-1',artistName:'Bio Ritmo',imageUrl:null}]));
+  jest.mocked(fetch).mockResolvedValueOnce(reply([entry('pete')])).mockResolvedValueOnce({ok: false} as Response).mockResolvedValueOnce(reply({status:'ok',entries:[{ugcId:'edit',artistId:'artist-1',artistName:'Bio Ritmo',imageUrl:null}]}));
   render(<Leaderboard />);
   const row = await screen.findByRole('button', {name: /Recent artists for pete/});
   expect(fetch).toHaveBeenCalledTimes(1);
@@ -23,6 +25,7 @@ it('opens recent edits deliberately and lets a failed request retry', async () =
   fireEvent.click(await screen.findByRole('button', {name:'Retry recent artists'}));
   expect(await screen.findByRole('link', {name:'Bio Ritmo'})).toHaveAttribute('href','/artist/artist-1');
   expect(row).toHaveAttribute('aria-expanded','true');
+  expect(fetch).toHaveBeenLastCalledWith('https://api.test/api/recentEdited?userId=pete', {credentials: 'omit'});
 });
 
 it('resets pagination with a new period, retains an empty state, and retries a failed list', async () => {

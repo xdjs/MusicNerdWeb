@@ -5,9 +5,9 @@ import { eq, type SQL } from 'drizzle-orm';
 import * as schema from '@/server/db/schema';
 let getServerAuthSession: typeof import('@/server/auth').getServerAuthSession;
 let addArtistData: typeof import('../artistQueries').addArtistData;
-let getRecentActivity: typeof import('../activityQueries').getRecentActivity;
 
-// Keep submission, approval, user lookup, link writes, and feed SQL real.
+// Keep submission, approval, user lookup and link writes real. The activity feed
+// that reads these rows is MusicNerdAPI's (`GET /api/activity`), tested there.
 // Only replace the database connection and boundaries outside this contract.
 jest.mock('@/server/db/drizzle', () => ({ get db() { return mockDatabase; } }));
 jest.mock('@/server/auth', () => ({ getServerAuthSession: jest.fn() }));
@@ -49,7 +49,6 @@ beforeAll(async () => {
     jest.resetModules();
     ({ getServerAuthSession } = await import('@/server/auth'));
     ({ addArtistData } = await import('../artistQueries'));
-    ({ getRecentActivity } = await import('../activityQueries'));
     // Generate current table DDL instead of replaying historical migrations or
     // maintaining a second copy of the schema. Policies/roles are out of scope.
     const tables = {
@@ -82,7 +81,7 @@ async function loadArtist() {
     return artist;
 }
 
-it.each(roles)('$role submission persists one approved contribution, link, and feed event', async (role) => {
+it.each(roles)('$role submission persists one approved contribution and link', async (role) => {
     await database.update(schema.users).set(role).where(eq(schema.users.id, userId));
     const beforeSubmission = new Date(Date.now() - 1000).toISOString();
 
@@ -101,39 +100,18 @@ it.each(roles)('$role submission persists one approved contribution, link, and f
     expect(processedAt).toBeLessThanOrEqual(Date.now());
     expect((await loadArtist()).instagram).toBe('activity_fixture');
 
-    const events = await getRecentActivity(beforeSubmission);
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-        type: 'ugc_approved', artist_id: artistId, artist_name: 'Activity Fixture', platform: 'instagram',
-    });
-    expect(new Date(events[0]!.created_at).getTime()).toBe(processedAt);
-    expect((await getRecentActivity()).filter(event => event.type === 'ugc_approved')).toEqual(events);
-    expect(await getRecentActivity(new Date(processedAt).toISOString())).toEqual([]);
-
     // The supported no-op case uses refreshed profile data, as the UI does.
     expect(await addArtistData(submittedUrl, await loadArtist())).toMatchObject({
         status: 'error', message: 'This artist data has already been added',
     });
     expect(await database.query.ugcresearch.findMany()).toEqual(contributions);
     expect((await loadArtist()).instagram).toBe('activity_fixture');
-    expect(await getRecentActivity(beforeSubmission)).toEqual(events);
 });
 
-it('keeps a regular user submission pending and absent from accepted activity', async () => {
+it('keeps a regular user submission pending and unprocessed', async () => {
     expect(await addArtistData(submittedUrl, await loadArtist())).toMatchObject({ status: 'success' });
     const contributions = await database.query.ugcresearch.findMany();
     expect(contributions).toHaveLength(1);
     expect(contributions[0]).toMatchObject({ artistId, userId, accepted: false, dateProcessed: null });
     expect((await loadArtist()).instagram).toBeNull();
-    expect((await getRecentActivity()).filter(event => event.type === 'ugc_approved')).toEqual([]);
-});
-
-it.each([
-    { accepted: false, dateProcessed: '2026-01-01T12:00:00.000Z' },
-    { accepted: true, dateProcessed: null },
-])('excludes incomplete approval state %j from the real feed query', async (state) => {
-    await database.insert(schema.ugcresearch).values({
-        artistId, userId, name: 'Activity Fixture', siteName: 'instagram', ...state,
-    });
-    expect((await getRecentActivity()).filter(event => event.type === 'ugc_approved')).toEqual([]);
 });

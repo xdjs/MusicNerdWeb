@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import SelfEditHistory from "./SelfEditHistory";
 import UserEntriesTable from "./UserEntriesTable";
 import LoadingPage from "../_components/LoadingPage";
+import { requestContributions } from "@/lib/contributions/requestContributions";
 import {
     DndContext,
     closestCenter,
@@ -305,7 +306,7 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     useEffect(() => {
         async function markUGCSeen() {
             try {
-                const resp = await fetch('/api/ugcCount');
+                const resp = await requestContributions('/api/ugcCount');
                 if (!resp.ok) return;
                 const data = await resp.json();
 
@@ -422,9 +423,9 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     // Fetch recent edited UGC only for the full profile layout (not the compact leaderboard layout)
     useEffect(() => {
         if (!isCompactLayout) {
-            fetch('/api/recentEdited')
+            requestContributions('/api/recentEdited')
                 .then(res => res.json())
-                .then((data: RecentItem[]) => setRecentUGC(data))
+                .then((data: { entries: RecentItem[] }) => setRecentUGC(data.entries))
                 .catch((e) => console.error('[Dashboard] error fetching recent edited', e));
         }
     }, [isCompactLayout]);

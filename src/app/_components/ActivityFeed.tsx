@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 // --- Types ----------------------------------------------------------------
 
@@ -145,13 +146,13 @@ export default function ActivityFeed({ fadeRows = true }: { fadeRows?: boolean }
 
     const fetchEvents = useCallback(async (since?: string) => {
         try {
-            const url = since
+            const path = since
                 ? `/api/activity?since=${encodeURIComponent(since)}`
                 : "/api/activity";
-            const res = await fetch(url);
+            const res = await fetch(musicNerdApiUrl(path), { credentials: "omit" });
             if (!res.ok) return;
-            const data: ActivityEvent[] = await res.json();
-            return data;
+            const data: { events: ActivityEvent[] } = await res.json();
+            return data.events;
         } catch {
             return undefined;
         }

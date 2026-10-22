@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { resumeCorrectionSession } from '@/lib/bio/resumeCorrectionSession';
 import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { trackEvent } from '@/lib/analytics/trackEvent';
+import { requestContributions } from '@/lib/contributions/requestContributions';
 import { markLoginCompleted } from '@/lib/analytics/markLoginCompleted';
 import { takeCompletedLogin } from '@/lib/analytics/takeCompletedLogin';
 import { rememberLoginTrigger } from '@/lib/analytics/rememberLoginTrigger';
@@ -313,7 +314,7 @@ const PrivyLogin = forwardRef<HTMLButtonElement, PrivyLoginProps>(
       if (!session) return;
 
       try {
-        const res = await fetch('/api/ugcCount');
+        const res = await requestContributions('/api/ugcCount');
         if (res.ok) {
           const data = await res.json();
           setUgcCount(data.count);

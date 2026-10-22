@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 import styles from "@/components/community/Community.module.css";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 
 type RecentItem = { ugcId: string; artistId: string | null; artistName: string | null; imageUrl: string | null };
 
@@ -18,9 +19,9 @@ export default function LeaderboardRow({ entry, rank, current }: { entry: Leader
   async function loadRecent() {
     setLoading(true); setError(false);
     try {
-      const response = await fetch(`/api/recentEdited?userId=${encodeURIComponent(entry.userId)}`);
+      const response = await fetch(musicNerdApiUrl(`/api/recentEdited?userId=${encodeURIComponent(entry.userId)}`), { credentials: 'omit' });
       if (!response.ok) throw new Error('Recent edits unavailable');
-      setRecent(await response.json());
+      setRecent((await response.json()).entries);
     } catch { setError(true); }
     finally { setLoading(false); }
   }

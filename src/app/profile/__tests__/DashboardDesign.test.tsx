@@ -14,7 +14,7 @@ beforeEach(() => {
   localStorage.clear();
   jest.spyOn(global, 'fetch').mockImplementation(async input => ({
     ok: true,
-    json: async () => String(input).includes('ugcCount') ? { count: 2 } : [],
+    json: async () => String(input).includes('ugcCount') ? { status: 'ok', count: 2 } : String(input).includes('recentEdited') ? { status: 'ok', entries: [] } : [],
   } as Response));
 });
 afterEach(() => jest.restoreAllMocks());
