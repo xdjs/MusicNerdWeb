@@ -23,6 +23,9 @@ BATCH_TIMEOUT="${BATCH_TIMEOUT:-600}"
 MODEL="${MODEL:-sonnet}"
 WORKER_ID="${WORKER_ID:-$$}"
 RATE_LIMIT_BACKOFF="${RATE_LIMIT_BACKOFF:-300}"
+# MusicNerdAPI, which takes heartbeats and run reports. Use
+# https://musicnerd-api-staging.vercel.app when MCP_URL points at staging.
+AGENT_API_URL="${AGENT_API_URL:-https://api.musicnerd.net}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RUNNER="$SCRIPT_DIR/claude-runner.sh"
@@ -47,7 +50,7 @@ stop_reason=""
 heartbeat() {
   local hb_status="$1"
   local hb_message="${2:-}"
-  local heartbeat_url="${HEARTBEAT_URL:-${MCP_URL%/mcp}/agent/heartbeat}"
+  local heartbeat_url="${HEARTBEAT_URL:-${AGENT_API_URL%/}/api/agent/heartbeat}"
   curl -s -X POST "$heartbeat_url" \
     -H "Authorization: Bearer $MCP_API_KEY" \
     -H "Content-Type: application/json" \
@@ -73,7 +76,7 @@ report_run() {
   local rr_status="$1"
   local logfile="$2"
   local started_iso="$3"
-  local report_url="${REPORT_URL:-${MCP_URL%/mcp}/agent/run-report}"
+  local report_url="${REPORT_URL:-${AGENT_API_URL%/}/api/agent/run-report}"
 
   # Base payload (always sent)
   local payload="{
@@ -168,6 +171,7 @@ log " Rate backoff:   ${RATE_LIMIT_BACKOFF}s"
 log " Log dir:        $LOG_DIR"
 log " Worker ID:      $WORKER_ID"
 log " MCP URL:        $MCP_URL"
+log " Agent API URL:  $AGENT_API_URL"
 log " Model:          ${MODEL:-sonnet}"
 log " Started:        $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 log "========================================"

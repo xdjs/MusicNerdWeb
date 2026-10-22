@@ -136,6 +136,7 @@ Workers naturally diverge as each resolves/excludes different artists from the s
 |---------|---------|-------------|
 | `MCP_API_KEY` | (required) | MCP API key for write operations |
 | `MCP_URL` | (required) | MCP server endpoint |
+| `AGENT_API_URL` | `https://api.musicnerd.net` | MusicNerdAPI base URL for heartbeats and run reports (`/api/agent/heartbeat`, `/api/agent/run-report`). Use `https://musicnerd-api-staging.vercel.app` with a staging `MCP_URL` |
 | `BATCH_SIZE` | `50` | Artists per batch |
 | `MAX_ITERATIONS` | `800` | Maximum number of batch runs |
 | `LOG_DIR` | `/var/log/id-mapping` | Where to write per-run log files |
@@ -149,6 +150,7 @@ Workers naturally diverge as each resolves/excludes different artists from the s
 # Quick test with 2 iterations of 5 artists
 MAX_ITERATIONS=2 BATCH_SIZE=5 LOG_DIR=/tmp/id-mapping \
   MCP_API_KEY=your-key MCP_URL=https://staging.musicnerd.net/api/mcp \
+  AGENT_API_URL=https://musicnerd-api-staging.vercel.app \
   ./agents/id-mapping/run-full-catalog.sh
 
 # Check the logs
