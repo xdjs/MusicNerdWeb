@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login, fetchAsUser } from './helpers/auth';
+import { musicNerdApiUrl } from '../src/lib/musicNerdApi/musicNerdApiUrl';
 
 const REGULAR_USER = { email: 'test-4473@privy.io', otp: '676856' };
 const ADMIN_USER = { email: 'test-3256@privy.io', otp: '207862' };
@@ -29,12 +30,16 @@ test.describe('Unauthenticated route behavior', () => {
     expect(data).toEqual({ count: 0 });
   });
 
-  test('POST /api/removeArtistData unauthenticated returns 401', async ({ request }) => {
-    const res = await request.post('/api/removeArtistData', {
-      data: { artistId: 'test-artist-id', siteName: 'spotify' },
+  for (const route of ['removeArtistData', 'directEditLink']) {
+    test(`POST MusicNerdAPI /api/${route} unauthenticated returns 401`, async ({ request }) => {
+      const res = await request.post(musicNerdApiUrl(`/api/${route}`), {
+        data: {},
+        maxRedirects: 0,
+      });
+      expect(res.status()).toBe(401);
+      expect(await res.json()).toEqual({ status: 'error', error: 'Not signed in' });
     });
-    expect(res.status()).toBe(401);
-  });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -64,12 +69,13 @@ test.describe('Regular user route behavior', () => {
     expect(approvedRes.body).toHaveProperty('count');
     expect(typeof approvedRes.body.count).toBe('number');
 
-    // POST /api/removeArtistData — authenticated user is NOT 401
+    // The Web route is retired. A 404 must not count as successful API auth:
+    // MusicNerdAPI requires a Privy bearer token, not this Web session cookie.
     const removeRes = await fetchAsUser(page, '/api/removeArtistData', {
       method: 'POST',
-      body: JSON.stringify({ artistId: 'test-artist-id', siteName: 'spotify' }),
+      body: JSON.stringify({}),
     });
-    expect(removeRes.status).not.toBe(401);
+    expect(removeRes.status).toBe(404);
   });
 });
 

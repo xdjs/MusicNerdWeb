@@ -188,6 +188,22 @@ For browser tests install the matching browser once: `npx playwright install chr
 Inspect a test's effects before using a live URL: some E2Es create fixtures, claim artists or
 write answers. Latest's read-only test is documented [here](artist-latest.md#verification).
 
+The anonymous disconnect/edit checks in `e2e/ugc-auth.spec.ts` target MusicNerdAPI using
+the application's URL selector. They send empty bodies without credentials and require
+401 plus the authentication error, before any artist mutation. `E2E_BASE_URL` selects
+the Web server only; pair an API preview with `NEXT_PUBLIC_MUSICNERD_API_PREVIEW_URL`,
+or set `NEXT_PUBLIC_VERCEL_ENV=production` when checking the production API. With neither,
+the API target is staging. Run only these safe negative checks with:
+
+```bash
+E2E_BASE_URL=https://staging.musicnerd.net npm run test:e2e -- \
+  e2e/ugc-auth.spec.ts --grep 'POST MusicNerdAPI'
+```
+
+The signed-in UGC test checks that the retired Web disconnect route returns 404; it does
+not prove bearer authentication or successful disconnect on MusicNerdAPI. That live
+acceptance requires an explicitly approved disposable fixture and remains separate.
+
 `npm run eval` runs an LLM eval suite against real data and spends model tokens; it is not part
 of `npm run ci` and runs on demand, from the Evals workflow. See the [evals contract](evals.md).
 
