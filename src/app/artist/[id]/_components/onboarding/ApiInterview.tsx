@@ -4,6 +4,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { MessageCircleQuestion, LoaderCircle, MessageSquare, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePrivy } from "@privy-io/react-auth";
+import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
 import {
   interviewSessionStateSchema,
   type InterviewSessionState,
@@ -55,7 +56,7 @@ export default function ApiInterview({
       const token = await getAccessToken();
       if (!token) throw new Error("Sign in to continue the interview.");
       signal?.throwIfAborted();
-      const r = await fetch(`/api/artist/${artistId}/interview`, {
+      const r = await fetch(musicNerdApiUrl(`/api/artist/${artistId}/interview`), {
         method: body ? "POST" : "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -63,6 +64,7 @@ export default function ApiInterview({
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
         signal,
+        credentials: "omit",
         cache: "no-store",
       });
       const result = await r.json();

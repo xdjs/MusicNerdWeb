@@ -4,6 +4,7 @@ import { EditModeContext } from "@/app/_components/EditModeContext";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Loader2, Check, AlertCircle } from "lucide-react";
 import { musicNerdApiUrl } from "@/lib/musicNerdApi/musicNerdApiUrl";
+import { requestLatestRefresh } from "@/lib/latest/requestLatestRefresh";
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import {
   LATEST_SOURCES,
@@ -31,11 +32,10 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
     refresh?.status === "pending" || refresh?.status === "running";
   const locked = useRef(false);
   const requestVersion = useRef(0);
-  const endpoint = `/api/artist/${artistId}/latest-refresh`;
   useEffect(() => {
     let active = true;
     const version = requestVersion.current;
-    fetch(endpoint, { cache: "no-store" })
+    requestLatestRefresh(artistId, "GET")
       .then(async (r) => {
         if (r.ok && active) {
           const data = await r.json();
@@ -46,7 +46,7 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
     return () => {
       active = false;
     };
-  }, [endpoint]);
+  }, [artistId]);
   useEffect(() => {
     if (!refresh) return;
     const timer = setInterval(() => setClock(Date.now()), 30000);
@@ -70,10 +70,11 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
         if (!active) return;
         if (!response.ok)
           throw Error("Update paused. Reload to check its progress.");
-        const status = await fetch(endpoint, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
+        const status = await requestLatestRefresh(
+          artistId,
+          "GET",
+          controller.signal,
+        );
         if (!status.ok)
           throw Error("Could not check progress. Reload to try again.");
         const data = await status.json();
@@ -100,7 +101,7 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [pending, endpoint, artistId, router]);
+  }, [pending, artistId, router]);
   async function start() {
     if (locked.current) return;
     locked.current = true;
@@ -109,7 +110,7 @@ function LatestRefreshStatus({ artistId }: { artistId: string }) {
     setError("");
     setExpanded(true);
     try {
-      const response = await fetch(endpoint, { method: "POST" });
+      const response = await requestLatestRefresh(artistId, "POST");
       const data = await response.json();
       if (!response.ok)
         throw Error(data.error || "Could not start this update.");

@@ -9,6 +9,7 @@ jest.mock("next/navigation", () => ({
 jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({
   musicNerdApiUrl: (path) => `https://api.example.test${path}`,
 }));
+jest.mock("@privy-io/react-auth", () => ({ getAccessToken: jest.fn().mockResolvedValue("private-token") }));
 const mockTrackEvent = jest.fn();
 jest.mock("@/lib/analytics/trackEvent", () => ({ trackEvent: (...a) => mockTrackEvent(...a) }));
 import LatestRefreshControl from "../LatestRefreshControl";
@@ -26,10 +27,21 @@ it("coalesces rapid clicks while editing", async () => {
   const button = screen.getByRole("button", { name: "Update Latest" });
   fireEvent.click(button);
   fireEvent.click(button);
-  expect(fetch).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
   expect(
     screen.getByRole("button", { name: "Updating Latest…" }),
   ).toBeDisabled();
+});
+it("reads and starts Latest on MusicNerdAPI with the Privy token", async () => {
+  renderEditor();
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  const auth = { method: "GET", headers: { Authorization: "Bearer private-token" }, credentials: "omit", cache: "no-store" };
+  expect(fetch).toHaveBeenCalledWith("https://api.example.test/api/artist/artist/latest-refresh", expect.objectContaining(auth));
+  fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ status: "ok", refresh: null }) });
+  fireEvent.click(screen.getByRole("button", { name: "Update Latest" }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  expect(fetch).toHaveBeenLastCalledWith("https://api.example.test/api/artist/artist/latest-refresh", expect.objectContaining({ ...auth, method: "POST" }));
+  expect(fetch.mock.calls.some(([url]) => String(url).startsWith("/api/"))).toBe(false);
 });
 it("shows partial failure instead of claiming everything is current", async () => {
   fetch.mockResolvedValue(

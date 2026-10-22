@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import ApiInterview from "../ApiInterview";
 const token = jest.fn(async () => "token");
 const mockToast = jest.fn();
+jest.mock("@/lib/musicNerdApi/musicNerdApiUrl", () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 jest.mock("../useResearchPump", () => ({useResearchPump: jest.fn()}));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.mock("@privy-io/react-auth", () => ({
@@ -68,6 +69,17 @@ it("reads only on mount and generates solely after explicit Start", async () => 
   expect(
     JSON.parse(jest.mocked(fetch).mock.calls[1][1]?.body as string),
   ).toMatchObject({ action: "start" });
+});
+it("calls the interview on MusicNerdAPI with the Privy token and no cookies", async () => {
+  jest.mocked(fetch).mockResolvedValueOnce(reply(empty) as Response).mockResolvedValueOnce(reply(active) as Response);
+  render(<ApiInterview artistId={artist} artistName="Artist" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Interview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Prepare interview" }));
+  await screen.findByText(question.question);
+  for (const [url, init] of jest.mocked(fetch).mock.calls) {
+    expect(url).toBe(`https://api-preview.test/api/artist/${artist}/interview`);
+    expect(init).toMatchObject({ credentials: "omit", headers: { Authorization: "Bearer token" } });
+  }
 });
 it("resumes the exact existing question without generating or writing on mount", async () => {
   jest.mocked(fetch).mockResolvedValue(reply(active) as Response);
