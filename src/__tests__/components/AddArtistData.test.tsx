@@ -11,6 +11,7 @@ jest.mock('@/lib/artistLinks/requestArtistLinkEdit', () => ({ requestArtistLinkE
 const mockTrackEvent = jest.fn();
 jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: (...a: unknown[]) => mockTrackEvent(...a) }));
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api-preview.test${path}` }));
 
 const baseProps = {
   // Partial artist fixture is sufficient for exercising the trigger.
@@ -170,7 +171,7 @@ describe('AddArtistData "+" trigger', () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
     const originalFetch = global.fetch;
     // /api/platformRegexes returns nothing, so no platform matches and the client rejects the URL
-    global.fetch = jest.fn(async () => ({ ok: true, json: async () => [] })) as unknown as typeof fetch;
+    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ status: 'ok', regexes: [] }) })) as unknown as typeof fetch;
     try {
       render(<AddArtistData {...baseProps} />);
       fireEvent.click(screen.getByRole('button', { name: 'Add a link for Test Artist' }));
@@ -372,7 +373,7 @@ describe('AddArtistData "+" trigger', () => {
     // /api/platformRegexes returns no regexes → validatePlatformLinkBackend will reject any URL.
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => [],
+      json: async () => ({ status: 'ok', regexes: [] }),
     }) as unknown as typeof fetch;
 
     try {
@@ -398,7 +399,7 @@ describe('AddArtistData "+" trigger', () => {
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[A-Za-z0-9]+$' }],
+      json: async () => ({ status: 'ok', regexes: [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[A-Za-z0-9]+$' }] }),
     }) as unknown as typeof fetch;
     (addArtistDataAction as jest.Mock).mockResolvedValue({ status: 'success', message: 'Link added', siteName: 'spotify' });
     const artist = { ...baseProps.artist, deezer: '123', spotify: null };
@@ -426,6 +427,30 @@ describe('AddArtistData "+" trigger', () => {
       await waitFor(() => expect(submit).toBeEnabled());
       fireEvent.click(submit);
       await waitFor(() => expect(addArtistDataAction).toHaveBeenCalledWith(url, artist));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('loads platform patterns and checks a profile page on MusicNerdAPI without credentials', async () => {
+    (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
+    const originalFetch = global.fetch;
+    const url = 'https://soundcloud.com/nobody-here';
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', regexes: [{ siteName: 'soundcloud', regex: '^https://soundcloud\\.com/.+$' }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok', valid: false, reason: 'Profile not found' }) }) as unknown as typeof fetch;
+    try {
+      render(<AddArtistData {...baseProps} />);
+      expect(fetch).toHaveBeenCalledWith('https://api-preview.test/api/platformRegexes', { credentials: 'omit' });
+      fireEvent.click(screen.getByRole('button', { name: 'Add a link for Test Artist' }));
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: url } });
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+      await waitFor(() => expect(screen.getByText(LINK_NOT_SUPPORTED)).toBeInTheDocument());
+      expect(fetch).toHaveBeenLastCalledWith('https://api-preview.test/api/validateLink', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }), credentials: 'omit',
+      });
+      expect(addArtistDataAction).not.toHaveBeenCalled();
     } finally {
       global.fetch = originalFetch;
     }
@@ -471,7 +496,7 @@ describe('AddArtistData authenticated API editing', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useSession as jest.Mock).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' });
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[a-zA-Z0-9]{22}$' }] });
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'ok', regexes: [{ siteName: 'spotify', regex: '^https://open\\.spotify\\.com/artist/[a-zA-Z0-9]{22}$' }] }) });
   });
   async function submit() {
     render(<AddArtistData {...baseProps} directEdit isOpenOnLoad prefillUrl={url} />);

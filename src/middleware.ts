@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // low-traffic site. For stronger guarantees, swap to @upstash/ratelimit + @upstash/redis.
 
 const STRICT_PATHS = ['/api/funFacts', '/api/artistBio', '/api/askArtist'];
-const MEDIUM_PATHS = ['/api/validateLink'];
 
 type Tier = 'strict' | 'medium' | 'default' | 'artistImage';
 
@@ -13,7 +12,6 @@ function getTier(pathname: string): Tier {
   if (/^\/api\/artist\/[^/]+\/image$/.test(pathname)) return 'artistImage';
   if (/^\/api\/artist\/[^/]+\/lore-suggestions$/.test(pathname)) return 'medium';
   if (STRICT_PATHS.some((p) => pathname.startsWith(p))) return 'strict';
-  if (MEDIUM_PATHS.some((p) => pathname.startsWith(p))) return 'medium';
   return 'default';
 }
 
