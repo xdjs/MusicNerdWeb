@@ -54,7 +54,6 @@ jest.mock('@/app/add-artist/_components/AddArtistContent', () =>
 
 // Mocks for ArtistProfile child components
 jest.mock('@/app/_components/ArtistLinksGrid', () => function ArtistLinksGrid() { return <div data-testid="artist-links" />; });
-jest.mock('@/app/_components/BookmarkButton', () => function BookmarkButton() { return <div data-testid="bookmark-button" />; });
 jest.mock('@/app/_components/EditModeContext', () => ({
     EditModeProvider: function EditModeProvider({ children }: { children: React.ReactNode }) { return <>{children}</>; },
     // A real context, not a stub: KnowledgeSection and VaultSection both call
