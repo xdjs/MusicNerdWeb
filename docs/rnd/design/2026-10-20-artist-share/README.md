@@ -1,5 +1,15 @@
 # Composite artist share proposal
 
+## October 22 — approved wider framing
+
+After reviewing Rae Isla and Sound of Fractures locally, Pete approved the simpler
+720 × 720 portrait at x=480/y=0 and authorized push, ready-for-review and squash
+merge. This replaces the aggressive fixed zoom; it is not subject detection.
+The selected invitation, type, gradient, glasses and full-glasses fallback stay
+unchanged. Full-body portraits such as LATASHÁ also appear wider. No new services,
+dependencies or per-artist settings. Track preview, merge and separate production
+promotion under [#1579](https://github.com/xdjs/MusicNerdWeb/issues/1579).
+
 ## October 21 — selected for implementation
 
 Pete selected the mixed-case “Nerd out on” 05B close-up with no About, no arrow,

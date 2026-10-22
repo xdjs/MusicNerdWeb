@@ -31,21 +31,21 @@ export default function ArtistSharePreviewPage() {
     return <main className="mx-auto max-w-[1600px] px-5 py-10 text-foreground space-y-12">
         <header className="max-w-3xl space-y-4">
             <h1 className="text-4xl font-bold tracking-tight">Nerd out on</h1>
-            <p className="text-lg">The selected artist share image: a close-up, the artist’s name, and pink Music Nerd glasses.</p>
+            <p className="text-lg">The selected artist share image: a wider portrait, the artist’s name, and pink Music Nerd glasses.</p>
             <nav className="flex flex-wrap gap-5 underline"><a href="#selected">Selected design</a><a href="#fallbacks">Names and missing photos</a><a href="#directions">Earlier studies</a></nav>
         </header>
         <section id="selected" className="max-w-[1200px] space-y-4">
             <h2 className="text-2xl font-bold">LATASHÁ</h2>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href={`${artist}/share-image?v=2`} className="block focus-visible:outline focus-visible:outline-2">
+            <a href={`${artist}/share-image?v=3`} className="block focus-visible:outline focus-visible:outline-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${artist}/share-image?v=2`} alt="Nerd out on LATASHÁ — selected share image" width={1200} height={630} className="w-full h-auto" />
+                <img src={`${artist}/share-image?v=3`} alt="Nerd out on LATASHÁ — selected share image" width={1200} height={630} className="w-full h-auto" />
             </a>
             <div className="flex flex-wrap gap-5 underline">
                 {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                 <a href={artist}>Open artist profile</a>
                 {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                <a href="/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2">Pete Rango</a>
+                <a href="/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=3">Pete Rango</a>
             </div>
         </section>
         <section id="fallbacks" className="space-y-5">

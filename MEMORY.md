@@ -1,15 +1,15 @@
-## Artist share images — October 21
+## Artist share images — October 22
 
-Pete selected the mixed-case “Nerd out on” monochrome close-up and the complete,
-large pink glasses side-by-side fallback, and authorized the feature-branch push.
-[Draft #1585](https://github.com/xdjs/MusicNerdWeb/pull/1585) and
-[#1579](https://github.com/xdjs/MusicNerdWeb/issues/1579) hold live check/deployment
-status; [contract](docs/artist-share-preview.md). This branch implements the designs
-as the default artist OG/Twitter image. No About read on that path, model call,
-new persistence or migration. Long/unsupported names remain bounded, and portraits
-retain the public allowlist and byte/decode/timeout limits. Earlier proposals remain
-preview-only. Main merge, native messaging-app acceptance and production promotion
-are not established by the local design approval or feature push.
+The selected “Nerd out on” card and complete-glasses fallback shipped through
+[#1585](https://github.com/xdjs/MusicNerdWeb/pull/1585) at `68b05513`; release evidence
+is on [#1579](https://github.com/xdjs/MusicNerdWeb/issues/1579). Pete then reported
+over-cropped Rae Isla and Sound of Fractures portraits, reviewed local comparisons,
+and approved simpler wider/top-aligned framing plus push and squash merge.
+This branch implements that follow-up with metadata image version 3. Its checks,
+preview, merge and separate production state belong on #1579; local design approval
+does not establish deployment. No face detector, dependency, data write or migration.
+The [contract](docs/artist-share-preview.md) preserves public image limits, typography
+and the existing no-photo fallback. Native messaging-app cache acceptance remains open.
 
 ## Claim submission recovery — October 18
 
