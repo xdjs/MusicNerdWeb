@@ -4,10 +4,13 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LegacyAccountModal } from '@/app/_components/nav/components/LegacyAccountModal';
 
+const mockGetAccessToken = jest.fn();
+
 // Track callback refs so tests can invoke them
 let linkAccountCallbacks: { onSuccess?: Function; onError?: Function } = {};
 
 jest.mock('@privy-io/react-auth', () => ({
+  getAccessToken: () => mockGetAccessToken(),
   useLinkAccount: (opts) => {
     linkAccountCallbacks = opts || {};
     return {
@@ -65,6 +68,7 @@ describe('LegacyAccountModal', () => {
     linkAccountCallbacks = {};
     global.fetch = jest.fn();
     mockDismissLegacyLink.mockReset();
+    mockGetAccessToken.mockResolvedValue('privy-token');
   });
 
   it('renders dialog with all three buttons when open', () => {
@@ -102,6 +106,7 @@ describe('LegacyAccountModal', () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
+        status: 'ok',
         success: true,
         merged: false,
         message: 'Wallet linked successfully!',
@@ -119,8 +124,10 @@ describe('LegacyAccountModal', () => {
     });
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/link-wallet', expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith('https://musicnerd-api-staging.vercel.app/api/auth/link-wallet', expect.objectContaining({
         method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer privy-token' }),
+        credentials: 'omit',
       }));
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -136,6 +143,7 @@ describe('LegacyAccountModal', () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
+        status: 'ok',
         success: true,
         merged: true,
         userId: 'surviving-user',
@@ -165,7 +173,7 @@ describe('LegacyAccountModal', () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       json: () => Promise.resolve({
-        success: false,
+        status: 'error',
         error: 'This wallet is already linked to another account',
       }),
     });
@@ -180,6 +188,30 @@ describe('LegacyAccountModal', () => {
     });
 
     await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error',
+          description: 'This wallet is already linked to another account',
+          variant: 'destructive',
+        })
+      );
+    });
+  });
+
+  it('shows an error without calling the API when Privy has no token', async () => {
+    mockGetAccessToken.mockResolvedValue(null);
+
+    render(<LegacyAccountModal open={true} onClose={mockOnClose} />);
+
+    await linkAccountCallbacks.onSuccess?.({
+      linkedAccount: {
+        type: 'wallet',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+      },
+    });
+
+    await waitFor(() => {
+      expect(global.fetch).not.toHaveBeenCalled();
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error',

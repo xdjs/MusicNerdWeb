@@ -3,7 +3,7 @@
 Tracked in [#1389](https://github.com/xdjs/MusicNerdWeb/issues/1389).
 
 After Link Wallet verifies the signed-in user's wallet against Privy's server response,
-`mergeAccounts` moves the placeholder account into the surviving legacy account. Existing
+MusicNerdAPI's `mergeAccounts` moves the placeholder account into the surviving legacy account. Existing
 Lore credits and Admin activity must resolve to that survivor and its current public name.
 Event/source IDs, timestamps, actions, origins and parent relationships stay unchanged.
 Previously unknown actors stay unknown; this change cannot reconstruct lost identity.
@@ -44,10 +44,6 @@ staging and separately on production per the release runbook. A missing function
 merge transaction safely, retaining the placeholder and its attribution. There is no
 historical backfill or change to the artist/profile UI in this patch.
 
-The repeatable native PostgreSQL harness is `scripts/verify-account-merge-local.ts`.
-It requires a fresh local cluster under `/tmp/musicnerd-account-merge-db.*/data` and
-rejects all non-loopback hosts and other cluster paths. Run with `NODE_ENV=test` and
-`ACCOUNT_MERGE_TEST_ADMIN_URL=postgres://<local-user>@127.0.0.1:<port>/postgres`
-using `npx tsx scripts/verify-account-merge-local.ts`. It creates and drops a fixture
-database; stop the disposable cluster afterward. Jest also runs the database regression
-in `src/server/utils/user/__tests__/mergeAccountUserName.test.ts` without a server.
+The merge and its regressions live in MusicNerdAPI (`lib/account/`). Web still owns migration
+0035, so Jest runs its grant and transfer-function checks in
+`src/server/db/__tests__/accountMergeMigration.test.ts` without a server.

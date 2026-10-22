@@ -114,7 +114,7 @@ The artist lookups `findArtistBySpotifyID`, `findArtistByIG` and `findTwitterHan
 
 | Area | Entry points |
 | --- | --- |
-| Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link handler](src/app/api/auth/link-wallet/route.ts) |
+| Account login and wallet linking | [Auth reference](docs/development.md#architecture-and-integration-map), [link client](src/lib/account/requestLinkWallet.ts) calls MusicNerdAPI `POST /api/auth/link-wallet` |
 | Artist questions and interview | Ask (`/api/askArtist` and `/api/artist/{id}/questionResearch/*` on MusicNerdAPI), [interview chat](src/app/api/onboarding/[artistId]/chat/route.ts) |
 | Source research and stored knowledge | [Lore URL suggestions](src/app/api/artist/[id]/lore-suggestions/route.ts), [research refresh](src/app/api/artist/[id]/research/refresh/route.ts), [scheduler](src/app/api/research/advance/route.ts), [knowledge export](src/app/api/artist/[id]/knowledge-doc/export/route.ts) |
 | Uploads | [Vault upload](src/app/api/vault/upload/route.ts); artist profile image is on [MusicNerdAPI](https://github.com/xdjs/MusicNerdAPI) |
