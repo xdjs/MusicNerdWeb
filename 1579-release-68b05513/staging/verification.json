@@ -1,0 +1,104 @@
+{
+  "base": "https://app-cu33e4bun-musicnerd.vercel.app",
+  "sha": "68b05513dff1b38154ef0bcff9c4c31988d961fd",
+  "environment": "staging",
+  "checkedAt": "2026-10-22T01:14:32.400Z",
+  "checks": [
+    {
+      "key": "health",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/api/health",
+      "status": 200,
+      "type": "application/json",
+      "cache": "public, max-age=0, must-revalidate",
+      "bytes": 92,
+      "health": {
+        "ok": true,
+        "checks": {
+          "storage": true,
+          "database": true
+        },
+        "timestamp": "2026-10-22T01:14:32.784Z"
+      },
+      "valid": true
+    },
+    {
+      "key": "latasha",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 233195,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "pete",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 127193,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "dutchyyy",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 37870,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "latasha-metadata",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bytes": 240430,
+      "og": [
+        "<meta property=\"og:image\" content=\"https://app-cu33e4bun-musicnerd.vercel.app/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6/share-image?v=2\"/>"
+      ],
+      "twitter": [
+        "<meta name=\"twitter:image\" content=\"https://app-cu33e4bun-musicnerd.vercel.app/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6/share-image?v=2\"/>"
+      ],
+      "canonical": [
+        "<link rel=\"canonical\" href=\"https://musicnerd.net/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6\"/>"
+      ],
+      "valid": true
+    },
+    {
+      "key": "pete-metadata",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bytes": 240341,
+      "og": [
+        "<meta property=\"og:image\" content=\"https://app-cu33e4bun-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2\"/>"
+      ],
+      "twitter": [
+        "<meta name=\"twitter:image\" content=\"https://app-cu33e4bun-musicnerd.vercel.app/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2\"/>"
+      ],
+      "canonical": [
+        "<link rel=\"canonical\" href=\"https://musicnerd.net/artist/50f23458-df64-4381-8042-7333e8b64531\"/>"
+      ],
+      "valid": true
+    },
+    {
+      "key": "invalid",
+      "url": "https://app-cu33e4bun-musicnerd.vercel.app/artist/not-an-id/share-image",
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "cache": "no-store",
+      "bytes": 16,
+      "valid": true
+    }
+  ],
+  "passed": true
+}

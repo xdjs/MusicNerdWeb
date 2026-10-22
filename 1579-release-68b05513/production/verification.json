@@ -1,0 +1,135 @@
+{
+  "base": "https://musicnerd.net",
+  "sha": "68b05513dff1b38154ef0bcff9c4c31988d961fd",
+  "environment": "production",
+  "checkedAt": "2026-10-22T01:19:36.811Z",
+  "checks": [
+    {
+      "key": "health",
+      "url": "https://musicnerd.net/api/health",
+      "status": 200,
+      "type": "application/json",
+      "cache": "public, max-age=0, must-revalidate",
+      "bytes": 92,
+      "health": {
+        "ok": true,
+        "checks": {
+          "storage": true,
+          "database": true
+        },
+        "timestamp": "2026-10-22T01:19:37.272Z"
+      },
+      "valid": true
+    },
+    {
+      "key": "latasha",
+      "url": "https://musicnerd.net/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 233195,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "pete",
+      "url": "https://musicnerd.net/artist/3e569150-2165-4c13-b35e-dbd329f0caa7/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 113748,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "dutchyyy",
+      "url": "https://musicnerd.net/artist/efff5473-fa9f-4eba-b137-16ffb79f15d8/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 132152,
+      "valid": true,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "latasha-metadata",
+      "url": "https://musicnerd.net/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bytes": 280871,
+      "og": [
+        "<meta property=\"og:image\" content=\"https://musicnerd.net/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6/share-image?v=2\"/>"
+      ],
+      "twitter": [
+        "<meta name=\"twitter:image\" content=\"https://musicnerd.net/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6/share-image?v=2\"/>"
+      ],
+      "canonical": [
+        "<link rel=\"canonical\" href=\"https://musicnerd.net/artist/3cd4c3e4-4bf4-4b92-9b72-07f9188bd4c6\"/>"
+      ],
+      "valid": true
+    },
+    {
+      "key": "pete-metadata",
+      "url": "https://musicnerd.net/artist/3e569150-2165-4c13-b35e-dbd329f0caa7",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "bytes": 312861,
+      "og": [
+        "<meta property=\"og:image\" content=\"https://musicnerd.net/artist/3e569150-2165-4c13-b35e-dbd329f0caa7/share-image?v=2\"/>"
+      ],
+      "twitter": [
+        "<meta name=\"twitter:image\" content=\"https://musicnerd.net/artist/3e569150-2165-4c13-b35e-dbd329f0caa7/share-image?v=2\"/>"
+      ],
+      "canonical": [
+        "<link rel=\"canonical\" href=\"https://musicnerd.net/artist/3e569150-2165-4c13-b35e-dbd329f0caa7\"/>"
+      ],
+      "valid": true
+    },
+    {
+      "key": "invalid",
+      "url": "https://musicnerd.net/artist/not-an-id/share-image",
+      "status": 404,
+      "type": "text/plain;charset=UTF-8",
+      "cache": "no-store",
+      "bytes": 16,
+      "valid": true
+    },
+    {
+      "key": "dev-gallery",
+      "url": "https://musicnerd.net/dev/artist-share-preview",
+      "status": 404,
+      "type": "text/html; charset=utf-8",
+      "cache": "public, max-age=0, must-revalidate",
+      "bytes": 15087,
+      "valid": true
+    },
+    {
+      "key": "g-sound-fallback",
+      "url": "https://musicnerd.net/artist/6ca7db92-8b4e-46bf-a145-9345b49fa8a0/share-image?v=2",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 36665,
+      "width": 1200,
+      "height": 630,
+      "visual": "Complete large pink glasses at right; black background; pink Nerd out on; white G Sound at left",
+      "valid": true
+    },
+    {
+      "key": "g-sound-metadata",
+      "status": 200,
+      "og": [
+        "<meta property=\"og:image\" content=\"https://musicnerd.net/artist/6ca7db92-8b4e-46bf-a145-9345b49fa8a0/share-image?v=2\"/>"
+      ],
+      "twitter": [
+        "<meta name=\"twitter:image\" content=\"https://musicnerd.net/artist/6ca7db92-8b4e-46bf-a145-9345b49fa8a0/share-image?v=2\"/>"
+      ],
+      "valid": true
+    }
+  ],
+  "passed": true
+}
