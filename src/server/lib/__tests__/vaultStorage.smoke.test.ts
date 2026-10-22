@@ -42,7 +42,7 @@ const ready = Boolean(SUPABASE_URL && SERVICE_KEY);
   });
 
   it("uploads a PDF, exposes a public URL, reads it back, and deletes it", async () => {
-    // Real %PDF payload so it would pass the route's magic-byte validation too.
+    // Real %PDF payload, as an upload stores.
     const pdf = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n", "utf8");
 
     const { error: uploadErr } = await sb.storage

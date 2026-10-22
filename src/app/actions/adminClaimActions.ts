@@ -152,7 +152,7 @@ export async function revokeClaimAction(claimId: string): Promise<{ success: boo
 
         // Best-effort: purge uploaded files from Supabase Storage. Runs after the DB tx
         // commits — orphaned storage objects beat a failed revoke. Two prefixes to clean:
-        //   1. `${artistId}/...`              — vault uploads (vault/upload route)
+        //   1. `${artistId}/...`              — vault uploads (MusicNerdAPI vault/upload)
         //   2. `profile-images/${artistId}_*` — claim profile image (artist/profile-image route)
         // Paginated so artists with >100 files (supabase-js list default limit) are fully purged.
         try {

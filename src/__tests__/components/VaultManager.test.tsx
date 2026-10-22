@@ -7,6 +7,11 @@ import { EditModeContext } from '@/app/_components/EditModeContext';
 const mockToast = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }));
 
+jest.mock('@privy-io/react-auth', () => ({ getAccessToken: jest.fn().mockResolvedValue('privy-token') }));
+jest.mock('@/lib/musicNerdApi/musicNerdApiUrl', () => ({ musicNerdApiUrl: (path: string) => `https://api.test${path}` }));
+jest.mock('@/lib/analytics/trackEvent', () => ({ trackEvent: jest.fn() }));
+import { trackEvent } from '@/lib/analytics/trackEvent';
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: jest.fn() }),
 }));
@@ -67,9 +72,14 @@ describe('VaultManager', () => {
     await screen.findByText('Recovered upload');
     expect(global.fetch).toHaveBeenCalledTimes(4);
     const calls = (global.fetch as jest.Mock).mock.calls;
-    expect(calls[2][0]).toBe('/api/vault/upload/complete');
-    expect(calls[3][0]).toBe('/api/vault/upload/complete');
+    expect(calls[0][0]).toBe('https://api.test/api/vault/upload/sign');
+    expect(calls[0][1].headers.Authorization).toBe('Bearer privy-token');
+    expect(calls[1][0]).toBe('https://storage/upload');
+    expect(calls[2][0]).toBe('https://api.test/api/vault/upload/complete');
+    expect(calls[3][0]).toBe('https://api.test/api/vault/upload/complete');
     expect(calls[3][1].body).toBe(calls[2][1].body);
+    // Web's route did not count a retried completion, which may return an already-saved source.
+    expect(trackEvent).not.toHaveBeenCalled();
     global.fetch = originalFetch;
   });
 
@@ -85,7 +95,7 @@ describe('VaultManager', () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true, source: uploadedSource }),
+      json: async () => ({ status: 'ok', signedUrl: 'https://storage/upload', contentType: 'application/pdf', ticket: 'ticket', source: uploadedSource }),
     });
 
     const { container } = renderEditing(true);
@@ -108,6 +118,8 @@ describe('VaultManager', () => {
 
     // The Approved heading should be present (matches "Approved (2)")
     expect(screen.getByText(/^approved sources \(\d+\)$/i)).toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledWith('profile_edit', { action: 'vault_upload', target: 'application/pdf' });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
 
     global.fetch = originalFetch;
   });
