@@ -133,8 +133,6 @@ describe('LegacyAccountModal', () => {
   });
 
   it('handles successful account merge', async () => {
-    const artistId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    localStorage.setItem('bookmarks_test-user', JSON.stringify([{ artistId }]));
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
@@ -155,8 +153,6 @@ describe('LegacyAccountModal', () => {
     });
 
     await waitFor(() => {
-      expect(localStorage.getItem('bookmarks_test-user')).toBeNull();
-      expect(JSON.parse(localStorage.getItem('bookmarks_surviving-user')!)).toEqual([{ artistId }]);
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Account Merged!',

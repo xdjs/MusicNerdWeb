@@ -2,7 +2,6 @@
 
 import DatePicker from "./DatePicker";
 import ProfilePhoto from "./ProfilePhoto";
-import useBookmarkedArtistSummaries from "./useBookmarkedArtistSummaries";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -13,32 +12,13 @@ import type { LeaderboardEntry } from "@/server/utils/queries/leaderboardTypes";
 import { requestLogin } from "@/app/_components/nav/components/requestLogin";
 import UgcStatsWrapper from "./Wrapper";
 import Leaderboard from "./Leaderboard";
-import { Pencil, Check, ArrowDownCircle, Trash2, GripVertical, ChevronDown, ChevronUp, ArrowUpRight, Bookmark, Plus } from "lucide-react";
+import { Pencil, Check, ArrowDownCircle, ChevronDown, ChevronUp, ArrowUpRight, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import SelfEditHistory from "./SelfEditHistory";
 import UserEntriesTable from "./UserEntriesTable";
 import LoadingPage from "../_components/LoadingPage";
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-    useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 type RecentItem = {
     ugcId: string;
@@ -47,74 +27,6 @@ type RecentItem = {
     updatedAt: string | null;
     imageUrl: string | null;
 };
-
-type BookmarkItem = {
-    artistId: string;
-    artistName: string;
-    imageUrl: string | null;
-};
-
-// Sortable bookmark item component
-function SortableBookmarkItem({ item, isEditing, onDelete, bio }: {
-    bio?: string;
-    item: BookmarkItem;
-    isEditing: boolean;
-    onDelete: (artistId: string) => void;
-}) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: item.artistId });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    };
-
-    return (
-        <li ref={setNodeRef} style={style} className="relative">
-            <div className="relative group">
-                {isEditing && (
-                    <button
-                        {...attributes}
-                        {...listeners}
-                        className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing rounded-full bg-background p-2 text-foreground"
-                        title="Drag to reorder"
-                        aria-label={`Reorder ${item.artistName}`}
-                    >
-                        <GripVertical size={16} />
-                    </button>
-                )}
-                <Link href={`/artist/${item.artistId}`} className="block hover:underline underline-offset-4">
-                    <img src={item.imageUrl || "/default_pfp_pink.png"} alt="" className="aspect-square w-full rounded-xl object-cover mb-3 bg-muted" />
-                    <span className="block font-medium text-foreground truncate">{item.artistName ?? 'Unknown Artist'}</span>
-                </Link>
-                {!isEditing && <div className="mt-2 space-y-3">
-                    {bio && <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{bio}</p>}
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-                        <Link href={`/artist/${item.artistId}#mn-latest`} className="underline underline-offset-4">Latest</Link>
-                        <Link href={`/artist/${item.artistId}#mn-links`} className="underline underline-offset-4">Links</Link>
-                    </div>
-                </div>}
-                {isEditing && (
-                    <button
-                        onClick={() => onDelete(item.artistId)}
-                        className="absolute top-2 right-2 rounded-full bg-background p-2 text-red-600 hover:text-red-800"
-                        title="Delete bookmark"
-                        aria-label={`Remove ${item.artistName}`}
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                )}
-            </div>
-        </li>
-    );
-}
 
 export default function Dashboard({ user, showLeaderboard = true, allowEditUsername = false, showDateRange = true, hideLogin = false, showStatus = true, selectedRange }: { user: User; showLeaderboard?: boolean; allowEditUsername?: boolean; showDateRange?: boolean; hideLogin?: boolean; showStatus?: boolean; selectedRange?: "today" | "week" | "month" | "all" }) {
     return <UgcStatsWrapper><UgcStats user={user} showLeaderboard={showLeaderboard} allowEditUsername={allowEditUsername} showDateRange={showDateRange} hideLogin={hideLogin} showStatus={showStatus} selectedRange={selectedRange} /></UgcStatsWrapper>;
@@ -130,102 +42,6 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
     const [savingUsername, setSavingUsername] = useState(false);
     const [recentUGC, setRecentUGC] = useState<RecentItem[]>([]);
     const [rank, setRank] = useState<number | null>(null);
-    // ----------- Bookmarks state & pagination -----------
-    const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
-    const [bookmarkPage, setBookmarkPage] = useState(0);
-    const [isEditingBookmarks, setIsEditingBookmarks] = useState(false);
-    const pageSize = 6;
-
-    // Drag and drop sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    // Handle drag end for reordering bookmarks
-    function handleDragEnd(event: DragEndEvent) {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            setBookmarks((items) => {
-                const oldIndex = items.findIndex((item) => item.artistId === active.id);
-                const newIndex = items.findIndex((item) => item.artistId === over?.id);
-
-                if (oldIndex < 0 || newIndex < 0) return items;
-                const newItems = arrayMove(items, oldIndex, newIndex);
-
-                // Save to localStorage
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newItems));
-                }
-
-                return newItems;
-            });
-        }
-    }
-
-    // Delete bookmark function
-    function deleteBookmark(artistId: string) {
-        if (!window.confirm('Remove this bookmark?')) return;
-
-        const newBookmarks = bookmarks.filter(b => b.artistId !== artistId);
-        setBookmarks(newBookmarks);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(newBookmarks));
-        }
-
-        // Notify other tabs/components
-        window.dispatchEvent(new Event('bookmarksUpdated'));
-    }
-
-    // Save bookmarks function
-    function saveBookmarks() {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(`bookmarks_${user.id}`, JSON.stringify(bookmarks));
-            window.dispatchEvent(new Event('bookmarksUpdated'));
-        }
-        setIsEditingBookmarks(false);
-    }
-
-    useEffect(() => {
-        // Load bookmarks from localStorage (placeholder until backend wiring)
-        const load = () => {
-            try {
-                if (typeof window === 'undefined') return; // Skip on server side
-
-                const raw = localStorage.getItem(`bookmarks_${user.id}`);
-                if (raw) {
-                    const parsed = JSON.parse(raw) as BookmarkItem[];
-                    // Bookmarks are stored in most-recent-first order. No additional reversing needed.
-                    setBookmarks(parsed);
-                } else {
-                    setBookmarks([]);
-                }
-            } catch (e) {
-                console.debug('[Dashboard] unable to parse bookmarks from storage', e);
-            }
-        };
-
-        load();
-
-        const handleUpdate = () => load();
-        window.addEventListener('bookmarksUpdated', handleUpdate);
-        window.addEventListener('storage', handleUpdate);
-
-        return () => {
-            window.removeEventListener('bookmarksUpdated', handleUpdate);
-            window.removeEventListener('storage', handleUpdate);
-        };
-    }, [user.id]);
-
-    const totalBookmarkPages = Math.max(1, Math.ceil(bookmarks.length / pageSize));
-    const visibleBookmarkPage = Math.min(bookmarkPage, totalBookmarkPages - 1);
-    const currentBookmarks = bookmarks.slice(visibleBookmarkPage * pageSize, visibleBookmarkPage * pageSize + pageSize);
-    // In edit mode, show the full list with a scrollbar (no pagination)
-    const displayBookmarks = isEditingBookmarks ? bookmarks : currentBookmarks;
-    const artistSummaries = useBookmarkedArtistSummaries(allowEditUsername ? currentBookmarks.map(item => item.artistId) : []);
     const isCompactLayout = !allowEditUsername; // compact (leaderboard-style) when username editing disabled
 
 	    // Range selection (synced with Leaderboard)
@@ -610,54 +426,22 @@ function UgcStats({ user, showLeaderboard = true, allowEditUsername = false, sho
                             <Button type="button" variant="ghost" onClick={() => { setUsernameInput(user.username ?? ''); setIsEditingUsername(false); }}>Cancel</Button>
                         </form>
                     )}
-                    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12">
-                        <section aria-labelledby="saved-artists-heading" className="min-w-0">
-                            <div className="flex items-center justify-between gap-3 mb-2">
-                                <h2 id="saved-artists-heading" className="text-2xl font-semibold tracking-tight">Your artists <span className="ml-1 text-muted-foreground text-base font-normal">{bookmarks.length}</span></h2>
-                                {bookmarks.length > 0 && <Button variant="ghost" size="sm" onClick={() => isEditingBookmarks ? saveBookmarks() : setIsEditingBookmarks(true)}>{isEditingBookmarks ? 'Done' : 'Edit collection'}</Button>}
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-6">The artists you’ve bookmarked. Saved in this browser.</p>
-                            {bookmarks.length ? (
-                                <>
-                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                        <SortableContext items={displayBookmarks.map(item => item.artistId)} strategy={rectSortingStrategy}>
-                                            <ul className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
-                                                {displayBookmarks.map(item => <SortableBookmarkItem key={item.artistId} item={item} bio={artistSummaries[item.artistId]} isEditing={isEditingBookmarks} onDelete={deleteBookmark} />)}
-                                            </ul>
-                                        </SortableContext>
-                                    </DndContext>
-                                    {!isEditingBookmarks && totalBookmarkPages > 1 && <div className="flex items-center justify-between mt-6 gap-3">
-                                        <Button variant="outline" size="sm" disabled={visibleBookmarkPage === 0} onClick={() => setBookmarkPage(p => Math.max(0, visibleBookmarkPage - 1))}>Previous</Button>
-                                        <span className="text-sm text-muted-foreground">{visibleBookmarkPage + 1} / {totalBookmarkPages}</span>
-                                        <Button variant="outline" size="sm" disabled={visibleBookmarkPage >= totalBookmarkPages - 1} onClick={() => setBookmarkPage(p => Math.min(totalBookmarkPages - 1, visibleBookmarkPage + 1))}>Next</Button>
-                                    </div>}
-                                </>
-                            ) : (
-                                <div className="rounded-2xl border border-dashed border-border px-6 py-12 sm:py-16 text-center">
-                                    <Bookmark className="mx-auto mb-5 text-[#ff75d8]" size={32} />
-                                    <h3 className="text-xl font-semibold">Keep your artists close.</h3>
-                                    <p className="mx-auto mt-2 mb-6 max-w-xs text-sm text-muted-foreground">Find an artist and tap the bookmark on their profile to save them here.</p>
-                                    <Button asChild className="rounded-full button-pink bg-highlightpink text-black hover:bg-highlightpink/80"><Link href="/">Find an artist <ArrowUpRight size={16} className="ml-2" /></Link></Button>
-                                </div>
-                            )}
-                        </section>
-                        <aside className="space-y-7">
-                            <div className="rounded-2xl bg-[#ff75d8] text-[#000] p-6">
-                                <h2 className="text-2xl font-semibold tracking-tight leading-tight">Know something we don’t?</h2>
-                                <p className="mt-3 text-sm leading-relaxed">Add an artist. Share a link. Help another fan discover more.</p>
-                                <Button variant="outline" className="mt-5 rounded-full border-black/30 bg-transparent text-[#000] hover:bg-black/10" onClick={() => { (document.querySelector('button[aria-label="Add new artist"]') as HTMLButtonElement | null)?.click(); }}><Plus size={16} className="mr-2" />Add an artist</Button>
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-semibold">Your contributions</h2>
-                                <p className="mt-1 text-sm text-muted-foreground">Every addition helps the next fan.</p>
-                                <dl className="mt-5 divide-y divide-border">
-                                    <div className="flex items-baseline justify-between py-3"><dt className="text-sm text-muted-foreground">UGC added</dt><dd className="text-2xl font-semibold tabular-nums">{allTimeStats?.ugcCount ?? '—'}</dd></div>
-                                    <div className="flex items-baseline justify-between py-3"><dt className="text-sm text-muted-foreground">Artists added</dt><dd className="text-2xl font-semibold tabular-nums">{allTimeStats?.artistsCount ?? '—'}</dd></div>
-                                </dl>
-                                <Link href="/leaderboard" className="inline-flex items-center gap-2 text-sm underline underline-offset-4 mt-4">Community leaderboard <ArrowUpRight size={14} /></Link>
-                            </div>
-                        </aside>
-                    </div>
+                    <aside className="space-y-7">
+                        <div className="rounded-2xl bg-[#ff75d8] text-[#000] p-6">
+                            <h2 className="text-2xl font-semibold tracking-tight leading-tight">Know something we don’t?</h2>
+                            <p className="mt-3 text-sm leading-relaxed">Add an artist. Share a link. Help another fan discover more.</p>
+                            <Button variant="outline" className="mt-5 rounded-full border-black/30 bg-transparent text-[#000] hover:bg-black/10" onClick={() => { (document.querySelector('button[aria-label="Add new artist"]') as HTMLButtonElement | null)?.click(); }}><Plus size={16} className="mr-2" />Add an artist</Button>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold">Your contributions</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">Every addition helps the next fan.</p>
+                            <dl className="mt-5 divide-y divide-border">
+                                <div className="flex items-baseline justify-between py-3"><dt className="text-sm text-muted-foreground">UGC added</dt><dd className="text-2xl font-semibold tabular-nums">{allTimeStats?.ugcCount ?? '—'}</dd></div>
+                                <div className="flex items-baseline justify-between py-3"><dt className="text-sm text-muted-foreground">Artists added</dt><dd className="text-2xl font-semibold tabular-nums">{allTimeStats?.artistsCount ?? '—'}</dd></div>
+                            </dl>
+                            <Link href="/leaderboard" className="inline-flex items-center gap-2 text-sm underline underline-offset-4 mt-4">Community leaderboard <ArrowUpRight size={14} /></Link>
+                        </div>
+                    </aside>
                     {recentUGC.length > 0 && <section aria-labelledby="recent-edits-heading" className="border-t border-border pt-8">
                         <h2 id="recent-edits-heading" className="text-xl font-semibold mb-5">Artists you’ve contributed to</h2>
                         <ul className="flex flex-wrap gap-x-8 gap-y-4">{recentUGC.map(item => <li key={item.ugcId}><Link href={`/artist/${item.artistId ?? ''}`} className="flex items-center gap-3 hover:underline"><img src={item.imageUrl || '/default_pfp_pink.png'} alt="" className="h-10 w-10 rounded-full object-cover" /><span>{item.artistName ?? 'Unknown artist'}</span></Link></li>)}</ul>
