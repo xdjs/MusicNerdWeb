@@ -128,10 +128,6 @@ export function getUserDisplayName(user: Parameters<typeof publicUserName>[0]): 
 }
 
 // Names are reserved case-insensitively and explicit saves confirm generated names.
-export async function updateUsername(userId: string, username: string) {
-    return setUserName(userId, username);
-}
-
 export type UpdateWhitelistedUserResp = {
     status: "success" | "error";
     message: string;

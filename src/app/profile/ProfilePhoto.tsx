@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
+import { requestUserApi } from '@/lib/user/requestUserApi';
 
 export default function ProfilePhoto({ userId }: { userId: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -11,7 +12,7 @@ export default function ProfilePhoto({ userId }: { userId: string }) {
   useEffect(() => {
     const controller = new AbortController();
     setUrl(null);
-    fetch('/api/user/profile-image', { signal: controller.signal, cache: 'no-store' }).then(async response => {
+    requestUserApi('/api/user/profile-image', { headers: { 'X-Profile-Account': userId }, signal: controller.signal }).then(async response => {
       if (!response.ok) throw new Error('Photo unavailable');
       const data = await response.json();
       if (!controller.signal.aborted) setUrl(data.url);
@@ -31,7 +32,7 @@ export default function ProfilePhoto({ userId }: { userId: string }) {
       setBusy(true); setMessage('Saving photo…');
       try {
         const data = new FormData(); data.append('file', file);
-        const response = await fetch('/api/user/profile-image', { method: 'POST', body: data });
+        const response = await requestUserApi('/api/user/profile-image', { method: 'POST', headers: { 'X-Profile-Account': userId }, body: data });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Could not save photo');
         setRevision(r => r + 1); setMessage('Photo saved to your account.');
