@@ -5,6 +5,8 @@ import {EditModeContext} from '@/app/_components/EditModeContext';
 import {Button} from '@/components/ui/button';
 
 import type {LinkSuggestion as Suggestion} from '@/lib/artistLinkReview/types';
+import {requestArtistLinkSuggestions} from '@/lib/artistLinkReview/requestArtistLinkSuggestions';
+import {requestArtistLinkReview} from '@/lib/artistLinkReview/requestArtistLinkReview';
 
 function RecordedTime({value}:{value:string|null}){
  const [text,setText]=useState<string|null>(null);
@@ -15,12 +17,11 @@ function RecordedTime({value}:{value:string|null}){
 export default function SuggestedLinkReview({artistId}:{artistId:string}){
  const {refreshProfile,revision}=useContext(EditModeContext);
  const [items,setItems]=useState<Suggestion[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState<string|null>(null),[nextOffset,setNextOffset]=useState<number|null>(null),[loadingMore,setLoadingMore]=useState(false);
- const endpoint=`/api/artist/${encodeURIComponent(artistId)}/link-suggestions`;
- const load=useCallback(async(signal?:AbortSignal,offset=0)=>{const res=await fetch(offset?`${endpoint}?offset=${offset}`:endpoint,{cache:'no-store',signal});const data=await res.json();if(!res.ok||!Array.isArray(data.items))throw new Error(data.error||'Could not load suggested links.');if(!signal?.aborted){setItems(previous=>offset?Array.from(new Map([...previous,...data.items].map((item:Suggestion)=>[`${item.kind}:${item.id}`,item])).values()):data.items);setNextOffset(data.nextOffset??null);setLoading(false);}},[endpoint]);
+ const load=useCallback(async(signal?:AbortSignal,offset=0)=>{const res=await requestArtistLinkSuggestions(artistId,offset,signal);const data=await res.json();if(!res.ok||!Array.isArray(data.items))throw new Error(data.error||'Could not load suggested links.');if(!signal?.aborted){setItems(previous=>offset?Array.from(new Map([...previous,...data.items].map((item:Suggestion)=>[`${item.kind}:${item.id}`,item])).values()):data.items);setNextOffset(data.nextOffset??null);setLoading(false);}},[artistId]);
  useEffect(()=>{const controller=new AbortController();setLoading(true);setError('');void load(controller.signal).catch(e=>{if(!controller.signal.aborted){setError(e instanceof Error?e.message:'Could not load suggested links.');setLoading(false);}});return()=>controller.abort();},[load,revision]);
  async function decide(item:Suggestion,decision:'approve'|'dismiss'|'restore'){
   if(busy)return;setBusy(item.id);setError('');
-  try{const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,kind:item.kind,decision})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not review this link.');await load();refreshProfile?.();}
+  try{const res=await requestArtistLinkReview(artistId,{id:item.id,kind:item.kind,decision});const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not review this link.');await load();refreshProfile?.();}
   catch(e){setError(e instanceof Error?e.message:'Could not review this link.');}finally{setBusy(null);}
  }
  const pending=items.filter(i=>i.status==='pending'),reviewed=items.filter(i=>i.status!=='pending');
