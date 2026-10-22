@@ -1,13 +1,11 @@
-import { cancelSpotifyMatchForIdentityEdit } from '../spotify/cancelSpotifyMatchForIdentityEdit';
 import { db } from "@/server/db/drizzle";
 import { eq, sql } from "drizzle-orm";
 import { artists } from "@/server/db/schema";
-import { lockScopedArtistWrite, withScopedArtistWrite } from "../queries/ownershipWrites";
+import { withScopedArtistWrite } from "../queries/ownershipWrites";
 import { sanitizeColumnName } from "./sanitizeColumnName";
 import { assertWritableLinkColumn } from "./assertWritableLinkColumn";
 import { getArtistLinkValue } from "./getArtistLinkValue";
 type ArtistLinkExecutor = Pick<typeof db, "query" | "execute" | "insert">;
-import { acquireArtistPlatformLock } from "../artistIdentityLocks";
 export async function clearArtistLink(
   artistId: string,
   siteName: string
@@ -16,11 +14,8 @@ export async function clearArtistLink(
   assertWritableLinkColumn(columnName);
 
   if (columnName === "spotify" || columnName === "deezer") {
-    return db.transaction(async (transaction) => {
-      await acquireArtistPlatformLock(transaction, artistId, columnName);
-      await lockScopedArtistWrite(transaction, artistId);
-      return clearArtistLinkWithExecutor(transaction, artistId, columnName);
-    });
+    // Catalog disconnect must retire its mapping atomically with the authenticated API write.
+    throw new Error("Use the authenticated profile editor/API to disconnect Spotify or Deezer.");
   }
 
   return withScopedArtistWrite(artistId, tx => clearArtistLinkWithExecutor(tx, artistId, columnName));
@@ -41,10 +36,6 @@ async function clearArtistLinkWithExecutor(
 
   // Safe: assertWritable() above guarantees columnName is a known text column from the whitelist
   const oldValue = getArtistLinkValue(artist, columnName);
-
-  if ((columnName === 'spotify' || columnName === 'deezer')) {
-    await cancelSpotifyMatchForIdentityEdit(database, artistId);
-  }
 
   // See setArtistLink: link changes no longer null/regenerate the bio.
   await database.execute(sql`UPDATE artists SET ${sql.identifier(columnName)} = NULL WHERE id = ${artistId}`);

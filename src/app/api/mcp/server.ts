@@ -259,10 +259,10 @@ server.registerTool(
   "delete_artist_link",
   {
     title: "Delete Artist Link",
-    description: "Remove a platform link from an artist record",
+    description: "Remove a noncatalog platform link from an artist record. Spotify and Deezer require the authenticated profile editor/API.",
     inputSchema: {
       artistId: z.string().uuid().describe("The UUID of the artist in MusicNerd"),
-      siteName: z.string().describe("The platform name (e.g. instagram, x, spotify, youtube)"),
+      siteName: z.string().describe("The noncatalog platform name (e.g. instagram, x, youtube)"),
     },
   },
   async ({ artistId, siteName }) => {
@@ -270,6 +270,16 @@ server.registerTool(
 
     try {
       const apiKeyHash = requireMcpAuth();
+
+      if (siteName === "spotify" || siteName === "deezer") {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({
+            error: "Use the authenticated profile editor/API to disconnect Spotify or Deezer.",
+            code: "OWNER_DISCONNECT_REQUIRED",
+          }) }],
+          isError: true,
+        };
+      }
 
       // Clear the link (validates artist exists + column whitelist, returns old value)
       const { oldValue } = await clearArtistLink(artistId, siteName);

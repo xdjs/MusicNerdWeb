@@ -39,6 +39,29 @@ describe("delete_artist_link MCP tool", () => {
     return await tool.handler(args, {});
   }
 
+  it.each(["spotify", "deezer"])("requires owner disconnect for authenticated %s deletion without writes", async (siteName) => {
+    const s = await setup();
+    s.requireMcpAuth.mockReturnValue("test-hash");
+    const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName });
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0].text)).toEqual({
+      error: "Use the authenticated profile editor/API to disconnect Spotify or Deezer.",
+      code: "OWNER_DISCONNECT_REQUIRED",
+    });
+    expect(s.requireMcpAuth).toHaveBeenCalledTimes(1);
+    expect(s.clearArtistLink).not.toHaveBeenCalled();
+    expect(s.logMcpAudit).not.toHaveBeenCalled();
+  });
+
+  it.each(["spotify", "deezer"])("checks authentication before the %s owner-disconnect response", async (siteName) => {
+    const s = await setup();
+    s.requireMcpAuth.mockImplementation(() => { throw new s.McpAuthError("Authentication required"); });
+    const result = await callDeleteArtistLink(s, { artistId: "00000000-0000-0000-0000-000000000001", siteName });
+    expect(JSON.parse(result.content[0].text)).toEqual({ error: "Authentication required", code: "AUTH_REQUIRED" });
+    expect(s.clearArtistLink).not.toHaveBeenCalled();
+    expect(s.logMcpAudit).not.toHaveBeenCalled();
+  });
+
   it("returns error when artist does not exist", async () => {
     const s = await setup();
     (s.requireMcpAuth as jest.Mock).mockReturnValue("test-hash");
