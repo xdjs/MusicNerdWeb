@@ -69,7 +69,6 @@ jest.mock('@/app/artist/[id]/_components/AddArtistData', () => function AddArtis
     );
 });
 jest.mock('@/app/artist/[id]/_components/HeroSection', () => function HeroSection({ artistName, children, statusBadge, hasPortrait, initialPosition, imageUrl }: any) { return <div data-testid="hero-section" data-image={imageUrl} data-portrait={String(hasPortrait)} data-position={initialPosition}><h1>{artistName}</h1><div id="mn-about" data-testid="blurb-section" />{statusBadge}{children}</div>; });
-jest.mock('@/app/artist/[id]/_components/FunFacts', () => function FunFacts() { return <div data-testid="fun-facts" />; });
 jest.mock('@/app/artist/[id]/_components/GrapevineIframe', () => function GrapevineIframe() { return <div data-testid="grapevine-iframe" />; });
 jest.mock('@/app/artist/[id]/_components/SeoArtistLinks', () => function SeoArtistLinks() { return null; });
 jest.mock('@/app/artist/[id]/_components/onboarding/ProfileTour', () => ({

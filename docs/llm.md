@@ -73,7 +73,7 @@ temperature, thinking budget, timeout, or the error a caller matches on.
 | 11 | `sourceRelevance.ts` `judgeSourceRelevance` | Is this page about this artist | flash | temp 0, JSON schema, thinking 0 | 20 s → `"relevance judge timeout"` | `vaultWebSearch` |
 | 12 | `socialCredits.ts` `extractCaptionCredits` | Credits from Instagram captions, 15 per batch | flash | temp 0, JSON schema | 90 s → `"caption extraction timed out"` | `researchRunner`, `socialIngest` |
 | 13 | ~~`onboarding/turnHandlers.ts` ack~~ | Moved to MusicNerdAPI (`lib/onboarding/generateInterviewAck.ts`) with the onboarding chat (#1365, cutover 2) | — | — | — | — |
-| 14 | `api/funFacts/[type]/route.ts` | Fun fact | flash | temp 0.8 | 15 s → `"Gemini timeout"` → HTTP 408, inside the route's 20 s budget | profile (user) |
+| 14 | ~~`api/funFacts/[type]/route.ts`~~ | Moved to MusicNerdAPI (`lib/funFacts/generateFunFact.ts`, MusicNerdAPI#80); the Web route and its unmounted Fun Facts components are deleted (#1595) | — | — | — | — |
 
 Site 8 was added after the 2026-09-15 inventory on #1265 (which counted thirteen).
 
