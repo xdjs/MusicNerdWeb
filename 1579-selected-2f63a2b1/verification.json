@@ -1,0 +1,128 @@
+{
+  "sha": "2f63a2b128ac75688bda188a11a198e8c7b74b5d",
+  "deployment": "https://app-gxmzwuybm-musicnerd.vercel.app",
+  "checks": [
+    {
+      "key": "latasha",
+      "path": "/artist/73488cf7-3d3f-46ac-8cb1-74424c162ed6/share-image?v=2",
+      "status": 503,
+      "type": "text/plain;charset=UTF-8",
+      "cache": "no-store",
+      "bytes": 31
+    },
+    {
+      "key": "pete-profile",
+      "path": "/artist/50f23458-df64-4381-8042-7333e8b64531/share-image?v=2",
+      "status": 503,
+      "type": "text/plain;charset=UTF-8",
+      "cache": "no-store",
+      "bytes": 31
+    },
+    {
+      "key": "dutchyyy",
+      "path": "/artist/6cb3d81a-3d02-4c57-a711-bb7902a9af1b/share-image?v=2",
+      "status": 503,
+      "type": "text/plain;charset=UTF-8",
+      "cache": "no-store",
+      "bytes": 31
+    },
+    {
+      "key": "normal",
+      "path": "/dev/artist-share-preview/image?case=normal",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 120206,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "missing",
+      "path": "/dev/artist-share-preview/image?case=missing",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 39709,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "accent",
+      "path": "/dev/artist-share-preview/image?case=accent",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 35169,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "decomposed",
+      "path": "/dev/artist-share-preview/image?case=decomposed",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 37138,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "long",
+      "path": "/dev/artist-share-preview/image?case=long",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 47000,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "wide",
+      "path": "/dev/artist-share-preview/image?case=wide",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 49883,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "unicode",
+      "path": "/dev/artist-share-preview/image?case=unicode",
+      "status": 200,
+      "type": "image/png",
+      "cache": "public, max-age=3600",
+      "bytes": 36110,
+      "width": 1200,
+      "height": 630
+    },
+    {
+      "key": "latasha-retry",
+      "status": 503,
+      "cache": "no-store",
+      "cause": "EMAXCONNSESSION: max clients reached in session mode; pool_size 35",
+      "blocking": "Real artist metadata and share-image checks"
+    },
+    {
+      "key": "invalid-id",
+      "status": 404,
+      "cache": "no-store"
+    }
+  ],
+  "browser": {
+    "widths": [
+      832,
+      390
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "fallbacksLoaded": 5,
+    "phoneOverflow": false
+  },
+  "notVerified": [
+    "Real artist route and metadata: staging connection pool exhausted",
+    "Native messaging-app delivery"
+  ]
+}
