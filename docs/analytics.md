@@ -75,7 +75,7 @@ lower-case tokens; free text appears only where the table says so.
 Fire points for `profile_edit`: the browser, after MusicNerdAPI answers 200: `AddArtistData.tsx`
 (`directEditLink` `set` that changed the link → `link_add`), `EditableLinkIcon.tsx` (`directEditLink` `clear` → `link_remove`),
 `EditablePlatformLink.tsx` (`removeArtistData` → `link_remove`), `SortableArtistLinks.tsx` (`artist/link-order` → `reorder`),
-`HeroSection` and `ArtistPhotoChoice` after a photo upload or photo choice (`photo`); `api/vault/upload/complete` (`vault_upload`),
+`HeroSection` and `ArtistPhotoChoice` after a photo upload or photo choice (`photo`), `VaultManager` after `vault/upload/complete` (`vault_upload`),
 `actions/dismissLegacyLink` (`dismiss`).
 
 Deviations from the approved table, because of what the code knows at the fire point:
